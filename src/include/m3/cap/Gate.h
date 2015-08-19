@@ -1,0 +1,129 @@
+/*
+ * Copyright (C) 2013, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Economic rights: Technische Universitaet Dresden (Germany)
+ *
+ * This file is part of M3 (Microkernel for Minimalist Manycores).
+ *
+ * M3 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * M3 is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details.
+ */
+
+#pragma once
+
+#include <m3/cap/Cap.h>
+#include <m3/util/Util.h>
+#include <m3/DTU.h>
+#include <m3/ChanMng.h>
+#include <m3/Subscriber.h>
+#include <m3/RecvBuf.h>
+
+namespace m3 {
+
+/**
+ * Gate is the base-class of all gates. A Gate is in general a connection to a channel on a core.
+ * This can be used for send/reply or for memory operations like read and write.
+ *
+ * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
+ */
+class Gate : public Cap, public SListItem {
+    friend class ChanMng;
+    friend class ChanMngBase;
+
+    static const size_t NODESTROY   = -2;
+
+public:
+    static const size_t UNBOUND     = RecvBuf::UNBOUND;
+
+    enum Operation {
+        READ    = 0x0,
+        WRITE   = 0x1,
+        CMPXCHG = 0x2,
+        SEND    = 0x3,
+    };
+
+protected:
+    /**
+     * Binds this gate for sending to the given capability. That is, the capability should be a
+     * capability you've received from somebody else.
+     */
+    explicit Gate(uint type, capsel_t cap, unsigned capflags, size_t chanid = UNBOUND)
+        : Cap(type, cap, capflags), SListItem(), _chanid(chanid) {
+    }
+
+public:
+    Gate(Gate &&c) : Cap(Util::move(c)), SListItem(Util::move(c)), _chanid(c._chanid) {
+        c._chanid = NODESTROY;
+    }
+    ~Gate() {
+       ChanMng::get().remove(this, flags() & KEEP_CAP);
+    }
+
+    /**
+     * @return the channel to which this gate is currently bound (might be UNBOUND)
+     */
+    size_t chanid() const {
+        return _chanid;
+    }
+    /**
+     * @return the label for this gate
+     */
+    label_t label() const {
+        return reinterpret_cast<label_t>(this);
+    }
+
+    /**
+     * Rebinds this gate to the given capability-selector. Note that this will release the so far
+     * bound capability-selector, depending on what has been done on the object-creation. So, if the
+     * capability has been created, it will be released. If the selector has been allocated, it will
+     * be released. If not, nothing is done.
+     *
+     * @param newsel the new selector (might also be Cap::INVALID)
+     */
+    void rebind(capsel_t newsel) {
+        ChanMng::get().switch_cap(this, newsel);
+        release();
+        sel(newsel);
+    }
+
+protected:
+    void ensure_activated() {
+        if(_chanid == UNBOUND && sel() != Cap::INVALID)
+            ChanMng::get().switch_to(this);
+    }
+    void wait_until_sent() {
+        DTU::get().wait_until_ready(_chanid);
+    }
+
+    void async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
+            label_t reply_lbl = 0, int reply_chan = 0) {
+        // ensure that the DMAUnit is ready. this is required if we want to mix async sends with
+        // sync sends.
+        wait_until_sent();
+        ensure_activated();
+        switch(op) {
+            case SEND:
+                DTU::get().send(_chanid, data, datalen, reply_lbl, reply_chan);
+                break;
+            case READ:
+                DTU::get().read(_chanid, data, datalen, off);
+                break;
+            case WRITE:
+                DTU::get().write(_chanid, data, datalen, off);
+                break;
+            case CMPXCHG:
+                DTU::get().cmpxchg(_chanid, data, datalen, off, size);
+                break;
+        }
+    }
+
+private:
+    size_t _chanid;
+};
+
+}

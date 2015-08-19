@@ -1,0 +1,2 @@
+Import('hostenv')
+hostenv.Program(target = 'decodeidma', source = hostenv.Glob('*.cc'))

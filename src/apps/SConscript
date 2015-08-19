@@ -1,0 +1,26 @@
+Import('env', 'hostenv')
+
+# apps that run everywhere
+dirs = [
+    'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests',
+    'm3fs', 'fstest', 'init', 'readelf', 'parchksum', 'filterchain', 'noop',
+    'float', 'srvtest', 'bench', 'pipe', 'execpipe', 'ls', 'fstrace'
+]
+
+# architecture / machine specific apps
+if env['ARCH'] == 't2':
+    dirs += ['profiler']
+    if env['MACH'] == 'chip':
+        dirs += ['idle']
+    else:
+        dirs += ['fortran']
+elif env['ARCH'] == 't3':
+    dirs += ['idle']
+elif env['ARCH'] == 'host':
+    dirs += [
+        'asciiplay', 'intserver', 'keyb', 'plasma',
+        'queue', 'shell', 'stream', 'timer', 'vga'
+    ]
+
+for d in dirs:
+    env.SConscript(env.Glob(d + '/SConscript'), exports = ['env', 'hostenv'])

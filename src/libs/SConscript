@@ -1,0 +1,4 @@
+Import('env')
+dirs = ['m3', 'test'] if env['ARCH'] == 'host' else ['c', 'm3', 'support', 'test']
+for d in dirs:
+    env.SConscript(Glob(d + '/SConscript'), 'env')

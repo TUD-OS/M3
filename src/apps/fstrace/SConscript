@@ -1,0 +1,5 @@
+Import('env', 'hostenv')
+
+dirs = ['strace2cpp', 'linux', 'm3fs']
+for d in dirs:
+    hostenv.SConscript(d + '/SConscript', exports = ['env', 'hostenv'])

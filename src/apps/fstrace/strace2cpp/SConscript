@@ -1,0 +1,10 @@
+Import('hostenv')
+
+myenv = hostenv.Clone()
+myenv.Append(
+    CPPPATH = ['../common']
+)
+myenv.Program(
+    target = 'strace2cpp',
+    source = ['main.cc', 'common/tracerecorder.cc', 'common/opdescr.cc']
+)

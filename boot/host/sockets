@@ -1,0 +1,7 @@
+#!/bin/sh
+build="build/$M3_TARGET-$M3_BUILD"
+$build/bin/sockets-server &
+pid=$!
+trap 'kill $pid' INT
+$build/bin/sockets-client
+kill $pid

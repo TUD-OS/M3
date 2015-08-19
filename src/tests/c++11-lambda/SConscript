@@ -1,0 +1,3 @@
+Import('env')
+prog = env.Program('c++11-lambda', env.Glob('*.cc'))
+env.Install(env['BINARYDIR'], prog)

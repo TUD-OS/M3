@@ -1,0 +1,6 @@
+Import('env')
+#env.M3Program(
+#    env, target = 'fortran', source = Glob('*.f90'),
+#    libs = ['gfortran', 'c', 'm', 'gcc', 'gloss'],
+#    libpaths = [env['XTLIBDIR']]
+#)

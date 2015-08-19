@@ -1,0 +1,6 @@
+Import('env')
+
+myenv = env.Clone()
+# don't use LTO here because it makes the code >40% slower (WTF??)
+myenv["CXXFLAGS"] = myenv["CXXFLAGS"].replace('-flto','')
+myenv.M3Program(myenv, 'wc', myenv.Glob('*.cc'))

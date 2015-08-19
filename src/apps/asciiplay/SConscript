@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'asciiplay', env.Glob('*.cc'))

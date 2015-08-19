@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'pipe', env.Glob('*.cc'))

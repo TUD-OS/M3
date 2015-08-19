@@ -1,0 +1,20 @@
+Import('env')
+
+archtype = 'th' if env['ARCH'] == 't2' or env['ARCH'] == 't3' else 'host'
+
+myenv = env.Clone()
+myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-O2', '-Os')
+myenv['LINKFLAGS'] = str(myenv['LINKFLAGS']).replace('-O2', '-Os')
+
+def build_test(env, name):
+    env.M3Program(env, target = 'unittests-' + name, libs = ['test'], source = [
+        env.Glob('unittests-' + name + '.cc'),
+        env.Glob('suites/' + name + '/*.cc'),
+    ])
+
+if myenv['ARCH'] == 'host':
+    build_test(myenv, 'dtu')
+build_test(myenv, 'fs')
+build_test(myenv, 'stream')
+build_test(myenv, 'misc')
+env.M3Program(env, target = 'unittests', source = ['unittests.cc'])

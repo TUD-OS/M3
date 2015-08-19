@@ -1,0 +1,9 @@
+.scons*
+*~
+*.pyc
+*.sublime-workspace
+/build
+/cross/buildroot
+/run
+/config.ini
+/th/bug

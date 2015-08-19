@@ -1,0 +1,16 @@
+Import('env')
+
+prog = env.M3Program(
+    env,
+    target = 'idle',
+    source = [
+        env['BINARYDIR'].abspath + '/Window.o',
+        'user-vector.o',
+        env.Glob('*.cc'),
+        env.Glob('*.S')
+    ],
+    NoSup = True,
+    ldscript = File('#src/apps/idle/' + env['ARCH'] + '/elf32xtensa.x'),
+    libs = ['handler-reset', 'hal', 'handlers-sim']
+)
+env.Depends(prog, File('#src/apps/idle/' + env['ARCH'] + '/elf32xtensa.x'))

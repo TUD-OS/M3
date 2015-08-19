@@ -1,0 +1,2 @@
+Import('hostenv')
+hostenv.Program(target = 'exm3fs', source = hostenv.Glob('*.cc'))

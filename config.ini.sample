@@ -1,0 +1,3 @@
+cfgpath=../xtensa_configs
+xtroot=/home/hrniels/Applications/xtensa
+buildroot=/home/hrniels/imdata/xtensa-linux/buildroot

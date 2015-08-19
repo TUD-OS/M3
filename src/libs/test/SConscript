@@ -1,0 +1,3 @@
+Import('env')
+stlib = env.StaticLibrary('test', env.Glob('*.cc'))
+env.Install(env['LIBDIR'], stlib)

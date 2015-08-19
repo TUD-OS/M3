@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'vga', env.Glob('*.cc'), libs = ['rt'])

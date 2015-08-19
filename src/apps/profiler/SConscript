@@ -1,0 +1,17 @@
+Import('env')
+env.M3Program(
+    env,
+    target = 'profiler',
+    source = [
+        env['LIBDIR'].abspath + '/crti.o',
+        env['CRTDIR'].abspath + '/crtbegin.o',
+        env['CRTDIR'].abspath + '/crtend.o',
+        env['LIBDIR'].abspath + '/crtn.o',
+        env['LIBDIR'].abspath + '/Window.o',
+        Glob('*.cc'),
+        env.Glob('*.S')
+    ],
+    core = 'oli_ten_570t_8',
+    libs = ['hal', 'handlers-sim'],
+    NoSup = True
+)

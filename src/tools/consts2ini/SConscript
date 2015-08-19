@@ -1,0 +1,2 @@
+Import('hostenv')
+hostenv.Program(target = 'consts2ini', source = hostenv.Glob('*.cc'))

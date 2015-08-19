@@ -1,0 +1,3 @@
+[submodule "th"]
+	path = th
+	url = os.inf.tu-dresden.de:tomahawk.git

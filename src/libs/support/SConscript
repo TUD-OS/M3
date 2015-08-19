@@ -1,0 +1,5 @@
+Import('env')
+win = env.Object(target = 'Window.o', source = 'Window.S')
+crti = env.Object(target = 'crti.o', source = 'crti.S')
+crtn = env.Object(target = 'crtn.o', source = 'crtn.S')
+env.Install(env['LIBDIR'], [win, crti, crtn])

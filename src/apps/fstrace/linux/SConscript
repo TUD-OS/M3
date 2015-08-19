@@ -1,0 +1,14 @@
+Import('env', 'hostenv')
+
+myenv = hostenv.Clone()
+myenv.Append(
+    CPPFLAGS = ' -D__LINUX__',
+    CPPPATH = ['.', '../common']
+)
+
+prog = myenv.Program(
+    target = 'linux-replay',
+    source = [
+        myenv.Glob('*.cc'), 'common/main.cc', 'common/buffer.cc', 'common/traceplayer.cc', 'trace.c'
+    ]
+)

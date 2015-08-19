@@ -1,0 +1,2 @@
+Import('hostenv')
+hostenv.Program(target = 'm3fsck', source = hostenv.Glob('*.cc'))

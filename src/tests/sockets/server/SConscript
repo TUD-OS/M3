@@ -1,0 +1,3 @@
+Import('env')
+prog = env.Program('sockets-server', env.Glob('*.cc'))
+env.Install(env['BINARYDIR'], prog)

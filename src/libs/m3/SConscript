@@ -1,0 +1,14 @@
+Import('env')
+
+archtype = 'th' if env['ARCH'] == 't2' or env['ARCH'] == 't3' else 'host'
+lib = env.StaticLibrary(
+    target = 'libm3',
+    source = [
+        env.Glob('*.cc'), env.Glob('*/*.cc'),
+        env.Glob('arch/' + archtype + '/*.S'), env.Glob('arch/' + archtype + '/*.cc'),
+        env.Glob('arch/' + archtype + '-$MACH/*.S'), env.Glob('arch/' + archtype + '-$MACH/*.cc'),
+        env.Glob('arch/$ARCH/*.S'), env.Glob('arch/$ARCH/*.cc'),
+        env.Glob('arch/$ARCH-$MACH/*.S'), env.Glob('arch/$ARCH-$MACH/*.cc')
+    ]
+)
+env.Install(env['LIBDIR'], lib)
