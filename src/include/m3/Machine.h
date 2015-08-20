@@ -14,26 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/util/Sync.h>
-#include <m3/DTU.h>
-#include <cstring>
+#pragma once
+
+#include <m3/Common.h>
 
 namespace m3 {
 
-int Serial::do_write(const char *str, size_t len) {
-    volatile uint *ack = reinterpret_cast<volatile uint*>(SERIAL_ACK);
-    char *buffer = reinterpret_cast<char*>(SERIAL_BUF);
-    assert(len <= SERIAL_BUFSIZE);
-    memcpy(buffer, str, len);
-    *ack = len;
-    while(*ack != 0)
-        ;
-    return 0;
-}
+class Machine {
+    Machine() = delete;
 
-ssize_t Serial::do_read(char *, size_t) {
-    return 0;
-}
+public:
+    static NORETURN void shutdown();
+    static int write(const char *str, size_t len);
+    static ssize_t read(char *buf, size_t len);
+};
 
 }

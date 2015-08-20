@@ -16,17 +16,22 @@
 
 #include <m3/stream/Serial.h>
 #include <m3/Config.h>
+#include <m3/Machine.h>
 
 #include <sys/file.h>
 #include <unistd.h>
 
 namespace m3 {
 
-int Serial::do_write(const char *str, size_t len) {
+void Machine::shutdown() {
+    exit(EXIT_FAILURE);
+}
+
+int Machine::write(const char *str, size_t len) {
     return ::write(Config::get().log_fd(), str, len);
 }
 
-ssize_t Serial::do_read(char *buf, size_t len) {
+ssize_t Machine::read(char *buf, size_t len) {
     return ::read(STDIN_FILENO, buf, len);
 }
 

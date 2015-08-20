@@ -20,6 +20,7 @@
 #include <m3/Config.h>
 #include <m3/ChanMng.h>
 #include <m3/RecvBuf.h>
+#include <m3/Machine.h>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -132,7 +133,7 @@ EXTERN_C int lambda_main(std::function<int()> *f) {
 
 /* Fortran support */
 EXTERN_C void outbyte(char byte) {
-    Serial::do_write(&byte, 1);
+    Machine::write(&byte, 1);
 }
 
 EXTERN_C uint8_t inbyte() {

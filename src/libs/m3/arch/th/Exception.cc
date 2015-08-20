@@ -111,15 +111,5 @@ EXTERN_C void ExceptionHandler(uint cause, const State *state) {
     ser << "    ps   = " << fmt(state->ps, "#0x", 8) << "\n";
     ser << "    pc   = " << fmt(state->pc, "#0x", 8) << "\n";
 
-#if defined(__t3__)
-    // shutdown simulator
-    register int a2 __asm__ ("a2") = 1;
-    register int a3 __asm__ ("a3") = 0;
-    asm volatile (
-        "simcall" : : "a"(a2), "a"(a3)
-    );
-    UNREACHED;
-#else
     exit(1);
-#endif
 }

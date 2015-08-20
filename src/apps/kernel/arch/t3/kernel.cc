@@ -71,11 +71,6 @@ int main(int argc, char *argv[]) {
     PEManager::destroy();
     delete chsw;
 
-    // call exit
-    register int a2 __asm__ ("a2") = 1;
-    register int a3 __asm__ ("a3") = 0;
-    asm volatile (
-        "simcall" : : "a"(a2), "a"(a3)
-    );
-    UNREACHED;
+    Machine::shutdown();
+    return EXIT_SUCCESS;
 }

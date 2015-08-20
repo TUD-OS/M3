@@ -19,6 +19,7 @@
 #include <m3/stream/IStream.h>
 #include <m3/stream/OStream.h>
 #include <m3/DTU.h>
+#include <m3/Machine.h>
 
 namespace m3 {
 
@@ -42,12 +43,6 @@ public:
     }
 
     /**
-     * The low-level functions for reading/writing. Do not use them directly.
-     */
-    static int do_write(const char *str, size_t len);
-    static ssize_t do_read(char *buf, size_t len);
-
-    /**
      * Initializes everything. Should only be called at the beginning.
      *
      * @param path the path of the program
@@ -60,7 +55,7 @@ public:
      */
     void flush() {
         strcpy(_outbuf + _outpos, "\e[0m");
-        do_write(_outbuf, _outpos + SUFFIX_LEN);
+        Machine::write(_outbuf, _outpos + SUFFIX_LEN);
         // keep prefix
         _outpos = _start;
     }

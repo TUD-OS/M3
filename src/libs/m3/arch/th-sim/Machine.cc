@@ -16,11 +16,21 @@
 
 #include <m3/stream/Serial.h>
 #include <m3/DTU.h>
+#include <m3/Machine.h>
 #include <cstring>
 
 namespace m3 {
 
-int Serial::do_write(const char *str, size_t len) {
+void Machine::shutdown() {
+    register int a2 __asm__ ("a2") = 1;
+    register int a3 __asm__ ("a3") = 0;
+    asm volatile (
+        "simcall" : : "a"(a2), "a"(a3)
+    );
+    UNREACHED;
+}
+
+int Machine::write(const char *str, size_t len) {
     register int a2 __asm__ ("a2") = 4;
     register int a3 __asm__ ("a3") = 1;
     register const char *a4 __asm__ ("a4") = str;
@@ -33,7 +43,7 @@ int Serial::do_write(const char *str, size_t len) {
     return ret_err;
 }
 
-ssize_t Serial::do_read(char *buf, size_t len) {
+ssize_t Machine::read(char *buf, size_t len) {
     register int a2 __asm__ ("a2") = 3;
     register int a3 __asm__ ("a3") = 0;
     register const char *a4 __asm__ ("a4") = buf;

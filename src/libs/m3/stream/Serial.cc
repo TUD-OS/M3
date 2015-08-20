@@ -65,7 +65,7 @@ void Serial::write(char c) {
 
 char Serial::read() {
     if(_inpos >= _inlen) {
-        ssize_t res = do_read(_inbuf, INBUF_SIZE);
+        ssize_t res = Machine::read(_inbuf, INBUF_SIZE);
         if(res < 0)
             return 0;
         _inlen = res;
