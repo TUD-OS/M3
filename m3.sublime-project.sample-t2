@@ -1,0 +1,36 @@
+{
+    "folders":
+    [
+        {
+            "path": "/your/path/to/the/m3/repo",
+            "file_exclude_patterns": ["*.log"]
+        }
+    ],
+    "settings":
+    {
+        "sublimeclang_additional_language_options":
+        {
+            "c++" : ["-std=c++11"],
+            "c" : ["-std=c99"]
+        },
+        "sublimeclang_options":
+        [
+            "-D__t2__",
+            "-D__t2_chip__",
+            "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/sysroot/usr/include/",
+            "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/include/c++/4.8.4/",
+            "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/include/c++/4.8.4/xtensa-buildroot-linux-uclibc/",
+            "-I/your/path/to/the/m3/repo/src/include",
+            "-I/your/path/to/the/m3/repo/th/xtensa_configs/oi_lx4_PE_6/xtensa-elf/include/",
+            "-I/your/path/to/the/m3/repo/th/xtensa_configs/oi_lx4_PE_6/xtensa-elf/arch/include/",
+            "-nostdinc",
+            "-nostdinc++",
+            "-Wsign-compare",
+            "-Wunused-parameter",
+            "-Wunused-result",
+            "-Wunused-variable",
+            "-ferror-limit=0",
+            "-m32"
+        ]
+    }
+}

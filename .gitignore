@@ -1,6 +1,7 @@
 .scons*
 *~
 *.pyc
+*.sublime-project
 *.sublime-workspace
 /build
 /cross/buildroot

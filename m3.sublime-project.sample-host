@@ -1,0 +1,27 @@
+{
+    "folders":
+    [
+        {
+            "path": "/your/path/to/the/m3/repo",
+            "file_exclude_patterns": ["*.log"]
+        }
+    ],
+    "settings":
+    {
+        "sublimeclang_additional_language_options":
+        {
+            "c++" : ["-std=c++11"],
+            "c" : ["-std=c99"]
+        },
+        "sublimeclang_options":
+        [
+            "-D__host__",
+            "-I/your/path/to/the/m3/repo/src/include",
+            "-Wsign-compare",
+            "-Wunused-parameter",
+            "-Wunused-result",
+            "-Wunused-variable",
+            "-ferror-limit=0"
+        ]
+    }
+}
