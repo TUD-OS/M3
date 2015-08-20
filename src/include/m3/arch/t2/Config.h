@@ -26,6 +26,19 @@
 #define CODE_BASE_ADDR      0x60010000
 
 #define DRAM_CCOUNT         0x100000
+#define CM_CCOUNT           0xFFF0
+#define CM_CCOUNT_AT_CM     0x6000FFF0
+
+// set to 0 to use the app-core and DRAM
+#define CCOUNT_CM           1
+
+#if CCOUNT_CM == 1
+#   define CCOUNT_CORE         CM_CORE
+#   define CCOUNT_ADDR         CM_CCOUNT
+#else
+#   define CCOUNT_CORE         MEMORY_CORE
+#   define CCOUNT_ADDR         DRAM_CCOUNT
+#endif
 
 #define STACK_TOP           0x60010000              // actually, we only control that on the chip
 // give the stack 4K

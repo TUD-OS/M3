@@ -44,6 +44,7 @@ int main() {
 #if defined(__t2__)
     cout << "BOOT_DATA = "      << BOOT_DATA << "\n";
     cout << "DRAM_CCOUNT = "    << DRAM_CCOUNT << "\n";
+    cout << "CCOUNT_CM = "      << CCOUNT_CM << "\n";
 #endif
     return 0;
 }

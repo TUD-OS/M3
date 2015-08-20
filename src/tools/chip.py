@@ -131,17 +131,17 @@ def fetchPrint(core, id):
         print "Got invalid length from PE ", id, ": ", length
     return 0
 
-if len(sys.argv) < 5:
-    print "Usage: %s <fsimg> <app-core> <logfile> <program>..." % sys.argv[0]
+if len(sys.argv) < 6:
+    print "Usage: %s <fsimg> <cm-core> <app-core> <logfile> <program>..." % sys.argv[0]
     sys.exit(1)
 
 # open logfile
-log = open(sys.argv[3], 'w')
+log = open(sys.argv[4], 'w')
 
 # parse programs and their arguments, separated by --
 progs = []
 args = []
-for arg in sys.argv[4:]:
+for arg in sys.argv[5:]:
     # don't pass ".mem" to target
     if arg[-4:] == ".mem":
         arg = arg[0:-4]
@@ -172,8 +172,9 @@ th.ddr_ram.mem[DRAM_CCOUNT] = 0
 print progs
 
 # init App-Core
-print "Initializing memory of App-Core with " + sys.argv[2]
-th.app_core.initMem(sys.argv[2])
+if sys.argv[3] != "-":
+    print "Initializing memory of App-Core with " + sys.argv[3]
+    th.app_core.initMem(sys.argv[3])
 
 # init PEs
 i = 0
@@ -217,6 +218,15 @@ for duo_pe in th.duo_pes[len(progs):]:
     duo_pe.mem[SERIAL_ACK] = 0
 
     i += 1
+
+# init and start CM
+if sys.argv[2] != "-":
+    print "Powering on CM"
+    th.cm_core.on()
+    th.cm_core.set_ptable_val(10)   # 400 MHz
+    print "Initializing memory of CM with " + sys.argv[2]
+    th.cm_core.initMem(sys.argv[2])
+    th.cm_core.start()
 
 # start all PEs
 i = 0

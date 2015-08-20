@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2015, Matthias Lieber <matthias.lieber@tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel for Minimalist Manycores).
@@ -14,27 +15,27 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
-#include <m3/util/Profile.h>
+#include <m3/Config.h>
 
-namespace m3 {
-
-cycles_t Profile::start(UNUSED unsigned id) {
-    return stop(id);
+static inline uint32_t get_cycles() {
+    uint32_t val;
+    asm volatile (
+          "rsr    %0, CCOUNT;"
+          : "=a" (val)
+    );
+    return val;
 }
 
-cycles_t Profile::stop(UNUSED unsigned id) {
-    uint64_t cycles = 0;
-
-    // TODO not yet implemented on t2-sim
-    DTU::get().set_target(SLOT_NO, CCOUNT_CORE, CCOUNT_ADDR);
-    Sync::memory_barrier();
-    DTU::get().fire(SLOT_NO, DTU::READ, &cycles, sizeof(cycles));
-
-    // the number of cycles will never be zero. so wait until it changes
-    while(*(volatile uint64_t*)&cycles == 0)
-        ;
-    return cycles;
-}
-
+int main() {
+    volatile uint64_t *addr = reinterpret_cast<volatile uint64_t*>(CM_CCOUNT_AT_CM);
+    uint64_t major = 0;
+    uint32_t last = 0;
+    while(1) {
+        uint32_t now = get_cycles();
+        if(now < last)
+            major += ((uint64_t)1) << 32;
+        *addr = major | (uint64_t)now;
+        last = now;
+    }
+    return 0;
 }

@@ -241,7 +241,6 @@ build_params_t2_chip() {
         done
         ( cd $build/mem && scp $progs $t2pcip:thtest )
         ( cd src/tools && scp chip.py $t2pcip:thtest )
-        scp $build/mem/idle.mem $build/mem/profiler.mem $t2pcip:thtest
         echo $kargs $args
     )`
 
@@ -253,12 +252,21 @@ build_params_t2_chip() {
     $build/src/tools/consts2ini/consts2ini > $temp
     scp $temp $t2pcip:thtest/memlayout.ini
 
+    # profiler on CM or APP?
+    if [ "`grep CCOUNT_CM $temp | cut -d ' ' -f 3`" = "1" ]; then
+        profargs="profiler_cm.mem -"
+    else
+        profargs="- profiler.mem"
+    fi
+
+    scp $build/mem/idle.mem $build/mem/profiler.mem $build/mem/profiler_cm.mem $t2pcip:thtest
+
     if [[ "$args" =~ "m3fs" ]]; then
         tar -C $build/mem -cf - $M3_FS.mem | gzip > $temp
         scp $temp $t2pcip:thtest/$M3_FS.mem.tar.gz
         ssh -t $t2pcip "chmod ugo+rw thtest/$M3_FS.mem.tar.gz"
         ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup.sh && " \
-            "tar xfz $M3_FS.mem.tar.gz && ./chip.py $M3_FS.mem profiler.mem log.txt $args && " \
+            "tar xfz $M3_FS.mem.tar.gz && ./chip.py $M3_FS.mem $profargs log.txt $args && " \
             "tar cfz $M3_FS.mem.out.tar.gz $M3_FS.mem.out"
         scp $t2pcip:thtest/$M3_FS.mem.out.tar.gz $build
         ( cd $build && tar xfz $M3_FS.mem.out.tar.gz &&
@@ -266,7 +274,7 @@ build_params_t2_chip() {
             rm $M3_FS.mem.out.tar.gz )
     else
         ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup.sh && " \
-            "./chip.py - profiler.mem log.txt $args"
+            "./chip.py - $profargs log.txt $args"
     fi
     scp $t2pcip:thtest/log.txt run
 
