@@ -269,7 +269,7 @@ public:
         return *this;
     }
     OStream & operator<<(llong n) {
-        printn(n);
+        printlln(n);
         return *this;
     }
     OStream & operator<<(ulong u) {
@@ -277,7 +277,7 @@ public:
         return *this;
     }
     OStream & operator<<(ullong u) {
-        printu(u, 10, _hexchars_small);
+        printllu(u,10, _hexchars_small);
         return *this;
     }
     OStream & operator<<(float f) {
@@ -314,8 +314,9 @@ private:
     int printupad(ulong u, uint base, uint pad, uint flags);
     int printpad(int count, uint flags);
     int printu(ulong n, uint base, char *chars);
-    int printlln(llong n);
+    int printllu(ullong n, uint base, char *chars);
     int printn(long n);
+    int printlln(llong n);
     int printfloat(float d, uint precision);
     int printptr(uintptr_t u, uint flags);
     int puts(const char *str, ulong prec = -1);

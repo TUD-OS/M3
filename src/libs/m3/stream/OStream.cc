@@ -174,6 +174,16 @@ USED int OStream::printu(ulong n, uint base, char *chars) {
     return res + 1;
 }
 
+int OStream::printllu(ullong n, uint base, char *chars) {
+    llong rem;
+    llong quot = divide(n, base, &rem);
+    int res = 0;
+    if(n >= base)
+        res += printllu(quot, base, chars);
+    write(chars[rem]);
+    return res + 1;
+}
+
 int OStream::printlln(llong n) {
     llong rem;
     llong quot = divide(n, 10, &rem);

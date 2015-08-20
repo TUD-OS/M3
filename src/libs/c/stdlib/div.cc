@@ -16,20 +16,14 @@
 
 #include <c/div.h>
 
-long long divide(long long n, long long d, long long *rem) {
-    long lrem;
-    long res = divide((long)n, (long)d, &lrem);
-    *rem = lrem;
-    return res;
-}
-
-long divide(long n, long d, long *rem) {
+template<typename T>
+T divmod(T n, T d, T *rem) {
     if(d == 0)
         return 0;
 
-    long q = 0;
-    long r = 0;
-    for(int i = sizeof(long) * 8 - 1; i >= 0; --i) {
+    T q = 0;
+    T r = 0;
+    for(int i = sizeof(T) * 8 - 1; i >= 0; --i) {
         r <<= 1;
         r |= (n >> i) & 0x1;
         if(r >= d) {
@@ -39,4 +33,37 @@ long divide(long n, long d, long *rem) {
     }
     *rem = r;
     return q;
+}
+
+long divide(long n, long d, long *rem) {
+    return divmod(n, d, rem);
+}
+
+llong divide(llong n, llong d, llong *rem) {
+    return divmod(n, d, rem);
+}
+
+// we provide our own versions of __moddi3, __divdi3, __umoddi3 and __udivdi3 to optimize for size
+// instead of performance. they are almost exclusively used for printing stuff anyway.
+
+extern "C" llong __moddi3(llong n, llong d) {
+    llong rem = 0;
+    divmod(n, d, &rem);
+    return rem;
+}
+
+extern "C" llong __divdi3(llong n, llong d) {
+    llong rem;
+    return divmod(n, d, &rem);
+}
+
+extern "C" ullong __umoddi3(ullong n, ullong d) {
+    ullong rem = 0;
+    divmod(n, d, &rem);
+    return rem;
+}
+
+extern "C" ullong __udivdi3(ullong n, ullong d) {
+    ullong rem;
+    return divmod(n, d, &rem);
 }
