@@ -19,6 +19,7 @@
 #include <m3/Common.h>
 #include <m3/Config.h>
 #include <m3/stream/OStream.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/util/Util.h>
 #include <assert.h>
 
@@ -92,7 +93,9 @@ public:
         volatile uint *ptr = reinterpret_cast<uint*>(PE_IDMA_OVERALL_SLOT_STATUS_ADDRESS);
         while(ptr[0] != 0)
             ;
+        EVENT_TRACE_MEM_FINISH();
     }
+
     bool wait_for_mem_cmd() {
         // we've already waited
         return true;
@@ -106,6 +109,7 @@ public:
 
     void set_target(int slot, uchar dst, uintptr_t addr, uint credits = 0xFF, uchar perm = 0x3);
     void fire(int slot, Operation op, const void *msg, size_t size);
+
 
 private:
     void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);

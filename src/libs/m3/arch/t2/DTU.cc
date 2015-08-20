@@ -16,6 +16,7 @@
 
 #include <m3/util/Sync.h>
 #include <m3/cap/MemGate.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/DTU.h>
 #include <m3/ChanMng.h>
 #include <m3/Log.h>
@@ -30,6 +31,8 @@ void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int rep
     LOG(DTU, "-> " << fmt(size, 4) << "b from " << msg << " to " << fmt(destaddr, "p")
         << " @ " << cfg->dstcore << ":" << cfg->dstchan
         << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
+
+    EVENT_TRACE_MSG_SEND(cfg->dstcore, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival
@@ -90,6 +93,8 @@ void DTU::read(int chan, void *msg, size_t size, size_t off) {
     uintptr_t srcaddr = base + off;
     LOG(DTU, "Reading " << size << "b from " << cfg->dstcore << " @ " << fmt(srcaddr, "p"));
 
+    EVENT_TRACE_MEM_READ(cfg->dstcore, size);
+
     // mark the end
     reinterpret_cast<unsigned char*>(msg)[size - 1] = 0xFF;
 
@@ -116,6 +121,8 @@ void DTU::write(int chan, const void *msg, size_t size, size_t off) {
     size_t len = cfg->credits;
     uintptr_t destaddr = base + off;
     LOG(DTU, "Writing " << size << "b to " << cfg->dstcore << " @ " << fmt(destaddr, "p"));
+
+    EVENT_TRACE_MEM_WRITE(cfg->dstcore, size);
 
     check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::W);
     set_target(SLOT_NO, cfg->dstcore, destaddr);

@@ -19,6 +19,7 @@
 #include <m3/server/Handler.h>
 #include <m3/cap/SendGate.h>
 #include <m3/cap/RecvGate.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/GateStream.h>
 #include <m3/Errors.h>
 
@@ -83,6 +84,7 @@ protected:
 
 public:
     void handle_message(RecvGate &gate, Subscriber<RecvGate&> *) {
+        EVENT_TRACER_handle_message();
         GateIStream msg(gate);
         OP op;
         msg >> op;

@@ -17,6 +17,7 @@
 #include <m3/stream/Serial.h>
 #include <m3/stream/IStringStream.h>
 #include <m3/cap/SendGate.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/ChanMng.h>
 #include <m3/WorkLoop.h>
 #include <m3/GateStream.h>
@@ -94,11 +95,15 @@ int main(int argc, char *argv[]) {
     KernelChanSwitcher *chsw = new KernelChanSwitcher();
     ChanMng::get().set_chanswitcher(chsw);
 
+    EVENT_TRACE_INIT_KERNEL();
+
     ser << "Initializing PEs...\n";
 
     PEManager::create(argc - 1, argv + 1);
 
     KWorkLoop::run();
+
+    EVENT_TRACE_FLUSH();
 
     ser << "Shutting down...\n";
 

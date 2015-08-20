@@ -19,6 +19,10 @@
 #include <m3/cap/Gate.h>
 #include <m3/Errors.h>
 
+#if defined(TRACE_DEBUG)
+#   include <m3/tracing/Tracing.h>
+#endif
+
 namespace m3 {
 
 /**
@@ -81,6 +85,14 @@ public:
     void wait() const {
         while(!ChanMng::get().fetch_msg(chanid()))
             DTU::get().wait();
+#if defined(TRACE_DEBUG)
+        uint remote_core = ChanMng::get().message(chanid())->core;
+        if((remote_core >= FIRST_PE_ID && remote_core < FIRST_PE_ID + MAX_CORES) ||
+            remote_core == MEMORY_CORE) {
+            Serial::get() << "RecvGate::wait: chan " << chanid()
+                          << "  core: " << remote_core << "  timestamp: " << Profile::start() << "\n";
+        }
+#endif
     }
 
     /**

@@ -45,6 +45,7 @@ MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) con
 }
 
 void MemGate::read_sync(void *data, size_t len, size_t offset) {
+    EVENT_TRACER_read_sync();
     async_cmd(READ, data, len, offset, 0, 0);
     wait_until_sent();
     DTU::get().wait_for_mem_cmd();
@@ -52,6 +53,7 @@ void MemGate::read_sync(void *data, size_t len, size_t offset) {
 
 #if defined(__host__)
 bool MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
+    EVENT_TRACER_cmpxchg_sync();
     async_cmd(CMPXCHG, data, len, offset, len / 2, 0);
     wait_until_sent();
     return DTU::get().wait_for_mem_cmd();

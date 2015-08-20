@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/tracing/Tracing.h>
 #include <m3/Syscalls.h>
 #include <m3/GateStream.h>
 #include <m3/Errors.h>
@@ -130,6 +131,7 @@ Errors::Code Syscalls::revoke(const CapRngDesc &crd) {
 
 void Syscalls::exit(int exitcode) {
     LOG(SYSC, "exit(code=" << exitcode << ")");
+    EVENT_TRACE_FLUSH();
     return send_vmsg(_gate, EXIT, exitcode);
 }
 

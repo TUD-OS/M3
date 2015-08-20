@@ -16,6 +16,7 @@
 
 #include <m3/util/Sync.h>
 #include <m3/server/Server.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/Log.h>
 
 #include "PEManager.h"
@@ -79,6 +80,7 @@ SyscallHandler::SyscallHandler()
 }
 
 void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_createsrv();
     KVPE *vpe = gate.session<KVPE>();
     String name;
     capsel_t gatesel, srv;
@@ -129,6 +131,7 @@ static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size
 }
 
 void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_createsess();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t cap;
     String name;
@@ -182,6 +185,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_creategate();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap,dstcap;
     label_t label;
@@ -205,6 +209,7 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_createvpe();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap, mcap;
     String name, core;
@@ -229,6 +234,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_attachrb();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     uintptr_t addr;
@@ -247,6 +253,7 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_detachrb();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     size_t chan;
@@ -262,6 +269,7 @@ void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::exchange(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_exchange();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     CapRngDesc own, other;
@@ -282,6 +290,7 @@ void SyscallHandler::exchange(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_vpectrl();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     Syscalls::VPECtrl op;
@@ -316,6 +325,7 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_reqmem();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t cap;
     uintptr_t addr;
@@ -351,6 +361,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_derivemem();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t src, dst;
     size_t offset, size;
@@ -381,10 +392,12 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::delegate(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_delegate();
     exchange_over_sess(gate, is, false);
 }
 
 void SyscallHandler::obtain(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_obtain();
     exchange_over_sess(gate, is, true);
 }
 
@@ -496,6 +509,7 @@ static Errors::Code do_activate(KVPE *vpe, size_t cid, MsgCapability *oldcapobj,
 }
 
 void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_activate();
     KVPE *vpe = gate.session<KVPE>();
     size_t cid;
     capsel_t oldcap, newcap;
@@ -541,6 +555,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_revoke();
     KVPE *vpe = gate.session<KVPE>();
     CapRngDesc crd;
     is >> crd;
@@ -557,6 +572,7 @@ void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::exit(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_exit();
     KVPE *vpe = gate.session<KVPE>();
     int exitcode;
     is >> exitcode;

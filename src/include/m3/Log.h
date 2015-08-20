@@ -69,6 +69,7 @@ public:
         FS_DBG      = 1 << 14,
         CAPS        = 1 << 15,
         KERR        = 1 << 16,
+        TRACE       = 1 << 17,
     };
 
 #if defined(__t2__) || defined(__t3__)

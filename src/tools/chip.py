@@ -29,6 +29,8 @@ BOOT_DATA = int(config.get("memlayout", "BOOT_DATA"))
 CORE_CONF = int(config.get("memlayout", "CORE_CONF"))
 CORE_CONF_SIZE = int(config.get("memlayout", "CORE_CONF_SIZE"))
 DRAM_CCOUNT = int(config.get("memlayout", "DRAM_CCOUNT"))
+TRACE_MEMBUF_SIZE = int(config.get("memlayout", "TRACE_MEMBUF_SIZE"))
+TRACE_MEMBUF_ADDR = int(config.get("memlayout", "TRACE_MEMBUF_ADDR"))
 
 def charToInt(c):
     if c >= ord('a'):
@@ -110,6 +112,8 @@ def fetchPrint(core, id):
     length = core.mem[SERIAL_ACK] & 0xFFFFFFFF
     if length != 0 and length < 256:
         line = ""
+        t1 = time.time()
+        line += "%08.4f> " % (t1 - t0)
         length = (length + 7) & ~7
         for off in range(0, length, 8):
             val = core.mem[SERIAL_BUF + off]
@@ -129,6 +133,26 @@ def fetchPrint(core, id):
         return 1
     elif length != 0:
         print "Got invalid length from PE ", id, ": ", length
+    return 0
+
+def getTraceFile():
+    # check TRACE_MEMBUF_ADDR for a special value that indicates tracing is off
+    if int(th.ddr_ram[TRACE_MEMBUF_ADDR]) == 0xffffffffffffffff:
+        return 1
+
+    print "Reading trace events from DRAM..."
+    f = open("trace.txt", "w")
+    for i in range(0, 8):
+        pe = i + 4
+        addr = TRACE_MEMBUF_ADDR + i * TRACE_MEMBUF_SIZE
+        val = th.ddr_ram[addr]
+        numEvents = int(val)
+        if numEvents > 0:
+            print "num trace events of PE ",pe,": ", numEvents
+            print >>f, "p", pe
+            for word in th.ddr_ram.readWords(addr + 8, numEvents):
+                print >>f, word
+    f.close()
     return 0
 
 if len(sys.argv) < 6:
@@ -168,6 +192,9 @@ th.ddr_ram.on()
 if sys.argv[1] != "-":
     th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
 th.ddr_ram.mem[DRAM_CCOUNT] = 0
+
+# will be overwritten when an event trace is produced
+th.ddr_ram[TRACE_MEMBUF_ADDR] = 0xffffffffffffffff
 
 print progs
 
@@ -235,9 +262,12 @@ for duo_pe in th.duo_pes:
     duo_pe.start()
     i += 1
 
-print "Starting App-Core"
-th.app_core.on()
+if sys.argv[3] != "-":
+    print "Starting App-Core"
+    th.app_core.set_ptable_val(10)  # 400 MHz
+    th.app_core.on()
 
+t0 = time.time()
 run = True
 while run:
     i = 0
@@ -253,6 +283,8 @@ while run:
     # if nobody wanted to print something, take a break
     if counter == 0:
         time.sleep(0.01)
+
+getTraceFile()
 
 # now, read the fs image back from DRAM into a file
 if sys.argv[1] != "-":

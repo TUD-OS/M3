@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <m3/tracing/Tracing.h>
 #include <m3/Common.h>
 #include <m3/WorkLoop.h>
 
@@ -58,6 +59,7 @@ public:
 #if defined(__host__)
         signal(SIGCHLD, sigchild);
 #endif
+        EVENT_TRACER_KWorkLoop_run();
 
         WorkLoop &wl = WorkLoop::get();
         ChanMng &chmng = ChanMng::get();
@@ -71,6 +73,7 @@ public:
                 RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
                 sysch.handle_message(*rgate, nullptr);
                 chmng.ack_message(chan);
+                EVENT_TRACE_FLUSH_LIGHT();
             }
             if(chmng.fetch_msg(srvchan))
                 chmng.notify(srvchan);

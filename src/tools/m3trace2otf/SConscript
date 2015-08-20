@@ -1,0 +1,8 @@
+Import('hostenv')
+hostenv.Program(
+    target = 'm3trace2otf',
+    source = hostenv.Glob('*.cc'),
+    CPPPATH = ['#src/include', '/usr/include/vampirtrace/open-trace-format'],
+    LIBPATH = ['/usr/lib/openmpi'],
+    LIBS = ['otfaux', 'open-trace-format', 'z']
+)

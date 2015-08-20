@@ -17,6 +17,7 @@
 #pragma once
 
 #include <m3/cap/Gate.h>
+#include <m3/tracing/Tracing.h>
 
 namespace m3 {
 
@@ -106,6 +107,7 @@ public:
      * @param offset the start-offset
      */
     void write_sync(const void *data, size_t len, size_t offset) {
+        EVENT_TRACER_write_sync();
         async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
         wait_until_sent();
     }

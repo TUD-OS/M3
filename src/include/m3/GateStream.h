@@ -22,6 +22,7 @@
 #include <m3/cap/SendGate.h>
 #include <m3/cap/MemGate.h>
 #include <m3/cap/RecvGate.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/Marshalling.h>
 #include <m3/ChanMng.h>
 #include <m3/Heap.h>
@@ -386,12 +387,15 @@ static_assert(ostreamsize<short, String>() ==
  * @param len the message length
  */
 static inline void send_msg(SendGate &gate, const void *data, size_t len) {
+    EVENT_TRACER_send_msg();
     gate.send_sync(data, len);
 }
 static inline void reply_msg(RecvGate &gate, const void *data, size_t len) {
+    EVENT_TRACER_reply_msg();
     gate.reply_sync(data, len, ChanMng::get().get_msgoff(gate.chanid(), &gate));
 }
 static inline void reply_msg_on(const GateIStream &is, const void *data, size_t len) {
+    EVENT_TRACER_reply_msg_on();
     is.reply(data, len);
 }
 
@@ -417,14 +421,17 @@ static inline auto create_vmsg(const Args& ... args) -> StaticGateOStream<ostrea
  */
 template<typename... Args>
 static inline void send_vmsg(SendGate &gate, const Args &... args) {
+    EVENT_TRACER_send_vmsg();
     create_vmsg(args...).send(gate);
 }
 template<typename... Args>
 static inline void reply_vmsg(RecvGate &gate, const Args &... args) {
+    EVENT_TRACER_reply_vmsg();
     create_vmsg(args...).reply(gate);
 }
 template<typename... Args>
 static inline void reply_vmsg_on(const GateIStream &is, const Args &... args) {
+    EVENT_TRACER_reply_vmsg_on();
     is.reply(create_vmsg(args...));
 }
 
@@ -438,6 +445,7 @@ static inline void reply_vmsg_on(const GateIStream &is, const Args &... args) {
  */
 template<typename... Args>
 static inline void write_vmsg(MemGate &gate, size_t offset, const Args &... args) {
+    EVENT_TRACER_write_vmsg();
     create_vmsg(args...).write(gate, offset);
 }
 
@@ -449,6 +457,7 @@ static inline void write_vmsg(MemGate &gate, size_t offset, const Args &... args
  * @return the GateIStream
  */
 static inline GateIStream receive_msg(RecvGate &gate) {
+    EVENT_TRACER_receive_msg();
     gate.wait();
     return GateIStream(gate, true);
 }
@@ -462,6 +471,7 @@ static inline GateIStream receive_msg(RecvGate &gate) {
  */
 template<typename... Args>
 static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
+    EVENT_TRACER_receive_vmsg();
     gate.wait();
     GateIStream is(gate, true);
     is.vpull(args...);
@@ -472,11 +482,13 @@ static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
  * Convenience methods that combine send_msg()/send_vmsg() and receive_msg().
  */
 static inline GateIStream send_receive_msg(SendGate &gate, const void *data, size_t len) {
+    EVENT_TRACER_send_receive_msg();
     send_msg(gate, data, len);
     return receive_msg(*gate.receive_gate());
 }
 template<typename... Args>
 static inline GateIStream send_receive_vmsg(SendGate &gate, const Args &... args) {
+    EVENT_TRACER_send_receive_vmsg();
     send_vmsg(gate, args...);
     return receive_msg(*gate.receive_gate());
 }
