@@ -60,10 +60,10 @@ hostenv = baseenv.Clone()
 # for target compilation
 env = baseenv.Clone()
 env.Append(
-	CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2',
+	CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2 -fno-threadsafe-statics',
 	CFLAGS = ' -gdwarf-2',
 	ASFLAGS = ' -Wl,-W -Wall -Wextra',
-	LINKFLAGS = ' -fno-exceptions -fno-rtti',
+	LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections',
 )
 
 # add target-dependent stuff to env
