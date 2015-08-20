@@ -21,6 +21,8 @@
 
 using namespace m3;
 
+#define VERBOSE_EXCEPTIONS          0
+
 #define CALL_INSTR_SIZE             3
 #define MAKE_PC_FROM_RA(ra, sp)     (((ra) & 0x3fffffff) | ((sp) & 0xc0000000))
 
@@ -99,6 +101,7 @@ EXTERN_C void ExceptionHandler(uint cause, const State *state) {
         << ", for addr " << fmt(get_excvaddr(), "p")
         << ", called from " << fmt(get_caller(state), "p") << "\n";
 
+#if VERBOSE_EXCEPTIONS
     ser << "State @ " << state << "\n";
     for(size_t i = 0; i < ARRAY_SIZE(state->ar); ++i)
         ser << "    a" << fmt(i, "0", 2) << "  = " << fmt(state->ar[i], "#0x", 8) << "\n";
@@ -110,6 +113,7 @@ EXTERN_C void ExceptionHandler(uint cause, const State *state) {
     ser << "    sar  = " << fmt(state->sar, "#0x", 8) << "\n";
     ser << "    ps   = " << fmt(state->ps, "#0x", 8) << "\n";
     ser << "    pc   = " << fmt(state->pc, "#0x", 8) << "\n";
+#endif
 
     exit(1);
 }
