@@ -74,7 +74,7 @@ void PEManager::shutdown() {
 }
 
 String PEManager::path_to_name(const String &path, const char *suffix) {
-    static char name[64];
+    static char name[256];
     strncpy(name, path.c_str(), sizeof(name));
     name[sizeof(name) - 1] = '\0';
     OStringStream os;

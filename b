@@ -220,10 +220,10 @@ case "$cmd" in
 				pid=`pgrep -x kernel`
 			done
 			if [ "$prog" != "kernel" ]; then
-				while [ "`ps --ppid $pid | grep $prog`" = "" ]; do
+				while [ "`ps w --ppid $pid | grep $prog`" = "" ]; do
 					sleep 1
 				done
-				pid=`ps --ppid $pid | grep $prog | xargs | cut -d ' ' -f 1`
+				pid=`ps w --ppid $pid | grep $prog | xargs | cut -d ' ' -f 1`
 			fi
 
 			tmp=`mktemp`
