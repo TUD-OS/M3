@@ -56,6 +56,12 @@
 #define EVENT_TRACER_Syscall_activate()     EVENT_TRACER(31);
 #define EVENT_TRACER_Syscall_revoke()       EVENT_TRACER(32);
 #define EVENT_TRACER_Syscall_exit()         EVENT_TRACER(33);
+// service commands
+#define EVENT_TRACER_Service_open()         EVENT_TRACER(34);
+#define EVENT_TRACER_Service_obtain()       EVENT_TRACER(35);
+#define EVENT_TRACER_Service_delegate()     EVENT_TRACER(36);
+#define EVENT_TRACER_Service_close()        EVENT_TRACER(37);
+#define EVENT_TRACER_Service_shutdown()     EVENT_TRACER(38);
 
 // here some functions can be filtered at compile time by redefining the macros
 #undef  EVENT_TRACER_read_sync

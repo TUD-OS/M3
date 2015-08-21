@@ -20,6 +20,7 @@
 #include <m3/cap/Gate.h>
 #include <m3/cap/VPE.h>
 #include <m3/server/Handler.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/GateStream.h>
 #include <m3/Syscalls.h>
 #include <m3/Log.h>
@@ -101,10 +102,12 @@ private:
     }
 
     void handle_open(RecvGate &, GateIStream &is) {
+        EVENT_TRACER_Service_open();
         _handler->handle_open(is);
     }
 
     void handle_obtain(RecvGate &, GateIStream &is) {
+        EVENT_TRACER_Service_obtain();
         word_t sessptr;
         uint capcount;
         is >> sessptr >> capcount;
@@ -114,6 +117,7 @@ private:
     }
 
     void handle_delegate(RecvGate &, GateIStream &is) {
+        EVENT_TRACER_Service_delegate();
         word_t sessptr;
         uint capcount;
         is >> sessptr >> capcount;
@@ -123,6 +127,7 @@ private:
     }
 
     void handle_close(RecvGate &, GateIStream &is) {
+        EVENT_TRACER_Service_close();
         word_t sessptr;
         is >> sessptr;
 
@@ -131,6 +136,7 @@ private:
     }
 
     void handle_shutdown(RecvGate &, GateIStream &is) {
+        EVENT_TRACER_Service_shutdown();
         _handler->handle_shutdown();
         shutdown();
         reply_vmsg_on(is, Errors::NO_ERROR);

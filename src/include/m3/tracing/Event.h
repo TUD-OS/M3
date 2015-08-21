@@ -130,6 +130,7 @@ static const char* event_func_groups[] = {
     "Syscall",
     "Kernel",
     "VPE",
+    "Service",
 };
 
 static const uint event_func_groups_size = sizeof(event_func_groups) / sizeof(char*);
@@ -175,6 +176,11 @@ static const event_func_names_and_group_struct event_funcs[] = {
     { "Syscall_activate",     2 },
     { "Syscall_revoke",       2 },
     { "Syscall_exit",         2 },
+    { "Service_open",         5 },
+    { "Service_obtain",       5 },
+    { "Service_delegate",     5 },
+    { "Service_close",        5 },
+    { "Service_shutdown",     5 },
 };
 
 #endif
