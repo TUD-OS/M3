@@ -60,13 +60,7 @@ public:
      * @param perms the permissions (FILE_*)
      * @param bufsize the size of the buffer for input/output
      */
-    explicit FStream(const char *filename, int perms = FILE_RW, size_t bufsize = 512)
-        : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
-          _rbuf((perms & FILE_R) ? new char[bufsize] : nullptr, bufsize),
-          _wbuf((perms & FILE_W) ? new char[bufsize] : nullptr, bufsize),
-          _del(true) {
-        _state |= _file ? 0 : FL_ERROR;
-    }
+    explicit FStream(const char *filename, int perms = FILE_RW, size_t bufsize = 512);
 
     /**
      * Opens <filename> with given permissions and given buffers.
@@ -79,21 +73,9 @@ public:
      * @param perms the permissions (FILE_*)
      */
     explicit FStream(const char *filename, char *rbuf, size_t rsize,
-            char *wbuf, size_t wsize, int perms = FILE_RW)
-        : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
-          _rbuf(rbuf, rsize), _wbuf(wbuf, wsize),
-          _del(false) {
-        _state |= _file ? 0 : FL_ERROR;
-    }
+            char *wbuf, size_t wsize, int perms = FILE_RW);
 
-    virtual ~FStream() {
-        flush();
-        if(!_del) {
-            _rbuf.data = nullptr;
-            _wbuf.data = nullptr;
-        }
-        delete _file;
-    }
+    virtual ~FStream();
 
     /**
      * @return the File instance

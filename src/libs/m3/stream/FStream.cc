@@ -19,6 +19,31 @@
 
 namespace m3 {
 
+FStream::FStream(const char *filename, int perms, size_t bufsize)
+    : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
+      _rbuf((perms & FILE_R) ? new char[bufsize] : nullptr, bufsize),
+      _wbuf((perms & FILE_W) ? new char[bufsize] : nullptr, bufsize),
+      _del(true) {
+    _state |= _file ? 0 : FL_ERROR;
+}
+
+FStream::FStream(const char *filename, char *rbuf, size_t rsize,
+        char *wbuf, size_t wsize, int perms)
+    : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
+      _rbuf(rbuf, rsize), _wbuf(wbuf, wsize),
+      _del(false) {
+    _state |= _file ? 0 : FL_ERROR;
+}
+
+FStream::~FStream() {
+    flush();
+    if(!_del) {
+        _rbuf.data = nullptr;
+        _wbuf.data = nullptr;
+    }
+    delete _file;
+}
+
 void FStream::set_error(ssize_t res) {
     if(res < 0)
         _state |= FL_ERROR;

@@ -16,7 +16,6 @@
 
 #include <m3/cap/VPE.h>
 #include <m3/Syscalls.h>
-#include <m3/stream/FStream.h>
 #include <m3/Log.h>
 #include <m3/ELF.h>
 #include <stdlib.h>
