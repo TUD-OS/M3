@@ -15,17 +15,9 @@
  */
 
 #include <m3/stream/Serial.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/cap/SendGate.h>
 #include <m3/tracing/Tracing.h>
-#include <m3/ChanMng.h>
-#include <m3/WorkLoop.h>
-#include <m3/GateStream.h>
 #include <m3/DTU.h>
 #include <m3/Log.h>
-#include <stdarg.h>
-#include <cstring>
-#include <assert.h>
 
 #include "../../CapTable.h"
 #include "../../PEManager.h"

@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
-#include <m3/server/Server.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/Log.h>
 

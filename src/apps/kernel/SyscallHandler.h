@@ -18,8 +18,6 @@
 
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/Subscriber.h>
-#include <m3/GateStream.h>
 #include <m3/Syscalls.h>
 
 #include "CapTable.h"

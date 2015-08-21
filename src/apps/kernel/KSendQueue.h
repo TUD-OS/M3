@@ -20,7 +20,6 @@
 #include <m3/cap/RecvGate.h>
 #include <m3/cap/SendGate.h>
 #include <m3/util/SList.h>
-#include <m3/stream/Serial.h>
 #include <m3/Heap.h>
 
 namespace m3 {

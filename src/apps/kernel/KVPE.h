@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <m3/util/Util.h>
 #include <m3/util/SList.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/cap/MemGate.h>

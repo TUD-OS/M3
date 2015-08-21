@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/server/Server.h>
-#include <m3/GateStream.h>
 #include <m3/DTU.h>
 #include <m3/Log.h>
 
