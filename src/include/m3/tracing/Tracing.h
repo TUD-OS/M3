@@ -259,7 +259,7 @@ private:
     /// defines which PEs to trace
 #if defined(__t2__)
     //                               v Mem   v Kernel  v User PEs
-    const bool trace_core[12] = {0,0,0,    0,1,        1,1,1,1,1,1,1};
+    const bool trace_core[12] = {0,0,1,    0,1,        1,1,1,1,1,1,1};
 #else
     bool trace_core[FIRST_PE_ID+MAX_CORES];
 #endif
