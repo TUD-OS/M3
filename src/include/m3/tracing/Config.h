@@ -25,9 +25,6 @@
 // enable/disable decoding of events
 #define TRACE_HUMAN_READABLE
 
-// enable/disable debugging of tracing
-// #define TRACE_DEBUG
-
 // trace buffer in DRAM
 // (we need these defines for consts2ini even if TRACING is not defined)
 #define TRACE_MEMBUF_SIZE       (8 * 32 * 1024)     // bytes per PE

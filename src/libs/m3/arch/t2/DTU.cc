@@ -60,6 +60,8 @@ void DTU::reply(int chan, const void *msg, size_t size, size_t msgidx) {
         << " @ " << orgmsg->core << ":" << orgmsg->chanid
         << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
+    EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival
     set_target(SLOT_NO, orgmsg->core, destaddr + sizeof(Header));
@@ -71,6 +73,7 @@ void DTU::reply(int chan, const void *msg, size_t size, size_t msgidx) {
     head.length = size;
     head.label = orgmsg->replylabel;
     head.has_replycap = 0;
+    head.core = coreid();
     set_target(SLOT_NO, orgmsg->core, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));

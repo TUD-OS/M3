@@ -43,10 +43,8 @@ retry:
             RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i + FIRST_PE_ID, id));
         if(msg->length != 0) {
             LOG(IPC, "Fetched msg @ " << (void*)msg << " over chan " << id);
-            if(msg->core < FIRST_PE_ID + MAX_CORES) {
-                EVENT_TRACE_MSG_RECV(msg->core, msg->length,
-                    ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
-            }
+            EVENT_TRACE_MSG_RECV(msg->core, msg->length,
+                ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
             assert(_last[id] == nullptr);
             _last[id] = const_cast<Message*>(msg);
             _pos[id] = i + 1;
@@ -65,16 +63,6 @@ void ChanMng::notify(size_t id) {
     Message *msg = message(id);
     RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
     LOG(IPC, "Received msg @ " << (void*)msg << " over chan " << id << " -> gate=" << (void*)gate);
-#if defined(TRACE_DEBUG)
-    uint remote_core = msg->core;
-    if((remote_core >= FIRST_PE_ID && remote_core < FIRST_PE_ID + MAX_CORES) ||
-        remote_core == MEMORY_CORE) {
-        Serial::get() << "Received msg @ " << (void*)msg << " over chan " << id
-                      << "  length:" << msg->length << " label: " << msg->label
-                      << "  core: " << remote_core << " chanid: " << msg->chanid
-                      << "  timestamp: " << Profile::start() << "\n";
-    }
-#endif
     gate->notify_all();
     ack_message(id);
 }
