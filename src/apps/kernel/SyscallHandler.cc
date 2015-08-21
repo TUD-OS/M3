@@ -147,6 +147,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
     Reference<Service> rsrv(s);
     vpe->service_gate().subscribe([this, rsrv, cap, vpe, rinfo]
             (RecvGate &sgate, Subscriber<RecvGate&> *sub) {
+        EVENT_TRACER_Syscall_createsess();
         GateIStream reply(sgate);
         Errors::Code res;
         reply >> res;
@@ -314,6 +315,7 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
             else {
                 ReplyInfo rinfo(is.message());
                 vpecap->vpe->subscribe_exit([vpe, is, rinfo] (int exitcode, Subscriber<int> *) {
+                    EVENT_TRACER_Syscall_vpectrl();
                     auto reply = create_vmsg(Errors::NO_ERROR,exitcode);
                     reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
                 });
@@ -446,6 +448,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
     Reference<Service> rsrv(sess->obj->srv);
     vpe->service_gate().subscribe([this, rsrv, caps, vpe, obtain, rinfo]
             (RecvGate &sgate, Subscriber<RecvGate&> *sub) {
+        EVENT_TRACER_Syscall_delob_done();
         CapRngDesc srvcaps;
 
         GateIStream reply(sgate);
@@ -532,6 +535,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
                 << newcapobj->obj->core << ":" << newcapobj->obj->chanid << " to get attached");
 
             auto callback = [rinfo, vpe, cid, oldcapobj, newcapobj](bool success, Subscriber<bool> *) {
+                EVENT_TRACER_Syscall_activate();
                 Errors::Code res = success ? Errors::NO_ERROR : Errors::GONE;
                 if(success)
                     res = do_activate(vpe, cid, oldcapobj, newcapobj);

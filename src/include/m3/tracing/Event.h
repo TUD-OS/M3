@@ -171,6 +171,7 @@ static const event_func_names_and_group_struct event_funcs[] = {
     { "Syscall_derivemem",    2 },
     { "Syscall_delegate",     2 },
     { "Syscall_obtain",       2 },
+    { "Syscall_delobdone",    2 },
     { "Syscall_activate",     2 },
     { "Syscall_revoke",       2 },
     { "Syscall_exit",         2 },
