@@ -14,16 +14,24 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/Machine.h>
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+#include <stdlib.h>
+#include <unistd.h>
+
+namespace m3 {
+
+void Machine::shutdown() {
+    exit(EXIT_FAILURE);
+}
+
+int Machine::write(const char *str, size_t len) {
+    ::write(STDOUT_FILENO, str, len);
+    return 0;
+}
+
+ssize_t Machine::read(char *, size_t) {
+    return 0;
+}
+
+}

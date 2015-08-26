@@ -1,6 +1,10 @@
 Import('env')
 
-archtype = 'th' if env['ARCH'] == 't2' or env['ARCH'] == 't3' else 'host'
+if env['ARCH'] == 't2' or env['ARCH'] == 't3':
+    archtype = 'th'
+else:
+    archtype = env['ARCH']
+
 lib = env.StaticLibrary(
     target = 'libm3',
     source = [

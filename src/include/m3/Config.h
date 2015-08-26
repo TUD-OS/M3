@@ -24,6 +24,8 @@
 #   include <m3/arch/t2/Config.h>
 #elif defined(__t3__)
 #   include <m3/arch/t3/Config.h>
+#elif defined(__gem5__)
+#   include <m3/arch/gem5/Config.h>
 #else
 #   error "Unsupported target"
 #endif

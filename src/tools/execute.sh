@@ -14,6 +14,8 @@ t2pcthip=thshell
 build=`readlink -f build/$M3_TARGET-$M3_MACHINE-$M3_BUILD`
 bindir=$build/bin
 
+. config.ini
+
 if [ $# -lt 1 ]; then
     usage $0
 fi
@@ -54,19 +56,17 @@ generate_lines() {
     fi
 }
 
-build_params_host() {
-    generate_lines $1 | while read line; do
-        echo -n "$bindir/$line -- "
-    done
-}
-
-build_params_t2_sim() {
+generate_kargs() {
     c=0
-    kargs=`generate_lines $1 | ( while read line; do
+    generate_lines $1 | ( while read line; do
             i=0
             for a in $line; do
                 if [ $c -eq 1 ]; then
-                    echo -n $a
+                    if [ $i -eq 0 ]; then
+                        echo -n $a
+                    else
+                        echo -n ",$a"
+                    fi
                 elif [ $c -gt 1 ]; then
                     if [ $i -eq 0 ]; then
                         echo -n ",--,$a"
@@ -78,7 +78,45 @@ build_params_t2_sim() {
             done
             c=$((c + 1))
         done
-    )`
+    )
+}
+
+build_params_host() {
+    generate_lines $1 | while read line; do
+        echo -n "$bindir/$line -- "
+    done
+}
+
+build_params_gem5() {
+    kargs=`generate_kargs $1 | tr ',' ' '`
+
+    c=0
+    cmd=`generate_lines $1 | while read line; do
+        if [ $c -eq 0 ]; then
+            echo -n "$bindir/$line $kargs,"
+        else
+            echo -n "$bindir/$line,"
+        fi
+        c=$((c + 1))
+    done`
+
+    if [ "$DBG_GEM5" != "" ]; then
+        tmp=`mktemp`
+        echo "b main" >> $tmp
+        echo -n "run --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
+        echo -n " $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU --num-pes=8" >> $tmp
+        echo " --cmd \"$cmd\"" >> $tmp
+        gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
+        rm $tmp
+    else
+        $gem5/build/X86/gem5.opt --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG \
+            $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU \
+            --num-pes=8 --cmd "$cmd"
+    fi
+}
+
+build_params_t2_sim() {
+    kargs=`generate_kargs $1`
 
     if [[ "$kargs" =~ "m3fs" ]]; then
         echo -n " -mem -global_ram1.initial_value_file=$build/mem/$M3_FS.mem "
@@ -122,28 +160,7 @@ build_params_t2_sim() {
 }
 
 build_params_t3_sim() {
-    c=0
-    kargs=`generate_lines $1 | ( while read line; do
-            i=0
-            for a in $line; do
-                if [ $c -eq 1 ]; then
-                    if [ $i -eq 0 ]; then
-                        echo -n $a
-                    else
-                        echo -n ",$a"
-                    fi
-                elif [ $c -gt 1 ]; then
-                    if [ $i -eq 0 ]; then
-                        echo -n ",--,$a"
-                    else
-                        echo -n ",$a"
-                    fi
-                fi
-                i=$((i + 1))
-            done
-            c=$((c + 1))
-        done
-    )`
+    kargs=`generate_kargs $1`
 
     c=0
     if [[ "$kargs" =~ "m3fs" ]]; then
@@ -300,6 +317,8 @@ if [[ "$script" == *.cfg ]]; then
         cd th/XTSC
         echo -n "Params: " && build_params_t3_sim $script
         build_params_t3_sim $script | xargs ./t3-sim
+    elif [ "$M3_TARGET" = "gem5" ]; then
+        build_params_gem5 $script
     else
         echo "Unknown target '$M3_TARGET'"
     fi

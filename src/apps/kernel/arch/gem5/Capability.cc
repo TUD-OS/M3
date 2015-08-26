@@ -14,16 +14,21 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/Log.h>
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+#include "../../Capability.h"
+#include "../../PEManager.h"
+
+namespace m3 {
+
+Errors::Code MsgCapability::revoke() {
+    if(localchanid != -1) {
+        KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
+        LOG(IPC, "Invalidating chan " << localchanid << " of VPE " << vpe.id() << "@" << vpe.core());
+        vpe.xchg_chan(localchanid, nullptr, nullptr);
+    }
+    obj.unref();
+    return Errors::NO_ERROR;
+}
+
+}

@@ -16,14 +16,41 @@
 
 #pragma once
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+#include <m3/Common.h>
+
+#include "../../MemoryMap.h"
+
+namespace m3 {
+
+class MainMemory {
+public:
+    // TODO temporary, until we have a DRAM
+    explicit MainMemory() : _map(1, 0) {
+    }
+
+    static MainMemory &get() {
+        return _inst;
+    }
+
+    uintptr_t base() const {
+        return 0;
+    }
+    uintptr_t addr() const {
+        return 0;
+    }
+    size_t size() const {
+        return 0;
+    }
+    size_t channel() const {
+        return 0;
+    }
+    MemoryMap &map() {
+        return _map;
+    }
+
+private:
+    MemoryMap _map;
+    static MainMemory _inst;
+};
+
+}

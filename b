@@ -21,12 +21,19 @@ if [ "$M3_TARGET" = "t3" ]; then
 	M3_CORE='Pe_4MB_128k_4irq'
 elif [ "$M3_TARGET" = "t2" ]; then
 	M3_CORE='oi_lx4_PE_6'
+elif [ "$M3_TARGET" = "gem5" ]; then
+	M3_CORE='x86_64'
 else
 	M3_CORE=`uname -m`
 fi
 export M3_BUILD M3_TARGET M3_MACHINE M3_CORE
 
-if [ "$M3_TARGET" = "host" ]; then
+if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
+	if [ "$M3_GEM5_DBG" = "" ]; then
+		M3_GEM5_DBG="Dtu"
+	fi
+	export M3_GEM5_DBG
+
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
 	crossprefix=''
 else
@@ -51,7 +58,7 @@ help() {
 	echo ""
 	echo "This is a convenience script that is responsible for building everything"
 	echo "and running the specified command afterwards. The most important environment"
-	echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3),"
+	echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5),"
 	echo "M3_MACHINE=(sim|chip) and M3_BUILD=(debug|release)."
 	echo "You can also prevent the script from building everything by specifying -n or"
 	echo "--no-build. In this case, only the specified command is executed."
@@ -77,7 +84,7 @@ help() {
 	echo ""
 	echo "Environment variables:"
 	echo "    M3_TARGET:               the target. Either 'host' for using the Linux-based"
-	echo "                             coarse-grained simulator or 't2'/'t3' for"
+	echo "                             coarse-grained simulator, or 'gem5' or 't2'/'t3' for"
 	echo "                             tomahawk 2/3. The default is 'host'."
 	echo "    M3_MACHINE:              the machine to use for execution. It can be 'sim'"
 	echo "                             or 'chip' (t2 only)."
@@ -95,6 +102,7 @@ help() {
 	echo "    M3_FS:                   The filesystem to use (filename only)."
 	echo "    M3_FSBPE:                The blocks per extent (0 = unlimited)."
 	echo "    M3_FSBLKS:               The fs block count (default=16384)."
+	echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
 	exit 0
 }
 
@@ -144,6 +152,7 @@ if $dobuild; then
 	fi
 fi
 
+mkdir -p run
 ./src/tools/remmsgq.sh
 
 run_on_host() {
@@ -237,6 +246,16 @@ case "$cmd" in
 
 			kill_m3_procs
 			rm $tmp
+		elif [ "$M3_TARGET" = "gem5" ]; then
+	    	./src/tools/execute.sh $script 1>run/log.txt 2>/dev/null &
+
+			gdbcmd=`mktemp`
+			# TODO this needs to be more general
+			echo "target remote localhost:7000" > $gdbcmd
+			echo "display/i \$pc" >> $gdbcmd
+			echo "b main" >> $gdbcmd
+	    	gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+	    	rm $gdbcmd
 	    elif [ "$M3_TARGET" = "t3" ]; then
 	    	truncate --size=0 run/xtsc.log
 	    	./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>run/log.txt 2>/dev/null &
@@ -263,7 +282,7 @@ case "$cmd" in
 		# the binutils from the latest cross-compiler seems to be buggy. it can't decode some
 		# instruction properly. maybe it doesn't know about the differences between the cores?
 		# thus, we use the one from tensilica
-		if [ "$M3_TARGET" = "host" ]; then
+		if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
 			objdump=${crossprefix}objdump
 		else
 			objdump=xt-objdump
@@ -272,7 +291,7 @@ case "$cmd" in
 		;;
 
 	disp=*)
-		if [ "$M3_TARGET" != "host" ]; then
+		if [ "$M3_TARGET" = "t2" ] || [ "$M3_TARGET" = "t3" ]; then
 			xt-objdump -dC $bindir/${cmd#disp=} | \
 				awk -v EXEC=$bindir/${cmd#disp=} -f ./src/tools/pimpdisasm.awk | less
 		else

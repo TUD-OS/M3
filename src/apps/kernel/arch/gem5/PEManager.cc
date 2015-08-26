@@ -14,16 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include "../../PEManager.h"
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+namespace m3 {
+
+PEManager::~PEManager() {
+    for(size_t i = 0; i < AVAIL_PES; ++i) {
+        if(_vpes[i])
+            _vpes[i]->unref();
+    }
+}
+
+}

@@ -14,16 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/util/Profile.h>
+#include <sys/time.h>
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+namespace m3 {
+
+cycles_t Profile::start(unsigned u) {
+    return stop(u);
+}
+
+cycles_t Profile::stop(unsigned) {
+    uint32_t u, l;
+    asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
+    return (cycles_t)u << 32 | l;
+}
+
+}

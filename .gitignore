@@ -5,6 +5,7 @@
 *.sublime-workspace
 /build
 /cross/buildroot
+/m5out
 /run
 /config.ini
 /th/bug

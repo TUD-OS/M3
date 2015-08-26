@@ -41,7 +41,7 @@ class ChanMngBase {
     friend class RecvBuf;
 
 public:
-#if defined(__t3__)
+#if defined(__t3__) or defined(__gem5__)
     static const int MEM_CHAN       = 0;    // unused
     static const int SYSC_CHAN      = 0;
     static const int DEF_RECVCHAN   = 1;
@@ -90,6 +90,8 @@ protected:
 #   include <m3/arch/t2/ChanMng.h>
 #elif defined(__t3__)
 #   include <m3/arch/t3/ChanMng.h>
+#elif defined(__gem5__)
+#   include <m3/arch/gem5/ChanMng.h>
 #else
 #   error "Unsupported target"
 #endif

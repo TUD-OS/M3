@@ -14,16 +14,25 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/ChanMng.h>
+#include <m3/cap/RecvGate.h>
+#include <m3/Syscalls.h>
+#include <m3/Errors.h>
+#include <m3/Log.h>
+#include <sys/types.h>
+#include <sys/msg.h>
+#include <sys/ipc.h>
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+namespace m3 {
+
+void ChanMng::notify(size_t id) {
+    word_t addr = DTU::get().get_ep(id)->bufferReadPtr;
+    Message *msg = message(id);
+    LOG(IPC, "Received message over " << id << " @ "
+            << fmt(addr, "p") << "+" << fmt(reinterpret_cast<word_t>(msg) - addr, "x"));
+    RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
+    gate->notify_all();
+    ack_message(id);
+}
+
+}

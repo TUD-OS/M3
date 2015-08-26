@@ -25,6 +25,9 @@ if target == 't2' or target == 't3':
 	xtroot = Dir(config.get('root', 'xtroot'))
 	tooldir = Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/bin')
 	crtdir = crossdir + '/lib/gcc/' + cross + '/' + crossver
+elif target == 'gem5':
+	cross = ''
+	configpath = Dir('.')
 else:
 	# build for host by default
 	target = 'host'
@@ -37,6 +40,8 @@ if core is None:
 		core = 'Pe_4MB_128k_4irq'
 	elif target == 't2':
 		core = 'oi_lx4_PE_6'
+	elif target == 'gem5':
+		core = 'x86_64'
 	else:
 		core = os.popen("uname -m").read().strip()
 
@@ -88,6 +93,8 @@ if target == 't2' or target == 't3':
 	env.Replace(AR = cross + '-ar')
 	env.Replace(RANLIB = cross + '-ranlib')
 else:
+	if target == 'gem5':
+		env.Append(LINKFLAGS = ' -static')
 	env.Replace(CXX = 'g++')
 	env.Replace(CC = 'gcc')
 	env.Replace(AS = 'gcc')
@@ -95,7 +102,7 @@ else:
 # add build-dependent flags (debug/release)
 btype = os.environ.get('M3_BUILD', 'release')
 if btype == 'debug':
-	if target == 'host':
+	if target == 'host' or target == 'gem5':
 		env.Append(CXXFLAGS = ' -O0 -g')
 		env.Append(CFLAGS = ' -O0 -g')
 	else:
@@ -110,7 +117,7 @@ else:
 		env.Append(CXXFLAGS = ' -Os -DNDEBUG -flto')
 		env.Append(CFLAGS = ' -Os -DNDEBUG -flto')
 		env.Append(LINKFLAGS = ' -Os -flto')
-	elif target == 'host':
+	elif target == 'host' or target == 'gem5':
 		# no LTO for host
 		env.Append(CXXFLAGS = ' -O2 -DNDEBUG')
 		env.Append(CFLAGS = ' -O2 -DNDEBUG')

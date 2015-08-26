@@ -14,16 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/Common.h>
+#include <m3/Config.h>
+#include <m3/Log.h>
+#include <m3/Heap.h>
 
-#if defined(__host__)
-#   include <m3/arch/host/DTU.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/DTU.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/DTU.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/DTU.h>
-#else
-#   error "Unsupported target"
-#endif
+#include <sys/mman.h>
+
+namespace m3 {
+
+void Heap::init() {
+    _begin = reinterpret_cast<Area*>(mmap(0, HEAP_SIZE, PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+    if(_begin == MAP_FAILED)
+        PANIC("Unable to map heap");
+
+    _end = _begin + (HEAP_SIZE / sizeof(Area)) - sizeof(Area);
+    _end->next = 0;
+    _end->prev = (_end - _begin) * sizeof(Area);
+    Area *a = _begin;
+    a->next = (_end - _begin) * sizeof(Area);
+    a->prev = 0;
+    _ready = true;
+}
+
+}

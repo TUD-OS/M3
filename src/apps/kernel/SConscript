@@ -1,14 +1,19 @@
 Import('env')
 
 myenv = env.Clone()
-archtype = 'th' if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3' else ''
+
+if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
+    archtype = 'th'
+else:
+    archtype = myenv['ARCH']
+
 myenv.M3Program(
     myenv,
     target = 'kernel',
     source = [
         myenv.Glob('*.cc'),
         myenv.Glob('arch/$ARCH/*.cc'),
-        myenv.Glob('arch/' + archtype + '/*.cc'),
+        myenv.Glob('arch/' + archtype + '/*.cc') if archtype != myenv['ARCH'] else [],
         myenv.Glob('arch/$ARCH/*/*.cc')
     ],
     libs = ['X11', 'rt'] if myenv['ARCH'] == 'host' else []

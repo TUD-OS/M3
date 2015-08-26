@@ -20,6 +20,8 @@
 #   include "arch/host/MainMemory.h"
 #elif defined(__t2__) or defined(__t3__)
 #   include "arch/th/MainMemory.h"
+#elif defined(__gem5__)
+#   include "arch/gem5/MainMemory.h"
 #else
 #   error "Unsupported target"
 #endif
