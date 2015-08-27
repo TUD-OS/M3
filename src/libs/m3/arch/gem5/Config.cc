@@ -48,6 +48,8 @@ Config::Config() {
         while(conf->coreid == 0)
             ;
     }
+    else
+        conf->coreid = KERNEL_CORE;
 
     def_rbuf = new RecvBuf(RecvBuf::create(
         ChanMng::DEF_RECVCHAN, nextlog2<256>::val, nextlog2<128>::val, 0));
