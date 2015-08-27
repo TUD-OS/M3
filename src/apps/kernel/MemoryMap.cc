@@ -20,7 +20,6 @@
 namespace m3 {
 
 MemoryMap::MemoryMap(uintptr_t addr, size_t size) : list(new Area()) {
-    assert(addr != 0);
     list->addr = addr;
     list->size = size;
     list->next = nullptr;
@@ -43,7 +42,7 @@ uintptr_t MemoryMap::allocate(size_t size) {
             break;
     }
     if(a == nullptr)
-        return 0;
+        return -1;
 
     /* take it from the front */
     uintptr_t res = a->addr;

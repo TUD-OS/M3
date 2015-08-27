@@ -345,7 +345,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
 
     if(addr == (uintptr_t)-1) {
         addr = mem.map().allocate(size);
-        if(addr == 0)
+        if(addr == (uintptr_t)-1)
             SYS_ERROR(vpe, gate, Errors::OUT_OF_MEM, "Not enough memory");
     }
     else

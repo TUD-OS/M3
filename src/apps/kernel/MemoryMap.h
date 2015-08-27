@@ -47,7 +47,7 @@ public:
      *
      * @param map the map
      * @param size the size of the area
-     * @return the address of 0 if failed
+     * @return the address of -1 if failed
      */
     uintptr_t allocate(size_t size);
 
