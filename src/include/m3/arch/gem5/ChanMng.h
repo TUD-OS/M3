@@ -59,7 +59,8 @@ private:
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {
-    return DTU::get().get_ep(id)->bufferMessageCount > 0;
+    volatile DTU::Endpoint *ep = DTU::get().get_ep(id);
+    return ep->bufferMessageCount > 0;
 }
 
 inline bool ChanMngBase::uses_header(size_t) const {
