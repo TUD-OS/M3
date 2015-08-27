@@ -100,18 +100,24 @@ build_params_gem5() {
         c=$((c + 1))
     done`
 
+    if [ ! -z $M3_CORES ]; then
+        maxcores=$M3_CORES
+    else
+        maxcores=`grep '#define MAX_CORES' src/include/m3/arch/gem5/Config.h | awk '{print $3 }'`
+    fi
+
     if [ "$DBG_GEM5" != "" ]; then
         tmp=`mktemp`
         echo "b main" >> $tmp
         echo -n "run --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
-        echo -n " $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU --num-pes=8" >> $tmp
-        echo " --cmd \"$cmd\"" >> $tmp
-        gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
+        echo -n " $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $tmp
+        echo " --cmd \"$cmd\" --memcmd $bindir/mem" >> $tmp
+        gdb --tui $gem5/build/X86/gem5.opt --command=$tmp
         rm $tmp
     else
         $gem5/build/X86/gem5.opt --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG \
             $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU \
-            --num-pes=8 --cmd "$cmd"
+            --num-pes=$maxcores --cmd "$cmd" --memcmd $bindir/mem
     fi
 }
 
@@ -210,7 +216,7 @@ build_params_t3_sim() {
         if [ ! -z $M3_CORES ]; then
             maxcores=$M3_CORES
         else
-            maxcores=`grep '#define MAX_CORES' include/m3/arch/t3/Config.h | awk '{print $3 }'`
+            maxcores=`grep '#define MAX_CORES' src/include/m3/arch/t3/Config.h | awk '{print $3 }'`
         fi
         while [ $c -lt $maxcores ]; do
             echo -n " -pe_core.SimTargetProgram=$bindir/idle --pe_core.SimDebugSynchronized=true"

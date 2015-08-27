@@ -18,10 +18,10 @@
 
 #include <m3/Common.h>
 
-#define MEMORY_CORE         0
+#define MEMORY_CORE         8
 #define KERNEL_CORE         0
 #define APP_CORES           1
-#define MAX_CORES           18
+#define MAX_CORES           8
 #define AVAIL_PES           (MAX_CORES - 1)
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x0

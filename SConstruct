@@ -227,9 +227,15 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 		myenv.Depends(prog, File(runtimedir + '/specs'))
 		myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
 	else:
+		if not NoSup:
+			libs = ['m3', 'pthread'] + libs
+
+		if not ldscript is None:
+			myenv.Append(LINKFLAGS = ' -Wl,-T,' + ldscript.abspath)
+
 		prog = myenv.Program(
 			target, source,
-			LIBS = ['m3', 'pthread'] + libs,
+			LIBS = libs,
 			LIBPATH = [myenv['LIBDIR']] + libpaths
 		)
 

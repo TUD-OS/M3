@@ -17,17 +17,20 @@
 #pragma once
 
 #include <m3/Common.h>
+#include <m3/Log.h>
 
 #include "../../MemoryMap.h"
 
 namespace m3 {
 
 class MainMemory {
-public:
-    // TODO temporary, until we have a DRAM
-    explicit MainMemory() : _map(1, 0) {
+    static constexpr size_t MEM_SIZE = 16 * 1024 * 1024;
+
+    explicit MainMemory() : _size(MEM_SIZE), _map(addr(), MEM_SIZE) {
+        LOG(DEF, "We have " << (MEM_SIZE / 1024) << " KiB of main memory");
     }
 
+public:
     static MainMemory &get() {
         return _inst;
     }
@@ -39,7 +42,7 @@ public:
         return 0;
     }
     size_t size() const {
-        return 0;
+        return _size;
     }
     size_t channel() const {
         return 0;
@@ -49,6 +52,7 @@ public:
     }
 
 private:
+    size_t _size;
     MemoryMap _map;
     static MainMemory _inst;
 };

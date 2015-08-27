@@ -1,0 +1,12 @@
+Import('env')
+
+myenv = env.Clone()
+myenv.Append(LINKFLAGS = '-nostdlib -Wl,--build-id=none')
+prog = myenv.M3Program(
+    myenv,
+    target = 'mem',
+    source = [myenv.Glob('*.S')],
+    NoSup = True,
+    ldscript = File('#src/apps/mem/ld.conf')
+)
+myenv.Depends(prog, File('#src/apps/mem/ld.conf'))
