@@ -112,7 +112,7 @@ build_params_gem5() {
         echo -n "run --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
         echo -n " $gem5/configs/example/dtu-se.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $tmp
         echo " --cmd \"$cmd\" --memcmd $bindir/mem" >> $tmp
-        gdb --tui $gem5/build/X86/gem5.opt --command=$tmp
+        gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
         $gem5/build/X86/gem5.opt --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG \
