@@ -63,13 +63,14 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
     if(newcapobj) {
         ep.mode = (newcapobj->type & Capability::MEM)
             ? DTU::EpMode::READ_MEMORY : DTU::EpMode::TRANSMIT_MESSAGE;
+        ep.credits = newcapobj->obj->credits;
+        ep.targetCoreId = newcapobj->obj->core;
+        ep.targetEpId = newcapobj->obj->chanid;
+        ep.label = newcapobj->obj->label;
+        // TODO this is not correct
+        ep.maxMessageSize = newcapobj->obj->credits;
+        ep.requestRemoteAddr = newcapobj->obj->label & ~MemGate::RWX;
     }
-    ep.credits = newcapobj ? newcapobj->obj->credits : 0;
-    ep.targetCoreId = newcapobj ? newcapobj->obj->core : 0;
-    ep.targetEpId = newcapobj ? newcapobj->obj->chanid : 0;
-    ep.label = newcapobj ? newcapobj->obj->label : 0;
-    // TODO this is not correct
-    ep.maxMessageSize = newcapobj ? newcapobj->obj->credits : 0;
     Sync::compiler_barrier();
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(cid));
     DTU::get().configure_mem(tempchan, core(), dst, sizeof(DTU::Endpoint));
