@@ -60,7 +60,10 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
     // TODO later we need to use cmpxchg here
     DTU::Endpoint ep;
     memset(&ep, 0, sizeof(ep));
-    ep.mode = DTU::EpMode::TRANSMIT_MESSAGE;
+    if(newcapobj) {
+        ep.mode = (newcapobj->type & Capability::MEM)
+            ? DTU::EpMode::READ_MEMORY : DTU::EpMode::TRANSMIT_MESSAGE;
+    }
     ep.credits = newcapobj ? newcapobj->obj->credits : 0;
     ep.targetCoreId = newcapobj ? newcapobj->obj->core : 0;
     ep.targetEpId = newcapobj ? newcapobj->obj->chanid : 0;
