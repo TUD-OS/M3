@@ -75,6 +75,9 @@ SyscallHandler::SyscallHandler()
 #if defined(__host__)
     add_operation(Syscalls::INIT, &SyscallHandler::init);
 #endif
+
+    tempchan = VPE::self().alloc_chan();
+    ChanMng::get().reserve(tempchan);
 }
 
 void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
@@ -116,11 +119,6 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 }
 
 static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    if(tempchan == 0) {
-        tempchan = VPE::self().alloc_chan();
-        ChanMng::get().reserve(tempchan);
-    }
-
     DTU::get().configure(tempchan, info.replylbl, vpe.core(), info.replyslot, size + DTU::HEADER_SIZE);
     DTU::get().sendcrd(tempchan, info.crdslot, info.replycrd);
     DTU::get().wait_until_ready(tempchan);

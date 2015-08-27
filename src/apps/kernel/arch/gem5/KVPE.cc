@@ -38,8 +38,8 @@ void KVPE::activate_sysc_chan() {
     alignas(DTU_PKG_SIZE) CoreConf conf;
     conf.coreid = core();
     Sync::compiler_barrier();
-    DTU::get().configure_mem(ChanMng::SYSC_CHAN, core(), CONF_LOCAL, sizeof(conf));
-    DTU::get().write(ChanMng::SYSC_CHAN, &conf, sizeof(conf), 0);
+    DTU::get().configure_mem(tempchan, core(), CONF_LOCAL, sizeof(conf));
+    DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 
     // init the syscall endpoint
     DTU::Endpoint ep;
@@ -52,8 +52,8 @@ void KVPE::activate_sysc_chan() {
     ep.label = reinterpret_cast<label_t>(&syscall_gate());
     Sync::compiler_barrier();
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(ChanMng::SYSC_CHAN));
-    DTU::get().configure_mem(ChanMng::SYSC_CHAN, core(), dst, sizeof(DTU::Endpoint));
-    DTU::get().write(ChanMng::SYSC_CHAN, &ep, sizeof(DTU::Endpoint), 0);
+    DTU::get().configure_mem(tempchan, core(), dst, sizeof(DTU::Endpoint));
+    DTU::get().write(tempchan, &ep, sizeof(DTU::Endpoint), 0);
 }
 
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {

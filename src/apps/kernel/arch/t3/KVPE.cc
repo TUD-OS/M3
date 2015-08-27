@@ -23,6 +23,8 @@
 
 using namespace m3;
 
+extern size_t tempchan;
+
 void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
@@ -38,9 +40,9 @@ void KVPE::activate_sysc_chan() {
         ChanMng::SYSC_CHAN, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
     DTU::get().config_remote_mem(regs, KERNEL_CORE, DTU::get().get_slot_addr(ChanMng::SYSC_CHAN),
         /* TODO 1 << SYSC_CREDIT_ORD*/0xFFFF, 0);
-    DTU::get().config_remote_mem(ChanMng::DEF_RECVCHAN, core(), addr, 4 * sizeof(word_t), 1);
+    DTU::get().config_remote_mem(tempchan, core(), addr, 4 * sizeof(word_t), 1);
     Sync::memory_barrier();
-    DTU::get().write(ChanMng::DEF_RECVCHAN, regs, 4 * sizeof(word_t), 0);
+    DTU::get().write(tempchan, regs, 4 * sizeof(word_t), 0);
 
     // configure label of syscall channel
     memset(regs, 0, sizeof(regs));
@@ -55,26 +57,20 @@ void KVPE::activate_sysc_chan() {
         (1 << FIRE_CMD) |
         (1 << DEBUG_CMD)*/
     );
-    DTU::get().config_remote_mem(ChanMng::DEF_RECVCHAN, core(), addr, 2 * sizeof(word_t), 1);
+    DTU::get().config_remote_mem(tempchan, core(), addr, 2 * sizeof(word_t), 1);
     Sync::memory_barrier();
-    DTU::get().write(ChanMng::DEF_RECVCHAN, regs, 2 * sizeof(word_t), 0);
+    DTU::get().write(tempchan, regs, 2 * sizeof(word_t), 0);
 
     // give him the core id
     alignas(DTU_PKG_SIZE) CoreConf conf;
     memset(&conf, 0, sizeof(conf));
     conf.coreid = core();
-    DTU::get().config_remote_mem(ChanMng::DEF_RECVCHAN, core(), CONF_GLOBAL, sizeof(conf), 1);
+    DTU::get().config_remote_mem(tempchan, core(), CONF_GLOBAL, sizeof(conf), 1);
     Sync::memory_barrier();
-    DTU::get().write(ChanMng::DEF_RECVCHAN, &conf, sizeof(conf), 0);
+    DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 }
 
-extern size_t tempchan;
-
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
-    if(tempchan == 0) {
-        tempchan = VPE::self().alloc_chan();
-        ChanMng::get().reserve(tempchan);
-    }
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1] = {0};
     if(newcapobj) {
         uintptr_t remote_addr = (newcapobj->type & Capability::MEM) ? (newcapobj->obj->label & ~MemGate::RWX)
