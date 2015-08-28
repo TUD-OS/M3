@@ -27,7 +27,7 @@ void DTU::set_receiving(int ep, uintptr_t buf, uint order, uint msgorder, int) {
     e->bufferAddr = buf;
     e->bufferReadPtr = buf;
     e->bufferWritePtr = buf;
-    e->bufferSize = 1UL << order;
+    e->bufferSize = 1UL << (order - msgorder);
     e->maxMessageSize = 1UL << msgorder;
     e->bufferMessageCount = 0;
 }

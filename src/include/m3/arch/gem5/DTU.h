@@ -21,7 +21,7 @@
 #include <m3/util/Util.h>
 #include <assert.h>
 
-#define DTU_PKG_SIZE        (static_cast<size_t>(1))
+#define DTU_PKG_SIZE        (static_cast<size_t>(8))
 
 namespace m3 {
 
@@ -99,6 +99,8 @@ public:
         e->targetCoreId = coreid;
         e->targetEpId = epid;
         e->credits = credits;
+        // TODO that's not correct
+        e->maxMessageSize = credits;
     }
 
     void configure_mem(int ep, int coreid, uintptr_t addr, size_t) {
