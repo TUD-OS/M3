@@ -24,7 +24,7 @@
 namespace m3 {
 
 class MainMemory {
-    static constexpr size_t MEM_SIZE = 16 * 1024 * 1024;
+    static constexpr size_t MEM_SIZE = 8 * 1024 * 1024;
 
     explicit MainMemory() : _size(MEM_SIZE), _map(addr(), MEM_SIZE) {
         LOG(DEF, "We have " << (MEM_SIZE / 1024) << " KiB of main memory");
@@ -39,7 +39,8 @@ public:
         return 0;
     }
     uintptr_t addr() const {
-        return 0;
+        // leave the first 8 MiB for the fs
+        return 8 * 1024 * 1024;
     }
     size_t size() const {
         return _size;
