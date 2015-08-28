@@ -22,7 +22,7 @@ elif env['ARCH'] == 'host':
         'queue', 'shell', 'stream', 'timer', 'vga'
     ]
 elif env['ARCH'] == 'gem5':
-    dirs = ['noop', 'rdwr', 'hello', 'kernel', 'mem']
+    dirs += ['mem']
 
 for d in dirs:
     env.SConscript(env.Glob(d + '/SConscript'), exports = ['env', 'hostenv'])
