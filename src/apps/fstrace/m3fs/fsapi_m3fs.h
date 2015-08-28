@@ -57,7 +57,7 @@ public:
     }
 
     virtual void waituntil(const waituntil_args_t *args, int) override {
-#if !defined(__host__)
+#if defined(__t2__) || defined(__t3__)
         int rem = args->timestamp / 4;
         while(rem > 0)
             asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
