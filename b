@@ -247,14 +247,22 @@ case "$cmd" in
 			kill_m3_procs
 			rm $tmp
 		elif [ "$M3_TARGET" = "gem5" ]; then
-	    	./src/tools/execute.sh $script 1>run/log.txt 2>/dev/null &
+	    	./src/tools/execute.sh $script 1>run/log.txt 2>&1 &
+
+	    	# wait until it has started
+	    	while [ "`grep --text "info: Entering event queue" run/log.txt`" = "" ]; do
+	    		sleep 1
+	    	done
+
+	    	pe=`grep --text "$build/bin/${cmd#dbg=}'" run/log.txt | cut -d : -f 1`
+	    	port=$((${pe#PE} + 7000))
 
 			gdbcmd=`mktemp`
-			# TODO this needs to be more general
-			echo "target remote localhost:7000" > $gdbcmd
+			echo "target remote localhost:$port" > $gdbcmd
 			echo "display/i \$pc" >> $gdbcmd
 			echo "b main" >> $gdbcmd
 	    	gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+	    	killall -9 gem5.opt
 	    	rm $gdbcmd
 	    elif [ "$M3_TARGET" = "t3" ]; then
 	    	truncate --size=0 run/xtsc.log
