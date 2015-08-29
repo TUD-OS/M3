@@ -110,13 +110,13 @@ build_params_gem5() {
         export M5_PATH=$build
         tmp=`mktemp`
         echo "b main" >> $tmp
-        echo -n "run --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
+        echo -n "run --outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
         echo -n " $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $tmp
         echo " --cmd \"$cmd\" --init_mem $build/$M3_FS" >> $tmp
         gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
-        M5_PATH=$build $gem5/build/X86/gem5.opt --debug-file=../run/gem5.log --debug-flags=$M3_GEM5_DBG \
+        M5_PATH=$build $gem5/build/X86/gem5.opt --outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG \
             $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU \
             --num-pes=$maxcores --cmd "$cmd" --init_mem $build/$M3_FS
     fi
