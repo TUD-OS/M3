@@ -145,10 +145,16 @@ if int(verbose) == 0:
 	env['RANLIBCOMSTR'] = "RANLIB $TARGET"
 	env['F90COMSTR'] = "FC $TARGET"
 
+if target == 't2' or target == 't3':
+    archtype = 'th'
+else:
+    archtype = target
+
 # add some important paths
 env.Append(
 	CROSS = cross,
 	ARCH = target,
+	ARCHTYPE = archtype,
 	MACH = mach,
 	CORE = core,
 	BUILD = btype,

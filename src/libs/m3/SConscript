@@ -1,16 +1,11 @@
 Import('env')
 
-if env['ARCH'] == 't2' or env['ARCH'] == 't3':
-    archtype = 'th'
-else:
-    archtype = env['ARCH']
-
 lib = env.StaticLibrary(
     target = 'libm3',
     source = [
         env.Glob('*.cc'), env.Glob('*/*.cc'),
-        env.Glob('arch/' + archtype + '/*.S'), env.Glob('arch/' + archtype + '/*.cc'),
-        env.Glob('arch/' + archtype + '-$MACH/*.S'), env.Glob('arch/' + archtype + '-$MACH/*.cc'),
+        env.Glob('arch/$ARCHTYPE/*.S'), env.Glob('arch/$ARCHTYPE/*.cc'),
+        env.Glob('arch/$ARCHTYPE-$MACH/*.S'), env.Glob('arch/$ARCHTYPE-$MACH/*.cc'),
         env.Glob('arch/$ARCH/*.S'), env.Glob('arch/$ARCH/*.cc'),
         env.Glob('arch/$ARCH-$MACH/*.S'), env.Glob('arch/$ARCH-$MACH/*.cc')
     ]

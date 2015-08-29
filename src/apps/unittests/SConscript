@@ -1,7 +1,5 @@
 Import('env')
 
-archtype = 'th' if env['ARCH'] == 't2' or env['ARCH'] == 't3' else 'host'
-
 myenv = env.Clone()
 myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-O2', '-Os')
 myenv['LINKFLAGS'] = str(myenv['LINKFLAGS']).replace('-O2', '-Os')
