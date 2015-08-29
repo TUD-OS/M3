@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <m3/Common.h>
-
 #define MEMORY_CORE         8
 #define KERNEL_CORE         0
 #define APP_CORES           1
@@ -29,8 +27,19 @@
 #define HEAP_SIZE           0x100000
 #define CHAN_COUNT          8
 
+#define SPM_END             0x1000000
+#define STATE_AREA_SIZE     0x1000
+#define STATE_AREA          (SPM_END - STATE_AREA_SIZE)
+
+#define ARGC_ADDR           (STATE_AREA + 0)
+#define ARGV_ADDR           (STATE_AREA + 8)
+
 // TODO
 #define CONF_LOCAL          0xF00000
+
+#if defined(__cplusplus)
+
+#   include <m3/Common.h>
 
 namespace m3 {
 
@@ -56,3 +65,5 @@ static inline RecvGate *def_rcvgate() {
 }
 
 }
+
+#endif

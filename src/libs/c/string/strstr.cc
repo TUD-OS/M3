@@ -17,7 +17,11 @@
 #include <m3/Common.h>
 #include <cstring>
 
+#if defined(__gem5__)
+const char *strstr(const char *str1, const char *str2) {
+#else
 char *strstr(const char *str1, const char *str2) {
+#endif
     char *res = nullptr;
     char *sub;
     /* handle special case to prevent looping the string */

@@ -94,7 +94,10 @@ if target == 't2' or target == 't3':
 	env.Replace(RANLIB = cross + '-ranlib')
 else:
 	if target == 'gem5':
-		env.Append(LINKFLAGS = ' -static')
+		# no build-id because it confuses gem5
+		env.Append(LINKFLAGS = ' -static -Wl,--build-id=none -nostdlib')
+		# binaries get very large otherwise
+		env.Append(LINKFLAGS = ' -Wl,-z,max-page-size=4096 -Wl,-z,common-page-size=4096')
 	env.Replace(CXX = 'g++')
 	env.Replace(CC = 'gcc')
 	env.Replace(AS = 'gcc')
@@ -232,13 +235,22 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 		myenv.Depends(prog, ldscript)
 		myenv.Depends(prog, File(runtimedir + '/specs'))
 		myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
-	else:
+	elif myenv['ARCH'] == 'gem5':
 		if not NoSup:
-			libs = ['m3', 'pthread'] + libs
+			libs = ['c', 'm3'] + libs
+			source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
 
-		if not ldscript is None:
-			myenv.Append(LINKFLAGS = ' -Wl,-T,' + ldscript.abspath)
+		if ldscript is None:
+			ldscript = File('#src/toolchain/gem5/ld.conf')
+		myenv.Append(LINKFLAGS = ' -Wl,-T,' + ldscript.abspath)
 
+		prog = myenv.Program(
+			target, source,
+			LIBS = libs,
+			LIBPATH = [myenv['LIBDIR']] + libpaths
+		)
+		myenv.Depends(prog, ldscript)
+	else:
 		prog = myenv.Program(
 			target, source,
 			LIBS = libs,

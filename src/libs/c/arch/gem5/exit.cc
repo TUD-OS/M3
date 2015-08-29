@@ -14,32 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Machine.h>
+#include <m3/Common.h>
+#include <m3/Config.h>
+#include <cstdlib>
 
-#include <stdlib.h>
-#include <unistd.h>
-
-namespace m3 {
-
-void Machine::shutdown() {
-    asm volatile (
-        "mov 0(%1, %0, 1), %%rax"
-        : : "r"(0x21 << 8), "r"(0xFFFF0000), "D"(0) : "rax"
-    );
-    UNREACHED;
-}
-
-int Machine::write(const char *str, size_t len) {
-    static const char *fileAddr = "stdout";
-    asm volatile (
-        "mov 0(%1, %0, 1), %%rax"
-        : : "r"(0x4f << 8), "r"(0xFFFF0000), "D"(str), "S"(len), "d"(0), "c"(fileAddr) : "rax"
-    );
-    return 0;
-}
-
-ssize_t Machine::read(char *, size_t) {
-    return 0;
-}
-
+EXTERN_C NORETURN void _exit(int) {
+    while(1)
+        asm volatile ("hlt");
 }

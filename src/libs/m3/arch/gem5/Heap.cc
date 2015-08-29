@@ -21,14 +21,12 @@
 
 #include <sys/mman.h>
 
+extern void *_bss_end;
+
 namespace m3 {
 
 void Heap::init() {
-    _begin = reinterpret_cast<Area*>(mmap(0, HEAP_SIZE, PROT_READ | PROT_WRITE,
-        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
-    if(_begin == MAP_FAILED)
-        PANIC("Unable to map heap");
-
+    _begin = reinterpret_cast<Area*>(&_bss_end);
     _end = _begin + (HEAP_SIZE / sizeof(Area)) - sizeof(Area);
     _end->next = 0;
     _end->prev = (_end - _begin) * sizeof(Area);
