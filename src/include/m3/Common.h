@@ -16,7 +16,11 @@
 
 #pragma once
 
-#include <m3/Types.h>
-#include <m3/Compiler.h>
+#if defined(__cplusplus)
 
-#define ARRAY_SIZE(a)   ((sizeof((a)) / sizeof((a)[0])))
+#   include <m3/Types.h>
+#   include <m3/Compiler.h>
+
+#   define ARRAY_SIZE(a)   ((sizeof((a)) / sizeof((a)[0])))
+
+#endif
