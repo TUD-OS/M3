@@ -2,8 +2,6 @@ Import('env')
 
 if env['ARCH'] == 'host':
     dirs = ['m3', 'test']
-elif env['ARCH'] == 'gem5':
-    dirs = ['c', 'm3', 'support', 'test']
 else:
     dirs = ['c', 'm3', 'support', 'test']
 
