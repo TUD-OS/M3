@@ -74,7 +74,7 @@ void Platform::drop_caches() {
 }
 
 
-void Platform::log(const std::string &msg) {
+void Platform::log(const char *msg) {
 
     std::cerr << msg << std::endl;
 }

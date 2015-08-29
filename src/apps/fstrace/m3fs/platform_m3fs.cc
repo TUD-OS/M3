@@ -54,8 +54,8 @@ void Platform::drop_caches() {
 }
 
 
-void Platform::log(const std::string &msg) {
-    LOG(DEF, msg.c_str());
+void Platform::log(const char *msg) {
+    LOG(DEF, msg);
 }
 
 void Platform::logf(UNUSED const char *fmt, ...) {

@@ -54,7 +54,7 @@ class Platform {
     /*
      * @brief Prints a log message in as necessary for the used platform.
      */
-    static void log(const std::string &msg);
+    static void log(const char *msg);
 
     /*
      * @brief Prints a formatted log message in as necessary for the used platform.

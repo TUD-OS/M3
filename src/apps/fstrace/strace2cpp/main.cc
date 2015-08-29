@@ -22,7 +22,7 @@ void Platform::init(int argc, const char * const argv[]) {
 }
 
 
-void Platform::log(const std::string &msg) {
+void Platform::log(const char *msg) {
 
     std::cerr << msg << std::endl;
 }

@@ -44,7 +44,7 @@ class LogableException: public Exception {
   public:
     virtual void complain() {
 
-        Platform::log(text);
+        Platform::log(text.c_str());
     }
 
     virtual std::string &msg() {
