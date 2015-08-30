@@ -5,14 +5,12 @@ env.InstallFiles('$FSDIR/default', '.', scan=1)
 
 env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
 env.M3Strip('$FSDIR/default/bin/noop', '$BINARYDIR/noop')
-if env['ARCH'] != 'gem5':
-    env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
-    env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
-    env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')
-if env['ARCH'] != 'gem5':
-    env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
-    env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
-    env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
+env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
+env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
+env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')
+env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
+env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
+env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
 if env['ARCH'] == 'host':
     env.M3Strip('$FSDIR/default/bin/unittests-dtu', '$BINARYDIR/unittests-dtu')
 

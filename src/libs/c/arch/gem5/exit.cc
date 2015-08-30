@@ -19,6 +19,12 @@
 #include <cstdlib>
 
 EXTERN_C NORETURN void _exit(int) {
+    uintptr_t jmpaddr = *(uintptr_t*)BOOT_EXIT;
+    if(jmpaddr != 0) {
+        *(uintptr_t*)BOOT_ENTRY = 0;
+        asm volatile ("jmp *%0" : : "r"(jmpaddr));
+    }
+
     while(1)
         asm volatile ("hlt");
 }

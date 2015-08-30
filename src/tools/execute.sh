@@ -90,21 +90,27 @@ build_params_host() {
 build_params_gem5() {
     kargs=`generate_kargs $1 | tr ',' ' '`
 
-    c=0
-    cmd=`generate_lines $1 | while read line; do
-        if [ $c -eq 0 ]; then
-            echo -n "$bindir/$line $kargs,"
-        else
-            echo -n "$bindir/$line,"
-        fi
-        c=$((c + 1))
-    done`
-
     if [ ! -z $M3_CORES ]; then
         maxcores=$M3_CORES
     else
         maxcores=`grep '#define MAX_CORES' src/include/m3/arch/gem5/Config.h | awk '{print $3 }'`
     fi
+
+    c=0
+    cmd=`generate_lines $1 | ( while read line; do
+            if [ $c -eq 0 ]; then
+                echo -n "$bindir/$line $kargs,"
+            else
+                echo -n "$bindir/$line,"
+            fi
+            c=$((c + 1))
+        done
+
+        while [ $c -lt $maxcores ]; do
+            echo -n "$bindir/idle,"
+            c=$((c + 1))
+        done
+    )`
 
     if [ "$DBG_GEM5" != "" ]; then
         export M5_PATH=$build
