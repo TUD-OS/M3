@@ -21,6 +21,7 @@
 #include <m3/util/String.h>
 #include <m3/BitField.h>
 #include <m3/CapRngDesc.h>
+#include <m3/ELF.h>
 #include <m3/Errors.h>
 #include <functional>
 
@@ -205,6 +206,12 @@ private:
     Errors::Code load(int argc, const char **argv, uintptr_t *entry);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
     void start(uintptr_t entry, void *caps, void *chans, void *lambda, void *mounts, size_t mountlen);
+
+    uintptr_t get_entry();
+    static word_t get_sp();
+    static bool skip_section(ElfPh *ph);
+    void wakeup_pe();
+    void copy_sections();
 
     MemGate _mem;
     BitField<SEL_TOTAL> *_caps;

@@ -15,25 +15,16 @@
  */
 
 #include <m3/Common.h>
-#include <m3/Config.h>
-#include <m3/Log.h>
-#include <m3/Heap.h>
 
-#include <sys/mman.h>
+typedef void (*constr_func)();
 
-extern void *_bss_end;
+void *__dso_handle;
 
-namespace m3 {
+extern constr_func CTORS_BEGIN;
+extern constr_func CTORS_END;
 
-void Heap::init() {
-    _begin = reinterpret_cast<Area*>(&_bss_end);
-    _end = _begin + (HEAP_SIZE / sizeof(Area)) - sizeof(Area);
-    _end->next = 0;
-    _end->prev = (_end - _begin) * sizeof(Area);
-    Area *a = _begin;
-    a->next = (_end - _begin) * sizeof(Area);
-    a->prev = 0;
-    _ready = true;
-}
-
+EXTERN_C void _init() {
+    // call constructors
+    for(constr_func *func = &CTORS_BEGIN; func < &CTORS_END; ++func)
+        (*func)();
 }

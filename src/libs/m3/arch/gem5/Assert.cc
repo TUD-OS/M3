@@ -14,14 +14,23 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
+#include <m3/Common.h>
+#include <m3/Log.h>
 
-namespace m3 {
+using namespace m3;
 
-void VPE::init_state() {
-    _caps = new BitField<SEL_TOTAL>();
-    _chans = new BitField<CHAN_COUNT>();
-    // TODO implement me
+#ifndef NDEBUG
+EXTERN_C void __assert(const char *failedexpr, const char *file, int line) throw() {
+    Serial::get() << "assertion \"" << failedexpr << "\" failed in "
+                  << file << ":" << line << "\n";
+    abort();
+    /* NOTREACHED */
 }
 
+EXTERN_C void __assert_fail(const char *failedexpr, const char *file, unsigned int line, const char *func) throw() {
+    Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
+                  << file << ":" << line << "\n";
+    abort();
+    /* NOTREACHED */
 }
+#endif

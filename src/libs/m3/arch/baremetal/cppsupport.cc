@@ -28,15 +28,17 @@
 
 using namespace m3;
 
+EXTERN_C void _init();
+
 namespace m3 {
     static RecvBuf *def_rbuf;
     RecvGate *def_rgate;
 }
 
+#if defined(__t2__) or defined(__t3__)
 EXTERN_C void *_Exception;
 static void *dummy[1];
-
-EXTERN_C void _init();
+#endif
 
 namespace std {
     namespace placeholders {
@@ -84,8 +86,10 @@ EXTERN_C void __cxa_atexit() {
 }
 
 EXTERN_C void __clibrary_init(int, char **argv) {
+#if defined(__t2__) or defined(__t3__)
     // workaround to ensure that this gets linked in
     dummy[0] = &_Exception;
+#endif
 
     bool kernel = argv && strstr(argv[0], "kernel") != nullptr;
     volatile CoreConf *cfg = coreconf();
@@ -143,12 +147,3 @@ EXTERN_C uint8_t inbyte() {
     // TODO implement me
     return 0;
 }
-
-#ifndef NDEBUG
-EXTERN_C void __assert(const char *failedexpr, const char *file, unsigned int line, const char *func) throw() {
-    Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
-                  << file << ":" << line << "\n";
-    abort();
-    /* NOTREACHED */
-}
-#endif

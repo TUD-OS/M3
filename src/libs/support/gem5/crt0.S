@@ -18,13 +18,36 @@
 
 .global _start
 .extern main
+.extern lambda_main
 .extern exit
 .extern __clibrary_init
+.extern __clibrary_init_lambda
 
 _start:
-    mov     $stack, %esp
-    mov     $0, %ebp
+    mov     $STACK_TOP, %rsp
+    mov     $0, %rbp
 
+    # check if we should call a lambda
+    mov     $BOOT_LAMBDA, %rax
+    mov     (%rax), %rax
+    test    %rax, %rax
+    je      1f
+
+    # __clibrary_init_lambda(argc, argv)
+    mov     $ARGC_ADDR, %rdi
+    mov     (%rdi), %rdi
+    mov     $ARGV_ADDR, %rsi
+    mov     (%rsi), %rsi
+    call    __clibrary_init_lambda
+
+    # res = lambda_main(lambda)
+    mov     $BOOT_LAMBDA, %rdi
+    mov     (%rdi), %rdi
+    call    lambda_main
+
+    jmp     2f
+
+1:
     # __clibrary_init(argc, argv)
     mov     $ARGC_ADDR, %rdi
     mov     (%rdi), %rdi
@@ -39,16 +62,10 @@ _start:
     mov     (%rsi), %rsi
     call    main
 
+2:
     # exit(res)
     mov     %rax, %rdi
     call    exit
 
     # just to be sure
     hlt
-
-.section .data
-.align 4096
-.rept 4096
-    .byte 0
-.endr
-stack:

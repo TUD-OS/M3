@@ -28,14 +28,31 @@
 #define CHAN_COUNT          8
 
 #define SPM_END             0x1000000
-#define STATE_AREA_SIZE     0x1000
-#define STATE_AREA          (SPM_END - STATE_AREA_SIZE)
+// leave one page for idle
+#define STACK_TOP           (SPM_END - 0x1000)
+#define STACK_BOTTOM        (STACK_TOP - 0x1000)
 
-#define ARGC_ADDR           (STATE_AREA + 0)
-#define ARGV_ADDR           (STATE_AREA + 8)
+#define ARGV_SIZE           (0x1000 - 16)
+#define ARGV_START          (STACK_BOTTOM - ARGV_SIZE)
+#define ARGC_ADDR           (ARGV_START - 16)
+#define ARGV_ADDR           (ARGV_START - 8)
 
-// TODO
-#define CONF_LOCAL          0xF00000
+#define BOOT_SP             (ARGV_START - 24)
+#define BOOT_ENTRY          (BOOT_SP - 8)
+#define BOOT_LAMBDA         (BOOT_ENTRY - 8)
+#define BOOT_MOUNTLEN       (BOOT_LAMBDA - 8)
+#define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
+#define BOOT_CHANS          (BOOT_MOUNTS - 8)
+#define BOOT_CAPS           (BOOT_CHANS - 8)
+#define BOOT_EXIT           (BOOT_CAPS - 8)
+
+#define STATE_SIZE          0x100
+#define STATE_SPACE         (BOOT_EXIT - STATE_SIZE)
+
+#define CONF_LOCAL          (STATE_SPACE - sizeof(word_t) * 2)
+
+// end of space for runtime
+#define RT_SPACE_END        CONF_LOCAL
 
 #if defined(__cplusplus)
 
