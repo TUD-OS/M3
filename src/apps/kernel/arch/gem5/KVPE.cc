@@ -77,6 +77,7 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
         // TODO this is not correct
         ep.maxMessageSize = newcapobj->obj->credits;
         ep.requestRemoteAddr = newcapobj->obj->label & ~MemGate::RWX;
+        ep.requestRemoteSize = newcapobj->obj->credits;
     }
     Sync::compiler_barrier();
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(cid));

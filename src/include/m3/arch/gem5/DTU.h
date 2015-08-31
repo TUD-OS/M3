@@ -51,6 +51,7 @@ public:
 
         reg_t requestLocalAddr;
         reg_t requestRemoteAddr;
+        reg_t requestRemoteSize;
         reg_t requestSize;
 
         reg_t credits;
@@ -104,11 +105,12 @@ public:
         e->maxMessageSize = credits;
     }
 
-    void configure_mem(int ep, int coreid, uintptr_t addr, size_t) {
+    void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
         Endpoint *e = get_ep(ep);
         e->mode = READ_MEMORY;
         e->targetCoreId = coreid;
         e->requestRemoteAddr = addr;
+        e->requestRemoteSize = size;
     }
 
     void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
