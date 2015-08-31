@@ -195,6 +195,8 @@ def M3Strip(env, target, source):
         target, source, cross + '-strip -o $TARGET $SOURCE'
     )
 
+link_addr = 0x1000
+
 def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core = None, ldscript = None):
 	myenv = env.Clone()
 	if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
@@ -236,6 +238,10 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 		myenv.Depends(prog, File(runtimedir + '/specs'))
 		myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
 	elif myenv['ARCH'] == 'gem5':
+		global link_addr
+		myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=' + ("0x%x" % link_addr))
+		link_addr += 0x20000
+
 		if not NoSup:
 			libs = ['c', 'm3'] + libs
 			source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
