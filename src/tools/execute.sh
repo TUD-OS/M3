@@ -326,10 +326,13 @@ if [[ "$script" == *.cfg ]]; then
             build_params_t2_chip $script
         fi
     elif [ "$M3_TARGET" = "t3" ]; then
-        script=`readlink -f $script`
+        tmp=`mktemp`
+        build_params_t3_sim $script > $tmp
         cd th/XTSC
-        echo -n "Params: " && build_params_t3_sim $script
-        build_params_t3_sim $script | xargs ./t3-sim
+        echo -n "Params: "
+        cat $tmp
+        xargs ./t3-sim < $tmp
+        rm $tmp
     elif [ "$M3_TARGET" = "gem5" ]; then
         build_params_gem5 $script
     else
