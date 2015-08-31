@@ -191,6 +191,16 @@ public:
         }
         return *this;
     }
+    GateIStream &operator=(GateIStream &&is) {
+        if(this != &is) {
+            _ack = is._ack;
+            _pos = is._pos;
+            _gate = is._gate;
+            _msg = is._msg;
+            is._ack = false;
+        }
+        return *this;
+    }
     GateIStream(GateIStream &&is) : _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
         is._ack = false;
     }
