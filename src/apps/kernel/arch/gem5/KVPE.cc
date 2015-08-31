@@ -29,6 +29,13 @@ void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
     activate_sysc_chan();
+
+    // wakeup core
+    DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::Command::WAKEUP_CORE);
+    Sync::compiler_barrier();
+    DTU::get().configure_mem(tempchan, core(), (uintptr_t)DTU::get().get_cmd_reg(), sizeof(cmd));
+    DTU::get().write(tempchan, &cmd, sizeof(cmd), 0);
+
     _state = RUNNING;
     LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
 }

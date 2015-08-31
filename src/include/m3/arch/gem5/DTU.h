@@ -86,6 +86,7 @@ public:
         IDLE                = 0,
         START_OPERATION     = 1,
         INC_READ_PTR        = 2,
+        WAKEUP_CORE         = 3,
     };
 
     static DTU &get() {
@@ -136,6 +137,12 @@ public:
         return true;
     }
 
+    reg_t *get_cmd_reg() const {
+        return reinterpret_cast<reg_t*>(BASE_ADDR) + 0;
+    }
+    reg_t *get_status_reg() const {
+        return reinterpret_cast<reg_t*>(BASE_ADDR) + 1;
+    }
     Endpoint *get_ep(int ep) const {
         return reinterpret_cast<Endpoint*>(BASE_ADDR + sizeof(reg_t) * 2 + ep * sizeof(Endpoint));
     }
@@ -146,13 +153,6 @@ public:
     }
 
 private:
-    reg_t *get_cmd_reg() const {
-        return reinterpret_cast<reg_t*>(BASE_ADDR) + 0;
-    }
-    reg_t *get_status_reg() const {
-        return reinterpret_cast<reg_t*>(BASE_ADDR) + 1;
-    }
-
     static DTU inst;
 };
 

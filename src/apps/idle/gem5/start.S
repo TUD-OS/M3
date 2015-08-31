@@ -23,14 +23,18 @@ _start:
     mov     $BOOT_EXIT, %rax
     movq    $_start, (%rax)
 
-    # wait until a program has been loaded
-    # TODO later, we should go into a low power mode here
-    mov     $BOOT_ENTRY, %rax
 1:
+    # check if there is something to run
+    mov     $BOOT_ENTRY, %rax
     mov     (%rax), %rcx
     test    %rcx, %rcx
-    je      1b
+    jne     1f
 
+    # wait until we get waked up
+    hlt
+    jmp     1b
+
+1:
     # jump to entry point
     jmp     *%rcx
 
