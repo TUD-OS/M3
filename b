@@ -247,6 +247,7 @@ case "$cmd" in
 			kill_m3_procs
 			rm $tmp
 		elif [ "$M3_TARGET" = "gem5" ]; then
+			truncate --size 0 run/log.txt
 	    	./src/tools/execute.sh $script 1>run/log.txt 2>&1 &
 
 	    	# wait until it has started
@@ -254,7 +255,7 @@ case "$cmd" in
 	    		sleep 1
 	    	done
 
-	    	pe=`grep --text "$build/bin/${cmd#dbg=}'" run/log.txt | cut -d : -f 1`
+	    	pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
 	    	port=$((${pe#PE} + 7000))
 
 			gdbcmd=`mktemp`
