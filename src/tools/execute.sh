@@ -112,20 +112,26 @@ build_params_gem5() {
         done
     )`
 
+    params=`mktemp`
+    echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
+    echo -n " $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $params
+    echo -n " --cmd \"$cmd\" --init_mem $build/$M3_FS" >> $params
+    #echo -n " --watch-pe=0 --watch-start=0x111500 --watch-end=0x111600" >> $params
+
+    export M5_PATH=$build
     if [ "$DBG_GEM5" != "" ]; then
-        export M5_PATH=$build
         tmp=`mktemp`
         echo "b main" >> $tmp
-        echo -n "run --outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $tmp
-        echo -n " $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $tmp
-        echo " --cmd \"$cmd\" --init_mem $build/$M3_FS" >> $tmp
+        echo -n "run " >> $tmp
+        cat $params >> $tmp
+        echo >> $tmp
         gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
-        M5_PATH=$build $gem5/build/X86/gem5.opt --outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG \
-            $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU \
-            --num-pes=$maxcores --cmd "$cmd" --init_mem $build/$M3_FS
+        xargs $gem5/build/X86/gem5.opt < $params
     fi
+
+    rm $params
 }
 
 build_params_t2_sim() {
