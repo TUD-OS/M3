@@ -27,6 +27,13 @@ void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
     activate_sysc_chan();
+
+    // inject an IRQ
+    uint64_t  val = 1;
+    DTU::get().set_target(SLOT_NO, core(), IRQ_ADDR_EXTERN);
+    Sync::memory_barrier();
+    DTU::get().fire(SLOT_NO, DTU::WRITE, &val, sizeof(val));
+
     _state = RUNNING;
     LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
 }

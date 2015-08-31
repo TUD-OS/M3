@@ -64,7 +64,4 @@ bool VPE::skip_section(ElfPh *) {
     return false;
 }
 
-void VPE::wakeup_pe() {
-}
-
 }

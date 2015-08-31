@@ -77,10 +77,4 @@ bool VPE::skip_section(ElfPh *ph) {
            ph->p_vaddr == CODE_BASE_ADDR + 0x400;
 }
 
-void VPE::wakeup_pe() {
-    /* inject IRQ */
-    uint64_t  val = 1;
-    _mem.write_sync(&val, sizeof(val), IRQ_ADDR_EXTERN);
-}
-
 }

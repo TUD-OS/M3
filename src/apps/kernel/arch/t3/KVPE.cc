@@ -29,6 +29,13 @@ void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
     activate_sysc_chan();
+
+    // inject an IRQ
+    uint64_t  val = 1;
+    DTU::get().config_remote_mem(tempchan, core(), IRQ_ADDR_EXTERN, sizeof(val), 1);
+    Sync::memory_barrier();
+    DTU::get().write(tempchan, &val, sizeof(val), 0);
+
     _state = RUNNING;
     LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
 }

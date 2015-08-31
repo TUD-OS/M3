@@ -83,8 +83,6 @@ void VPE::start(uintptr_t entry, void *caps, void *chans, void *lambda, void *mo
         (word_t)get_sp(),
     };
     _mem.write_sync(vals, sizeof(vals), BOOT_CAPS);
-
-    wakeup_pe();
 }
 
 void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {

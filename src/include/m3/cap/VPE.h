@@ -210,7 +210,6 @@ private:
     uintptr_t get_entry();
     static word_t get_sp();
     static bool skip_section(ElfPh *ph);
-    void wakeup_pe();
     void copy_sections();
 
     MemGate _mem;
