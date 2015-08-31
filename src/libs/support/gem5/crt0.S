@@ -24,7 +24,13 @@
 .extern __clibrary_init_lambda
 
 _start:
+    # set the stack pointer (BOOT_SP is set if we are calling a lambda)
+    mov     $BOOT_SP, %rax
+    mov     (%rax), %rsp
+    test    %rsp, %rsp
+    jne     1f
     mov     $STACK_TOP, %rsp
+1:
     mov     $0, %rbp
 
     # check if we should call a lambda
