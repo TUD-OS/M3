@@ -147,9 +147,9 @@ public:
         return reinterpret_cast<Endpoint*>(BASE_ADDR + sizeof(reg_t) * 2 + ep * sizeof(Endpoint));
     }
 
-    void execCommand(int ep, Command c) {
+    void execCommand(int ep, Command c, size_t offset = 0) {
         reg_t *cmd = get_cmd_reg();
-        *cmd = static_cast<uint>(c) | (ep << 2);
+        *cmd = static_cast<uint>(c) | (ep << 2) | (offset << 10);
     }
 
 private:

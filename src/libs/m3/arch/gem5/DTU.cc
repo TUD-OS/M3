@@ -57,17 +57,12 @@ void DTU::read(int ep, void *msg, size_t size, size_t off) {
     assert(e->mode == READ_MEMORY || e->mode == WRITE_MEMORY);
     e->mode = READ_MEMORY;
 
-    // TODO workaround since we don't have an offset register yet
-    e->requestRemoteAddr += off;
-
     e->requestLocalAddr = reinterpret_cast<uintptr_t>(msg);
     e->requestSize = size;
     Sync::compiler_barrier();
-    execCommand(ep, Command::START_OPERATION);
+    execCommand(ep, Command::START_OPERATION, off);
 
     wait_until_ready(ep);
-
-    e->requestRemoteAddr -= off;
 }
 
 void DTU::write(int ep, const void *msg, size_t size, size_t off) {
@@ -75,17 +70,12 @@ void DTU::write(int ep, const void *msg, size_t size, size_t off) {
     assert(e->mode == READ_MEMORY || e->mode == WRITE_MEMORY);
     e->mode = WRITE_MEMORY;
 
-    // TODO workaround since we don't have an offset register yet
-    e->requestRemoteAddr += off;
-
     e->requestLocalAddr = reinterpret_cast<uintptr_t>(msg);
     e->requestSize = size;
     Sync::compiler_barrier();
-    execCommand(ep, Command::START_OPERATION);
+    execCommand(ep, Command::START_OPERATION, off);
 
     wait_until_ready(ep);
-
-    e->requestRemoteAddr -= off;
 }
 
 }
