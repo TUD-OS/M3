@@ -11,7 +11,7 @@ fi
 
 t2pcip=th
 t2pcthip=thshell
-build=`readlink -f build/$M3_TARGET-$M3_MACHINE-$M3_BUILD`
+build=build/$M3_TARGET-$M3_MACHINE-$M3_BUILD
 bindir=$build/bin
 
 . config.ini
@@ -332,6 +332,8 @@ if [[ "$script" == *.cfg ]]; then
             build_params_t2_chip $script
         fi
     elif [ "$M3_TARGET" = "t3" ]; then
+        build=`readlink -f $build`
+        bindir=`readlink -f $bindir`
         tmp=`mktemp`
         build_params_t3_sim $script > $tmp
         cd th/XTSC
