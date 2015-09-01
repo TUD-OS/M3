@@ -24,10 +24,10 @@
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x0
 
-#define HEAP_SIZE           0x100000
+#define HEAP_SIZE           0x10000
 #define CHAN_COUNT          8
 
-#define SPM_END             0x1000000
+#define SPM_END             (4 * 1024 * 1024)
 // leave one page for idle
 #define STACK_TOP           (SPM_END - 0x1000)
 #define STACK_BOTTOM        (STACK_TOP - 0x1000)

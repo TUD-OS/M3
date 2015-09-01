@@ -76,7 +76,7 @@ public:
         WRITE_MEMORY,
     };
 
-    static const uintptr_t BASE_ADDR        = 0x1000000;
+    static const uintptr_t BASE_ADDR        = 0xF0000000;
     static const size_t HEADER_SIZE         = sizeof(Header);
 
     // TODO not yet supported

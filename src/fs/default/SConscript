@@ -16,8 +16,6 @@ if env['ARCH'] == 'host':
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
 blocks = 16384 if os.environ.get('M3_FSBLKS') is None else int(os.environ.get('M3_FSBLKS'))
-if env['ARCH'] == 'gem5':
-    blocks = 8192
 env.M3Mkfs(target = 'default.img', source = '$FSDIR/default', blocks = blocks, inodes = 256, blks_per_ext = bpe)
 
 args = '--sim' if env['MACH'] == 'sim' else ''
