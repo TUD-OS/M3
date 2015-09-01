@@ -89,8 +89,10 @@ size_t VPE::alloc_chan() {
 
 void VPE::delegate(const CapRngDesc &crd) {
     Syscalls::get().exchange(sel(), crd, crd, false);
-    for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel)
-        _caps->set(sel);
+    for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel) {
+        if(!VPE::self().is_cap_free(sel))
+            _caps->set(sel);
+    }
 }
 
 void VPE::obtain(const CapRngDesc &crd) {
