@@ -199,9 +199,11 @@ public:
         return res;
     }
 
+    // should ONLY be called during initialization
+    void init_state();
+
 private:
     void init();
-    void init_state();
     Errors::Code run(void *lambda);
     Errors::Code load(int argc, const char **argv, uintptr_t *entry);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);

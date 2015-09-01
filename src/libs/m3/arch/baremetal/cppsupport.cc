@@ -16,6 +16,7 @@
 
 #include <m3/Common.h>
 #include <m3/cap/RecvGate.h>
+#include <m3/cap/VPE.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/Log.h>
 #include <m3/Config.h>
@@ -130,6 +131,9 @@ EXTERN_C void __clibrary_init_lambda(int, char **argv) {
 
     Serial::get().init(argv ? argv[0] : "Unknown", cfg->coreid);
     ChanMng::get().reset();
+
+    VPE::self().init_state();
+
     EVENT_TRACE_REINIT();
 }
 
