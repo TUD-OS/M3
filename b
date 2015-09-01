@@ -361,4 +361,12 @@ case "$cmd" in
 	exfs=*)
 		$build/src/tools/exm3fs/exm3fs $build/${cmd#exfs=} $script
 		;;
+
+	list)
+		echo "Start of section .text:"
+		ls -1 $build/bin | grep -v '\.a$' | while read l; do
+			${crossprefix}readelf -S $build/bin/$l | \
+				grep "\.text " | awk "{ printf(\"%20s: %s\n\",\"$l\",\$5) }"
+		done
+		;;
 esac
