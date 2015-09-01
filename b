@@ -103,6 +103,8 @@ help() {
 	echo "    M3_FSBPE:                The blocks per extent (0 = unlimited)."
 	echo "    M3_FSBLKS:               The fs block count (default=16384)."
 	echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
+	echo "    M3_DBG_PE:               Debug the PE with given number (only on gem5 and"
+	echo "                             with command dbg=)."
 	exit 0
 }
 
@@ -255,8 +257,12 @@ case "$cmd" in
 	    		sleep 1
 	    	done
 
-	    	pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
-	    	port=$((${pe#PE} + 7000))
+	    	if [ "$M3_DBG_PE" != "" ]; then
+	    		port=$(($M3_DBG_PE + 7000))
+	    	else
+		    	pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
+		    	port=$((${pe#PE} + 7000))
+		    fi
 
 			gdbcmd=`mktemp`
 			echo "target remote localhost:$port" > $gdbcmd
