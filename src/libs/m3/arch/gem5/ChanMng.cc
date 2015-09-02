@@ -34,7 +34,7 @@ void ChanMng::reset() {
 }
 
 void ChanMng::notify(size_t id) {
-    word_t addr = DTU::get().get_ep(id)->bufferReadPtr;
+    word_t addr = DTU::ep_regs(id)->bufReadPtr;
     Message *msg = message(id);
     LOG(IPC, "Received message over " << id << " @ "
             << fmt(addr, "p") << "+" << fmt(reinterpret_cast<word_t>(msg) - addr, "x"));

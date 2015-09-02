@@ -60,8 +60,8 @@ private:
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {
-    volatile DTU::Endpoint *ep = DTU::get().get_ep(id);
-    return ep->bufferMessageCount > 0;
+    volatile DTU::EpRegs *ep = DTU::ep_regs(id);
+    return ep->bufMsgCnt > 0;
 }
 
 inline bool ChanMngBase::uses_header(size_t) const {
@@ -78,7 +78,7 @@ inline void ChanMngBase::set_msgcnt(size_t, word_t) {
 }
 
 inline ChanMng::Message *ChanMng::message(size_t id) const {
-    return reinterpret_cast<Message*>(DTU::get().get_ep(id)->bufferReadPtr);
+    return reinterpret_cast<Message*>(DTU::ep_regs(id)->bufReadPtr);
 }
 
 inline ChanMng::Message *ChanMng::message_at(size_t, size_t) const {
@@ -96,7 +96,8 @@ inline size_t ChanMng::get_msgoff(size_t, RecvGate *, const ChanMng::Message *) 
 }
 
 inline void ChanMng::ack_message(size_t id) {
-    DTU::get().execCommand(id, DTU::Command::INC_READ_PTR);
+    DTU::CmdRegs *cmd = DTU::cmd_regs();
+    cmd->command = DTU::buildCommand(id, DTU::CmdOpCode::INC_READ_PTR);
     LOG(IPC, "Ack message in " << id);
 }
 

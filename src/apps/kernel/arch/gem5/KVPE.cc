@@ -31,9 +31,10 @@ void KVPE::start(int, char **, int) {
     activate_sysc_chan();
 
     // wakeup core
-    DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::Command::WAKEUP_CORE);
+    DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::CmdOpCode::WAKEUP_CORE);
     Sync::compiler_barrier();
-    DTU::get().configure_mem(tempchan, core(), (uintptr_t)DTU::get().get_cmd_reg(), sizeof(cmd));
+    static_assert(offsetof(DTU::CmdRegs, command) == 0, "Command register is not at offset 0");
+    DTU::get().configure_mem(tempchan, core(), (uintptr_t)DTU::cmd_regs(), sizeof(cmd));
     DTU::get().write(tempchan, &cmd, sizeof(cmd), 0);
 
     _state = RUNNING;
@@ -49,26 +50,26 @@ void KVPE::activate_sysc_chan() {
     DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 
     // init the syscall endpoint
-    DTU::Endpoint ep;
+    DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
     ep.mode = DTU::EpMode::TRANSMIT_MESSAGE;
     ep.credits = 0xFFFFFFFF;// TODO 1 << SYSC_CREDIT_ORD;
-    ep.maxMessageSize = 1 << SYSC_CREDIT_ORD;
+    ep.maxMsgSize = 1 << SYSC_CREDIT_ORD;
     ep.targetCoreId = KERNEL_CORE;
     ep.targetEpId = ChanMng::SYSC_CHAN;
     ep.label = reinterpret_cast<label_t>(&syscall_gate());
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(ChanMng::SYSC_CHAN));
-    DTU::get().configure_mem(tempchan, core(), dst, sizeof(DTU::Endpoint));
-    DTU::get().write(tempchan, &ep, sizeof(DTU::Endpoint), 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ChanMng::SYSC_CHAN));
+    DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));
+    DTU::get().write(tempchan, &ep, sizeof(ep), 0);
 }
 
 void KVPE::invalidate_eps() {
-    DTU::Endpoint *eps = new DTU::Endpoint[CHAN_COUNT];
+    DTU::EpRegs *eps = new DTU::EpRegs[CHAN_COUNT];
     size_t total = sizeof(*eps) * CHAN_COUNT;
     memset(eps, 0, total);
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(ChanMng::SYSC_CHAN));
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ChanMng::SYSC_CHAN));
     DTU::get().configure_mem(tempchan, core(), dst, total);
     DTU::get().write(tempchan, eps, total, 0);
     delete[] eps;
@@ -76,7 +77,7 @@ void KVPE::invalidate_eps() {
 
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
     // TODO later we need to use cmpxchg here
-    DTU::Endpoint ep;
+    DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
     if(newcapobj) {
         ep.mode = (newcapobj->type & Capability::MEM)
@@ -86,14 +87,14 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
         ep.targetEpId = newcapobj->obj->chanid;
         ep.label = newcapobj->obj->label;
         // TODO this is not correct
-        ep.maxMessageSize = newcapobj->obj->credits;
-        ep.requestRemoteAddr = newcapobj->obj->label & ~MemGate::RWX;
-        ep.requestRemoteSize = newcapobj->obj->credits;
+        ep.maxMsgSize = newcapobj->obj->credits;
+        ep.reqRemoteAddr = newcapobj->obj->label & ~MemGate::RWX;
+        ep.reqRemoteSize = newcapobj->obj->credits;
     }
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(cid));
-    DTU::get().configure_mem(tempchan, core(), dst, sizeof(DTU::Endpoint));
-    DTU::get().write(tempchan, &ep, sizeof(DTU::Endpoint), 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(cid));
+    DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));
+    DTU::get().write(tempchan, &ep, sizeof(ep), 0);
     return Errors::NO_ERROR;
 }
 

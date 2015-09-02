@@ -32,29 +32,38 @@ class DTU {
 public:
     typedef uint64_t reg_t;
 
-    struct Endpoint {
-        reg_t mode;
-        reg_t maxMessageSize;
-        reg_t bufferMessageCount;
-        reg_t bufferAddr;
-        reg_t bufferSize;
-        reg_t bufferReadPtr;
-        reg_t bufferWritePtr;
+    struct DtuRegs {
+        reg_t status;
+        reg_t msgCnt;
+    } PACKED;
 
-        reg_t targetCoreId;
-        reg_t targetEpId;
-        reg_t messageAddr;
-        reg_t messageSize;
-        reg_t label;
+    struct CmdRegs {
+        reg_t command;
+        reg_t dataAddr;
+        reg_t dataSize;
+        reg_t offset;
         reg_t replyEpId;
         reg_t replyLabel;
+    } PACKED;
 
-        reg_t requestLocalAddr;
-        reg_t requestRemoteAddr;
-        reg_t requestRemoteSize;
-        reg_t requestSize;
-
+    struct EpRegs {
+        reg_t mode;
+        // for receiving messages
+        reg_t bufAddr;
+        reg_t bufMsgSize;
+        reg_t bufSize;
+        reg_t bufMsgCnt;
+        reg_t bufReadPtr;
+        reg_t bufWritePtr;
+        // for sending messages
+        reg_t targetCoreId;
+        reg_t targetEpId;
+        reg_t maxMsgSize;
+        reg_t label;
         reg_t credits;
+        // for memory requests
+        reg_t reqRemoteAddr;
+        reg_t reqRemoteSize;
     } PACKED;
 
     struct Header {
@@ -83,7 +92,7 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
 
-    enum class Command {
+    enum class CmdOpCode {
         IDLE                = 0,
         START_OPERATION     = 1,
         INC_READ_PTR        = 2,
@@ -95,22 +104,22 @@ public:
     }
 
     void configure(int ep, label_t label, int coreid, int epid, word_t credits) {
-        Endpoint *e = get_ep(ep);
+        EpRegs *e = ep_regs(ep);
         e->mode = TRANSMIT_MESSAGE;
         e->label = label;
         e->targetCoreId = coreid;
         e->targetEpId = epid;
         e->credits = credits;
         // TODO that's not correct
-        e->maxMessageSize = credits;
+        e->maxMsgSize = credits;
     }
 
     void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
-        Endpoint *e = get_ep(ep);
+        EpRegs *e = ep_regs(ep);
         e->mode = READ_MEMORY;
         e->targetCoreId = coreid;
-        e->requestRemoteAddr = addr;
-        e->requestRemoteSize = size;
+        e->reqRemoteAddr = addr;
+        e->reqRemoteSize = size;
     }
 
     void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
@@ -132,14 +141,14 @@ public:
         // hlt, we miss it. this case is handled by a pin at the CPU, which indicates whether
         // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
         // not have to be changed.
-        volatile reg_t *msgs = get_msgcnt_reg();
-        if(*msgs == 0)
+        volatile DtuRegs *regs = dtu_regs();
+        if(regs->msgCnt == 0)
             asm volatile ("hlt");
         return true;
     }
     void wait_until_ready(int) {
-        volatile reg_t *status = get_status_reg();
-        while(*status != 0)
+        volatile DtuRegs *regs = dtu_regs();
+        while(regs->status != 0)
             ;
     }
     bool wait_for_mem_cmd() {
@@ -147,22 +156,18 @@ public:
         return true;
     }
 
-    reg_t *get_cmd_reg() const {
-        return reinterpret_cast<reg_t*>(BASE_ADDR) + 0;
+    static DtuRegs *dtu_regs() {
+        return reinterpret_cast<DtuRegs*>(BASE_ADDR);
     }
-    reg_t *get_status_reg() const {
-        return reinterpret_cast<reg_t*>(BASE_ADDR) + 1;
+    static CmdRegs *cmd_regs() {
+        return reinterpret_cast<CmdRegs*>(BASE_ADDR + sizeof(DtuRegs));
     }
-    reg_t *get_msgcnt_reg() const {
-        return reinterpret_cast<reg_t*>(BASE_ADDR) + 2;
-    }
-    Endpoint *get_ep(int ep) const {
-        return reinterpret_cast<Endpoint*>(BASE_ADDR + sizeof(reg_t) * 3 + ep * sizeof(Endpoint));
+    static EpRegs *ep_regs(int ep) {
+        return reinterpret_cast<EpRegs*>(BASE_ADDR + sizeof(DtuRegs) + sizeof(CmdRegs) + ep * sizeof(EpRegs));
     }
 
-    void execCommand(int ep, Command c, size_t offset = 0) {
-        reg_t *cmd = get_cmd_reg();
-        *cmd = static_cast<uint>(c) | (ep << 2) | (offset << 10);
+    static reg_t buildCommand(int ep, CmdOpCode c) {
+        return static_cast<uint>(c) | (ep << 2);
     }
 
 private:
