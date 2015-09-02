@@ -261,7 +261,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 	else:
 		prog = myenv.Program(
 			target, source,
-			LIBS = libs,
+			LIBS = ['m3', 'pthread'] + libs,
 			LIBPATH = [myenv['LIBDIR']] + libpaths
 		)
 
