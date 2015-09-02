@@ -234,7 +234,7 @@ build_params_t3_sim() {
         while [ $c -lt $maxcores ]; do
             echo -n " -pe_core.SimTargetProgram=$bindir/idle --pe_core.SimDebugSynchronized=true"
             if [ -z "$M3_NOTRACE" ]; then
-                echo -n " --pe_core.SimClients=\"trace --level 6 core$c.log\""
+                echo -n " --pe_core.SimClients=\"trace --level 6 ../../run/core$c.log\""
             fi
             if [ "$debug" = "idle" ]; then
                 echo -n " --pe_core.SimDebug=true --pe_core.SimDebugStartingPort=1234"
