@@ -50,6 +50,15 @@ void KVPE::activate_sysc_chan() {
     DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));
 }
 
+void KVPE::invalidate_eps() {
+    alignas(DTU_PKG_SIZE) CoreConf conf;
+    memset(&conf, 0, sizeof(conf));
+    conf.coreid = core();
+    DTU::get().set_target(SLOT_NO, core(), CONF_GLOBAL);
+    Sync::memory_barrier();
+    DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));
+}
+
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
     // TODO later we need to use cmpxchg here
     alignas(DTU_PKG_SIZE) ChanConf conf;

@@ -63,6 +63,17 @@ void KVPE::activate_sysc_chan() {
     DTU::get().write(tempchan, &ep, sizeof(DTU::Endpoint), 0);
 }
 
+void KVPE::invalidate_eps() {
+    DTU::Endpoint *eps = new DTU::Endpoint[CHAN_COUNT];
+    size_t total = sizeof(*eps) * CHAN_COUNT;
+    memset(eps, 0, total);
+    Sync::compiler_barrier();
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::get().get_ep(ChanMng::SYSC_CHAN));
+    DTU::get().configure_mem(tempchan, core(), dst, total);
+    DTU::get().write(tempchan, eps, total, 0);
+    delete[] eps;
+}
+
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
     // TODO later we need to use cmpxchg here
     DTU::Endpoint ep;

@@ -42,4 +42,15 @@ void KVPE::unref() {
         PEManager::get().remove(_id);
 }
 
+void KVPE::exit(int exitcode) {
+    invalidate_eps();
+    _state = DEAD;
+    _exitcode = exitcode;
+    for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
+        auto cur = it++;
+        cur->callback(exitcode, &*cur);
+        _exitsubscr.unsubscribe(&*cur);
+    }
+}
+
 }

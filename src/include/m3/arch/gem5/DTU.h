@@ -127,6 +127,14 @@ public:
     }
 
     bool wait() {
+        // wait until the DTU wakes us up
+        // note that we have a race-condition here. if a message arrives between the check and the
+        // hlt, we miss it. this case is handled by a pin at the CPU, which indicates whether
+        // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
+        // not have to be changed.
+        volatile reg_t *msgs = get_msgcnt_reg();
+        if(*msgs == 0)
+            asm volatile ("hlt");
         return true;
     }
     void wait_until_ready(int) {
@@ -145,8 +153,11 @@ public:
     reg_t *get_status_reg() const {
         return reinterpret_cast<reg_t*>(BASE_ADDR) + 1;
     }
+    reg_t *get_msgcnt_reg() const {
+        return reinterpret_cast<reg_t*>(BASE_ADDR) + 2;
+    }
     Endpoint *get_ep(int ep) const {
-        return reinterpret_cast<Endpoint*>(BASE_ADDR + sizeof(reg_t) * 2 + ep * sizeof(Endpoint));
+        return reinterpret_cast<Endpoint*>(BASE_ADDR + sizeof(reg_t) * 3 + ep * sizeof(Endpoint));
     }
 
     void execCommand(int ep, Command c, size_t offset = 0) {

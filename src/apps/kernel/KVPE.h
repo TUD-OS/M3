@@ -56,17 +56,10 @@ public:
     void unref();
 
     void start(int argc, char **argv, int pid);
-    void exit(int exitcode) {
-        _state = DEAD;
-        _exitcode = exitcode;
-        for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
-            auto cur = it++;
-            cur->callback(exitcode, &*cur);
-            _exitsubscr.unsubscribe(&*cur);
-        }
-    }
+    void exit(int exitcode);
 
     void activate_sysc_chan(void *addr);
+    void invalidate_eps();
     Errors::Code xchg_chan(size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     int id() const {

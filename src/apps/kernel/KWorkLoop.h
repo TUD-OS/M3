@@ -81,6 +81,7 @@ public:
 #if defined(__host__)
             check_childs();
 #endif
+            DTU::get().wait();
         }
     }
 };

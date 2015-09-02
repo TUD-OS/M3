@@ -70,6 +70,13 @@ void KVPE::activate_sysc_chan(void *addr) {
         mcap->obj->label = iaddr | MemGate::X | MemGate::W;
 }
 
+void KVPE::invalidate_eps() {
+    size_t total = DTU::SEPS_RCNT * CHAN_COUNT;
+    word_t *regs = new word_t[total];
+    seps_gate().write_sync(regs, total * sizeof(word_t), 0);
+    delete[] regs;
+}
+
 void KVPE::write_env_file(pid_t pid, label_t label, size_t cid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);

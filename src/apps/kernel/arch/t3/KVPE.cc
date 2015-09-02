@@ -77,6 +77,18 @@ void KVPE::activate_sysc_chan() {
     DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 }
 
+void KVPE::invalidate_eps() {
+    alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1] = {0};
+    regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
+    for(int i = 0; i < CHAN_COUNT; ++i) {
+        uintptr_t addr = DTU::get().get_external_cmd_addr(i, 0);
+        DTU::get().config_header(tempchan, false, 0, 0);
+        DTU::get().config_remote_mem(tempchan, core(), addr, sizeof(regs), 1);
+        Sync::memory_barrier();
+        DTU::get().write(tempchan, regs, sizeof(regs), 0);
+    }
+}
+
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1] = {0};
     if(newcapobj) {
