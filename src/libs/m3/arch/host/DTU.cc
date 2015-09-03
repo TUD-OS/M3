@@ -109,17 +109,16 @@ int DTU::prepare_reply(int chanid,int &dstcore,int &dstchan) {
         return CTRL_ERROR;
     }
 
-    const word_t mask = get_ep(chanid, EP_BUF_VALID_MASK);
-    if(reply >= MAX_MSGS || (~mask & (1UL << reply))) {
-        LOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", mask=#"
-                << fmt(mask, "x") << ", chan=" << chanid << ")");
+    const word_t msgord = get_ep(chanid, EP_BUF_MSGORDER);
+    const word_t ringbuf = get_ep(chanid, EP_BUF_ADDR);
+    Buffer *buf = reinterpret_cast<Buffer*>(ringbuf + (reply << msgord));
+    assert(buf->has_replycap);
+
+    if(reply >= MAX_MSGS || !buf->has_replycap) {
+        LOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", chan=" << chanid << ")");
         return CTRL_ERROR;
     }
 
-    const word_t msgord = get_ep(chanid, EP_BUF_MSGORDER);
-    const word_t ringbuf = get_ep(chanid, EP_BUF_ADDR);
-    const Buffer *buf = reinterpret_cast<Buffer*>(ringbuf + (reply << msgord));
-    assert(buf->has_replycap);
     dstcore = buf->core;
     dstchan = buf->rpl_chanid;
     _buf.label = buf->replylabel;
@@ -128,7 +127,7 @@ int DTU::prepare_reply(int chanid,int &dstcore,int &dstchan) {
     _buf.length = size;
     memcpy(_buf.data, src, size);
     // invalidate message for replying
-    set_ep(chanid, EP_BUF_VALID_MASK, mask & ~(1UL << reply));
+    buf->has_replycap = false;
     return 0;
 }
 
@@ -285,8 +284,7 @@ void DTU::send_msg(int chanid, int dstcoreid, int dstchanid, bool isreply) {
     LOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << chanid << " to c:ch=" << dstcoreid << ":" << dstchanid
-            << " (crd=#" << fmt((long)get_ep(dstchanid, EP_CREDITS), "x")
-            << ", mask=#" << fmt(get_ep(dstchanid, EP_BUF_VALID_MASK), "x") << ")");
+            << " (crd=#" << fmt((long)get_ep(dstchanid, EP_CREDITS), "x") << ")");
 
     _backend->send(dstcoreid, dstchanid, &_buf);
 }
@@ -469,11 +467,8 @@ void DTU::handle_receive(int i) {
         set_ep(i, EP_BUF_WOFF, (woffraw + maxmsgsize) & ((size << 1) - 1));
     }
 
-    if(op != SENDCRD) {
+    if(op != SENDCRD)
         set_ep(i, EP_BUF_MSGCNT, get_ep(i, EP_BUF_MSGCNT) + 1);
-        if((~flags & FLAG_NO_HEADER) && _buf.has_replycap)
-            set_ep(i, EP_BUF_VALID_MASK, get_ep(i, EP_BUF_VALID_MASK) | (1UL << (woff >> maxmsgord)));
-    }
 
     // refill credits
     if(_buf.crd_chan >= CHAN_COUNT)
@@ -493,8 +488,7 @@ void DTU::handle_receive(int i) {
                 << " ch=" << i
                 << " (" << "roff=#" << fmt(roff, "x") << ",woff=#"
                 << fmt(get_ep(i, EP_BUF_WOFF) & (size - 1), "x") << ",cnt=#"
-                << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ",mask=#"
-                << fmt(get_ep(i, EP_BUF_VALID_MASK), "0x", 8) << ",crd=#"
+                << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ",crd=#"
                 << fmt((long)get_ep(i, EP_CREDITS), "x")
                 << ")");
     }

@@ -34,7 +34,6 @@ void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
         regs[DTU::EP_BUF_WOFF]       = 0;
         regs[DTU::EP_BUF_MSGCNT]     = 0;
         regs[DTU::EP_BUF_FLAGS]      = rbuf.flags & ~F_ATTACHED;
-        regs[DTU::EP_BUF_VALID_MASK] = 0;
     }
 
     PEManager::get().vpe(coreid - APP_CORES).seps_gate().write_sync(

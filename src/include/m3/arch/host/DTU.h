@@ -104,13 +104,12 @@ public:
     static constexpr size_t EP_BUF_MSGCNT       = 5;
     static constexpr size_t EP_BUF_MSGQID       = 6;
     static constexpr size_t EP_BUF_FLAGS        = 7;
-    static constexpr size_t EP_BUF_VALID_MASK   = 8;
 
     // for sending message and accessing memory
-    static constexpr size_t EP_COREID           = 9;
-    static constexpr size_t EP_CHANID           = 10;
-    static constexpr size_t EP_LABEL            = 11;
-    static constexpr size_t EP_CREDITS          = 12;
+    static constexpr size_t EP_COREID           = 8;
+    static constexpr size_t EP_CHANID           = 9;
+    static constexpr size_t EP_LABEL            = 10;
+    static constexpr size_t EP_CREDITS          = 11;
 
     // bits in EP_BUF_FLAGS register
     static constexpr word_t FLAG_NO_RINGBUF     = 0x1;
