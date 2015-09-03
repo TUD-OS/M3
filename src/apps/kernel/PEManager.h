@@ -107,6 +107,8 @@ public:
     }
 
 private:
+    void deprivilege_pes();
+
     bool core_matches(size_t i, const char *core) const;
     static m3::String path_to_name(const m3::String &path, const char *suffix);
     static m3::String fork_name(const m3::String &name);

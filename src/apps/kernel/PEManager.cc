@@ -25,6 +25,8 @@ PEManager *PEManager::_inst;
 
 PEManager::PEManager(int argc, char **argv)
         : _petype(), _vpes(), _count(), _daemons() {
+    deprivilege_pes();
+
     size_t no = 0;
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)

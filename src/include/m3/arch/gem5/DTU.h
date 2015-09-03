@@ -86,8 +86,13 @@ public:
     static const int FLAG_NO_HEADER         = 0;
 
     enum MemFlags : reg_t {
-        R                   = (1 << 0),
-        W                   = (1 << 1),
+        R                   = 1 << 0,
+        W                   = 1 << 1,
+    };
+
+    enum StatusFlags : reg_t {
+        BUSY                = 1 << 0,
+        PRIV                = 1 << 0,
     };
 
     enum class CmdOpCode {
@@ -157,7 +162,7 @@ public:
     }
     void wait_until_ready(int) {
         volatile DtuRegs *regs = dtu_regs();
-        while(regs->status != 0)
+        while(regs->status & BUSY)
             ;
     }
     bool wait_for_mem_cmd() {

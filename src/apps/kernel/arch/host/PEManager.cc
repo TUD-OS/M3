@@ -24,6 +24,9 @@
 
 namespace m3 {
 
+void PEManager::deprivilege_pes() {
+}
+
 PEManager::~PEManager() {
     for(size_t i = 0; i < AVAIL_PES; ++i) {
         if(_vpes[i]) {
