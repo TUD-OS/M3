@@ -34,25 +34,26 @@ void RecvBuf::attach(size_t i) {
         // first reserve the channel; we might need to invalidate it
         ChanMng::get().reserve(i);
 
-#if !defined(__t3__) and !defined(__host__)
+#if !defined(__t3__)
         // always required for t3 because one can't write to these registers externally
         if(coreid() == KERNEL_CORE) {
 #endif
             DTU::get().configure_recv(i, reinterpret_cast<word_t>(_buf), _order, _msgorder,
                 _flags & ~DELETE_BUF);
-#if !defined(__t3__) and !defined(__host__)
+#if !defined(__t3__)
         }
 #endif
 
         if(coreid() != KERNEL_CORE && i > ChanMng::DEF_RECVCHAN) {
-            // TODO let the user choose whether replies are allowed
             if(Syscalls::get().attachrb(VPE::self().sel(), i, reinterpret_cast<word_t>(_buf),
                     _order, _msgorder, _flags & ~DELETE_BUF) != Errors::NO_ERROR)
                 PANIC("Attaching receive buffer to " << i << " failed: " << Errors::to_string(Errors::last));
         }
 
         // if we may receive messages from the channel, create a worker for it
-        if(ChanMng::get().uses_header(i)) {
+        // TODO hack for host: we don't want to do that for MEM_CHAN but know that only afterwards
+        // because the EPs are not initialized yet
+        if(i != ChanMng::MEM_CHAN && ChanMng::get().uses_header(i)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
                 WorkLoop::get().add(_workitem, i == ChanMng::MEM_CHAN || i == ChanMng::DEF_RECVCHAN);
@@ -68,17 +69,21 @@ void RecvBuf::attach(size_t i) {
     _chanid = i;
 }
 
+void RecvBuf::disable() {
+    if(_workitem) {
+        WorkLoop::get().remove(_workitem);
+        delete _workitem;
+        _workitem = nullptr;
+    }
+}
+
 void RecvBuf::detach() {
     if(coreid() != KERNEL_CORE && _chanid > ChanMng::DEF_RECVCHAN && _chanid != UNBOUND) {
         Syscalls::get().detachrb(VPE::self().sel(), _chanid);
         _chanid = UNBOUND;
     }
 
-    if(_workitem) {
-        WorkLoop::get().remove(_workitem);
-        delete _workitem;
-        _workitem = nullptr;
-    }
+    disable();
 }
 
 }

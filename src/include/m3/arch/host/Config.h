@@ -91,6 +91,7 @@ public:
 
 private:
     void init();
+    void init_dtu();
     static bool set_params(Config *env, const char *shm_prefix, bool is_kernel);
     static void init_executable();
 

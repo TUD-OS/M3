@@ -64,6 +64,10 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 }
 
 void VPE::init_state() {
+    delete _chans;
+    delete _caps;
+    Heap::free(_mounts);
+
     _caps = new BitField<CAP_TOTAL>();
     size_t len = sizeof(*_caps);
     read_from("caps", _caps, len);
@@ -96,6 +100,7 @@ Errors::Code VPE::run(void *lambda) {
         close(fd[0]);
 
         Config::get().reset();
+        VPE::self().init_state();
 
         std::function<int()> *func = reinterpret_cast<std::function<int()>*>(lambda);
         (*func)();

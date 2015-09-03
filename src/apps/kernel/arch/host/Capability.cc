@@ -27,9 +27,9 @@ Errors::Code MsgCapability::revoke() {
         // overwrite the SEP regs with 0's to set the credits to 0, which effectively disables the
         // channel.
         KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
-        word_t regs[DTU::SEPS_RCNT];
+        word_t regs[DTU::EPS_RCNT];
         memset(regs, 0, sizeof(regs));
-        size_t offset = localchanid * DTU::SEPS_RCNT * sizeof(word_t);
+        size_t offset = localchanid * DTU::EPS_RCNT * sizeof(word_t);
         vpe.seps_gate().write_sync(regs, sizeof(regs), offset);
     }
     obj.unref();

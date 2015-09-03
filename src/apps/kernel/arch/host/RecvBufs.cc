@@ -17,9 +17,26 @@
 #include <m3/util/Sync.h>
 #include <m3/Log.h>
 
+#include "../../PEManager.h"
 #include "../../RecvBufs.h"
 
 using namespace m3;
 
-void RecvBufs::configure(size_t, size_t, RBuf &) {
+void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
+    word_t regs[DTU::EPS_RCNT];
+    memset(regs, 0, sizeof(regs));
+
+    if(rbuf.flags & F_ATTACHED) {
+        regs[DTU::EP_BUF_ADDR]       = rbuf.addr;
+        regs[DTU::EP_BUF_ORDER]      = rbuf.order;
+        regs[DTU::EP_BUF_MSGORDER]   = rbuf.msgorder;
+        regs[DTU::EP_BUF_ROFF]       = 0;
+        regs[DTU::EP_BUF_WOFF]       = 0;
+        regs[DTU::EP_BUF_MSGCNT]     = 0;
+        regs[DTU::EP_BUF_FLAGS]      = rbuf.flags & ~F_ATTACHED;
+        regs[DTU::EP_BUF_VALID_MASK] = 0;
+    }
+
+    PEManager::get().vpe(coreid - APP_CORES).seps_gate().write_sync(
+        regs, sizeof(regs), chanid * sizeof(word_t) * DTU::EPS_RCNT);
 }

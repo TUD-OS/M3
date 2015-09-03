@@ -123,6 +123,7 @@ public:
 #endif
 
     void attach(size_t i);
+    void disable();
     void detach();
 
 private:

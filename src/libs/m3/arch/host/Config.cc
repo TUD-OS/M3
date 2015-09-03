@@ -96,13 +96,12 @@ void Config::reset() {
     Serial::get().init(executable(), coreid());
 
     DTU::get().reset();
+    ChanMng::get().reset();
 
-    // init the syscall chan again (we have a different label)
-    DTU::get().configure(ChanMng::SYSC_CHAN, _sysc_label, 0, _sysc_cid, _sysc_credits);
-    DTU::get().start();
+    init_dtu();
 
     // we have to call init for this VPE in case we hadn't done that yet
-    Syscalls::get().init(DTU::get().sep_regs());
+    Syscalls::get().init(DTU::get().ep_regs());
 }
 
 static void sighandler(int sig, siginfo_t *info, void *secret) {
@@ -173,7 +172,18 @@ void Config::init() {
 
     Serial::get().init(executable(), coreid());
 
+    init_dtu();
+}
+
+void Config::init_dtu() {
+    // we have to init that here, too, because the kernel doesn't know where it is
+    DTU::get().configure_recv(ChanMng::MEM_CHAN, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
+        _mem_recvbuf.order(), _mem_recvbuf.msgorder(), _mem_recvbuf.flags());
+    DTU::get().configure_recv(ChanMng::DEF_RECVCHAN, reinterpret_cast<uintptr_t>(_def_recvbuf.addr()),
+        _def_recvbuf.order(), _def_recvbuf.msgorder(), _def_recvbuf.flags());
+
     DTU::get().configure(ChanMng::SYSC_CHAN, _sysc_label, 0, _sysc_cid, _sysc_credits);
+
     DTU::get().start();
 }
 

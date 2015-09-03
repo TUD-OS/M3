@@ -27,13 +27,15 @@ void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
 
-    // default receive endpoint
-    ep.bufAddr = rbuf.addr;
-    ep.bufSize = static_cast<size_t>(1) << (rbuf.order - rbuf.msgorder);
-    ep.bufMsgSize = static_cast<size_t>(1) << rbuf.msgorder;
-    ep.bufMsgCnt = 0;
-    ep.bufReadPtr = rbuf.addr;
-    ep.bufWritePtr = rbuf.addr;
+    if(rbuf.flags & F_ATTACHED) {
+        // default receive endpoint
+        ep.bufAddr = rbuf.addr;
+        ep.bufSize = static_cast<size_t>(1) << (rbuf.order - rbuf.msgorder);
+        ep.bufMsgSize = static_cast<size_t>(1) << rbuf.msgorder;
+        ep.bufMsgCnt = 0;
+        ep.bufReadPtr = rbuf.addr;
+        ep.bufWritePtr = rbuf.addr;
+    }
     Sync::compiler_barrier();
 
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(chanid));

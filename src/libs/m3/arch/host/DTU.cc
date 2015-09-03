@@ -26,10 +26,25 @@
 
 namespace m3 {
 
+static void dumpBytes(uint8_t *bytes, size_t length) {
+    std::ostringstream tmp;
+    tmp << std::hex << std::setfill('0');
+    for(size_t i = 0; i < length; ++i) {
+        if(i > 0 && i % 8 == 0) {
+            LOG(DTUERR, "  " << tmp.str().c_str());
+            tmp = std::ostringstream();
+            tmp << std::hex << std::setfill('0');
+        }
+        tmp << "0x" << std::setw(2) << (unsigned)bytes[i] << " ";
+    }
+    if(!tmp.str().empty())
+        LOG(DTUERR, "  " << tmp.str().c_str());
+}
+
 DTU DTU::inst INIT_PRIORITY(106);
 DTU::Buffer DTU::_buf INIT_PRIORITY(106);
 
-DTU::DTU() : _run(true), _rregs(), _lregs(), _tid() {
+DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid() {
 }
 
 void DTU::start() {
@@ -46,37 +61,25 @@ void DTU::start() {
         PANIC("pthread_create");
 }
 
+void DTU::reset() {
+    memset(ep_regs(), 0, EPS_RCNT * CHAN_COUNT * sizeof(word_t));
+
+    _backend->reset();
+}
+
 bool DTU::wait() {
     usleep(1);
     return _run;
 }
 
 void DTU::configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags) {
-    set_rep(chan, REP_ADDR, buf);
-    set_rep(chan, REP_ORDER, order);
-    set_rep(chan, REP_MSGORDER, msgorder);
-    set_rep(chan, REP_ROFF, 0);
-    set_rep(chan, REP_WOFF, 0);
-    set_rep(chan, REP_MSGCNT, 0);
-    set_rep(chan, REP_FLAGS, flags);
-    LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << coreid() << ":" << chan);
-}
-
-void DTU::set_rep(int i, size_t reg, word_t val) {
-    _lregs[i * REPS_RCNT + reg] = val;
-    // whenever the receive-buffer changes or flags change, reset the valid-mask.
-    // this way, nobody can give us prepared data in order to send a message to arbitrary cores.
-    switch(reg) {
-        case REP_ADDR:
-        case REP_ORDER:
-        case REP_MSGORDER:
-        case REP_FLAGS:
-            if(get_rep(i, REP_VALID_MASK) != 0)
-                LOG(DTUERR, "DMA-warning: Setting non-zero valid-mask to zero");
-            set_rep(i, REP_VALID_MASK, 0);
-            set_rep(i, REP_WOFF, 0);
-            break;
-    }
+    set_ep(chan, EP_BUF_ADDR, buf);
+    set_ep(chan, EP_BUF_ORDER, order);
+    set_ep(chan, EP_BUF_MSGORDER, msgorder);
+    set_ep(chan, EP_BUF_ROFF, 0);
+    set_ep(chan, EP_BUF_WOFF, 0);
+    set_ep(chan, EP_BUF_MSGCNT, 0);
+    set_ep(chan, EP_BUF_FLAGS, flags);
 }
 
 int DTU::check_cmd(int chan, int op, word_t label, word_t credits, size_t offset, size_t length) {
@@ -101,20 +104,20 @@ int DTU::prepare_reply(int chanid,int &dstcore,int &dstchan) {
     const size_t size = get_cmd(CMD_SIZE);
     const size_t reply = get_cmd(CMD_OFFSET);
 
-    if(get_rep(chanid, REP_FLAGS) & FLAG_NO_HEADER) {
+    if(get_ep(chanid, EP_BUF_FLAGS) & FLAG_NO_HEADER) {
         LOG(DTUERR, "DMA-error: want to reply, but header is disabled");
         return CTRL_ERROR;
     }
 
-    const word_t mask = get_rep(chanid, REP_VALID_MASK);
+    const word_t mask = get_ep(chanid, EP_BUF_VALID_MASK);
     if(reply >= MAX_MSGS || (~mask & (1UL << reply))) {
         LOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", mask=#"
                 << fmt(mask, "x") << ", chan=" << chanid << ")");
         return CTRL_ERROR;
     }
 
-    const word_t msgord = get_rep(chanid, REP_MSGORDER);
-    const word_t ringbuf = get_rep(chanid, REP_ADDR);
+    const word_t msgord = get_ep(chanid, EP_BUF_MSGORDER);
+    const word_t ringbuf = get_ep(chanid, EP_BUF_ADDR);
     const Buffer *buf = reinterpret_cast<Buffer*>(ringbuf + (reply << msgord));
     assert(buf->has_replycap);
     dstcore = buf->core;
@@ -125,13 +128,13 @@ int DTU::prepare_reply(int chanid,int &dstcore,int &dstchan) {
     _buf.length = size;
     memcpy(_buf.data, src, size);
     // invalidate message for replying
-    set_rep(chanid, REP_VALID_MASK, mask & ~(1UL << reply));
+    set_ep(chanid, EP_BUF_VALID_MASK, mask & ~(1UL << reply));
     return 0;
 }
 
 int DTU::prepare_send(int chanid,int &dstcore,int &dstchan) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
-    const word_t credits = get_sep(chanid, SEP_CREDITS);
+    const word_t credits = get_ep(chanid, EP_CREDITS);
     const size_t size = get_cmd(CMD_SIZE);
     // check if we have enough credits
     if(credits != static_cast<word_t>(-1)) {
@@ -141,13 +144,13 @@ int DTU::prepare_send(int chanid,int &dstcore,int &dstchan) {
                     << ")." << " Ignoring send-command");
             return CTRL_ERROR;
         }
-        set_sep(chanid, SEP_CREDITS, credits - (size + HEADER_SIZE));
+        set_ep(chanid, EP_CREDITS, credits - (size + HEADER_SIZE));
     }
 
-    dstcore = get_sep(chanid, SEP_COREID);
-    dstchan = get_sep(chanid, SEP_CHANID);
+    dstcore = get_ep(chanid, EP_COREID);
+    dstchan = get_ep(chanid, EP_CHANID);
     _buf.credits = 0;
-    _buf.label = get_sep(chanid, SEP_LABEL);
+    _buf.label = get_ep(chanid, EP_LABEL);
 
     _buf.length = size;
     memcpy(_buf.data, src, size);
@@ -155,11 +158,11 @@ int DTU::prepare_send(int chanid,int &dstcore,int &dstchan) {
 }
 
 int DTU::prepare_read(int chanid,int &dstcore,int &dstchan) {
-    dstcore = get_sep(chanid, SEP_COREID);
-    dstchan = get_sep(chanid, SEP_CHANID);
+    dstcore = get_ep(chanid, EP_COREID);
+    dstchan = get_ep(chanid, EP_CHANID);
 
     _buf.credits = 0;
-    _buf.label = get_sep(chanid, SEP_LABEL);
+    _buf.label = get_ep(chanid, EP_LABEL);
     _buf.length = sizeof(word_t) * 3;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -170,11 +173,11 @@ int DTU::prepare_read(int chanid,int &dstcore,int &dstchan) {
 int DTU::prepare_write(int chanid,int &dstcore,int &dstchan) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
-    dstcore = get_sep(chanid, SEP_COREID);
-    dstchan = get_sep(chanid, SEP_CHANID);
+    dstcore = get_ep(chanid, EP_COREID);
+    dstchan = get_ep(chanid, EP_CHANID);
 
     _buf.credits = 0;
-    _buf.label = get_sep(chanid, SEP_LABEL);
+    _buf.label = get_ep(chanid, EP_LABEL);
     _buf.length = sizeof(word_t) * 2;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -186,8 +189,8 @@ int DTU::prepare_write(int chanid,int &dstcore,int &dstchan) {
 int DTU::prepare_cmpxchg(int chanid,int &dstcore,int &dstchan) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
-    dstcore = get_sep(chanid, SEP_COREID);
-    dstchan = get_sep(chanid, SEP_CHANID);
+    dstcore = get_ep(chanid, EP_COREID);
+    dstchan = get_ep(chanid, EP_CHANID);
 
     if(size != get_cmd(CMD_LENGTH) * 2) {
         LOG(DTUERR, "DMA-error: cmpxchg: CMD_SIZE != CMD_LENGTH * 2. Ignoring send-command");
@@ -195,7 +198,7 @@ int DTU::prepare_cmpxchg(int chanid,int &dstcore,int &dstchan) {
     }
 
     _buf.credits = 0;
-    _buf.label = get_sep(chanid, SEP_LABEL);
+    _buf.label = get_ep(chanid, EP_LABEL);
     _buf.length = sizeof(word_t) * 3;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -209,8 +212,8 @@ int DTU::prepare_sendcrd(int chanid, int &dstcore, int &dstchan) {
     const size_t size = get_cmd(CMD_SIZE);
     const int crdchan = get_cmd(CMD_OFFSET);
 
-    dstcore = get_sep(chanid, SEP_COREID);
-    dstchan = get_sep(chanid, SEP_CHANID);
+    dstcore = get_ep(chanid, EP_COREID);
+    dstchan = get_ep(chanid, EP_CHANID);
     _buf.credits = size + HEADER_SIZE;
     _buf.length = 1;    // can't be 0
     _buf.crd_chan = crdchan;
@@ -235,7 +238,7 @@ void DTU::handle_command(int core) {
         goto error;
     }
 
-    newctrl |= check_cmd(chanid, op, get_sep(chanid, SEP_LABEL), get_sep(chanid, SEP_CREDITS),
+    newctrl |= check_cmd(chanid, op, get_ep(chanid, EP_LABEL), get_ep(chanid, EP_CREDITS),
         get_cmd(CMD_OFFSET), get_cmd(CMD_LENGTH));
     switch(op) {
         case REPLY:
@@ -282,8 +285,8 @@ void DTU::send_msg(int chanid, int dstcoreid, int dstchanid, bool isreply) {
     LOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << chanid << " to c:ch=" << dstcoreid << ":" << dstchanid
-            << " (crd=#" << fmt((long)get_sep(dstchanid, SEP_CREDITS), "x")
-            << ", mask=#" << fmt(get_rep(dstchanid, REP_VALID_MASK), "x") << ")");
+            << " (crd=#" << fmt((long)get_ep(dstchanid, EP_CREDITS), "x")
+            << ", mask=#" << fmt(get_ep(dstchanid, EP_BUF_VALID_MASK), "x") << ")");
 
     _backend->send(dstcoreid, dstchanid, &_buf);
 }
@@ -293,8 +296,8 @@ void DTU::handle_read_cmd(int chanid) {
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t dest = reinterpret_cast<word_t*>(_buf.data)[2];
-    LOG(DTU, "(read) " << length << " bytes from " << fmt(base, "x")
-            << "+" << fmt(offset - base, "x") << " -> " << fmt(dest, "p"));
+    LOG(DTU, "(read) " << length << " bytes from #" << fmt(base, "x")
+            << "+#" << fmt(offset - base, "x") << " -> " << fmt(dest, "p"));
     int dstcoreid = _buf.core;
     int dstchanid = _buf.rpl_chanid;
     assert(length <= sizeof(_buf.data));
@@ -315,8 +318,8 @@ void DTU::handle_write_cmd(int) {
     word_t base = _buf.label & ~MemGate::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
-    LOG(DTU, "(write) " << length << " bytes to " << fmt(base, "x")
-            << "+" << fmt(offset - base, "x"));
+    LOG(DTU, "(write) " << length << " bytes to #" << fmt(base, "x")
+            << "+#" << fmt(offset - base, "x"));
     assert(length <= sizeof(_buf.data));
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 2, length);
 }
@@ -326,8 +329,8 @@ void DTU::handle_resp_cmd() {
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t resp = reinterpret_cast<word_t*>(_buf.data)[2];
-    LOG(DTU, "(resp) " << length << " bytes to " << fmt(base, "x")
-            << "+" << fmt(offset - base, "x") << " -> " << resp);
+    LOG(DTU, "(resp) " << length << " bytes to #" << fmt(base, "x")
+            << "+#" << fmt(offset - base, "x") << " -> " << resp);
     assert(length <= sizeof(_buf.data));
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length);
     /* provide feedback to SW */
@@ -339,8 +342,8 @@ void DTU::handle_cmpxchg_cmd(int chanid) {
     word_t base = _buf.label & ~MemGate::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
-    LOG(DTU, "(cmpxchg) " << length << " bytes @ " << fmt(base, "x")
-            << "+" << fmt(offset - base, "x"));
+    LOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
+            << "+#" << fmt(offset - base, "x"));
     int dstcoreid = _buf.core;
     int dstchanid = _buf.rpl_chanid;
 
@@ -351,18 +354,12 @@ void DTU::handle_cmpxchg_cmd(int chanid) {
         res = 0;
     }
     else {
-        std::ostringstream exp, act;
         uint8_t *expected = reinterpret_cast<uint8_t*>(_buf.data) + sizeof(word_t) * 3;
         uint8_t *actual = reinterpret_cast<uint8_t*>(offset);
-        exp << std::hex << std::setfill('0');
-        act << std::hex << std::setfill('0');
-        for(size_t i = 0; i < length; ++i) {
-            exp << "0x" << std::setw(2) << (unsigned)expected[i] << " ";
-            act << "0x" << std::setw(2) << (unsigned)actual[i] << " ";
-        }
-        LOG(DTUERR, "(cmpxchg) failed:");
-        LOG(DTUERR, "  expected=" << exp.str().c_str());
-        LOG(DTUERR, "  actual  =" << act.str().c_str());
+        LOG(DTUERR, "(cmpxchg) failed; expected:");
+        dumpBytes(expected, length);
+        LOG(DTUERR, "actual:");
+        dumpBytes(actual, length);
         res = CTRL_ERROR;
     }
 
@@ -378,14 +375,14 @@ void DTU::handle_cmpxchg_cmd(int chanid) {
 }
 
 void DTU::handle_receive(int i) {
-    const size_t size = 1UL << get_rep(i, REP_ORDER);
-    const size_t roffraw = get_rep(i, REP_ROFF);
-    size_t woffraw = get_rep(i, REP_WOFF);
+    const size_t size = 1UL << get_ep(i, EP_BUF_ORDER);
+    const size_t roffraw = get_ep(i, EP_BUF_ROFF);
+    size_t woffraw = get_ep(i, EP_BUF_WOFF);
     size_t roff = roffraw & (size - 1);
     size_t woff = woffraw & (size - 1);
-    const size_t maxmsgord = get_rep(i, REP_MSGORDER);
+    const size_t maxmsgord = get_ep(i, EP_BUF_MSGORDER);
     const size_t maxmsgsize = 1UL << maxmsgord;
-    const word_t flags = get_rep(i, REP_FLAGS);
+    const word_t flags = get_ep(i, EP_BUF_FLAGS);
 
     // without ringbuffer, we can always overwrite the whole buffer
     size_t avail = size;
@@ -421,7 +418,7 @@ void DTU::handle_receive(int i) {
         res = avail;
     }
 
-    char *const addr = reinterpret_cast<char*>(get_rep(i, REP_ADDR));
+    char *const addr = reinterpret_cast<char*>(get_ep(i, EP_BUF_ADDR));
     const size_t msgsize = (flags & FLAG_NO_HEADER) ? res - HEADER_SIZE : res;
     const char *src = (flags & FLAG_NO_HEADER) ? _buf.data : (char*)&_buf;
 
@@ -465,28 +462,28 @@ void DTU::handle_receive(int i) {
         // continue at the beginning
         if(cpysize)
             memcpy(addr + woff, src, cpysize);
-        set_rep(i, REP_WOFF, (woffraw + msgsize) & ((size << 1) - 1));
+        set_ep(i, EP_BUF_WOFF, (woffraw + msgsize) & ((size << 1) - 1));
     }
     else {
         memcpy(addr + woff, src, msgsize);
-        set_rep(i, REP_WOFF, (woffraw + maxmsgsize) & ((size << 1) - 1));
+        set_ep(i, EP_BUF_WOFF, (woffraw + maxmsgsize) & ((size << 1) - 1));
     }
 
     if(op != SENDCRD) {
-        set_rep(i, REP_MSGCNT, get_rep(i, REP_MSGCNT) + 1);
+        set_ep(i, EP_BUF_MSGCNT, get_ep(i, EP_BUF_MSGCNT) + 1);
         if((~flags & FLAG_NO_HEADER) && _buf.has_replycap)
-            set_rep(i, REP_VALID_MASK, get_rep(i, REP_VALID_MASK) | (1UL << (woff >> maxmsgord)));
+            set_ep(i, EP_BUF_VALID_MASK, get_ep(i, EP_BUF_VALID_MASK) | (1UL << (woff >> maxmsgord)));
     }
 
     // refill credits
     if(_buf.crd_chan >= CHAN_COUNT)
         LOG(DTUERR, "DMA-error: should give credits to channel " << _buf.crd_chan);
     else {
-        word_t credits = get_sep(_buf.crd_chan, SEP_CREDITS);
+        word_t credits = get_ep(_buf.crd_chan, EP_CREDITS);
         if(_buf.credits && credits != static_cast<word_t>(-1)) {
             LOG(DTU, "Refilling credits of chan " << _buf.crd_chan
                 << " from #" << fmt(credits, "x") << " to #" << fmt(credits + _buf.credits, "x"));
-            set_sep(_buf.crd_chan, SEP_CREDITS, credits + _buf.credits);
+            set_ep(_buf.crd_chan, EP_CREDITS, credits + _buf.credits);
         }
     }
 
@@ -495,10 +492,10 @@ void DTU::handle_receive(int i) {
                 << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
                 << " ch=" << i
                 << " (" << "roff=#" << fmt(roff, "x") << ",woff=#"
-                << fmt(get_rep(i, REP_WOFF) & (size - 1), "x") << ",cnt=#"
-                << fmt(get_rep(i, REP_MSGCNT), "x") << ",mask=#"
-                << fmt(get_rep(i, REP_VALID_MASK), "0x", 8) << ",crd=#"
-                << fmt((long)get_sep(i, SEP_CREDITS), "x")
+                << fmt(get_ep(i, EP_BUF_WOFF) & (size - 1), "x") << ",cnt=#"
+                << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ",mask=#"
+                << fmt(get_ep(i, EP_BUF_VALID_MASK), "0x", 8) << ",crd=#"
+                << fmt((long)get_ep(i, EP_CREDITS), "x")
                 << ")");
     }
 }

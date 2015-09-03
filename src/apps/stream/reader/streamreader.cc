@@ -30,12 +30,12 @@ using namespace m3;
 template<typename T>
 class StreamReader {
 public:
-    explicit StreamReader(RecvGate &gate) : _gate(gate), _msgcnt(rep_reg(DTU::REP_MSGCNT)) {
+    explicit StreamReader(RecvGate &gate) : _gate(gate), _msgcnt(ep_reg(DTU::EP_BUF_MSGCNT)) {
     }
 
     T read() {
         while(1) {
-            size_t msgcnt = rep_reg(DTU::REP_MSGCNT);
+            size_t msgcnt = ep_reg(DTU::EP_BUF_MSGCNT);
             if(msgcnt != _msgcnt) {
                 _msgcnt = msgcnt;
                 break;
@@ -43,21 +43,21 @@ public:
             DTU::get().wait();
         }
 
-        word_t roff = rep_reg(DTU::REP_ROFF);
-        word_t ord = rep_reg(DTU::REP_ORDER);
-        T val = *reinterpret_cast<T*>(rep_reg(DTU::REP_ADDR) + (roff & ((1UL << ord) - 1)));
+        word_t roff = ep_reg(DTU::EP_BUF_ROFF);
+        word_t ord = ep_reg(DTU::EP_BUF_ORDER);
+        T val = *reinterpret_cast<T*>(ep_reg(DTU::EP_BUF_ADDR) + (roff & ((1UL << ord) - 1)));
         Sync::compiler_barrier();
         roff = (roff + sizeof(T)) & ((1UL << (ord + 1)) - 1);
-        rep_reg(DTU::REP_ROFF, roff);
+        ep_reg(DTU::EP_BUF_ROFF, roff);
         return val;
     }
 
 private:
-    word_t rep_reg(size_t off) const {
-        return DTU::get().get_rep(_gate.chanid(), off);
+    word_t ep_reg(size_t off) const {
+        return DTU::get().get_ep(_gate.chanid(), off);
     }
-    void rep_reg(size_t off, word_t val) {
-        DTU::get().set_rep(_gate.chanid(), off, val);
+    void ep_reg(size_t off, word_t val) {
+        DTU::get().set_ep(_gate.chanid(), off, val);
     }
 
     RecvGate &_gate;

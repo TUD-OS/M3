@@ -77,7 +77,10 @@ public:
 
     static void detach(size_t coreid, size_t chanid) {
         RBuf &rbuf = get(coreid, chanid);
-        rbuf.flags = 0;
+        if(rbuf.flags & F_ATTACHED) {
+            rbuf.flags = 0;
+            configure(coreid, chanid, rbuf);
+        }
         notify(rbuf, false);
     }
 

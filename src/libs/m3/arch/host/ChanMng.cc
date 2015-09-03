@@ -25,8 +25,17 @@
 
 namespace m3 {
 
+void ChanMng::reset() {
+    for(int i = 0; i < CHAN_COUNT; ++i) {
+        if(_gates[i])
+            _gates[i]->_chanid = Gate::UNBOUND;
+        _gates[i] = nullptr;
+        _msgcnt[i] = 0;
+    }
+}
+
 void ChanMng::notify(size_t id) {
-    word_t addr = DTU::get().get_rep(id, DTU::REP_ADDR);
+    word_t addr = DTU::get().get_ep(id, DTU::EP_BUF_ADDR);
     Message *msg = message(id);
     LOG(IPC, "Received message over " << id << " @ "
             << fmt(addr, "p") << "+" << fmt(reinterpret_cast<word_t>(msg) - addr, "x"));
@@ -36,16 +45,16 @@ void ChanMng::notify(size_t id) {
 }
 
 ChanMng::Message *ChanMng::message(size_t id) const {
-    size_t off = DTU::get().get_rep(id, DTU::REP_ROFF);
-    word_t addr = DTU::get().get_rep(id, DTU::REP_ADDR);
-    size_t ord = DTU::get().get_rep(id, DTU::REP_ORDER);
+    size_t off = DTU::get().get_ep(id, DTU::EP_BUF_ROFF);
+    word_t addr = DTU::get().get_ep(id, DTU::EP_BUF_ADDR);
+    size_t ord = DTU::get().get_ep(id, DTU::EP_BUF_ORDER);
     return reinterpret_cast<Message*>(addr + (off & ((1UL << ord) - 1)));
 }
 
 ChanMng::Message *ChanMng::message_at(size_t id, size_t msgidx) const {
-    word_t addr = DTU::get().get_rep(id, DTU::REP_ADDR);
-    size_t ord = DTU::get().get_rep(id, DTU::REP_ORDER);
-    size_t msgord = DTU::get().get_rep(id, DTU::REP_MSGORDER);
+    word_t addr = DTU::get().get_ep(id, DTU::EP_BUF_ADDR);
+    size_t ord = DTU::get().get_ep(id, DTU::EP_BUF_ORDER);
+    size_t msgord = DTU::get().get_ep(id, DTU::EP_BUF_MSGORDER);
     return reinterpret_cast<Message*>(addr + ((msgidx << msgord) & ((1UL << ord) - 1)));
 }
 
@@ -54,19 +63,19 @@ size_t ChanMng::get_msgoff(size_t id, RecvGate *rcvgate) const {
 }
 
 size_t ChanMng::get_msgoff(size_t id, UNUSED RecvGate *rcvgate, const ChanMng::Message *msg) const {
-    word_t addr = DTU::get().get_rep(id, DTU::REP_ADDR);
-    size_t ord = DTU::get().get_rep(id, DTU::REP_MSGORDER);
+    word_t addr = DTU::get().get_ep(id, DTU::EP_BUF_ADDR);
+    size_t ord = DTU::get().get_ep(id, DTU::EP_BUF_MSGORDER);
     return (reinterpret_cast<word_t>(msg) - addr) >> ord;
 }
 
 void ChanMng::ack_message(size_t id) {
-    word_t flags = DTU::get().get_rep(id, DTU::REP_FLAGS);
-    size_t roff = DTU::get().get_rep(id, DTU::REP_ROFF);
+    word_t flags = DTU::get().get_ep(id, DTU::EP_BUF_FLAGS);
+    size_t roff = DTU::get().get_ep(id, DTU::EP_BUF_ROFF);
     if(~flags & DTU::FLAG_NO_RINGBUF) {
-        size_t ord = DTU::get().get_rep(id, DTU::REP_ORDER);
-        size_t msgord = DTU::get().get_rep(id, DTU::REP_MSGORDER);
+        size_t ord = DTU::get().get_ep(id, DTU::EP_BUF_ORDER);
+        size_t msgord = DTU::get().get_ep(id, DTU::EP_BUF_MSGORDER);
         roff = (roff + (1UL << msgord)) & ((1UL << (ord + 1)) - 1);
-        DTU::get().set_rep(id, DTU::REP_ROFF, roff);
+        DTU::get().set_ep(id, DTU::EP_BUF_ROFF, roff);
     }
     _msgcnt[id]++;
     LOG(IPC, "Ack message in " << id << " -> roff=#"

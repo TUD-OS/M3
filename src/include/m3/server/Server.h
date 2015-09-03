@@ -80,9 +80,9 @@ public:
     }
 
     void shutdown() {
-        // by deactivating the receive buffer, we remove it from the WorkLoop, which in the end
+        // by disabling the receive buffer, we remove it from the WorkLoop, which in the end
         // stops the WorkLoop
-        _rcvbuf.detach();
+        _rcvbuf.disable();
     }
 
     HDL &handler() {

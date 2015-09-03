@@ -82,42 +82,37 @@ public:
 
     static constexpr size_t MAX_MSGS            = sizeof(word_t) * 8;
 
-    // register starts and counts
-    static constexpr size_t CMDS_START          = 0;
-
     // command registers
-    static constexpr size_t CMD_ADDR            = CMDS_START + 0;
-    static constexpr size_t CMD_SIZE            = CMDS_START + 1;
-    static constexpr size_t CMD_CHANID          = CMDS_START + 2;
-    static constexpr size_t CMD_CTRL            = CMDS_START + 3;
-    static constexpr size_t CMD_OFFSET          = CMDS_START + 4;
-    static constexpr size_t CMD_REPLYLBL        = CMDS_START + 5;
-    static constexpr size_t CMD_REPLY_CHANID    = CMDS_START + 6;
-    static constexpr size_t CMD_LENGTH          = CMDS_START + 7;
+    static constexpr size_t CMD_ADDR            = 0;
+    static constexpr size_t CMD_SIZE            = 1;
+    static constexpr size_t CMD_CHANID          = 2;
+    static constexpr size_t CMD_CTRL            = 3;
+    static constexpr size_t CMD_OFFSET          = 4;
+    static constexpr size_t CMD_REPLYLBL        = 5;
+    static constexpr size_t CMD_REPLY_CHANID    = 6;
+    static constexpr size_t CMD_LENGTH          = 7;
 
     // register starts and counts (cont.)
-    static constexpr size_t CMDS_RCNT           = 1 + CMD_LENGTH - CMD_ADDR;
-    static constexpr size_t REPS_START          = CMDS_RCNT;
-    static constexpr size_t SEPS_START          = 0;
+    static constexpr size_t CMDS_RCNT           = 1 + CMD_LENGTH;
 
-    // REP registers
-    static constexpr size_t REP_ADDR            = REPS_START + 0;
-    static constexpr size_t REP_ORDER           = REPS_START + 1;
-    static constexpr size_t REP_MSGORDER        = REPS_START + 2;
-    static constexpr size_t REP_ROFF            = REPS_START + 3;
-    static constexpr size_t REP_WOFF            = REPS_START + 4;
-    static constexpr size_t REP_MSGCNT          = REPS_START + 5;
-    static constexpr size_t REP_MSGQID          = REPS_START + 6;
-    static constexpr size_t REP_FLAGS           = REPS_START + 7;
-    static constexpr size_t REP_VALID_MASK      = REPS_START + 8;
+    // receive buffer registers
+    static constexpr size_t EP_BUF_ADDR         = 0;
+    static constexpr size_t EP_BUF_ORDER        = 1;
+    static constexpr size_t EP_BUF_MSGORDER     = 2;
+    static constexpr size_t EP_BUF_ROFF         = 3;
+    static constexpr size_t EP_BUF_WOFF         = 4;
+    static constexpr size_t EP_BUF_MSGCNT       = 5;
+    static constexpr size_t EP_BUF_MSGQID       = 6;
+    static constexpr size_t EP_BUF_FLAGS        = 7;
+    static constexpr size_t EP_BUF_VALID_MASK   = 8;
 
-    // SEP registers
-    static constexpr size_t SEP_COREID          = SEPS_START + 0;
-    static constexpr size_t SEP_CHANID          = SEPS_START + 1;
-    static constexpr size_t SEP_LABEL           = SEPS_START + 2;
-    static constexpr size_t SEP_CREDITS         = SEPS_START + 3;
+    // for sending message and accessing memory
+    static constexpr size_t EP_COREID           = 9;
+    static constexpr size_t EP_CHANID           = 10;
+    static constexpr size_t EP_LABEL            = 11;
+    static constexpr size_t EP_CREDITS          = 12;
 
-    // bits in REP flags register
+    // bits in EP_BUF_FLAGS register
     static constexpr word_t FLAG_NO_RINGBUF     = 0x1;
     static constexpr word_t FLAG_NO_HEADER      = 0x2;
 
@@ -127,41 +122,7 @@ public:
     static constexpr word_t CTRL_ERROR          = 0x4;
 
     // register counts (cont.)
-    static constexpr size_t REPS_RCNT           = 1 + REP_VALID_MASK - REPS_START;
-    static constexpr size_t SEPS_RCNT           = 1 + SEP_CREDITS - SEPS_START;
-
-    // total regs count
-    static constexpr size_t LREG_COUNT          = CMDS_RCNT + CHAN_COUNT * REPS_RCNT;
-    static constexpr size_t RREG_COUNT          = CHAN_COUNT * SEPS_RCNT;
-
-    explicit DTU();
-
-    void reset() {
-        _backend->reset();
-    }
-
-    word_t *sep_regs() {
-        return const_cast<word_t*>(_rregs);
-    }
-
-    word_t get_cmd(size_t reg) {
-        return _lregs[reg];
-    }
-    void set_cmd(size_t reg, word_t val) {
-        _lregs[reg] = val;
-    }
-
-    word_t get_sep(int i, size_t reg) {
-        return _rregs[i * SEPS_RCNT + reg];
-    }
-    void set_sep(int i, size_t reg, word_t val) {
-        _rregs[i * SEPS_RCNT + reg] = val;
-    }
-
-    word_t get_rep(int i, size_t reg) {
-        return _lregs[i * REPS_RCNT + reg];
-    }
-    void set_rep(int i, size_t reg, word_t val);
+    static constexpr size_t EPS_RCNT            = 1 + EP_CREDITS;
 
     enum Op {
         READ    = 0,
@@ -173,18 +134,40 @@ public:
         SENDCRD = 6,
     };
 
+    explicit DTU();
+
+    void reset();
+
+    word_t get_cmd(size_t reg) {
+        return _cmdregs[reg];
+    }
+    void set_cmd(size_t reg, word_t val) {
+        _cmdregs[reg] = val;
+    }
+
+    word_t *ep_regs() {
+        return const_cast<word_t*>(_epregs);
+    }
+
+    word_t get_ep(int i, size_t reg) {
+        return _epregs[i * EPS_RCNT + reg];
+    }
+    void set_ep(int i, size_t reg, word_t val) {
+        _epregs[i * EPS_RCNT + reg] = val;
+    }
+
     static DTU &get() {
         return inst;
     }
 
     void configure(int i, label_t label, int coreid, int chanid, word_t credits) {
-        configure(const_cast<word_t*>(_rregs), i, label, coreid, chanid, credits);
+        configure(const_cast<word_t*>(_epregs), i, label, coreid, chanid, credits);
     }
-    static void configure(word_t *seps, int i, label_t label, int coreid, int chanid, word_t credits) {
-        seps[i * SEPS_RCNT + SEP_LABEL] = label;
-        seps[i * SEPS_RCNT + SEP_COREID] = coreid;
-        seps[i * SEPS_RCNT + SEP_CHANID] = chanid;
-        seps[i * SEPS_RCNT + SEP_CREDITS] = credits;
+    static void configure(word_t *eps, int i, label_t label, int coreid, int chanid, word_t credits) {
+        eps[i * EPS_RCNT + EP_LABEL] = label;
+        eps[i * EPS_RCNT + EP_COREID] = coreid;
+        eps[i * EPS_RCNT + EP_CHANID] = chanid;
+        eps[i * EPS_RCNT + EP_CREDITS] = credits;
     }
 
     void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
@@ -270,9 +253,9 @@ private:
     static void *thread(void *arg);
 
     volatile bool _run;
+    volatile word_t _cmdregs[CMDS_RCNT];
     // have to be aligned by 8 because it shouldn't collide with MemGate::RWX bits
-    alignas(8) volatile word_t _rregs[RREG_COUNT];
-    volatile word_t _lregs[LREG_COUNT];
+    alignas(8) volatile word_t _epregs[EPS_RCNT * CHAN_COUNT];
     Backend *_backend;
     pthread_t _tid;
     static Buffer _buf;

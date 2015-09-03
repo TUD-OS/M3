@@ -48,7 +48,7 @@ void MsgBackend::destroy() {
 void MsgBackend::reset() {
     // reset all msgqids because might have changed due to a different core we're running on
     for(int i = 0; i < CHAN_COUNT; ++i)
-        DTU::get().set_rep(i, DTU::REP_MSGQID, 0);
+        DTU::get().set_ep(i, DTU::EP_BUF_MSGQID, 0);
 }
 
 void MsgBackend::send(int core, int chan, const DTU::Buffer *buf) {
@@ -63,10 +63,10 @@ void MsgBackend::send(int core, int chan, const DTU::Buffer *buf) {
 }
 
 ssize_t MsgBackend::recv(int chan, DTU::Buffer *buf) {
-    int msgqid = DTU::get().get_rep(chan, DTU::REP_MSGQID);
+    int msgqid = DTU::get().get_ep(chan, DTU::EP_BUF_MSGQID);
     if(msgqid == 0) {
         msgqid = msgget(get_msgkey(coreid(), chan), 0);
-        DTU::get().set_rep(chan, DTU::REP_MSGQID, msgqid);
+        DTU::get().set_ep(chan, DTU::EP_BUF_MSGQID, msgqid);
     }
 
     ssize_t res = msgrcv(msgqid, buf, sizeof(*buf) - sizeof(buf->length), 0, IPC_NOWAIT);

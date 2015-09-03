@@ -62,7 +62,7 @@ void KVPE::activate_sysc_chan(void *addr) {
     MemCapability *mcap = static_cast<MemCapability*>(
         CapTable::kernel_table().get(_sepsgate.sel(), Capability::MEM));
     if(mcap == nullptr) {
-        size_t len = DTU::RREG_COUNT * sizeof(word_t);
+        size_t len = DTU::EPS_RCNT * CHAN_COUNT * sizeof(word_t);
         mcap = new MemCapability(iaddr, len, MemGate::X | MemGate::W, core(), 0);
         CapTable::kernel_table().set(_sepsgate.sel(), mcap);
     }
@@ -71,8 +71,9 @@ void KVPE::activate_sysc_chan(void *addr) {
 }
 
 void KVPE::invalidate_eps() {
-    size_t total = DTU::SEPS_RCNT * CHAN_COUNT;
+    size_t total = DTU::EPS_RCNT * CHAN_COUNT;
     word_t *regs = new word_t[total];
+    memset(regs, 0, total);
     seps_gate().write_sync(regs, total * sizeof(word_t), 0);
     delete[] regs;
 }
@@ -89,27 +90,26 @@ void KVPE::write_env_file(pid_t pid, label_t label, size_t cid) {
 }
 
 Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
-    word_t regs[DTU::SEPS_RCNT * 2];
     // set registers for caps
+    word_t regs[DTU::EPS_RCNT * 2];
+    memset(regs, 0, sizeof(regs));
     MsgCapability *co[] = {oldcapobj, newcapobj};
     for(size_t i = 0; i < 2; ++i) {
         if(co[i]) {
             DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->core,
                 co[i]->obj->chanid, co[i]->obj->credits);
         }
-        else
-            memset(regs + (DTU::SEPS_RCNT * i), 0, DTU::SEPS_RCNT * sizeof(word_t));
     }
 
     if(newcapobj) {
         // now do the compare-exchange
-        if(!seps_gate().cmpxchg_sync(regs, sizeof(regs), cid * DTU::SEPS_RCNT * sizeof(word_t)))
+        if(!seps_gate().cmpxchg_sync(regs, sizeof(regs), cid * DTU::EPS_RCNT * sizeof(word_t)))
             return Errors::INV_ARGS;
     }
     else {
         // if we should just invalidate it, we don't have to do a cmpxchg
-        seps_gate().write_sync(regs + DTU::SEPS_RCNT,
-            sizeof(regs) / 2, cid * DTU::SEPS_RCNT * sizeof(word_t));
+        seps_gate().write_sync(regs + DTU::EPS_RCNT,
+            sizeof(regs) / 2, cid * DTU::EPS_RCNT * sizeof(word_t));
     }
     return Errors::NO_ERROR;
 }

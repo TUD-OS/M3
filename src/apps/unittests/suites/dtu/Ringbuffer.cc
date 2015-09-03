@@ -31,23 +31,23 @@ void RingbufferTestSuite::SendAckTestCase::run() {
     {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
         ChanMng::get().ack_message(buf.chanid());
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
     }
 
     {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 1);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
         ChanMng::get().ack_message(buf.chanid());
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
     }
 
     dtu.configure(sendchanid, 0, 0, 0, 0);
@@ -66,37 +66,37 @@ void RingbufferTestSuite::IterationTestCase::run() {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
         assert_true(msg->label == lbl);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
     }
 
     {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
         assert_true(msg->label == lbl);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
     }
 
     ChanMng::get().ack_message(buf.chanid());
     ChanMng::get().ack_message(buf.chanid());
-    assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 2);
-    assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 2);
+    assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
+    assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
 
     {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 3, 0);
         assert_true(msg->label == lbl);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 3);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 3);
     }
 
     {
         dmasend(&data, sizeof(data), sendchanid);
         ChanMng::Message *msg = getmsgat(buf.chanid(), 4, 1);
         assert_true(msg->label == lbl);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
     }
 
     {
@@ -107,8 +107,8 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     ChanMng::get().ack_message(buf.chanid());
     ChanMng::get().ack_message(buf.chanid());
-    assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 0);
-    assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 0);
+    assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
+    assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
 
     {
         dmasend(&data, sizeof(data), sendchanid);
@@ -116,8 +116,8 @@ void RingbufferTestSuite::IterationTestCase::run() {
         word_t *dataptr = reinterpret_cast<word_t*>(msg->data);
         assert_true(msg->label == lbl);
         assert_word(*dataptr, 1234);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), (1UL << buf.msgorder()) * 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), (1UL << buf.msgorder()) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
     }
 
     dtu.configure(sendchanid, 0, 0, 0, 0);
@@ -140,51 +140,51 @@ void RingbufferTestSuite::NoHeaderTestCase::run() {
         dmasend(d + 1, sizeof(word_t) * 2, sendchanid);
 
         getmsg(buf.chanid(), 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 3);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 3);
         check(ringbuf, d[0], d[1], d[2], 0);
 
-        dtu.set_rep(buf.chanid(), DTU::REP_ROFF, sizeof(word_t) * 2);
+        dtu.set_ep(buf.chanid(), DTU::EP_BUF_ROFF, sizeof(word_t) * 2);
 
         dmasend(d + 3, sizeof(word_t), sendchanid);
 
         getmsg(buf.chanid(), 3);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 4);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 4);
         check(ringbuf, d[0], d[1], d[2], d[3]);
 
         dmasend(d + 1, sizeof(word_t) * 3, sendchanid);
 
         getmsg(buf.chanid(), 4);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 6);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 6);
         check(ringbuf, d[1], d[2], d[2], d[3]);
 
-        dtu.set_rep(buf.chanid(), DTU::REP_ROFF, sizeof(word_t) * 5);
+        dtu.set_ep(buf.chanid(), DTU::EP_BUF_ROFF, sizeof(word_t) * 5);
 
         dmasend(d, sizeof(word_t) * 3, sendchanid);
 
         getmsg(buf.chanid(), 5);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 5);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 5);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 1);
         check(ringbuf, d[2], d[2], d[0], d[1]);
 
-        dtu.set_rep(buf.chanid(), DTU::REP_ROFF, sizeof(word_t) * 1);
+        dtu.set_ep(buf.chanid(), DTU::EP_BUF_ROFF, sizeof(word_t) * 1);
 
         dmasend(d, sizeof(word_t) * 4, sendchanid);
 
         getmsg(buf.chanid(), 6);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 1);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 5);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 1);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 5);
         check(ringbuf, d[3], d[0], d[1], d[2]);
 
-        dtu.set_rep(buf.chanid(), DTU::REP_ROFF, sizeof(word_t) * 2);
+        dtu.set_ep(buf.chanid(), DTU::EP_BUF_ROFF, sizeof(word_t) * 2);
 
         dmasend(d + 1, sizeof(word_t) * 16, sendchanid);
 
         getmsg(buf.chanid(), 7);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), sizeof(word_t) * 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), sizeof(word_t) * 6);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), sizeof(word_t) * 2);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), sizeof(word_t) * 6);
         check(ringbuf, d[3], d[1], d[1], d[2]);
     }
 
@@ -205,8 +205,8 @@ void RingbufferTestSuite::NoRingNoHeaderTestCase::run() {
     {
         dmasend(data, sizeof(data), sendchanid);
         getmsg(buf.chanid(), 1);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), 0);
         assert_word(ringbuf[0], data[0]);
         assert_word(ringbuf[1], data[1]);
     }
@@ -214,8 +214,8 @@ void RingbufferTestSuite::NoRingNoHeaderTestCase::run() {
     {
         dmasend(data + 1, sizeof(data[0]), sendchanid);
         getmsg(buf.chanid(), 2);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_ROFF), 0);
-        assert_word(dtu.get_rep(buf.chanid(), DTU::REP_WOFF), 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), 0);
+        assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), 0);
         assert_word(ringbuf[0], data[1]);
         assert_word(ringbuf[1], data[1]);
     }
