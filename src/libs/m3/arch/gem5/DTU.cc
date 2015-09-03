@@ -25,16 +25,6 @@ DTU DTU::inst INIT_PRIORITY(106);
 static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
 static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
 
-void DTU::set_receiving(int ep, uintptr_t buf, uint order, uint msgorder, int) {
-    EpRegs *e = ep_regs(ep);
-    e->bufAddr = buf;
-    e->bufReadPtr = buf;
-    e->bufWritePtr = buf;
-    e->bufSize = 1UL << (order - msgorder);
-    e->bufMsgSize = 1UL << msgorder;
-    e->bufMsgCnt = 0;
-}
-
 void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     CmdRegs *c = cmd_regs();
     c->dataAddr = reinterpret_cast<uintptr_t>(msg);

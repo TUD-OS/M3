@@ -114,6 +114,16 @@ public:
         e->maxMsgSize = credits;
     }
 
+    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int) {
+        EpRegs *e = ep_regs(ep);
+        e->bufAddr = buf;
+        e->bufReadPtr = buf;
+        e->bufWritePtr = buf;
+        e->bufSize = static_cast<size_t>(1) << (order - msgorder);
+        e->bufMsgSize = static_cast<size_t>(1) << msgorder;
+        e->bufMsgCnt = 0;
+    }
+
     void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
         EpRegs *e = ep_regs(ep);
         e->targetCoreId = coreid;
@@ -126,7 +136,6 @@ public:
     void reply(int ep, const void *msg, size_t size, size_t msgidx);
     void read(int ep, void *msg, size_t size, size_t off);
     void write(int ep, const void *msg, size_t size, size_t off);
-    void set_receiving(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
     void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
         // TODO unsupported

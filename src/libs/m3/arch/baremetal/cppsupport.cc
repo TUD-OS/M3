@@ -103,8 +103,8 @@ EXTERN_C void __clibrary_init(int, char **argv) {
     else
         cfg->coreid = KERNEL_CORE;
 
-    def_rbuf = new RecvBuf(RecvBuf::create(
-        ChanMng::DEF_RECVCHAN, nextlog2<256>::val, nextlog2<128>::val, 0));
+    def_rbuf = new RecvBuf(RecvBuf::bindto(
+        ChanMng::DEF_RECVCHAN, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
     def_rgate = new RecvGate(RecvGate::create(def_rbuf));
 
 #if defined(__t2__)
@@ -124,10 +124,11 @@ EXTERN_C void __clibrary_init_lambda(int, char **argv) {
     while(cfg->coreid == 0)
         ;
 
-    // setup default receive buffer
-    // TODO actually, we need to do that for all receive buffers
-    DTU::get().set_receiving(def_rbuf->chanid(), reinterpret_cast<word_t>(def_rbuf->addr()),
+#if defined(__t3__)
+    // set default receive buffer again
+    DTU::get().configure_recv(def_rbuf->chanid(), reinterpret_cast<word_t>(def_rbuf->addr()),
         def_rbuf->order(), def_rbuf->msgorder(), def_rbuf->flags());
+#endif
 
     Serial::get().init(argv ? argv[0] : "Unknown", cfg->coreid);
     ChanMng::get().reset();

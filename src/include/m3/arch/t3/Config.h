@@ -52,7 +52,11 @@
 #define STATE_SIZE          0x100
 #define STATE_SPACE         (BOOT_EXIT - STATE_SIZE)
 
-#define CONF_LOCAL          (STATE_SPACE - 8)
+#define DEF_RCVBUF_ORDER    8
+#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
+#define DEF_RCVBUF          (STATE_SPACE - DEF_RCVBUF_SIZE)
+
+#define CONF_LOCAL          (DEF_RCVBUF - 8)
 #define CONF_GLOBAL         (CONF_LOCAL - DRAM_VOFFSET)
 
 // end of space for runtime

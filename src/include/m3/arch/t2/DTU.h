@@ -72,6 +72,10 @@ public:
         cfg->credits = credits;
     }
 
+    void configure_recv(UNUSED int chan, UNUSED uintptr_t buf, UNUSED uint order, UNUSED uint msgorder, UNUSED int flags) {
+        // nothing to do
+    }
+
     void send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan);
     void reply(int chan, const void *msg, size_t size, size_t msgidx);
     void read(int chan, void *msg, size_t size, size_t off);
@@ -79,10 +83,6 @@ public:
     void cmpxchg(UNUSED int chan, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
     }
     void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
-    }
-
-    void set_receiving(UNUSED int chan, UNUSED uintptr_t buf, UNUSED uint order, UNUSED uint msgorder, UNUSED int flags) {
-        // nothing to do
     }
 
     bool wait() {

@@ -24,7 +24,7 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
-void DTU::set_receiving(int slot, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
+void DTU::configure_recv(int slot, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
     size_t size = 1 << order;
     size_t msgsize = 1 << msgorder;
     config_local(slot, buf, size, msgsize);

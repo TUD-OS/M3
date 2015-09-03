@@ -50,6 +50,11 @@
 #define RECV_BUF_LOCAL      (DRAM_VEND - (CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
 #define RECV_BUF_GLOBAL     (RECV_BUF_LOCAL - DRAM_VOFFSET)
 
+// actually, it does not really matter here what the values are
+#define DEF_RCVBUF_ORDER    4
+#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
+#define DEF_RCVBUF          0
+
 #define ARGC_ADDR           (RECV_BUF_LOCAL - 8)
 #define ARGV_ADDR           (ARGC_ADDR - 8)
 #define ARGV_SIZE           0x400

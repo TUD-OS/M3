@@ -49,7 +49,11 @@
 #define STATE_SIZE          0x100
 #define STATE_SPACE         (BOOT_EXIT - STATE_SIZE)
 
-#define CONF_LOCAL          (STATE_SPACE - sizeof(word_t) * 2)
+#define DEF_RCVBUF_ORDER    8
+#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
+#define DEF_RCVBUF          (STATE_SPACE - DEF_RCVBUF_SIZE)
+
+#define CONF_LOCAL          (DEF_RCVBUF - sizeof(word_t) * 2)
 
 // end of space for runtime
 #define RT_SPACE_END        CONF_LOCAL

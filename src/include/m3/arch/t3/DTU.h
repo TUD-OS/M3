@@ -66,6 +66,8 @@ public:
         config_label(slot, label);
     }
 
+    void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
+
     void send(int slot, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_slot = 0);
     void send_credits(int slot, uchar dst, int dst_slot, uint credits);
     void reply(int slot, const void *msg, size_t size, size_t msgidx);
@@ -75,8 +77,6 @@ public:
     }
     void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
     }
-
-    void set_receiving(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
 
     uintptr_t recvbuf(int slot) {
         word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);

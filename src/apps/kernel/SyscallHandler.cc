@@ -235,17 +235,19 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     uintptr_t addr;
-    size_t chan, size;
-    bool replies;
-    is >> tcap >> chan >> addr >> size >> replies;
+    size_t chan;
+    int order, msgorder;
+    uint flags;
+    is >> tcap >> chan >> addr >> order >> msgorder >> flags;
     LOG(KSYSC, vpe->name() << ": syscall::attachrb(vpe=" << tcap << ", chan=" << chan
-        << " addr=" << fmt(addr, "p") << ", size=" << fmt(size, "#x") << ")");
+        << ", addr=" << fmt(addr, "p") << ", size=" << fmt(1UL << order, "#x")
+        << ", msgsize=" << fmt(1UL << msgorder, "#x") << ", flags=" << fmt(flags, "#x") << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
-    Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), chan, addr, size, replies);
+    Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), chan, addr, order, msgorder, flags);
     reply_vmsg(gate, res);
 }
 

@@ -33,14 +33,21 @@ void RecvBuf::attach(size_t i) {
     if(i != UNBOUND) {
         // first reserve the channel; we might need to invalidate it
         ChanMng::get().reserve(i);
-        // TODO the kernel needs to do that
-        DTU::get().set_receiving(i, reinterpret_cast<word_t>(_buf), _order, _msgorder,
-            _flags & ~DELETE_BUF);
+
+#if !defined(__t3__) and !defined(__host__)
+        // always required for t3 because one can't write to these registers externally
+        if(coreid() == KERNEL_CORE) {
+#endif
+            DTU::get().configure_recv(i, reinterpret_cast<word_t>(_buf), _order, _msgorder,
+                _flags & ~DELETE_BUF);
+#if !defined(__t3__) and !defined(__host__)
+        }
+#endif
 
         if(coreid() != KERNEL_CORE && i > ChanMng::DEF_RECVCHAN) {
             // TODO let the user choose whether replies are allowed
-            if(Syscalls::get().attachrb(VPE::self().sel(), i,
-                reinterpret_cast<word_t>(_buf), (size_t)1 << _order, true) != Errors::NO_ERROR)
+            if(Syscalls::get().attachrb(VPE::self().sel(), i, reinterpret_cast<word_t>(_buf),
+                    _order, _msgorder, _flags & ~DELETE_BUF) != Errors::NO_ERROR)
                 PANIC("Attaching receive buffer to " << i << " failed: " << Errors::to_string(Errors::last));
         }
 

@@ -49,7 +49,10 @@ void KVPE::activate_sysc_chan() {
     DTU::get().configure_mem(tempchan, core(), CONF_LOCAL, sizeof(conf));
     DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 
-    // init the syscall endpoint
+    // attach default receive endpoint
+    RecvBufs::attach(core(), ChanMng::DEF_RECVCHAN, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+
+    // syscall endpoint
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
     ep.credits = 0xFFFFFFFF;// TODO 1 << SYSC_CREDIT_ORD;
@@ -57,6 +60,8 @@ void KVPE::activate_sysc_chan() {
     ep.targetCoreId = KERNEL_CORE;
     ep.targetEpId = ChanMng::SYSC_CHAN;
     ep.label = reinterpret_cast<label_t>(&syscall_gate());
+
+    // write to PE
     Sync::compiler_barrier();
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ChanMng::SYSC_CHAN));
     DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));

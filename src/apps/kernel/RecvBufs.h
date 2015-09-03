@@ -20,6 +20,7 @@
 #include <m3/util/Math.h>
 #include <m3/Subscriber.h>
 #include <m3/Config.h>
+#include <m3/DTU.h>
 #include <m3/Errors.h>
 
 namespace m3 {
@@ -28,13 +29,13 @@ class RecvBufs {
     RecvBufs() = delete;
 
     enum Flags {
-        F_ATTACHED  = 1 << 0,
-        F_REPLIES   = 1 << 1,
+        F_ATTACHED  = 1 << (sizeof(int) * 8 - 1),
     };
 
     struct RBuf {
         uintptr_t addr;
-        size_t size;
+        int order;
+        int msgorder;
         int flags;
         Subscriptions<bool> waitlist;
     };
@@ -51,24 +52,25 @@ public:
         rbuf.waitlist.subscribe(cb);
     }
 
-    static Errors::Code attach(size_t coreid, size_t chanid, uintptr_t addr, size_t size, bool replies) {
+    static Errors::Code attach(size_t coreid, size_t chanid, uintptr_t addr, int order, int msgorder, uint flags) {
         RBuf &rbuf = get(coreid, chanid);
         if(rbuf.flags & F_ATTACHED)
             return Errors::EXISTS;
-        if(replies) {
-            for(size_t i = 0; i < CHAN_COUNT; ++i) {
-                if(i != chanid) {
-                    RBuf &rb = get(coreid, i);
-                    if((rb.flags & F_ATTACHED) &&
-                        Math::overlap(rb.addr, rb.addr + rb.size, addr, addr + size))
-                        return Errors::INV_ARGS;
-                }
+
+        for(size_t i = 0; i < CHAN_COUNT; ++i) {
+            if(i != chanid) {
+                RBuf &rb = get(coreid, i);
+                if((rb.flags & F_ATTACHED) &&
+                    Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
+                    return Errors::INV_ARGS;
             }
         }
 
         rbuf.addr = addr;
-        rbuf.size = size;
-        rbuf.flags = replies ? F_REPLIES | F_ATTACHED : F_ATTACHED;
+        rbuf.order = order;
+        rbuf.msgorder = msgorder;
+        rbuf.flags = flags | F_ATTACHED;
+        configure(coreid, chanid, rbuf);
         notify(rbuf, true);
         return Errors::NO_ERROR;
     }
@@ -80,6 +82,8 @@ public:
     }
 
 private:
+    static void configure(size_t coreid, size_t chanid, RBuf &rbuf);
+
     static void notify(RBuf &rbuf, bool success) {
         for(auto sub = rbuf.waitlist.begin(); sub != rbuf.waitlist.end(); ) {
             auto old = sub++;

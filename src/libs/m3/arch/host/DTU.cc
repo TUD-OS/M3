@@ -51,7 +51,7 @@ bool DTU::wait() {
     return _run;
 }
 
-void DTU::set_receiving(int chan, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags) {
     set_rep(chan, REP_ADDR, buf);
     set_rep(chan, REP_ORDER, order);
     set_rep(chan, REP_MSGORDER, msgorder);

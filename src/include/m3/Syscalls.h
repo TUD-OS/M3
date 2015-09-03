@@ -77,7 +77,7 @@ public:
     Errors::Code createsess(capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t chan, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core);
-    Errors::Code attachrb(capsel_t vpe, size_t chan, uintptr_t addr, size_t size, bool replies);
+    Errors::Code attachrb(capsel_t vpe, size_t chan, uintptr_t addr, int order, int msgorder, uint flags);
     Errors::Code detachrb(capsel_t vpe, size_t chan);
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host

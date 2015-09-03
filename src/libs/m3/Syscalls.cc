@@ -62,10 +62,11 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core));
 }
 
-Errors::Code Syscalls::attachrb(capsel_t vpe, size_t chan, uintptr_t addr, size_t size, bool replies) {
+Errors::Code Syscalls::attachrb(capsel_t vpe, size_t chan, uintptr_t addr, int order, int msgorder, uint flags) {
     LOG(SYSC, "attachrb(vpe=" << vpe << ", chan=" << chan << ", addr=" << fmt(addr, "p")
-        << ", size=" << fmt(size, "x") << " replies=" << replies << ")");
-    return finish(send_receive_vmsg(_gate, ATTACHRB, vpe, chan, addr, size, replies));
+        << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x")
+        << ", flags=" << fmt(flags, "x") << ")");
+    return finish(send_receive_vmsg(_gate, ATTACHRB, vpe, chan, addr, order, msgorder, flags));
 }
 
 Errors::Code Syscalls::detachrb(capsel_t vpe, size_t chan) {

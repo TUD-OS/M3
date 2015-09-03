@@ -187,6 +187,8 @@ public:
         seps[i * SEPS_RCNT + SEP_CREDITS] = credits;
     }
 
+    void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
+
     void send(int chan, const void *msg, size_t size, label_t replylbl, int replychan) {
         fire(chan, SEND, msg, size, 0, 0, replylbl, replychan);
     }
@@ -221,8 +223,6 @@ public:
         while(!is_ready())
             wait();
     }
-
-    void set_receiving(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
 
     void fire(int chan, int op, const void *msg, size_t size, size_t offset, size_t len,
             label_t replylbl, int replychan) {
