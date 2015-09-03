@@ -248,7 +248,10 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
     Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), chan, addr, order, msgorder, flags);
-    reply_vmsg(gate, res);
+    if(res != Errors::NO_ERROR)
+        SYS_ERROR(vpe, gate, res, "Unable to attach receive buffer");
+
+    reply_vmsg(gate, Errors::NO_ERROR);
 }
 
 void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
