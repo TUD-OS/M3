@@ -52,7 +52,6 @@ void KVPE::activate_sysc_chan() {
     // init the syscall endpoint
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
-    ep.mode = DTU::EpMode::TRANSMIT_MESSAGE;
     ep.credits = 0xFFFFFFFF;// TODO 1 << SYSC_CREDIT_ORD;
     ep.maxMsgSize = 1 << SYSC_CREDIT_ORD;
     ep.targetCoreId = KERNEL_CORE;
@@ -80,8 +79,6 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
     if(newcapobj) {
-        ep.mode = (newcapobj->type & Capability::MEM)
-            ? DTU::EpMode::READ_MEMORY : DTU::EpMode::TRANSMIT_MESSAGE;
         ep.credits = 0xFFFFFFFF;// TODO newcapobj->obj->credits;
         ep.targetCoreId = newcapobj->obj->core;
         ep.targetEpId = newcapobj->obj->chanid;

@@ -47,7 +47,6 @@ public:
     } PACKED;
 
     struct EpRegs {
-        reg_t mode;
         // for receiving messages
         reg_t bufAddr;
         reg_t bufMsgSize;
@@ -78,13 +77,6 @@ public:
         uint64_t replylabel;
     } PACKED;
 
-    enum EpMode : reg_t {
-        RECEIVE_MESSAGE,
-        TRANSMIT_MESSAGE,
-        READ_MEMORY,
-        WRITE_MEMORY,
-    };
-
     static const uintptr_t BASE_ADDR        = 0xF0000000;
     static const size_t HEADER_SIZE         = sizeof(Header);
 
@@ -94,9 +86,12 @@ public:
 
     enum class CmdOpCode {
         IDLE                = 0,
-        START_OPERATION     = 1,
-        INC_READ_PTR        = 2,
-        WAKEUP_CORE         = 3,
+        SEND                = 1,
+        REPLY               = 2,
+        READ                = 3,
+        WRITE               = 4,
+        INC_READ_PTR        = 5,
+        WAKEUP_CORE         = 6,
     };
 
     static DTU &get() {
@@ -105,7 +100,6 @@ public:
 
     void configure(int ep, label_t label, int coreid, int epid, word_t credits) {
         EpRegs *e = ep_regs(ep);
-        e->mode = TRANSMIT_MESSAGE;
         e->label = label;
         e->targetCoreId = coreid;
         e->targetEpId = epid;
@@ -116,7 +110,6 @@ public:
 
     void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
         EpRegs *e = ep_regs(ep);
-        e->mode = READ_MEMORY;
         e->targetCoreId = coreid;
         e->reqRemoteAddr = addr;
         e->reqRemoteSize = size;
@@ -167,7 +160,7 @@ public:
     }
 
     static reg_t buildCommand(int ep, CmdOpCode c) {
-        return static_cast<uint>(c) | (ep << 2);
+        return static_cast<uint>(c) | (ep << 3);
     }
 
 private:
