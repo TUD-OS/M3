@@ -14,12 +14,16 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/cap/MemGate.h>
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 
 namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
+
+static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
+static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
 
 void DTU::set_receiving(int ep, uintptr_t buf, uint order, uint msgorder, int) {
     EpRegs *e = ep_regs(ep);

@@ -63,6 +63,7 @@ public:
         // for memory requests
         reg_t reqRemoteAddr;
         reg_t reqRemoteSize;
+        reg_t reqFlags;
     } PACKED;
 
     struct Header {
@@ -83,6 +84,11 @@ public:
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
+
+    enum MemFlags : reg_t {
+        R                   = (1 << 0),
+        W                   = (1 << 1),
+    };
 
     enum class CmdOpCode {
         IDLE                = 0,
@@ -113,6 +119,7 @@ public:
         e->targetCoreId = coreid;
         e->reqRemoteAddr = addr;
         e->reqRemoteSize = size;
+        e->reqFlags = R | W;
     }
 
     void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
