@@ -28,9 +28,8 @@ DTU DTU::inst INIT_PRIORITY(106);
 void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan) {
     ChanConf *cfg = conf(chan);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstchan);
-    LOG(DTU, "-> " << fmt(size, 4) << "b from " << msg << " to " << fmt(destaddr, "p")
-        << " @ " << cfg->dstcore << ":" << cfg->dstchan
-        << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
+    LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstchan
+        << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(cfg->dstcore, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
@@ -56,9 +55,8 @@ void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int rep
 void DTU::reply(int chan, const void *msg, size_t size, size_t msgidx) {
     ChanMng::Message *orgmsg = ChanMng::get().message_at(chan, msgidx);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->chanid);
-    LOG(DTU, ">> " << fmt(size, 4) << "b from " << msg << " to " << fmt(destaddr, "p")
-        << " @ " << orgmsg->core << ":" << orgmsg->chanid
-        << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
+    LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->chanid
+        << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
