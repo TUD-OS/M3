@@ -149,16 +149,35 @@ public:
         // we've already waited
         return true;
     }
-    size_t get_remaining(int chan);
 
     size_t recvbuf_offset(int core, int chan) {
         assert(core >= FIRST_PE_ID);
         return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * CHAN_COUNT + chan * RECV_BUF_MSGSIZE;
     }
 
-    void set_target(int slot, uchar dst, uintptr_t addr, uint credits = 0xFF, uchar perm = 0x3);
-    void fire(int slot, Operation op, const void *msg, size_t size);
+    void set_target(int, uchar dst, uintptr_t addr) {
+        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        ptr[PE_DMA_REG_TARGET]      = dst;
+        ptr[PE_DMA_REG_REM_ADDR]    = addr;
+    }
 
+    void fire(int, Operation op, const void *msg, size_t size) {
+        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        // currently we have to substract the DRAM start
+        UNUSED uintptr_t addr = reinterpret_cast<uintptr_t>(msg);
+        // both have to be packet-size aligned
+        assert((addr & (PACKET_SIZE - 1)) == 0);
+        assert((size & (PACKET_SIZE - 1)) == 0);
+
+        ptr[PE_DMA_REG_TYPE]        = op == READ ? 0 : 2;
+        ptr[PE_DMA_REG_LOC_ADDR]    = addr;
+        ptr[PE_DMA_REG_SIZE]        = size;
+    }
+
+    size_t get_remaining(int) {
+        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        return ptr[PE_DMA_REG_SIZE];
+    }
 
 private:
     void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);
@@ -175,9 +194,3 @@ private:
 static_assert(sizeof(DTU::Message) == DTU::HEADER_SIZE, "Header do not match");
 
 }
-
-#ifdef __t2_sim__
-#   include <m3/arch/t2-sim/DTU.h>
-#else
-#   include <m3/arch/t2-chip/DTU.h>
-#endif

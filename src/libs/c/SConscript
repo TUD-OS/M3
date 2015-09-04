@@ -4,8 +4,8 @@ lib = env.StaticLibrary(
     target = 'libc',
     source = [
         env.Glob('*/*.cc'),
-        env.Glob('arch/$ARCHTYPE/*.cc'), env.Glob('arch/$ARCHTYPE-$MACH/*.cc'),
-        env.Glob('arch/$ARCH/*.cc'), env.Glob('arch/$ARCH-$MACH/*.cc')
+        env.Glob('arch/$ARCHTYPE/*.cc'),
+        env.Glob('arch/$ARCH/*.cc'),
     ]
 )
 env.Install(env['LIBDIR'], lib)

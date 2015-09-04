@@ -57,7 +57,7 @@ _start:
     wsr.ps  a3
     rsync
 
-#if defined(__t2_sim__) || defined(__t3_sim__)
+#if defined(__t3__)
     # test whether we were started from M3 or from the simulator
     l32r    a3, LIT_BOOT_ENTRY
     l32i.n  a3, a3, 0

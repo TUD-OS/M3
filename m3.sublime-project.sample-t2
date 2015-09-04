@@ -16,7 +16,6 @@
         "sublimeclang_options":
         [
             "-D__t2__",
-            "-D__t2_chip__",
             "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/sysroot/usr/include/",
             "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/include/c++/4.8.4/",
             "-I/your/path/to/buildroot/host/usr/xtensa-buildroot-linux-uclibc/include/c++/4.8.4/xtensa-buildroot-linux-uclibc/",

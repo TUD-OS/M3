@@ -83,11 +83,7 @@
 
 #ifdef __cplusplus
 #   include <m3/Common.h>
-#   ifdef __t2_sim__
-#       include <m3/arch/t2-sim/Addr.h>
-#   else
-#       include <m3/arch/t2-chip/Addr.h>
-#   endif
+#   include <m3/arch/t2/Addr.h>
 #   include <m3/BitField.h>
 
 #   define IRQ_ADDR_EXTERN  0x20020

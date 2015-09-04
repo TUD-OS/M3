@@ -11,7 +11,7 @@ fi
 
 t2pcip=th
 t2pcthip=thshell
-build=build/$M3_TARGET-$M3_MACHINE-$M3_BUILD
+build=build/$M3_TARGET-$M3_BUILD
 bindir=$build/bin
 
 . config.ini
@@ -132,50 +132,6 @@ build_params_gem5() {
     fi
 
     rm $params
-}
-
-build_params_t2_sim() {
-    kargs=`generate_kargs $1`
-
-    if [[ "$kargs" =~ "m3fs" ]]; then
-        echo -n " -mem -global_ram1.initial_value_file=$build/mem/$M3_FS.mem "
-    else
-        echo -n " -mem "
-    fi
-
-    c=0
-    generate_lines $1 | ( while read line; do
-            args=""
-            i=0
-            for a in $line; do
-                if [ $i -eq 0 ]; then
-                    echo -n " -core$c.SimTargetProgram=$bindir/$a -core$c.SimDebugSynchronized=true"
-                    echo -n " -core$c.SimClients=\"trace --level 6 core$c.log\""
-                    if [ "$a" = "$debug" ]; then
-                        echo -n " -core$c.SimDebug=true -core$c.SimDebugStartingPort=1234"
-                    else
-                        echo -n " -core$c.SimDebug=false"
-                    fi
-                else
-                    if [ "$args" = "" ]; then
-                        args=$a
-                    else
-                        args="$args,$a"
-                    fi
-                fi
-                i=$((i + 1))
-            done
-            if [ $c -gt 0 ]; then
-                # SimDebugSynchronized=true means that all cores run in a synchronized fashion.
-                # this does also speed up debugging a lot because the other cores don't run at full
-                # speed while one core is run step by step.
-                echo -n " -core$c.SimTargetArgs=$args"
-            else
-                echo -n " -core$c.SimTargetArgs=$kargs"
-            fi
-            c=$((c + 1))
-        done
-    )
 }
 
 build_params_t3_sim() {
@@ -325,12 +281,7 @@ if [[ "$script" == *.cfg ]]; then
             `build_params_host $script`
         fi
     elif [ "$M3_TARGET" = "t2" ]; then
-        if [ "$M3_MACHINE" = "sim" ]; then
-            echo -n "Params: " && build_params_t2_sim $script
-            build_params_t2_sim $script | xargs ./t2-sim | tee run/log.txt
-        else
-            build_params_t2_chip $script
-        fi
+        build_params_t2_chip $script
     elif [ "$M3_TARGET" = "t3" ]; then
         build=`readlink -f $build`
         bindir=`readlink -f $bindir`

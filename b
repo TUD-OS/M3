@@ -14,9 +14,6 @@ fi
 if [ -z $M3_TARGET ]; then
     M3_TARGET='host'
 fi
-if [ -z $M3_MACHINE ]; then
-    M3_MACHINE='sim'
-fi
 if [ "$M3_TARGET" = "t3" ]; then
 	M3_CORE='Pe_4MB_128k_4irq'
 elif [ "$M3_TARGET" = "t2" ]; then
@@ -26,7 +23,7 @@ elif [ "$M3_TARGET" = "gem5" ]; then
 else
 	M3_CORE=`uname -m`
 fi
-export M3_BUILD M3_TARGET M3_MACHINE M3_CORE
+export M3_BUILD M3_TARGET M3_CORE
 
 if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
 	if [ "$M3_GEM5_DBG" = "" ]; then
@@ -50,7 +47,7 @@ else
 	export XTENSA_CORE=$M3_CORE
 fi
 
-build=build/$M3_TARGET-$M3_MACHINE-$M3_BUILD
+build=build/$M3_TARGET-$M3_BUILD
 bindir=$build/bin/
 
 help() {
@@ -58,8 +55,8 @@ help() {
 	echo ""
 	echo "This is a convenience script that is responsible for building everything"
 	echo "and running the specified command afterwards. The most important environment"
-	echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5),"
-	echo "M3_MACHINE=(sim|chip) and M3_BUILD=(debug|release)."
+	echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5)"
+	echo "and M3_BUILD=(debug|release)."
 	echo "You can also prevent the script from building everything by specifying -n or"
 	echo "--no-build. In this case, only the specified command is executed."
 	echo "To build sequentially, i.e. with a single thread, use -s."
@@ -86,8 +83,6 @@ help() {
 	echo "    M3_TARGET:               the target. Either 'host' for using the Linux-based"
 	echo "                             coarse-grained simulator, or 'gem5' or 't2'/'t3' for"
 	echo "                             tomahawk 2/3. The default is 'host'."
-	echo "    M3_MACHINE:              the machine to use for execution. It can be 'sim'"
-	echo "                             or 'chip' (t2 only)."
 	echo "    M3_BUILD:                the build-type. Either debug or release. In debug"
 	echo "                             mode optimizations are disabled, debug infos are"
 	echo "                             available and assertions are active. In release"
@@ -146,7 +141,7 @@ if [ "$cmd" = "clean" ] || [ "$cmd" = "distclean" ]; then
 fi
 
 if $dobuild; then
-	echo "Building for $M3_TARGET (core=$M3_CORE, machine=$M3_MACHINE) in $M3_BUILD mode using $cpus jobs..."
+	echo "Building for $M3_TARGET (core=$M3_CORE) in $M3_BUILD mode using $cpus jobs..."
 
 	scons -j$cpus
 	if [ $? -ne 0 ]; then
@@ -286,7 +281,7 @@ case "$cmd" in
 			echo "display/i \$pc" >> $gdbcmd
 			echo "b main" >> $gdbcmd
 			xt-gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
-			killall -9 t2-sim t3-sim
+			killall -9 t3-sim
 			rm $gdbcmd
 		else
 			echo "Not supported"

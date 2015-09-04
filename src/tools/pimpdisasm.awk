@@ -52,7 +52,7 @@ BEGIN {
 			}
 			# some iDMA address?
 			else if(stextaddr >= IDMA_CFG_START && stextaddr <= IDMA_CFG_END) {
-				cmd = "./build/" ENVIRON["M3_TARGET"] "-" ENVIRON["M3_MACHINE"] "-" ENVIRON["M3_BUILD"] \
+				cmd = "./build/" ENVIRON["M3_TARGET"] "-" ENVIRON["M3_BUILD"] \
 					"/tools/decodeidma/decodeidma 0x" sprintf("%x", stextaddr)
 				cmd | getline value
 				close(cmd)

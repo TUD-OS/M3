@@ -4,10 +4,6 @@ import StringIO
 sys.path.insert(0, 'src/tools')
 import install
 
-mach = os.environ.get('M3_MACHINE')
-if mach != 'chip':
-	mach = 'sim'
-
 target = os.environ.get('M3_TARGET')
 if target == 't2' or target == 't3':
 	toolversion = 'RE-2014.5-linux' if target == 't3' else 'RD-2011.2-linux'
@@ -20,7 +16,7 @@ if target == 't2' or target == 't3':
 	cross = 'xtensa-buildroot-linux-uclibc'
 	crossdir = Dir(config.get('root', 'buildroot')).abspath + '/host/usr/'
 	crossver = '4.8.4'
-	runtime = 'sim' if mach == 'sim' else 'min-rt'
+	runtime = 'sim' if target == 't3' else 'min-rt'
 	configpath = Dir(config.get('root', 'cfgpath'))
 	xtroot = Dir(config.get('root', 'xtroot'))
 	tooldir = Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/bin')
@@ -47,7 +43,7 @@ if core is None:
 
 # build basic environment
 baseenv = Environment(
-	CPPFLAGS = '-D__' + target + '__ -D__' + target + '_' + mach + '__',
+	CPPFLAGS = '-D__' + target + '__',
 	CXXFLAGS = ' -std=c++11 -Wall -Wextra',
 	CFLAGS = ' -std=c99 -Wall -Wextra',
 	CPPPATH = ['#src/include'],
@@ -131,7 +127,7 @@ else:
 		env.Append(LINKFLAGS = ' -O2 -flto')
 	hostenv.Append(CXXFLAGS = ' -O3')
 	hostenv.Append(CFLAGS = ' -O3')
-builddir = 'build/' + target + '-' + mach + '-' + btype
+builddir = 'build/' + target + '-' + btype
 
 # print executed commands?
 verbose = os.environ.get('M3_VERBOSE', 0)
@@ -158,7 +154,6 @@ env.Append(
 	CROSS = cross,
 	ARCH = target,
 	ARCHTYPE = archtype,
-	MACH = mach,
 	CORE = core,
 	BUILD = btype,
 	CFGS = configpath,

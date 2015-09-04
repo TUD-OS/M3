@@ -9,11 +9,7 @@ dirs = [
 
 # architecture / machine specific apps
 if env['ARCH'] == 't2':
-    dirs += ['profiler', 'profiler_cm']
-    if env['MACH'] == 'chip':
-        dirs += ['idle']
-    else:
-        dirs += ['fortran']
+    dirs += ['profiler', 'profiler_cm', 'idle']
 elif env['ARCH'] == 't3':
     dirs += ['idle']
 elif env['ARCH'] == 'host':

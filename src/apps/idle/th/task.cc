@@ -15,7 +15,7 @@ using task_call_6_t = void (*)(int *, int *, int *, int *, int *, int *);
 using task_call_7_t = void (*)(int *, int *, int *, int *, int *, int *, int *);
 using task_call_8_t = void (*)(int *, int *, int *, int *, int *, int *, int *, int *);
 
-#if 0 && defined(__t2_chip__)
+#if 0
 void memcpy(void *dest, const void *src, size_t len) {
     char *d = reinterpret_cast<char*>(dest);
     const char *s = reinterpret_cast<const char*>(src);

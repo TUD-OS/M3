@@ -17,7 +17,7 @@
 #pragma once
 
 // this does currently only work on the T2 chip
-#if defined(__t2_chip__)
+#if defined(__t2__)
 
 // enable/disable tracing
 //#define TRACE_ENABLED

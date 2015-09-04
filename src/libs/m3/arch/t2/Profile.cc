@@ -26,7 +26,6 @@ cycles_t Profile::start(UNUSED unsigned id) {
 cycles_t Profile::stop(UNUSED unsigned id) {
     uint64_t cycles = 0;
 
-    // TODO not yet implemented on t2-sim
     DTU::get().set_target(SLOT_NO, CCOUNT_CORE, CCOUNT_ADDR);
     Sync::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::READ, &cycles, sizeof(cycles));
