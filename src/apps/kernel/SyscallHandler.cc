@@ -32,6 +32,9 @@ namespace m3 {
 
 SyscallHandler SyscallHandler::_inst;
 
+#define LOG_SYS(vpe, expr) \
+    LOG(KSYSC, (vpe)->name() << "@" << fmt((vpe)->core(), "X") << ": " << expr)
+
 #define SYS_ERROR(vpe, gate, error, msg) { \
         LOG(KERR, (vpe)->name() << ": " << msg << " (" << error << ")"); \
         reply_vmsg((gate), (error)); \
@@ -86,7 +89,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     String name;
     capsel_t gatesel, srv;
     is >> gatesel >> srv >> name;
-    LOG(KSYSC, vpe->name() << ": syscall::createsrv(gate=" << gatesel
+    LOG_SYS(vpe, "syscall::createsrv(gate=" << gatesel
         << ", srv=" << srv << ", name=" << name << ")");
 
     Capability *gatecap = vpe->capabilities().get(gatesel, Capability::MSG);
@@ -132,7 +135,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
     capsel_t cap;
     String name;
     is >> cap >> name;
-    LOG(KSYSC, vpe->name() << ": syscall::createsess(name=" << name << ", cap=" << cap << ")");
+    LOG_SYS(vpe, "syscall::createsess(name=" << name << ", cap=" << cap << ")");
 
     if(!vpe->capabilities().unused(cap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap");
@@ -189,7 +192,7 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
     size_t cid;
     word_t credits;
     is >> tcap >> dstcap >> label >> cid >> credits;
-    LOG(KSYSC, vpe->name() << ": syscall::creategate(vpe=" << tcap << ", cap=" << dstcap
+    LOG_SYS(vpe, "syscall::creategate(vpe=" << tcap << ", cap=" << dstcap
         << ", label=" << fmt(label, "#0x", sizeof(label_t) * 2)
         << ", chan=" << cid << ", crd=#" << fmt(credits, "0x") << ")");
 
@@ -211,7 +214,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     capsel_t tcap, mcap;
     String name, core;
     is >> tcap >> mcap >> name >> core;
-    LOG(KSYSC, vpe->name() << ": syscall::createvpe(name=" << name << ", core=" << core
+    LOG_SYS(vpe, "syscall::createvpe(name=" << name << ", core=" << core
         << ", tcap=" << tcap << ", mcap=" << mcap << ")");
 
     if(!vpe->capabilities().unused(tcap) || !vpe->capabilities().unused(mcap))
@@ -239,7 +242,7 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     int order, msgorder;
     uint flags;
     is >> tcap >> chan >> addr >> order >> msgorder >> flags;
-    LOG(KSYSC, vpe->name() << ": syscall::attachrb(vpe=" << tcap << ", chan=" << chan
+    LOG_SYS(vpe, "syscall::attachrb(vpe=" << tcap << ", chan=" << chan
         << ", addr=" << fmt(addr, "p") << ", size=" << fmt(1UL << order, "#x")
         << ", msgsize=" << fmt(1UL << msgorder, "#x") << ", flags=" << fmt(flags, "#x") << ")");
 
@@ -260,7 +263,7 @@ void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
     capsel_t tcap;
     size_t chan;
     is >> tcap >> chan;
-    LOG(KSYSC, vpe->name() << ": syscall::detachrb(vpe=" << tcap << ", chan=" << chan << ")");
+    LOG_SYS(vpe, "syscall::detachrb(vpe=" << tcap << ", chan=" << chan << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
@@ -277,7 +280,7 @@ void SyscallHandler::exchange(RecvGate &gate, GateIStream &is) {
     CapRngDesc own, other;
     bool obtain;
     is >> tcap >> own >> other >> obtain;
-    LOG(KSYSC, vpe->name() << ": syscall::exchange(vpe=" << tcap << ", own=" << own
+    LOG_SYS(vpe, "syscall::exchange(vpe=" << tcap << ", own=" << own
         << ", other=" << other << ", obtain=" << obtain << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
@@ -298,7 +301,7 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
     Syscalls::VPECtrl op;
     int pid;
     is >> tcap >> op >> pid;
-    LOG(KSYSC, vpe->name() << ": syscall::vpectrl(vpe=" << tcap << ", op=" << op
+    LOG_SYS(vpe, "syscall::vpectrl(vpe=" << tcap << ", op=" << op
             << ", pid=" << pid << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
@@ -335,7 +338,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
     size_t size;
     int perms;
     is >> cap >> addr >> size >> perms;
-    LOG(KSYSC, vpe->name() << ": syscall::reqmem(cap=" << cap
+    LOG_SYS(vpe, "syscall::reqmem(cap=" << cap
         << ", addr=#" << fmt(addr, "x") << ", size=#" << fmt(size, "x")
         << ", perms=" << perms << ")");
 
@@ -370,7 +373,7 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
     size_t offset, size;
     int perms;
     is >> src >> dst >> offset >> size >> perms;
-    LOG(KSYSC, vpe->name() << ": syscall::derivemem(src=" << src << ", dst=" << dst
+    LOG_SYS(vpe, "syscall::derivemem(src=" << src << ", dst=" << dst
         << ", size=" << size << ", off=" << offset << ", perms=" << perms << ")");
 
     MemCapability *srccap = static_cast<MemCapability*>(
@@ -435,7 +438,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
     CapRngDesc caps;
     is >> sesscap >> caps;
     // TODO compiler-bug? if I try to print caps, it hangs on T2!? doing it here manually works
-    LOG(KSYSC, vpe->name() << ": syscall::" << (obtain ? "obtain" : "delegate")
+    LOG_SYS(vpe, "syscall::" << (obtain ? "obtain" : "delegate")
             << "(sess=" << sesscap << ", caps=" << caps.start() << ":" << caps.count() << ")");
 
     SessionCapability *sess = static_cast<SessionCapability*>(
@@ -493,13 +496,13 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
 
 static Errors::Code do_activate(KVPE *vpe, size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     if(newcapobj) {
-        LOG(KSYSC, vpe->name() << ": Setting chan[" << cid << "] to lbl="
+        LOG_SYS(vpe, "Setting chan[" << cid << "] to lbl="
                 << fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
                 << ", chan=" << newcapobj->obj->chanid
                 << ", crd=#" << fmt(newcapobj->obj->credits, "x"));
     }
     else
-        LOG(KSYSC, vpe->name() << ": Setting chan[" << cid << "] to NUL");
+        LOG_SYS(vpe, "Setting chan[" << cid << "] to NUL");
 
     Errors::Code res = vpe->xchg_chan(cid, oldcapobj, newcapobj);
     if(res != Errors::NO_ERROR)
@@ -518,7 +521,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     size_t cid;
     capsel_t oldcap, newcap;
     is >> cid >> oldcap >> newcap;
-    LOG(KSYSC, vpe->name() << ": syscall::activate(chan=" << cid << ", old=" <<
+    LOG_SYS(vpe, "syscall::activate(chan=" << cid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
     MsgCapability *oldcapobj = oldcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
@@ -534,7 +537,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     if(newcapobj && newcapobj->type == Capability::MSG) {
         if(!RecvBufs::is_attached(newcapobj->obj->core, newcapobj->obj->chanid)) {
             ReplyInfo rinfo(is.message());
-            LOG(KSYSC, vpe->name() << ": waiting for receive buffer "
+            LOG_SYS(vpe, "waiting for receive buffer "
                 << newcapobj->obj->core << ":" << newcapobj->obj->chanid << " to get attached");
 
             auto callback = [rinfo, vpe, cid, oldcapobj, newcapobj](bool success, Subscriber<bool> *) {
@@ -564,7 +567,7 @@ void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     CapRngDesc crd;
     is >> crd;
-    LOG(KSYSC, vpe->name() << ": syscall::revoke(" << crd.start() << ":" << crd.count() << ")");
+    LOG_SYS(vpe, "syscall::revoke(" << crd.start() << ":" << crd.count() << ")");
 
     if(crd.start() < 2)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
@@ -581,7 +584,7 @@ void SyscallHandler::exit(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     int exitcode;
     is >> exitcode;
-    LOG(KSYSC, vpe->name() << ": syscall::exit(" << exitcode << ")");
+    LOG_SYS(vpe, "syscall::exit(" << exitcode << ")");
 
     vpe->exit(exitcode);
     vpe->unref();
@@ -608,7 +611,7 @@ void SyscallHandler::init(RecvGate &gate,GateIStream &is) {
     void *addr;
     is >> addr;
     vpe->activate_sysc_chan(addr);
-    LOG(KSYSC, vpe->name() << ": syscall::init(" << addr << ")");
+    LOG_SYS(vpe, "syscall::init(" << addr << ")");
 
     // switch to this channel to ensure that we don't have old values programmed in our DMAUnit.
     // actually, this is currently only necessary for exec, i.e. where the address changes for
