@@ -30,7 +30,6 @@ void ChanMng::reset() {
         if(_gates[i])
             _gates[i]->_chanid = Gate::UNBOUND;
         _gates[i] = nullptr;
-        _msgcnt[i] = 0;
     }
 }
 
@@ -69,21 +68,9 @@ size_t ChanMng::get_msgoff(size_t id, UNUSED RecvGate *rcvgate, const ChanMng::M
 }
 
 void ChanMng::ack_message(size_t id) {
-    word_t flags = DTU::get().get_ep(id, DTU::EP_BUF_FLAGS);
-    size_t roff = DTU::get().get_ep(id, DTU::EP_BUF_ROFF);
-    if(~flags & DTU::FLAG_NO_RINGBUF) {
-        size_t ord = DTU::get().get_ep(id, DTU::EP_BUF_ORDER);
-        size_t msgord = DTU::get().get_ep(id, DTU::EP_BUF_MSGORDER);
-        roff = (roff + (1UL << msgord)) & ((1UL << (ord + 1)) - 1);
-        DTU::get().set_ep(id, DTU::EP_BUF_ROFF, roff);
-    }
-    _msgcnt[id]++;
-    LOG(IPC, "Ack message in " << id << " -> roff=#"
-            << fmt(roff, "x") << ", cnt=#" << fmt(_msgcnt[id], "x"));
-}
-
-void ChanMng::set_msgcnt(size_t id, word_t count) {
-    _msgcnt[id] = count;
+    DTU::get().ackmsg(id);
+    DTU::get().wait_until_ready(id);
+    LOG(IPC, "Ack message in " << id);
 }
 
 }

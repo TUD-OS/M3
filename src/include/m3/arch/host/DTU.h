@@ -131,6 +131,7 @@ public:
         REPLY   = 4,
         RESP    = 5,
         SENDCRD = 6,
+        ACKMSG  = 7,
     };
 
     explicit DTU();
@@ -192,6 +193,10 @@ public:
         set_cmd(CMD_OFFSET, crdchan);
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
+    void ackmsg(int chan) {
+        set_cmd(CMD_CHANID, chan);
+        set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
+    }
 
     bool is_ready() {
         return (get_cmd(CMD_CTRL) & CTRL_START) == 0;
@@ -239,6 +244,7 @@ private:
     int prepare_write(int chanid, int &dstcore, int &dstchan);
     int prepare_cmpxchg(int chanid, int &dstcore, int &dstchan);
     int prepare_sendcrd(int chanid, int &dstcore, int &dstchan);
+    int prepare_ackmsg(int chanid);
 
     void send_msg(int chanid, int dstcoreid, int dstchanid, bool isreply);
     void handle_read_cmd(int chanid);

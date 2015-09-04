@@ -41,7 +41,7 @@ void RingbufferTestSuite::SendAckTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
+        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 1);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
         assert_true(msg->label == lbl);
@@ -85,7 +85,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 3, 0);
+        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 3);
@@ -93,7 +93,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 4, 1);
+        ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
@@ -112,7 +112,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 5, 0);
+        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
         word_t *dataptr = reinterpret_cast<word_t*>(msg->data);
         assert_true(msg->label == lbl);
         assert_word(*dataptr, 1234);

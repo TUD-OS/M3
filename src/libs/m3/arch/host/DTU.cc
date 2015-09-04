@@ -219,6 +219,32 @@ int DTU::prepare_sendcrd(int chanid, int &dstcore, int &dstchan) {
     return 0;
 }
 
+int DTU::prepare_ackmsg(int chanid) {
+    word_t flags = get_ep(chanid, EP_BUF_FLAGS);
+    size_t roff = get_ep(chanid, EP_BUF_ROFF);
+
+    // increase read offset
+    if(~flags & FLAG_NO_RINGBUF) {
+        size_t ord = get_ep(chanid, EP_BUF_ORDER);
+        size_t msgord = get_ep(chanid, EP_BUF_MSGORDER);
+        roff = (roff + (1UL << msgord)) & ((1UL << (ord + 1)) - 1);
+        set_ep(chanid, EP_BUF_ROFF, roff);
+    }
+
+    // decrease message count
+    word_t msgs = get_ep(chanid, EP_BUF_MSGCNT);
+    if(msgs == 0) {
+        LOG(DTUERR, "DMA-error: Unable to ack message: message count in EP" << chanid << " is 0");
+        return CTRL_ERROR;
+    }
+    msgs--;
+    set_ep(chanid, EP_BUF_MSGCNT, msgs);
+
+    LOG(DTU, "EP" << chanid << ": acked message"
+        << " (msgcnt=" << msgs << ", roff=#" << fmt(roff, "x") << ")");
+    return 0;
+}
+
 void DTU::handle_command(int core) {
     word_t newctrl = 0;
     int dstcoreid, dstchanid;
@@ -258,6 +284,10 @@ void DTU::handle_command(int core) {
         case SENDCRD:
             newctrl |= prepare_sendcrd(chanid, dstcoreid, dstchanid);
             break;
+        case ACKMSG:
+            newctrl |= prepare_ackmsg(chanid);
+            set_cmd(CMD_CTRL, newctrl);
+            return;
     }
     if(newctrl & CTRL_ERROR)
         goto error;

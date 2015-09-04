@@ -31,7 +31,7 @@ class ChanMng : public ChanMngBase {
     friend class Gate;
 
 public:
-    explicit ChanMng() : ChanMngBase(), _msgcnt() {
+    explicit ChanMng() : ChanMngBase() {
     }
 
     struct Message {
@@ -65,13 +65,10 @@ public:
     void ack_message(size_t id);
     void set_msgcnt(size_t, word_t);
     void reset();
-
-private:
-    word_t _msgcnt[CHAN_COUNT];
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {
-    return DTU::get().get_ep(id, DTU::EP_BUF_MSGCNT) != _msgcnt[id];
+    return DTU::get().get_ep(id, DTU::EP_BUF_MSGCNT) > 0;
 }
 
 inline bool ChanMngBase::uses_header(size_t id) const {
@@ -80,6 +77,9 @@ inline bool ChanMngBase::uses_header(size_t id) const {
 
 inline bool ChanMngBase::uses_ringbuf(size_t id) const {
     return ~DTU::get().get_ep(id, DTU::EP_BUF_FLAGS) & DTU::FLAG_NO_RINGBUF;
+}
+
+inline void ChanMng::set_msgcnt(size_t, word_t) {
 }
 
 static_assert(sizeof(ChanMng::Message) == DTU::HEADER_SIZE, "Header do not match");
