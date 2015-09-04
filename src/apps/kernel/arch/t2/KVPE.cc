@@ -42,9 +42,9 @@ void KVPE::activate_sysc_chan() {
     alignas(DTU_PKG_SIZE) CoreConf conf;
     memset(&conf, 0, sizeof(conf));
     conf.coreid = core();
-    conf.chans[ChanMng::SYSC_CHAN].dstcore = KERNEL_CORE;
-    conf.chans[ChanMng::SYSC_CHAN].dstchan = ChanMng::SYSC_CHAN;
-    conf.chans[ChanMng::SYSC_CHAN].label = reinterpret_cast<label_t>(&syscall_gate());
+    conf.chans[DTU::SYSC_CHAN].dstcore = KERNEL_CORE;
+    conf.chans[DTU::SYSC_CHAN].dstchan =DTU::SYSC_CHAN;
+    conf.chans[DTU::SYSC_CHAN].label = reinterpret_cast<label_t>(&syscall_gate());
     DTU::get().set_target(SLOT_NO, core(), CONF_GLOBAL);
     Sync::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));

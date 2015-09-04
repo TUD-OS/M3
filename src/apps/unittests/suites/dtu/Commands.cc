@@ -123,7 +123,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
         getmsg(rcvchanid, 1);
         for(size_t i = 0; i < sizeof(data) / sizeof(data[0]); ++i)
             assert_word(reinterpret_cast<word_t*>(addr)[i], data[i]);
-        ChanMng::get().ack_message(rcvchanid);
+        dtu.ack_message(rcvchanid);
     }
 
     unmap_page(addr);

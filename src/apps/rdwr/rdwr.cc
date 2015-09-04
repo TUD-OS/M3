@@ -18,7 +18,6 @@
 #include <m3/cap/SendGate.h>
 #include <m3/cap/MemGate.h>
 #include <m3/RecvBuf.h>
-#include <m3/ChanMng.h>
 #include <m3/GateStream.h>
 #include <m3/DTU.h>
 #include <stdarg.h>

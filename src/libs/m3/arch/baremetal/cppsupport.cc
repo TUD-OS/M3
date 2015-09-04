@@ -20,7 +20,6 @@
 #include <m3/tracing/Tracing.h>
 #include <m3/Log.h>
 #include <m3/Config.h>
-#include <m3/ChanMng.h>
 #include <m3/RecvBuf.h>
 #include <m3/Machine.h>
 #include <cstdlib>
@@ -104,7 +103,7 @@ EXTERN_C void __clibrary_init(int, char **argv) {
         cfg->coreid = KERNEL_CORE;
 
     def_rbuf = new RecvBuf(RecvBuf::bindto(
-        ChanMng::DEF_RECVCHAN, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
+        DTU::DEF_RECVCHAN, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
     def_rgate = new RecvGate(RecvGate::create(def_rbuf));
 
     // call constructors

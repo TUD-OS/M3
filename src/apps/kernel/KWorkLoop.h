@@ -62,21 +62,25 @@ public:
         EVENT_TRACER_KWorkLoop_run();
 
         WorkLoop &wl = WorkLoop::get();
-        ChanMng &chmng = ChanMng::get();
+        DTU &dtu = DTU::get();
         SyscallHandler &sysch = SyscallHandler::get();
         int chan = sysch.chanid();
         int srvchan = sysch.srvchanid();
         while(wl.has_items()) {
-            if(chmng.fetch_msg(chan)) {
+            if(dtu.fetch_msg(chan)) {
                 // we know the subscriber here, so optimize that a bit
-                ChanMng::Message *msg = chmng.message(chan);
+                DTU::Message *msg = dtu.message(chan);
                 RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
                 sysch.handle_message(*rgate, nullptr);
-                chmng.ack_message(chan);
+                dtu.ack_message(chan);
                 EVENT_TRACE_FLUSH_LIGHT();
             }
-            if(chmng.fetch_msg(srvchan))
-                chmng.notify(srvchan);
+            if(dtu.fetch_msg(srvchan)) {
+                DTU::Message *msg = dtu.message(srvchan);
+                RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
+                gate->notify_all();
+                dtu.ack_message(srvchan);
+            }
 
 #if defined(__host__)
             check_childs();

@@ -38,7 +38,7 @@ public:
 
     size_t chanid() const {
         // we can use it here because we won't issue syscalls ourself
-        return ChanMng::SYSC_CHAN;
+        return DTU::SYSC_CHAN;
     }
     size_t srvchanid() const {
         return _srvrcvbuf.chanid();

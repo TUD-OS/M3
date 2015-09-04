@@ -18,7 +18,6 @@
 #include <m3/cap/MemGate.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/DTU.h>
-#include <m3/ChanMng.h>
 #include <m3/Log.h>
 
 namespace m3 {
@@ -27,7 +26,33 @@ DTU DTU::inst INIT_PRIORITY(106);
 
 void DTU::reset() {
     memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
-    ChanMng::get().reset();
+    memset(_pos, 0, sizeof(_pos));
+    memset(_last, 0, sizeof(_last));
+}
+
+bool DTU::fetch_msg(int chan) {
+    // simple way to achieve fairness here. otherwise we might choose the same client all the time
+    int end = MAX_CORES;
+retry:
+    for(int i = _pos[chan]; i < end; ++i) {
+        volatile Message *msg = reinterpret_cast<volatile Message*>(
+            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i + FIRST_PE_ID, chan));
+        if(msg->length != 0) {
+            LOG(IPC, "Fetched msg @ " << (void*)msg << " over chan " << chan);
+            EVENT_TRACE_MSG_RECV(msg->core, msg->length,
+                ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+            assert(_last[chan] == nullptr);
+            _last[chan] = const_cast<Message*>(msg);
+            _pos[chan] = i + 1;
+            return true;
+        }
+    }
+    if(_pos[chan] != 0) {
+        end = _pos[chan];
+        _pos[chan] = 0;
+        goto retry;
+    }
+    return false;
 }
 
 void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan) {
@@ -58,7 +83,7 @@ void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int rep
 }
 
 void DTU::reply(int chan, const void *msg, size_t size, size_t msgidx) {
-    ChanMng::Message *orgmsg = ChanMng::get().message_at(chan, msgidx);
+    DTU::Message *orgmsg = message_at(chan, msgidx);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->chanid);
     LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->chanid
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));

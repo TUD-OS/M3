@@ -46,12 +46,27 @@ public:
         word_t length;        // has to be non-zero
     } PACKED;
 
+    struct Message : public Header {
+        int send_chanid() const {
+            return 0;
+        }
+        int reply_chanid() const {
+            return chanid;
+        }
+
+        unsigned char data[];
+    } PACKED;
+
     static const size_t HEADER_SIZE         = sizeof(Header);
     static const size_t PACKET_SIZE         = 8;
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
+
+    static const int MEM_CHAN               = 0;
+    static const int SYSC_CHAN              = 1;
+    static const int DEF_RECVCHAN           = 2;
 
     enum Operation {
         WRITE   = 0x0,      // write from local to remote
@@ -88,6 +103,37 @@ public:
     void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
     }
 
+    bool uses_header(int) {
+        return true;
+    }
+
+    bool fetch_msg(int chan);
+
+    DTU::Message *message(int chan) const {
+        assert(_last[chan]);
+        return _last[chan];
+    }
+    Message *message_at(int chan, size_t msgidx) const {
+        return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(coreid(), chan) + msgidx);
+    }
+
+    size_t get_msgoff(int chan, RecvGate *rcvgate) const {
+        return get_msgoff(chan, rcvgate, message(chan));
+    }
+    size_t get_msgoff(int chan, RecvGate *, const Message *msg) const {
+        // currently we just return the offset here, because we're implementing reply() in SW.
+        return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(coreid(), chan);
+    }
+
+    void ack_message(int chan) {
+        // we might have already acked it by doing a reply
+        if(_last[chan]) {
+            volatile Message *msg = message(chan);
+            msg->length = 0;
+            _last[chan] = nullptr;
+        }
+    }
+
     bool wait() {
         return true;
     }
@@ -121,8 +167,12 @@ private:
         return coreconf()->chans + chan;
     }
 
+    size_t _pos[CHAN_COUNT];
+    Message *_last[CHAN_COUNT];
     static DTU inst;
 };
+
+static_assert(sizeof(DTU::Message) == DTU::HEADER_SIZE, "Header do not match");
 
 }
 

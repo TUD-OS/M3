@@ -42,7 +42,7 @@ SyscallHandler SyscallHandler::_inst;
     }
 
 struct ReplyInfo {
-    explicit ReplyInfo(const ChanMng::Message &msg)
+    explicit ReplyInfo(const DTU::Message &msg)
         : replylbl(msg.replylabel), replyslot(msg.reply_chanid()), crdslot(msg.send_chanid()),
           replycrd(msg.length) {
     }

@@ -50,7 +50,7 @@ void KVPE::activate_sysc_chan() {
     DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 
     // attach default receive endpoint
-    RecvBufs::attach(core(), ChanMng::DEF_RECVCHAN, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    RecvBufs::attach(core(), DTU::DEF_RECVCHAN, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
 
     // syscall endpoint
     DTU::EpRegs ep;
@@ -58,12 +58,12 @@ void KVPE::activate_sysc_chan() {
     ep.credits = 0xFFFFFFFF;// TODO 1 << SYSC_CREDIT_ORD;
     ep.maxMsgSize = 1 << SYSC_CREDIT_ORD;
     ep.targetCoreId = KERNEL_CORE;
-    ep.targetEpId = ChanMng::SYSC_CHAN;
+    ep.targetEpId =DTU::SYSC_CHAN;
     ep.label = reinterpret_cast<label_t>(&syscall_gate());
 
     // write to PE
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ChanMng::SYSC_CHAN));
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_CHAN));
     DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));
     DTU::get().write(tempchan, &ep, sizeof(ep), 0);
 }
@@ -73,7 +73,7 @@ void KVPE::invalidate_eps() {
     size_t total = sizeof(*eps) * CHAN_COUNT;
     memset(eps, 0, total);
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ChanMng::SYSC_CHAN));
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_CHAN));
     DTU::get().configure_mem(tempchan, core(), dst, total);
     DTU::get().write(tempchan, eps, total, 0);
     delete[] eps;

@@ -64,7 +64,7 @@ public:
     }
 
 private:
-    explicit Syscalls() : _gate(Cap::INVALID, 0, nullptr, ChanMng::SYSC_CHAN) {
+    explicit Syscalls() : _gate(Cap::INVALID, 0, nullptr,DTU::SYSC_CHAN) {
 #if defined(__host__)
         if(!Config::get().is_kernel())
             init(DTU::get().ep_regs());

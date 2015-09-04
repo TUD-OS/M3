@@ -45,12 +45,27 @@ public:
                chipid : 8;
     } PACKED;
 
+    struct Message : public Header {
+        int send_chanid() const {
+            return 0;
+        }
+        int reply_chanid() const {
+            return slot;
+        }
+
+        unsigned char data[];
+    } PACKED;
+
     static const size_t HEADER_SIZE         = sizeof(Header);
     static const size_t PACKET_SIZE         = 8;
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
+
+    static const int MEM_CHAN               = 0;    // unused
+    static const int SYSC_CHAN              = 0;
+    static const int DEF_RECVCHAN           = 1;
 
     enum Operation {
         WRITE   = 0x2,      // write from local to remote
@@ -78,24 +93,28 @@ public:
     void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
     }
 
-    uintptr_t recvbuf(int slot) {
-        word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
-        return read_from(ptr + 0);
+    bool uses_header(int) {
+        return true;
     }
-    size_t msgsize(int slot) {
-        word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
-        return (read_from(ptr + 1) >> 16) * PACKET_SIZE;
+
+    bool fetch_msg(int chan) {
+        return element_count(chan) > 0;
     }
-    uint element_count(int slot) {
-        word_t *ptr = get_cmd_addr(slot, IDMA_SLOT_FIFO_ELEM_CNT);
-        return read_from(ptr);
+
+    DTU::Message *message(int chan) const {
+        return reinterpret_cast<Message*>(element_ptr(chan));
     }
-    uintptr_t element_ptr(int slot) {
-        word_t *ptr = get_cmd_addr(slot, IDMA_SLOT_FIFO_GET_ELEM);
-        return read_from(ptr);
+    Message *message_at(int chan, size_t msgidx) const {
+        uintptr_t rbuf = recvbuf(chan);
+        size_t sz = msgsize(chan);
+        return reinterpret_cast<Message*>(rbuf + msgidx * sz);
     }
-    void ack_message(int slot) {
-        word_t *ptr = get_cmd_addr(slot, IDMA_SLOT_FIFO_RELEASE_ELEM);
+
+    size_t get_msgoff(int chan, RecvGate *rcvgate) const;
+    size_t get_msgoff(int, RecvGate *rcvgate, const Message *msg) const;
+
+    void ack_message(int chan) {
+        word_t *ptr = get_cmd_addr(chan, IDMA_SLOT_FIFO_RELEASE_ELEM);
         store_to(ptr, 1);
     }
 
@@ -198,7 +217,24 @@ public:
     }
 
 private:
-    word_t *get_cmd_addr(int slot,unsigned cmd) {
+    uintptr_t recvbuf(int slot) const {
+        word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
+        return read_from(ptr + 0);
+    }
+    size_t msgsize(int slot) const {
+        word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
+        return (read_from(ptr + 1) >> 16) * PACKET_SIZE;
+    }
+    uint element_count(int slot) const {
+        word_t *ptr = get_cmd_addr(slot, IDMA_SLOT_FIFO_ELEM_CNT);
+        return read_from(ptr);
+    }
+    uintptr_t element_ptr(int slot) const {
+        word_t *ptr = get_cmd_addr(slot, IDMA_SLOT_FIFO_GET_ELEM);
+        return read_from(ptr);
+    }
+
+    word_t *get_cmd_addr(int slot,unsigned cmd) const {
         return (word_t*)((uintptr_t)PE_IDMA_CONFIG_ADDRESS + (cmd << PE_IDMA_CMD_POS) + (slot << PE_IDMA_SLOT_POS));
     }
 
@@ -207,7 +243,7 @@ private:
         asm volatile ("s32i.n %1,%0,0" : : "a"(addr), "a"(val));
     }
 
-    word_t read_from(word_t *addr) {
+    word_t read_from(word_t *addr) const {
         word_t res;
         asm volatile ("l32i.n %0,%1,0" : "=a"(res) : "a"(addr));
         return res;

@@ -68,9 +68,9 @@ public:
         // the kernel might have them still in the send-queue.
         while(Syscalls::get().revoke(CapRngDesc(sel())) != Errors::NO_ERROR) {
             // handle all requests
-            while(ChanMng::get().fetch_msg(_ctrl_rgate.chanid())) {
+            while(DTU::get().fetch_msg(_ctrl_rgate.chanid())) {
                 handle_message(_ctrl_rgate, nullptr);
-                ChanMng::get().ack_message(_ctrl_rgate.chanid());
+                DTU::get().ack_message(_ctrl_rgate.chanid());
             }
         }
         // don't revoke it again

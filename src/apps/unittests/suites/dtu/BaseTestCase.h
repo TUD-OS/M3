@@ -17,7 +17,6 @@
 #pragma once
 
 #include <m3/DTU.h>
-#include <m3/ChanMng.h>
 #include <test/TestCase.h>
 
 class BaseTestCase : public test::TestCase {
@@ -53,17 +52,17 @@ protected:
             dtu.wait();
     }
 
-    m3::ChanMng::Message *getmsg(size_t chanid, size_t cnt) {
+    m3::DTU::Message *getmsg(size_t chanid, size_t cnt) {
         m3::DTU &dtu = m3::DTU::get();
         while(dtu.get_ep(chanid, m3::DTU::EP_BUF_MSGCNT) != cnt)
             dtu.wait();
-        return m3::ChanMng::get().message(chanid);
+        return m3::DTU::get().message(chanid);
     }
 
-    m3::ChanMng::Message *getmsgat(size_t chanid, size_t cnt, size_t idx) {
+    m3::DTU::Message *getmsgat(size_t chanid, size_t cnt, size_t idx) {
         m3::DTU &dtu = m3::DTU::get();
         while(dtu.get_ep(chanid, m3::DTU::EP_BUF_MSGCNT) != cnt)
             dtu.wait();
-        return m3::ChanMng::get().message_at(chanid, idx);
+        return m3::DTU::get().message_at(chanid, idx);
     }
 };

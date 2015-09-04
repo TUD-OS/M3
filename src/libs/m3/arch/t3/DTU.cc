@@ -16,13 +16,22 @@
 
 #include <m3/util/Sync.h>
 #include <m3/cap/MemGate.h>
+#include <m3/cap/RecvGate.h>
 #include <m3/DTU.h>
-#include <m3/ChanMng.h>
 #include <m3/Log.h>
 
 namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
+
+size_t DTU::get_msgoff(int chan, RecvGate *rcvgate) const {
+    return get_msgoff(chan, rcvgate, message(chan));
+}
+
+size_t DTU::get_msgoff(int, RecvGate *rcvgate, const Message *msg) const {
+    size_t off = (reinterpret_cast<uintptr_t>(msg) - reinterpret_cast<uintptr_t>(rcvgate->buffer()->addr()));
+    return off >> rcvgate->buffer()->msgorder();
+}
 
 void DTU::configure_recv(int slot, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
     size_t size = 1 << order;
@@ -63,7 +72,7 @@ void DTU::reply(int slot, const void *msg, size_t size, size_t msgidx) {
     // TODO this assumes that we reply to the messages in order. but we do that currently
     // word_t addr = element_ptr(slot);
     // LOG(DTU, "Got " << fmt(addr, "p") << " for " << slot);
-    // ChanMng::Message *m = reinterpret_cast<ChanMng::Message*>(addr);
+    // DTU::Message *m = reinterpret_cast<DTU::Message*>(addr);
     // LOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
     // send_credits(slot, m->modid, m->slot, 0x80000000 | m->length);
 }

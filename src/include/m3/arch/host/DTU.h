@@ -36,6 +36,7 @@
 namespace m3 {
 
 class Gate;
+class RecvGate;
 class MsgBackend;
 class SocketBackend;
 
@@ -50,7 +51,7 @@ class DTU {
     static constexpr size_t MAX_DATA_SIZE   = HEAP_SIZE;
 #endif
 
-    struct Buffer {
+    struct Header {
         long int length;        // = mtype -> has to be non-zero
         unsigned char opcode;   // should actually be part of length but causes trouble in msgsnd
         label_t label;
@@ -63,10 +64,24 @@ class DTU {
         label_t replylabel;
         word_t credits : sizeof(word_t) * 8 - 16,
                crd_chan : 16;
-        char data[MAX_DATA_SIZE];
     } PACKED;
 
+    struct Buffer : public Header {
+        char data[MAX_DATA_SIZE];
+    };
+
 public:
+    struct Message : public Header {
+        int send_chanid() const {
+            return snd_chanid;
+        }
+        int reply_chanid() const {
+            return rpl_chanid;
+        }
+
+        unsigned char data[];
+    } PACKED;
+
     class Backend {
     public:
         virtual ~Backend() {
@@ -134,11 +149,15 @@ public:
         ACKMSG  = 7,
     };
 
+    static const int MEM_CHAN       = 0;
+    static const int SYSC_CHAN      = 1;
+    static const int DEF_RECVCHAN   = 2;
+
     explicit DTU();
 
     void reset();
 
-    word_t get_cmd(size_t reg) {
+    word_t get_cmd(size_t reg) const {
         return _cmdregs[reg];
     }
     void set_cmd(size_t reg, word_t val) {
@@ -149,7 +168,7 @@ public:
         return const_cast<word_t*>(_epregs);
     }
 
-    word_t get_ep(int i, size_t reg) {
+    word_t get_ep(int i, size_t reg) const {
         return _epregs[i * EPS_RCNT + reg];
     }
     void set_ep(int i, size_t reg, word_t val) {
@@ -193,9 +212,41 @@ public:
         set_cmd(CMD_OFFSET, crdchan);
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
-    void ackmsg(int chan) {
+
+    bool uses_header(int chan) {
+        return ~get_ep(chan, EP_BUF_FLAGS) & FLAG_NO_HEADER;
+    }
+
+    bool fetch_msg(int chan) {
+        return get_ep(chan, EP_BUF_MSGCNT) > 0;
+    }
+
+    DTU::Message *message(int chan) const {
+        size_t off = get_ep(chan, EP_BUF_ROFF);
+        word_t addr = get_ep(chan, EP_BUF_ADDR);
+        size_t ord = get_ep(chan, EP_BUF_ORDER);
+        return reinterpret_cast<Message*>(addr + (off & ((1UL << ord) - 1)));
+    }
+    Message *message_at(int chan, size_t msgidx) const {
+        word_t addr = get_ep(chan, EP_BUF_ADDR);
+        size_t ord = get_ep(chan, EP_BUF_ORDER);
+        size_t msgord = get_ep(chan, EP_BUF_MSGORDER);
+        return reinterpret_cast<Message*>(addr + ((msgidx << msgord) & ((1UL << ord) - 1)));
+    }
+
+    size_t get_msgoff(int chan, RecvGate *rcvgate) const {
+        return get_msgoff(chan, rcvgate, message(chan));
+    }
+    size_t get_msgoff(int chan, RecvGate *, const Message *msg) const {
+        word_t addr = get_ep(chan, EP_BUF_ADDR);
+        size_t ord = get_ep(chan, EP_BUF_MSGORDER);
+        return (reinterpret_cast<word_t>(msg) - addr) >> ord;
+    }
+
+    void ack_message(int chan) {
         set_cmd(CMD_CHANID, chan);
         set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
+        wait_until_ready(chan);
     }
 
     bool is_ready() {

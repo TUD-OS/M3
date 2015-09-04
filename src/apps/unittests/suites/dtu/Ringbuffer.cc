@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/Config.h>
 #include <m3/RecvBuf.h>
 #include "Ringbuffer.h"
 
@@ -30,23 +31,23 @@ void RingbufferTestSuite::SendAckTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
+        DTU::Message *msg = getmsgat(buf.chanid(), 1, 0);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
-        ChanMng::get().ack_message(buf.chanid());
+        dtu.ack_message(buf.chanid());
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
     }
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 1);
+        DTU::Message *msg = getmsgat(buf.chanid(), 1, 1);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
-        ChanMng::get().ack_message(buf.chanid());
+        dtu.ack_message(buf.chanid());
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
     }
 
@@ -64,7 +65,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
+        DTU::Message *msg = getmsgat(buf.chanid(), 1, 0);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
@@ -72,20 +73,20 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
+        DTU::Message *msg = getmsgat(buf.chanid(), 2, 1);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
     }
 
-    ChanMng::get().ack_message(buf.chanid());
-    ChanMng::get().ack_message(buf.chanid());
+    dtu.ack_message(buf.chanid());
+    dtu.ack_message(buf.chanid());
     assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
     assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
+        DTU::Message *msg = getmsgat(buf.chanid(), 1, 0);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 3);
@@ -93,7 +94,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 2, 1);
+        DTU::Message *msg = getmsgat(buf.chanid(), 2, 1);
         assert_true(msg->label == lbl);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
         assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
@@ -105,14 +106,14 @@ void RingbufferTestSuite::IterationTestCase::run() {
         data = 1234;
     }
 
-    ChanMng::get().ack_message(buf.chanid());
-    ChanMng::get().ack_message(buf.chanid());
+    dtu.ack_message(buf.chanid());
+    dtu.ack_message(buf.chanid());
     assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
     assert_word(dtu.get_ep(buf.chanid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
 
     {
         dmasend(&data, sizeof(data), sendchanid);
-        ChanMng::Message *msg = getmsgat(buf.chanid(), 1, 0);
+        DTU::Message *msg = getmsgat(buf.chanid(), 1, 0);
         word_t *dataptr = reinterpret_cast<word_t*>(msg->data);
         assert_true(msg->label == lbl);
         assert_word(*dataptr, 1234);

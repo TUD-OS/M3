@@ -44,8 +44,8 @@ void KVPE::activate_sysc_chan() {
     // configure syscall channel
     alignas(DTU_PKG_SIZE) word_t regs[4];
     uintptr_t addr = DTU::get().get_external_cmd_addr(
-        ChanMng::SYSC_CHAN, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
-    DTU::get().config_remote_mem(regs, KERNEL_CORE, DTU::get().get_slot_addr(ChanMng::SYSC_CHAN),
+        DTU::SYSC_CHAN, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
+    DTU::get().config_remote_mem(regs, KERNEL_CORE, DTU::get().get_slot_addr(DTU::SYSC_CHAN),
         /* TODO 1 << SYSC_CREDIT_ORD*/0xFFFF, 0);
     DTU::get().config_remote_mem(tempchan, core(), addr, 4 * sizeof(word_t), 1);
     Sync::memory_barrier();
@@ -53,7 +53,7 @@ void KVPE::activate_sysc_chan() {
 
     // configure label of syscall channel
     memset(regs, 0, sizeof(regs));
-    addr = DTU::get().get_external_cmd_addr(ChanMng::SYSC_CHAN, OVERALL_SLOT_CFG);
+    addr = DTU::get().get_external_cmd_addr(DTU::SYSC_CHAN, OVERALL_SLOT_CFG);
     DTU::get().config_label(regs, reinterpret_cast<label_t>(&syscall_gate()));
     DTU::get().config_perm(regs,
         /* TODO atm, we need to give him all permissions */

@@ -78,6 +78,17 @@ public:
         uint64_t replylabel;
     } PACKED;
 
+    struct Message : Header {
+        int send_chanid() const {
+            return senderEpId;
+        }
+        int reply_chanid() const {
+            return replyEpId;
+        }
+
+        unsigned char data[];
+    } PACKED;
+
     static const uintptr_t BASE_ADDR        = 0xF0000000;
     static const size_t HEADER_SIZE         = sizeof(Header);
 
@@ -104,6 +115,10 @@ public:
         INC_READ_PTR        = 5,
         WAKEUP_CORE         = 6,
     };
+
+    static const int MEM_CHAN       = 0;    // unused
+    static const int SYSC_CHAN      = 0;
+    static const int DEF_RECVCHAN   = 1;
 
     static DTU &get() {
         return inst;
@@ -147,6 +162,36 @@ public:
     }
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
         // TODO unsupported
+    }
+
+    bool uses_header(int) {
+        return true;
+    }
+
+    bool fetch_msg(int chan) {
+        volatile EpRegs *ep = ep_regs(chan);
+        return ep->bufMsgCnt > 0;
+    }
+
+    DTU::Message *message(int chan) const {
+        return reinterpret_cast<Message*>(ep_regs(chan)->bufReadPtr);
+    }
+    Message *message_at(int, size_t) const {
+        // TODO unsupported
+        return nullptr;
+    }
+
+    size_t get_msgoff(int, RecvGate *) const {
+        return 0;
+    }
+    size_t get_msgoff(int, RecvGate *, const Message *) const {
+        // TODO unsupported
+        return 0;
+    }
+
+    void ack_message(int chan) {
+        CmdRegs *cmd = cmd_regs();
+        cmd->command = buildCommand(chan, CmdOpCode::INC_READ_PTR);
     }
 
     bool wait() {

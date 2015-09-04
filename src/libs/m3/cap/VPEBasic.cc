@@ -47,9 +47,9 @@ VPE::~VPE() {
 void VPE::init() {
     _caps->set(0);
     _caps->set(1);
-    _chans->set(ChanMng::SYSC_CHAN);
-    _chans->set(ChanMng::MEM_CHAN);
-    _chans->set(ChanMng::DEF_RECVCHAN);
+    _chans->set(DTU::SYSC_CHAN);
+    _chans->set(DTU::MEM_CHAN);
+    _chans->set(DTU::DEF_RECVCHAN);
 }
 
 capsel_t VPE::alloc_caps(uint count) {

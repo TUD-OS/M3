@@ -24,7 +24,7 @@
 #include <m3/cap/RecvGate.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/Marshalling.h>
-#include <m3/ChanMng.h>
+#include <m3/DTU.h>
 #include <m3/Heap.h>
 #include <assert.h>
 
@@ -71,7 +71,7 @@ public:
      * @param gate the gate that hosts the message to reply to
      */
     void reply(RecvGate &gate) {
-        gate.reply_sync(bytes(), total(), ChanMng::get().get_msgoff(gate.chanid(), &gate));
+        gate.reply_sync(bytes(), total(), DTU::get().get_msgoff(gate.chanid(), &gate));
     }
     /**
      * Writes the current content of this GateOStream to <offset> in the given memory area.
@@ -176,7 +176,7 @@ public:
      * @param ack whether to acknowledge the message afterwards
      */
     explicit GateIStream(RecvGate &gate, bool ack = false)
-        : _ack(ack), _pos(0), _gate(&gate), _msg(ChanMng::get().message(gate.chanid())) {
+        : _ack(ack), _pos(0), _gate(&gate), _msg(DTU::get().message(gate.chanid())) {
     }
 
     // don't do the ack twice. thus, copies never ack.
@@ -211,7 +211,7 @@ public:
     /**
      * @return the message (header + payload)
      */
-    const ChanMng::Message &message() const {
+    const DTU::Message &message() const {
         return *_msg;
     }
     /**
@@ -264,7 +264,7 @@ public:
      * @param len the length of the message
      */
     void reply(const void *data, size_t len) const {
-        _gate->reply_sync(data, len, ChanMng::get().get_msgoff(_gate->chanid(), _gate, _msg));
+        _gate->reply_sync(data, len, DTU::get().get_msgoff(_gate->chanid(), _gate, _msg));
     }
 
     /**
@@ -308,7 +308,7 @@ public:
      */
     void ack() {
         if(_ack) {
-            ChanMng::get().ack_message(_gate->chanid());
+            DTU::get().ack_message(_gate->chanid());
             _ack = false;
         }
     }
@@ -321,7 +321,7 @@ private:
     bool _ack;
     size_t _pos;
     RecvGate *_gate;
-    ChanMng::Message *_msg;
+    DTU::Message *_msg;
 };
 
 inline GateIStream GateOStream::receive(RecvGate &gate) {
@@ -402,7 +402,7 @@ static inline void send_msg(SendGate &gate, const void *data, size_t len) {
 }
 static inline void reply_msg(RecvGate &gate, const void *data, size_t len) {
     EVENT_TRACER_reply_msg();
-    gate.reply_sync(data, len, ChanMng::get().get_msgoff(gate.chanid(), &gate));
+    gate.reply_sync(data, len, DTU::get().get_msgoff(gate.chanid(), &gate));
 }
 static inline void reply_msg_on(const GateIStream &is, const void *data, size_t len) {
     EVENT_TRACER_reply_msg_on();

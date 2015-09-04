@@ -16,17 +16,21 @@
 
 #include <m3/cap/VPE.h>
 #include <m3/RecvBuf.h>
-#include <m3/ChanMng.h>
 #include <m3/Syscalls.h>
 #include <m3/Log.h>
 
 namespace m3 {
 
 void RecvBuf::RecvBufWorkItem::work() {
-    ChanMng &mng = ChanMng::get();
-    assert(_chanid != UNBOUND && mng.uses_header(_chanid));
-    if(mng.fetch_msg(_chanid))
-        mng.notify(_chanid);
+    DTU &dtu = DTU::get();
+    assert(_chanid != UNBOUND && dtu.uses_header(_chanid));
+    if(dtu.fetch_msg(_chanid)) {
+        DTU::Message *msg = dtu.message(_chanid);
+        LOG(IPC, "Received msg @ " << (void*)msg << " over chan " << _chanid);
+        RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
+        gate->notify_all();
+        dtu.ack_message(_chanid);
+    }
 }
 
 void RecvBuf::attach(size_t i) {
@@ -44,7 +48,7 @@ void RecvBuf::attach(size_t i) {
         }
 #endif
 
-        if(coreid() != KERNEL_CORE && i > ChanMng::DEF_RECVCHAN) {
+        if(coreid() != KERNEL_CORE && i > DTU::DEF_RECVCHAN) {
             if(Syscalls::get().attachrb(VPE::self().sel(), i, reinterpret_cast<word_t>(_buf),
                     _order, _msgorder, _flags & ~DELETE_BUF) != Errors::NO_ERROR)
                 PANIC("Attaching receive buffer to " << i << " failed: " << Errors::to_string(Errors::last));
@@ -53,10 +57,10 @@ void RecvBuf::attach(size_t i) {
         // if we may receive messages from the channel, create a worker for it
         // TODO hack for host: we don't want to do that for MEM_CHAN but know that only afterwards
         // because the EPs are not initialized yet
-        if(i != ChanMng::MEM_CHAN && ChanMng::get().uses_header(i)) {
+        if(i != DTU::MEM_CHAN && DTU::get().uses_header(i)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
-                WorkLoop::get().add(_workitem, i == ChanMng::MEM_CHAN || i == ChanMng::DEF_RECVCHAN);
+                WorkLoop::get().add(_workitem, i == DTU::MEM_CHAN || i == DTU::DEF_RECVCHAN);
             }
             else
                 _workitem->chanid(i);
@@ -78,7 +82,7 @@ void RecvBuf::disable() {
 }
 
 void RecvBuf::detach() {
-    if(coreid() != KERNEL_CORE && _chanid > ChanMng::DEF_RECVCHAN && _chanid != UNBOUND) {
+    if(coreid() != KERNEL_CORE && _chanid > DTU::DEF_RECVCHAN && _chanid != UNBOUND) {
         Syscalls::get().detachrb(VPE::self().sel(), _chanid);
         _chanid = UNBOUND;
     }

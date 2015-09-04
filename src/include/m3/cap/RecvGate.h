@@ -17,7 +17,6 @@
 #pragma once
 
 #include <m3/cap/Gate.h>
-#include <m3/ChanMng.h>
 #include <m3/Errors.h>
 
 namespace m3 {
@@ -80,7 +79,7 @@ public:
      * Busy-waits until this channel has received a message.
      */
     void wait() const {
-        while(!ChanMng::get().fetch_msg(chanid()))
+        while(!DTU::get().fetch_msg(chanid()))
             DTU::get().wait();
     }
 
@@ -113,7 +112,7 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        ChanMng::get().ack_message(chanid());
+        DTU::get().ack_message(chanid());
 #endif
         wait_until_sent();
         DTU::get().reply(chanid(), const_cast<void*>(data), len, msgidx);

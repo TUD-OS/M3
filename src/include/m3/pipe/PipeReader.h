@@ -52,7 +52,7 @@ public:
      * @return true if there is currently data to read
      */
     bool has_data() const {
-        return _rem > 0 || ChanMng::get().fetch_msg(_rgate.chanid());
+        return _rem > 0 || DTU::get().fetch_msg(_rgate.chanid());
     }
     /**
      * @return true if EOF has been seen
