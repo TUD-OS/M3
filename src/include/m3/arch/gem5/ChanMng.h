@@ -32,7 +32,7 @@ class ChanMng : public ChanMngBase {
     friend class Gate;
 
 public:
-    explicit ChanMng() : ChanMngBase(), _refs() {
+    explicit ChanMng() : ChanMngBase() {
     }
 
     struct Message : DTU::Header {
@@ -54,9 +54,6 @@ public:
     size_t get_msgoff(size_t id, RecvGate *rcvgate, const ChanMng::Message *msg) const;
     void ack_message(size_t id);
     void reset();
-
-private:
-    unsigned _refs[CHAN_COUNT];
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {

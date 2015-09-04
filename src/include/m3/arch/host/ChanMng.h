@@ -31,7 +31,7 @@ class ChanMng : public ChanMngBase {
     friend class Gate;
 
 public:
-    explicit ChanMng() : ChanMngBase(), _refs(), _msgcnt() {
+    explicit ChanMng() : ChanMngBase(), _msgcnt() {
     }
 
     struct Message {
@@ -67,7 +67,6 @@ public:
     void reset();
 
 private:
-    unsigned _refs[CHAN_COUNT];
     word_t _msgcnt[CHAN_COUNT];
 };
 
