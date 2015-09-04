@@ -63,9 +63,6 @@ inline bool ChanMng::fetch_msg(size_t id) {
 inline bool ChanMngBase::uses_header(size_t) const {
     return true;
 }
-inline bool ChanMngBase::uses_ringbuf(size_t) const {
-    return false;
-}
 
 static_assert(sizeof(ChanMng::Message) == DTU::HEADER_SIZE, "Header do not match");
 

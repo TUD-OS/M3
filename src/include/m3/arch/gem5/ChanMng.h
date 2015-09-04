@@ -65,11 +65,6 @@ inline bool ChanMngBase::uses_header(size_t) const {
     return true;
 }
 
-inline bool ChanMngBase::uses_ringbuf(size_t) const {
-    // TODO unsupported
-    return true;
-}
-
 inline ChanMng::Message *ChanMng::message(size_t id) const {
     return reinterpret_cast<Message*>(DTU::ep_regs(id)->bufReadPtr);
 }

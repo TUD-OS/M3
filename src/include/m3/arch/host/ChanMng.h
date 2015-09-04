@@ -73,10 +73,6 @@ inline bool ChanMngBase::uses_header(size_t id) const {
     return ~DTU::get().get_ep(id, DTU::EP_BUF_FLAGS) & DTU::FLAG_NO_HEADER;
 }
 
-inline bool ChanMngBase::uses_ringbuf(size_t id) const {
-    return ~DTU::get().get_ep(id, DTU::EP_BUF_FLAGS) & DTU::FLAG_NO_RINGBUF;
-}
-
 static_assert(sizeof(ChanMng::Message) == DTU::HEADER_SIZE, "Header do not match");
 
 }

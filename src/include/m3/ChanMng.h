@@ -52,7 +52,6 @@ public:
 
     bool fetch_msg(size_t id);
     bool uses_header(size_t) const;
-    bool uses_ringbuf(size_t) const;
     void notify(size_t id);
     void ack_message(size_t id);
 
