@@ -35,8 +35,8 @@ struct Worker {
     }
 };
 
-static const size_t MEM_SIZE    = 8 * 1024 * 1024;
-static const size_t VPE_COUNT  = 4;
+static const size_t VPE_COUNT  = 6;
+static const size_t MEM_SIZE    = VPE_COUNT * 1024 * 1024;
 static const size_t SUBMEM_SIZE = MEM_SIZE / VPE_COUNT;
 static const size_t BUF_SIZE    = 4096;
 
