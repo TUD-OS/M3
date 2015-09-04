@@ -24,6 +24,10 @@
 
 namespace m3 {
 
+ChanMng::ChanMng() : ChanMngBase(), _pos(), _last() {
+    memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
+}
+
 void ChanMng::reset() {
     memset(_pos, 0, sizeof(_pos));
     memset(_last, 0, sizeof(_last));

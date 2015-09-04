@@ -40,8 +40,7 @@ public:
         unsigned char data[];
     } PACKED;
 
-    explicit ChanMng() : ChanMngBase(), _pos(), _last() {
-    }
+    explicit ChanMng();
 
     void reset();
 

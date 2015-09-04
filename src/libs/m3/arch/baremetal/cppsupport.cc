@@ -107,11 +107,6 @@ EXTERN_C void __clibrary_init(int, char **argv) {
         ChanMng::DEF_RECVCHAN, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
     def_rgate = new RecvGate(RecvGate::create(def_rbuf));
 
-#if defined(__t2__)
-    // clear receive buffer area
-    memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
-#endif
-
     // call constructors
     _init();
 
