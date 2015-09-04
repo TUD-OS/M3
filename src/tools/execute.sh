@@ -114,7 +114,7 @@ build_params_gem5() {
 
     params=`mktemp`
     echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
-    echo -n " $gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $params
+    echo -n " hw/gem5/configs/example/dtu-fs.py --cpu-type TimingSimpleCPU --num-pes=$maxcores" >> $params
     echo -n " --cmd \"$cmd\" --init_mem $build/$M3_FS" >> $params
     #echo -n " --watch-pe=0 --watch-start=0x111500 --watch-end=0x111600" >> $params
 
@@ -125,10 +125,10 @@ build_params_gem5() {
         echo -n "run " >> $tmp
         cat $params >> $tmp
         echo >> $tmp
-        gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
+        gdb --tui hw/gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
-        xargs $gem5/build/X86/gem5.opt < $params | tee run/log.txt
+        xargs hw/gem5/build/X86/gem5.opt < $params | tee run/log.txt
     fi
 
     rm $params

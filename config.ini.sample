@@ -1,4 +1,3 @@
 cfgpath=hw/th/xtensa_configs
 xtroot=/your/path/to/xtensa
 buildroot=/your/path/to/buildroot/output
-gem5=/your/path/to/gem5
