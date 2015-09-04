@@ -29,6 +29,7 @@ ChanMng::ChanMng() : ChanMngBase(), _pos(), _last() {
 }
 
 void ChanMng::reset() {
+    memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
     memset(_pos, 0, sizeof(_pos));
     memset(_last, 0, sizeof(_last));
     for(int i = 0; i < CHAN_COUNT; ++i) {
