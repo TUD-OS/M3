@@ -96,7 +96,7 @@ void Config::reset() {
     Serial::get().init(executable(), coreid());
 
     DTU::get().reset();
-    ChanMng::get().reset();
+    EPMux::get().reset();
 
     init_dtu();
 

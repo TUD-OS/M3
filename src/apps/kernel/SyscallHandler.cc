@@ -80,7 +80,7 @@ SyscallHandler::SyscallHandler()
 #endif
 
     tempchan = VPE::self().alloc_chan();
-    ChanMng::get().reserve(tempchan);
+    EPMux::get().reserve(tempchan);
 }
 
 void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
@@ -616,7 +616,7 @@ void SyscallHandler::init(RecvGate &gate,GateIStream &is) {
     // switch to this channel to ensure that we don't have old values programmed in our DMAUnit.
     // actually, this is currently only necessary for exec, i.e. where the address changes for
     // the same VPE.
-    ChanMng::get().switch_to(&vpe->seps_gate());
+    EPMux::get().switch_to(&vpe->seps_gate());
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 #endif

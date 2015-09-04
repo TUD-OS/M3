@@ -25,6 +25,11 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
+void DTU::reset() {
+    memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
+    ChanMng::get().reset();
+}
+
 void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan) {
     ChanConf *cfg = conf(chan);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstchan);

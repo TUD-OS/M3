@@ -26,9 +26,9 @@
 
 using namespace m3;
 
-class KernelChanSwitcher : public ChanSwitcher {
+class KernelEPSwitcher : public EPSwitcher {
 public:
-    virtual void switch_chan(size_t id, capsel_t, capsel_t newcap) override {
+    virtual void switch_ep(size_t id, capsel_t, capsel_t newcap) override {
         if(newcap != Cap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
@@ -84,8 +84,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    KernelChanSwitcher *chsw = new KernelChanSwitcher();
-    ChanMng::get().set_chanswitcher(chsw);
+    KernelEPSwitcher *epsw = new KernelEPSwitcher();
+    EPMux::get().set_epswitcher(epsw);
 
     EVENT_TRACE_INIT_KERNEL();
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     ser << "Shutting down...\n";
 
     PEManager::destroy();
-    delete chsw;
+    delete epsw;
 
     Machine::shutdown();
     return EXIT_SUCCESS;

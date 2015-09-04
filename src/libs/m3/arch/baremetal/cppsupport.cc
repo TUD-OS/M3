@@ -126,7 +126,10 @@ EXTERN_C void __clibrary_init_lambda(int, char **argv) {
 #endif
 
     Serial::get().init(argv ? argv[0] : "Unknown", cfg->coreid);
-    ChanMng::get().reset();
+    EPMux::get().reset();
+#if defined(__t2__)
+    DTU::get().reset();
+#endif
 
     VPE::self().init_state();
 

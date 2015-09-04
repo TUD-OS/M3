@@ -22,54 +22,48 @@
 
 namespace m3 {
 
-class ChanMng;
 class Gate;
 class VPE;
 class RecvBuf;
 
-class ChanMngBase {
+class EPSwitcher {
+public:
+    virtual ~EPSwitcher() {
+    }
+
+    virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
+};
+
+class EPMux {
     friend class Gate;
     friend class VPE;
     friend class RecvBuf;
 
 public:
-#if defined(__t3__) or defined(__gem5__)
-    static const int MEM_CHAN       = 0;    // unused
-    static const int SYSC_CHAN      = 0;
-    static const int DEF_RECVCHAN   = 1;
-#else
-    static const int MEM_CHAN       = 0;
-    static const int SYSC_CHAN      = 1;
-    static const int DEF_RECVCHAN   = 2;
-#endif
+    explicit EPMux();
 
-    explicit ChanMngBase() {
-    }
-
-    static ChanMng &get() {
+    static EPMux &get() {
         return _inst;
     }
 
-    bool fetch_msg(size_t id);
-    bool uses_header(size_t) const;
-    bool uses_ringbuf(size_t) const;
-    void notify(size_t id);
-    void ack_message(size_t id);
+    void set_epswitcher(EPSwitcher *epsw) {
+        delete _epsw;
+        _epsw = epsw;
+    }
+
+    void reserve(size_t i);
+    void switch_to(Gate *gate);
+    void switch_cap(Gate *gate, capsel_t newcap);
+    void reset();
 
 private:
-    static ChanMng _inst;
+    void remove(Gate *gate, bool unarm);
+    size_t select_victim();
+
+    size_t _next_victim;
+    EPSwitcher *_epsw;
+    Gate *_gates[CHAN_COUNT];
+    static EPMux _inst;
 };
 
 }
-
-#if defined(__host__)
-#   include <m3/arch/host/ChanMng.h>
-#elif defined(__t2__)
-#   include <m3/arch/t2/ChanMng.h>
-#elif defined(__t3__)
-#   include <m3/arch/t3/ChanMng.h>
-#elif defined(__gem5__)
-#   include <m3/arch/gem5/ChanMng.h>
-#else
-#   error "Unsupported target"
-#endif

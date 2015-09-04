@@ -63,7 +63,6 @@ public:
     size_t get_msgoff(size_t id, RecvGate *rcvgate) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate, const ChanMng::Message *msg) const;
     void ack_message(size_t id);
-    void reset();
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {

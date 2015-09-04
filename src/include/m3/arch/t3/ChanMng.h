@@ -44,8 +44,6 @@ public:
     explicit ChanMng() : ChanMngBase() {
     }
 
-    void reset();
-
     void setlast(size_t, Message *) {
     }
 

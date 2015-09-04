@@ -31,6 +31,7 @@ class DTU {
     static const uintptr_t DRAM_START       = 0x8000;
 
     explicit DTU() {
+        reset();
     }
 
 public:
@@ -63,6 +64,8 @@ public:
     static DTU &get() {
         return inst;
     }
+
+    void reset();
 
     void configure(int i, label_t label, int coreid, int chanid, word_t credits) {
         ChanConf *cfg = conf(i);

@@ -25,14 +25,6 @@
 
 namespace m3 {
 
-void ChanMng::reset() {
-    for(int i = 0; i < CHAN_COUNT; ++i) {
-        if(_gates[i])
-            _gates[i]->_chanid = Gate::UNBOUND;
-        _gates[i] = nullptr;
-    }
-}
-
 void ChanMng::notify(size_t id) {
     word_t addr = DTU::ep_regs(id)->bufReadPtr;
     Message *msg = message(id);

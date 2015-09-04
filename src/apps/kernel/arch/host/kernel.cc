@@ -41,9 +41,9 @@ using namespace m3;
 static SList<Device> devices;
 static size_t fssize = 0;
 
-class KernelChanSwitcher : public ChanSwitcher {
+class KernelEPSwitcher : public EPSwitcher {
 public:
-    virtual void switch_chan(size_t victim, capsel_t, capsel_t newcap) override {
+    virtual void switch_ep(size_t victim, capsel_t, capsel_t newcap) override {
         // we don't need to clear channel-registers since nobody does cmpxchg here.
         if(newcap != Cap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
@@ -110,8 +110,8 @@ int __default_conf = 0;
 int main(int argc, char *argv[]) {
     const char *fsimg = nullptr;
     mkdir("/tmp/m3", 0755);
-    KernelChanSwitcher *chsw = new KernelChanSwitcher();
-    ChanMng::get().set_chanswitcher(chsw);
+    KernelEPSwitcher *epsw = new KernelEPSwitcher();
+    EPMux::get().set_epswitcher(epsw);
     signal(SIGINT, sigint);
 
     for(int i = 1; i < argc; ++i) {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
         old->stop();
         delete &*old;
     }
-    delete chsw;
+    delete epsw;
     delete_dir("/tmp/m3");
     return EXIT_SUCCESS;
 }

@@ -35,7 +35,7 @@ VPE::VPE(const String &name, const String &core)
 VPE::~VPE() {
     if(this != &_self) {
         // unarm it first. we can't do that after revoke (which would be triggered by the Gate destructor)
-        ChanMng::get().remove(&_mem, true);
+        EPMux::get().remove(&_mem, true);
         // only free that if it's not our own VPE. 1. it doesn't matter in this case and 2. it might
         // be stored not on the heap but somewhere else
         delete _chans;

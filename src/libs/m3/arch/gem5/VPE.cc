@@ -18,6 +18,7 @@
 #include <m3/cap/VPE.h>
 #include <m3/util/Math.h>
 #include <m3/Config.h>
+#include <m3/Heap.h>
 
 namespace m3 {
 

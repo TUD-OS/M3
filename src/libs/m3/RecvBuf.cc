@@ -32,7 +32,7 @@ void RecvBuf::RecvBufWorkItem::work() {
 void RecvBuf::attach(size_t i) {
     if(i != UNBOUND) {
         // first reserve the channel; we might need to invalidate it
-        ChanMng::get().reserve(i);
+        EPMux::get().reserve(i);
 
 #if !defined(__t3__)
         // always required for t3 because one can't write to these registers externally

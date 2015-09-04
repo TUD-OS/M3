@@ -19,7 +19,7 @@
 #include <m3/cap/Cap.h>
 #include <m3/util/Util.h>
 #include <m3/DTU.h>
-#include <m3/ChanMng.h>
+#include <m3/EPMux.h>
 #include <m3/Subscriber.h>
 #include <m3/RecvBuf.h>
 
@@ -32,8 +32,7 @@ namespace m3 {
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
  */
 class Gate : public Cap, public SListItem {
-    friend class ChanMng;
-    friend class ChanMngBase;
+    friend class EPMux;
 
     static const size_t NODESTROY   = -2;
 
@@ -61,7 +60,7 @@ public:
         c._chanid = NODESTROY;
     }
     ~Gate() {
-       ChanMng::get().remove(this, flags() & KEEP_CAP);
+       EPMux::get().remove(this, flags() & KEEP_CAP);
     }
 
     /**
@@ -86,7 +85,7 @@ public:
      * @param newsel the new selector (might also be Cap::INVALID)
      */
     void rebind(capsel_t newsel) {
-        ChanMng::get().switch_cap(this, newsel);
+        EPMux::get().switch_cap(this, newsel);
         release();
         sel(newsel);
     }
@@ -94,7 +93,7 @@ public:
 protected:
     void ensure_activated() {
         if(_chanid == UNBOUND && sel() != Cap::INVALID)
-            ChanMng::get().switch_to(this);
+            EPMux::get().switch_to(this);
     }
     void wait_until_sent() {
         DTU::get().wait_until_ready(_chanid);

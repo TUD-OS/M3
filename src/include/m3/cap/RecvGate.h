@@ -17,6 +17,7 @@
 #pragma once
 
 #include <m3/cap/Gate.h>
+#include <m3/ChanMng.h>
 #include <m3/Errors.h>
 
 namespace m3 {

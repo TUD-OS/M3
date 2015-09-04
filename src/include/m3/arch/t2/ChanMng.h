@@ -42,8 +42,6 @@ public:
 
     explicit ChanMng();
 
-    void reset();
-
     bool fetch_msg(size_t id);
     void notify(size_t id);
     void ack_message(size_t id);
@@ -51,6 +49,7 @@ public:
     Message *message_at(size_t id, size_t msgidx) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate, const ChanMng::Message *msg) const;
+    void reset();
 
 private:
     size_t _pos[CHAN_COUNT];
