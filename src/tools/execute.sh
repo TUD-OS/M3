@@ -128,7 +128,7 @@ build_params_gem5() {
         gdb --tui $gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
-        xargs $gem5/build/X86/gem5.opt < $params
+        xargs $gem5/build/X86/gem5.opt < $params | tee run/log.txt
     fi
 
     rm $params
