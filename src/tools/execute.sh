@@ -202,7 +202,7 @@ build_params_t3_sim() {
                     # full speed while one core is run step by step.
                     echo -n " $corename.SimTargetProgram=$bindir/$a -$corename.SimDebugSynchronized=true"
                     if [ -z "$M3_NOTRACE" ]; then
-                        echo -n " -$corename.SimClients=\"trace --level 6 ../../run/core$c.log\""
+                        echo -n " -$corename.SimClients=\"trace --level 6 ../../../run/core$c.log\""
                     fi
                     if [ "$a" = "$debug" ]; then
                         echo -n " -$corename.SimDebug=true -$corename.SimDebugStartingPort=1234"
@@ -234,7 +234,7 @@ build_params_t3_sim() {
         while [ $c -lt $maxcores ]; do
             echo -n " -pe_core.SimTargetProgram=$bindir/idle --pe_core.SimDebugSynchronized=true"
             if [ -z "$M3_NOTRACE" ]; then
-                echo -n " --pe_core.SimClients=\"trace --level 6 ../../run/core$c.log\""
+                echo -n " --pe_core.SimClients=\"trace --level 6 ../../../run/core$c.log\""
             fi
             if [ "$debug" = "idle" ]; then
                 echo -n " --pe_core.SimDebug=true --pe_core.SimDebugStartingPort=1234"
@@ -336,7 +336,7 @@ if [[ "$script" == *.cfg ]]; then
         bindir=`readlink -f $bindir`
         tmp=`mktemp`
         build_params_t3_sim $script > $tmp
-        cd th/XTSC
+        cd hw/th/XTSC
         echo -n "Params: "
         cat $tmp
         xargs ./t3-sim < $tmp
