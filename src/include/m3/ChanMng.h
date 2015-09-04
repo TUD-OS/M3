@@ -68,7 +68,6 @@ public:
     bool uses_ringbuf(size_t) const;
     void notify(size_t id);
     void ack_message(size_t id);
-    void set_msgcnt(size_t, word_t);
     void switch_to(Gate *gate);
     void switch_cap(Gate *gate, capsel_t newcap);
 

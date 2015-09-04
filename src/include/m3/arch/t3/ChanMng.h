@@ -41,7 +41,7 @@ public:
         unsigned char data[];
     } PACKED;
 
-    explicit ChanMng() : ChanMngBase(), _header() {
+    explicit ChanMng() : ChanMngBase() {
     }
 
     void reset();
@@ -56,24 +56,17 @@ public:
     Message *message_at(size_t id, size_t msgidx) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate, const ChanMng::Message *msg) const;
-
-private:
-    bool _header[CHAN_COUNT];
 };
 
 inline bool ChanMng::fetch_msg(size_t id) {
     return DTU::get().element_count(id) > 0;
 }
 
-inline bool ChanMngBase::uses_header(size_t i) const {
-    return ((ChanMng*)this)->_header[i];
+inline bool ChanMngBase::uses_header(size_t) const {
+    return true;
 }
 inline bool ChanMngBase::uses_ringbuf(size_t) const {
     return false;
-}
-inline void ChanMngBase::set_msgcnt(size_t i, word_t) {
-    // TODO when to unset this?
-    ((ChanMng*)this)->_header[i] = true;
 }
 
 static_assert(sizeof(ChanMng::Message) == DTU::HEADER_SIZE, "Header do not match");

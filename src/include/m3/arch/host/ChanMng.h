@@ -63,7 +63,6 @@ public:
     size_t get_msgoff(size_t id, RecvGate *rcvgate) const;
     size_t get_msgoff(size_t id, RecvGate *rcvgate, const ChanMng::Message *msg) const;
     void ack_message(size_t id);
-    void set_msgcnt(size_t, word_t);
     void reset();
 };
 
@@ -77,9 +76,6 @@ inline bool ChanMngBase::uses_header(size_t id) const {
 
 inline bool ChanMngBase::uses_ringbuf(size_t id) const {
     return ~DTU::get().get_ep(id, DTU::EP_BUF_FLAGS) & DTU::FLAG_NO_RINGBUF;
-}
-
-inline void ChanMng::set_msgcnt(size_t, word_t) {
 }
 
 static_assert(sizeof(ChanMng::Message) == DTU::HEADER_SIZE, "Header do not match");

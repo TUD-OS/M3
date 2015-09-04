@@ -50,7 +50,6 @@ void ChanMngBase::reserve(size_t i) {
         }
         _gates[i] = nullptr;
     }
-    static_cast<ChanMng*>(this)->set_msgcnt(i, 0);
 }
 
 void ChanMngBase::switch_to(Gate *gate) {

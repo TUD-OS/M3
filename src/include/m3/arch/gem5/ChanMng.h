@@ -71,9 +71,6 @@ inline bool ChanMngBase::uses_ringbuf(size_t) const {
     return true;
 }
 
-inline void ChanMngBase::set_msgcnt(size_t, word_t) {
-}
-
 inline ChanMng::Message *ChanMng::message(size_t id) const {
     return reinterpret_cast<Message*>(DTU::ep_regs(id)->bufReadPtr);
 }
