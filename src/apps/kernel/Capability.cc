@@ -61,6 +61,16 @@ SessionObject::~SessionObject() {
     msg.claim();
 }
 
+Errors::Code MsgCapability::revoke() {
+    if(localepid != -1) {
+        KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
+        LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
+        vpe.xchg_ep(localepid, nullptr, nullptr);
+    }
+    obj.unref();
+    return Errors::NO_ERROR;
+}
+
 Errors::Code SessionCapability::revoke() {
     obj.unref();
     return Errors::NO_ERROR;
