@@ -52,8 +52,8 @@ public:
         return RecvGate(rcvbuf,sess);
     }
 
-    RecvGate(RecvGate &&c)
-        : Gate(Util::move(c)), Subscriptions<RecvGate&>(Util::move(c)), _rcvbuf(c._rcvbuf), _sess(c._sess) {
+    RecvGate(RecvGate &&g)
+        : Gate(Util::move(g)), Subscriptions<RecvGate&>(Util::move(g)), _rcvbuf(g._rcvbuf), _sess(g._sess) {
     }
 
     /**

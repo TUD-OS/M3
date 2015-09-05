@@ -56,8 +56,8 @@ protected:
     }
 
 public:
-    Gate(Gate &&c) : Cap(Util::move(c)), SListItem(Util::move(c)), _epid(c._epid) {
-        c._epid = NODESTROY;
+    Gate(Gate &&g) : Cap(Util::move(g)), SListItem(Util::move(g)), _epid(g._epid) {
+        g._epid = NODESTROY;
     }
     ~Gate() {
        EPMux::get().remove(this, flags() & KEEP_CAP);

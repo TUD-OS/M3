@@ -81,7 +81,7 @@ public:
         return SendGate(cap, flags, rcvgate);
     }
 
-    SendGate(SendGate &&c) : Gate(Util::move(c)), _rcvgate(c._rcvgate) {
+    SendGate(SendGate &&g) : Gate(Util::move(g)), _rcvgate(g._rcvgate) {
     }
 
     /**
