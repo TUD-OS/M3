@@ -32,7 +32,7 @@ void KVPE::start(int, char **, int) {
 
     // inject an IRQ
     uint64_t  val = 1;
-    DTU::get().config_remote_mem(tempchan, core(), IRQ_ADDR_EXTERN, sizeof(val), 1);
+    DTU::get().configure_mem(tempchan, core(), IRQ_ADDR_EXTERN, sizeof(val));
     Sync::memory_barrier();
     DTU::get().write(tempchan, &val, sizeof(val), 0);
 
@@ -47,7 +47,7 @@ void KVPE::activate_sysc_chan() {
         DTU::SYSC_CHAN, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
     DTU::get().config_remote_mem(regs, KERNEL_CORE, DTU::get().get_slot_addr(DTU::SYSC_CHAN),
         /* TODO 1 << SYSC_CREDIT_ORD*/0xFFFF, 0);
-    DTU::get().config_remote_mem(tempchan, core(), addr, 4 * sizeof(word_t), 1);
+    DTU::get().configure_mem(tempchan, core(), addr, 4 * sizeof(word_t));
     Sync::memory_barrier();
     DTU::get().write(tempchan, regs, 4 * sizeof(word_t), 0);
 
@@ -64,7 +64,7 @@ void KVPE::activate_sysc_chan() {
         (1 << FIRE_CMD) |
         (1 << DEBUG_CMD)*/
     );
-    DTU::get().config_remote_mem(tempchan, core(), addr, 2 * sizeof(word_t), 1);
+    DTU::get().configure_mem(tempchan, core(), addr, 2 * sizeof(word_t));
     Sync::memory_barrier();
     DTU::get().write(tempchan, regs, 2 * sizeof(word_t), 0);
 
@@ -72,7 +72,7 @@ void KVPE::activate_sysc_chan() {
     alignas(DTU_PKG_SIZE) CoreConf conf;
     memset(&conf, 0, sizeof(conf));
     conf.coreid = core();
-    DTU::get().config_remote_mem(tempchan, core(), CONF_GLOBAL, sizeof(conf), 1);
+    DTU::get().configure_mem(tempchan, core(), CONF_GLOBAL, sizeof(conf));
     Sync::memory_barrier();
     DTU::get().write(tempchan, &conf, sizeof(conf), 0);
 }
@@ -82,8 +82,7 @@ void KVPE::invalidate_eps() {
     regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
     for(int i = 0; i < CHAN_COUNT; ++i) {
         uintptr_t addr = DTU::get().get_external_cmd_addr(i, 0);
-        DTU::get().config_header(tempchan, false, 0, 0);
-        DTU::get().config_remote_mem(tempchan, core(), addr, sizeof(regs), 1);
+        DTU::get().configure_mem(tempchan, core(), addr, sizeof(regs));
         Sync::memory_barrier();
         DTU::get().write(tempchan, regs, sizeof(regs), 0);
     }
@@ -106,8 +105,7 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
         regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
 
     uintptr_t addr = DTU::get().get_external_cmd_addr(cid, 0);
-    DTU::get().config_header(tempchan, false, 0, 0);
-    DTU::get().config_remote_mem(tempchan, core(), addr, sizeof(regs), 1);
+    DTU::get().configure_mem(tempchan, core(), addr, sizeof(regs));
     Sync::memory_barrier();
     DTU::get().write(tempchan, regs, sizeof(regs), 0);
     return Errors::NO_ERROR;

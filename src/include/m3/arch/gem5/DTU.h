@@ -25,12 +25,23 @@
 
 namespace m3 {
 
+class KVPE;
+class RecvBufs;
+class PEManager;
+
 class DTU {
+    friend class KVPE;
+    friend class RecvBufs;
+    friend class PEManager;
+
     explicit DTU() {
     }
 
 public:
     typedef uint64_t reg_t;
+
+private:
+    static const uintptr_t BASE_ADDR        = 0xF0000000;
 
     struct DtuRegs {
         reg_t status;
@@ -66,6 +77,27 @@ public:
         reg_t reqFlags;
     } PACKED;
 
+    enum MemFlags : reg_t {
+        R                   = 1 << 0,
+        W                   = 1 << 1,
+    };
+
+    enum StatusFlags : reg_t {
+        BUSY                = 1 << 0,
+        PRIV                = 1 << 0,
+    };
+
+    enum class CmdOpCode {
+        IDLE                = 0,
+        SEND                = 1,
+        REPLY               = 2,
+        READ                = 3,
+        WRITE               = 4,
+        INC_READ_PTR        = 5,
+        WAKEUP_CORE         = 6,
+    };
+
+public:
     struct Header {
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
         uint8_t senderCoreId;
@@ -89,32 +121,11 @@ public:
         unsigned char data[];
     } PACKED;
 
-    static const uintptr_t BASE_ADDR        = 0xF0000000;
     static const size_t HEADER_SIZE         = sizeof(Header);
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
-
-    enum MemFlags : reg_t {
-        R                   = 1 << 0,
-        W                   = 1 << 1,
-    };
-
-    enum StatusFlags : reg_t {
-        BUSY                = 1 << 0,
-        PRIV                = 1 << 0,
-    };
-
-    enum class CmdOpCode {
-        IDLE                = 0,
-        SEND                = 1,
-        REPLY               = 2,
-        READ                = 3,
-        WRITE               = 4,
-        INC_READ_PTR        = 5,
-        WAKEUP_CORE         = 6,
-    };
 
     static const int MEM_CHAN       = 0;    // unused
     static const int SYSC_CHAN      = 0;
@@ -215,6 +226,7 @@ public:
         return true;
     }
 
+private:
     static DtuRegs *dtu_regs() {
         return reinterpret_cast<DtuRegs*>(BASE_ADDR);
     }
@@ -229,7 +241,6 @@ public:
         return static_cast<uint>(c) | (ep << 3);
     }
 
-private:
     static DTU inst;
 };
 

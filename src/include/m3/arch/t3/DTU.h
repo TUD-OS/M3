@@ -26,7 +26,11 @@
 
 namespace m3 {
 
+class KVPE;
+
 class DTU {
+    friend class KVPE;
+
     static const uintptr_t DRAM_START       = 0x8000;
 
     explicit DTU() {
@@ -81,6 +85,11 @@ public:
         config_label(slot, label);
     }
 
+    void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
+        config_header(ep, false, 0, 0);
+        config_remote_mem(ep, coreid, addr, size, 1);
+    }
+
     void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
 
     void send(int slot, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_slot = 0);
@@ -132,6 +141,12 @@ public:
         return true;
     }
 
+    void debug_msg(uint msg) {
+        word_t *ptr = get_cmd_addr(IDMA_DEBUG_SLOT_ID0, DEBUG_CMD);
+        store_to(ptr, msg);
+    }
+
+private:
     void config_local(int slot, uintptr_t addr, size_t fifo_size, size_t token_size) {
         // both have to be packet-size aligned
         assert((addr & (PACKET_SIZE - 1)) == 0);
@@ -204,19 +219,6 @@ public:
         store_to(ptr, op | execute);
     }
 
-    void debug_msg(uint msg) {
-        word_t *ptr = get_cmd_addr(IDMA_DEBUG_SLOT_ID0, DEBUG_CMD);
-        store_to(ptr, msg);
-    }
-
-    uintptr_t get_slot_addr(int slot) {
-        return IDMA_DATA_PORT_ADDR | (slot << IDMA_SLOT_POS);
-    }
-    uintptr_t get_external_cmd_addr(int slot, unsigned cmd) {
-        return IDMA_CONFIG_ADDR + (cmd << PE_IDMA_CMD_POS) + (slot << IDMA_SLOT_POS);
-    }
-
-private:
     uintptr_t recvbuf(int slot) const {
         word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
         return read_from(ptr + 0);
@@ -234,8 +236,14 @@ private:
         return read_from(ptr);
     }
 
+    uintptr_t get_slot_addr(int slot) {
+        return IDMA_DATA_PORT_ADDR | (slot << IDMA_SLOT_POS);
+    }
     word_t *get_cmd_addr(int slot,unsigned cmd) const {
         return (word_t*)((uintptr_t)PE_IDMA_CONFIG_ADDRESS + (cmd << PE_IDMA_CMD_POS) + (slot << PE_IDMA_SLOT_POS));
+    }
+    uintptr_t get_external_cmd_addr(int slot, unsigned cmd) {
+        return IDMA_CONFIG_ADDR + (cmd << PE_IDMA_CMD_POS) + (slot << IDMA_SLOT_POS);
     }
 
     void store_to(word_t *addr,word_t val) {

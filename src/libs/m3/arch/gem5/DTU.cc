@@ -22,10 +22,10 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
-static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
-static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
-
 void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+    static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
+    static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
+
     CmdRegs *c = cmd_regs();
     c->dataAddr = reinterpret_cast<uintptr_t>(msg);
     c->dataSize = size;
