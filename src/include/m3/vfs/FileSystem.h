@@ -45,7 +45,7 @@ public:
      *
      * @param path the filepath
      * @param perms the permissions (FILE_*)
-     * @return the File-instance or NULL
+     * @return the File-instance or nullptr
      */
     virtual File *open(const char *path, int perms) = 0;
 

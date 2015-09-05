@@ -96,8 +96,8 @@ String PEManager::path_to_name(const String &path, const char *suffix) {
 }
 
 bool PEManager::core_matches(size_t i, const char *core) const {
-    if(core == NULL)
-        return _petype[i] == NULL;
+    if(core == nullptr)
+        return _petype[i] == nullptr;
     if(_petype[i])
         return strcmp(_petype[i], core) == 0;
     return strcmp(core, "default") == 0;

@@ -66,9 +66,9 @@ public:
      * Opens <filename> with given permissions and given buffers.
      *
      * @param filename the file to open
-     * @param rbuf the input-buffer (may be NULL if FILE_R is not set)
+     * @param rbuf the input-buffer (may be nullptr if FILE_R is not set)
      * @param rsize the size of the input-buffer (may be 0 if FILE_R is not set)
-     * @param wbuf the output-buffer (may be NULL if FILE_W is not set)
+     * @param wbuf the output-buffer (may be nullptr if FILE_W is not set)
      * @param wsize the size of the output-buffer (may be 0 if FILE_W is not set)
      * @param perms the permissions (FILE_*)
      */

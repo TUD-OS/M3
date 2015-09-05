@@ -27,7 +27,7 @@ INode *INodes::create(FSHandle &h, mode_t mode) {
     inodeno_t ino = h.inodes().alloc(h);
     if(ino == 0) {
         Errors::last = Errors::NO_SPACE;
-        return NULL;
+        return nullptr;
     }
     INode *inode = get(h, ino);
     memset(inode, 0, sizeof(*inode));

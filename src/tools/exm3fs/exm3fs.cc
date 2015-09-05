@@ -60,7 +60,7 @@ static void export_rec(const char *dest, m3::inodeno_t dirno, const char *src) {
     }
     else {
         FILE *f = fopen(path, "w");
-        if(f == NULL)
+        if(f == nullptr)
             err(1, "Unable to open '%s' for writing", path);
 
         size_t blockcount = (inode.size + sb.blocksize - 1) / sb.blocksize;

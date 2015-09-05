@@ -44,7 +44,7 @@ static size_t charcount(const char *str, char c) {
 
 Errors::Code VFS::mount(const char *path, FileSystem *fs) {
     size_t compcount = charcount(path, '/');
-    MountPoint *prev = NULL;
+    MountPoint *prev = nullptr;
     for(auto &m : _mounts) {
         if(strcmp(m.path().c_str(), path) == 0)
             return Errors::last = Errors::EXISTS;

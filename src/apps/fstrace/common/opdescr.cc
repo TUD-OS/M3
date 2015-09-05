@@ -137,7 +137,7 @@ void OpDescr::validateString(const string &str, size_t numArgs) const {
         reCompiled = true;
 
         // do pattern matching
-        ret = regexec(&re, str.c_str(), 0, NULL, 0);
+        ret = regexec(&re, str.c_str(), 0, nullptr, 0);
         if (ret != 0)
             throw ParseException("Regex evaluation failed");
 

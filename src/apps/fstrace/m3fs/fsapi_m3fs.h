@@ -30,7 +30,7 @@ class FSAPI_M3FS : public FSAPI {
     enum { MaxOpenFds = 8 };
 
     void checkFd(int fd) {
-        if(fdMap[fd] == NULL)
+        if(fdMap[fd] == nullptr)
             PANIC("Using uninitialized file @ " << fd);
         fdMap[fd]->clearerr();
     }
@@ -65,7 +65,7 @@ public:
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
-        if(fdMap[args->fd] != NULL || dirMap[args->fd] != NULL)
+        if(fdMap[args->fd] != nullptr || dirMap[args->fd] != nullptr)
             PANIC("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
@@ -174,7 +174,7 @@ public:
     }
 
     virtual void sendfile(Buffer &buf, const sendfile_args_t *args, int) override {
-        assert(args->offset == NULL);
+        assert(args->offset == nullptr);
         checkFd(args->in_fd);
         checkFd(args->out_fd);
         m3::FStream *in = fdMap[args->in_fd];
@@ -190,7 +190,7 @@ public:
     }
 
     virtual void getdents(const getdents_args_t *args, UNUSED int lineNo) override {
-        if(dirMap[args->fd] == NULL)
+        if(dirMap[args->fd] == nullptr)
             PANIC("Using uninitialized dir @ " << args->fd);
         m3::Dir::Entry e;
         int i;

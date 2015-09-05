@@ -32,7 +32,7 @@ class FSAPI_POSIX : public FSAPI {
 public:
     explicit FSAPI_POSIX(std::string const &rootDir)
         : fdMap(new int[MaxOpenFds]), pathPrefix(rootDir), tv_start(), print_progress_time() {
-        gettimeofday(&tv_start, NULL);
+        gettimeofday(&tv_start, nullptr);
         print_progress_time = tv_start.tv_sec * 1000000 + tv_start.tv_usec;
     }
 
@@ -47,7 +47,7 @@ public:
 
     virtual void checkpoint(int numReplayed, int numTraceOps, bool make_chkpt) override {
         struct timeval tv_iter;
-        gettimeofday(&tv_iter, NULL);
+        gettimeofday(&tv_iter, nullptr);
         uint64_t current_time = tv_iter.tv_sec * 1000000 + tv_iter.tv_usec;
         if (current_time - print_progress_time > 30000000) {
             Platform::logf("Replayed %u of %u operations in %llu seconds so far ...\n",
@@ -62,7 +62,7 @@ public:
     virtual void waituntil(const waituntil_args_t *args, int) override {
         // convert to microseconds
         struct timeval tv;
-        gettimeofday(&tv, NULL);
+        gettimeofday(&tv, nullptr);
         uint64_t now  = tv.tv_sec * 1000000 + tv.tv_usec;
         uint64_t then = args->timestamp / 1000;
         static uint64_t time_offset = 0;
@@ -165,8 +165,8 @@ public:
     }
 
     virtual void sendfile(Buffer &, const sendfile_args_t *args, int lineNo) override {
-        assert(args->offset == NULL);
-        int err = ::sendfile64(args->out_fd, args->in_fd, NULL, args->count);
+        assert(args->offset == nullptr);
+        int err = ::sendfile64(args->out_fd, args->in_fd, nullptr, args->count);
         if (err != args->err)
             THROW1(ReturnValueException, -errno, args->err, lineNo);
     }

@@ -33,7 +33,7 @@ class Clock {
     uint64_t timeStamp() {
 
         struct timeval tv;
-        gettimeofday(&tv, NULL);
+        gettimeofday(&tv, nullptr);
         //printf("ts=%llu\n", tv.tv_sec * 1000000ULL + tv.tv_usec);
         return tv.tv_sec * 1000000ULL + tv.tv_usec;
     };

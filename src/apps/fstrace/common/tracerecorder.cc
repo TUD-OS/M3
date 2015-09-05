@@ -63,7 +63,7 @@ void TraceRecorder::import() {
                 delete od;
 
             else {
-                lastFod = (fod) ? fod : NULL;
+                lastFod = (fod) ? fod : nullptr;
                 ops.push_back(od);
             }
 

@@ -79,7 +79,7 @@ public:
      *
      * @param path the path to the file to open
      * @param perms the permissions (FILE_*)
-     * @return the File instance or NULL if it failed
+     * @return the File instance or nullptr if it failed
      */
     static File *open(const char *path, int perms);
 

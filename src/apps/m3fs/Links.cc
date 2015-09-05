@@ -40,7 +40,7 @@ Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t nam
 
     // no suitable space found; extend directory
     {
-        Extent *ext = INodes::get_extent(h, dir, dir->extents, NULL, true);
+        Extent *ext = INodes::get_extent(h, dir, dir->extents, nullptr, true);
         if(!ext)
             return Errors::NO_SPACE;
 
@@ -68,7 +68,7 @@ found:
 
 Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir) {
     foreach_block(h, dir, bno) {
-        DirEntry *prev = NULL;
+        DirEntry *prev = nullptr;
         foreach_direntry(h, bno, e) {
             if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0) {
                 // if we're not removing a dir, we're coming from unlink(). in this case, directories

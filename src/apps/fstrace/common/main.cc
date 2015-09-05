@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
                 trace_name = argv[i + 1];
             }
             if (i + 1 < argc && strcmp(argv[i], "--iterations") == 0) {
-                num_iterations = strtol(argv[i + 1], NULL, 10);
+                num_iterations = strtol(argv[i + 1], nullptr, 10);
                 if (num_iterations >= 1)
                     continue;
                 cout << "Invalid number of iterations!" << endl;

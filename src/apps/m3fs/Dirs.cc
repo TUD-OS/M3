@@ -31,7 +31,7 @@ DirEntry *Dirs::find_entry(FSHandle &h, INode *inode, const char *name, size_t n
                 return e;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 inodeno_t Dirs::search(FSHandle &h, const char *path, bool create) {
@@ -116,7 +116,7 @@ Errors::Code Dirs::create(FSHandle &h, const char *path, mode_t mode) {
 
     INode *parinode = INodes::get(h, parino);
     INode *dirinode = INodes::create(h, S_IFDIR | (mode & 0x777));
-    if(dirinode == NULL)
+    if(dirinode == nullptr)
         return Errors::NO_SPACE;
 
     // create directory itself

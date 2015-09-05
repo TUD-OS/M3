@@ -26,7 +26,7 @@ class OStream;
  * The heap implementation of M3. Optimized for a small code size and small memory overhead for
  * management, rather than performance.
  *
- * Note that all methods do NOT return NULL in case there is not enough memory. The reasoning behind
+ * Note that all methods do NOT return nullptr in case there is not enough memory. The reasoning behind
  * that is, that since the heap has a fixed amount of memory and there is no multithreading, there
  * are no reasons why a failure should be handled. One could think of:
  * 1) trying to allocate memory and try again later if it failed.
@@ -57,7 +57,7 @@ public:
      * Tries to allocate <size> bytes.
      *
      * @param size the number of bytes to allocate
-     * @return the pointer to the allocated area or NULL if there is not enough space.
+     * @return the pointer to the allocated area or nullptr if there is not enough space.
      */
     static void *try_alloc(size_t size);
 
@@ -65,7 +65,7 @@ public:
      * Allocates <size> bytes.
      *
      * @param size the number of bytes to allocate
-     * @return the pointer to the allocated area. does NOT return NULL, if it fails.
+     * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
     static void *alloc(size_t size);
 
@@ -74,7 +74,7 @@ public:
      *
      * @param n the number of elements
      * @param size the size of one element
-     * @return the pointer to the allocated area. does NOT return NULL, if it fails.
+     * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
     static void *calloc(size_t n, size_t size);
 
@@ -82,16 +82,16 @@ public:
      * Tries to increase the area, pointed at by <p>, to <size> bytes. If this is not possible, it
      * will relocate the area to a place where <size> bytes are available.
      *
-     * @param p the current area (might be NULL)
+     * @param p the current area (might be nullptr)
      * @param size the new size of the area
-     * @return the pointer to the allocated area. does NOT return NULL, if it fails.
+     * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
     static void *realloc(void *p, size_t size);
 
     /**
      * Frees the given area
      *
-     * @param p the pointer to the area (might be NULL)
+     * @param p the pointer to the area (might be nullptr)
      */
     static void free(void *p);
 
