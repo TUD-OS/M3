@@ -20,12 +20,34 @@
 
 namespace m3 {
 
+/**
+ * Low-level machine-specific functions.
+ */
 class Machine {
     Machine() = delete;
 
 public:
+    /**
+     * Shuts down the machine
+     */
     static NORETURN void shutdown();
+
+    /**
+     * Writes <len> bytes from <str> to the serial device.
+     *
+     * @param str the string to write
+     * @param len the length of the string
+     * @return 0 on success
+     */
     static int write(const char *str, size_t len);
+
+    /**
+     * Reads at most <len> bytes into <buf> from the serial device.
+     *
+     * @param buf the buffer to write to
+     * @param len the length of the buffer
+     * @return the number of read bytes on success
+     */
     static ssize_t read(char *buf, size_t len);
 };
 
