@@ -23,6 +23,7 @@
 namespace m3 {
 
 class Syscalls;
+class VPE;
 
 /**
  * A SendGate can only be used for sending messages. To do that, it needs to be backed by a

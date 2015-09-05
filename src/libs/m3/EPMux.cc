@@ -39,16 +39,16 @@ void EPSwitcher::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
     }
 }
 
-void EPMux::reserve(size_t i) {
+void EPMux::reserve(size_t ep) {
     // take care that some non-fixed gate could already use that endpoint
-    if(_gates[i]) {
-        _epsw->switch_ep(i, _gates[i]->sel(), Cap::INVALID);
-        _gates[i]->_epid = Gate::UNBOUND;
-        if(_gates[i]->type() == Cap::RECV_GATE) {
-            RecvGate *rgate = static_cast<RecvGate*>(_gates[i]);
+    if(_gates[ep]) {
+        _epsw->switch_ep(ep, _gates[ep]->sel(), Cap::INVALID);
+        _gates[ep]->_epid = Gate::UNBOUND;
+        if(_gates[ep]->type() == Cap::RECV_GATE) {
+            RecvGate *rgate = static_cast<RecvGate*>(_gates[ep]);
             rgate->buffer()->attach(Gate::UNBOUND);
         }
-        _gates[i] = nullptr;
+        _gates[ep] = nullptr;
     }
 }
 
@@ -69,11 +69,11 @@ void EPMux::switch_cap(Gate *gate, capsel_t newcap) {
     }
 }
 
-void EPMux::remove(Gate *gate, bool unarm) {
+void EPMux::remove(Gate *gate, bool invalidate) {
     if(gate->_epid != Gate::NODESTROY && gate->_epid != Gate::UNBOUND && gate->sel() != Cap::INVALID) {
         assert(_gates[gate->_epid] == nullptr || _gates[gate->_epid] == gate);
-        if(unarm) {
-            // we have to "disarm" our endpoint, i.e. set the registers to zero. otherwise the cmpxchg
+        if(invalidate) {
+            // we have to invalidate our endpoint, i.e. set the registers to zero. otherwise the cmpxchg
             // will fail when we program the next gate on this endpoint.
             // note that the kernel has to validate that it is 0 for "unused endpoints" because otherwise
             // we could just specify that our endpoint is unused and the kernel won't check it and thereby

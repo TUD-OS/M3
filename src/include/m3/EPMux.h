@@ -23,9 +23,10 @@
 namespace m3 {
 
 class Gate;
-class VPE;
-class RecvBuf;
 
+/**
+ * Actually switches two endpoints.
+ */
 class EPSwitcher {
 public:
     virtual ~EPSwitcher() {
@@ -34,30 +35,71 @@ public:
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
 };
 
+/**
+ * The endpoint multiplexer allows us to have more gates than endpoints by multiplexing
+ * the endpoints among the gates.
+ */
 class EPMux {
-    friend class Gate;
-    friend class VPE;
-    friend class RecvBuf;
-
-public:
     explicit EPMux();
 
+public:
+    /**
+     * @return the EPMux instance
+     */
     static EPMux &get() {
         return _inst;
     }
 
+    /**
+     * Sets the EPSwitcher instance.
+     *
+     * @param epsw the new switcher
+     */
     void set_epswitcher(EPSwitcher *epsw) {
         delete _epsw;
         _epsw = epsw;
     }
 
-    void reserve(size_t i);
+    /**
+     * Reserves the given endpoint in the sense that it is not used for multiplexing. This is
+     * necessary for receive gates, that need to stay on one endpoint all the time.
+     *
+     * @param ep the endpoint id
+     */
+    void reserve(size_t ep);
+
+    /**
+     * Configures an endpoint for the given gate. If necessary, a victim will be picked and removed
+     * from an endpoint.
+     *
+     * @param gate the gate
+     */
     void switch_to(Gate *gate);
+
+    /**
+     * If <gate> is already configured on some endpoint, it exchanges the configuration to use the
+     * one from the capability <newcap>. If it is not configured somewhere, nothing happens.
+     *
+     * @param gate the gate
+     * @param newcap the capability to use
+     */
     void switch_cap(Gate *gate, capsel_t newcap);
+
+    /**
+     * Removes <gate> from the endpoint it is configured on, if any. If <invalidate> is true, the
+     * kernel will invalidate the endpoint as well.
+     *
+     * @param gate the gate
+     * @param invalidate whether to invalidate it, too
+     */
+    void remove(Gate *gate, bool invalidate);
+
+    /**
+     * Resets the state of the EP switcher.
+     */
     void reset();
 
 private:
-    void remove(Gate *gate, bool unarm);
     size_t select_victim();
 
     size_t _next_victim;
