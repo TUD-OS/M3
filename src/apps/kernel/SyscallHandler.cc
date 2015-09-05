@@ -43,13 +43,13 @@ SyscallHandler SyscallHandler::_inst;
 
 struct ReplyInfo {
     explicit ReplyInfo(const DTU::Message &msg)
-        : replylbl(msg.replylabel), replyslot(msg.reply_epid()), crdslot(msg.send_epid()),
+        : replylbl(msg.replylabel), replyep(msg.reply_epid()), crdep(msg.send_epid()),
           replycrd(msg.length) {
     }
 
     label_t replylbl;
-    int replyslot;
-    int crdslot;
+    int replyep;
+    int crdep;
     word_t replycrd;
 };
 
@@ -122,8 +122,8 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 }
 
 static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    DTU::get().configure(tempep, info.replylbl, vpe.core(), info.replyslot, size + DTU::HEADER_SIZE);
-    DTU::get().sendcrd(tempep, info.crdslot, info.replycrd);
+    DTU::get().configure(tempep, info.replylbl, vpe.core(), info.replyep, size + DTU::HEADER_SIZE);
+    DTU::get().sendcrd(tempep, info.crdep, info.replycrd);
     DTU::get().wait_until_ready(tempep);
     DTU::get().send(tempep, msg, size, 0, 0);
     DTU::get().wait_until_ready(tempep);

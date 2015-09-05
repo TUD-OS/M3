@@ -5,19 +5,20 @@ class SendOp {
     public $tsc;
     public $fire;
     public $local_mod;
-    public $local_slot;
+    public $local_ep;
     public $local_addr;
     public $size;
     public $msgsize;
     public $remote_mod;
     public $remote_addr;
+    public $remote_ep;
     public $label;
     public $credits;
     public $header_enabled;
     public $reply_enabled;
     public $reply_label;
     public $reply_crd;
-    public $reply_slot;
+    public $reply_ep;
 };
 
 define('OP_READ',      0);
@@ -41,7 +42,7 @@ while($line = fgets($f)) {
             }
             else if(preg_match('/iDma_pe(\d+)\s+-\s+(\d+).*?last packet of Msg received! '
                     . '\(slotId: (\d+); from chip\/module: \d+\/(\d+)\)/',$line,$m)) {
-                printf("[\e[1m%d <- %d\e[0m @ %6d] over slot %d\n",
+                printf("[\e[1m%d <- %d\e[0m @ %6d] over EP %d\n",
                     $m[1] + 1,$m[4],$m[2],$m[3]);
             }
             else if(preg_match('/iDma_pe(\d+).*?REPLY_CAP_RESP_CMD: ADDR:/',$line,$m))
@@ -54,30 +55,30 @@ while($line = fgets($f)) {
             if(strstr($line,'---------------------------------') !== false) {
                 if($send->op == OP_READ || $send->op == OP_WRITE) {
                     if($send->remote_addr >= 0xe1000000) {
-                        $remote_slot = ($send->remote_addr - 0xe1000000) / 0x800;
-                        printf("[\e[1m%d %s %d\e[0m @ %6d] over slot %d of [0x%08x:0x%04x] to slot %d\n",
+                        $remote_ep = ($send->remote_addr - 0xe1000000) / 0x800;
+                        printf("[\e[1m%d %s %d\e[0m @ %6d] over EP %d of [0x%08x:0x%04x] to EP %d\n",
                             $send->local_mod,
                             $next_is_reply[$send->local_mod] ? ">>" : "->",
                             $send->remote_mod,$send->tsc,
-                            $send->local_slot,$send->local_addr,$send->size,
-                            $remote_slot);
-                        printf("  header: %d, lbl: 0x%08x, reply: (%d, lbl: 0x%08x, slot: %d, crd: %d)\n",
+                            $send->local_ep,$send->local_addr,$send->size,
+                            $remote_ep);
+                        printf("  header: %d, lbl: 0x%08x, reply: (%d, lbl: 0x%08x, EP: %d, crd: %d)\n",
                             $send->header_enabled,$send->label,
-                            $send->reply_enabled,$send->reply_label,$send->reply_slot,$send->reply_crd);
+                            $send->reply_enabled,$send->reply_label,$send->reply_ep,$send->reply_crd);
                     }
                     else {
-                        printf("[\e[1m%d %s %d\e[0m @ %6d] over slot %d of [0x%08x:0x%04x] at 0x%08x (crd: %d)\n",
+                        printf("[\e[1m%d %s %d\e[0m @ %6d] over EP %d of [0x%08x:0x%04x] at 0x%08x (crd: %d)\n",
                             $send->local_mod,
                             $send->op == OP_READ ? "rd" : "wr",
                             $send->remote_mod,$send->tsc,
-                            $send->local_slot,$send->local_addr,$send->size,
+                            $send->local_ep,$send->local_addr,$send->size,
                             $send->remote_addr,$send->credits);
                     }
                 }
                 else {
-                    printf("[\e[1m%d recv\e[0m @ %6d] with slot %d at [0x%08x:0x%04x:0x%04x]\n",
+                    printf("[\e[1m%d recv\e[0m @ %6d] with EP %d at [0x%08x:0x%04x:0x%04x]\n",
                         $send->local_mod,$send->tsc,
-                        $send->local_slot,$send->local_addr,$send->size,$send->msgsize);
+                        $send->local_ep,$send->local_addr,$send->size,$send->msgsize);
                 }
 
                 $next_is_reply[$send->local_mod] = false;
@@ -94,7 +95,7 @@ while($line = fgets($f)) {
                     $send->label = intval($m[3], 16);
                 }
                 else if(preg_match('/iDMA Config of slotId: (\d+);/',$line,$m))
-                    $send->local_slot = $m[1];
+                    $send->local_ep = $m[1];
                 else if(preg_match('/LOCAL_CFG_ADDRESS_FIFO_CMD: ADDR: 0x([[:xdigit:]]+)/',$line,$m))
                     $send->local_addr = intval($m[1], 16);
                 else if($send->op != OP_RECV && preg_match('/transfer size: (\d+)/',$line,$m))
@@ -110,7 +111,7 @@ while($line = fgets($f)) {
                 else if(preg_match('/HeaderConfig: replyLabel: 0x([[:xdigit:]]+)/',$line,$m))
                     $send->reply_label = intval($m[1],16);
                 else if(preg_match('/HeaderConfig: replySlotId: (\d+)/',$line,$m))
-                    $send->reply_slot = $m[1];
+                    $send->reply_ep = $m[1];
                 else if(preg_match('/HeaderConfig: replyCredits: (\d+)/',$line,$m))
                     $send->reply_crd = $m[1];
                 else if(preg_match('/ModuleId: 0x([[:xdigit:]]+)/',$line,$m))

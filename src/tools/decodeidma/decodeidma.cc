@@ -66,17 +66,17 @@ int main(int argc, char **argv) {
 #if defined(__t3__)
     unsigned long val = strtoul(argv[1], nullptr, 0);
     unsigned long cmd = (val >> IDMA_CMD_POS) & IDMA_CMD_MASK;
-    unsigned long slot = (val >> IDMA_SLOT_POS) & IDMA_SLOT_MASK;
+    unsigned long ep = (val >> IDMA_SLOT_POS) & IDMA_SLOT_MASK;
 
     size_t cmdidx = 0;
     for(; cmdidx < ARRAY_SIZE(cmds); ++cmdidx) {
         if(cmds[cmdidx].id == cmd) {
-            printf("iDMA:%lu:%s\n", slot, cmds[cmdidx].name);
+            printf("iDMA:%lu:%s\n", ep, cmds[cmdidx].name);
             return 0;
         }
     }
 
-    printf("iDMA:%lu:%#lx\n", slot, cmd);
+    printf("iDMA:%lu:%#lx\n", ep, cmd);
 #endif
     return 0;
 }

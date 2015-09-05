@@ -33,35 +33,35 @@ size_t DTU::get_msgoff(int, RecvGate *rcvgate, const Message *msg) const {
     return off >> rcvgate->buffer()->msgorder();
 }
 
-void DTU::configure_recv(int slot, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
+void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
     size_t size = 1 << order;
     size_t msgsize = 1 << msgorder;
-    config_local(slot, buf, size, msgsize);
-    config_remote(slot, coreid(), slot, 0, 0);
-    fire(slot, READ, 0);
+    config_local(ep, buf, size, msgsize);
+    config_remote(ep, coreid(), ep, 0, 0);
+    fire(ep, READ, 0);
 
     // TODO not possible because of bootstrap problems
-    //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << coreid() << ":" << slot);
+    //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << coreid() << ":" << ep);
 }
 
-void DTU::send(int slot, const void *msg, size_t size, label_t reply_lbl, int reply_slot) {
-    LOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << slot);
+void DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {
+    LOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << ep);
 
-    word_t *ptr = get_cmd_addr(slot, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
+    word_t *ptr = get_cmd_addr(ep, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
     store_to(ptr + 0, reply_lbl);
-    config_header(slot, true, IDMA_HEADER_REPLY_CREDITS_MASK, reply_slot);
-    config_transfer_size(slot, size);
-    config_local(slot, reinterpret_cast<uintptr_t>(msg), 0, 0);
-    fire(slot, WRITE, 1);
+    config_header(ep, true, IDMA_HEADER_REPLY_CREDITS_MASK, reply_ep);
+    config_transfer_size(ep, size);
+    config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
+    fire(ep, WRITE, 1);
 }
 
-void DTU::reply(int slot, const void *msg, size_t size, size_t msgidx) {
+void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     assert(((uintptr_t)msg & (PACKET_SIZE - 1)) == 0);
     assert((size & (PACKET_SIZE - 1)) == 0);
 
     LOG(DTU, ">> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " to msg idx " << msgidx);
 
-    word_t *ptr = get_cmd_addr(slot, REPLY_CAP_RESP_CMD);
+    word_t *ptr = get_cmd_addr(ep, REPLY_CAP_RESP_CMD);
     store_to(ptr + 0, ((size / DTU_PKG_SIZE) << 16) | msgidx);
     store_to(ptr + 1, (uintptr_t)msg);
 
@@ -70,17 +70,17 @@ void DTU::reply(int slot, const void *msg, size_t size, size_t msgidx) {
         ;
 
     // TODO this assumes that we reply to the messages in order. but we do that currently
-    // word_t addr = element_ptr(slot);
-    // LOG(DTU, "Got " << fmt(addr, "p") << " for " << slot);
+    // word_t addr = element_ptr(ep);
+    // LOG(DTU, "Got " << fmt(addr, "p") << " for " << ep);
     // DTU::Message *m = reinterpret_cast<DTU::Message*>(addr);
     // LOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
-    // send_credits(slot, m->modid, m->slot, 0x80000000 | m->length);
+    // send_credits(ep, m->modid, m->slot, 0x80000000 | m->length);
 }
 
-void DTU::send_credits(int slot, uchar dst, int dst_slot, uint credits) {
+void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
     word_t *ptr = (word_t*)(PE_IDMA_CONFIG_ADDRESS + (EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD << PE_IDMA_CMD_POS)
-        + (slot << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
-    uintptr_t addr = get_slot_addr(dst_slot);
+        + (ep << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
+    uintptr_t addr = get_slot_addr(dst_ep);
     store_to(ptr + 0, addr);
 
     const int activate = 1;
@@ -94,45 +94,45 @@ void DTU::send_credits(int slot, uchar dst, int dst_slot, uint credits) {
     store_to(ptr + 3, credits & ~0x80000000);
 
     ptr = (word_t*)(PE_IDMA_CONFIG_ADDRESS + (IDMA_CREDIT_RESPONSE_CMD << PE_IDMA_CMD_POS)
-        + (slot << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
+        + (ep << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
     store_to(ptr + 0, credits);
 }
 
-void DTU::read(int slot, void *msg, size_t size, size_t off) {
-    LOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << slot);
+void DTU::read(int ep, void *msg, size_t size, size_t off) {
+    LOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
 
     // temporary hack: read current external address, add offset, store it and restore it later
     // set address + offset
-    word_t *ptr = get_cmd_addr(slot, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
+    word_t *ptr = get_cmd_addr(ep, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
     uintptr_t base = read_from(ptr + 0);
     store_to(ptr + 0, base + off);
 
-    config_transfer_size(slot, size);
-    config_local(slot, reinterpret_cast<uintptr_t>(msg), size, DTU_PKG_SIZE);
-    fire(slot, READ, 1);
+    config_transfer_size(ep, size);
+    config_local(ep, reinterpret_cast<uintptr_t>(msg), size, DTU_PKG_SIZE);
+    fire(ep, READ, 1);
 
     Sync::memory_barrier();
-    wait_until_ready(slot);
+    wait_until_ready(ep);
     Sync::memory_barrier();
 
     // restore old value
     store_to(ptr + 0, base);
 }
 
-void DTU::write(int slot, const void *msg, size_t size, size_t off) {
-    LOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << slot);
+void DTU::write(int ep, const void *msg, size_t size, size_t off) {
+    LOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
 
     // set address + offset
-    word_t *ptr = get_cmd_addr(slot, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
+    word_t *ptr = get_cmd_addr(ep, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);
     uintptr_t base = read_from(ptr + 0);
     store_to(ptr + 0, base + off);
 
-    config_transfer_size(slot, size);
-    config_local(slot, reinterpret_cast<uintptr_t>(msg), 0, 0);
-    fire(slot, WRITE, 1);
+    config_transfer_size(ep, size);
+    config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
+    fire(ep, WRITE, 1);
 
     Sync::memory_barrier();
-    wait_until_ready(slot);
+    wait_until_ready(ep);
     Sync::memory_barrier();
 
     // restore old value

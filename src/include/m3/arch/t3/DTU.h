@@ -80,9 +80,9 @@ public:
         return inst;
     }
 
-    void configure(int slot, label_t label, int coreid, int epid, word_t credits) {
-        config_remote(slot, coreid, epid, credits, 0);
-        config_label(slot, label);
+    void configure(int ep, label_t label, int coreid, int epid, word_t credits) {
+        config_remote(ep, coreid, epid, credits, 0);
+        config_label(ep, label);
     }
 
     void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
@@ -92,9 +92,9 @@ public:
 
     void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    void send(int slot, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_slot = 0);
-    void send_credits(int slot, uchar dst, int dst_slot, uint credits);
-    void reply(int slot, const void *msg, size_t size, size_t msgidx);
+    void send(int ep, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_ep = 0);
+    void send_credits(int ep, uchar dst, int dst_ep, uint credits);
+    void reply(int ep, const void *msg, size_t size, size_t msgidx);
     void read(int ep, void *msg, size_t size, size_t off);
     void write(int ep, const void *msg, size_t size, size_t off);
     void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
