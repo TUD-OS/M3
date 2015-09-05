@@ -19,9 +19,9 @@
 
 #include "../../RecvBufs.h"
 
-using namespace m3;
-
 extern int tempep;
+
+namespace m3 {
 
 void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
     DTU::EpRegs ep;
@@ -41,4 +41,6 @@ void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(epid));
     DTU::get().configure_mem(tempep, coreid, dst, sizeof(ep));
     DTU::get().write(tempep, &ep, sizeof(ep), 0);
+}
+
 }

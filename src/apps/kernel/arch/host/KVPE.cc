@@ -26,7 +26,7 @@
 #include <cstring>
 #include <cerrno>
 
-using namespace m3;
+namespace m3 {
 
 void KVPE::start(int argc, char **argv, int pid) {
     // when exiting, the program will release one reference
@@ -124,4 +124,6 @@ KVPE::~KVPE() {
     _caps.revoke_all();
     // now remove the sepsgate from our cap-table
     CapTable::kernel_table().unset(_sepsgate.sel());
+}
+
 }

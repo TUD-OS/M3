@@ -21,9 +21,9 @@
 #include "../../SyscallHandler.h"
 #include "../../KVPE.h"
 
-using namespace m3;
-
 extern size_t tempep;
+
+namespace m3 {
 
 void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
@@ -116,4 +116,6 @@ KVPE::~KVPE() {
     SyscallHandler::get().remove_session(this);
     detach_rbufs();
     free_deps();
+}
+
 }

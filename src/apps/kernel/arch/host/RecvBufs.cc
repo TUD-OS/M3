@@ -20,7 +20,7 @@
 #include "../../PEManager.h"
 #include "../../RecvBufs.h"
 
-using namespace m3;
+namespace m3 {
 
 void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
     word_t regs[DTU::EPS_RCNT];
@@ -38,4 +38,6 @@ void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
 
     PEManager::get().vpe(coreid - APP_CORES).seps_gate().write_sync(
         regs, sizeof(regs), epid * sizeof(word_t) * DTU::EPS_RCNT);
+}
+
 }

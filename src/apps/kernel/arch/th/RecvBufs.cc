@@ -19,7 +19,9 @@
 
 #include "../../RecvBufs.h"
 
-using namespace m3;
+namespace m3 {
 
 void RecvBufs::configure(size_t, size_t, RBuf &) {
+}
+
 }

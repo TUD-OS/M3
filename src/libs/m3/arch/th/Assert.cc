@@ -17,11 +17,9 @@
 #include <m3/Common.h>
 #include <m3/Log.h>
 
-using namespace m3;
-
 #ifndef NDEBUG
 EXTERN_C void __assert(const char *failedexpr, const char *file, unsigned int line, const char *func) throw() {
-    Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
+    m3::Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
                   << file << ":" << line << "\n";
     abort();
     /* NOTREACHED */
