@@ -1,14 +1,19 @@
 Import('env')
 
 myenv = env.Clone()
+
+sources = [
+    myenv.Glob('*.cc'),
+    myenv.Glob('arch/$ARCH/*.cc'),
+    myenv.Glob('arch/$ARCHTYPE/*.cc') if myenv['ARCHTYPE'] != myenv['ARCH'] else [],
+    myenv.Glob('arch/$ARCH/*/*.cc')
+]
+if env['ARCH'] != 'host':
+    sources += [env.Glob('arch/baremetal/*.cc')]
+
 myenv.M3Program(
     myenv,
     target = 'kernel',
-    source = [
-        myenv.Glob('*.cc'),
-        myenv.Glob('arch/$ARCH/*.cc'),
-        myenv.Glob('arch/$ARCHTYPE/*.cc') if myenv['ARCHTYPE'] != myenv['ARCH'] else [],
-        myenv.Glob('arch/$ARCH/*/*.cc')
-    ],
+    source = sources,
     libs = ['X11', 'rt'] if myenv['ARCH'] == 'host' else []
 )

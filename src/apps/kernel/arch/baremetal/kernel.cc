@@ -32,11 +32,7 @@ public:
         if(newcap != Cap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
-            CoreConf *cfg = coreconf();
-            cfg->eps[id].dstep = c->obj->epid;
-            cfg->eps[id].dstcore = c->obj->core;
-            cfg->eps[id].label = c->obj->label;
-            cfg->eps[id].credits = c->obj->credits;
+            DTU::get().configure(id, c->obj->label, c->obj->core, c->obj->epid, c->obj->credits);
             LOG(IPC, "Kernel programs ep[" << id << "] to "
                 << "core=" << c->obj->core << ", ep=" << c->obj->epid
                 << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
@@ -44,38 +40,6 @@ public:
         }
     }
 };
-
-// static inline uint32_t getps() {
-//     uint32_t val;
-//     asm volatile (
-//           "rsr    %0, PS;"
-//           : "=a" (val)
-//     );
-//     return val;
-// }
-
-// static inline void setps(uint32_t val) {
-//     asm volatile (
-//           "wsr    %0, PS;"
-//           "esync;"
-//           : : "a" (val)
-//     );
-// }
-
-// static inline void doSyscall() {
-//     asm volatile (
-//         "syscall"
-//         : : : "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12", "a13", "a14", "a15"
-//     );
-// }
-
-// EXTERN_C void ExceptionHandler() {
-//     uint32_t ps = getps();
-//     ps |= (1 << 6);
-//     setps(ps);
-//     ps = getps();
-//     Serial::get() << "ps=" << fmt(ps, "#x") << "\n";
-// }
 
 int main(int argc, char *argv[]) {
     Serial &ser = Serial::get();

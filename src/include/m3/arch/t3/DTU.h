@@ -80,8 +80,9 @@ public:
         return inst;
     }
 
-    void configure(int ep, label_t label, int coreid, int epid, word_t credits) {
-        config_remote(ep, coreid, epid, credits, 0);
+    void configure(int ep, label_t label, int coreid, int epid, word_t) {
+        // TODO use unlimited credits for the moment
+        config_remote(ep, coreid, epid, 0xFFFFFFFF, 0);
         config_label(ep, label);
     }
 
