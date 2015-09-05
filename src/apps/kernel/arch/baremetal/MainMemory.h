@@ -17,6 +17,7 @@
 #pragma once
 
 #include <m3/Common.h>
+#include <m3/Config.h>
 #include <m3/Log.h>
 
 #include "../../MemoryMap.h"
@@ -24,10 +25,8 @@
 namespace m3 {
 
 class MainMemory {
-    static constexpr size_t MEM_SIZE = 512 * 1024 * 1024;
-
-    explicit MainMemory() : _size(MEM_SIZE), _map(addr(), MEM_SIZE) {
-        LOG(DEF, "We have " << (MEM_SIZE / 1024) << " KiB of main memory");
+    explicit MainMemory() : _size(DRAM_SIZE), _map(addr(), DRAM_SIZE) {
+        LOG(DEF, "We have " << (DRAM_SIZE / 1024) << " KiB of main memory");
     }
 
 public:
@@ -39,8 +38,7 @@ public:
         return 0;
     }
     uintptr_t addr() const {
-        // leave the first 128 MiB for the fs
-        return 128 * 1024 * 1024;
+        return DRAM_OFFSET;
     }
     size_t size() const {
         return _size;

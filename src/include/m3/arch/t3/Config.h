@@ -25,13 +25,17 @@
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60800000
 
+// leave the first 64 MiB for the filesystem
+#define DRAM_OFFSET         (64 * 1024 * 1024)
+#define DRAM_SIZE           (64 * 1024 * 1024)
+
 #define STACK_TOP           0x60800000              // used for stack-copying
 // give the stack 4K and a bit of space for idle
-#define DRAM_VEND           0x607FD000
+#define DMEM_VEND           0x607FD000
 
 #define HEAP_SIZE           0x200000                // not the actual size, but the maximum
 
-#define ARGC_ADDR           (DRAM_VEND - 8)
+#define ARGC_ADDR           (DMEM_VEND - 8)
 #define ARGV_ADDR           (ARGC_ADDR - 8)
 #define ARGV_SIZE           0x100
 #define ARGV_START          (ARGV_ADDR - ARGV_SIZE)

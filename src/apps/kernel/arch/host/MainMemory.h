@@ -27,16 +27,14 @@
 namespace m3 {
 
 class MainMemory {
-    static constexpr size_t MEM_SIZE = 1024 * 1024 * 64;
-
     explicit MainMemory()
-            : _addr(mmap(0, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0)),
-              _size(MEM_SIZE), _map(addr(), MEM_SIZE),
+            : _addr(mmap(0, DRAM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0)),
+              _size(DRAM_SIZE), _map(addr(), DRAM_SIZE),
               _rbuf(RecvBuf::create(VPE::self().alloc_ep(), 0,
                       RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)) {
         if(_addr == MAP_FAILED)
             PANIC("mmap failed: " << strerror(errno));
-        LOG(DEF, "Mapped " << (MEM_SIZE / 1024 / 1024) << " MiB of main memory @ " << _addr);
+        LOG(DEF, "Mapped " << (DRAM_SIZE / 1024 / 1024) << " MiB of main memory @ " << _addr);
     }
 
 public:

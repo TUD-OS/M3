@@ -25,6 +25,10 @@
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60010000
 
+// leave the first 64 MiB for the filesystem
+#define DRAM_OFFSET         (64 * 1024 * 1024)
+#define DRAM_SIZE           (64 * 1024 * 1024)
+
 #define DRAM_CCOUNT         0x100000
 #define CM_CCOUNT           0xFFF0
 #define CM_CCOUNT_AT_CM     0x6000FFF0
@@ -42,12 +46,12 @@
 
 #define STACK_TOP           0x60010000              // actually, we only control that on the chip
 // give the stack 4K
-#define DRAM_VEND           0x6000F000
+#define DMEM_VEND           0x6000F000
 
 #define HEAP_SIZE           0x7000                  // not the actual size, but the maximum
 
 #define RECV_BUF_MSGSIZE    64
-#define RECV_BUF_LOCAL      (DRAM_VEND - (EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
+#define RECV_BUF_LOCAL      (DMEM_VEND - (EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
 #define RECV_BUF_GLOBAL     (RECV_BUF_LOCAL - DRAM_VOFFSET)
 
 // actually, it does not really matter here what the values are
