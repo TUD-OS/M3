@@ -3,7 +3,8 @@
     [
         {
             "path": "/your/path/to/the/m3/repo",
-            "file_exclude_patterns": ["*.log"]
+            "file_exclude_patterns": ["*.log"],
+            "folder_exclude_patterns": ["hw/gem5"]
         }
     ],
     "settings":
