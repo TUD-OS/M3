@@ -23,19 +23,19 @@ namespace m3 {
 
 void RecvBuf::RecvBufWorkItem::work() {
     DTU &dtu = DTU::get();
-    assert(_chanid != UNBOUND && dtu.uses_header(_chanid));
-    if(dtu.fetch_msg(_chanid)) {
-        DTU::Message *msg = dtu.message(_chanid);
-        LOG(IPC, "Received msg @ " << (void*)msg << " over chan " << _chanid);
+    assert(_epid != UNBOUND && dtu.uses_header(_epid));
+    if(dtu.fetch_msg(_epid)) {
+        DTU::Message *msg = dtu.message(_epid);
+        LOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
         RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
         gate->notify_all();
-        dtu.ack_message(_chanid);
+        dtu.ack_message(_epid);
     }
 }
 
 void RecvBuf::attach(size_t i) {
     if(i != UNBOUND) {
-        // first reserve the channel; we might need to invalidate it
+        // first reserve the endpoint; we might need to invalidate it
         EPMux::get().reserve(i);
 
 #if !defined(__t3__)
@@ -48,29 +48,29 @@ void RecvBuf::attach(size_t i) {
         }
 #endif
 
-        if(coreid() != KERNEL_CORE && i > DTU::DEF_RECVCHAN) {
+        if(coreid() != KERNEL_CORE && i > DTU::DEF_RECVEP) {
             if(Syscalls::get().attachrb(VPE::self().sel(), i, reinterpret_cast<word_t>(_buf),
                     _order, _msgorder, _flags & ~DELETE_BUF) != Errors::NO_ERROR)
                 PANIC("Attaching receive buffer to " << i << " failed: " << Errors::to_string(Errors::last));
         }
 
-        // if we may receive messages from the channel, create a worker for it
-        // TODO hack for host: we don't want to do that for MEM_CHAN but know that only afterwards
+        // if we may receive messages from the endpoint, create a worker for it
+        // TODO hack for host: we don't want to do that for MEM_EP but know that only afterwards
         // because the EPs are not initialized yet
-        if(i != DTU::MEM_CHAN && DTU::get().uses_header(i)) {
+        if(i != DTU::MEM_EP && DTU::get().uses_header(i)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
-                WorkLoop::get().add(_workitem, i == DTU::MEM_CHAN || i == DTU::DEF_RECVCHAN);
+                WorkLoop::get().add(_workitem, i == DTU::MEM_EP || i == DTU::DEF_RECVEP);
             }
             else
-                _workitem->chanid(i);
+                _workitem->epid(i);
         }
     }
     // if it's UNBOUND now, don't use the worker again, if there is any
     else if(_workitem)
         detach();
 
-    _chanid = i;
+    _epid = i;
 }
 
 void RecvBuf::disable() {
@@ -82,9 +82,9 @@ void RecvBuf::disable() {
 }
 
 void RecvBuf::detach() {
-    if(coreid() != KERNEL_CORE && _chanid > DTU::DEF_RECVCHAN && _chanid != UNBOUND) {
-        Syscalls::get().detachrb(VPE::self().sel(), _chanid);
-        _chanid = UNBOUND;
+    if(coreid() != KERNEL_CORE && _epid > DTU::DEF_RECVEP && _epid != UNBOUND) {
+        Syscalls::get().detachrb(VPE::self().sel(), _epid);
+        _epid = UNBOUND;
     }
 
     disable();

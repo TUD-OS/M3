@@ -93,16 +93,16 @@ Errors::Code VPECapability::revoke() {
 
 void MsgCapability::print(OStream &os) const {
     os << "mesg[id=" << table()->id() << ":" << sel() << ", refs=" << obj->refcount()
-       << ", curchan=" << localchanid
-       << ", dst=" << obj->core << ":" << obj->chanid
+       << ", curep=" << localepid
+       << ", dst=" << obj->core << ":" << obj->epid
        << ", lbl=" << fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << fmt(obj->credits, "x") << "]";
 }
 
 void MemCapability::print(OStream &os) const {
     os << "mem [id=" << table()->id() << ":" << sel() << ", refs=" << obj->refcount()
-       << ", curchan=" << localchanid
-       << ", dst=" << obj->core << ":" << obj->chanid << ", lbl=" << fmt(obj->label, "#x")
+       << ", curep=" << localepid
+       << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << fmt(obj->label, "#x")
        << ", crd=#" << fmt(obj->credits, "x") << "]";
 }
 

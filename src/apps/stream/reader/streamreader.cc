@@ -54,10 +54,10 @@ public:
 
 private:
     word_t ep_reg(size_t off) const {
-        return DTU::get().get_ep(_gate.chanid(), off);
+        return DTU::get().get_ep(_gate.epid(), off);
     }
     void ep_reg(size_t off, word_t val) {
-        DTU::get().set_ep(_gate.chanid(), off, val);
+        DTU::get().set_ep(_gate.epid(), off, val);
     }
 
     RecvGate &_gate;
@@ -66,7 +66,7 @@ private:
 
 int main() {
     Session qtest("streamer");
-    RecvBuf rcvbuf = RecvBuf::create(VPE::self().alloc_chan(),
+    RecvBuf rcvbuf = RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<256>::val, RecvBuf::NO_HEADER);
     RecvGate rgate = RecvGate::create(&rcvbuf);
     SendGate sgate = SendGate::create(SendGate::UNLIMITED, &rgate);

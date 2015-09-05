@@ -22,7 +22,7 @@
 
 using namespace m3;
 
-void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
+void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
     word_t regs[DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));
 
@@ -37,5 +37,5 @@ void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
     }
 
     PEManager::get().vpe(coreid - APP_CORES).seps_gate().write_sync(
-        regs, sizeof(regs), chanid * sizeof(word_t) * DTU::EPS_RCNT);
+        regs, sizeof(regs), epid * sizeof(word_t) * DTU::EPS_RCNT);
 }

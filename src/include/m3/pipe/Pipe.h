@@ -94,9 +94,9 @@ public:
      * @param size the size of the shared memory area
      */
     explicit Pipe(VPE &rd, VPE &wr, size_t size)
-        : _rd(rd), _recvchan(rd.alloc_chan()), _size(size),
+        : _rd(rd), _recvep(rd.alloc_ep()), _size(size),
           _mem(MemGate::create_global(size, MemGate::RW, VPE::self().alloc_caps(2))),
-          _sgate(SendGate::create_for(rd, _recvchan, 0, CREDITS, nullptr, _mem.sel() + 1)) {
+          _sgate(SendGate::create_for(rd, _recvep, 0, CREDITS, nullptr, _mem.sel() + 1)) {
         assert(Math::is_aligned(size, DTU_PKG_SIZE));
         if(&rd != &VPE::self() && rd.is_cap_free(caps()))
             rd.delegate(CapRngDesc(caps()));
@@ -108,7 +108,7 @@ public:
     Pipe(const Pipe&) = delete;
     Pipe &operator=(const Pipe&) = delete;
     ~Pipe() {
-        _rd.free_chan(_recvchan);
+        _rd.free_ep(_recvep);
     }
 
     /**
@@ -118,10 +118,10 @@ public:
         return _mem.sel();
     }
     /**
-     * @return the receive channel
+     * @return the receive endpoint
      */
-    size_t receive_chan() const {
-        return _recvchan;
+    size_t receive_ep() const {
+        return _recvep;
     }
     /**
      * @return the size of the shared memory area
@@ -143,13 +143,13 @@ public:
     String get_path(char type, const char *prefix) const {
         assert(type == 'r' || type == 'w');
         OStringStream os;
-        os << prefix << type << '_' << caps() << '_' << receive_chan() << '_' << size();
+        os << prefix << type << '_' << caps() << '_' << receive_ep() << '_' << size();
         return os.str();
     }
 
 private:
     VPE &_rd;
-    size_t _recvchan;
+    size_t _recvep;
     size_t _size;
     MemGate _mem;
     SendGate _sgate;

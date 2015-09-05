@@ -21,9 +21,9 @@
 
 using namespace m3;
 
-extern int tempchan;
+extern int tempep;
 
-void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
+void RecvBufs::configure(size_t coreid, size_t epid, RBuf &rbuf) {
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
 
@@ -38,7 +38,7 @@ void RecvBufs::configure(size_t coreid, size_t chanid, RBuf &rbuf) {
     }
     Sync::compiler_barrier();
 
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(chanid));
-    DTU::get().configure_mem(tempchan, coreid, dst, sizeof(ep));
-    DTU::get().write(tempchan, &ep, sizeof(ep), 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(epid));
+    DTU::get().configure_mem(tempep, coreid, dst, sizeof(ep));
+    DTU::get().write(tempep, &ep, sizeof(ep), 0);
 }

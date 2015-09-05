@@ -64,7 +64,7 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 }
 
 void VPE::init_state() {
-    delete _chans;
+    delete _eps;
     delete _caps;
     Heap::free(_mounts);
 
@@ -72,9 +72,9 @@ void VPE::init_state() {
     size_t len = sizeof(*_caps);
     read_from("caps", _caps, len);
 
-    _chans = new BitField<CHAN_COUNT>();
-    len = sizeof(*_chans);
-    read_from("chans", _chans, len);
+    _eps = new BitField<EP_COUNT>();
+    len = sizeof(*_eps);
+    read_from("eps", _eps, len);
 
     _mounts = read_from("mounts", nullptr, _mountlen);
 }
@@ -114,7 +114,7 @@ Errors::Code VPE::run(void *lambda) {
         Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, pid, nullptr);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
-        write_file(pid, "chans", _chans, sizeof(*_chans));
+        write_file(pid, "eps", _eps, sizeof(*_eps));
         write_file(pid, "mounts", _mounts, _mountlen);
 
         // notify child; it can start now
@@ -183,7 +183,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, pid, nullptr);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
-        write_file(pid, "chans", _chans, sizeof(*_chans));
+        write_file(pid, "eps", _eps, sizeof(*_eps));
         write_file(pid, "mounts", _mounts, _mountlen);
 
         // notify child; it can start now

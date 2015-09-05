@@ -20,7 +20,7 @@
 #define AVAIL_PES           (MAX_CORES - 1)
 
 #define SLOT_NO             4
-#define CHAN_COUNT          8
+#define EP_COUNT            8
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60010000
@@ -47,7 +47,7 @@
 #define HEAP_SIZE           0x7000                  // not the actual size, but the maximum
 
 #define RECV_BUF_MSGSIZE    64
-#define RECV_BUF_LOCAL      (DRAM_VEND - (CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
+#define RECV_BUF_LOCAL      (DRAM_VEND - (EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
 #define RECV_BUF_GLOBAL     (RECV_BUF_LOCAL - DRAM_VOFFSET)
 
 // actually, it does not really matter here what the values are
@@ -69,8 +69,8 @@
 #define BOOT_LAMBDA         (BOOT_ENTRY - 8)
 #define BOOT_MOUNTLEN       (BOOT_LAMBDA - 8)
 #define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
-#define BOOT_CHANS          (BOOT_MOUNTS - 8)
-#define BOOT_CAPS           (BOOT_CHANS - 8)
+#define BOOT_EPS            (BOOT_MOUNTS - 8)
+#define BOOT_CAPS           (BOOT_EPS - 8)
 #define BOOT_EXIT           (BOOT_CAPS - 8)
 
 #define STATE_SIZE          0x100
@@ -93,9 +93,9 @@ namespace m3 {
 
 class RecvGate;
 
-struct ChanConf {
+struct EPConf {
     uchar dstcore;
-    uchar dstchan;
+    uchar dstep;
     // padding
     ushort : sizeof(ushort) * 8;
     word_t credits;
@@ -108,7 +108,7 @@ struct CoreConf {
     word_t coreid;
     // padding
     word_t : sizeof(word_t) * 8;
-    ChanConf chans[CHAN_COUNT];
+    EPConf eps[EP_COUNT];
 } PACKED;
 
 // align it properly

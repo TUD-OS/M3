@@ -23,34 +23,34 @@
 
 using namespace m3;
 
-extern int tempchan;
+extern int tempep;
 
 void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
-    activate_sysc_chan();
+    activate_sysc_ep();
 
     // wakeup core
     DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::CmdOpCode::WAKEUP_CORE);
     Sync::compiler_barrier();
     static_assert(offsetof(DTU::CmdRegs, command) == 0, "Command register is not at offset 0");
-    DTU::get().configure_mem(tempchan, core(), (uintptr_t)DTU::cmd_regs(), sizeof(cmd));
-    DTU::get().write(tempchan, &cmd, sizeof(cmd), 0);
+    DTU::get().configure_mem(tempep, core(), (uintptr_t)DTU::cmd_regs(), sizeof(cmd));
+    DTU::get().write(tempep, &cmd, sizeof(cmd), 0);
 
     _state = RUNNING;
     LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
 }
 
-void KVPE::activate_sysc_chan() {
+void KVPE::activate_sysc_ep() {
     // write the config to the PE
     alignas(DTU_PKG_SIZE) CoreConf conf;
     conf.coreid = core();
     Sync::compiler_barrier();
-    DTU::get().configure_mem(tempchan, core(), CONF_LOCAL, sizeof(conf));
-    DTU::get().write(tempchan, &conf, sizeof(conf), 0);
+    DTU::get().configure_mem(tempep, core(), CONF_LOCAL, sizeof(conf));
+    DTU::get().write(tempep, &conf, sizeof(conf), 0);
 
     // attach default receive endpoint
-    RecvBufs::attach(core(), DTU::DEF_RECVCHAN, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    RecvBufs::attach(core(), DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
 
     // syscall endpoint
     DTU::EpRegs ep;
@@ -58,35 +58,35 @@ void KVPE::activate_sysc_chan() {
     ep.credits = 0xFFFFFFFF;// TODO 1 << SYSC_CREDIT_ORD;
     ep.maxMsgSize = 1 << SYSC_CREDIT_ORD;
     ep.targetCoreId = KERNEL_CORE;
-    ep.targetEpId =DTU::SYSC_CHAN;
+    ep.targetEpId =DTU::SYSC_EP;
     ep.label = reinterpret_cast<label_t>(&syscall_gate());
 
     // write to PE
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_CHAN));
-    DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));
-    DTU::get().write(tempchan, &ep, sizeof(ep), 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_EP));
+    DTU::get().configure_mem(tempep, core(), dst, sizeof(ep));
+    DTU::get().write(tempep, &ep, sizeof(ep), 0);
 }
 
 void KVPE::invalidate_eps() {
-    DTU::EpRegs *eps = new DTU::EpRegs[CHAN_COUNT];
-    size_t total = sizeof(*eps) * CHAN_COUNT;
+    DTU::EpRegs *eps = new DTU::EpRegs[EP_COUNT];
+    size_t total = sizeof(*eps) * EP_COUNT;
     memset(eps, 0, total);
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_CHAN));
-    DTU::get().configure_mem(tempchan, core(), dst, total);
-    DTU::get().write(tempchan, eps, total, 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(DTU::SYSC_EP));
+    DTU::get().configure_mem(tempep, core(), dst, total);
+    DTU::get().write(tempep, eps, total, 0);
     delete[] eps;
 }
 
-Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
+Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *newcapobj) {
     // TODO later we need to use cmpxchg here
     DTU::EpRegs ep;
     memset(&ep, 0, sizeof(ep));
     if(newcapobj) {
         ep.credits = 0xFFFFFFFF;// TODO newcapobj->obj->credits;
         ep.targetCoreId = newcapobj->obj->core;
-        ep.targetEpId = newcapobj->obj->chanid;
+        ep.targetEpId = newcapobj->obj->epid;
         ep.label = newcapobj->obj->label;
         // TODO this is not correct
         ep.maxMsgSize = newcapobj->obj->credits;
@@ -95,9 +95,9 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapo
         ep.reqFlags = newcapobj->obj->label & MemGate::RWX;
     }
     Sync::compiler_barrier();
-    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(cid));
-    DTU::get().configure_mem(tempchan, core(), dst, sizeof(ep));
-    DTU::get().write(tempchan, &ep, sizeof(ep), 0);
+    uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(epid));
+    DTU::get().configure_mem(tempep, core(), dst, sizeof(ep));
+    DTU::get().write(tempep, &ep, sizeof(ep), 0);
     return Errors::NO_ERROR;
 }
 

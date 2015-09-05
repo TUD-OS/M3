@@ -26,7 +26,7 @@
 namespace m3 {
 
 /**
- * Gate is the base-class of all gates. A Gate is in general a connection to a channel on a core.
+ * Gate is the base-class of all gates. A Gate is in general a connection to an endpoint on a core.
  * This can be used for send/reply or for memory operations like read and write.
  *
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
@@ -51,23 +51,23 @@ protected:
      * Binds this gate for sending to the given capability. That is, the capability should be a
      * capability you've received from somebody else.
      */
-    explicit Gate(uint type, capsel_t cap, unsigned capflags, size_t chanid = UNBOUND)
-        : Cap(type, cap, capflags), SListItem(), _chanid(chanid) {
+    explicit Gate(uint type, capsel_t cap, unsigned capflags, size_t epid = UNBOUND)
+        : Cap(type, cap, capflags), SListItem(), _epid(epid) {
     }
 
 public:
-    Gate(Gate &&c) : Cap(Util::move(c)), SListItem(Util::move(c)), _chanid(c._chanid) {
-        c._chanid = NODESTROY;
+    Gate(Gate &&c) : Cap(Util::move(c)), SListItem(Util::move(c)), _epid(c._epid) {
+        c._epid = NODESTROY;
     }
     ~Gate() {
        EPMux::get().remove(this, flags() & KEEP_CAP);
     }
 
     /**
-     * @return the channel to which this gate is currently bound (might be UNBOUND)
+     * @return the endpoint to which this gate is currently bound (might be UNBOUND)
      */
-    size_t chanid() const {
-        return _chanid;
+    size_t epid() const {
+        return _epid;
     }
     /**
      * @return the label for this gate
@@ -92,37 +92,37 @@ public:
 
 protected:
     void ensure_activated() {
-        if(_chanid == UNBOUND && sel() != Cap::INVALID)
+        if(_epid == UNBOUND && sel() != Cap::INVALID)
             EPMux::get().switch_to(this);
     }
     void wait_until_sent() {
-        DTU::get().wait_until_ready(_chanid);
+        DTU::get().wait_until_ready(_epid);
     }
 
     void async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
-            label_t reply_lbl = 0, int reply_chan = 0) {
+            label_t reply_lbl = 0, int reply_ep = 0) {
         // ensure that the DMAUnit is ready. this is required if we want to mix async sends with
         // sync sends.
         wait_until_sent();
         ensure_activated();
         switch(op) {
             case SEND:
-                DTU::get().send(_chanid, data, datalen, reply_lbl, reply_chan);
+                DTU::get().send(_epid, data, datalen, reply_lbl, reply_ep);
                 break;
             case READ:
-                DTU::get().read(_chanid, data, datalen, off);
+                DTU::get().read(_epid, data, datalen, off);
                 break;
             case WRITE:
-                DTU::get().write(_chanid, data, datalen, off);
+                DTU::get().write(_epid, data, datalen, off);
                 break;
             case CMPXCHG:
-                DTU::get().cmpxchg(_chanid, data, datalen, off, size);
+                DTU::get().cmpxchg(_epid, data, datalen, off, size);
                 break;
         }
     }
 
 private:
-    size_t _chanid;
+    size_t _epid;
 };
 
 }

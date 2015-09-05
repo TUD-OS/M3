@@ -25,44 +25,44 @@ public:
     }
 
 protected:
-    void dmacmd(const void *data, size_t len, size_t chanid, size_t offset, size_t length, int op) {
+    void dmacmd(const void *data, size_t len, size_t epid, size_t offset, size_t length, int op) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);
-        dtu.set_cmd(m3::DTU::CMD_CHANID, chanid);
+        dtu.set_cmd(m3::DTU::CMD_EPID, epid);
         dtu.set_cmd(m3::DTU::CMD_OFFSET, offset);
         dtu.set_cmd(m3::DTU::CMD_LENGTH, length);
         dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
-        dtu.set_cmd(m3::DTU::CMD_REPLY_CHANID, 0);
+        dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (op << 3) | m3::DTU::CTRL_START |
                 m3::DTU::CTRL_DEL_REPLY_CAP);
         while(dtu.get_cmd(m3::DTU::CMD_CTRL) & m3::DTU::CTRL_START)
             dtu.wait();
     }
 
-    void dmasend(const void *data, size_t len, size_t chanid) {
+    void dmasend(const void *data, size_t len, size_t epid) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);
-        dtu.set_cmd(m3::DTU::CMD_CHANID, chanid);
+        dtu.set_cmd(m3::DTU::CMD_EPID, epid);
         dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
-        dtu.set_cmd(m3::DTU::CMD_REPLY_CHANID, 0);
+        dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (m3::DTU::SEND << 3) | m3::DTU::CTRL_START);
         while(dtu.get_cmd(m3::DTU::CMD_CTRL) & m3::DTU::CTRL_START)
             dtu.wait();
     }
 
-    m3::DTU::Message *getmsg(size_t chanid, size_t cnt) {
+    m3::DTU::Message *getmsg(size_t epid, size_t cnt) {
         m3::DTU &dtu = m3::DTU::get();
-        while(dtu.get_ep(chanid, m3::DTU::EP_BUF_MSGCNT) != cnt)
+        while(dtu.get_ep(epid, m3::DTU::EP_BUF_MSGCNT) != cnt)
             dtu.wait();
-        return m3::DTU::get().message(chanid);
+        return m3::DTU::get().message(epid);
     }
 
-    m3::DTU::Message *getmsgat(size_t chanid, size_t cnt, size_t idx) {
+    m3::DTU::Message *getmsgat(size_t epid, size_t cnt, size_t idx) {
         m3::DTU &dtu = m3::DTU::get();
-        while(dtu.get_ep(chanid, m3::DTU::EP_BUF_MSGCNT) != cnt)
+        while(dtu.get_ep(epid, m3::DTU::EP_BUF_MSGCNT) != cnt)
             dtu.wait();
-        return m3::DTU::get().message_at(chanid, idx);
+        return m3::DTU::get().message_at(epid, idx);
     }
 };

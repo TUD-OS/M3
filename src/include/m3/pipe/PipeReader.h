@@ -32,11 +32,11 @@ public:
      *
      * @param p the pipe
      */
-    explicit PipeReader(const Pipe &p) : PipeReader(p.caps(), p.receive_chan()) {
+    explicit PipeReader(const Pipe &p) : PipeReader(p.caps(), p.receive_ep()) {
     }
-    explicit PipeReader(capsel_t caps, size_t rchan)
+    explicit PipeReader(capsel_t caps, size_t rep)
         : _mgate(MemGate::bind(caps)),
-          _rbuf(RecvBuf::create(rchan,
+          _rbuf(RecvBuf::create(rep,
             nextlog2<Pipe::MSG_BUF_SIZE>::val, nextlog2<Pipe::MSG_SIZE>::val, 0)),
           _rgate(RecvGate::create(&_rbuf)),
           _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate) {
@@ -52,7 +52,7 @@ public:
      * @return true if there is currently data to read
      */
     bool has_data() const {
-        return _rem > 0 || DTU::get().fetch_msg(_rgate.chanid());
+        return _rem > 0 || DTU::get().fetch_msg(_rgate.epid());
     }
     /**
      * @return true if EOF has been seen

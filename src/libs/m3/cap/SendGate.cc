@@ -23,10 +23,10 @@ namespace m3 {
 
 SendGate SendGate::create(word_t credits, RecvGate *rcvgate, capsel_t sel) {
     rcvgate = rcvgate == nullptr ? def_rcvgate() : rcvgate;
-    return create_for(VPE::self(), rcvgate->chanid(), rcvgate->label(), credits, rcvgate, sel);
+    return create_for(VPE::self(), rcvgate->epid(), rcvgate->label(), credits, rcvgate, sel);
 }
 
-SendGate SendGate::create_for(const VPE &vpe, size_t dstchan, label_t label, word_t credits,
+SendGate SendGate::create_for(const VPE &vpe, size_t dstep, label_t label, word_t credits,
         RecvGate *rcvgate, capsel_t sel) {
     uint flags = 0;
     rcvgate = rcvgate == nullptr ? def_rcvgate() : rcvgate;
@@ -34,11 +34,11 @@ SendGate SendGate::create_for(const VPE &vpe, size_t dstchan, label_t label, wor
         sel = VPE::self().alloc_cap();
     else
         flags |= KEEP_SEL;
-    // when we create a send gate for one of our channels, it has to be bound to a channel (and stay
+    // when we create a send gate for one of our endpoints, it has to be bound to an endpoint (and stay
     // there) because somebody else wants to send us messages to this (or better: to the attached
     // receive gate)
     SendGate gate(sel, flags, rcvgate);
-    Syscalls::get().creategate(vpe.sel(), gate.sel(), label, dstchan, credits);
+    Syscalls::get().creategate(vpe.sel(), gate.sel(), label, dstep, credits);
     return gate;
 }
 

@@ -26,7 +26,7 @@ using namespace m3;
 void KVPE::start(int, char **, int) {
     // when exiting, the program will release one reference
     ref();
-    activate_sysc_chan();
+    activate_sysc_ep();
 
     // inject an IRQ
     uint64_t  val = 1;
@@ -38,13 +38,13 @@ void KVPE::start(int, char **, int) {
     LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
 }
 
-void KVPE::activate_sysc_chan() {
+void KVPE::activate_sysc_ep() {
     alignas(DTU_PKG_SIZE) CoreConf conf;
     memset(&conf, 0, sizeof(conf));
     conf.coreid = core();
-    conf.chans[DTU::SYSC_CHAN].dstcore = KERNEL_CORE;
-    conf.chans[DTU::SYSC_CHAN].dstchan =DTU::SYSC_CHAN;
-    conf.chans[DTU::SYSC_CHAN].label = reinterpret_cast<label_t>(&syscall_gate());
+    conf.eps[DTU::SYSC_EP].dstcore = KERNEL_CORE;
+    conf.eps[DTU::SYSC_EP].dstep =DTU::SYSC_EP;
+    conf.eps[DTU::SYSC_EP].label = reinterpret_cast<label_t>(&syscall_gate());
     DTU::get().set_target(SLOT_NO, core(), CONF_GLOBAL);
     Sync::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));
@@ -59,14 +59,14 @@ void KVPE::invalidate_eps() {
     DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));
 }
 
-Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *, MsgCapability *newcapobj) {
+Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *newcapobj) {
     // TODO later we need to use cmpxchg here
-    alignas(DTU_PKG_SIZE) ChanConf conf;
+    alignas(DTU_PKG_SIZE) EPConf conf;
     conf.dstcore = newcapobj ? newcapobj->obj->core : 0;
-    conf.dstchan = newcapobj ? newcapobj->obj->chanid : 0;
+    conf.dstep = newcapobj ? newcapobj->obj->epid : 0;
     conf.label = newcapobj ? newcapobj->obj->label : label_t();
     conf.credits = newcapobj ? newcapobj->obj->credits : 0;
-    DTU::get().set_target(SLOT_NO, core(), CONF_GLOBAL + offsetof(CoreConf, chans) + cid * sizeof(ChanConf));
+    DTU::get().set_target(SLOT_NO, core(), CONF_GLOBAL + offsetof(CoreConf, eps) + epid * sizeof(EPConf));
     Sync::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::WRITE, &conf, sizeof(conf));
     return Errors::NO_ERROR;

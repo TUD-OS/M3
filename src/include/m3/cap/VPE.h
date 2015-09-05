@@ -54,7 +54,7 @@ public:
     // don't revoke these. they kernel does so on exit
     explicit VPE()
         : Cap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
-          _caps(), _chans(), _mounts(), _mountlen() {
+          _caps(), _eps(), _mounts(), _mountlen() {
         init_state();
         init();
     }
@@ -110,27 +110,27 @@ public:
     }
 
     /**
-     * Allocates a channel.
+     * Allocates an endpoint.
      *
-     * @return the channel id
+     * @return the endpoint id
      */
-    size_t alloc_chan();
+    size_t alloc_ep();
 
     /**
-     * @param id the channel id
-     * @return true if the channel is free
+     * @param id the endpoint id
+     * @return true if the endpoint is free
      */
-    bool is_chan_free(size_t id) {
-        return !_chans->is_set(id);
+    bool is_ep_free(size_t id) {
+        return !_eps->is_set(id);
     }
 
     /**
-     * Frees the given channel
+     * Frees the given endpoint
      *
-     * @param id the channel id
+     * @param id the endpoint id
      */
-    void free_chan(size_t id) {
-        _chans->clear(id);
+    void free_ep(size_t id) {
+        _eps->clear(id);
     }
 
     /**
@@ -207,7 +207,7 @@ private:
     Errors::Code run(void *lambda);
     Errors::Code load(int argc, const char **argv, uintptr_t *entry);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
-    void start(uintptr_t entry, void *caps, void *chans, void *lambda, void *mounts, size_t mountlen);
+    void start(uintptr_t entry, void *caps, void *eps, void *lambda, void *mounts, size_t mountlen);
 
     uintptr_t get_entry();
     static word_t get_sp();
@@ -216,7 +216,7 @@ private:
 
     MemGate _mem;
     BitField<SEL_TOTAL> *_caps;
-    BitField<CHAN_COUNT> *_chans;
+    BitField<EP_COUNT> *_eps;
     void *_mounts;
     size_t _mountlen;
     static VPE _self;

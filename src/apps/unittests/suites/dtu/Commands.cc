@@ -36,12 +36,12 @@ static void unmap_page(void *addr) {
 }
 
 void CommandsTestSuite::ReadCmdTestCase::run() {
-    const size_t rcvchanid = 3;
-    const size_t sndchanid = 4;
+    const size_t rcvepid = 3;
+    const size_t sndepid = 4;
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndchanid, nextlog2<256>::val, nextlog2<128>::val, 0);
+    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<256>::val, nextlog2<128>::val, 0);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvchanid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
+    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -56,30 +56,30 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     Serial::get() << "-- Test errors --\n";
     {
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
-            rcvchanid, datasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
+            rcvepid, datasize);
 
-        dmacmd(nullptr, 0, sndchanid, 0, datasize, DTU::WRITE);
+        dmacmd(nullptr, 0, sndepid, 0, datasize, DTU::WRITE);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndchanid, 0, datasize + 1, DTU::READ);
+        dmacmd(nullptr, 0, sndepid, 0, datasize + 1, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndchanid, datasize, 0, DTU::READ);
+        dmacmd(nullptr, 0, sndepid, datasize, 0, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndchanid, sizeof(word_t), datasize, DTU::READ);
+        dmacmd(nullptr, 0, sndepid, sizeof(word_t), datasize, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     Serial::get() << "-- Test reading --\n";
     {
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
-            rcvchanid, datasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
+            rcvepid, datasize);
 
         word_t buf[datasize / sizeof(word_t)];
 
-        dmacmd(buf, datasize, sndchanid, 0, datasize, DTU::READ);
+        dmacmd(buf, datasize, sndepid, 0, datasize, DTU::READ);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
         dtu.wait_for_mem_cmd();
         for(size_t i = 0; i < 4; ++i)
@@ -87,16 +87,16 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     }
 
     unmap_page(addr);
-    dtu.configure(sndchanid, 0, 0, 0, 0);
+    dtu.configure(sndepid, 0, 0, 0, 0);
 }
 
 void CommandsTestSuite::WriteCmdTestCase::run() {
-    const size_t rcvchanid = 3;
-    const size_t sndchanid = 4;
+    const size_t rcvepid = 3;
+    const size_t sndepid = 4;
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndchanid, nextlog2<64>::val, nextlog2<32>::val, 0);
+    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<64>::val, nextlog2<32>::val, 0);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvchanid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
+    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -105,38 +105,38 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     Serial::get() << "-- Test errors --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
-            rcvchanid, sizeof(data));
+        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
+            rcvepid, sizeof(data));
 
-        dmacmd(nullptr, 0, sndchanid, 0, sizeof(data), DTU::READ);
+        dmacmd(nullptr, 0, sndepid, 0, sizeof(data), DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     Serial::get() << "-- Test writing --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
-            rcvchanid, sizeof(data));
+        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
+            rcvepid, sizeof(data));
 
-        dmacmd(data, sizeof(data), sndchanid, 0, sizeof(data), DTU::WRITE);
+        dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::WRITE);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
-        getmsg(rcvchanid, 1);
+        getmsg(rcvepid, 1);
         for(size_t i = 0; i < sizeof(data) / sizeof(data[0]); ++i)
             assert_word(reinterpret_cast<word_t*>(addr)[i], data[i]);
-        dtu.ack_message(rcvchanid);
+        dtu.ack_message(rcvepid);
     }
 
     unmap_page(addr);
-    dtu.configure(sndchanid, 0, 0, 0, 0);
+    dtu.configure(sndepid, 0, 0, 0, 0);
 }
 
 void CommandsTestSuite::CmpxchgCmdTestCase::run() {
-    const size_t rcvchanid = 3;
-    const size_t sndchanid = 4;
+    const size_t rcvepid = 3;
+    const size_t sndepid = 4;
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndchanid, nextlog2<128>::val, nextlog2<64>::val, 0);
+    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<128>::val, nextlog2<64>::val, 0);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvchanid, nextlog2<1>::val, RecvBuf::NO_RINGBUF);
+    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<1>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -150,23 +150,23 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test errors --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
-            rcvchanid, refdatasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+            rcvepid, refdatasize);
 
-        dmacmd(data, sizeof(data), sndchanid, 0, sizeof(refdata), DTU::READ);
+        dmacmd(data, sizeof(data), sndepid, 0, sizeof(refdata), DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(data, sizeof(data), sndchanid, 0, sizeof(data), DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::CMPXCHG);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     Serial::get() << "-- Test failure --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
-            rcvchanid, refdatasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+            rcvepid, refdatasize);
 
-        dmacmd(data, sizeof(data), sndchanid, 0, refdatasize, DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
         assert_false(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1234);
         assert_word(refdata[1], 5678);
@@ -175,10 +175,10 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test success --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
-            rcvchanid, refdatasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+            rcvepid, refdatasize);
 
-        dmacmd(data, sizeof(data), sndchanid, 0, refdatasize, DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
         assert_true(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1122);
         assert_word(refdata[1], 3344);
@@ -187,15 +187,15 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test offset --\n";
     {
         word_t data[] = {3344, 4455};
-        dtu.configure(sndchanid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
-            rcvchanid, refdatasize);
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+            rcvepid, refdatasize);
 
-        dmacmd(data, sizeof(data), sndchanid, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndepid, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);
         assert_true(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1122);
         assert_word(refdata[1], 4455);
     }
 
     unmap_page(addr);
-    dtu.configure(sndchanid, 0, 0, 0, 0);
+    dtu.configure(sndepid, 0, 0, 0, 0);
 }

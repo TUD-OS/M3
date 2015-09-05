@@ -58,9 +58,9 @@ public:
     void start(int argc, char **argv, int pid);
     void exit(int exitcode);
 
-    void activate_sysc_chan(void *addr);
+    void activate_sysc_ep(void *addr);
     void invalidate_eps();
-    Errors::Code xchg_chan(size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
+    Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     int id() const {
         return _id;
@@ -103,8 +103,8 @@ public:
     }
 
 private:
-    void write_env_file(int pid, label_t label, size_t cid);
-    void activate_sysc_chan();
+    void write_env_file(int pid, label_t label, size_t epid);
+    void activate_sysc_ep();
 
     void handle_args(int argc, char **argv) {
         for(int i = 0; i < argc; ++i) {
@@ -119,7 +119,7 @@ private:
         }
     }
     void detach_rbufs() {
-        for(size_t c = 0; c < CHAN_COUNT; ++c)
+        for(size_t c = 0; c < EP_COUNT; ++c)
             RecvBufs::detach(core(), c);
     }
 

@@ -111,10 +111,10 @@ public:
     } PACKED;
 
     struct Message : Header {
-        int send_chanid() const {
+        int send_epid() const {
             return senderEpId;
         }
-        int reply_chanid() const {
+        int reply_epid() const {
             return replyEpId;
         }
 
@@ -127,9 +127,9 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
 
-    static const int MEM_CHAN       = 0;    // unused
-    static const int SYSC_CHAN      = 0;
-    static const int DEF_RECVCHAN   = 1;
+    static const int MEM_EP                 = 0;    // unused
+    static const int SYSC_EP                = 0;
+    static const int DEF_RECVEP             = 1;
 
     static DTU &get() {
         return inst;
@@ -179,13 +179,13 @@ public:
         return true;
     }
 
-    bool fetch_msg(int chan) {
-        volatile EpRegs *ep = ep_regs(chan);
+    bool fetch_msg(int epid) {
+        volatile EpRegs *ep = ep_regs(epid);
         return ep->bufMsgCnt > 0;
     }
 
-    DTU::Message *message(int chan) const {
-        return reinterpret_cast<Message*>(ep_regs(chan)->bufReadPtr);
+    DTU::Message *message(int ep) const {
+        return reinterpret_cast<Message*>(ep_regs(ep)->bufReadPtr);
     }
     Message *message_at(int, size_t) const {
         // TODO unsupported
@@ -200,9 +200,9 @@ public:
         return 0;
     }
 
-    void ack_message(int chan) {
+    void ack_message(int ep) {
         CmdRegs *cmd = cmd_regs();
-        cmd->command = buildCommand(chan, CmdOpCode::INC_READ_PTR);
+        cmd->command = buildCommand(ep, CmdOpCode::INC_READ_PTR);
     }
 
     bool wait() {

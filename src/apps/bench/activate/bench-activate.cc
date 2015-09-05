@@ -34,7 +34,7 @@ int main() {
     cycles_t total = 0;
     for(int i = 0; i < COUNT; ++i) {
         cycles_t start = Profile::start(0);
-        Syscalls::get().activate(mem.chanid(), mem.sel(), mem.sel());
+        Syscalls::get().activate(mem.epid(), mem.sel(), mem.sel());
         cycles_t end = Profile::stop(0);
         total += end - start;
     }

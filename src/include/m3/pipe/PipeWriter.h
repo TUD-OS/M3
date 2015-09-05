@@ -35,7 +35,7 @@ public:
     }
     explicit PipeWriter(capsel_t caps, size_t size)
         : _mgate(MemGate::bind(caps)),
-          _rbuf(RecvBuf::create(VPE::self().alloc_chan(),
+          _rbuf(RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<Pipe::MSG_BUF_SIZE>::val, nextlog2<Pipe::MSG_SIZE>::val, 0)),
           _rgate(RecvGate::create(&_rbuf)), _sgate(SendGate::bind(caps + 1, &_rgate)),
           _size(size), _free(_size), _rdpos(), _wrpos(),
@@ -47,7 +47,7 @@ public:
     ~PipeWriter() {
         send_eof();
         read_replies();
-        VPE::self().free_chan(_rbuf.chanid());
+        VPE::self().free_ep(_rbuf.epid());
     }
 
     /**

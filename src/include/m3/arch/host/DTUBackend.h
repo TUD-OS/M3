@@ -30,15 +30,15 @@ public:
     virtual void create() override;
     virtual void destroy() override;
     virtual void reset() override;
-    virtual void send(int core, int chan, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(int chan, DTU::Buffer *buf) override;
+    virtual void send(int core, int ep, const DTU::Buffer *buf) override;
+    virtual ssize_t recv(int ep, DTU::Buffer *buf) override;
 
 private:
     static key_t get_msgkey(int core, int rep) {
-        return BASE_MSGQID + core * CHAN_COUNT + rep;
+        return BASE_MSGQID + core * EP_COUNT + rep;
     }
 
-    int _ids[CHAN_COUNT * MAX_CORES];
+    int _ids[EP_COUNT * MAX_CORES];
 };
 
 class SocketBackend : public DTU::Backend {
@@ -50,13 +50,13 @@ public:
     }
     virtual void reset() override {
     }
-    virtual void send(int core, int chan, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(int chan, DTU::Buffer *buf) override;
+    virtual void send(int core, int ep, const DTU::Buffer *buf) override;
+    virtual ssize_t recv(int ep, DTU::Buffer *buf) override;
 
 private:
     int _sock;
-    int _localsocks[CHAN_COUNT];
-    sockaddr_un _endpoints[MAX_CORES * CHAN_COUNT];
+    int _localsocks[EP_COUNT];
+    sockaddr_un _endpoints[MAX_CORES * EP_COUNT];
 };
 
 }

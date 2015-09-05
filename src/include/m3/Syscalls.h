@@ -64,7 +64,7 @@ public:
     }
 
 private:
-    explicit Syscalls() : _gate(Cap::INVALID, 0, nullptr,DTU::SYSC_CHAN) {
+    explicit Syscalls() : _gate(Cap::INVALID, 0, nullptr,DTU::SYSC_EP) {
 #if defined(__host__)
         if(!Config::get().is_kernel())
             init(DTU::get().ep_regs());
@@ -72,13 +72,13 @@ private:
     }
 
 public:
-    Errors::Code activate(size_t chan, capsel_t oldcap, capsel_t newcap);
+    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
     Errors::Code createsess(capsel_t cap, const String &name, const GateOStream &args);
-    Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t chan, word_t credits);
+    Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core);
-    Errors::Code attachrb(capsel_t vpe, size_t chan, uintptr_t addr, int order, int msgorder, uint flags);
-    Errors::Code detachrb(capsel_t vpe, size_t chan);
+    Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
+    Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
     Errors::Code vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode);

@@ -35,20 +35,20 @@ namespace m3 {
  */
 class RecvGate : public Gate, public Subscriptions<RecvGate&> {
     explicit RecvGate(RecvBuf *rcvbuf, void *sess)
-        : Gate(RECV_GATE, INVALID, 0, rcvbuf->chanid()), Subscriptions<RecvGate&>(),
+        : Gate(RECV_GATE, INVALID, 0, rcvbuf->epid()), Subscriptions<RecvGate&>(),
           _rcvbuf(rcvbuf), _sess(sess) {
     }
 
 public:
     /**
-     * Creates a new receive-gate. Note that the receive-buffer has to be bound to a channel.
+     * Creates a new receive-gate. Note that the receive-buffer has to be bound to an endpoint.
      *
      * @param rcvbuf the receive-buffer
      * @param sess optionally, a session bound to this gate
      */
     static RecvGate create(RecvBuf *rcvbuf, void *sess = nullptr) {
         assert(rcvbuf != nullptr);
-        assert(rcvbuf->chanid() != UNBOUND);
+        assert(rcvbuf->epid() != UNBOUND);
         return RecvGate(rcvbuf,sess);
     }
 
@@ -76,10 +76,10 @@ public:
     }
 
     /**
-     * Busy-waits until this channel has received a message.
+     * Busy-waits until this endpoint has received a message.
      */
     void wait() const {
-        while(!DTU::get().fetch_msg(chanid()))
+        while(!DTU::get().fetch_msg(epid()))
             DTU::get().wait();
     }
 
@@ -112,10 +112,10 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        DTU::get().ack_message(chanid());
+        DTU::get().ack_message(epid());
 #endif
         wait_until_sent();
-        DTU::get().reply(chanid(), const_cast<void*>(data), len, msgidx);
+        DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
     }
 
 private:

@@ -24,14 +24,14 @@ File *PipeFS::open(const char *path, int perms) {
     String spath(path);
     IStringStream is(spath);
     capsel_t caps;
-    size_t rchan, size;
+    size_t rep, size;
 
-    // form is (r|w)_<caps>_<rchan>_<size>
+    // form is (r|w)_<caps>_<rep>_<size>
     char type = is.read();
     is.read();
     is >> caps;
     is.read();
-    is >> rchan;
+    is >> rep;
     is.read();
     is >> size;
     if(type == 'r') {
@@ -39,7 +39,7 @@ File *PipeFS::open(const char *path, int perms) {
             Errors::last = Errors::INV_ARGS;
             return nullptr;
         }
-        return new PipeFileReader(caps, rchan);
+        return new PipeFileReader(caps, rep);
     }
 
     // FStream enables FILE_R here, too

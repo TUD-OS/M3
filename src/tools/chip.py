@@ -19,7 +19,7 @@ SERIAL_ACK = int(config.get("memlayout", "SERIAL_ACK"))
 SERIAL_BUF = int(config.get("memlayout", "SERIAL_BUF"))
 BOOT_ENTRY = int(config.get("memlayout", "BOOT_ENTRY"))
 BOOT_SP = int(config.get("memlayout", "BOOT_SP"))
-BOOT_CHANS = int(config.get("memlayout", "BOOT_CHANS"))
+BOOT_EPS = int(config.get("memlayout", "BOOT_EPS"))
 BOOT_CAPS = int(config.get("memlayout", "BOOT_CAPS"))
 BOOT_LAMBDA = int(config.get("memlayout", "BOOT_LAMBDA"))
 BOOT_MOUNTS = int(config.get("memlayout", "BOOT_MOUNTS"))
@@ -89,9 +89,9 @@ def initMem(core, argv):
             val |= argptr[a + 1] << 32
         core.mem[ARGV_START + a * 4] = val
 
-    # start with empty caps and chans
+    # start with empty caps and eps
     core.mem[BOOT_CAPS] = 0
-    core.mem[BOOT_CHANS] = 0
+    core.mem[BOOT_EPS] = 0
     core.mem[BOOT_MOUNTS] = 0
     core.mem[STATE_SPACE] = 0
     # set argc and argv

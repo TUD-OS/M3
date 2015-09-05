@@ -40,18 +40,18 @@ public:
         struct {
             word_t has_replycap : 1,
                    core : 15,
-                   chanid : 16;
+                   epid : 16;
         } PACKED;
         label_t replylabel;
         word_t length;        // has to be non-zero
     } PACKED;
 
     struct Message : public Header {
-        int send_chanid() const {
+        int send_epid() const {
             return 0;
         }
-        int reply_chanid() const {
-            return chanid;
+        int reply_epid() const {
+            return epid;
         }
 
         unsigned char data[];
@@ -64,9 +64,9 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
 
-    static const int MEM_CHAN               = 0;
-    static const int SYSC_CHAN              = 1;
-    static const int DEF_RECVCHAN           = 2;
+    static const int MEM_EP                 = 0;
+    static const int SYSC_EP                = 1;
+    static const int DEF_RECVEP             = 2;
 
     enum Operation {
         WRITE   = 0x0,      // write from local to remote
@@ -82,55 +82,55 @@ public:
 
     void reset();
 
-    void configure(int i, label_t label, int coreid, int chanid, word_t credits) {
-        ChanConf *cfg = conf(i);
+    void configure(int i, label_t label, int coreid, int epid, word_t credits) {
+        EPConf *cfg = conf(i);
         cfg->label = label;
         cfg->dstcore = coreid;
-        cfg->dstchan = chanid;
+        cfg->dstep = epid;
         cfg->credits = credits;
     }
 
-    void configure_recv(UNUSED int chan, UNUSED uintptr_t buf, UNUSED uint order, UNUSED uint msgorder, UNUSED int flags) {
+    void configure_recv(UNUSED int ep, UNUSED uintptr_t buf, UNUSED uint order, UNUSED uint msgorder, UNUSED int flags) {
         // nothing to do
     }
 
-    void send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan);
-    void reply(int chan, const void *msg, size_t size, size_t msgidx);
-    void read(int chan, void *msg, size_t size, size_t off);
-    void write(int chan, const void *msg, size_t size, size_t off);
-    void cmpxchg(UNUSED int chan, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
+    void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
+    void reply(int ep, const void *msg, size_t size, size_t msgidx);
+    void read(int ep, void *msg, size_t size, size_t off);
+    void write(int ep, const void *msg, size_t size, size_t off);
+    void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
     }
-    void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
+    void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }
 
     bool uses_header(int) {
         return true;
     }
 
-    bool fetch_msg(int chan);
+    bool fetch_msg(int ep);
 
-    DTU::Message *message(int chan) const {
-        assert(_last[chan]);
-        return _last[chan];
+    DTU::Message *message(int ep) const {
+        assert(_last[ep]);
+        return _last[ep];
     }
-    Message *message_at(int chan, size_t msgidx) const {
-        return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(coreid(), chan) + msgidx);
+    Message *message_at(int ep, size_t msgidx) const {
+        return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(coreid(), ep) + msgidx);
     }
 
-    size_t get_msgoff(int chan, RecvGate *rcvgate) const {
-        return get_msgoff(chan, rcvgate, message(chan));
+    size_t get_msgoff(int ep, RecvGate *rcvgate) const {
+        return get_msgoff(ep, rcvgate, message(ep));
     }
-    size_t get_msgoff(int chan, RecvGate *, const Message *msg) const {
+    size_t get_msgoff(int ep, RecvGate *, const Message *msg) const {
         // currently we just return the offset here, because we're implementing reply() in SW.
-        return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(coreid(), chan);
+        return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(coreid(), ep);
     }
 
-    void ack_message(int chan) {
+    void ack_message(int ep) {
         // we might have already acked it by doing a reply
-        if(_last[chan]) {
-            volatile Message *msg = message(chan);
+        if(_last[ep]) {
+            volatile Message *msg = message(ep);
             msg->length = 0;
-            _last[chan] = nullptr;
+            _last[ep] = nullptr;
         }
     }
 
@@ -150,9 +150,9 @@ public:
         return true;
     }
 
-    size_t recvbuf_offset(int core, int chan) {
+    size_t recvbuf_offset(int core, int ep) {
         assert(core >= FIRST_PE_ID);
-        return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * CHAN_COUNT + chan * RECV_BUF_MSGSIZE;
+        return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
 
     void set_target(int, uchar dst, uintptr_t addr) {
@@ -182,12 +182,12 @@ public:
 private:
     void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);
 
-    ChanConf *conf(int chan) {
-        return coreconf()->chans + chan;
+    EPConf *conf(int ep) {
+        return coreconf()->eps + ep;
     }
 
-    size_t _pos[CHAN_COUNT];
-    Message *_last[CHAN_COUNT];
+    size_t _pos[EP_COUNT];
+    Message *_last[EP_COUNT];
     static DTU inst;
 };
 

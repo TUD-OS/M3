@@ -54,13 +54,13 @@ int main() {
     VPE t2("receiver");
 
     // create a gate the sender can send to (at the receiver)
-    size_t rchan = t2.alloc_chan();
-    SendGate gate = SendGate::create_for(t2, rchan);
+    size_t rep = t2.alloc_ep();
+    SendGate gate = SendGate::create_for(t2, rep);
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
-    t2.run([rchan] {
-        RecvBuf rbuf = RecvBuf::create(rchan, nextlog2<512>::val, nextlog2<64>::val, 0);
+    t2.run([rep] {
+        RecvBuf rbuf = RecvBuf::create(rep, nextlog2<512>::val, nextlog2<64>::val, 0);
         RecvGate rcvgate = RecvGate::create(&rbuf);
         size_t count, total = 0;
         int finished = 0;

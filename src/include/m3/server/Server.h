@@ -47,8 +47,8 @@ public:
     explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
         : Cap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
-          _chanid(VPE::self().alloc_chan()),
-          _rcvbuf(RecvBuf::create(_chanid, buford, msgord, 0)),
+          _epid(VPE::self().alloc_ep()),
+          _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
           _ctrl_rgate(RecvGate::create(&_rcvbuf)),
           _ctrl_sgate(SendGate::create(DEF_MSGSIZE, &_ctrl_rgate)) {
         Syscalls::get().createsrv(_ctrl_sgate.sel(), sel(), name);
@@ -68,15 +68,15 @@ public:
         // the kernel might have them still in the send-queue.
         while(Syscalls::get().revoke(CapRngDesc(sel())) != Errors::NO_ERROR) {
             // handle all requests
-            while(DTU::get().fetch_msg(_ctrl_rgate.chanid())) {
+            while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
                 handle_message(_ctrl_rgate, nullptr);
-                DTU::get().ack_message(_ctrl_rgate.chanid());
+                DTU::get().ack_message(_ctrl_rgate.epid());
             }
         }
         // don't revoke it again
         flags(Cap::KEEP_CAP);
-        // free channel
-        VPE::self().free_chan(_chanid);
+        // free endpoint
+        VPE::self().free_ep(_epid);
     }
 
     void shutdown() {
@@ -145,8 +145,8 @@ private:
 protected:
     HDL *_handler;
     handler_func _ctrl_handler[5];
-    // store a copy of the channel-id. the RecvBuf sets it to UNBOUND on detach().
-    size_t _chanid;
+    // store a copy of the endpoint-id. the RecvBuf sets it to UNBOUND on detach().
+    size_t _epid;
     RecvBuf _rcvbuf;
     RecvGate _ctrl_rgate;
     SendGate _ctrl_sgate;

@@ -32,7 +32,7 @@ class MainMemory {
     explicit MainMemory()
             : _addr(mmap(0, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0)),
               _size(MEM_SIZE), _map(addr(), MEM_SIZE),
-              _rbuf(RecvBuf::create(VPE::self().alloc_chan(), 0,
+              _rbuf(RecvBuf::create(VPE::self().alloc_ep(), 0,
                       RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)) {
         if(_addr == MAP_FAILED)
             PANIC("mmap failed: " << strerror(errno));
@@ -53,8 +53,8 @@ public:
     size_t size() const {
         return _size;
     }
-    size_t channel() const {
-        return _rbuf.chanid();
+    size_t epid() const {
+        return _rbuf.epid();
     }
     MemoryMap &map() {
         return _map;

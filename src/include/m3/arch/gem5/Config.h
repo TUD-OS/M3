@@ -25,7 +25,7 @@
 #define FS_IMG_OFFSET       0x0
 
 #define HEAP_SIZE           0x10000
-#define CHAN_COUNT          8
+#define EP_COUNT            8
 
 #define SPM_END             (4 * 1024 * 1024)
 // leave one page for idle
@@ -42,8 +42,8 @@
 #define BOOT_LAMBDA         (BOOT_ENTRY - 8)
 #define BOOT_MOUNTLEN       (BOOT_LAMBDA - 8)
 #define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
-#define BOOT_CHANS          (BOOT_MOUNTS - 8)
-#define BOOT_CAPS           (BOOT_CHANS - 8)
+#define BOOT_EPS            (BOOT_MOUNTS - 8)
+#define BOOT_CAPS           (BOOT_EPS - 8)
 #define BOOT_EXIT           (BOOT_CAPS - 8)
 
 #define STATE_SIZE          0x100

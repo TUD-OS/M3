@@ -64,22 +64,22 @@ public:
         WorkLoop &wl = WorkLoop::get();
         DTU &dtu = DTU::get();
         SyscallHandler &sysch = SyscallHandler::get();
-        int chan = sysch.chanid();
-        int srvchan = sysch.srvchanid();
+        int sysep = sysch.epid();
+        int srvep = sysch.srvepid();
         while(wl.has_items()) {
-            if(dtu.fetch_msg(chan)) {
+            if(dtu.fetch_msg(sysep)) {
                 // we know the subscriber here, so optimize that a bit
-                DTU::Message *msg = dtu.message(chan);
+                DTU::Message *msg = dtu.message(sysep);
                 RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
                 sysch.handle_message(*rgate, nullptr);
-                dtu.ack_message(chan);
+                dtu.ack_message(sysep);
                 EVENT_TRACE_FLUSH_LIGHT();
             }
-            if(dtu.fetch_msg(srvchan)) {
-                DTU::Message *msg = dtu.message(srvchan);
+            if(dtu.fetch_msg(srvep)) {
+                DTU::Message *msg = dtu.message(srvep);
                 RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
                 gate->notify_all();
-                dtu.ack_message(srvchan);
+                dtu.ack_message(srvep);
             }
 
 #if defined(__host__)

@@ -36,12 +36,12 @@ public:
         return _inst;
     }
 
-    size_t chanid() const {
+    size_t epid() const {
         // we can use it here because we won't issue syscalls ourself
-        return DTU::SYSC_CHAN;
+        return DTU::SYSC_EP;
     }
-    size_t srvchanid() const {
-        return _srvrcvbuf.chanid();
+    size_t srvepid() const {
+        return _srvrcvbuf.epid();
     }
     RecvBuf *rcvbuf() {
         return &_rcvbuf;

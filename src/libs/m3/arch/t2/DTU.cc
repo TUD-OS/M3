@@ -25,40 +25,40 @@ namespace m3 {
 DTU DTU::inst INIT_PRIORITY(106);
 
 void DTU::reset() {
-    memset((void*)RECV_BUF_LOCAL,0,CHAN_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
+    memset((void*)RECV_BUF_LOCAL,0,EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
     memset(_pos, 0, sizeof(_pos));
     memset(_last, 0, sizeof(_last));
 }
 
-bool DTU::fetch_msg(int chan) {
+bool DTU::fetch_msg(int ep) {
     // simple way to achieve fairness here. otherwise we might choose the same client all the time
     int end = MAX_CORES;
 retry:
-    for(int i = _pos[chan]; i < end; ++i) {
+    for(int i = _pos[ep]; i < end; ++i) {
         volatile Message *msg = reinterpret_cast<volatile Message*>(
-            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i + FIRST_PE_ID, chan));
+            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i + FIRST_PE_ID, ep));
         if(msg->length != 0) {
-            LOG(IPC, "Fetched msg @ " << (void*)msg << " over chan " << chan);
+            LOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
             EVENT_TRACE_MSG_RECV(msg->core, msg->length,
                 ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
-            assert(_last[chan] == nullptr);
-            _last[chan] = const_cast<Message*>(msg);
-            _pos[chan] = i + 1;
+            assert(_last[ep] == nullptr);
+            _last[ep] = const_cast<Message*>(msg);
+            _pos[ep] = i + 1;
             return true;
         }
     }
-    if(_pos[chan] != 0) {
-        end = _pos[chan];
-        _pos[chan] = 0;
+    if(_pos[ep] != 0) {
+        end = _pos[ep];
+        _pos[ep] = 0;
         goto retry;
     }
     return false;
 }
 
-void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int reply_chan) {
-    ChanConf *cfg = conf(chan);
-    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstchan);
-    LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstchan
+void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+    EPConf *cfg = conf(ep);
+    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstep);
+    LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(cfg->dstcore, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
@@ -76,16 +76,16 @@ void DTU::send(int chan, const void *msg, size_t size, label_t replylbl, int rep
     head.replylabel = replylbl;
     head.has_replycap = 1;
     head.core = coreid();
-    head.chanid = reply_chan;
+    head.epid = reply_ep;
     set_target(SLOT_NO, cfg->dstcore, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
 }
 
-void DTU::reply(int chan, const void *msg, size_t size, size_t msgidx) {
-    DTU::Message *orgmsg = message_at(chan, msgidx);
-    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->chanid);
-    LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->chanid
+void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
+    DTU::Message *orgmsg = message_at(ep, msgidx);
+    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->epid);
+    LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
@@ -117,8 +117,8 @@ void DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, i
     }
 }
 
-void DTU::read(int chan, void *msg, size_t size, size_t off) {
-    ChanConf *cfg = conf(chan);
+void DTU::read(int ep, void *msg, size_t size, size_t off) {
+    EPConf *cfg = conf(ep);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
     uintptr_t srcaddr = base + off;
@@ -135,7 +135,7 @@ void DTU::read(int chan, void *msg, size_t size, size_t off) {
 
     // wait until the size-register has been decremented to 0
     size_t rem;
-    while((rem = get_remaining(chan)) > 0)
+    while((rem = get_remaining(ep)) > 0)
         ;
 
     // TODO how long should we wait?
@@ -146,8 +146,8 @@ void DTU::read(int chan, void *msg, size_t size, size_t off) {
     }
 }
 
-void DTU::write(int chan, const void *msg, size_t size, size_t off) {
-    ChanConf *cfg = conf(chan);
+void DTU::write(int ep, const void *msg, size_t size, size_t off) {
+    EPConf *cfg = conf(ep);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
     uintptr_t destaddr = base + off;
@@ -162,7 +162,7 @@ void DTU::write(int chan, const void *msg, size_t size, size_t off) {
     // wait until the size-register has been decremented to 0
     // TODO why is this required?
     size_t rem;
-    while((rem = get_remaining(chan)) > 0)
+    while((rem = get_remaining(ep)) > 0)
         ;
 }
 

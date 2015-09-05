@@ -99,7 +99,7 @@ private:
     int _logfd;
     String _shm_prefix;
     label_t _sysc_label;
-    size_t _sysc_cid;
+    size_t _sysc_epid;
     word_t _sysc_credits;
     bool _is_kernel;
     pthread_mutex_t _log_mutex;

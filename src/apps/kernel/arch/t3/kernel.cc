@@ -32,9 +32,9 @@ public:
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
             // TODO use unlimited credits for the moment
-            DTU::get().configure(id, c->obj->label, c->obj->core, c->obj->chanid, 0xFFFF);
-            LOG(IPC, "Kernel programs chan[" << id << "] to "
-                << "core=" << c->obj->core << ", chan=" << c->obj->chanid
+            DTU::get().configure(id, c->obj->label, c->obj->core, c->obj->epid, 0xFFFF);
+            LOG(IPC, "Kernel programs ep[" << id << "] to "
+                << "core=" << c->obj->core << ", ep=" << c->obj->epid
                 << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
                 << ", credits=" << fmt(c->obj->credits, "#x"));
         }

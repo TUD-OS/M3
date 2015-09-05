@@ -24,8 +24,8 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
-size_t DTU::get_msgoff(int chan, RecvGate *rcvgate) const {
-    return get_msgoff(chan, rcvgate, message(chan));
+size_t DTU::get_msgoff(int ep, RecvGate *rcvgate) const {
+    return get_msgoff(ep, rcvgate, message(ep));
 }
 
 size_t DTU::get_msgoff(int, RecvGate *rcvgate, const Message *msg) const {

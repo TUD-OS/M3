@@ -62,7 +62,7 @@ private:
 
     size_t _next_victim;
     EPSwitcher *_epsw;
-    Gate *_gates[CHAN_COUNT];
+    Gate *_gates[EP_COUNT];
     static EPMux _inst;
 };
 

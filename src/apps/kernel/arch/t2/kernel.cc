@@ -33,12 +33,12 @@ public:
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
             CoreConf *cfg = coreconf();
-            cfg->chans[id].dstchan = c->obj->chanid;
-            cfg->chans[id].dstcore = c->obj->core;
-            cfg->chans[id].label = c->obj->label;
-            cfg->chans[id].credits = c->obj->credits;
-            LOG(IPC, "Kernel programs chan[" << id << "] to "
-                << "core=" << c->obj->core << ", chan=" << c->obj->chanid
+            cfg->eps[id].dstep = c->obj->epid;
+            cfg->eps[id].dstcore = c->obj->core;
+            cfg->eps[id].label = c->obj->label;
+            cfg->eps[id].credits = c->obj->credits;
+            LOG(IPC, "Kernel programs ep[" << id << "] to "
+                << "core=" << c->obj->core << ", ep=" << c->obj->epid
                 << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
                 << ", credits=" << fmt(c->obj->credits, "#x"));
         }

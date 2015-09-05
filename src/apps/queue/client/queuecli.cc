@@ -38,7 +38,7 @@ static void received_data(RecvGate &gate, Subscriber<RecvGate&> *) {
 int main() {
     Session qtest("queuetest");
 
-    RecvBuf rcvbuf = RecvBuf::create(VPE::self().alloc_chan(),
+    RecvBuf rcvbuf = RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<4096>::val, nextlog2<512>::val, 0);
     RecvGate rgate = RecvGate::create(&rcvbuf);
     SendGate sgate = SendGate::create(SendGate::UNLIMITED, &rgate);

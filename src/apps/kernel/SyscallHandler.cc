@@ -26,7 +26,7 @@
 extern int int_target;
 #endif
 
-size_t tempchan;
+size_t tempep;
 
 namespace m3 {
 
@@ -43,7 +43,7 @@ SyscallHandler SyscallHandler::_inst;
 
 struct ReplyInfo {
     explicit ReplyInfo(const DTU::Message &msg)
-        : replylbl(msg.replylabel), replyslot(msg.reply_chanid()), crdslot(msg.send_chanid()),
+        : replylbl(msg.replylabel), replyslot(msg.reply_epid()), crdslot(msg.send_epid()),
           replycrd(msg.length) {
     }
 
@@ -55,9 +55,9 @@ struct ReplyInfo {
 
 SyscallHandler::SyscallHandler()
         : RequestHandler<SyscallHandler, Syscalls::Operation, Syscalls::COUNT>(),
-          _rcvbuf(RecvBuf::create(chanid(),
+          _rcvbuf(RecvBuf::create(epid(),
             nextlog2<AVAIL_PES>::val + KVPE::SYSC_CREDIT_ORD, KVPE::SYSC_CREDIT_ORD, 0)),
-          _srvrcvbuf(RecvBuf::create(VPE::self().alloc_chan(),
+          _srvrcvbuf(RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<1024>::val, nextlog2<256>::val, 0)) {
     add_operation(Syscalls::CREATESRV, &SyscallHandler::createsrv);
     add_operation(Syscalls::CREATESESS, &SyscallHandler::createsess);
@@ -79,8 +79,8 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::INIT, &SyscallHandler::init);
 #endif
 
-    tempchan = VPE::self().alloc_chan();
-    EPMux::get().reserve(tempchan);
+    tempep = VPE::self().alloc_ep();
+    EPMux::get().reserve(tempep);
 }
 
 void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
@@ -122,11 +122,11 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 }
 
 static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    DTU::get().configure(tempchan, info.replylbl, vpe.core(), info.replyslot, size + DTU::HEADER_SIZE);
-    DTU::get().sendcrd(tempchan, info.crdslot, info.replycrd);
-    DTU::get().wait_until_ready(tempchan);
-    DTU::get().send(tempchan, msg, size, 0, 0);
-    DTU::get().wait_until_ready(tempchan);
+    DTU::get().configure(tempep, info.replylbl, vpe.core(), info.replyslot, size + DTU::HEADER_SIZE);
+    DTU::get().sendcrd(tempep, info.crdslot, info.replycrd);
+    DTU::get().wait_until_ready(tempep);
+    DTU::get().send(tempep, msg, size, 0, 0);
+    DTU::get().wait_until_ready(tempep);
 }
 
 void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
@@ -189,22 +189,22 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap,dstcap;
     label_t label;
-    size_t cid;
+    size_t epid;
     word_t credits;
-    is >> tcap >> dstcap >> label >> cid >> credits;
+    is >> tcap >> dstcap >> label >> epid >> credits;
     LOG_SYS(vpe, "syscall::creategate(vpe=" << tcap << ", cap=" << dstcap
         << ", label=" << fmt(label, "#0x", sizeof(label_t) * 2)
-        << ", chan=" << cid << ", crd=#" << fmt(credits, "0x") << ")");
+        << ", ep=" << epid << ", crd=#" << fmt(credits, "0x") << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
     // 0 points to the SEPs and can't be delegated to someone else
-    if(cid == 0 || cid >= CHAN_COUNT || !vpe->capabilities().unused(dstcap))
-        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap or chan");
+    if(epid == 0 || epid >= EP_COUNT || !vpe->capabilities().unused(dstcap))
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap or ep");
 
-    vpe->capabilities().set(dstcap, new MsgCapability(label, tcapobj->vpe->core(), cid, credits));
+    vpe->capabilities().set(dstcap, new MsgCapability(label, tcapobj->vpe->core(), epid, credits));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -238,11 +238,11 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
     uintptr_t addr;
-    size_t chan;
+    size_t ep;
     int order, msgorder;
     uint flags;
-    is >> tcap >> chan >> addr >> order >> msgorder >> flags;
-    LOG_SYS(vpe, "syscall::attachrb(vpe=" << tcap << ", chan=" << chan
+    is >> tcap >> ep >> addr >> order >> msgorder >> flags;
+    LOG_SYS(vpe, "syscall::attachrb(vpe=" << tcap << ", ep=" << ep
         << ", addr=" << fmt(addr, "p") << ", size=" << fmt(1UL << order, "#x")
         << ", msgsize=" << fmt(1UL << msgorder, "#x") << ", flags=" << fmt(flags, "#x") << ")");
 
@@ -250,7 +250,7 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
-    Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), chan, addr, order, msgorder, flags);
+    Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), ep, addr, order, msgorder, flags);
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "Unable to attach receive buffer");
 
@@ -261,15 +261,15 @@ void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_detachrb();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap;
-    size_t chan;
-    is >> tcap >> chan;
-    LOG_SYS(vpe, "syscall::detachrb(vpe=" << tcap << ", chan=" << chan << ")");
+    size_t ep;
+    is >> tcap >> ep;
+    LOG_SYS(vpe, "syscall::detachrb(vpe=" << tcap << ", ep=" << ep << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
-    RecvBufs::detach(tcapobj->vpe->core(), chan);
+    RecvBufs::detach(tcapobj->vpe->core(), ep);
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -362,7 +362,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
     LOG(KSYSC, "Requested " << (size / 1024) << " KiB of memory @ " << fmt(addr, "p"));
 
     // TODO if addr was 0, we don't want to free it on revoke
-    vpe->capabilities().set(cap, new MemCapability(addr, size, perms, MEMORY_CORE, mem.channel()));
+    vpe->capabilities().set(cap, new MemCapability(addr, size, perms, MEMORY_CORE, mem.epid()));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -391,7 +391,7 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
         size,
         perms & (srccap->obj->label & MemGate::RWX),
         srccap->obj->core,
-        srccap->obj->chanid
+        srccap->obj->epid
     ));
     dercap->obj->derived = true;
     reply_vmsg(gate, Errors::NO_ERROR);
@@ -494,69 +494,69 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
     msg.claim();
 }
 
-static Errors::Code do_activate(KVPE *vpe, size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+static Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     if(newcapobj) {
-        LOG_SYS(vpe, "Setting chan[" << cid << "] to lbl="
+        LOG_SYS(vpe, "Setting ep[" << epid << "] to lbl="
                 << fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
-                << ", chan=" << newcapobj->obj->chanid
+                << ", ep=" << newcapobj->obj->epid
                 << ", crd=#" << fmt(newcapobj->obj->credits, "x"));
     }
     else
-        LOG_SYS(vpe, "Setting chan[" << cid << "] to NUL");
+        LOG_SYS(vpe, "Setting ep[" << epid << "] to NUL");
 
-    Errors::Code res = vpe->xchg_chan(cid, oldcapobj, newcapobj);
+    Errors::Code res = vpe->xchg_ep(epid, oldcapobj, newcapobj);
     if(res != Errors::NO_ERROR)
         return res;
 
     if(oldcapobj)
-        oldcapobj->localchanid = -1;
+        oldcapobj->localepid = -1;
     if(newcapobj)
-        newcapobj->localchanid = cid;
+        newcapobj->localepid = epid;
     return Errors::NO_ERROR;
 }
 
 void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_activate();
     KVPE *vpe = gate.session<KVPE>();
-    size_t cid;
+    size_t epid;
     capsel_t oldcap, newcap;
-    is >> cid >> oldcap >> newcap;
-    LOG_SYS(vpe, "syscall::activate(chan=" << cid << ", old=" <<
+    is >> epid >> oldcap >> newcap;
+    LOG_SYS(vpe, "syscall::activate(ep=" << epid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
     MsgCapability *oldcapobj = oldcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
             vpe->capabilities().get(oldcap, Capability::MSG | Capability::MEM));
     MsgCapability *newcapobj = newcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
             vpe->capabilities().get(newcap, Capability::MSG | Capability::MEM));
-    // chan 0 can never be used for sending
-    if(cid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {
+    // ep 0 can never be used for sending
+    if(epid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s) (old=" << oldcap << "," << oldcapobj
             << ", new=" << newcap << "," << newcapobj << ")");
     }
 
     if(newcapobj && newcapobj->type == Capability::MSG) {
-        if(!RecvBufs::is_attached(newcapobj->obj->core, newcapobj->obj->chanid)) {
+        if(!RecvBufs::is_attached(newcapobj->obj->core, newcapobj->obj->epid)) {
             ReplyInfo rinfo(is.message());
             LOG_SYS(vpe, "waiting for receive buffer "
-                << newcapobj->obj->core << ":" << newcapobj->obj->chanid << " to get attached");
+                << newcapobj->obj->core << ":" << newcapobj->obj->epid << " to get attached");
 
-            auto callback = [rinfo, vpe, cid, oldcapobj, newcapobj](bool success, Subscriber<bool> *) {
+            auto callback = [rinfo, vpe, epid, oldcapobj, newcapobj](bool success, Subscriber<bool> *) {
                 EVENT_TRACER_Syscall_activate();
                 Errors::Code res = success ? Errors::NO_ERROR : Errors::GONE;
                 if(success)
-                    res = do_activate(vpe, cid, oldcapobj, newcapobj);
+                    res = do_activate(vpe, epid, oldcapobj, newcapobj);
                 if(res != Errors::NO_ERROR)
                     LOG(KERR, vpe->name() << ": activate failed (" << res << ")");
 
                 auto reply = create_vmsg(res);
                 reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             };
-            RecvBufs::subscribe(newcapobj->obj->core, newcapobj->obj->chanid, callback);
+            RecvBufs::subscribe(newcapobj->obj->core, newcapobj->obj->epid, callback);
             return;
         }
     }
 
-    Errors::Code res = do_activate(vpe, cid, oldcapobj, newcapobj);
+    Errors::Code res = do_activate(vpe, epid, oldcapobj, newcapobj);
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "cmpxchg failed");
     reply_vmsg(gate, Errors::NO_ERROR);
@@ -610,10 +610,10 @@ void SyscallHandler::init(RecvGate &gate,GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     void *addr;
     is >> addr;
-    vpe->activate_sysc_chan(addr);
+    vpe->activate_sysc_ep(addr);
     LOG_SYS(vpe, "syscall::init(" << addr << ")");
 
-    // switch to this channel to ensure that we don't have old values programmed in our DMAUnit.
+    // switch to this endpoint to ensure that we don't have old values programmed in our DMAUnit.
     // actually, this is currently only necessary for exec, i.e. where the address changes for
     // the same VPE.
     EPMux::get().switch_to(&vpe->seps_gate());

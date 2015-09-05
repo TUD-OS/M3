@@ -41,24 +41,24 @@ class RecvBufs {
     };
 
 public:
-    static bool is_attached(size_t coreid, size_t chanid) {
-        RBuf &rbuf = get(coreid, chanid);
+    static bool is_attached(size_t coreid, size_t epid) {
+        RBuf &rbuf = get(coreid, epid);
         return rbuf.flags & F_ATTACHED;
     }
 
-    static void subscribe(size_t coreid, size_t chanid, const Subscriptions<bool>::callback_type &cb) {
-        RBuf &rbuf = get(coreid, chanid);
+    static void subscribe(size_t coreid, size_t epid, const Subscriptions<bool>::callback_type &cb) {
+        RBuf &rbuf = get(coreid, epid);
         assert(~rbuf.flags & F_ATTACHED);
         rbuf.waitlist.subscribe(cb);
     }
 
-    static Errors::Code attach(size_t coreid, size_t chanid, uintptr_t addr, int order, int msgorder, uint flags) {
-        RBuf &rbuf = get(coreid, chanid);
+    static Errors::Code attach(size_t coreid, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+        RBuf &rbuf = get(coreid, epid);
         if(rbuf.flags & F_ATTACHED)
             return Errors::EXISTS;
 
-        for(size_t i = 0; i < CHAN_COUNT; ++i) {
-            if(i != chanid) {
+        for(size_t i = 0; i < EP_COUNT; ++i) {
+            if(i != epid) {
                 RBuf &rb = get(coreid, i);
                 if((rb.flags & F_ATTACHED) &&
                     Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
@@ -70,22 +70,22 @@ public:
         rbuf.order = order;
         rbuf.msgorder = msgorder;
         rbuf.flags = flags | F_ATTACHED;
-        configure(coreid, chanid, rbuf);
+        configure(coreid, epid, rbuf);
         notify(rbuf, true);
         return Errors::NO_ERROR;
     }
 
-    static void detach(size_t coreid, size_t chanid) {
-        RBuf &rbuf = get(coreid, chanid);
+    static void detach(size_t coreid, size_t epid) {
+        RBuf &rbuf = get(coreid, epid);
         if(rbuf.flags & F_ATTACHED) {
             rbuf.flags = 0;
-            configure(coreid, chanid, rbuf);
+            configure(coreid, epid, rbuf);
         }
         notify(rbuf, false);
     }
 
 private:
-    static void configure(size_t coreid, size_t chanid, RBuf &rbuf);
+    static void configure(size_t coreid, size_t epid, RBuf &rbuf);
 
     static void notify(RBuf &rbuf, bool success) {
         for(auto sub = rbuf.waitlist.begin(); sub != rbuf.waitlist.end(); ) {
@@ -94,11 +94,11 @@ private:
             rbuf.waitlist.unsubscribe(&*old);
         }
     }
-    static RBuf &get(size_t coreid, size_t chanid) {
-        return _rbufs[(coreid - APP_CORES) * CHAN_COUNT + chanid];
+    static RBuf &get(size_t coreid, size_t epid) {
+        return _rbufs[(coreid - APP_CORES) * EP_COUNT + epid];
     }
 
-    static RBuf _rbufs[AVAIL_PES * CHAN_COUNT];
+    static RBuf _rbufs[AVAIL_PES * EP_COUNT];
 };
 
 }

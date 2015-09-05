@@ -20,7 +20,7 @@
 #define MAX_CORES           18
 #define AVAIL_PES           (MAX_CORES - 1)
 
-#define CHAN_COUNT          7
+#define EP_COUNT            7
 #define CAP_TOTAL           256
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60800000
@@ -45,8 +45,8 @@
 #define BOOT_LAMBDA         (BOOT_ENTRY - 8)
 #define BOOT_MOUNTLEN       (BOOT_LAMBDA - 8)
 #define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
-#define BOOT_CHANS          (BOOT_MOUNTS - 8)
-#define BOOT_CAPS           (BOOT_CHANS - 8)
+#define BOOT_EPS            (BOOT_MOUNTS - 8)
+#define BOOT_CAPS           (BOOT_EPS - 8)
 #define BOOT_EXIT           (BOOT_CAPS - 8)
 
 #define STATE_SIZE          0x100

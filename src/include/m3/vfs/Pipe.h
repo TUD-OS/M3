@@ -67,7 +67,7 @@ class PipeFileReader : public PipeFile {
 public:
     explicit PipeFileReader(const Pipe &p) : PipeFile(), _rd(p) {
     }
-    explicit PipeFileReader(capsel_t caps, size_t rchan) : PipeFile(), _rd(caps, rchan) {
+    explicit PipeFileReader(capsel_t caps, size_t rep) : PipeFile(), _rd(caps, rep) {
     }
 
     virtual ssize_t read(void *buffer, size_t count) override {

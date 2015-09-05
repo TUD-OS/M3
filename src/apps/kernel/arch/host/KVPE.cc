@@ -37,7 +37,7 @@ void KVPE::start(int argc, char **argv, int pid) {
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
-            write_env_file(getpid(), _syscgate.label(), SyscallHandler::get().chanid());
+            write_env_file(getpid(), _syscgate.label(), SyscallHandler::get().epid());
             char **childargs = new char*[argc + 1];
             int i = 0;
             for(; i < argc; ++i)
@@ -51,18 +51,18 @@ void KVPE::start(int argc, char **argv, int pid) {
     }
     else {
         _pid = pid;
-        write_env_file(_pid, _syscgate.label(), SyscallHandler::get().chanid());
+        write_env_file(_pid, _syscgate.label(), SyscallHandler::get().epid());
         LOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
     }
 }
 
-void KVPE::activate_sysc_chan(void *addr) {
+void KVPE::activate_sysc_ep(void *addr) {
     uintptr_t iaddr = reinterpret_cast<uintptr_t>(addr);
     // if we execute multiple programs in a VPE in a row, we already have our memory-cap
     MemCapability *mcap = static_cast<MemCapability*>(
         CapTable::kernel_table().get(_sepsgate.sel(), Capability::MEM));
     if(mcap == nullptr) {
-        size_t len = DTU::EPS_RCNT * CHAN_COUNT * sizeof(word_t);
+        size_t len = DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
         mcap = new MemCapability(iaddr, len, MemGate::X | MemGate::W, core(), 0);
         CapTable::kernel_table().set(_sepsgate.sel(), mcap);
     }
@@ -71,25 +71,25 @@ void KVPE::activate_sysc_chan(void *addr) {
 }
 
 void KVPE::invalidate_eps() {
-    size_t total = DTU::EPS_RCNT * CHAN_COUNT;
+    size_t total = DTU::EPS_RCNT * EP_COUNT;
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
     seps_gate().write_sync(regs, total * sizeof(word_t), 0);
     delete[] regs;
 }
 
-void KVPE::write_env_file(pid_t pid, label_t label, size_t cid) {
+void KVPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
     of << Config::get().shm_prefix().c_str() << "\n";
     of << core() << "\n";
     of << label << "\n";
-    of << cid << "\n";
+    of << epid << "\n";
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 
-Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     // set registers for caps
     word_t regs[DTU::EPS_RCNT * 2];
     memset(regs, 0, sizeof(regs));
@@ -97,19 +97,19 @@ Errors::Code KVPE::xchg_chan(size_t cid, MsgCapability *oldcapobj, MsgCapability
     for(size_t i = 0; i < 2; ++i) {
         if(co[i]) {
             DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->core,
-                co[i]->obj->chanid, co[i]->obj->credits);
+                co[i]->obj->epid, co[i]->obj->credits);
         }
     }
 
     if(newcapobj) {
         // now do the compare-exchange
-        if(!seps_gate().cmpxchg_sync(regs, sizeof(regs), cid * DTU::EPS_RCNT * sizeof(word_t)))
+        if(!seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * DTU::EPS_RCNT * sizeof(word_t)))
             return Errors::INV_ARGS;
     }
     else {
         // if we should just invalidate it, we don't have to do a cmpxchg
         seps_gate().write_sync(regs + DTU::EPS_RCNT,
-            sizeof(regs) / 2, cid * DTU::EPS_RCNT * sizeof(word_t));
+            sizeof(regs) / 2, epid * DTU::EPS_RCNT * sizeof(word_t));
     }
     return Errors::NO_ERROR;
 }

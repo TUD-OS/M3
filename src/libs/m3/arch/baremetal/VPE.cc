@@ -33,7 +33,7 @@ Errors::Code VPE::run(void *lambda) {
 
     /* go! */
     uintptr_t entry = get_entry();
-    start(entry, _caps, _chans, lambda, _mounts, _mountlen);
+    start(entry, _caps, _eps, lambda, _mounts, _mountlen);
     return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
 }
 
@@ -46,7 +46,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     /* store state to the VPE's memory */
     size_t statesize = _mountlen +
         Math::round_up(sizeof(*_caps), DTU_PKG_SIZE) +
-        Math::round_up(sizeof(*_chans), DTU_PKG_SIZE);
+        Math::round_up(sizeof(*_eps), DTU_PKG_SIZE);
     if(statesize > STATE_SIZE)
         PANIC("State is too large");
 
@@ -60,22 +60,22 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     _mem.write_sync(_caps, Math::round_up(sizeof(*_caps), DTU_PKG_SIZE), offset);
     offset += Math::round_up(sizeof(*_caps), DTU_PKG_SIZE);
 
-    void *chans = reinterpret_cast<void*>(offset);
-    _mem.write_sync(_chans, Math::round_up(sizeof(*_chans), DTU_PKG_SIZE), offset);
+    void *eps = reinterpret_cast<void*>(offset);
+    _mem.write_sync(_eps, Math::round_up(sizeof(*_eps), DTU_PKG_SIZE), offset);
 
     /* go! */
-    start(entry, caps, chans, nullptr, reinterpret_cast<void*>(STATE_SPACE), _mountlen);
+    start(entry, caps, eps, nullptr, reinterpret_cast<void*>(STATE_SPACE), _mountlen);
     return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
 }
 
-void VPE::start(uintptr_t entry, void *caps, void *chans, void *lambda, void *mounts, size_t mountlen) {
+void VPE::start(uintptr_t entry, void *caps, void *eps, void *lambda, void *mounts, size_t mountlen) {
     static_assert(BOOT_LAMBDA == BOOT_ENTRY - 8, "BOOT_LAMBDA or BOOT_ENTRY is wrong");
 
     /* give the PE the entry point and the address of the lambda */
-    /* additionally, it needs the already allocated caps and channels */
+    /* additionally, it needs the already allocated caps and endpoints */
     uint64_t vals[] = {
         (word_t)caps,
-        (word_t)chans,
+        (word_t)eps,
         (word_t)mounts,
         mountlen,
         (word_t)lambda,

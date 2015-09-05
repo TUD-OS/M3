@@ -130,9 +130,9 @@ Config::Config()
         : _core(), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, nullptr, false)),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER),
           // the memory receive buffer is required to let others access our memory via DTU
-          _mem_recvbuf(RecvBuf::bindto(DTU::MEM_CHAN, 0, sizeof(word_t) * 8 - 1,
+          _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
-          _def_recvbuf(RecvBuf::create(DTU::DEF_RECVCHAN, nextlog2<256>::val, nextlog2<128>::val, 0)),
+          _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
           _def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
     init();
@@ -141,9 +141,9 @@ Config::Config()
 Config::Config(int core, const char *shmprefix)
         : _core(core), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, shmprefix, true)),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER),
-          _mem_recvbuf(RecvBuf::bindto(DTU::MEM_CHAN, 0, sizeof(word_t) * 8 - 1,
+          _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
-          _def_recvbuf(RecvBuf::create(DTU::DEF_RECVCHAN, nextlog2<256>::val, nextlog2<128>::val, 0)),
+          _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
           _def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
     init();
@@ -176,12 +176,12 @@ void Config::init() {
 
 void Config::init_dtu() {
     // we have to init that here, too, because the kernel doesn't know where it is
-    DTU::get().configure_recv(DTU::MEM_CHAN, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
+    DTU::get().configure_recv(DTU::MEM_EP, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
         _mem_recvbuf.order(), _mem_recvbuf.msgorder(), _mem_recvbuf.flags());
-    DTU::get().configure_recv(DTU::DEF_RECVCHAN, reinterpret_cast<uintptr_t>(_def_recvbuf.addr()),
+    DTU::get().configure_recv(DTU::DEF_RECVEP, reinterpret_cast<uintptr_t>(_def_recvbuf.addr()),
         _def_recvbuf.order(), _def_recvbuf.msgorder(), _def_recvbuf.flags());
 
-    DTU::get().configure(DTU::SYSC_CHAN, _sysc_label, 0, _sysc_cid, _sysc_credits);
+    DTU::get().configure(DTU::SYSC_EP, _sysc_label, 0, _sysc_epid, _sysc_credits);
 
     DTU::get().start();
 }
@@ -195,7 +195,7 @@ bool Config::set_params(Config *env, const char *shm_prefix, bool is_kernel) {
             PANIC("Unable to read " << path);
         label_t lbl;
         std::string shm_prefix;
-        in >> shm_prefix >> env->_core >> lbl >> env->_sysc_cid;
+        in >> shm_prefix >> env->_core >> lbl >> env->_sysc_epid;
         in >> env->_sysc_credits;
         env->_shm_prefix = String(shm_prefix.c_str());
         env->_sysc_label = lbl;

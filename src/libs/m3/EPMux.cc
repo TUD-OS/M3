@@ -40,10 +40,10 @@ void EPSwitcher::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
 }
 
 void EPMux::reserve(size_t i) {
-    // take care that some non-fixed gate could already use that channel
+    // take care that some non-fixed gate could already use that endpoint
     if(_gates[i]) {
         _epsw->switch_ep(i, _gates[i]->sel(), Cap::INVALID);
-        _gates[i]->_chanid = Gate::UNBOUND;
+        _gates[i]->_epid = Gate::UNBOUND;
         if(_gates[i]->type() == Cap::RECV_GATE) {
             RecvGate *rgate = static_cast<RecvGate*>(_gates[i]);
             rgate->buffer()->attach(Gate::UNBOUND);
@@ -56,39 +56,39 @@ void EPMux::switch_to(Gate *gate) {
     size_t victim = select_victim();
     _epsw->switch_ep(victim, _gates[victim] ? _gates[victim]->sel() : Cap::INVALID, gate->sel());
     _gates[victim] = gate;
-    gate->_chanid = victim;
+    gate->_epid = victim;
 }
 
 void EPMux::switch_cap(Gate *gate, capsel_t newcap) {
-    if(gate->chanid() != Gate::UNBOUND) {
-        _epsw->switch_ep(gate->chanid(), gate->sel(), newcap);
+    if(gate->epid() != Gate::UNBOUND) {
+        _epsw->switch_ep(gate->epid(), gate->sel(), newcap);
         if(newcap == Cap::INVALID) {
-            _gates[gate->chanid()] = nullptr;
-            gate->_chanid = Gate::UNBOUND;
+            _gates[gate->epid()] = nullptr;
+            gate->_epid = Gate::UNBOUND;
         }
     }
 }
 
 void EPMux::remove(Gate *gate, bool unarm) {
-    if(gate->_chanid != Gate::NODESTROY && gate->_chanid != Gate::UNBOUND && gate->sel() != Cap::INVALID) {
-        assert(_gates[gate->_chanid] == nullptr || _gates[gate->_chanid] == gate);
+    if(gate->_epid != Gate::NODESTROY && gate->_epid != Gate::UNBOUND && gate->sel() != Cap::INVALID) {
+        assert(_gates[gate->_epid] == nullptr || _gates[gate->_epid] == gate);
         if(unarm) {
-            // we have to "disarm" our channel, i.e. set the registers to zero. otherwise the cmpxchg
-            // will fail when we program the next gate on this channel.
-            // note that the kernel has to validate that it is 0 for "unused channels" because otherwise
-            // we could just specify that our channel is unused and the kernel won't check it and thereby
+            // we have to "disarm" our endpoint, i.e. set the registers to zero. otherwise the cmpxchg
+            // will fail when we program the next gate on this endpoint.
+            // note that the kernel has to validate that it is 0 for "unused endpoints" because otherwise
+            // we could just specify that our endpoint is unused and the kernel won't check it and thereby
             // trick the whole system.
-            _epsw->switch_ep(gate->_chanid, gate->sel(), Cap::INVALID);
+            _epsw->switch_ep(gate->_epid, gate->sel(), Cap::INVALID);
         }
-        _gates[gate->_chanid] = nullptr;
-        gate->_chanid = Gate::UNBOUND;
+        _gates[gate->_epid] = nullptr;
+        gate->_epid = Gate::UNBOUND;
     }
 }
 
 void EPMux::reset() {
-    for(int i = 0; i < CHAN_COUNT; ++i) {
+    for(int i = 0; i < EP_COUNT; ++i) {
         if(_gates[i])
-            _gates[i]->_chanid = Gate::UNBOUND;
+            _gates[i]->_epid = Gate::UNBOUND;
         _gates[i] = nullptr;
     }
 }
@@ -96,20 +96,20 @@ void EPMux::reset() {
 size_t EPMux::select_victim() {
     size_t count = 0;
     size_t victim = _next_victim;
-    while(!VPE::self().is_chan_free(victim) && count++ < CHAN_COUNT) {
-        // victim = (victim + 1) % CHAN_COUNT
+    while(!VPE::self().is_ep_free(victim) && count++ < EP_COUNT) {
+        // victim = (victim + 1) % EP_COUNT
         long rem;
-        divide(victim + 1, CHAN_COUNT, &rem);
+        divide(victim + 1, EP_COUNT, &rem);
         victim = rem;
     }
-    if(!VPE::self().is_chan_free(victim))
-        PANIC("No free channels for multiplexing");
+    if(!VPE::self().is_ep_free(victim))
+        PANIC("No free endpoints for multiplexing");
     if(_gates[victim] != nullptr)
-        _gates[victim]->_chanid = Gate::UNBOUND;
+        _gates[victim]->_epid = Gate::UNBOUND;
 
-    // _next_victim = (victim + 1) % CHAN_COUNT
+    // _next_victim = (victim + 1) % EP_COUNT
     long rem;
-    divide(victim + 1, CHAN_COUNT, &rem);
+    divide(victim + 1, EP_COUNT, &rem);
     _next_victim = rem;
     return victim;
 }

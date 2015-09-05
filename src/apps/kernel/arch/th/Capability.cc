@@ -22,10 +22,10 @@
 namespace m3 {
 
 Errors::Code MsgCapability::revoke() {
-    if(localchanid != -1) {
+    if(localepid != -1) {
         KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
-        LOG(IPC, "Invalidating chan " << localchanid << " of VPE " << vpe.id() << "@" << vpe.core());
-        vpe.xchg_chan(localchanid, nullptr, nullptr);
+        LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
+        vpe.xchg_ep(localepid, nullptr, nullptr);
     }
     obj.unref();
     return Errors::NO_ERROR;

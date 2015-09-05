@@ -33,7 +33,7 @@ int main() {
     cout << "BOOT_ENTRY = "         << BOOT_ENTRY << "\n";
     cout << "BOOT_SP = "            << BOOT_SP << "\n";
     cout << "BOOT_LAMBDA = "        << BOOT_LAMBDA << "\n";
-    cout << "BOOT_CHANS = "         << BOOT_CHANS << "\n";
+    cout << "BOOT_EPS = "           << BOOT_EPS << "\n";
     cout << "BOOT_CAPS = "          << BOOT_CAPS << "\n";
     cout << "BOOT_MOUNTS = "        << BOOT_MOUNTS << "\n";
     cout << "STATE_SPACE = "        << STATE_SPACE << "\n";

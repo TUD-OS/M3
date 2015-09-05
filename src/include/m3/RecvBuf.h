@@ -36,59 +36,59 @@ public:
 
     class RecvBufWorkItem : public WorkItem {
     public:
-        explicit RecvBufWorkItem(size_t chanid) : _chanid(chanid) {
+        explicit RecvBufWorkItem(size_t epid) : _epid(epid) {
         }
 
-        void chanid(size_t id) {
-            _chanid = id;
+        void epid(size_t id) {
+            _epid = id;
         }
 
         virtual void work() override;
 
     private:
-        size_t _chanid;
+        size_t _epid;
     };
 
 private:
-    explicit RecvBuf(size_t chanid, void *addr, int order, int msgorder, unsigned flags)
+    explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, unsigned flags)
         : _buf(reinterpret_cast<uint8_t*>(addr)), _order(order), _msgorder(msgorder),
-          _chanid(chanid), _flags(flags), _workitem() {
-        if(chanid != UNBOUND)
-            attach(chanid);
+          _epid(epid), _flags(flags), _workitem() {
+        if(epid != UNBOUND)
+            attach(epid);
     }
 
 public:
 #if defined(__t2__)
-    static RecvBuf create(size_t chanid, int, unsigned) {
-        return create(chanid);
+    static RecvBuf create(size_t epid, int, unsigned) {
+        return create(epid);
     }
-    static RecvBuf create(size_t chanid, int, int, unsigned) {
-        return create(chanid);
+    static RecvBuf create(size_t epid, int, int, unsigned) {
+        return create(epid);
     }
-    static RecvBuf create(size_t chanid) {
-        return RecvBuf(chanid, reinterpret_cast<void*>(
-            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(coreid(), chanid)),
+    static RecvBuf create(size_t epid) {
+        return RecvBuf(epid, reinterpret_cast<void*>(
+            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(coreid(), epid)),
             nextlog2<RECV_BUF_MSGSIZE>::val, nextlog2<RECV_BUF_MSGSIZE>::val, NONE);
     }
 #else
-    static RecvBuf create(size_t chanid, int order, unsigned flags) {
-        return RecvBuf(chanid, new uint8_t[1UL << order], order, order, flags | DELETE_BUF);
+    static RecvBuf create(size_t epid, int order, unsigned flags) {
+        return RecvBuf(epid, new uint8_t[1UL << order], order, order, flags | DELETE_BUF);
     }
-    static RecvBuf create(size_t chanid, int order, int msgorder, unsigned flags) {
-        return RecvBuf(chanid, new uint8_t[1UL << order], order, msgorder, flags | DELETE_BUF);
+    static RecvBuf create(size_t epid, int order, int msgorder, unsigned flags) {
+        return RecvBuf(epid, new uint8_t[1UL << order], order, msgorder, flags | DELETE_BUF);
     }
 #endif
-    static RecvBuf bindto(size_t chanid, void *addr, int order, unsigned flags) {
-        return RecvBuf(chanid, addr, order, order, flags);
+    static RecvBuf bindto(size_t epid, void *addr, int order, unsigned flags) {
+        return RecvBuf(epid, addr, order, order, flags);
     }
-    static RecvBuf bindto(size_t chanid, void *addr, int order, int msgorder, unsigned flags) {
-        return RecvBuf(chanid, addr, order, msgorder, flags);
+    static RecvBuf bindto(size_t epid, void *addr, int order, int msgorder, unsigned flags) {
+        return RecvBuf(epid, addr, order, msgorder, flags);
     }
 
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
     RecvBuf(RecvBuf &&r) : _buf(r._buf), _order(r._order), _msgorder(r._msgorder),
-            _chanid(r._chanid), _flags(r._flags) {
+            _epid(r._epid), _flags(r._flags) {
         r._flags &= ~DELETE_BUF;
     }
     ~RecvBuf() {
@@ -106,8 +106,8 @@ public:
     int msgorder() const {
         return _msgorder;
     }
-    size_t chanid() const {
-        return _chanid;
+    size_t epid() const {
+        return _epid;
     }
     unsigned flags() const {
         return _flags & ~DELETE_BUF;
@@ -117,8 +117,8 @@ public:
     void setbuffer(void *addr, int order) {
         _buf = reinterpret_cast<uint8_t*>(addr);
         _order = order;
-        if(_chanid != UNBOUND)
-            attach(_chanid);
+        if(_epid != UNBOUND)
+            attach(_epid);
     }
 #endif
 
@@ -130,7 +130,7 @@ private:
     uint8_t *_buf;
     int _order;
     int _msgorder;
-    size_t _chanid;
+    size_t _epid;
     unsigned _flags;
     RecvBufWorkItem *_workitem;
 };

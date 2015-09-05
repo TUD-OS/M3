@@ -44,14 +44,14 @@ static size_t fssize = 0;
 class KernelEPSwitcher : public EPSwitcher {
 public:
     virtual void switch_ep(size_t victim, capsel_t, capsel_t newcap) override {
-        // we don't need to clear channel-registers since nobody does cmpxchg here.
+        // we don't need to clear endpoint-registers since nobody does cmpxchg here.
         if(newcap != Cap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
             assert(c != nullptr);
-            DTU::get().configure(victim, c->obj->label, c->obj->core, c->obj->chanid, c->obj->credits);
+            DTU::get().configure(victim, c->obj->label, c->obj->core, c->obj->epid, c->obj->credits);
             LOG(IPC, "Kernel programs SEP[" << victim << "] to "
-                    << "core=" << c->obj->core << ", chan=" << c->obj->chanid
+                    << "core=" << c->obj->core << ", ep=" << c->obj->epid
                     << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2));
         }
     }

@@ -33,9 +33,9 @@ void Syscalls::noop() {
     send_receive_vmsg(_gate, NOOP);
 }
 
-Errors::Code Syscalls::activate(size_t chan, capsel_t oldcap, capsel_t newcap) {
-    LOG(SYSC, "activate(chan=" << chan << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
-    return finish(send_receive_vmsg(_gate, ACTIVATE, chan, oldcap, newcap));
+Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
+    LOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
+    return finish(send_receive_vmsg(_gate, ACTIVATE, ep, oldcap, newcap));
 }
 
 Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name) {
@@ -51,10 +51,10 @@ Errors::Code Syscalls::createsess(capsel_t cap, const String &name, const GateOS
     return finish(send_receive_msg(_gate, msg.bytes(), msg.total()));
 }
 
-Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, size_t chan, word_t credits) {
+Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits) {
     LOG(SYSC, "creategate(vpe=" << vpe << ", dst=" << dst << ", label=" << fmt(label, "#x")
-        << ", chan=" << chan << ", credits=" << credits << ")");
-    return finish(send_receive_vmsg(_gate, CREATEGATE, vpe, dst, label, chan, credits));
+        << ", ep=" << ep << ", credits=" << credits << ")");
+    return finish(send_receive_vmsg(_gate, CREATEGATE, vpe, dst, label, ep, credits));
 }
 
 Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core) {
@@ -62,16 +62,16 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core));
 }
 
-Errors::Code Syscalls::attachrb(capsel_t vpe, size_t chan, uintptr_t addr, int order, int msgorder, uint flags) {
-    LOG(SYSC, "attachrb(vpe=" << vpe << ", chan=" << chan << ", addr=" << fmt(addr, "p")
+Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags) {
+    LOG(SYSC, "attachrb(vpe=" << vpe << ", ep=" << ep << ", addr=" << fmt(addr, "p")
         << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x")
         << ", flags=" << fmt(flags, "x") << ")");
-    return finish(send_receive_vmsg(_gate, ATTACHRB, vpe, chan, addr, order, msgorder, flags));
+    return finish(send_receive_vmsg(_gate, ATTACHRB, vpe, ep, addr, order, msgorder, flags));
 }
 
-Errors::Code Syscalls::detachrb(capsel_t vpe, size_t chan) {
-    LOG(SYSC, "detachrb(vpe=" << vpe << ", chan=" << chan);
-    return finish(send_receive_vmsg(_gate, DETACHRB, vpe, chan));
+Errors::Code Syscalls::detachrb(capsel_t vpe, size_t ep) {
+    LOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep);
+    return finish(send_receive_vmsg(_gate, DETACHRB, vpe, ep));
 }
 
 Errors::Code Syscalls::exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain) {

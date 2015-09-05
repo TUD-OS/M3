@@ -26,7 +26,7 @@ class Syscalls;
 
 /**
  * A SendGate can only be used for sending messages. To do that, it needs to be backed by a
- * msg-capability. You can either create a SendGate for one of your own channels and delegate it
+ * msg-capability. You can either create a SendGate for one of your own endpoints and delegate it
  * to somebody else in order to allow him to send messages to you. Or you can bind a SendGate to
  * a msg-capability you've received from somebody else.
  *
@@ -37,15 +37,15 @@ class Syscalls;
 class SendGate : public Gate {
     friend class Syscalls;
 
-    explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t chanid = UNBOUND)
-        : Gate(SEND_GATE, cap, capflags, chanid), _rcvgate(rcvgate == nullptr ? def_rcvgate() : rcvgate) {
+    explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t epid = UNBOUND)
+        : Gate(SEND_GATE, cap, capflags, epid), _rcvgate(rcvgate == nullptr ? def_rcvgate() : rcvgate) {
     }
 
 public:
     static const word_t UNLIMITED   = -1;
 
     /**
-     * Creates a new send-gate for your own VPE. That is, a gate is created for one of your channels
+     * Creates a new send-gate for your own VPE. That is, a gate is created for one of your endpoints
      * that you can delegate to somebody else so that he can send messages to you.
      *
      * @param credits the credits to assign to this gate
@@ -55,17 +55,17 @@ public:
     static SendGate create(word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
 
     /**
-     * Creates a new send-gate for the given VPE. That is, a gate is created for one of the channels
+     * Creates a new send-gate for the given VPE. That is, a gate is created for one of the endpoints
      * of the given VPE.
      *
-     * @param vpe the VPE for whose channels the gate should be created
-     * @param dstchan the destination channel id
+     * @param vpe the VPE for whose endpoints the gate should be created
+     * @param dstep the destination endpoint id
      * @param label the label
      * @param credits the credits to assign to this gate
      * @param rcvgate the receive-gate to which the replies should be sent
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
-    static SendGate create_for(const VPE &vpe, size_t dstchan, label_t label = 0,
+    static SendGate create_for(const VPE &vpe, size_t dstep, label_t label = 0,
         word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
 
     /**
@@ -112,7 +112,7 @@ public:
         wait_until_sent();
     }
     void send_async(const void *data, size_t len) {
-        async_cmd(SEND, const_cast<void*>(data), len, 0, 0, _rcvgate->label(), _rcvgate->chanid());
+        async_cmd(SEND, const_cast<void*>(data), len, 0, 0, _rcvgate->label(), _rcvgate->epid());
     }
 
 private:

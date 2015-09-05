@@ -50,10 +50,10 @@ public:
     } PACKED;
 
     struct Message : public Header {
-        int send_chanid() const {
+        int send_epid() const {
             return 0;
         }
-        int reply_chanid() const {
+        int reply_epid() const {
             return slot;
         }
 
@@ -67,9 +67,9 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 0;
 
-    static const int MEM_CHAN               = 0;    // unused
-    static const int SYSC_CHAN              = 0;
-    static const int DEF_RECVCHAN           = 1;
+    static const int MEM_EP                 = 0;    // unused
+    static const int SYSC_EP                = 0;
+    static const int DEF_RECVEP             = 1;
 
     enum Operation {
         WRITE   = 0x2,      // write from local to remote
@@ -80,8 +80,8 @@ public:
         return inst;
     }
 
-    void configure(int slot, label_t label, int coreid, int chanid, word_t credits) {
-        config_remote(slot, coreid, chanid, credits, 0);
+    void configure(int slot, label_t label, int coreid, int epid, word_t credits) {
+        config_remote(slot, coreid, epid, credits, 0);
         config_label(slot, label);
     }
 
@@ -90,40 +90,40 @@ public:
         config_remote_mem(ep, coreid, addr, size, 1);
     }
 
-    void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
+    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
     void send(int slot, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_slot = 0);
     void send_credits(int slot, uchar dst, int dst_slot, uint credits);
     void reply(int slot, const void *msg, size_t size, size_t msgidx);
-    void read(int chan, void *msg, size_t size, size_t off);
-    void write(int chan, const void *msg, size_t size, size_t off);
-    void cmpxchg(UNUSED int chan, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
+    void read(int ep, void *msg, size_t size, size_t off);
+    void write(int ep, const void *msg, size_t size, size_t off);
+    void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
     }
-    void sendcrd(UNUSED int chan, UNUSED int crdchan, UNUSED size_t size) {
+    void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }
 
     bool uses_header(int) {
         return true;
     }
 
-    bool fetch_msg(int chan) {
-        return element_count(chan) > 0;
+    bool fetch_msg(int ep) {
+        return element_count(ep) > 0;
     }
 
-    DTU::Message *message(int chan) const {
-        return reinterpret_cast<Message*>(element_ptr(chan));
+    DTU::Message *message(int ep) const {
+        return reinterpret_cast<Message*>(element_ptr(ep));
     }
-    Message *message_at(int chan, size_t msgidx) const {
-        uintptr_t rbuf = recvbuf(chan);
-        size_t sz = msgsize(chan);
+    Message *message_at(int ep, size_t msgidx) const {
+        uintptr_t rbuf = recvbuf(ep);
+        size_t sz = msgsize(ep);
         return reinterpret_cast<Message*>(rbuf + msgidx * sz);
     }
 
-    size_t get_msgoff(int chan, RecvGate *rcvgate) const;
+    size_t get_msgoff(int ep, RecvGate *rcvgate) const;
     size_t get_msgoff(int, RecvGate *rcvgate, const Message *msg) const;
 
-    void ack_message(int chan) {
-        word_t *ptr = get_cmd_addr(chan, IDMA_SLOT_FIFO_RELEASE_ELEM);
+    void ack_message(int ep) {
+        word_t *ptr = get_cmd_addr(ep, IDMA_SLOT_FIFO_RELEASE_ELEM);
         store_to(ptr, 1);
     }
 
@@ -131,8 +131,8 @@ public:
         return true;
     }
 
-    void wait_until_ready(int chan) {
-        word_t *status = get_cmd_addr(chan,IDMA_OVERALL_SLOT_STATUS);
+    void wait_until_ready(int ep) {
+        word_t *status = get_cmd_addr(ep,IDMA_OVERALL_SLOT_STATUS);
         while(read_from(status) != 0)
             ;
     }

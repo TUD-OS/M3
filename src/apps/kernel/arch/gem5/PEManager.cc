@@ -18,7 +18,7 @@
 
 #include "../../PEManager.h"
 
-extern int tempchan;
+extern int tempep;
 
 namespace m3 {
 
@@ -28,8 +28,8 @@ void PEManager::deprivilege_pes() {
         DTU::reg_t status = 0;
         Sync::compiler_barrier();
         static_assert(offsetof(DTU::DtuRegs, status) == 0, "Status register is not at offset 0");
-        DTU::get().configure_mem(tempchan, APP_CORES + i, (uintptr_t)DTU::dtu_regs(), sizeof(status));
-        DTU::get().write(tempchan, &status, sizeof(status), 0);
+        DTU::get().configure_mem(tempep, APP_CORES + i, (uintptr_t)DTU::dtu_regs(), sizeof(status));
+        DTU::get().write(tempep, &status, sizeof(status), 0);
     }
 }
 

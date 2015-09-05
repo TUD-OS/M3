@@ -29,7 +29,7 @@
 
 // we have no alignment or size requirements here
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
-#define CHAN_COUNT          16
+#define EP_COUNT          16
 
 #define USE_MSGBACKEND      0
 
@@ -58,12 +58,12 @@ class DTU {
         struct {
             unsigned has_replycap : 1,
                      core : 15,
-                     rpl_chanid : 8,
-                     snd_chanid : 8;
+                     rpl_epid : 8,
+                     snd_epid : 8;
         } PACKED;
         label_t replylabel;
         word_t credits : sizeof(word_t) * 8 - 16,
-               crd_chan : 16;
+               crd_ep : 16;
     } PACKED;
 
     struct Buffer : public Header {
@@ -72,11 +72,11 @@ class DTU {
 
 public:
     struct Message : public Header {
-        int send_chanid() const {
-            return snd_chanid;
+        int send_epid() const {
+            return snd_epid;
         }
-        int reply_chanid() const {
-            return rpl_chanid;
+        int reply_epid() const {
+            return rpl_epid;
         }
 
         unsigned char data[];
@@ -89,8 +89,8 @@ public:
         virtual void create() = 0;
         virtual void destroy() = 0;
         virtual void reset() = 0;
-        virtual void send(int core, int chan, const DTU::Buffer *buf) = 0;
-        virtual ssize_t recv(int chan, DTU::Buffer *buf) = 0;
+        virtual void send(int core, int ep, const DTU::Buffer *buf) = 0;
+        virtual ssize_t recv(int ep, DTU::Buffer *buf) = 0;
     };
 
     static constexpr size_t HEADER_SIZE         = sizeof(Buffer) - MAX_DATA_SIZE;
@@ -100,11 +100,11 @@ public:
     // command registers
     static constexpr size_t CMD_ADDR            = 0;
     static constexpr size_t CMD_SIZE            = 1;
-    static constexpr size_t CMD_CHANID          = 2;
+    static constexpr size_t CMD_EPID            = 2;
     static constexpr size_t CMD_CTRL            = 3;
     static constexpr size_t CMD_OFFSET          = 4;
     static constexpr size_t CMD_REPLYLBL        = 5;
-    static constexpr size_t CMD_REPLY_CHANID    = 6;
+    static constexpr size_t CMD_REPLY_EPID      = 6;
     static constexpr size_t CMD_LENGTH          = 7;
 
     // register starts and counts (cont.)
@@ -122,7 +122,7 @@ public:
 
     // for sending message and accessing memory
     static constexpr size_t EP_COREID           = 8;
-    static constexpr size_t EP_CHANID           = 9;
+    static constexpr size_t EP_EPID             = 9;
     static constexpr size_t EP_LABEL            = 10;
     static constexpr size_t EP_CREDITS          = 11;
 
@@ -149,9 +149,9 @@ public:
         ACKMSG  = 7,
     };
 
-    static const int MEM_CHAN       = 0;
-    static const int SYSC_CHAN      = 1;
-    static const int DEF_RECVCHAN   = 2;
+    static const int MEM_EP       = 0;
+    static const int SYSC_EP      = 1;
+    static const int DEF_RECVEP   = 2;
 
     explicit DTU();
 
@@ -179,74 +179,74 @@ public:
         return inst;
     }
 
-    void configure(int i, label_t label, int coreid, int chanid, word_t credits) {
-        configure(const_cast<word_t*>(_epregs), i, label, coreid, chanid, credits);
+    void configure(int i, label_t label, int coreid, int epid, word_t credits) {
+        configure(const_cast<word_t*>(_epregs), i, label, coreid, epid, credits);
     }
-    static void configure(word_t *eps, int i, label_t label, int coreid, int chanid, word_t credits) {
+    static void configure(word_t *eps, int i, label_t label, int coreid, int epid, word_t credits) {
         eps[i * EPS_RCNT + EP_LABEL] = label;
         eps[i * EPS_RCNT + EP_COREID] = coreid;
-        eps[i * EPS_RCNT + EP_CHANID] = chanid;
+        eps[i * EPS_RCNT + EP_EPID] = epid;
         eps[i * EPS_RCNT + EP_CREDITS] = credits;
     }
 
-    void configure_recv(int chan, uintptr_t buf, uint order, uint msgorder, int flags);
+    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    void send(int chan, const void *msg, size_t size, label_t replylbl, int replychan) {
-        fire(chan, SEND, msg, size, 0, 0, replylbl, replychan);
+    void send(int ep, const void *msg, size_t size, label_t replylbl, int replyep) {
+        fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
     }
-    void reply(int chan, const void *msg, size_t size, size_t msgidx) {
-        fire(chan, REPLY, msg, size, msgidx, 0, label_t(), 0);
+    void reply(int ep, const void *msg, size_t size, size_t msgidx) {
+        fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
     }
-    void read(int chan, void *msg, size_t size, size_t off) {
-        fire(chan, READ, msg, size, off, size, label_t(), 0);
+    void read(int ep, void *msg, size_t size, size_t off) {
+        fire(ep, READ, msg, size, off, size, label_t(), 0);
     }
-    void write(int chan, const void *msg, size_t size, size_t off) {
-        fire(chan, WRITE, msg, size, off, size, label_t(), 0);
+    void write(int ep, const void *msg, size_t size, size_t off) {
+        fire(ep, WRITE, msg, size, off, size, label_t(), 0);
     }
-    void cmpxchg(int chan, const void *msg, size_t msgsize, size_t off, size_t size) {
-        fire(chan, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
+    void cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {
+        fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
     }
-    void sendcrd(int chan, int crdchan, size_t size) {
-        set_cmd(CMD_CHANID, chan);
+    void sendcrd(int ep, int crdep, size_t size) {
+        set_cmd(CMD_EPID, ep);
         set_cmd(CMD_SIZE, size);
-        set_cmd(CMD_OFFSET, crdchan);
+        set_cmd(CMD_OFFSET, crdep);
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
 
-    bool uses_header(int chan) {
-        return ~get_ep(chan, EP_BUF_FLAGS) & FLAG_NO_HEADER;
+    bool uses_header(int ep) {
+        return ~get_ep(ep, EP_BUF_FLAGS) & FLAG_NO_HEADER;
     }
 
-    bool fetch_msg(int chan) {
-        return get_ep(chan, EP_BUF_MSGCNT) > 0;
+    bool fetch_msg(int ep) {
+        return get_ep(ep, EP_BUF_MSGCNT) > 0;
     }
 
-    DTU::Message *message(int chan) const {
-        size_t off = get_ep(chan, EP_BUF_ROFF);
-        word_t addr = get_ep(chan, EP_BUF_ADDR);
-        size_t ord = get_ep(chan, EP_BUF_ORDER);
+    DTU::Message *message(int ep) const {
+        size_t off = get_ep(ep, EP_BUF_ROFF);
+        word_t addr = get_ep(ep, EP_BUF_ADDR);
+        size_t ord = get_ep(ep, EP_BUF_ORDER);
         return reinterpret_cast<Message*>(addr + (off & ((1UL << ord) - 1)));
     }
-    Message *message_at(int chan, size_t msgidx) const {
-        word_t addr = get_ep(chan, EP_BUF_ADDR);
-        size_t ord = get_ep(chan, EP_BUF_ORDER);
-        size_t msgord = get_ep(chan, EP_BUF_MSGORDER);
+    Message *message_at(int ep, size_t msgidx) const {
+        word_t addr = get_ep(ep, EP_BUF_ADDR);
+        size_t ord = get_ep(ep, EP_BUF_ORDER);
+        size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
         return reinterpret_cast<Message*>(addr + ((msgidx << msgord) & ((1UL << ord) - 1)));
     }
 
-    size_t get_msgoff(int chan, RecvGate *rcvgate) const {
-        return get_msgoff(chan, rcvgate, message(chan));
+    size_t get_msgoff(int ep, RecvGate *rcvgate) const {
+        return get_msgoff(ep, rcvgate, message(ep));
     }
-    size_t get_msgoff(int chan, RecvGate *, const Message *msg) const {
-        word_t addr = get_ep(chan, EP_BUF_ADDR);
-        size_t ord = get_ep(chan, EP_BUF_MSGORDER);
+    size_t get_msgoff(int ep, RecvGate *, const Message *msg) const {
+        word_t addr = get_ep(ep, EP_BUF_ADDR);
+        size_t ord = get_ep(ep, EP_BUF_MSGORDER);
         return (reinterpret_cast<word_t>(msg) - addr) >> ord;
     }
 
-    void ack_message(int chan) {
-        set_cmd(CMD_CHANID, chan);
+    void ack_message(int ep) {
+        set_cmd(CMD_EPID, ep);
         set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
-        wait_until_ready(chan);
+        wait_until_ready(ep);
     }
 
     bool is_ready() {
@@ -262,17 +262,17 @@ public:
             wait();
     }
 
-    void fire(int chan, int op, const void *msg, size_t size, size_t offset, size_t len,
-            label_t replylbl, int replychan) {
+    void fire(int ep, int op, const void *msg, size_t size, size_t offset, size_t len,
+            label_t replylbl, int replyep) {
         assert(((uintptr_t)msg & (DTU_PKG_SIZE - 1)) == 0);
         assert((size & (DTU_PKG_SIZE - 1)) == 0);
         set_cmd(CMD_ADDR, reinterpret_cast<word_t>(msg));
         set_cmd(CMD_SIZE, size);
-        set_cmd(CMD_CHANID, chan);
+        set_cmd(CMD_EPID, ep);
         set_cmd(CMD_OFFSET, offset);
         set_cmd(CMD_LENGTH, len);
         set_cmd(CMD_REPLYLBL, replylbl);
-        set_cmd(CMD_REPLY_CHANID, replychan);
+        set_cmd(CMD_REPLY_EPID, replyep);
         if(op == REPLY)
             set_cmd(CMD_CTRL, (op << 3) | CTRL_START);
         else
@@ -289,29 +289,29 @@ public:
     bool wait();
 
 private:
-    int prepare_reply(int chanid, int &dstcore, int &dstchan);
-    int prepare_send(int chanid, int &dstcore, int &dstchan);
-    int prepare_read(int chanid, int &dstcore, int &dstchan);
-    int prepare_write(int chanid, int &dstcore, int &dstchan);
-    int prepare_cmpxchg(int chanid, int &dstcore, int &dstchan);
-    int prepare_sendcrd(int chanid, int &dstcore, int &dstchan);
-    int prepare_ackmsg(int chanid);
+    int prepare_reply(int epid, int &dstcore, int &dstep);
+    int prepare_send(int epid, int &dstcore, int &dstep);
+    int prepare_read(int epid, int &dstcore, int &dstep);
+    int prepare_write(int epid, int &dstcore, int &dstep);
+    int prepare_cmpxchg(int epid, int &dstcore, int &dstep);
+    int prepare_sendcrd(int epid, int &dstcore, int &dstep);
+    int prepare_ackmsg(int epid);
 
-    void send_msg(int chanid, int dstcoreid, int dstchanid, bool isreply);
-    void handle_read_cmd(int chanid);
-    void handle_write_cmd(int chanid);
+    void send_msg(int epid, int dstcoreid, int dstepid, bool isreply);
+    void handle_read_cmd(int epid);
+    void handle_write_cmd(int epid);
     void handle_resp_cmd();
-    void handle_cmpxchg_cmd(int chanid);
+    void handle_cmpxchg_cmd(int epid);
     void handle_command(int core);
     void handle_receive(int i);
 
-    static int check_cmd(int chan, int op, word_t addr, word_t credits, size_t offset, size_t length);
+    static int check_cmd(int ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
     static void *thread(void *arg);
 
     volatile bool _run;
     volatile word_t _cmdregs[CMDS_RCNT];
     // have to be aligned by 8 because it shouldn't collide with MemGate::RWX bits
-    alignas(8) volatile word_t _epregs[EPS_RCNT * CHAN_COUNT];
+    alignas(8) volatile word_t _epregs[EPS_RCNT * EP_COUNT];
     Backend *_backend;
     pthread_t _tid;
     static Buffer _buf;

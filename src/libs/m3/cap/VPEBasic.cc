@@ -26,7 +26,7 @@ VPE VPE::_self INIT_PRIORITY(102);
 
 VPE::VPE(const String &name, const String &core)
         : Cap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
-          _caps(new BitField<SEL_TOTAL>()), _chans(new BitField<CHAN_COUNT>()),
+          _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
           _mounts(), _mountlen() {
     init();
     Syscalls::get().createvpe(sel(), _mem.sel(), name, core);
@@ -38,7 +38,7 @@ VPE::~VPE() {
         EPMux::get().remove(&_mem, true);
         // only free that if it's not our own VPE. 1. it doesn't matter in this case and 2. it might
         // be stored not on the heap but somewhere else
-        delete _chans;
+        delete _eps;
         delete _caps;
         Heap::free(_mounts);
     }
@@ -47,9 +47,9 @@ VPE::~VPE() {
 void VPE::init() {
     _caps->set(0);
     _caps->set(1);
-    _chans->set(DTU::SYSC_CHAN);
-    _chans->set(DTU::MEM_CHAN);
-    _chans->set(DTU::DEF_RECVCHAN);
+    _eps->set(DTU::SYSC_EP);
+    _eps->set(DTU::MEM_EP);
+    _eps->set(DTU::DEF_RECVEP);
 }
 
 capsel_t VPE::alloc_caps(uint count) {
@@ -79,12 +79,12 @@ retry:
     return res;
 }
 
-size_t VPE::alloc_chan() {
-    size_t chan = _chans->first_clear();
-    if(chan >= CHAN_COUNT)
-        PANIC("No more free channels");
-    _chans->set(chan);
-    return chan;
+size_t VPE::alloc_ep() {
+    size_t ep = _eps->first_clear();
+    if(ep >= EP_COUNT)
+        PANIC("No more free endpoints");
+    _eps->set(ep);
+    return ep;
 }
 
 void VPE::delegate(const CapRngDesc &crd) {

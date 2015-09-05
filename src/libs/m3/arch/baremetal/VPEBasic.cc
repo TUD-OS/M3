@@ -23,7 +23,7 @@
 namespace m3 {
 
 void VPE::init_state() {
-    delete _chans;
+    delete _eps;
     delete _caps;
     Heap::free(_mounts);
 
@@ -31,9 +31,9 @@ void VPE::init_state() {
     if(_caps == nullptr)
         _caps = new BitField<CAP_TOTAL>();
 
-    _chans = *reinterpret_cast<BitField<CHAN_COUNT>**>(BOOT_CHANS);
-    if(_chans == nullptr)
-        _chans = new BitField<CHAN_COUNT>();
+    _eps = *reinterpret_cast<BitField<EP_COUNT>**>(BOOT_EPS);
+    if(_eps == nullptr)
+        _eps = new BitField<EP_COUNT>();
 
     _mounts = *reinterpret_cast<void**>(BOOT_MOUNTS);
     _mountlen = *reinterpret_cast<size_t*>(BOOT_MOUNTLEN);

@@ -41,7 +41,7 @@ static const size_t SUBMEM_SIZE = MEM_SIZE / VPE_COUNT;
 static const size_t BUF_SIZE    = 4096;
 
 int main() {
-    RecvBuf rbuf = RecvBuf::create(VPE::self().alloc_chan(),
+    RecvBuf rbuf = RecvBuf::create(VPE::self().alloc_ep(),
         nextlog2<VPE_COUNT * (DTU_PKG_SIZE + DTU::HEADER_SIZE)>::val, 0);
     RecvGate rgate = RecvGate::create(&rbuf);
 

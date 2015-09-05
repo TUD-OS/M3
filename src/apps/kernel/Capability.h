@@ -93,23 +93,23 @@ private:
 
 class MsgObject : public RefCounted {
 public:
-    explicit MsgObject(label_t _label, int _core, int _chanid, word_t _credits)
-        : RefCounted(), label(_label), core(_core), chanid(_chanid), credits(_credits), derived(false) {
+    explicit MsgObject(label_t _label, int _core, int _epid, word_t _credits)
+        : RefCounted(), label(_label), core(_core), epid(_epid), credits(_credits), derived(false) {
     }
     virtual ~MsgObject() {
     }
 
     label_t label;
     int core;
-    int chanid;
+    int epid;
     word_t credits;
     bool derived;
 };
 
 class MemObject : public MsgObject {
 public:
-    explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int chanid)
-        : MsgObject(addr | perms, core, chanid, size) {
+    explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int epid)
+        : MsgObject(addr | perms, core, epid, size) {
         assert((addr & MemGate::RWX) == 0);
     }
     virtual ~MemObject();
@@ -128,12 +128,12 @@ public:
 class MsgCapability : public Capability {
 protected:
     explicit MsgCapability(unsigned type, MsgObject *_obj)
-        : Capability(type), localchanid(-1), obj(_obj) {
+        : Capability(type), localepid(-1), obj(_obj) {
     }
 
 public:
-    explicit MsgCapability(label_t label, int core, int chanid, word_t credits)
-        : MsgCapability(MSG, new MsgObject(label, core, chanid, credits)) {
+    explicit MsgCapability(label_t label, int core, int epid, word_t credits)
+        : MsgCapability(MSG, new MsgObject(label, core, epid, credits)) {
     }
 
     void print(OStream &os) const;
@@ -142,19 +142,19 @@ protected:
     virtual Errors::Code revoke() override;
     virtual Capability *clone() override {
         MsgCapability *c = new MsgCapability(*this);
-        c->localchanid = -1;
+        c->localepid = -1;
         return c;
     }
 
 public:
-    int localchanid;
+    int localepid;
     Reference<MsgObject> obj;
 };
 
 class MemCapability : public MsgCapability {
 public:
-    explicit MemCapability(uintptr_t addr, size_t size, uint perms, int core, int chanid)
-        : MsgCapability(MEM | MSG, new MemObject(addr, size, perms, core, chanid)) {
+    explicit MemCapability(uintptr_t addr, size_t size, uint perms, int core, int epid)
+        : MsgCapability(MEM | MSG, new MemObject(addr, size, perms, core, epid)) {
     }
 
     void print(OStream &os) const;
@@ -162,7 +162,7 @@ public:
 private:
     virtual Capability *clone() override {
         MemCapability *c = new MemCapability(*this);
-        c->localchanid = -1;
+        c->localepid = -1;
         return c;
     }
 };

@@ -18,6 +18,6 @@
 
 namespace m3 {
 
-RecvBufs::RBuf RecvBufs::_rbufs[AVAIL_PES * CHAN_COUNT];
+RecvBufs::RBuf RecvBufs::_rbufs[AVAIL_PES * EP_COUNT];
 
 }

@@ -45,7 +45,7 @@ public:
     size_t size() const {
         return _size;
     }
-    size_t channel() const {
+    size_t epid() const {
         return 0;
     }
     MemoryMap &map() {
