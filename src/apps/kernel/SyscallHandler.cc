@@ -26,8 +26,6 @@
 extern int int_target;
 #endif
 
-size_t tempep;
-
 namespace m3 {
 
 SyscallHandler SyscallHandler::_inst;
@@ -59,6 +57,12 @@ SyscallHandler::SyscallHandler()
             nextlog2<AVAIL_PES>::val + KVPE::SYSC_CREDIT_ORD, KVPE::SYSC_CREDIT_ORD, 0)),
           _srvrcvbuf(RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<1024>::val, nextlog2<256>::val, 0)) {
+    // configure both receive buffers (we need to do that manually in the kernel)
+    KDTU::get().config_recv_local(_rcvbuf.epid(), reinterpret_cast<uintptr_t>(_rcvbuf.addr()),
+        _rcvbuf.order(), _rcvbuf.msgorder(), _rcvbuf.flags());
+    KDTU::get().config_recv_local(_srvrcvbuf.epid(), reinterpret_cast<uintptr_t>(_srvrcvbuf.addr()),
+        _srvrcvbuf.order(), _srvrcvbuf.msgorder(), _srvrcvbuf.flags());
+
     add_operation(Syscalls::CREATESRV, &SyscallHandler::createsrv);
     add_operation(Syscalls::CREATESESS, &SyscallHandler::createsess);
     add_operation(Syscalls::CREATEGATE, &SyscallHandler::creategate);
@@ -78,9 +82,6 @@ SyscallHandler::SyscallHandler()
 #if defined(__host__)
     add_operation(Syscalls::INIT, &SyscallHandler::init);
 #endif
-
-    tempep = VPE::self().alloc_ep();
-    EPMux::get().reserve(tempep);
 }
 
 void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
@@ -122,11 +123,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 }
 
 static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    DTU::get().configure(tempep, info.replylbl, vpe.core(), info.replyep, size + DTU::HEADER_SIZE);
-    DTU::get().sendcrd(tempep, info.crdep, info.replycrd);
-    DTU::get().wait_until_ready(tempep);
-    DTU::get().send(tempep, msg, size, 0, 0);
-    DTU::get().wait_until_ready(tempep);
+    KDTU::get().reply_to(vpe.core(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
 void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {

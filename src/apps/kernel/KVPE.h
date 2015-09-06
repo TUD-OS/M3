@@ -59,7 +59,6 @@ public:
     void exit(int exitcode);
 
     void activate_sysc_ep(void *addr);
-    void invalidate_eps();
     Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     int id() const {

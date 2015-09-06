@@ -25,14 +25,10 @@
 
 namespace m3 {
 
-class KVPE;
-class RecvBufs;
-class PEManager;
+class KDTU;
 
 class DTU {
-    friend class KVPE;
-    friend class RecvBufs;
-    friend class PEManager;
+    friend class KDTU;
 
     explicit DTU() {
     }
@@ -125,7 +121,7 @@ public:
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
-    static const int FLAG_NO_HEADER         = 0;
+    static const int FLAG_NO_HEADER         = 1;
 
     static const int MEM_EP                 = 0;    // unused
     static const int SYSC_EP                = 0;
@@ -135,48 +131,12 @@ public:
         return inst;
     }
 
-    void configure(int ep, label_t label, int coreid, int epid, word_t credits) {
-        EpRegs *e = ep_regs(ep);
-        e->label = label;
-        e->targetCoreId = coreid;
-        e->targetEpId = epid;
-        e->credits = credits;
-        // TODO that's not correct
-        e->maxMsgSize = credits;
-    }
-
-    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int) {
-        EpRegs *e = ep_regs(ep);
-        e->bufAddr = buf;
-        e->bufReadPtr = buf;
-        e->bufWritePtr = buf;
-        e->bufSize = static_cast<size_t>(1) << (order - msgorder);
-        e->bufMsgSize = static_cast<size_t>(1) << msgorder;
-        e->bufMsgCnt = 0;
-    }
-
-    void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
-        EpRegs *e = ep_regs(ep);
-        e->targetCoreId = coreid;
-        e->reqRemoteAddr = addr;
-        e->reqRemoteSize = size;
-        e->reqFlags = R | W;
-    }
-
     void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
     void reply(int ep, const void *msg, size_t size, size_t msgidx);
     void read(int ep, void *msg, size_t size, size_t off);
     void write(int ep, const void *msg, size_t size, size_t off);
-
     void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
         // TODO unsupported
-    }
-    void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
-        // TODO unsupported
-    }
-
-    bool uses_header(int) {
-        return true;
     }
 
     bool fetch_msg(int epid) {

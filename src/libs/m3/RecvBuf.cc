@@ -23,7 +23,7 @@ namespace m3 {
 
 void RecvBuf::RecvBufWorkItem::work() {
     DTU &dtu = DTU::get();
-    assert(_epid != UNBOUND && dtu.uses_header(_epid));
+    assert(_epid != UNBOUND);
     if(dtu.fetch_msg(_epid)) {
         DTU::Message *msg = dtu.message(_epid);
         LOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
@@ -38,13 +38,11 @@ void RecvBuf::attach(size_t i) {
         // first reserve the endpoint; we might need to invalidate it
         EPMux::get().reserve(i);
 
-#if !defined(__t3__)
-        // always required for t3 because one can't write to these registers externally
-        if(coreid() == KERNEL_CORE) {
-#endif
+#if defined(__t3__)
+        if(coreid() != KERNEL_CORE) {
+            // required for t3 because one can't write to these registers externally
             DTU::get().configure_recv(i, reinterpret_cast<word_t>(_buf), _order, _msgorder,
                 _flags & ~DELETE_BUF);
-#if !defined(__t3__)
         }
 #endif
 
@@ -57,7 +55,7 @@ void RecvBuf::attach(size_t i) {
         // if we may receive messages from the endpoint, create a worker for it
         // TODO hack for host: we don't want to do that for MEM_EP but know that only afterwards
         // because the EPs are not initialized yet
-        if(i != DTU::MEM_EP && DTU::get().uses_header(i)) {
+        if(i != DTU::MEM_EP && (~_flags & DTU::FLAG_NO_HEADER)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
                 WorkLoop::get().add(_workitem, i == DTU::MEM_EP || i == DTU::DEF_RECVEP);

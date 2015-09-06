@@ -27,7 +27,13 @@
 
 namespace m3 {
 
+class KDTU;
+class RecvBuf;
+
 class DTU {
+    friend class KDTU;
+    friend class RecvBuf;
+
     static const uintptr_t DRAM_START       = 0x8000;
 
     explicit DTU() {
@@ -62,7 +68,7 @@ public:
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
-    static const int FLAG_NO_HEADER         = 0;
+    static const int FLAG_NO_HEADER         = 1;
 
     static const int MEM_EP                 = 0;
     static const int SYSC_EP                = 1;
@@ -82,18 +88,6 @@ public:
 
     void reset();
 
-    void configure(int i, label_t label, int coreid, int epid, word_t credits) {
-        EPConf *cfg = conf(i);
-        cfg->label = label;
-        cfg->dstcore = coreid;
-        cfg->dstep = epid;
-        cfg->credits = credits;
-    }
-
-    void configure_recv(UNUSED int ep, UNUSED uintptr_t buf, UNUSED uint order, UNUSED uint msgorder, UNUSED int flags) {
-        // nothing to do
-    }
-
     void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
     void reply(int ep, const void *msg, size_t size, size_t msgidx);
     void read(int ep, void *msg, size_t size, size_t off);
@@ -101,10 +95,6 @@ public:
     void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
     }
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
-    }
-
-    bool uses_header(int) {
-        return true;
     }
 
     bool fetch_msg(int ep);
@@ -150,11 +140,6 @@ public:
         return true;
     }
 
-    size_t recvbuf_offset(int core, int ep) {
-        assert(core >= FIRST_PE_ID);
-        return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
-    }
-
     void set_target(int, uchar dst, uintptr_t addr) {
         volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
         ptr[PE_DMA_REG_TARGET]      = dst;
@@ -180,6 +165,11 @@ public:
     }
 
 private:
+    size_t recvbuf_offset(int core, int ep) {
+        assert(core >= FIRST_PE_ID);
+        return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
+    }
+
     void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);
 
     EPConf *conf(int ep) {

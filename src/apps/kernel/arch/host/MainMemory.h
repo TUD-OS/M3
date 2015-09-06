@@ -23,6 +23,7 @@
 #include <sys/mman.h>
 
 #include "../../MemoryMap.h"
+#include "../../KDTU.h"
 
 namespace m3 {
 
@@ -32,6 +33,11 @@ class MainMemory {
               _size(DRAM_SIZE), _map(addr(), DRAM_SIZE),
               _rbuf(RecvBuf::create(VPE::self().alloc_ep(), 0,
                       RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)) {
+        // needs to be done manually in the kernel
+        KDTU::get().config_recv_local(_rbuf.epid(),
+            reinterpret_cast<uintptr_t>(_rbuf.addr()), _rbuf.order(), _rbuf.msgorder(),
+            _rbuf.flags());
+
         if(_addr == MAP_FAILED)
             PANIC("mmap failed: " << strerror(errno));
         LOG(DEF, "Mapped " << (DRAM_SIZE / 1024 / 1024) << " MiB of main memory @ " << _addr);
@@ -62,7 +68,6 @@ private:
     void *_addr;
     size_t _size;
     MemoryMap _map;
-    // is used only to set the msgqid
     m3::RecvBuf _rbuf;
     static MainMemory _inst;
 };

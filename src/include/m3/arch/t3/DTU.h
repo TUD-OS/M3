@@ -26,10 +26,10 @@
 
 namespace m3 {
 
-class KVPE;
+class KDTU;
 
 class DTU {
-    friend class KVPE;
+    friend class KDTU;
 
     static const uintptr_t DRAM_START       = 0x8000;
 
@@ -65,7 +65,7 @@ public:
 
     // TODO not yet supported
     static const int FLAG_NO_RINGBUF        = 0;
-    static const int FLAG_NO_HEADER         = 0;
+    static const int FLAG_NO_HEADER         = 1;
 
     static const int MEM_EP                 = 0;    // unused
     static const int SYSC_EP                = 0;
@@ -101,10 +101,6 @@ public:
     void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
     }
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
-    }
-
-    bool uses_header(int) {
-        return true;
     }
 
     bool fetch_msg(int ep) {

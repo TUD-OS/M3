@@ -213,10 +213,6 @@ public:
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
 
-    bool uses_header(int ep) {
-        return ~get_ep(ep, EP_BUF_FLAGS) & FLAG_NO_HEADER;
-    }
-
     bool fetch_msg(int ep) {
         return get_ep(ep, EP_BUF_MSGCNT) > 0;
     }

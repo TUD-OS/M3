@@ -23,6 +23,8 @@
 #include <m3/DTU.h>
 #include <m3/Errors.h>
 
+#include "KDTU.h"
+
 namespace m3 {
 
 class RecvBufs {
@@ -85,7 +87,10 @@ public:
     }
 
 private:
-    static void configure(size_t coreid, size_t epid, RBuf &rbuf);
+    static void configure(size_t coreid, size_t epid, RBuf &rbuf) {
+        KDTU::get().config_recv_remote(coreid, epid,
+            rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & F_ATTACHED);
+    }
 
     static void notify(RBuf &rbuf, bool success) {
         for(auto sub = rbuf.waitlist.begin(); sub != rbuf.waitlist.end(); ) {

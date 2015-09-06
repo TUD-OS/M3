@@ -14,14 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
-#include <m3/Log.h>
+#include <m3/Common.h>
 
-#include "../../RecvBufs.h"
+#include "KDTU.h"
 
 namespace m3 {
 
-void RecvBufs::configure(size_t, size_t, RBuf &) {
-}
+KDTU KDTU::_inst;
 
 }

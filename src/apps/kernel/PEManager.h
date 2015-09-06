@@ -22,6 +22,7 @@
 #include "MainMemory.h"
 #include "SyscallHandler.h"
 #include "KVPE.h"
+#include "KDTU.h"
 
 namespace m3 {
 
@@ -107,7 +108,10 @@ public:
     }
 
 private:
-    void deprivilege_pes();
+    void deprivilege_pes() {
+        for(int i = 0; i < AVAIL_PES; ++i)
+            KDTU::get().deprivilege(APP_CORES + i);
+    }
 
     bool core_matches(size_t i, const char *core) const;
     static m3::String path_to_name(const m3::String &path, const char *suffix);

@@ -58,6 +58,7 @@
 #define DEF_RCVBUF          (STATE_SPACE - DEF_RCVBUF_SIZE)
 
 #define CONF_LOCAL          (DEF_RCVBUF - sizeof(word_t) * 2)
+#define CONF_GLOBAL         CONF_LOCAL
 
 // end of space for runtime
 #define RT_SPACE_END        CONF_LOCAL

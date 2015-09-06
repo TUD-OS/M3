@@ -32,7 +32,11 @@ public:
         if(newcap != Cap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
-            DTU::get().configure(id, c->obj->label, c->obj->core, c->obj->epid, c->obj->credits);
+
+            // TODO we need the max msg size
+            KDTU::get().config_send_local(id,
+                c->obj->label, c->obj->core, c->obj->epid, c->obj->credits, c->obj->credits);
+
             LOG(IPC, "Kernel programs ep[" << id << "] to "
                 << "core=" << c->obj->core << ", ep=" << c->obj->epid
                 << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
