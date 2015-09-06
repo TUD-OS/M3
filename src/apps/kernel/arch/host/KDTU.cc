@@ -49,12 +49,13 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
     config_recv(DTU::get().ep_regs() + (ep * DTU::EPS_RCNT), buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, bool valid) {
+void KDTU::config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
+        bool valid) {
     word_t regs[DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));
 
     if(valid)
-        config_recv(regs, buf, order, msgorder, 0);
+        config_recv(regs, buf, order, msgorder, flags);
 
     PEManager::get().vpe(core - APP_CORES).seps_gate().write_sync(
         regs, sizeof(regs), ep * sizeof(word_t) * DTU::EPS_RCNT);

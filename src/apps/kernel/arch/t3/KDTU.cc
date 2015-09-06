@@ -52,7 +52,7 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
     DTU::get().configure_recv(ep, buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(int, int, uintptr_t, uint, uint, bool) {
+void KDTU::config_recv_remote(int, int, uintptr_t, uint, uint, int, bool) {
     // nothing to do; can only be done locally atm
 }
 

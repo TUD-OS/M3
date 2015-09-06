@@ -38,7 +38,7 @@ public:
     void invalidate_eps(int core);
 
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, bool valid);
+    void config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
 
     void config_send_local(int ep, label_t label, int dstcore, int dstep, size_t msgsize, word_t credits);
     void config_send_remote(int core, int ep, label_t label, int dstcore, int dstep, size_t msgsize, word_t credits);

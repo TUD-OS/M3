@@ -53,7 +53,7 @@ void KDTU::config_recv_local(int, uintptr_t, uint, uint, int) {
     // nothing to do; everything is always ready and fixed on T2 for receiving
 }
 
-void KDTU::config_recv_remote(int, int, uintptr_t, uint, uint, bool) {
+void KDTU::config_recv_remote(int, int, uintptr_t, uint, uint, int, bool) {
     // nothing to do; everything is always ready and fixed on T2 for receiving
 }
 

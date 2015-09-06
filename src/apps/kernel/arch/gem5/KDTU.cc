@@ -70,12 +70,13 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
     config_recv(DTU::get().ep_regs(ep), buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, bool valid) {
+void KDTU::config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
+        bool valid) {
     DTU::EpRegs e;
     memset(&e, 0, sizeof(e));
 
     if(valid)
-        config_recv(&e, buf, order, msgorder, 0);
+        config_recv(&e, buf, order, msgorder, flags);
 
     // write to PE
     Sync::compiler_barrier();

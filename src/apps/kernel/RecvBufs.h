@@ -89,7 +89,7 @@ public:
 private:
     static void configure(size_t coreid, size_t epid, RBuf &rbuf) {
         KDTU::get().config_recv_remote(coreid, epid,
-            rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & F_ATTACHED);
+            rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
     }
 
     static void notify(RBuf &rbuf, bool success) {
