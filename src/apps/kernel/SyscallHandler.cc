@@ -102,11 +102,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     capsel_t kcap = VPE::self().alloc_cap();
     CapTable::kernel_table().obtain(kcap, gatecap);
 
-#if defined(__t2__)
-    int capacity = 1;
-#else
     int capacity = 1;   // TODO this depends on the credits that the kernel has
-#endif
     Service *s = ServiceList::get().add(*vpe, srv, name, kcap, capacity);
     vpe->capabilities().set(srv, new ServiceCapability(s));
 
