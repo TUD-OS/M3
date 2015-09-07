@@ -15,6 +15,7 @@
  */
 
 #include <m3/stream/Serial.h>
+#include <m3/util/Math.h>
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 #include <m3/Machine.h>
@@ -38,8 +39,16 @@ int Machine::write(const char *str, size_t len) {
     return 0;
 }
 
-ssize_t Machine::read(char *, size_t) {
-    return 0;
+ssize_t Machine::read(char *dst, UNUSED size_t max) {
+    volatile uint *wait = reinterpret_cast<volatile uint*>(SERIAL_INWAIT);
+    char *buffer = reinterpret_cast<char*>(SERIAL_BUF);
+    assert(max <= SERIAL_BUFSIZE);
+    *wait = 1;
+    while(*wait)
+        ;
+    size_t len = strlen(buffer);
+    memcpy(dst, buffer, Math::min(max, len));
+    return len;
 }
 
 }

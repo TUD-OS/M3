@@ -28,6 +28,7 @@ int main() {
     cout << "ARGV_SIZE = "          << ARGV_SIZE << "\n";
     cout << "ARGV_START = "         << ARGV_START << "\n";
     cout << "SERIAL_ACK = "         << SERIAL_ACK << "\n";
+    cout << "SERIAL_INWAIT = "      << SERIAL_INWAIT << "\n";
     cout << "SERIAL_BUFSIZE = "     << SERIAL_BUFSIZE << "\n";
     cout << "SERIAL_BUF = "         << SERIAL_BUF << "\n";
     cout << "BOOT_ENTRY = "         << BOOT_ENTRY << "\n";

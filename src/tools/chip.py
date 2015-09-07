@@ -2,6 +2,7 @@
 
 import tomahawk as th
 import sys
+import select
 import time
 import ConfigParser
 import StringIO
@@ -16,7 +17,9 @@ ARGV_ADDR = int(config.get("memlayout", "ARGV_ADDR"))
 ARGV_SIZE = int(config.get("memlayout", "ARGV_SIZE"))
 ARGV_START = int(config.get("memlayout", "ARGV_START"))
 SERIAL_ACK = int(config.get("memlayout", "SERIAL_ACK"))
+SERIAL_INWAIT = int(config.get("memlayout", "SERIAL_INWAIT"))
 SERIAL_BUF = int(config.get("memlayout", "SERIAL_BUF"))
+SERIAL_BUFSIZE = int(config.get("memlayout", "SERIAL_BUFSIZE"))
 BOOT_ENTRY = int(config.get("memlayout", "BOOT_ENTRY"))
 BOOT_SP = int(config.get("memlayout", "BOOT_SP"))
 BOOT_EPS = int(config.get("memlayout", "BOOT_EPS"))
@@ -105,8 +108,15 @@ def initMem(core, argv):
 
     # clear core config
     core.mem[SERIAL_ACK] = 0
+    core.mem[SERIAL_INWAIT] = 0
     for a in range(0, CORE_CONF_SIZE, 8):
         core.mem[CORE_CONF + a] = 0
+
+def writeStr(core, str, addr):
+    for v in stringToInt64s(str):
+        core.mem[addr] = v
+        addr += 8
+    core.mem[addr] = 0
 
 def fetchPrint(core, id):
     length = core.mem[SERIAL_ACK] & 0xFFFFFFFF
@@ -268,17 +278,34 @@ if sys.argv[3] != "-":
     th.app_core.on()
 
 t0 = time.time()
+inpe = -1
 run = True
 while run:
     i = 0
     counter = 0
     for duo_pe in th.duo_pes:
+        # input
+        if inpe == -1 and duo_pe.mem[SERIAL_INWAIT] == 1:
+            inpe = i
+
+        # output
         res = fetchPrint(duo_pe, i)
         if res == 2:
             run = False
         else:
             counter += res
         i += 1
+
+    # if somebody is waiting, check if there is input and write it to the PE, if so.
+    if inpe != -1:
+        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+            line = sys.stdin.readline()
+            # 64 is the limit of the input buffer, atm.
+            if len(line) >= 64:
+                line = line[:64 - 1] + '\n'
+            writeStr(th.duo_pes[inpe], line, SERIAL_BUF)
+            th.duo_pes[inpe].mem[SERIAL_INWAIT] = 0
+            inpe = -1
 
     # if nobody wanted to print something, take a break
     if counter == 0:

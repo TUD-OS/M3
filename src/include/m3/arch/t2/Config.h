@@ -65,8 +65,9 @@
 #define ARGV_START          (ARGV_ADDR - ARGV_SIZE)
 
 #define SERIAL_ACK          (ARGV_START - 8)
+#define SERIAL_INWAIT       (SERIAL_ACK - 8)
 #define SERIAL_BUFSIZE      0x100
-#define SERIAL_BUF          (SERIAL_ACK - SERIAL_BUFSIZE)
+#define SERIAL_BUF          (SERIAL_INWAIT - SERIAL_BUFSIZE)
 
 #define BOOT_SP             (SERIAL_BUF - 8)
 #define BOOT_ENTRY          (BOOT_SP - 8)
