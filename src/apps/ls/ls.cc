@@ -17,7 +17,6 @@
 #include <m3/Common.h>
 #include <m3/stream/Serial.h>
 #include <m3/util/SList.h>
-#include <m3/util/Profile.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/Log.h>
@@ -68,8 +67,6 @@ int main(int argc, char **argv) {
             PANIC("Mounting root-fs failed");
     }
 
-    cycles_t start = Profile::start(0);
-
     const char *dirname = argv[1];
     Dir dir(dirname);
     if(Errors::occurred())
@@ -100,8 +97,5 @@ int main(int argc, char **argv) {
         printMode(s, files[i].info.mode);
         s << ' ' << files[i].info.links << ' ' << files[i].info.size << ' ' << files[i].name << '\n';
     }
-
-    cycles_t end = Profile::stop(0);
-    Serial::get() << "Total time: " << (end - start) << " cycles\n";
     return 0;
 }
