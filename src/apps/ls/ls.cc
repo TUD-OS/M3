@@ -63,8 +63,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Mounting root-fs failed");
+    }
 
     cycles_t start = Profile::start(0);
 

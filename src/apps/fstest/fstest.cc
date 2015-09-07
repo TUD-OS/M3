@@ -31,8 +31,10 @@ using namespace m3;
 alignas(DTU_PKG_SIZE) static char buffer[1024 + 1];
 
 int main() {
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Mounting root-fs failed");
+    }
 
     {
         const char *dirname = "/largedir";

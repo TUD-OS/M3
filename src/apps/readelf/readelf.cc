@@ -88,8 +88,10 @@ int main(int argc, char **argv) {
     if(argc < 2)
         PANIC("Usage: " << argv[0] << " <bin>");
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR)
-        PANIC("Unable to mount m3fs: " << Errors::to_string(Errors::last));
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Mounting root-fs failed");
+    }
 
     FStream bin(argv[1], FILE_R);
     if(Errors::occurred())
