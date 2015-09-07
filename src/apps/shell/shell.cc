@@ -48,6 +48,13 @@ static const char **parseArgs(const char *line, int *argc) {
     *argc = j + 1;
     args[j][i] = '\0';
     args[j + 1] = NULL;
+
+    // prefix "/bin/" if necessary
+    if(args[0][0] != '/' && strlen(args[0]) + 5 < MAX_ARG_LEN) {
+        memmove(args[0] + 5, args[0], strlen(args[0]) + 1);
+        memcpy(args[0], "/bin/", 5);
+    }
+
     return (const char**)args;
 }
 
