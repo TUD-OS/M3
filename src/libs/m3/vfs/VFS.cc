@@ -39,6 +39,9 @@ static size_t charcount(const char *str, char c) {
             cnt++;
         str++;
     }
+    // if the path does not end with a slash, we have essentially one '/' more
+    if(str[-1] != '/')
+        cnt++;
     return cnt;
 }
 
