@@ -21,16 +21,12 @@
 using namespace std;
 
 int main() {
-#if defined(__t2__) || defined(__t3__)
+#if !defined(__host__)
     cout << "[memlayout]\n";
     cout << "ARGC_ADDR = "          << ARGC_ADDR << "\n";
     cout << "ARGV_ADDR = "          << ARGV_ADDR << "\n";
     cout << "ARGV_SIZE = "          << ARGV_SIZE << "\n";
     cout << "ARGV_START = "         << ARGV_START << "\n";
-    cout << "SERIAL_ACK = "         << SERIAL_ACK << "\n";
-    cout << "SERIAL_INWAIT = "      << SERIAL_INWAIT << "\n";
-    cout << "SERIAL_BUFSIZE = "     << SERIAL_BUFSIZE << "\n";
-    cout << "SERIAL_BUF = "         << SERIAL_BUF << "\n";
     cout << "BOOT_ENTRY = "         << BOOT_ENTRY << "\n";
     cout << "BOOT_SP = "            << BOOT_SP << "\n";
     cout << "BOOT_LAMBDA = "        << BOOT_LAMBDA << "\n";
@@ -41,6 +37,13 @@ int main() {
     cout << "BOOT_EXIT = "          << BOOT_EXIT << "\n";
     cout << "CORE_CONF_SIZE = "     << sizeof(m3::CoreConf) << "\n";
     cout << "CORE_CONF = "          << CONF_LOCAL << "\n";
+#endif
+
+#if defined(__t2__) || defined(__t3__)
+    cout << "SERIAL_ACK = "         << SERIAL_ACK << "\n";
+    cout << "SERIAL_INWAIT = "      << SERIAL_INWAIT << "\n";
+    cout << "SERIAL_BUFSIZE = "     << SERIAL_BUFSIZE << "\n";
+    cout << "SERIAL_BUF = "         << SERIAL_BUF << "\n";
 #endif
 
 #if defined(__t2__)
