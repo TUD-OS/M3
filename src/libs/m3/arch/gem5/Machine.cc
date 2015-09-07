@@ -38,8 +38,13 @@ int Machine::write(const char *str, size_t len) {
     return 0;
 }
 
-ssize_t Machine::read(char *, size_t) {
-    return 0;
+ssize_t Machine::read(char *dst, size_t max) {
+    ssize_t res;
+    asm volatile (
+        "mov 0(%2, %1, 1), %%rax"
+        : "=a"(res) : "r"(0x50 << 8), "r"(0xFFFF0000), "D"(dst), "S"(max), "d"(0)
+    );
+    return res;
 }
 
 }
