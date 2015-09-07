@@ -14,26 +14,72 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/cap/Session.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
+#include <m3/cap/VPE.h>
+#include <m3/vfs/VFS.h>
 #include <m3/Log.h>
 
 using namespace m3;
 
-static void kb_event(RecvGate &gate, Subscriber<RecvGate&> *) {
-    Keyboard::Event ev;
-    GateIStream is(gate);
-    is >> ev;
-    LOG(DEF, "Got " << (unsigned)ev.keycode);
+enum {
+    MAX_ARG_COUNT   = 6,
+    MAX_ARG_LEN     = 64,
+};
+
+static const char **parseArgs(const char *line, int *argc) {
+    static char argvals[MAX_ARG_COUNT][MAX_ARG_LEN];
+    static char *args[MAX_ARG_COUNT];
+    size_t i = 0,j = 0;
+    args[0] = argvals[0];
+    while(*line) {
+        if(Chars::isspace(*line)) {
+            if(args[j][0]) {
+                if(j + 2 >= MAX_ARG_COUNT)
+                    break;
+                args[j][i] = '\0';
+                j++;
+                i = 0;
+                args[j] = argvals[j];
+            }
+        }
+        else if(i < MAX_ARG_LEN)
+            args[j][i++] = *line;
+        line++;
+    }
+    *argc = j + 1;
+    args[j][i] = '\0';
+    args[j + 1] = NULL;
+    return (const char**)args;
 }
 
 int main() {
-    Keyboard kb("keyb");
-    kb.gate().subscribe(kb_event);
+    auto &ser = Serial::get();
 
-    WorkLoop::get().run();
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR)
+        PANIC("Unable to mount filesystem\n");
+
+    ser << "========================\n";
+    ser << "Welcome to the M3 shell!\n";
+    ser << "========================\n";
+    ser << "\n";
+
+    while(1) {
+        ser << "> ";
+        ser.flush();
+
+        String line;
+        ser >> line;
+
+        VPE vpe("job");
+        vpe.delegate_mounts();
+
+        int argc;
+        const char **args = parseArgs(line.c_str(), &argc);
+        Errors::Code err;
+        if((err = vpe.exec(argc, args)) != Errors::NO_ERROR)
+            ser << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";
+        int res = vpe.wait();
+        if(res != 0)
+            ser << "Program terminated with exit code " << res << "\n";
+    }
     return 0;
 }

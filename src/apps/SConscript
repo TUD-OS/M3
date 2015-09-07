@@ -2,7 +2,7 @@ Import('env', 'hostenv')
 
 # apps that run everywhere
 dirs = [
-    'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests',
+    'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell',
     'm3fs', 'fstest', 'init', 'readelf', 'parchksum', 'filterchain', 'noop',
     'float', 'srvtest', 'bench', 'pipe', 'execpipe', 'ls', 'fstrace'
 ]
@@ -15,7 +15,7 @@ elif env['ARCH'] == 't3':
 elif env['ARCH'] == 'host':
     dirs += [
         'asciiplay', 'intserver', 'keyb', 'plasma',
-        'queue', 'shell', 'stream', 'timer', 'vga'
+        'queue', 'stream', 'timer', 'vga'
     ]
 elif env['ARCH'] == 'gem5':
     dirs += ['idle']
