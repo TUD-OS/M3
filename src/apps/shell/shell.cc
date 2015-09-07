@@ -76,12 +76,12 @@ int main() {
         String line;
         ser >> line;
 
-        VPE vpe("job");
-        vpe.delegate_mounts();
-
         int argc;
         const char **args = parseArgs(line.c_str(), &argc);
         Errors::Code err;
+
+        VPE vpe(args[0]);
+        vpe.delegate_mounts();
         if((err = vpe.exec(argc, args)) != Errors::NO_ERROR)
             ser << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";
         int res = vpe.wait();
