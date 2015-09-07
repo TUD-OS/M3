@@ -31,8 +31,6 @@ using namespace m3;
 alignas(DTU_PKG_SIZE) static uint8_t largebuf[1024];
 
 void FSTestSuite::DirTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     // read a dir with known content
     const char *dirname = "/largedir";
     Dir dir(dirname);
@@ -67,13 +65,9 @@ void FSTestSuite::DirTestCase::run() {
         os << i << ".txt";
         assert_str(entries[i + 2].name, os.str());
     }
-
-    VFS::unmount("/");
 }
 
 void FSTestSuite::FileTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     Serial::get() << "-- Test errors --\n";
     {
         const char *filename = "/subdir/subsubdir/testfile.txt";
@@ -169,13 +163,9 @@ void FSTestSuite::FileTestCase::run() {
             content[i] = i;
         file->write(content, contentsz);
     }
-
-    VFS::unmount("/");
 }
 
 void FSTestSuite::BufferedFileTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     const char *filename = "/pat.bin";
 
     Serial::get() << "-- Read it until the end --\n";
@@ -313,8 +303,6 @@ void FSTestSuite::BufferedFileTestCase::run() {
         char exp[] = {1,'t','e','s','t',6,7,'f','o','o','f','o','o',14,15,0};
         assert_str(buf, exp);
     }
-
-    VFS::unmount("/");
 }
 
 void FSTestSuite::WriteFileTestCase::check_content(const char *filename, size_t size) {
@@ -337,8 +325,6 @@ void FSTestSuite::WriteFileTestCase::check_content(const char *filename, size_t 
 }
 
 void FSTestSuite::WriteFileTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     const char *filename = "/test.txt";
 
     Serial::get() << "-- Extending a small file --\n";
@@ -435,13 +421,9 @@ void FSTestSuite::WriteFileTestCase::run() {
     }
 
     check_content(filename, sizeof(largebuf) * 4);
-
-    VFS::unmount("/");
 }
 
 void FSTestSuite::MetaFileTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     assert_int(VFS::mkdir("/example", 0755), Errors::NO_ERROR);
     assert_int(VFS::mkdir("/example", 0755), Errors::EXISTS);
     assert_int(VFS::mkdir("/example/foo/bar", 0755), Errors::NO_SUCH_FILE);
@@ -471,6 +453,4 @@ void FSTestSuite::MetaFileTestCase::run() {
     assert_int(VFS::rmdir("/example"), Errors::NO_ERROR);
 
     assert_int(VFS::unlink("/newpath"), Errors::NO_ERROR);
-
-    VFS::unmount("/");
 }

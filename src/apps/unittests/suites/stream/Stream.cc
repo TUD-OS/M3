@@ -152,8 +152,6 @@ void StreamTestSuite::OStreamTestCase::run() {
 }
 
 void StreamTestSuite::FStreamTestCase::run() {
-    assert_int(VFS::mount("/", new M3FS("m3fs")), 0);
-
     int totala = 0, totalb = 0;
     float totalc = 0;
     FStream f("/mat.txt", FILE_R);
@@ -171,6 +169,4 @@ void StreamTestSuite::FStreamTestCase::run() {
     // thus, we only require that the integer value is correct. this gives us at least some degree
     // of correctness here
     assert_int((int)totalc, 1107);
-
-    VFS::unmount("/");
 }

@@ -31,13 +31,16 @@ static const char *progs[] = {
 };
 
 int main() {
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Unable to mount m3fs as root-fs");
+    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Unable to mount m3fs as root-fs");
+    }
 
     int succ = 0;
-    VPE t("tests");
     for(size_t i = 0; i < ARRAY_SIZE(progs); ++i) {
+        VPE t("tests");
         const char *args[] = {progs[i]};
+        t.delegate_mounts();
         t.exec(ARRAY_SIZE(args), args);
         uint32_t res = t.wait();
         if((res >> 16) != 0)
