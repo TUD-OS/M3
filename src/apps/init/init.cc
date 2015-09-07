@@ -48,14 +48,11 @@ static int myfunc(MemGate &mem) {
     return 0;
 }
 
-int main(int argc, char **argv) {
-    if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <path>\n";
-        return 1;
+int main() {
+    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Mounting root-fs failed");
     }
-
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
 
     MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
     alignas(DTU_PKG_SIZE) char buffer[16];
