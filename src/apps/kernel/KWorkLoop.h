@@ -67,6 +67,8 @@ public:
         int sysep = sysch.epid();
         int srvep = sysch.srvepid();
         while(wl.has_items()) {
+            DTU::get().wait();
+
             if(dtu.fetch_msg(sysep)) {
                 // we know the subscriber here, so optimize that a bit
                 DTU::Message *msg = dtu.message(sysep);
@@ -85,7 +87,6 @@ public:
 #if defined(__host__)
             check_childs();
 #endif
-            DTU::get().wait();
         }
     }
 };
