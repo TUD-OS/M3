@@ -96,6 +96,17 @@ public:
     static void free(void *p);
 
     /**
+     * Determines whether <p> was allocated on this heap.
+     *
+     * @param p the pointer
+     * @return true if <p> is on this heap
+     */
+    static bool is_on_heap(void *p) {
+        Area *a = reinterpret_cast<Area*>(p);
+        return a >= _begin && a < _end;
+    }
+
+    /**
      * Determines the maximum amount of contiguous memory that is currently available. You can use
      * this to allocate the as much memory as possible, for example. Keep in mind, though, that
      * some M3 abstractions allocate memory, too!

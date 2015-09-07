@@ -23,9 +23,12 @@
 namespace m3 {
 
 void VPE::init_state() {
-    delete _eps;
-    delete _caps;
-    Heap::free(_mounts);
+    if(Heap::is_on_heap(_eps))
+        delete _eps;
+    if(Heap::is_on_heap(_caps))
+        delete _caps;
+    if(Heap::is_on_heap(_mounts))
+        Heap::free(_mounts);
 
     _caps = *reinterpret_cast<BitField<CAP_TOTAL>**>(BOOT_CAPS);
     if(_caps == nullptr)
