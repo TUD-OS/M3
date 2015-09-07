@@ -81,6 +81,23 @@ generate_kargs() {
     )
 }
 
+remove_kernel_args() {
+    for word in $1; do
+        case "$word" in
+            daemon)
+                ;;
+            requires=*)
+                ;;
+            core=*)
+                ;;
+
+            *)
+                echo -n "$word "
+                ;;
+        esac
+    done
+}
+
 build_params_host() {
     generate_lines $1 | while read line; do
         echo -n "$bindir/$line -- "
@@ -99,15 +116,15 @@ build_params_gem5() {
     c=0
     cmd=`generate_lines $1 | ( while read line; do
             if [ $c -eq 0 ]; then
-                echo -n "$bindir/$line $kargs,"
+                echo -n $bindir/$line $kargs,
             else
-                echo -n "$bindir/$line,"
+                echo -n $bindir/$(remove_kernel_args "$line"),
             fi
             c=$((c + 1))
         done
 
         while [ $c -lt $maxcores ]; do
-            echo -n "$bindir/idle,"
+            echo -n $bindir/idle,
             c=$((c + 1))
         done
     )`
@@ -175,6 +192,7 @@ build_params_t3_sim() {
                 i=$((i + 1))
             done
             if [ $c -gt 0 ]; then
+                args=$(remove_kernel_args "$args")
                 echo -n " -$corename.SimTargetArgs=$args"
             else
                 echo -n " -$corename.SimTargetArgs=$kargs"
@@ -228,6 +246,7 @@ build_params_t2_chip() {
                 fi
                 c=$((c + 1))
             done
+            args=$(remove_kernel_args "$args")
             args="$args --"
             i=$((i + 1))
         done

@@ -39,10 +39,18 @@ void KVPE::start(int argc, char **argv, int pid) {
         if(_pid == 0) {
             write_env_file(getpid(), _syscgate.label(), SyscallHandler::get().epid());
             char **childargs = new char*[argc + 1];
-            int i = 0;
-            for(; i < argc; ++i)
-                childargs[i] = argv[i];
-            childargs[i] = nullptr;
+            int i = 0, j = 0;
+            for(; i < argc; ++i) {
+                if(strncmp(argv[i], "core=", 5) == 0)
+                    continue;
+                else if(strcmp(argv[i], "daemon") == 0)
+                    continue;
+                else if(strncmp(argv[i], "requires=", sizeof("requires=") - 1) == 0)
+                    continue;
+
+                childargs[j++] = argv[i];
+            }
+            childargs[j] = nullptr;
             execv(childargs[0], childargs);
             LOG(VPES, "VPE creation failed: " << strerror(errno));
         }
