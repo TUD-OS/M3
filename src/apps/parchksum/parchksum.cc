@@ -18,8 +18,10 @@
 #include <m3/cap/SendGate.h>
 #include <m3/cap/RecvGate.h>
 #include <m3/cap/VPE.h>
+#include <m3/stream/IStringStream.h>
 #include <m3/stream/Serial.h>
 #include <m3/GateStream.h>
+#include <m3/Log.h>
 
 using namespace m3;
 
@@ -35,27 +37,34 @@ struct Worker {
     }
 };
 
-static const size_t VPE_COUNT  = 6;
-static const size_t MEM_SIZE    = VPE_COUNT * 1024 * 1024;
-static const size_t SUBMEM_SIZE = MEM_SIZE / VPE_COUNT;
 static const size_t BUF_SIZE    = 4096;
 
-int main() {
+int main(int argc, char **argv) {
+    int vpes = 2;
+    if(argc > 1)
+        vpes = IStringStream::read_from<int>(argv[1]);
+
+    const size_t MEM_SIZE    = vpes * 1024 * 1024;
+    const size_t SUBMEM_SIZE = MEM_SIZE / vpes;
+
     RecvBuf rbuf = RecvBuf::create(VPE::self().alloc_ep(),
-        nextlog2<VPE_COUNT * (DTU_PKG_SIZE + DTU::HEADER_SIZE)>::val, 0);
+        getnextlog2(vpes * (DTU_PKG_SIZE + DTU::HEADER_SIZE)), 0);
     RecvGate rgate = RecvGate::create(&rbuf);
 
     MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
 
     // create worker
-    Worker *worker[VPE_COUNT];
-    for(size_t i = 0; i < VPE_COUNT; ++i)
+    Worker **worker = new Worker*[vpes];
+    for(int i = 0; i < vpes; ++i) {
         worker[i] = new Worker(rgate, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
+        if(Errors::last != Errors::NO_ERROR)
+            PANIC("Unable to create worker: " << Errors::to_string(Errors::last));
+    }
 
     // write data into memory
-    for(size_t i = 0; i < VPE_COUNT; ++i) {
+    for(int i = 0; i < vpes; ++i) {
         MemGate &vpemem = worker[i]->submem;
-        worker[i]->vpe.run([&vpemem] {
+        worker[i]->vpe.run([&vpemem, SUBMEM_SIZE] {
             uint *buffer = new uint[BUF_SIZE / sizeof(uint)];
             size_t rem = SUBMEM_SIZE;
             size_t offset = 0;
@@ -72,15 +81,15 @@ int main() {
     }
 
     // wait for all workers
-    for(size_t i = 0; i < VPE_COUNT; ++i)
+    for(int i = 0; i < vpes; ++i)
         worker[i]->vpe.wait();
 
     // now build the checksum
-    for(size_t i = 0; i < VPE_COUNT; ++i) {
+    for(int i = 0; i < vpes; ++i) {
         worker[i]->vpe.delegate(CapRngDesc(worker[i]->sgate.sel(), 1));
         MemGate &vpemem = worker[i]->submem;
         SendGate &vpegate = worker[i]->sgate;
-        worker[i]->vpe.run([&vpemem, &vpegate] {
+        worker[i]->vpe.run([&vpemem, &vpegate, SUBMEM_SIZE] {
             uint *buffer = new uint[BUF_SIZE / sizeof(uint)];
 
             uint checksum = 0;
@@ -102,7 +111,7 @@ int main() {
 
     // reduce
     uint checksum = 0;
-    for(size_t i = 0; i < VPE_COUNT; ++i) {
+    for(int i = 0; i < vpes; ++i) {
         uint vpechksum;
         receive_vmsg(rgate, vpechksum);
         checksum += vpechksum;
@@ -110,7 +119,7 @@ int main() {
 
     Serial::get() << "Checksum: " << checksum << "\n";
 
-    for(size_t i = 0; i < VPE_COUNT; ++i) {
+    for(int i = 0; i < vpes; ++i) {
         worker[i]->vpe.wait();
         delete worker[i];
     }
