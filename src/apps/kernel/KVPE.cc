@@ -21,7 +21,7 @@
 
 namespace m3 {
 
-KVPE::KVPE(String &&prog, int argc, char **argv, size_t id)
+KVPE::KVPE(String &&prog, size_t id)
     : RequestSessionData(), _id(id), _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _caps(id + 1),
       _sepsgate(MemGate::bind(VPE::self().alloc_cap(), Cap::KEEP_CAP)),
@@ -30,7 +30,6 @@ KVPE::KVPE(String &&prog, int argc, char **argv, size_t id)
     _caps.set(0, new VPECapability(this));
     _caps.set(1, new MemCapability(0, (size_t)-1, MemGate::RWX, core(), 0));
 
-    handle_args(argc, argv);
     LOG(VPES, "Created VPE '" << _name << "' [id=" << _id << "]");
     for(auto &r : _requires)
         LOG(VPES, "  requires: '" << r.name << "'");

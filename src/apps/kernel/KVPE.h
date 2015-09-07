@@ -42,7 +42,7 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = nextlog2<512>::val;
 
-    explicit KVPE(String &&prog, int argc, char **argv, size_t id);
+    explicit KVPE(String &&prog, size_t id);
     KVPE(const KVPE &) = delete;
     KVPE &operator=(const KVPE &) = delete;
     ~KVPE();
@@ -85,6 +85,9 @@ public:
     const SList<ServName> &requirements() const {
         return _requires;
     }
+    void add_requirement(const String &name) {
+        _requires.append(new ServName(name));
+    }
     const String &name() const {
         return _name;
     }
@@ -105,12 +108,6 @@ private:
     void write_env_file(int pid, label_t label, size_t epid);
     void activate_sysc_ep();
 
-    void handle_args(int argc, char **argv) {
-        for(int i = 0; i < argc; ++i) {
-            if(strncmp(argv[i], "requires=", sizeof("requires=") - 1) == 0)
-                _requires.append(new ServName(String(argv[i] + sizeof("requires=") - 1)));
-        }
-    }
     void free_deps() {
         for(auto it = _requires.begin(); it != _requires.end(); ) {
             auto old = it++;

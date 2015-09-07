@@ -32,6 +32,15 @@ PEManager::PEManager(int argc, char **argv)
         if(strcmp(argv[i], "--") == 0)
             continue;
 
+        // for idle, don't create a VPE
+        if(strcmp(argv[i], "idle") != 0) {
+            // allow multiple applications with the same name
+            OStringStream name;
+            name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
+            _vpes[no] = new KVPE(String(name.str()), no);
+            _count++;
+        }
+
         // find end of arguments
         bool daemon = false;
         int end = i + 1;
@@ -40,21 +49,18 @@ PEManager::PEManager(int argc, char **argv)
                 _petype[no] = argv[end] + 5;
             else if(strcmp(argv[end], "daemon") == 0)
                 daemon = true;
+            else if(strncmp(argv[end], "requires=", sizeof("requires=") - 1) == 0)
+                 _vpes[no]->add_requirement(argv[end] + sizeof("requires=") - 1);
             else if(strcmp(argv[end], "--") == 0)
                 break;
         }
 
-        // for idle, don't create a VPE
+        // start it, or register pending item
         if(strcmp(argv[i], "idle") != 0) {
-            // allow multiple applications with the same name
-            OStringStream name;
-            name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new KVPE(String(name.str()), end - i, argv + i, no);
             if(_vpes[no]->requirements().length() == 0)
                 _vpes[no]->start(end - i, argv + i, 0);
             else
                 _pending.append(new Pending(_vpes[no], end - i, argv + i));
-            _count++;
         }
 
         no++;
@@ -115,7 +121,7 @@ KVPE *PEManager::create(String &&name, const char *core) {
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new KVPE(std::move(name), 0, nullptr, i);
+    _vpes[i] = new KVPE(std::move(name), i);
     _count++;
     return _vpes[i];
 }
