@@ -2,7 +2,7 @@ Import('env', 'hostenv')
 
 # apps that run everywhere
 dirs = [
-    'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell',
+    'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell', 'echo', 'cat',
     'm3fs', 'fstest', 'init', 'readelf', 'parchksum', 'filterchain', 'noop',
     'float', 'srvtest', 'bench', 'pipe', 'execpipe', 'ls', 'fstrace'
 ]

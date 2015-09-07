@@ -3,7 +3,9 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/default', '.', scan=1)
 
+env.M3Strip('$FSDIR/default/bin/cat', '$BINARYDIR/cat')
 env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
+env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
 env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')
 env.M3Strip('$FSDIR/default/bin/fstest', '$BINARYDIR/fstest')
 env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
