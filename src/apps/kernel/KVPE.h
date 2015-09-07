@@ -108,7 +108,7 @@ private:
     void write_env_file(int pid, label_t label, size_t epid);
     void activate_sysc_ep();
 
-    void free_deps() {
+    void free_reqs() {
         for(auto it = _requires.begin(); it != _requires.end(); ) {
             auto old = it++;
             delete &*old;

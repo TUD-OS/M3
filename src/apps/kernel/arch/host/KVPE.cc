@@ -110,7 +110,7 @@ KVPE::~KVPE() {
     LOG(VPES, "Deleting VPE '" << _name << "' [id=" << _id << "]");
     SyscallHandler::get().remove_session(this);
     detach_rbufs();
-    free_deps();
+    free_reqs();
 
     // revoke all caps first because we might need the sepsgate for that
     _caps.revoke_all();
