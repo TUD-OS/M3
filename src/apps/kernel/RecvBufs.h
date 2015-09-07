@@ -80,6 +80,8 @@ public:
     static void detach(size_t coreid, size_t epid) {
         RBuf &rbuf = get(coreid, epid);
         if(rbuf.flags & F_ATTACHED) {
+            // TODO we have to make sure here that nobody can send to that EP anymore
+            // BEFORE detaching it!
             rbuf.flags = 0;
             configure(coreid, epid, rbuf);
         }
