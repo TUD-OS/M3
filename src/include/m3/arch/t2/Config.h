@@ -29,6 +29,13 @@
 #define DRAM_OFFSET         (64 * 1024 * 1024)
 #define DRAM_SIZE           (64 * 1024 * 1024)
 
+#define DRAM_FILE_AREA      0x0FFF00
+#define DRAM_FILE_AREA_LEN  0x100
+#define DRAM_BLOCKNO        0
+#define DRAM_FILESIZE       8
+#define DRAM_FILENAME       16
+#define DRAM_FILENAME_LEN   (DRAM_FILE_AREA_LEN - DRAM_FILENAME)
+
 #define DRAM_CCOUNT         0x100000
 #define CM_CCOUNT           0xFFF0
 #define CM_CCOUNT_AT_CM     0x6000FFF0

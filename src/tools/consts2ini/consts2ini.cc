@@ -52,6 +52,12 @@ int main() {
     cout << "CCOUNT_CM = "          << CCOUNT_CM << "\n";
     cout << "TRACE_MEMBUF_SIZE = "  << TRACE_MEMBUF_SIZE << "\n";
     cout << "TRACE_MEMBUF_ADDR = "  << TRACE_MEMBUF_ADDR << "\n";
+    cout << "DRAM_FILE_AREA = "     << DRAM_FILE_AREA << "\n";
+    cout << "DRAM_BLOCKNO = "       << DRAM_BLOCKNO << "\n";
+    cout << "DRAM_FILESIZE = "      << DRAM_FILESIZE << "\n";
+    cout << "DRAM_FILENAME = "      << DRAM_FILENAME << "\n";
+    cout << "DRAM_FILENAME_LEN = "  << DRAM_FILENAME_LEN << "\n";
+    cout << "FS_IMG_OFFSET = "      << FS_IMG_OFFSET << "\n";
 #endif
     return 0;
 }

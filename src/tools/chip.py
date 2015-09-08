@@ -34,6 +34,12 @@ CORE_CONF_SIZE = int(config.get("memlayout", "CORE_CONF_SIZE"))
 DRAM_CCOUNT = int(config.get("memlayout", "DRAM_CCOUNT"))
 TRACE_MEMBUF_SIZE = int(config.get("memlayout", "TRACE_MEMBUF_SIZE"))
 TRACE_MEMBUF_ADDR = int(config.get("memlayout", "TRACE_MEMBUF_ADDR"))
+DRAM_BLOCKNO = int(config.get("memlayout", "DRAM_BLOCKNO"))
+DRAM_FILE_AREA = int(config.get("memlayout", "DRAM_FILE_AREA"))
+DRAM_FILESIZE = int(config.get("memlayout", "DRAM_FILESIZE"))
+DRAM_FILENAME = int(config.get("memlayout", "DRAM_FILENAME"))
+DRAM_FILENAME_LEN = int(config.get("memlayout", "DRAM_FILENAME_LEN"))
+FS_IMG_OFFSET = int(config.get("memlayout", "FS_IMG_OFFSET"))
 
 def charToInt(c):
     if c >= ord('a'):
@@ -112,11 +118,37 @@ def initMem(core, argv):
     for a in range(0, CORE_CONF_SIZE, 8):
         core.mem[CORE_CONF + a] = 0
 
+def readStr(mod, addr, length):
+    line = ""
+    length = (length + 7) & ~7
+    for off in range(0, length, 8):
+        val = mod.mem[addr + off]
+        for x in range(0, 64, 8):
+            hexdig = (val >> x) & 0xFF
+            if hexdig == 0:
+                break
+            if (hexdig < 0x20 or hexdig > 0x80) and hexdig != ord('\t') and hexdig != ord('\n') and hexdig != 033:
+                hexdig = ord('?')
+            line += chr(hexdig)
+    return line
+
 def writeStr(core, str, addr):
     for v in stringToInt64s(str):
         core.mem[addr] = v
         addr += 8
     core.mem[addr] = 0
+
+def readFile(mod, addr, len, filename):
+    f = open(filename, "wb")
+    i = 0
+    for word in mod.readWords(addr, (len + 7) / 8):
+        for b in strToBytes(word):
+            if i >= len:
+                break
+            f.write("%c" % b)
+            i += i
+    f.close()
+    return 0
 
 def fetchPrint(core, id):
     length = core.mem[SERIAL_ACK] & 0xFFFFFFFF
@@ -124,16 +156,7 @@ def fetchPrint(core, id):
         line = ""
         t1 = time.time()
         line += "%08.4f> " % (t1 - t0)
-        length = (length + 7) & ~7
-        for off in range(0, length, 8):
-            val = core.mem[SERIAL_BUF + off]
-            for x in range(0, 64, 8):
-                hexdig = (val >> x) & 0xFF
-                if hexdig == 0:
-                    break
-                if (hexdig < 0x20 or hexdig > 0x80) and hexdig != ord('\t') and hexdig != ord('\n') and hexdig != 033:
-                    hexdig = ord('?')
-                line += chr(hexdig)
+        line += readStr(core, SERIAL_BUF, length)
         sys.stdout.write(line)
         sys.stdout.flush()
         log.write(line)
@@ -202,6 +225,7 @@ th.ddr_ram.on()
 if sys.argv[1] != "-":
     th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
 th.ddr_ram.mem[DRAM_CCOUNT] = 0
+th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 
 # will be overwritten when an event trace is produced
 th.ddr_ram[TRACE_MEMBUF_ADDR] = 0xffffffffffffffff
@@ -295,6 +319,17 @@ while run:
         else:
             counter += res
         i += 1
+
+    # check if somebody wants to send a file
+    if th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] != 0:
+        filename = readStr(th.ddr_ram, DRAM_FILE_AREA + DRAM_FILENAME, DRAM_FILENAME_LEN)
+        blockno = int(th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO])
+        filesize = int(th.ddr_ram[DRAM_FILE_AREA + DRAM_FILESIZE])
+        try:
+            readFile(th.ddr_ram, FS_IMG_OFFSET + blockno * 1024, filesize, ("out/%s" % filename))
+        except:
+           print "Writing to %s failed" % filename
+        th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 
     # if somebody is waiting, check if there is input and write it to the PE, if so.
     if inpe != -1:
