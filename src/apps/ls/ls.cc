@@ -68,9 +68,17 @@ int main(int argc, char **argv) {
     }
 
     const char *dirname = argv[1];
+
+    Errors::Code res;
+    FileInfo info;
+    if((res = VFS::stat(dirname, info)) != Errors::NO_ERROR)
+        PANIC("stat of " << dirname << " failed: " << Errors::to_string(res));
+    if(!S_ISDIR(info.mode))
+        PANIC(dirname << " is no directory");
+
     Dir dir(dirname);
     if(Errors::occurred())
-        PANIC("open of " << dirname << " failed (" << Errors::last << ")");
+        PANIC("open of " << dirname << " failed: " << Errors::to_string(Errors::last));
 
     // count entries
     Dir::Entry e;
