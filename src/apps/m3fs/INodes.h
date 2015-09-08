@@ -55,6 +55,7 @@ public:
     static void truncate(FSHandle &h, m3::INode *inode, size_t extent, size_t extoff);
 
     static void mark_dirty(FSHandle &h, m3::inodeno_t ino);
+    static void write_back(FSHandle &h, m3::INode *inode);
 
 private:
     static m3::loclist_type _locs;

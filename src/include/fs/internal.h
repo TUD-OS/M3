@@ -108,6 +108,9 @@ struct FileInfo {
     size_t size;
     time_t lastaccess;
     time_t lastmod;
+    // for debugging
+    unsigned extents;
+    blockno_t firstblock;
 };
 
 // should be 64 bytes large

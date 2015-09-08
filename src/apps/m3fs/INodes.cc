@@ -60,11 +60,18 @@ void INodes::stat(FSHandle &h, inodeno_t ino, FileInfo &info) {
     info.size = inode->size;
     info.lastaccess = inode->lastaccess;
     info.lastmod = inode->lastmod;
+    info.extents = inode->extents;
+    info.firstblock = inode->direct[0].start;
 }
 
 void INodes::mark_dirty(FSHandle &h, inodeno_t ino) {
     size_t inos_per_blk = h.sb().inodes_per_block();
     h.cache().mark_dirty(h.sb().first_inode_block() + ino / inos_per_blk);
+}
+
+void INodes::write_back(FSHandle &h, INode *inode) {
+    foreach_block(h, inode, bno)
+        h.cache().write_back(bno);
 }
 
 loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,

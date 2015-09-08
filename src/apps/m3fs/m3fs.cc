@@ -191,6 +191,10 @@ public:
             off = ch->length * _handle.sb().blocksize;
         }
 
+        // for directories: ensure that we don't have a changed version in the cache
+        if(S_ISDIR(inode->mode))
+            INodes::write_back(_handle, inode);
+
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);
         reply_vmsg(gate, fd);
     }

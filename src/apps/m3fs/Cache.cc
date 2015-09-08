@@ -14,7 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/Log.h>
 #include <limits>
+
 #include "Cache.h"
 
 Cache::Cache(m3::MemGate &mem, size_t blocksize)
@@ -69,11 +71,24 @@ void Cache::mark_dirty(m3::blockno_t bno) {
     }
 }
 
-void Cache::flush() {
+void Cache::write_back(m3::blockno_t bno) {
     for(size_t i = 0; i < BLOCK_COUNT; ++i) {
-        if(_blocks[i].dirty) {
-            _mem.write_sync(_data + i * _blocksize, _blocksize, _blocks[i].bno * _blocksize);
-            _blocks[i].dirty = false;
+        if(_blocks[i].bno == bno && _blocks[i].dirty) {
+            flush_block(i);
+            break;
         }
     }
+}
+
+void Cache::flush() {
+    for(size_t i = 0; i < BLOCK_COUNT; ++i) {
+        if(_blocks[i].dirty)
+            flush_block(i);
+    }
+}
+
+void Cache::flush_block(size_t i) {
+    LOG(FS, "Writing block " << _blocks[i].bno << " to DRAM");
+    _mem.write_sync(_data + i * _blocksize, _blocksize, _blocks[i].bno * _blocksize);
+    _blocks[i].dirty = false;
 }

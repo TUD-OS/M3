@@ -33,9 +33,12 @@ public:
     explicit Cache(m3::MemGate &mem, size_t blocksize);
     void *get_block(m3::blockno_t bno, bool write);
     void mark_dirty(m3::blockno_t bno);
+    void write_back(m3::inodeno_t ino);
     void flush();
 
 private:
+    void flush_block(size_t i);
+
     m3::MemGate &_mem;
     size_t _blocksize;
     char *_data;
