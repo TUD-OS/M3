@@ -149,8 +149,10 @@ static const char **parseArgs(const char *line, int *argc) {
 int main() {
     auto &ser = Serial::get();
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR)
-        PANIC("Unable to mount filesystem\n");
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Unable to mount filesystem\n");
+    }
 
     ser << "========================\n";
     ser << "Welcome to the M3 shell!\n";
@@ -163,6 +165,9 @@ int main() {
 
         String line;
         ser >> line;
+
+        if(strcmp(line.c_str(), "quit") == 0 || strcmp(line.c_str(), "exit") == 0)
+            break;
 
         int argc;
         const char **args = parseArgs(line.c_str(), &argc);
