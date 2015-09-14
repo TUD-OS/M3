@@ -22,7 +22,7 @@
 using namespace m3;
 
 enum {
-    MAX_ARG_COUNT   = 6,
+    MAX_ARG_COUNT   = 16,
     MAX_ARG_LEN     = 64,
 };
 
