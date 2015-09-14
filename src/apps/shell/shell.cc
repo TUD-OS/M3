@@ -102,7 +102,8 @@ static void glob(char **args, size_t *i) {
     }
 
     if(!found) {
-        slash[1] = old;
+        if(slash)
+            slash[1] = old;
         (*i)++;
     }
 }
