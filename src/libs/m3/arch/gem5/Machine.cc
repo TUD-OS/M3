@@ -33,6 +33,7 @@ void Machine::shutdown() {
 int Machine::write(const char *str, size_t len) {
     static const char *fileAddr = "stdout";
     asm volatile (
+        "mfence;"
         "mov 0(%1, %0, 1), %%rax"
         : : "r"(0x4f << 8), "r"(0xFFFF0000), "D"(str), "S"(len), "d"(0), "c"(fileAddr) : "rax"
     );
