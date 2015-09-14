@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     Serial &ser = Serial::get();
     if(argc < 2) {
         ser << "Usage: " << argv[0] << " <program>...\n";
-        return 1;
+        Machine::shutdown();
     }
 
     KernelEPSwitcher *epsw = new KernelEPSwitcher();
@@ -71,5 +71,4 @@ int main(int argc, char *argv[]) {
     delete epsw;
 
     Machine::shutdown();
-    return EXIT_SUCCESS;
 }
