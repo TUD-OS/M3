@@ -26,7 +26,8 @@ void Machine::shutdown() {
         "mov 0(%1, %0, 1), %%rax"
         : : "r"(0x21 << 8), "r"(0xFFFF0000), "D"(0) : "rax"
     );
-    UNREACHED;
+    while(1)
+        asm volatile ("hlt");
 }
 
 int Machine::write(const char *str, size_t len) {
