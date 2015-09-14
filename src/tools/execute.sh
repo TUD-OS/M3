@@ -9,8 +9,8 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "-?" ]; then
     usage $0
 fi
 
-t2pcip=th
-t2pcthip=thshell
+t2pcip="$M3_SSH_PREFIX"th
+t2pcthip="$M3_SSH_PREFIX"thshell
 build=build/$M3_TARGET-$M3_BUILD
 bindir=$build/bin
 

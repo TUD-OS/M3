@@ -100,6 +100,8 @@ help() {
 	echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
 	echo "    M3_DBG_PE:               Debug the PE with given number (only on gem5 and"
 	echo "                             with command dbg=)."
+	echo "    M3_SSH_PREFIX:           The prefix for the ssh aliases used for T2."
+	echo "                             These are th and thshell."
 	exit 0
 }
 
