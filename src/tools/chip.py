@@ -79,6 +79,16 @@ def checkOffset(off):
         print "Error: Argument size is too large!"
         sys.exit(1)
 
+def initState(core):
+    # set argc and argv
+    duo_pe.mem[ARGC_ADDR] = 0
+    duo_pe.mem[ARGV_ADDR] = 0
+
+    # ensure that he waits
+    duo_pe.mem[BOOT_ENTRY] = 0
+    # ensure that we don't receive prints
+    duo_pe.mem[SERIAL_ACK] = 0
+
 def initMem(core, argv):
     # init arguments in argv space
     core.mem[ARGV_START] = ARGV_START + 4
@@ -254,6 +264,9 @@ for duo_pe in th.duo_pes[0:len(progs)]:
     # load program
     duo_pe.initMem(progs[i][0] + ".mem")
 
+    # init basic state
+    initState(duo_pe)
+
     # set arguments, ...
     initMem(duo_pe, progs[i])
 
@@ -272,14 +285,8 @@ for duo_pe in th.duo_pes[len(progs):]:
     # load program
     duo_pe.initMem("idle.mem")
 
-    # set argc and argv
-    duo_pe.mem[ARGC_ADDR] = 0
-    duo_pe.mem[ARGV_ADDR] = 0
-
-    # ensure that he waits
-    duo_pe.mem[BOOT_ENTRY] = 0
-    # ensure that we don't receive prints
-    duo_pe.mem[SERIAL_ACK] = 0
+    # init basic state
+    initState(duo_pe)
 
     i += 1
 
