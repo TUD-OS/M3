@@ -92,7 +92,7 @@ Config::Init::~Init() {
 
 void Config::reset() {
     set_params(this, nullptr, false);
-    Serial::get().init(executable(), coreid());
+    Serial::init(executable(), coreid());
 
     DTU::get().reset();
     EPMux::get().reset();
@@ -169,7 +169,7 @@ void Config::init() {
     sigaction(SIGSEGV, &sa, nullptr);
     sigaction(SIGUSR1, &sa, nullptr);
 
-    Serial::get().init(executable(), coreid());
+    Serial::init(executable(), coreid());
 
     init_dtu();
 }

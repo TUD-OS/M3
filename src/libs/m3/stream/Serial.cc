@@ -23,9 +23,12 @@ namespace m3 {
 const char *Serial::_colors[] = {
     "31", "32", "33", "34", "35", "36"
 };
-Serial Serial::_inst INIT_PRIORITY(101) USED;
+Serial *Serial::_inst USED;
 
 void Serial::init(const char *path, int core) {
+    if(_inst == nullptr)
+        _inst = new Serial();
+
     size_t len = strlen(path);
     const char *name = path + len - 1;
     while(name > path && *name != '/')
@@ -34,24 +37,24 @@ void Serial::init(const char *path, int core) {
         name++;
 
     size_t i = 0;
-    strcpy(_outbuf + i, "\e[0;");
+    strcpy(_inst->_outbuf + i, "\e[0;");
     i += 4;
     long col;
     divide(core,ARRAY_SIZE(_colors),&col);
-    strcpy(_outbuf + i, _colors[col]);
+    strcpy(_inst->_outbuf + i, _colors[col]);
     i += 2;
-    _outbuf[i++] = 'm';
-    _outbuf[i++] = '[';
+    _inst->_outbuf[i++] = 'm';
+    _inst->_outbuf[i++] = '[';
     size_t x = 0;
     for(; x < 8 && name[x]; ++x)
-        _outbuf[i++] = name[x];
+        _inst->_outbuf[i++] = name[x];
     for(; x < 8; ++x)
-        _outbuf[i++] = ' ';
-    _outbuf[i++] = '@';
-    _outbuf[i++] = core <= 9 ? '0' + core : 'A' + (core - 10);
-    _outbuf[i++] = ']';
-    _outbuf[i++] = ' ';
-    _start = _outpos = i;
+        _inst->_outbuf[i++] = ' ';
+    _inst->_outbuf[i++] = '@';
+    _inst->_outbuf[i++] = core <= 9 ? '0' + core : 'A' + (core - 10);
+    _inst->_outbuf[i++] = ']';
+    _inst->_outbuf[i++] = ' ';
+    _inst->_start = _inst->_outpos = i;
 }
 
 void Serial::write(char c) {

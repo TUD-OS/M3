@@ -106,10 +106,10 @@ EXTERN_C void __clibrary_init(int, char **argv) {
         DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
     def_rgate = new RecvGate(RecvGate::create(def_rbuf));
 
+    Serial::init(argv ? argv[0] : "Unknown", cfg->coreid);
+
     // call constructors
     _init();
-
-    Serial::get().init(argv ? argv[0] : "Unknown", cfg->coreid);
 }
 
 EXTERN_C void __clibrary_init_lambda(int, char **argv) {
@@ -124,7 +124,7 @@ EXTERN_C void __clibrary_init_lambda(int, char **argv) {
         def_rbuf->order(), def_rbuf->msgorder(), def_rbuf->flags());
 #endif
 
-    Serial::get().init(argv ? argv[0] : "Unknown", cfg->coreid);
+    Serial::init(argv ? argv[0] : "Unknown", cfg->coreid);
     EPMux::get().reset();
 #if defined(__t2__)
     DTU::get().reset();

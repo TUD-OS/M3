@@ -39,7 +39,7 @@ public:
      * @return the instance
      */
     static Serial &get() {
-        return _inst;
+        return *_inst;
     }
 
     /**
@@ -48,7 +48,7 @@ public:
      * @param path the path of the program
      * @param core the core number
      */
-    void init(const char *path, int core);
+    static void init(const char *path, int core);
 
     /**
      * Flushes the output
@@ -76,7 +76,7 @@ private:
     alignas(DTU_PKG_SIZE) char _inbuf[INBUF_SIZE];
 
     static const char *_colors[];
-    static Serial _inst;
+    static Serial *_inst;
 };
 
 }
