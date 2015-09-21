@@ -20,4 +20,31 @@ namespace m3 {
 
 WorkLoop WorkLoop::_inst INIT_PRIORITY(106);
 
+void WorkLoop::add(WorkItem *item, bool permanent) {
+    assert(_count < MAX_ITEMS);
+    _items[_count++] = item;
+    if(permanent)
+        _permanents++;
+}
+
+void WorkLoop::remove(WorkItem *item) {
+    for(size_t i = 0; i < MAX_ITEMS; ++i) {
+        if(_items[i] == item) {
+            _items[i] = nullptr;
+            for(++i; i < MAX_ITEMS; ++i)
+                _items[i - 1] = _items[i];
+            _count--;
+            break;
+        }
+    }
+}
+
+void WorkLoop::run() {
+    while(_count > _permanents) {
+        for(size_t i = 0; i < _count; ++i)
+            _items[i]->work();
+        DTU::get().wait();
+    }
+}
+
 }

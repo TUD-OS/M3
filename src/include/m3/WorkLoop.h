@@ -47,31 +47,10 @@ public:
         return _count > _permanents;
     }
 
-    void add(WorkItem *item, bool permanent) {
-        assert(_count < MAX_ITEMS);
-        _items[_count++] = item;
-        if(permanent)
-            _permanents++;
-    }
-    void remove(WorkItem *item) {
-        for(size_t i = 0; i < MAX_ITEMS; ++i) {
-            if(_items[i] == item) {
-                _items[i] = nullptr;
-                for(++i; i < MAX_ITEMS; ++i)
-                    _items[i - 1] = _items[i];
-                _count--;
-                break;
-            }
-        }
-    }
+    void add(WorkItem *item, bool permanent);
+    void remove(WorkItem *item);
 
-    void run() {
-        while(_count > _permanents) {
-            for(size_t i = 0; i < _count; ++i)
-                _items[i]->work();
-            DTU::get().wait();
-        }
-    }
+    void run();
     void stop() {
         _permanents = _count;
     }
