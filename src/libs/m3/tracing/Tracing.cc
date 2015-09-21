@@ -120,7 +120,7 @@ void Tracing::flush_light() {
 
     trace_enabled = false;
 
-    LOG(TRACE, "Tracing::flush_light at core " << coreid() << "  event count: " << event_counter);
+    LOG(TRACE, "Tracing::flush_light, event count: " << event_counter);
     send_event_buffer_to_mem();
 
     trace_enabled = true;
@@ -129,7 +129,7 @@ void Tracing::flush_light() {
 void Tracing::flush() {
     trace_enabled = false;
 
-    LOG(TRACE, "Tracing::flush at core " << coreid() << "  event count: " << event_counter);
+    LOG(TRACE, "Tracing::flush, event count: " << event_counter);
     between_flush_and_reinit = true;
 
     send_event_buffer_to_mem();
@@ -153,10 +153,10 @@ void Tracing::reinit() {
     event_counter = c;
     membuf_cur = membuf_start + (1 + event_counter) * sizeof(Event);
 
-    LOG(TRACE, "Tracing::reinit at core " << coreid()
-        << "  event_counter: " << event_counter
-        << "  membuf_cur: " << fmt(membuf_cur, "p")
-        << "  buffer ok: " << (membuf_cur < membuf_start + TRACE_MEMBUF_SIZE));
+    LOG(TRACE, "Tracing::reinit"
+        << ", event_counter: " << event_counter
+        << ", membuf_cur: " << fmt(membuf_cur, "p")
+        << ", buffer ok: " << (membuf_cur < membuf_start + TRACE_MEMBUF_SIZE));
 
     // create init_timestamp event
     record_event_timestamp();
