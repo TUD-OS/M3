@@ -41,6 +41,9 @@ DRAM_FILENAME = int(config.get("memlayout", "DRAM_FILENAME"))
 DRAM_FILENAME_LEN = int(config.get("memlayout", "DRAM_FILENAME_LEN"))
 FS_IMG_OFFSET = int(config.get("memlayout", "FS_IMG_OFFSET"))
 
+BOLD_START = '\033[1m'
+BOLD_END = '\033[0m'
+
 def charToInt(c):
     if c >= ord('a'):
         return 10 + c - ord('a')
@@ -230,7 +233,7 @@ th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 # will be overwritten when an event trace is produced
 th.ddr_ram[TRACE_MEMBUF_ADDR] = 0xffffffffffffffff
 
-print progs
+print "Running:", progs
 
 # init App-Core
 if sys.argv[3] != "-":
@@ -246,7 +249,7 @@ for duo_pe in th.duo_pes[0:len(progs)]:
     duo_pe.on()
     duo_pe.set_pmgt_val(0);
 
-    print "Initializing memory of PE", i
+    print BOLD_START + "Initializing memory of PE", i, "with", progs[i][0] + ".mem" + BOLD_END
 
     # load program
     duo_pe.initMem(progs[i][0] + ".mem")
@@ -264,7 +267,7 @@ for duo_pe in th.duo_pes[len(progs):]:
     duo_pe.on()
     duo_pe.set_pmgt_val(0);
 
-    print "Initializing memory of PE with idle", i
+    print BOLD_START + "Initializing memory of PE", i, "with idle" + BOLD_END
 
     # load program
     duo_pe.initMem("idle.mem")
@@ -285,7 +288,7 @@ if sys.argv[2] != "-":
     print "Powering on CM"
     th.cm_core.on()
     th.cm_core.set_ptable_val(10)   # 400 MHz
-    print "Initializing memory of CM with " + sys.argv[2]
+    print BOLD_START + "Initializing memory of CM with " + sys.argv[2] + BOLD_END
     th.cm_core.initMem(sys.argv[2])
     th.cm_core.start()
 
