@@ -177,10 +177,8 @@ public:
         // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
         // not have to be changed.
         volatile DtuRegs *regs = dtu_regs();
-        if(regs->msgCnt == 0) {
-            // TODO hlt does not work atm with O3 model
-            asm volatile ("nop");
-        }
+        if(regs->msgCnt == 0)
+            asm volatile ("hlt");
         return true;
     }
     void wait_until_ready(int) {
