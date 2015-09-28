@@ -131,6 +131,7 @@ static const char* event_func_groups[] = {
     "Kernel",
     "VPE",
     "Service",
+    "FS",
 };
 
 static const uint event_func_groups_size = sizeof(event_func_groups) / sizeof(char*);
@@ -181,6 +182,16 @@ static const event_func_names_and_group_struct event_funcs[] = {
     { "Service_delegate",     5 },
     { "Service_close",        5 },
     { "Service_shutdown",     5 },
+    { "FS_open",              6 },
+    { "FS_seek",              6 },
+    { "FS_stat",              6 },
+    { "FS_fstat",             6 },
+    { "FS_mkdir",             6 },
+    { "FS_rmdir",             6 },
+    { "FS_link",              6 },
+    { "FS_unlink",            6 },
+    { "FS_close",             6 },
+    { "FS_getlocs",           6 },
 };
 
 #endif

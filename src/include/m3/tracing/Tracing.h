@@ -62,6 +62,17 @@
 #define EVENT_TRACER_Service_delegate()     EVENT_TRACER(36);
 #define EVENT_TRACER_Service_close()        EVENT_TRACER(37);
 #define EVENT_TRACER_Service_shutdown()     EVENT_TRACER(38);
+// fs commands
+#define EVENT_TRACER_FS_open()              EVENT_TRACER(39);
+#define EVENT_TRACER_FS_seek()              EVENT_TRACER(40);
+#define EVENT_TRACER_FS_stat()              EVENT_TRACER(41);
+#define EVENT_TRACER_FS_fstat()             EVENT_TRACER(42);
+#define EVENT_TRACER_FS_mkdir()             EVENT_TRACER(43);
+#define EVENT_TRACER_FS_rmdir()             EVENT_TRACER(44);
+#define EVENT_TRACER_FS_link()              EVENT_TRACER(45);
+#define EVENT_TRACER_FS_unlink()            EVENT_TRACER(46);
+#define EVENT_TRACER_FS_close()             EVENT_TRACER(47);
+#define EVENT_TRACER_FS_getlocs()           EVENT_TRACER(48);
 
 // here some functions can be filtered at compile time by redefining the macros
 #undef  EVENT_TRACER_read_sync

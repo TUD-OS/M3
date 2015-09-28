@@ -121,6 +121,7 @@ public:
             return;
         }
 
+        EVENT_TRACER_FS_getlocs();
         int fd;
         size_t offset, count, blocks;
         args >> fd >> offset >> count >> blocks;
@@ -159,6 +160,7 @@ public:
     }
 
     void open(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_open();
         M3FSSessionData *sess = gate.session<M3FSSessionData>();
         String path;
         int fd, flags;
@@ -200,6 +202,7 @@ public:
     }
 
     void seek(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_seek();
         M3FSSessionData *sess = gate.session<M3FSSessionData>();
         int fd, whence;
         off_t off;
@@ -219,6 +222,7 @@ public:
     }
 
     void stat(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_stat();
         String path;
         is >> path;
         LOG(FS, "fs::stat(path=" << path << ")");
@@ -236,6 +240,7 @@ public:
     }
 
     void fstat(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_fstat();
         M3FSSessionData *sess = gate.session<M3FSSessionData>();
         int fd;
         is >> fd;
@@ -254,6 +259,7 @@ public:
     }
 
     void mkdir(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_mkdir();
         String path;
         mode_t mode;
         is >> path >> mode;
@@ -266,6 +272,7 @@ public:
     }
 
     void rmdir(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_rmdir();
         String path;
         is >> path;
         LOG(FS, "fs::rmdir(path=" << path << ")");
@@ -277,6 +284,7 @@ public:
     }
 
     void link(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_link();
         String oldpath, newpath;
         is >> oldpath >> newpath;
         LOG(FS, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
@@ -288,6 +296,7 @@ public:
     }
 
     void unlink(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_unlink();
         String path;
         is >> path;
         LOG(FS, "fs::unlink(path=" << path << ")");
@@ -299,6 +308,7 @@ public:
     }
 
     void close(RecvGate &gate, GateIStream &is) {
+        EVENT_TRACER_FS_close();
         M3FSSessionData *sess = gate.session<M3FSSessionData>();
         int fd;
         size_t extent, extoff;
