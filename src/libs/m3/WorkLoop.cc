@@ -41,9 +41,10 @@ void WorkLoop::remove(WorkItem *item) {
 
 void WorkLoop::run() {
     while(_count > _permanents) {
+        // wait first to ensure that we check for loop termination *before* going to sleep
+        DTU::get().wait();
         for(size_t i = 0; i < _count; ++i)
             _items[i]->work();
-        DTU::get().wait();
     }
 }
 
