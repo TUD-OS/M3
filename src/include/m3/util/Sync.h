@@ -32,7 +32,11 @@ public:
     }
 
     static inline void memory_barrier() {
+#if defined(__t2__) or defined(__t3__)
         asm volatile ("memw" : : : "memory");
+#else
+        asm volatile ("mfence" : : : "memory");
+#endif
     }
 
 private:

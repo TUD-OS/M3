@@ -190,7 +190,7 @@ def M3Strip(env, target, source):
         target, source, cross + '-strip -o $TARGET $SOURCE'
     )
 
-link_addr = 0x1000
+link_addr = 0x200000
 
 def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core = None,
 			  ldscript = None, varAddr = True):

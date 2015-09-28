@@ -31,7 +31,7 @@
 #define HEAP_SIZE           0x10000
 #define EP_COUNT            8
 
-#define SPM_END             (4 * 1024 * 1024)
+#define SPM_END             (8 * 1024 * 1024)
 // leave one page for idle
 #define STACK_TOP           (SPM_END - 0x1000)
 #define STACK_BOTTOM        (STACK_TOP - 0x1000)

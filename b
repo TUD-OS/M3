@@ -29,7 +29,10 @@ if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
 	if [ "$M3_GEM5_DBG" = "" ]; then
 		M3_GEM5_DBG="Dtu"
 	fi
-	export M3_GEM5_DBG
+	if [ "$M3_GEM5_CPU" = "" ]; then
+		M3_GEM5_CPU="detailed"
+	fi
+	export M3_GEM5_DBG M3_GEM5_CPU
 
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
 	crossprefix=''
@@ -98,6 +101,7 @@ help() {
 	echo "    M3_FSBPE:                The blocks per extent (0 = unlimited)."
 	echo "    M3_FSBLKS:               The fs block count (default=16384)."
 	echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
+	echo "    M3_GEM5_CPU:             The CPU model (detailed by default)."
 	echo "    M3_DBG_PE:               Debug the PE with given number (only on gem5 and"
 	echo "                             with command dbg=)."
 	echo "    M3_SSH_PREFIX:           The prefix for the ssh aliases used for T2."

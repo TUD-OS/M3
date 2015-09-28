@@ -19,14 +19,21 @@
 
 namespace m3 {
 
-cycles_t Profile::start(unsigned u) {
-    return stop(u);
-}
-
-cycles_t Profile::stop(unsigned) {
+static cycles_t rdtsc() {
     uint32_t u, l;
     asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
     return (cycles_t)u << 32 | l;
+}
+
+cycles_t Profile::start(unsigned) {
+    Sync::memory_barrier();
+    return rdtsc();
+}
+
+cycles_t Profile::stop(unsigned) {
+    cycles_t res = rdtsc();
+    Sync::memory_barrier();
+    return res;
 }
 
 }

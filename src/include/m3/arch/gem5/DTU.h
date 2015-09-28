@@ -19,6 +19,7 @@
 #include <m3/Common.h>
 #include <m3/Config.h>
 #include <m3/util/Util.h>
+#include <m3/util/Sync.h>
 #include <assert.h>
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
@@ -160,8 +161,13 @@ public:
     }
 
     void ack_message(int ep) {
-        CmdRegs *cmd = cmd_regs();
+        volatile CmdRegs *cmd = cmd_regs();
+        wait_until_ready(ep);
+        // ensure that we are really done with the message before acking it
+        Sync::memory_barrier();
         cmd->command = buildCommand(ep, CmdOpCode::INC_READ_PTR);
+        // ensure that we don't do something else before the ack
+        Sync::memory_barrier();
     }
 
     bool wait() {
@@ -171,8 +177,10 @@ public:
         // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
         // not have to be changed.
         volatile DtuRegs *regs = dtu_regs();
-        if(regs->msgCnt == 0)
-            asm volatile ("hlt");
+        if(regs->msgCnt == 0) {
+            // TODO hlt does not work atm with O3 model
+            asm volatile ("nop");
+        }
         return true;
     }
     void wait_until_ready(int) {

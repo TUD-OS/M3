@@ -23,6 +23,7 @@ namespace m3 {
 
 void Machine::shutdown() {
     asm volatile (
+        "mfence;"
         "mov 0(%1, %0, 1), %%rax"
         : : "r"(0x21 << 8), "r"(0xFFFF0000), "D"(0) : "rax"
     );
@@ -43,6 +44,7 @@ int Machine::write(const char *str, size_t len) {
 ssize_t Machine::read(char *dst, size_t max) {
     ssize_t res;
     asm volatile (
+        "mfence;"
         "mov 0(%2, %1, 1), %%rax"
         : "=a"(res) : "r"(0x50 << 8), "r"(0xFFFF0000), "D"(dst), "S"(max), "d"(0)
     );
