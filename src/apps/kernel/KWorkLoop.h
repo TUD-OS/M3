@@ -40,10 +40,12 @@ static void check_childs() {
         int status;
         pid_t pid = wait(&status);
         if(WIFEXITED(status)) {
-            LOG(SYSC, "Child " << pid << " exited with status " << WEXITSTATUS(status));
+            LOG(DEF, "Child " << pid << " exited with status " << WEXITSTATUS(status));
         }
         else if(WIFSIGNALED(status)) {
-            LOG(SYSC, "Child " << pid << " was killed by signal " << WTERMSIG(status));
+            LOG(DEF, "Child " << pid << " was killed by signal " << WTERMSIG(status));
+            if(WCOREDUMP(status))
+                LOG(DEF, "Child " << pid << " core dumped");
         }
     }
 }

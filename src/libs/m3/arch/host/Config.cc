@@ -103,29 +103,6 @@ void Config::reset() {
     Syscalls::get().init(DTU::get().ep_regs());
 }
 
-static void sighandler(int sig, siginfo_t *info, void *secret) {
-    ucontext_t *uc = static_cast<ucontext_t*>(secret);
-    if(sig == SIGSEGV) {
-        LOG(DEF, "Got signal " << sig << ", faulty address is " << info->si_addr
-#ifdef __i386__
-                << ", from " << reinterpret_cast<void*>(uc->uc_mcontext.gregs[REG_EIP])
-#elif defined(__x86_64__)
-                << ", from " << reinterpret_cast<void*>(uc->uc_mcontext.gregs[REG_RIP])
-#endif
-        );
-    }
-    else
-        LOG(DEF, "Got signal " << sig);
-    std::string str;
-    std::ifstream in("/proc/self/maps");
-    while(!in.eof()) {
-        std::getline(in,str);
-        LOG(DEF, str.c_str());
-    }
-    LOG(DEF, Backtrace());
-    exit(EXIT_FAILURE);
-}
-
 Config::Config()
         : _core(), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, nullptr, false)),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER),
@@ -162,13 +139,6 @@ void Config::init_executable() {
 }
 
 void Config::init() {
-    struct sigaction sa;
-    sa.sa_sigaction = sighandler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART | SA_SIGINFO;
-    sigaction(SIGSEGV, &sa, nullptr);
-    sigaction(SIGUSR1, &sa, nullptr);
-
     Serial::init(executable(), coreid());
 
     init_dtu();
