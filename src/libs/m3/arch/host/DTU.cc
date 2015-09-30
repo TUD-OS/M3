@@ -32,7 +32,7 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
     for(size_t i = 0; i < length; ++i) {
         if(i > 0 && i % 8 == 0) {
             LOG(DTUERR, "  " << tmp.str().c_str());
-            tmp = std::ostringstream();
+            tmp.str(std::string());
             tmp << std::hex << std::setfill('0');
         }
         tmp << "0x" << std::setw(2) << (unsigned)bytes[i] << " ";
