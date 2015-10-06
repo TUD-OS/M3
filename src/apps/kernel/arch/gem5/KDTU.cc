@@ -24,7 +24,7 @@ namespace m3 {
 
 void KDTU::wakeup(int core) {
     // wakeup core
-    DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::CmdOpCode::WAKEUP_CORE);
+    alignas(DTU_PKG_SIZE) DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::CmdOpCode::WAKEUP_CORE);
     Sync::compiler_barrier();
     static_assert(offsetof(DTU::CmdRegs, command) == 0, "Command register is not at offset 0");
     write_mem(core, (uintptr_t)DTU::cmd_regs(), &cmd, sizeof(cmd));
@@ -32,14 +32,14 @@ void KDTU::wakeup(int core) {
 
 void KDTU::deprivilege(int core) {
     // unset the privileged flag (writes to other bits are ignored)
-    DTU::reg_t status = 0;
+    alignas(DTU_PKG_SIZE) DTU::reg_t status = 0;
     Sync::compiler_barrier();
     static_assert(offsetof(DTU::DtuRegs, status) == 0, "Status register is not at offset 0");
     write_mem(core, (uintptr_t)DTU::dtu_regs(), &status, sizeof(status));
 }
 
 void KDTU::invalidate_ep(int core, int ep) {
-    DTU::EpRegs e;
+    alignas(DTU_PKG_SIZE) DTU::EpRegs e;
     memset(&e, 0, sizeof(e));
     Sync::compiler_barrier();
     uintptr_t dst = reinterpret_cast<uintptr_t>(DTU::ep_regs(ep));
@@ -72,7 +72,7 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
 
 void KDTU::config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
         bool valid) {
-    DTU::EpRegs e;
+    alignas(DTU_PKG_SIZE) DTU::EpRegs e;
     memset(&e, 0, sizeof(e));
 
     if(valid)
@@ -102,7 +102,7 @@ void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstep,
 
 void KDTU::config_send_remote(int core, int ep, label_t label, int dstcore, int dstep,
         size_t msgsize, word_t credits) {
-    DTU::EpRegs e;
+    alignas(DTU_PKG_SIZE) DTU::EpRegs e;
     memset(&e, 0, sizeof(e));
     config_send(&e, label, dstcore, dstep, msgsize, credits);
 
@@ -125,7 +125,7 @@ void KDTU::config_mem_local(int ep, int coreid, uintptr_t addr, size_t size) {
 }
 
 void KDTU::config_mem_remote(int core, int ep, int dstcore, uintptr_t addr, size_t size, int perm) {
-    DTU::EpRegs e;
+    alignas(DTU_PKG_SIZE) DTU::EpRegs e;
     memset(&e, 0, sizeof(e));
     config_mem(&e, dstcore, addr, size, perm);
 
