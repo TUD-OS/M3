@@ -108,7 +108,7 @@ public:
 template<unsigned ROW, unsigned COL>
 class TextAnimator : public TextBuffer<ROW, COL> {
 public:
-    virtual void render(uint64_t now) = 0;
+    virtual void render(cycles_t now) = 0;
 };
 
 template<unsigned ROW, unsigned COL>
@@ -157,7 +157,7 @@ public:
     PlasmaAnimator() : _color(0) {
     }
 
-    void render(uint64_t now) {
+    void render(cycles_t now) {
         unsigned t = now >> 25;
 
         // Double ROW to correct aspect ratio.
@@ -181,7 +181,7 @@ template<unsigned ROW, unsigned COL>
 class QuoteAnimator : public TextAnimator<ROW, COL> {
     TextAnimator<ROW, COL> *_background;
     bool _start_init;
-    uint64_t _start;
+    cycles_t _start;
     ssize_t _quote;
     ssize_t _next_quote;
 
@@ -193,13 +193,13 @@ public:
     size_t get_quote() const {
         return _next_quote != -1 ? _next_quote : _quote;
     }
-    void to_quote(uint64_t now, size_t i) {
+    void to_quote(cycles_t now, size_t i) {
         if(_next_quote == -1)
             _start = now;
         _next_quote = i;
     }
 
-    void render(uint64_t now) {
+    void render(cycles_t now) {
         const uint16_t text_bg_attr = 0x0800;
 
         _background->render(now);
@@ -293,14 +293,14 @@ static const char *intro_text[] = {
 template<unsigned ROW, unsigned COL>
 class IntroAnimator : public TextAnimator<ROW, COL> {
     bool _start_init;
-    uint64_t _start;
+    cycles_t _start;
     bool _done;
 public:
     bool done() const {
         return _done;
     }
 
-    void render(uint64_t now) {
+    void render(cycles_t now) {
         if(!_start_init) {
             _start = now;
             _start_init = true;
@@ -345,7 +345,7 @@ public:
     }
 };
 
-static inline uint64_t tsc() {
+static inline cycles_t tsc() {
     return Profile::start();
 }
 

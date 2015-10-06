@@ -27,14 +27,14 @@ static inline uint32_t get_cycles() {
 }
 
 int main() {
-    volatile uint64_t *addr = reinterpret_cast<volatile uint64_t*>(CM_CCOUNT_AT_CM);
-    uint64_t major = 0;
+    volatile cycles_t *addr = reinterpret_cast<volatile cycles_t*>(CM_CCOUNT_AT_CM);
+    cycles_t major = 0;
     uint32_t last = 0;
     while(1) {
         uint32_t now = get_cycles();
         if(now < last)
-            major += ((uint64_t)1) << 32;
-        *addr = major | (uint64_t)now;
+            major += ((cycles_t)1) << 32;
+        *addr = major | (cycles_t)now;
         last = now;
     }
     return 0;

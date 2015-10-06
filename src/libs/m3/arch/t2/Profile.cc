@@ -24,14 +24,14 @@ cycles_t Profile::start(UNUSED unsigned id) {
 }
 
 cycles_t Profile::stop(UNUSED unsigned id) {
-    uint64_t cycles = 0;
+    cycles_t cycles = 0;
 
     DTU::get().set_target(SLOT_NO, CCOUNT_CORE, CCOUNT_ADDR);
     Sync::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::READ, &cycles, sizeof(cycles));
 
     // the number of cycles will never be zero. so wait until it changes
-    while(*(volatile uint64_t*)&cycles == 0)
+    while(*(volatile cycles_t*)&cycles == 0)
         ;
     return cycles;
 }
