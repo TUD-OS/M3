@@ -72,7 +72,7 @@ void FSTestSuite::FileTestCase::run() {
     {
         const char *filename = "/subdir/subsubdir/testfile.txt";
 
-        alignas(DTU_PKG_SIZE) char buf[8];
+        alignas(DTU_PKG_SIZE) char buf[DTU_PKG_SIZE];
         {
             FileRef file(filename, FILE_R);
             if(Errors::occurred())
@@ -88,6 +88,7 @@ void FSTestSuite::FileTestCase::run() {
         }
     }
 
+#if DTU_PKG_SIZE == 8
     Serial::get() << "-- Read a file with known content at once --\n";
     {
         const char *filename = "/subdir/subsubdir/testfile.txt";
@@ -103,6 +104,7 @@ void FSTestSuite::FileTestCase::run() {
         buf[sizeof(buf) - 1] = '\0';
         assert_str(buf, content);
     }
+#endif
 
     Serial::get() << "-- Read a file in 64 byte steps --\n";
     {
@@ -138,9 +140,9 @@ void FSTestSuite::FileTestCase::run() {
 
     Serial::get() << "-- Write to a file and read it again --\n";
     {
-        alignas(DTU_PKG_SIZE) char content[] = "Foobar, a test!";
+        alignas(DTU_PKG_SIZE) char content[64] = "Foobar, a test and more and more and more!";
         const char *filename = "/pat.bin";
-        const size_t contentsz = (sizeof(content) + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1);
+        const size_t contentsz = (strlen(content) + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1);
 
         FileRef file(filename, FILE_RW);
         if(Errors::occurred())
@@ -278,6 +280,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.good());
     }
 
+#if DTU_PKG_SIZE == 8
     Serial::get() << "-- Write with seek --\n";
     {
         static_assert(DTU_PKG_SIZE == 8, "Unexpected DTU_PKG_SIZE");
@@ -303,6 +306,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
         char exp[] = {1,'t','e','s','t',6,7,'f','o','o','f','o','o',14,15,0};
         assert_str(buf, exp);
     }
+#endif
 }
 
 void FSTestSuite::WriteFileTestCase::check_content(const char *filename, size_t size) {
