@@ -26,7 +26,7 @@ namespace m3 {
 void Heap::init() {
     uintptr_t begin = reinterpret_cast<uintptr_t>(&_bss_end);
     _begin = reinterpret_cast<Area*>(Math::round_up(begin, sizeof(Area)));
-    _end = reinterpret_cast<Area*>(RT_SPACE_END) - 1;
+    _end = reinterpret_cast<Area*>(Math::round_dn(RT_SPACE_END, sizeof(Area))) - 1;
     _end->next = 0;
     _end->prev = (_end - _begin) * sizeof(Area);
     Area *a = _begin;
