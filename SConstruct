@@ -119,9 +119,9 @@ else:
 		env.Append(LINKFLAGS = ' -Os -flto')
 	elif target == 'host' or target == 'gem5':
 		# no LTO for host
-		env.Append(CXXFLAGS = ' -O2 -DNDEBUG')
-		env.Append(CFLAGS = ' -O2 -DNDEBUG')
-		env.Append(LINKFLAGS = ' -O2')
+		env.Append(CXXFLAGS = ' -O2 -DNDEBUG -flto')
+		env.Append(CFLAGS = ' -O2 -DNDEBUG -flto')
+		env.Append(LINKFLAGS = ' -O2 -flto')
 	else:
 		env.Append(CXXFLAGS = ' -O2 -DNDEBUG -flto')
 		env.Append(CFLAGS = ' -O2 -DNDEBUG -flto')
