@@ -23,9 +23,9 @@ namespace m3 {
 
 void Machine::shutdown() {
     asm volatile (
-        "mfence;"
-        "mov 0(%1, %0, 1), %%rax"
-        : : "r"(0x21 << 8), "r"(0xFFFF0000), "D"(0) : "rax"
+        ".byte 0x0F, 0x04;"
+        ".word 0x21;"
+        : : "D"(0)
     );
     while(1)
         asm volatile ("hlt");
@@ -34,9 +34,9 @@ void Machine::shutdown() {
 int Machine::write(const char *str, size_t len) {
     static const char *fileAddr = "stdout";
     asm volatile (
-        "mfence;"
-        "mov 0(%1, %0, 1), %%rax"
-        : : "r"(0x4f << 8), "r"(0xFFFF0000), "D"(str), "S"(len), "d"(0), "c"(fileAddr) : "rax"
+        ".byte 0x0F, 0x04;"
+        ".word 0x4F;"
+        : : "D"(str), "S"(len), "d"(0), "c"(fileAddr) : "rax"
     );
     return 0;
 }
@@ -44,9 +44,9 @@ int Machine::write(const char *str, size_t len) {
 ssize_t Machine::read(char *dst, size_t max) {
     ssize_t res;
     asm volatile (
-        "mfence;"
-        "mov 0(%2, %1, 1), %%rax"
-        : "=a"(res) : "r"(0x50 << 8), "r"(0xFFFF0000), "D"(dst), "S"(max), "d"(0)
+        ".byte 0x0F, 0x04;"
+        ".word 0x50;"
+        : "=a"(res) : "D"(dst), "S"(max), "d"(0)
     );
     return res;
 }
