@@ -22,7 +22,7 @@
 #include <m3/util/Sync.h>
 #include <assert.h>
 
-#define DTU_PKG_SIZE        (static_cast<size_t>(32))
+#define DTU_PKG_SIZE        (static_cast<size_t>(8))
 
 namespace m3 {
 
@@ -104,10 +104,6 @@ public:
 
         uint64_t label;
         uint64_t replylabel;
-
-        // padding to reach 32 bytes
-        uint64_t : 64;
-        uint16_t : 16;
     } PACKED;
 
     struct Message : Header {
