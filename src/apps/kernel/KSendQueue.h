@@ -21,6 +21,7 @@
 #include <m3/cap/SendGate.h>
 #include <m3/util/SList.h>
 #include <m3/Heap.h>
+#include <stdlib.h>
 
 namespace m3 {
 
@@ -51,6 +52,13 @@ public:
         if(_inflight < _capacity)
             do_send(rgate, sgate, msg, size);
         else {
+            // if it's not already on the heap, put it there
+            if(!Heap::is_on_heap(msg)) {
+                void *nmsg = Heap::alloc(size);
+                memcpy(nmsg, msg, size);
+                msg = nmsg;
+            }
+
             Entry *e = new Entry(rgate, sgate, msg, size);
             _queue.append(e);
         }
@@ -70,7 +78,8 @@ private:
     void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
         sgate->receive_gate(rgate);
         sgate->send_sync(msg, size);
-        Heap::free(const_cast<void*>(msg));
+        if(Heap::is_on_heap(msg))
+            Heap::free(const_cast<void*>(msg));
         _inflight++;
     }
 

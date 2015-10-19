@@ -101,8 +101,8 @@ public:
      * @param p the pointer
      * @return true if <p> is on this heap
      */
-    static bool is_on_heap(void *p) {
-        Area *a = reinterpret_cast<Area*>(p);
+    static bool is_on_heap(const void *p) {
+        const Area *a = reinterpret_cast<const Area*>(p);
         return a >= _begin && a < _end;
     }
 
