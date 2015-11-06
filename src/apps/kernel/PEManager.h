@@ -109,8 +109,10 @@ public:
 
 private:
     void deprivilege_pes() {
-        for(int i = 0; i < AVAIL_PES; ++i)
-            KDTU::get().deprivilege(APP_CORES + i);
+        for(int i = 0; i < AVAIL_PES; ++i) {
+            if(PE_MASK & (1 << i))
+                KDTU::get().deprivilege(APP_CORES + i);
+        }
     }
 
     bool core_matches(size_t i, const char *core) const;

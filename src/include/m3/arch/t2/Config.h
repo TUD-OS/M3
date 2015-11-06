@@ -16,11 +16,12 @@
 
 #pragma once
 
-#define MAX_CORES           8
+#define MAX_CORES           12
 #define AVAIL_PES           (MAX_CORES - 1)
+#define PE_MASK             0xFE0       // PE1, ..., PE7
 
 #define SLOT_NO             4
-#define EP_COUNT            8
+#define EP_COUNT            6
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60010000

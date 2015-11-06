@@ -5,7 +5,7 @@
 #define CM_CORE                                 1
 #define MEMORY_CORE                             2
 #define KERNEL_CORE                             FIRST_PE_ID
-#define APP_CORES                               (FIRST_PE_ID + 1)
+#define APP_CORES                               0
 
 #define DRAM_VOFFSET                            0
 

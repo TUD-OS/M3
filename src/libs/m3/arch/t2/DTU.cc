@@ -36,7 +36,7 @@ bool DTU::fetch_msg(int ep) {
 retry:
     for(int i = _pos[ep]; i < end; ++i) {
         volatile Message *msg = reinterpret_cast<volatile Message*>(
-            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i + FIRST_PE_ID, ep));
+            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i, ep));
         if(msg->length != 0) {
             LOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
             EVENT_TRACE_MSG_RECV(msg->core, msg->length,

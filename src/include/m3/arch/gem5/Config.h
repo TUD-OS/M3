@@ -21,6 +21,7 @@
 #define APP_CORES           1
 #define MAX_CORES           8
 #define AVAIL_PES           (MAX_CORES - 1)
+#define PE_MASK             0xFFFFFFFF
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x0
 

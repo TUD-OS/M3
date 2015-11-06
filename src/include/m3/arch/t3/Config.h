@@ -19,6 +19,7 @@
 #define MEMORY_CORE         0
 #define MAX_CORES           18
 #define AVAIL_PES           (MAX_CORES - 1)
+#define PE_MASK             0xFFFFFFFF
 
 #define EP_COUNT            7
 #define CAP_TOTAL           256

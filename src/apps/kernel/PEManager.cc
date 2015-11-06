@@ -32,6 +32,10 @@ PEManager::PEManager(int argc, char **argv)
         if(strcmp(argv[i], "--") == 0)
             continue;
 
+        // find next usable PE
+        while((PE_MASK & (1 << no)) == 0)
+            no++;
+
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle") != 0) {
             // allow multiple applications with the same name
@@ -115,7 +119,7 @@ KVPE *PEManager::create(String &&name, const char *core) {
 
     size_t i;
     for(i = 0; i < AVAIL_PES; ++i) {
-        if(_vpes[i] == nullptr && core_matches(i, core))
+        if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && core_matches(i, core))
             break;
     }
     if(i == AVAIL_PES)

@@ -166,8 +166,7 @@ public:
 
 private:
     size_t recvbuf_offset(int core, int ep) {
-        assert(core >= FIRST_PE_ID);
-        return (core - FIRST_PE_ID) * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
+        return core * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
 
     void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);
