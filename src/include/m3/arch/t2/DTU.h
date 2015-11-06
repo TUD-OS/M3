@@ -142,6 +142,8 @@ public:
 
     void set_target(int, uchar dst, uintptr_t addr) {
         volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        if(dst == CM_CORE)
+            addr -= 0x60000000;
         ptr[PE_DMA_REG_TARGET]      = dst;
         ptr[PE_DMA_REG_REM_ADDR]    = addr;
     }
@@ -154,9 +156,15 @@ public:
         assert((addr & (PACKET_SIZE - 1)) == 0);
         assert((size & (PACKET_SIZE - 1)) == 0);
 
-        ptr[PE_DMA_REG_TYPE]        = op == READ ? 0 : 2;
+        ptr[PE_DMA_REG_TYPE]        = op == READ ? DTU_READ_CMD : DTU_WRITE_CMD;
         ptr[PE_DMA_REG_LOC_ADDR]    = addr;
         ptr[PE_DMA_REG_SIZE]        = size;
+
+#if defined(CM)
+        /* send transfer slot to CM_TU (always 0 for us) */
+        uint *tuFifo = (uint*)CM_TU_SET_FIFO;
+        *tuFifo = 0;
+#endif
     }
 
     size_t get_remaining(int) {

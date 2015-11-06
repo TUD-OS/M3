@@ -79,63 +79,17 @@ def checkOffset(off):
         print "Error: Argument size is too large!"
         sys.exit(1)
 
-def initState(core):
-    # set argc and argv
-    duo_pe.mem[ARGC_ADDR] = 0
-    duo_pe.mem[ARGV_ADDR] = 0
+def read64bit(core, addr):
+    return core.mem[addr - core.mem_offset]
 
-    # ensure that he waits
-    duo_pe.mem[BOOT_ENTRY] = 0
-    # ensure that we don't receive prints
-    duo_pe.mem[SERIAL_ACK] = 0
-
-def initMem(core, argv):
-    # init arguments in argv space
-    core.mem[ARGV_START] = ARGV_START + 4
-    off = ARGV_START + ((len(argv) + 1) / 2) * 8
-    argptr = []
-    for a in argv:
-        argptr += [off]
-        for v in stringToInt64s(a):
-            checkOffset(off)
-            core.mem[off] = v
-            off += 8
-        checkOffset(off)
-        core.mem[off] = 0
-        off += 8
-
-    # init argv array
-    for a in range(0,len(argptr),2):
-        val = argptr[a]
-        if a < len(argptr) - 1:
-            val |= argptr[a + 1] << 32
-        core.mem[ARGV_START + a * 4] = val
-
-    # start with empty caps and eps
-    core.mem[BOOT_CAPS] = 0
-    core.mem[BOOT_EPS] = 0
-    core.mem[BOOT_MOUNTS] = 0
-    core.mem[STATE_SPACE] = 0
-    # set argc and argv
-    core.mem[ARGC_ADDR] = len(argv)
-    core.mem[ARGV_ADDR] = ARGV_START
-    # call main
-    core.mem[BOOT_LAMBDA] = 0
-    core.mem[BOOT_EXIT] = 0
-    # use default stack pointer
-    core.mem[BOOT_SP] = 0
-
-    # clear core config
-    core.mem[SERIAL_ACK] = 0
-    core.mem[SERIAL_INWAIT] = 0
-    for a in range(0, CORE_CONF_SIZE, 8):
-        core.mem[CORE_CONF + a] = 0
+def write64bit(core, addr, value):
+    core.mem[addr - core.mem_offset] = value
 
 def readStr(mod, addr, length):
     line = ""
     length = (length + 7) & ~7
     for off in range(0, length, 8):
-        val = mod.mem[addr + off]
+        val = read64bit(mod, addr + off)
         for x in range(0, 64, 8):
             hexdig = (val >> x) & 0xFF
             if hexdig == 0:
@@ -147,9 +101,61 @@ def readStr(mod, addr, length):
 
 def writeStr(core, str, addr):
     for v in stringToInt64s(str):
-        core.mem[addr] = v
+        write64bit(core, addr, v)
         addr += 8
-    core.mem[addr] = 0
+    write64bit(core, addr, 0)
+
+def initState(core):
+    # set argc and argv
+    write64bit(core, ARGC_ADDR, 0)
+    write64bit(core, ARGV_ADDR, 0)
+
+    # ensure that he waits
+    write64bit(core, BOOT_ENTRY, 0)
+    # ensure that we don't receive prints
+    write64bit(core, SERIAL_ACK, 0)
+
+def initMem(core, argv):
+    # init arguments in argv space
+    write64bit(core, ARGV_START, ARGV_START + 4)
+    off = ARGV_START + ((len(argv) + 1) / 2) * 8
+    argptr = []
+    for a in argv:
+        argptr += [off]
+        for v in stringToInt64s(a):
+            checkOffset(off)
+            write64bit(core, off, v)
+            off += 8
+        checkOffset(off)
+        write64bit(core, off, 0)
+        off += 8
+
+    # init argv array
+    for a in range(0,len(argptr),2):
+        val = argptr[a]
+        if a < len(argptr) - 1:
+            val |= argptr[a + 1] << 32
+        write64bit(core, ARGV_START + a * 4, val)
+
+    # start with empty caps and eps
+    write64bit(core, BOOT_CAPS, 0)
+    write64bit(core, BOOT_EPS, 0)
+    write64bit(core, BOOT_MOUNTS, 0)
+    write64bit(core, STATE_SPACE, 0)
+    # set argc and argv
+    write64bit(core, ARGC_ADDR, len(argv))
+    write64bit(core, ARGV_ADDR, ARGV_START)
+    # call main
+    write64bit(core, BOOT_LAMBDA, 0)
+    write64bit(core, BOOT_EXIT, 0)
+    # use default stack pointer
+    write64bit(core, BOOT_SP, 0)
+
+    # clear core config
+    write64bit(core, SERIAL_ACK, 0)
+    write64bit(core, SERIAL_INWAIT, 0)
+    for a in range(0, CORE_CONF_SIZE, 8):
+        write64bit(core, CORE_CONF + a, 0)
 
 def readFile(mod, addr, len, filename):
     f = open(filename, "wb")
@@ -164,7 +170,7 @@ def readFile(mod, addr, len, filename):
     return 0
 
 def fetchPrint(core, id):
-    length = core.mem[SERIAL_ACK] & 0xFFFFFFFF
+    length = read64bit(core, SERIAL_ACK) & 0xFFFFFFFF
     if length != 0 and length < 256:
         line = ""
         t1 = time.time()
@@ -173,7 +179,7 @@ def fetchPrint(core, id):
         sys.stdout.write(line)
         sys.stdout.flush()
         log.write(line)
-        core.mem[SERIAL_ACK] = 0
+        write64bit(core, SERIAL_ACK, 0)
         if "kernel" in line and "Shutting down..." in line:
             return 2
         return 1
@@ -245,6 +251,13 @@ th.ddr_ram[TRACE_MEMBUF_ADDR] = 0xffffffffffffffff
 
 print "Running:", progs
 
+th.cm_core.mem_offset = 0x60000000
+cmprog = sys.argv[2] if sys.argv[2] != "-" else "idle.mem"
+cores = [th.cm_core]
+for pe in th.duo_pes:
+    pe.mem_offset = 0
+    cores.append(pe)
+
 # init App-Core
 if sys.argv[3] != "-":
     print "Initializing memory of App-Core with " + sys.argv[3]
@@ -291,13 +304,20 @@ for duo_pe in th.duo_pes[len(progs):]:
     i += 1
 
 # init and start CM
-if sys.argv[2] != "-":
-    print "Powering on CM"
-    th.cm_core.on()
-    th.cm_core.set_ptable_val(10)   # 400 MHz
-    print BOLD_START + "Initializing memory of CM with " + sys.argv[2] + BOLD_END
-    th.cm_core.initMem(sys.argv[2])
-    th.cm_core.start()
+print "Powering on CM"
+th.cm_core.on()
+th.cm_core.set_ptable_val(10)   # 400 MHz
+print BOLD_START + "Initializing memory of CM with " + cmprog + BOLD_END
+th.cm_core.initMem(cmprog)
+
+# init basic state
+initState(th.cm_core)
+
+# set arguments, ...
+if cmprog != "idle.mem":
+    initMem(th.cm_core, [cmprog])
+
+th.cm_core.start()
 
 # start all PEs
 i = 0
@@ -312,18 +332,18 @@ if sys.argv[3] != "-":
     th.app_core.on()
 
 t0 = time.time()
-inpe = -1
+incore = -1
 run = True
 while run:
     i = 0
     counter = 0
-    for duo_pe in th.duo_pes:
+    for core in cores:
         # input
-        if inpe == -1 and duo_pe.mem[SERIAL_INWAIT] == 1:
-            inpe = i
+        if incore == -1 and read64bit(core, SERIAL_INWAIT) == 1:
+            incore = i
 
         # output
-        res = fetchPrint(duo_pe, i)
+        res = fetchPrint(core, i)
         if res == 2:
             run = False
         else:
@@ -342,15 +362,15 @@ while run:
         th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 
     # if somebody is waiting, check if there is input and write it to the PE, if so.
-    if inpe != -1:
+    if incore != -1:
         if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
             line = sys.stdin.readline()
             # 64 is the limit of the input buffer, atm.
             if len(line) >= 64:
                 line = line[:64 - 1] + '\n'
-            writeStr(th.duo_pes[inpe], line, SERIAL_BUF)
-            th.duo_pes[inpe].mem[SERIAL_INWAIT] = 0
-            inpe = -1
+            writeStr(cores[incore], line, SERIAL_BUF)
+            write64bit(cores[incore], SERIAL_INWAIT, 0)
+            incore = -1
 
     # if nobody wanted to print something, take a break
     if counter == 0:

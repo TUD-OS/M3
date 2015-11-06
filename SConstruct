@@ -202,6 +202,11 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 			core = os.environ.get('M3_CORE')
 		runtimedir = configpath.abspath + '/' + core + '/xtensa-elf/lib/' + runtime
 
+		m3lib = 'm3'
+		if core == 'oli_lx4_cm_9_tie6_5':
+			m3lib = 'm3-cm'
+			myenv.Append(CPPFLAGS = ' -DCM=1')
+
 		sources = []
 		if not NoSup:
 			sources += [
@@ -211,7 +216,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 				myenv['LIBDIR'].abspath + '/crtn.o',
 				myenv['LIBDIR'].abspath + '/Window.o'
 			]
-			libs = ['hal', 'handlers-sim', 'c', 'm3', 'c', 'gcc'] + libs
+			libs = ['hal', 'handlers-sim', 'c', m3lib, 'c', 'gcc'] + libs
 		sources += source
 
 		if ldscript is None:

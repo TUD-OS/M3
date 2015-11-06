@@ -1,3 +1,5 @@
+import os
+
 Import('env')
 
 sources = [
@@ -13,3 +15,14 @@ lib = env.StaticLibrary(
     source = sources
 )
 env.Install(env['LIBDIR'], lib)
+
+if env['ARCH'] == 't2':
+    cmenv = env.Clone()
+    cmenv.Append(CPPFLAGS = ' -DCM=1')
+
+    objs = [cmenv.Object(os.path.splitext(src.abspath)[0] + '-cm.o', src) for src in Flatten(sources)]
+    cmlib = cmenv.StaticLibrary(
+        target = 'libm3-cm',
+        source = objs
+    )
+    cmenv.Install(cmenv['LIBDIR'], cmlib)

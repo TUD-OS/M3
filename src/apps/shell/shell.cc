@@ -50,6 +50,14 @@ int main() {
         char **args = Args::parse(line.c_str(), &argc);
         Errors::Code err;
 
+        // extract core type
+        String core;
+        if(strncmp(args[0], "CORE=", 5) == 0) {
+            core = args[0] + 5;
+            args++;
+            argc--;
+        }
+
         // prefix "/bin/" if necessary
         if(args[0][0] != '/' && strlen(args[0]) + 5 < Args::MAX_ARG_LEN) {
             memmove(args[0] + 5, args[0], strlen(args[0]) + 1);
@@ -57,7 +65,7 @@ int main() {
         }
 
         // execute the command
-        VPE vpe(args[0]);
+        VPE vpe(args[0], core);
         vpe.delegate_mounts();
         if((err = vpe.exec(argc, const_cast<const char**>(args))) != Errors::NO_ERROR)
             ser << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";

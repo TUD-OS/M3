@@ -9,15 +9,31 @@
 
 #define DRAM_VOFFSET                            0
 
-#define PE_DMA_CONFIG                           0x6001E078
+#if defined(CM)
+#   define PE_DMA_CONFIG                        0x6001FA00
 
-#define PE_DMA_REG_TARGET                       0
-#define PE_DMA_REG_TYPE                         2
-#define PE_DMA_REG_REM_ADDR                     4
-#define PE_DMA_REG_LOC_ADDR                     6
-#define PE_DMA_REG_SIZE                         8
+#   define PE_DMA_REG_TARGET                    2
+#   define PE_DMA_REG_REM_ADDR                  4
+#   define PE_DMA_REG_LOC_ADDR                  6
+#   define PE_DMA_REG_TYPE                      8
+#   define PE_DMA_REG_SIZE                      10
 
-#define PE_IDMA_OVERALL_SLOT_STATUS_ADDRESS     0x6001E0A0
+#   define PE_IDMA_OVERALL_SLOT_STATUS_ADDRESS  (PE_DMA_CONFIG + PE_DMA_REG_SIZE * 4)
+#   define DTU_READ_CMD                         0
+#   define DTU_WRITE_CMD                        1
+#else
+#   define PE_DMA_CONFIG                        0x6001E078
+
+#   define PE_DMA_REG_TARGET                    0
+#   define PE_DMA_REG_TYPE                      2
+#   define PE_DMA_REG_REM_ADDR                  4
+#   define PE_DMA_REG_LOC_ADDR                  6
+#   define PE_DMA_REG_SIZE                      8
+
+#   define PE_IDMA_OVERALL_SLOT_STATUS_ADDRESS  0x6001E0A0
+#   define DTU_READ_CMD                         0
+#   define DTU_WRITE_CMD                        2
+#endif
 
 //############ TESTCASE SPECIFIC ADDRESSES ####################
 #define TESTCASE_FINAL_RESULT_ADDRESS    0x0161FFF0

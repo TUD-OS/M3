@@ -18,10 +18,10 @@
 
 #define MAX_CORES           12
 #define AVAIL_PES           (MAX_CORES - 1)
-#define PE_MASK             0xFE0       // PE1, ..., PE7
+#define PE_MASK             0xFE2       // CM, PE1, ..., PE7
 
 #define SLOT_NO             4
-#define EP_COUNT            6
+#define EP_COUNT            8
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60010000
@@ -42,7 +42,7 @@
 #define CM_CCOUNT_AT_CM     0x6000FFF0
 
 // set to 0 to use the app-core and DRAM
-#define CCOUNT_CM           1
+#define CCOUNT_CM           0
 
 #if CCOUNT_CM == 1
 #   define CCOUNT_CORE         CM_CORE

@@ -229,9 +229,17 @@ build_params_t2_chip() {
     kargs=""
     i=0
 
+    if [ "$M3_CM" != "" ]; then
+        cmcore="$M3_CM core=cm"
+    else
+        cmcore="idle core=cm"
+    fi
+
     args=`generate_lines $1 | ( while read line; do
             c=0
-            if [ $i -gt 1 ]; then
+            if [ $i -eq 1 ]; then
+                kargs="$kargs ++ $cmcore ++"
+            elif [ $i -gt 1 ]; then
                 kargs="$kargs ++"
             fi
             for x in $line; do
@@ -267,6 +275,10 @@ build_params_t2_chip() {
     # profiler on CM or APP?
     if [ "`grep CCOUNT_CM $temp | cut -d ' ' -f 3`" = "1" ]; then
         profargs="profiler_cm.mem -"
+    elif [ "$M3_CM" != "" ]; then
+        base=`echo $M3_CM | sed 's/\(\S*\).*/\1/g'`
+        scp $build/mem/$base.mem $t2pcip:thtest
+        profargs="$base.mem profiler.mem"
     else
         profargs="- profiler.mem"
     fi

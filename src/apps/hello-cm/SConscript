@@ -1,0 +1,7 @@
+Import('env')
+env.M3Program(
+    env,
+    target = 'hello-cm',
+    source = env.Glob('*.cc'),
+    core = 'oli_lx4_cm_9_tie6_5'
+)

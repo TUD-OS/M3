@@ -18,7 +18,7 @@
 
 #include <m3/Common.h>
 
-#if 0
+#if defined(CM)
 // necessary on CM core
 long divide(long n, long d, long *rem);
 long long divide(long long n, long long d, long long *rem);

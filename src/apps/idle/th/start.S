@@ -57,7 +57,8 @@ _start:
 1:
     # wait for an interrupt
     # TODO is broken on the FFT core
-#if !defined(__t3__)
+    # TODO is broken on CM core
+#if !defined(__t3__) && !defined(__t2__)
     waiti   0
 #endif
 

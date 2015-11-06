@@ -17,6 +17,7 @@ env.M3Strip('$FSDIR/default/bin/pipe', '$BINARYDIR/pipe')
 env.M3Strip('$FSDIR/default/bin/rdwr', '$BINARYDIR/rdwr')
 env.M3Strip('$FSDIR/default/bin/readelf', '$BINARYDIR/readelf')
 if env['ARCH'] == 't2':
+    env.M3Strip('$FSDIR/default/bin/hello-cm', '$BINARYDIR/hello-cm')
     env.M3Strip('$FSDIR/default/bin/sendfile', '$BINARYDIR/sendfile')
 env.M3Strip('$FSDIR/default/bin/shell', '$BINARYDIR/shell')
 env.M3Strip('$FSDIR/default/bin/unittests', '$BINARYDIR/unittests')

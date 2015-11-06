@@ -2,7 +2,7 @@
 /* Linker Script for default link */
 MEMORY
 {
-  dram0_0_seg :                       	org = 0x6000DD70, len = 0x160
+  dram0_0_seg :                       	org = 0x6000CD70, len = 0x160
   iram0_0_seg :                       	org = 0x60010000, len = 0x2E0
   iram0_2_seg :                       	org = 0x60010400, len = 0x178
   iram0_3_seg :                       	org = 0x60010578, len = 0x4
