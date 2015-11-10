@@ -270,6 +270,8 @@ build_params_t2_chip() {
     # generate memory layout ini-file and copy it to t2pc
     temp=`mktemp`
     $build/src/tools/consts2ini/consts2ini > $temp
+    # before transferring it, make sure it is readable for everybody
+    chmod +r $temp
     scp $temp $t2pcip:thtest/memlayout.ini
 
     # profiler on CM or APP?
