@@ -251,10 +251,10 @@ case "$cmd" in
 			rm $tmp
 		elif [ "$M3_TARGET" = "gem5" ]; then
 			truncate --size 0 run/log.txt
-	    	./src/tools/execute.sh $script 1>run/log.txt 2>&1 &
+	    	./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>run/log.txt 2>&1 &
 
 	    	# wait until it has started
-	    	while [ "`grep --text "info: Entering event queue" run/log.txt`" = "" ]; do
+	    	while [ "`grep --text "Global frequency set at" run/log.txt`" = "" ]; do
 	    		sleep 1
 	    	done
 
