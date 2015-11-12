@@ -41,7 +41,7 @@
         __log_lock();                                                \
         m3::Serial::get() << expr << "\n";                           \
         __log_unlock();                                              \
-        exit(1);                                                     \
+        ::exit(1);                                                     \
     }                                                                \
     while(0)
 

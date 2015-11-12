@@ -189,6 +189,11 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
         << ", label=" << fmt(label, "#0x", sizeof(label_t) * 2)
         << ", ep=" << epid << ", crd=#" << fmt(credits, "0x") << ")");
 
+#if defined(__gem5__)
+    if(credits == SendGate::UNLIMITED)
+        PANIC("Unlimited credits are not yet supported on gem5");
+#endif
+
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
