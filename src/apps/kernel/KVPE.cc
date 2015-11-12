@@ -43,6 +43,7 @@ void KVPE::unref() {
 
 void KVPE::exit(int exitcode) {
     KDTU::get().invalidate_eps(core());
+    detach_rbufs();
     _state = DEAD;
     _exitcode = exitcode;
     for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {

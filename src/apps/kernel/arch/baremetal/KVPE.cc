@@ -44,7 +44,9 @@ void KVPE::activate_sysc_ep() {
     KDTU::get().write_mem(core(), CONF_GLOBAL, &conf, sizeof(conf));
 
     // attach default receive endpoint
-    RecvBufs::attach(core(), DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    UNUSED Errors::Code res = RecvBufs::attach(
+        core(), DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    assert(res == Errors::NO_ERROR);
 
     KDTU::get().config_send_remote(core(), DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
