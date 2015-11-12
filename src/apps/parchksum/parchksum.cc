@@ -32,7 +32,7 @@ struct Worker {
 
     Worker(RecvGate &rgate, MemGate &mem, size_t offset, size_t size)
             : submem(mem.derive(offset, size)),
-              sgate(SendGate::create(SendGate::UNLIMITED, &rgate)), vpe("worker") {
+              sgate(SendGate::create(DTU_PKG_SIZE + DTU::HEADER_SIZE, &rgate)), vpe("worker") {
         vpe.delegate(CapRngDesc(submem.sel(), 1));
     }
 };

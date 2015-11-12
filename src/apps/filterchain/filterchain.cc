@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
     // create a gate the sender can send to (at the receiver)
     size_t rep = t2.alloc_ep();
-    SendGate gate = SendGate::create_for(t2, rep);
+    SendGate gate = SendGate::create_for(t2, rep, 0, 64);
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
