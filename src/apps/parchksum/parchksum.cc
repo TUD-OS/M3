@@ -40,11 +40,14 @@ struct Worker {
 static const size_t BUF_SIZE    = 4096;
 
 int main(int argc, char **argv) {
+    size_t memPerVPE = 1024 * 1024;
     int vpes = 2;
     if(argc > 1)
         vpes = IStringStream::read_from<int>(argv[1]);
+    if(argc > 2)
+        memPerVPE = IStringStream::read_from<size_t>(argv[2]);
 
-    const size_t MEM_SIZE    = vpes * 1024 * 1024;
+    const size_t MEM_SIZE    = vpes * memPerVPE;
     const size_t SUBMEM_SIZE = MEM_SIZE / vpes;
 
     RecvBuf rbuf = RecvBuf::create(VPE::self().alloc_ep(),

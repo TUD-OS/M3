@@ -20,25 +20,29 @@
 #include <m3/cap/VPE.h>
 #include <m3/util/Random.h>
 #include <m3/stream/Serial.h>
+#include <m3/stream/IStringStream.h>
 #include <m3/GateStream.h>
 
 #include <unistd.h>
 
 using namespace m3;
 
-static const size_t MEM_SIZE    = 8 * 1024 * 1024;
 static const size_t BUF_SIZE    = 4096;
 
-int main() {
+int main(int argc, char **argv) {
+    size_t memSize = 8 * 1024 * 1024;
+    if(argc > 1)
+        memSize = IStringStream::read_from<size_t>(argv[1]);
+
     Random::init(0x1234);
 
-    MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
+    MemGate mem = MemGate::create_global(memSize, MemGate::RW);
 
     Serial::get() << "Initializing memory...\n";
 
     // init memory with random numbers
     uint *buffer = new uint[BUF_SIZE / sizeof(uint)];
-    size_t rem = MEM_SIZE;
+    size_t rem = memSize;
     size_t offset = 0;
     while(rem > 0) {
         for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i)
@@ -78,11 +82,11 @@ int main() {
 
     VPE t1("sender");
     t1.delegate(CapRngDesc::All());
-    t1.run([buffer, &mem, &gate, &resmem] {
+    t1.run([buffer, &mem, &gate, &resmem, memSize] {
         uint *result = new uint[BUF_SIZE / sizeof(uint)];
         size_t c = 0;
 
-        size_t rem = MEM_SIZE;
+        size_t rem = memSize;
         size_t offset = 0;
         while(rem > 0) {
             mem.read_sync(buffer, BUF_SIZE, offset);
