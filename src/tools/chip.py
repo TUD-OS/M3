@@ -260,7 +260,7 @@ for pe in th.duo_pes:
 
 # init App-Core
 if sys.argv[3] != "-":
-    print "Initializing memory of App-Core with " + sys.argv[3]
+    print BOLD_START + "Initializing memory of App-Core with " + sys.argv[3] + BOLD_END
     th.app_core.initMem(sys.argv[3])
 
 # init PEs
