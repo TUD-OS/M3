@@ -315,7 +315,7 @@ initState(th.cm_core)
 
 # set arguments, ...
 if cmprog != "idle.mem":
-    initMem(th.cm_core, [cmprog])
+    initMem(th.cm_core, [cmprog[:-4]])
 
 th.cm_core.start()
 
