@@ -24,6 +24,28 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
+size_t DTU::regs[2][6] = {
+    // CM
+    {
+        /* REG_TARGET */    2,
+        /* REG_REM_ADDR */  4,
+        /* REG_LOC_ADDR */  6,
+        /* REG_TYPE */      8,
+        /* REG_SIZE */      10,
+        /* REG_STATUS */    10,
+    },
+
+    // PEs
+    {
+        /* REG_TARGET */    0,
+        /* REG_REM_ADDR */  4,
+        /* REG_LOC_ADDR */  6,
+        /* REG_TYPE */      2,
+        /* REG_SIZE */      8,
+        /* REG_STATUS */    10,
+    }
+};
+
 void DTU::reset() {
     memset((void*)RECV_BUF_LOCAL,0,EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
     memset(_pos, 0, sizeof(_pos));

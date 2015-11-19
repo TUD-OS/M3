@@ -74,6 +74,15 @@ public:
     static const int SYSC_EP                = 1;
     static const int DEF_RECVEP             = 2;
 
+    enum Register {
+        REG_TARGET,
+        REG_REM_ADDR,
+        REG_LOC_ADDR,
+        REG_TYPE,
+        REG_SIZE,
+        REG_STATUS,
+    };
+
     enum Operation {
         WRITE   = 0x0,      // write from local to remote
         READ    = 0x1,      // read from remote to local
@@ -129,8 +138,12 @@ public:
     }
 
     void wait_until_ready(int) {
-        volatile uint *ptr = reinterpret_cast<uint*>(PE_IDMA_OVERALL_SLOT_STATUS_ADDRESS);
-        while(ptr[0] != 0)
+        int core = coreid();
+        volatile uint *ptr = get_base_addr(core);
+        size_t *regs = get_regs(core);
+
+        volatile uint *status = ptr + regs[REG_STATUS];
+        while(status[0] != 0)
             ;
         EVENT_TRACE_MEM_FINISH();
     }
@@ -141,38 +154,59 @@ public:
     }
 
     void set_target(int, uchar dst, uintptr_t addr) {
-        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        int core = coreid();
+        volatile uint *ptr = get_base_addr(core);
+        size_t *regs = get_regs(core);
+
         if(dst == CM_CORE)
             addr -= 0x60000000;
-        ptr[PE_DMA_REG_TARGET]      = dst;
-        ptr[PE_DMA_REG_REM_ADDR]    = addr;
+        ptr[regs[REG_TARGET]]      = dst;
+        ptr[regs[REG_REM_ADDR]]    = addr;
     }
 
     void fire(int, Operation op, const void *msg, size_t size) {
-        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
+        int core = coreid();
+        volatile uint *ptr = get_base_addr(core);
+        size_t *regs = get_regs(core);
+
         // currently we have to substract the DRAM start
         UNUSED uintptr_t addr = reinterpret_cast<uintptr_t>(msg);
         // both have to be packet-size aligned
         assert((addr & (PACKET_SIZE - 1)) == 0);
         assert((size & (PACKET_SIZE - 1)) == 0);
 
-        ptr[PE_DMA_REG_TYPE]        = op == READ ? DTU_READ_CMD : DTU_WRITE_CMD;
-        ptr[PE_DMA_REG_LOC_ADDR]    = addr;
-        ptr[PE_DMA_REG_SIZE]        = size;
+        if(op == READ)
+            ptr[regs[REG_TYPE]]    = 0;
+        else if(core == CM_CORE)
+            ptr[regs[REG_TYPE]]    = 1;
+        else
+            ptr[regs[REG_TYPE]]    = 2;
+        ptr[regs[REG_LOC_ADDR]]    = addr;
+        ptr[regs[REG_SIZE]]        = size;
 
-#if defined(CM)
-        /* send transfer slot to CM_TU (always 0 for us) */
-        uint *tuFifo = (uint*)CM_TU_SET_FIFO;
-        *tuFifo = 0;
-#endif
+        if(core == CM_CORE) {
+            /* send transfer slot to CM_TU (always 0 for us) */
+            uint *tuFifo = (uint*)CM_TU_SET_FIFO;
+            *tuFifo = 0;
+        }
     }
 
     size_t get_remaining(int) {
-        volatile uint *ptr = reinterpret_cast<uint*>(PE_DMA_CONFIG);
-        return ptr[PE_DMA_REG_SIZE];
+        int core = coreid();
+        volatile uint *ptr = get_base_addr(core);
+        size_t *regs = get_regs(core);
+
+        return ptr[regs[REG_SIZE]];
     }
 
 private:
+    static volatile uint *get_base_addr(int core) {
+        return reinterpret_cast<volatile uint*>(core == CM_CORE ? 0x6001FA00 : 0x6001E078);
+    }
+    static size_t *get_regs(int core) {
+        return regs[core == CM_CORE ? 0 : 1];
+    }
+
     size_t recvbuf_offset(int core, int ep) {
         return core * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
@@ -185,6 +219,7 @@ private:
 
     size_t _pos[EP_COUNT];
     Message *_last[EP_COUNT];
+    static size_t regs[2][6];
     static DTU inst;
 };
 

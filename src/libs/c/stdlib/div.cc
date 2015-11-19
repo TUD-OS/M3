@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/Config.h>
 #include <c/div.h>
 
 template<typename T>
@@ -36,34 +37,42 @@ T divmod(T n, T d, T *rem) {
 }
 
 long divide(long n, long d, long *rem) {
-    return divmod(n, d, rem);
+    if(m3::coreid() == CM_CORE)
+        return divmod(n, d, rem);
+
+    *rem = n % d;
+    return n / d;
 }
 
 llong divide(llong n, llong d, llong *rem) {
-    return divmod(n, d, rem);
+    if(m3::coreid() == CM_CORE)
+        return divmod(n, d, rem);
+
+    *rem = n % d;
+    return n / d;
 }
 
 // we provide our own versions of __moddi3, __divdi3, __umoddi3 and __udivdi3 to optimize for size
 // instead of performance. they are almost exclusively used for printing stuff anyway.
 
-extern "C" llong __moddi3(llong n, llong d) {
+extern "C" USED llong __moddi3(llong n, llong d) {
     llong rem = 0;
     divmod(n, d, &rem);
     return rem;
 }
 
-extern "C" llong __divdi3(llong n, llong d) {
+extern "C" USED llong __divdi3(llong n, llong d) {
     llong rem;
     return divmod(n, d, &rem);
 }
 
-extern "C" ullong __umoddi3(ullong n, ullong d) {
+extern "C" USED ullong __umoddi3(ullong n, ullong d) {
     ullong rem = 0;
     divmod(n, d, &rem);
     return rem;
 }
 
-extern "C" ullong __udivdi3(ullong n, ullong d) {
+extern "C" USED ullong __udivdi3(ullong n, ullong d) {
     ullong rem;
     return divmod(n, d, &rem);
 }

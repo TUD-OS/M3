@@ -9,7 +9,7 @@ dirs = [
 
 # architecture / machine specific apps
 if env['ARCH'] == 't2':
-    dirs += ['profiler', 'profiler_cm', 'idle', 'sendfile', 'hello-cm']
+    dirs += ['profiler', 'profiler_cm', 'idle', 'sendfile']
 elif env['ARCH'] == 't3':
     dirs += ['idle']
 elif env['ARCH'] == 'host':
