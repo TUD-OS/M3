@@ -17,7 +17,7 @@
 #pragma once
 
 #define MAX_CORES           12
-#define AVAIL_PES           (MAX_CORES - 1)
+#define AVAIL_PES           MAX_CORES
 #define PE_MASK             0xFE2       // CM, PE1, ..., PE7
 
 #define SLOT_NO             4
