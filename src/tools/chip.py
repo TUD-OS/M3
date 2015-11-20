@@ -252,6 +252,7 @@ th.ddr_ram[TRACE_MEMBUF_ADDR] = 0xffffffffffffffff
 print "Running:", progs
 
 th.cm_core.mem_offset = 0x60000000
+th.ddr_ram.mem_offset = 0
 cmprog = sys.argv[2] if sys.argv[2] != "-" else "idle.mem"
 cores = [th.cm_core]
 for pe in th.duo_pes:

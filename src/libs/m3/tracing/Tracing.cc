@@ -86,15 +86,9 @@ OStream & operator<<(OStream &os, const Event &event) {
 Tracing::Tracing() {
     trace_enabled = false;
 
-    assert(MEMORY_CORE > FIRST_PE_ID + MAX_CORES);
-    assert(KERNEL_CORE > FIRST_PE_ID + MAX_CORES);
 #if !defined(__t2__)
-    for(int i = 0; i < FIRST_PE_ID + MAX_CORES; ++i)
-        trace_core[i] = false;
-    trace_core[MEMORY_CORE] = false;
-    trace_core[KERNEL_CORE] = false;
-    for(int i = APP_CORES; i < FIRST_PE_ID + MAX_CORES; ++i)
-        trace_core[i] = true;
+    for(int i = 0; i < ARRAY_SIZE(trace_core); ++i)
+        trace_core[i] = !!((1 << i) & PE_MASK);
 #endif
 
     if(coreid() != KERNEL_CORE)
