@@ -295,10 +295,11 @@ build_params_t2_chip() {
             "echo ./chip.py $M3_FS.mem $profargs log.txt $args > run.sh && chmod +x run.sh; " \
             "tar xfz $M3_FS.mem.tar.gz && ./run.sh && " \
             "tar cfz $M3_FS.mem.out.tar.gz $M3_FS.mem.out"
-        scp $t2pcip:thtest/$M3_FS.mem.out.tar.gz $build
-        ( cd $build && tar xfz $M3_FS.mem.out.tar.gz &&
-            mv $M3_FS.mem.out $M3_FS.out &&
-            rm $M3_FS.mem.out.tar.gz )
+        if scp $t2pcip:thtest/$M3_FS.mem.out.tar.gz $build; then
+            ( cd $build && tar xfz $M3_FS.mem.out.tar.gz &&
+                mv $M3_FS.mem.out $M3_FS.out &&
+                rm $M3_FS.mem.out.tar.gz )
+        fi
     else
         ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup.sh && rm -f *.txt; " \
             "echo ./chip.py - $profargs log.txt $args > run.sh && chmod +x run.sh; " \
