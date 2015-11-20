@@ -218,16 +218,17 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 			ldscript = File(runtimedir + '/ldscripts/elf32xtensa.x')
 		myenv.Append(LINKFLAGS = ' -Wl,-T,' + ldscript.abspath)
 
+		myenv.Append(CPPPATH = [
+			'#src/include',
+			Dir(configpath.abspath + '/' + core + '/xtensa-elf/arch/include'),
+			Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/xtensa-elf/include'),
+		])
+
 		prog = myenv.Program(
 			target,
 			sources,
 			LIBS = ['handler-reset'] + libs,
 			LIBPATH = [myenv['LIBDIR'], myenv['SUPDIR']] + libpaths,
-			CPPPATH = [
-				'#src/include',
-				Dir(configpath.abspath + '/' + core + '/xtensa-elf/arch/include'),
-				Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/xtensa-elf/include')
-			],
 			SUPDIR = Dir(configpath.abspath + '/' + core + '/xtensa-elf/arch/lib')
 		)
 		myenv.M3MemDump(target + '.mem', prog)
