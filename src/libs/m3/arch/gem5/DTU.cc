@@ -26,43 +26,37 @@ void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply
     static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
     static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
 
-    CmdRegs *c = cmd_regs();
-    c->dataAddr = reinterpret_cast<uintptr_t>(msg);
-    c->dataSize = size;
-    c->replyLabel = replylbl;
-    c->replyEpId = reply_ep;
+    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
+    write_reg(CmdRegs::DATA_SIZE, size);
+    write_reg(CmdRegs::REPLY_LABEL, replylbl);
+    write_reg(CmdRegs::REPLY_EP, reply_ep);
     Sync::compiler_barrier();
-    c->command = buildCommand(ep, CmdOpCode::SEND);
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::SEND));
 }
 
 void DTU::reply(int ep, const void *msg, size_t size, size_t) {
-    CmdRegs *c = cmd_regs();
-    c->dataAddr = reinterpret_cast<uintptr_t>(msg);
-    c->dataSize = size;
+    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
+    write_reg(CmdRegs::DATA_SIZE, size);
     Sync::compiler_barrier();
-    c->command = buildCommand(ep, CmdOpCode::REPLY);
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::REPLY));
 }
 
 void DTU::read(int ep, void *msg, size_t size, size_t off) {
-    CmdRegs *c = cmd_regs();
-
-    c->dataAddr = reinterpret_cast<uintptr_t>(msg);
-    c->dataSize = size;
-    c->offset = off;
+    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
+    write_reg(CmdRegs::DATA_SIZE, size);
+    write_reg(CmdRegs::OFFSET, off);
     Sync::compiler_barrier();
-    c->command = buildCommand(ep, CmdOpCode::READ);
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ));
 
     wait_until_ready(ep);
 }
 
 void DTU::write(int ep, const void *msg, size_t size, size_t off) {
-    CmdRegs *c = cmd_regs();
-
-    c->dataAddr = reinterpret_cast<uintptr_t>(msg);
-    c->dataSize = size;
-    c->offset = off;
+    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
+    write_reg(CmdRegs::DATA_SIZE, size);
+    write_reg(CmdRegs::OFFSET, off);
     Sync::compiler_barrier();
-    c->command = buildCommand(ep, CmdOpCode::WRITE);
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE));
 
     wait_until_ready(ep);
 }

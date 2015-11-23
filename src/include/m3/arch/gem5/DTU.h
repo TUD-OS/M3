@@ -39,40 +39,23 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
+    static const size_t DTU_REGS            = 2;
+    static const size_t CMD_REGS            = 6;
+    static const size_t EP_REGS             = 3;
 
-    struct DtuRegs {
-        reg_t status;
-        reg_t msgCnt;
-    } PACKED;
+    enum class DtuRegs {
+        STATUS              = 0,
+        MSGCNT              = 1,
+    };
 
-    struct CmdRegs {
-        reg_t command;
-        reg_t dataAddr;
-        reg_t dataSize;
-        reg_t offset;
-        reg_t replyEpId;
-        reg_t replyLabel;
-    } PACKED;
-
-    struct EpRegs {
-        // for receiving messages
-        reg_t bufAddr;
-        reg_t bufMsgSize;
-        reg_t bufSize;
-        reg_t bufMsgCnt;
-        reg_t bufReadPtr;
-        reg_t bufWritePtr;
-        // for sending messages
-        reg_t targetCoreId;
-        reg_t targetEpId;
-        reg_t maxMsgSize;
-        reg_t label;
-        reg_t credits;
-        // for memory requests
-        reg_t reqRemoteAddr;
-        reg_t reqRemoteSize;
-        reg_t reqFlags;
-    } PACKED;
+    enum class CmdRegs {
+        COMMAND             = 2,
+        DATA_ADDR           = 3,
+        DATA_SIZE           = 4,
+        OFFSET              = 5,
+        REPLY_EP            = 6,
+        REPLY_LABEL         = 7,
+    };
 
     enum MemFlags : reg_t {
         R                   = 1 << 0,
@@ -81,6 +64,13 @@ private:
 
     enum StatusFlags : reg_t {
         PRIV                = 1 << 0,
+    };
+
+    enum class EpType {
+        INVALID,
+        SEND,
+        RECEIVE,
+        MEMORY
     };
 
     enum class CmdOpCode {
@@ -140,12 +130,14 @@ public:
     }
 
     bool fetch_msg(int epid) {
-        volatile EpRegs *ep = ep_regs(epid);
-        return ep->bufMsgCnt > 0;
+        reg_t r0 = read_reg(epid, 0);
+        return (r0 & 0xFFFF) > 0;
     }
 
-    DTU::Message *message(int ep) const {
-        return reinterpret_cast<Message*>(ep_regs(ep)->bufReadPtr);
+    DTU::Message *message(int epid) const {
+        reg_t r1 = read_reg(epid, 1);
+        reg_t r2 = read_reg(epid, 2);
+        return reinterpret_cast<Message*>(r1 + ((r2 >> 16) & 0xFFFF));
     }
     Message *message_at(int, size_t) const {
         // TODO unsupported
@@ -161,11 +153,10 @@ public:
     }
 
     void ack_message(int ep) {
-        volatile CmdRegs *cmd = cmd_regs();
         wait_until_ready(ep);
         // ensure that we are really done with the message before acking it
         Sync::memory_barrier();
-        cmd->command = buildCommand(ep, CmdOpCode::INC_READ_PTR);
+        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::INC_READ_PTR));
         // ensure that we don't do something else before the ack
         Sync::memory_barrier();
     }
@@ -176,14 +167,12 @@ public:
         // hlt, we miss it. this case is handled by a pin at the CPU, which indicates whether
         // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
         // not have to be changed.
-        volatile DtuRegs *regs = dtu_regs();
-        if(regs->msgCnt == 0)
+        if(read_reg(DtuRegs::MSGCNT) == 0)
             asm volatile ("hlt");
         return true;
     }
     void wait_until_ready(int) {
-        volatile CmdRegs *regs = cmd_regs();
-        while(regs->command != 0)
+        while(read_reg(CmdRegs::COMMAND) != 0)
             ;
     }
     bool wait_for_mem_cmd() {
@@ -192,14 +181,46 @@ public:
     }
 
 private:
-    static DtuRegs *dtu_regs() {
-        return reinterpret_cast<DtuRegs*>(BASE_ADDR);
+    static reg_t read_reg(DtuRegs reg) {
+        return read_reg(static_cast<size_t>(reg));
     }
-    static CmdRegs *cmd_regs() {
-        return reinterpret_cast<CmdRegs*>(BASE_ADDR + sizeof(DtuRegs));
+    static reg_t read_reg(CmdRegs reg) {
+        return read_reg(static_cast<size_t>(reg));
     }
-    static EpRegs *ep_regs(int ep) {
-        return reinterpret_cast<EpRegs*>(BASE_ADDR + sizeof(DtuRegs) + sizeof(CmdRegs) + ep * sizeof(EpRegs));
+    static reg_t read_reg(int ep, size_t idx) {
+        return read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + idx);
+    }
+    static reg_t read_reg(size_t idx) {
+        reg_t res;
+        asm volatile (
+            "mov (%1), %0"
+            : "=r"(res)
+            : "r"(BASE_ADDR + idx * sizeof(reg_t))
+        );
+        return res;
+    }
+
+    static void write_reg(DtuRegs reg, reg_t value) {
+        write_reg(static_cast<size_t>(reg), value);
+    }
+    static void write_reg(CmdRegs reg, reg_t value) {
+        write_reg(static_cast<size_t>(reg), value);
+    }
+    static void write_reg(size_t idx, reg_t value) {
+        asm volatile (
+            "mov %0, (%1)"
+            : : "r"(value), "r"(BASE_ADDR + idx * sizeof(reg_t))
+        );
+    }
+
+    static uintptr_t dtu_reg_addr(DtuRegs reg) {
+        return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
+    }
+    static uintptr_t cmd_reg_addr(CmdRegs reg) {
+        return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
+    }
+    static uintptr_t ep_regs_addr(int ep) {
+        return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
     static reg_t buildCommand(int ep, CmdOpCode c) {
