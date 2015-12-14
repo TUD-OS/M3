@@ -23,25 +23,7 @@
 namespace m3 {
 
 OStream &operator<<(OStream &os, const Capability &cc) {
-    // don't make print virtual here because the linker will always include them then, even if they
-    // are not used.
-    switch(cc.type) {
-        case Capability::MSG | Capability::MEM:
-            static_cast<const MemCapability&>(cc).print(os);
-            break;
-        case Capability::MSG:
-            static_cast<const MsgCapability&>(cc).print(os);
-            break;
-        case Capability::SERVICE:
-            static_cast<const ServiceCapability&>(cc).print(os);
-            break;
-        case Capability::SESSION:
-            static_cast<const SessionCapability&>(cc).print(os);
-            break;
-        case Capability::VPE:
-            static_cast<const VPECapability&>(cc).print(os);
-            break;
-    }
+    cc.print(os);
     return os;
 }
 
@@ -102,7 +84,7 @@ Errors::Code VPECapability::revoke() {
 }
 
 void MsgCapability::print(OStream &os) const {
-    os << "mesg[id=" << table()->id() << ":" << sel() << ", refs=" << obj->refcount()
+    os << fmt(sel(), 2) << ": mesg[refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid
        << ", lbl=" << fmt(obj->label, "#0x", sizeof(label_t) * 2)
@@ -110,24 +92,24 @@ void MsgCapability::print(OStream &os) const {
 }
 
 void MemCapability::print(OStream &os) const {
-    os << "mem [id=" << table()->id() << ":" << sel() << ", refs=" << obj->refcount()
+    os << fmt(sel(), 2) << ": mem [refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << fmt(obj->label, "#x")
        << ", crd=#" << fmt(obj->credits, "x") << "]";
 }
 
 void ServiceCapability::print(OStream &os) const {
-    os << "serv[id=" << table()->id() << ":" << sel() << ", name=" << inst->name() << "]";
+    os << fmt(sel(), 2) << ": serv[name=" << inst->name() << "]";
 }
 
 void SessionCapability::print(OStream &os) const {
-    os << "sess[id=" << table()->id() << ":" << sel() << ", refs=" << obj->refcount()
+    os << fmt(sel(), 2) << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << fmt(obj->ident, "x") << "]";
 }
 
 void VPECapability::print(OStream &os) const {
-    os << "vpe[id=" << table()->id() << ":" << sel() << ", refs=" << vpe->refcount()
+    os << fmt(sel(), 2) << ": vpe [refs=" << vpe->refcount()
        << ", name=" << vpe->name() << "]";
 }
 

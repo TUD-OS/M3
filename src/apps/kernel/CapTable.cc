@@ -22,10 +22,12 @@ namespace m3 {
 CapTable CapTable::_kcaps(0);
 
 void CapTable::revoke_all() {
-    for(capsel_t i = 0; i < MAX_ENTRIES; ++i) {
-        if(_caps[i])
-            revoke(CapRngDesc(i));
-    }
+    Capability *c;
+    // TODO it might be better to do that in a different order, because it is more expensive to
+    // remove a node that has two childs (it requires a rotate). Thus, it would be better to start
+    // with leaf nodes.
+    while((c = static_cast<Capability*>(_caps.remove_root())) != nullptr)
+        revoke(c);
 }
 
 Capability *CapTable::obtain(capsel_t dst, Capability *c) {
@@ -72,41 +74,31 @@ Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
     return res;
 }
 
-Errors::Code CapTable::revoke(const m3::CapRngDesc &crd) {
-    for(capsel_t i = 0; i < crd.count(); ++i) {
-        Capability *c = get(i + crd.start());
-        if(c) {
-            if(c->_next)
-                c->_next->_prev = c->_prev;
-            if(c->_prev)
-                c->_prev->_next = c->_next;
-            if(c->_parent && c->_parent->_child == c)
-                c->_parent->_child = c->_next;
-            Errors::Code res = revoke_rec(c, false);
-            if(res != Errors::NO_ERROR)
-                return res;
-        }
+Errors::Code CapTable::revoke(Capability *c) {
+    if(c) {
+        if(c->_next)
+            c->_next->_prev = c->_prev;
+        if(c->_prev)
+            c->_prev->_next = c->_next;
+        if(c->_parent && c->_parent->_child == c)
+            c->_parent->_child = c->_next;
+        return revoke_rec(c, false);
     }
     return Errors::NO_ERROR;
 }
 
-void CapTable::print_rec(OStream &os, int level, const Capability *c) {
-    os << fmt("", level * 2) << *c << "\n";
-    if(c->child())
-        print_rec(os, level + 1, c->child());
-    if(c->next())
-        print_rec(os, level, c->next());
+Errors::Code CapTable::revoke(const m3::CapRngDesc &crd) {
+    for(capsel_t i = 0; i < crd.count(); ++i) {
+        Errors::Code res = revoke(get(i + crd.start()));
+        if(res != Errors::NO_ERROR)
+            return res;
+    }
+    return Errors::NO_ERROR;
 }
 
 OStream &operator<<(OStream &os, const CapTable &ct) {
     os << "CapTable[" << ct.id() << "]:\n";
-    for(size_t i = 0; i < CapTable::MAX_ENTRIES; ++i) {
-        if(ct._caps[i]) {
-            os << "  " << *ct._caps[i] << "\n";
-            if(ct._caps[i]->child())
-                CapTable::print_rec(os, 2, ct._caps[i]->child());
-        }
-    }
+    ct._caps.print(os, false);
     return os;
 }
 

@@ -21,6 +21,7 @@
 #include <m3/DTU.h>
 
 #include "Services.h"
+#include "Treap.h"
 
 namespace m3 {
 
@@ -30,10 +31,12 @@ class OStream;
 
 OStream &operator<<(OStream &os, const Capability &cc);
 
-class Capability {
+class Capability : public TreapNode<capsel_t> {
     friend class CapTable;
 
 public:
+    typedef capsel_t key_t;
+
     enum {
         SERVICE = 0x01,
         SESSION = 0x02,
@@ -42,13 +45,14 @@ public:
         VPE     = 0x10,
     };
 
-    explicit Capability(unsigned type) : type(type), _tbl(), _child(), _parent(), _next(), _prev() {
+    explicit Capability(unsigned type)
+        : TreapNode<capsel_t>(-1), type(type), _tbl(), _child(), _parent(), _next(), _prev() {
     }
     virtual ~Capability() {
     }
 
     capsel_t sel() const {
-        return _sel;
+        return key();
     }
     CapTable *table() {
         return _tbl;
@@ -76,14 +80,13 @@ private:
     virtual Capability *clone() = 0;
     void put(CapTable *tbl, capsel_t sel) {
         _tbl = tbl;
-        _sel = sel;
+        key(sel);
     }
 
 public:
     unsigned type;
 
 private:
-    size_t _sel;
     CapTable *_tbl;
     Capability *_child;
     Capability *_parent;
@@ -132,11 +135,12 @@ protected:
     }
 
 public:
-    explicit MsgCapability(label_t label, int core, int epid, word_t credits)
+    explicit MsgCapability(label_t label, int core, int epid,
+            word_t credits)
         : MsgCapability(MSG, new MsgObject(label, core, epid, credits)) {
     }
 
-    void print(OStream &os) const;
+    void print(OStream &os) const override;
 
 protected:
     virtual Errors::Code revoke() override;
@@ -153,11 +157,12 @@ public:
 
 class MemCapability : public MsgCapability {
 public:
-    explicit MemCapability(uintptr_t addr, size_t size, uint perms, int core, int epid)
+    explicit MemCapability(uintptr_t addr, size_t size, uint perms,
+            int core, int epid)
         : MsgCapability(MEM | MSG, new MemObject(addr, size, perms, core, epid)) {
     }
 
-    void print(OStream &os) const;
+    void print(OStream &os) const override;
 
 private:
     virtual Capability *clone() override {
@@ -173,7 +178,7 @@ public:
         : Capability(SERVICE), inst(_inst) {
     }
 
-    void print(OStream &os) const;
+    void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;
@@ -192,7 +197,7 @@ public:
         : Capability(SESSION), obj(new SessionObject(srv, ident)) {
     }
 
-    void print(OStream &os) const;
+    void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;
@@ -209,7 +214,7 @@ public:
     explicit VPECapability(KVPE *p);
     VPECapability(const VPECapability &t);
 
-    void print(OStream &os) const;
+    void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;

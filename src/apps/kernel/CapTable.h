@@ -23,6 +23,7 @@
 
 #include "Services.h"
 #include "Capability.h"
+#include "Treap.h"
 
 namespace m3 {
 
@@ -33,7 +34,6 @@ OStream &operator<<(OStream &os, const CapTable &ct);
 class CapTable {
     friend OStream &operator<<(OStream &os, const CapTable &ct);
 
-    static constexpr size_t MAX_ENTRIES    = VPE::SEL_TOTAL;
 public:
     static CapTable &kernel_table() {
         return _kcaps;
@@ -41,12 +41,7 @@ public:
 
     explicit CapTable(uint id) : _id(id), _caps() {
     }
-    CapTable(const CapTable &ct, uint id) : _id(id), _caps() {
-        for(size_t i = 0; i < MAX_ENTRIES; ++i) {
-            if(ct._caps[i])
-                _caps[i] = ct._caps[i]->clone();
-        }
-    }
+    CapTable(const CapTable &ct, uint id) = delete;
     ~CapTable() {
         revoke_all();
     }
@@ -54,20 +49,17 @@ public:
     uint id() const {
         return _id;
     }
-    bool valid(capsel_t i) const {
-        return i < MAX_ENTRIES;
-    }
     bool unused(capsel_t i) const {
-        return valid(i) && _caps[i] == nullptr;
+        return get(i) == nullptr;
     }
     bool used(capsel_t i) const {
-        return valid(i) && _caps[i] != nullptr;
+        return get(i) != nullptr;
     }
     bool range_unused(const m3::CapRngDesc &crd) const {
         if(!range_valid(crd))
             return false;
         for(capsel_t i = crd.start(); i < crd.start() + crd.count(); ++i) {
-            if(_caps[i] != nullptr)
+            if(get(i) != nullptr)
                 return false;
         }
         return true;
@@ -76,7 +68,7 @@ public:
         if(!range_valid(crd))
             return false;
         for(capsel_t i = crd.start(); i < crd.start() + crd.count(); ++i) {
-            if(_caps[i] == nullptr)
+            if(get(i) == nullptr)
                 return false;
         }
         return true;
@@ -87,44 +79,48 @@ public:
     Errors::Code revoke(const m3::CapRngDesc &crd);
 
     Capability *get(capsel_t i) {
-        if(!valid(i))
-            return nullptr;
-        return _caps[i];
+        return _caps.find(i);
+    }
+    const Capability *get(capsel_t i) const {
+        return _caps.find(i);
     }
     Capability *get(capsel_t i, unsigned types) {
-        if(!valid(i) || _caps[i] == nullptr || !(_caps[i]->type & types))
+        Capability *c = get(i);
+        if(c == nullptr || !(c->type & types))
             return nullptr;
-        return _caps[i];
+        return c;
     }
 
     void set(capsel_t i, Capability *c) {
-        assert(_caps[i] == nullptr);
+        assert(get(i) == nullptr);
         if(c) {
             c->put(this, i);
+            _caps.insert(c);
             LOG(CAPS, "CapTable[" << _id << "]: Setting " << i << " to " << *c);
         }
         else
             LOG(CAPS, "CapTable[" << _id << "]: Setting " << i << " to NULL");
-        _caps[i] = c;
     }
     void unset(capsel_t i) {
         LOG(CAPS, "CapTable[" << _id << "]: Unsetting " << i);
-        delete _caps[i];
-        _caps[i] = nullptr;
+        Capability *c = get(i);
+        if(c) {
+            _caps.remove(c);
+            delete c;
+        }
     }
 
     void revoke_all();
 
 private:
+    static Errors::Code revoke(Capability *c);
     static Errors::Code revoke_rec(Capability *c, bool revnext);
-    static void print_rec(OStream &os, int level, const Capability *c);
     bool range_valid(const m3::CapRngDesc &crd) const {
-        return crd.count() == 0 || (crd.start() + crd.count() > crd.start() && valid(crd.start())
-                && valid(crd.start() + crd.count() - 1));
+        return crd.count() == 0 || crd.start() + crd.count() > crd.start();
     }
 
     uint _id;
-    Capability *_caps[MAX_ENTRIES];
+    Treap<Capability> _caps;
     static CapTable _kcaps;
 };
 
