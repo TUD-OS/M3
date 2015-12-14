@@ -60,12 +60,26 @@ public:
     explicit Cap(uint type, capsel_t sel = INVALID, uint flags = 0)
         : _sel(sel), _type(type), _flags(flags) {
     }
+
     // object-caps are non-copyable, because I think there are very few usecases
     Cap(const Cap&) = delete;
     Cap& operator=(const Cap&) = delete;
+
     // but moving is allowed
-    Cap(Cap &&c) = default;
-    Cap& operator=(Cap&&) = default;
+    Cap(Cap &&c) : _sel(c._sel), _type(c._type), _flags(c._flags) {
+        // don't destroy anything with the old cap
+        c._flags = KEEP_SEL | KEEP_CAP;
+    }
+    Cap& operator=(Cap &&c) {
+        if(&c != this) {
+            _sel = c._sel;
+            _type = c._type;
+            _flags = c._flags;
+            // don't destroy anything with the old cap
+            c._flags = KEEP_SEL | KEEP_CAP;
+        }
+        return *this;
+    }
 
     /**
      * Destructor. Depending on the flags, it frees the selector and/or the capability (revoke).
