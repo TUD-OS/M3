@@ -164,6 +164,16 @@ public:
 
     void print(OStream &os) const override;
 
+    uintptr_t addr() const {
+        return obj->label & ~MemGate::RWX;
+    }
+    size_t size() const {
+        return obj->credits;
+    }
+    uint perms() const {
+        return obj->label & MemGate::RWX;
+    }
+
 private:
     virtual Capability *clone() override {
         MemCapability *c = new MemCapability(*this);

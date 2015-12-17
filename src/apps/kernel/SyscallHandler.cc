@@ -379,15 +379,15 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
     if(srccap == nullptr || !vpe->capabilities().unused(dst))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
 
-    if(offset + size < offset || offset + size > srccap->obj->credits || size == 0 ||
+    if(offset + size < offset || offset + size > srccap->size() || size == 0 ||
             (perms & ~(MemGate::RWX)))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid args");
 
     MemCapability *dercap = static_cast<MemCapability*>(vpe->capabilities().obtain(dst, srccap));
     dercap->obj = Reference<MsgObject>(new MemObject(
-        (srccap->obj->label & ~MemGate::RWX) + offset,
+        srccap->addr() + offset,
         size,
-        perms & (srccap->obj->label & MemGate::RWX),
+        perms & srccap->perms(),
         srccap->obj->core,
         srccap->obj->epid
     ));
