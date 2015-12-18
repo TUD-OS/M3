@@ -29,7 +29,7 @@
 namespace m3 {
 
 template<class HDL>
-class Server : public Cap {
+class Server : public ObjCap {
     using handler_func = void (Server::*)(RecvGate &gate, GateIStream &is);
 
 public:
@@ -46,7 +46,7 @@ public:
 
     explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
-        : Cap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
+        : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
           _epid(VPE::self().alloc_ep()),
           _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
           _ctrl_rgate(RecvGate::create(&_rcvbuf)),
@@ -74,7 +74,7 @@ public:
             }
         }
         // don't revoke it again
-        flags(Cap::KEEP_CAP);
+        flags(ObjCap::KEEP_CAP);
         // free endpoint
         VPE::self().free_ep(_epid);
     }

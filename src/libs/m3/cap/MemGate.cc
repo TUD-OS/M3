@@ -41,7 +41,7 @@ MemGate MemGate::derive(size_t offset, size_t size, int perms) const {
 
 MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) const {
     Syscalls::get().derivemem(sel(), cap, offset, size, perms);
-    return MemGate(Cap::KEEP_SEL, cap);
+    return MemGate(ObjCap::KEEP_SEL, cap);
 }
 
 void MemGate::read_sync(void *data, size_t len, size_t offset) {

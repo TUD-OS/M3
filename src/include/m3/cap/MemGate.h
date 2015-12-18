@@ -72,7 +72,7 @@ public:
      * @param cap the memory-capability
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static MemGate bind(capsel_t cap, uint flags = Cap::KEEP_CAP | Cap::KEEP_SEL) {
+    static MemGate bind(capsel_t cap, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
         return MemGate(flags, cap);
     }
 

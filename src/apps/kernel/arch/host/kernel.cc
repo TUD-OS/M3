@@ -45,7 +45,7 @@ class KernelEPSwitcher : public EPSwitcher {
 public:
     virtual void switch_ep(size_t victim, capsel_t, capsel_t newcap) override {
         // we don't need to clear endpoint-registers since nobody does cmpxchg here.
-        if(newcap != Cap::INVALID) {
+        if(newcap != ObjCap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
             assert(c != nullptr);

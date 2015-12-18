@@ -29,7 +29,7 @@ using namespace m3;
 class KernelEPSwitcher : public EPSwitcher {
 public:
     virtual void switch_ep(size_t id, capsel_t, capsel_t newcap) override {
-        if(newcap != Cap::INVALID) {
+        if(newcap != ObjCap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
 

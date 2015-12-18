@@ -56,7 +56,7 @@ private:
 class MemSessionData : public RequestSessionData {
 public:
     explicit MemSessionData()
-        : RequestSessionData(), vpe(Cap::INVALID), regs(), mem(), nextPage(), pages() {
+        : RequestSessionData(), vpe(ObjCap::INVALID), regs(), mem(), nextPage(), pages() {
     }
     ~MemSessionData() {
         Region *reg;
@@ -70,7 +70,7 @@ public:
     }
 
     void init(capsel_t _vpe) {
-        vpe = Cap(Cap::VIRTPE, _vpe);
+        vpe = ObjCap(ObjCap::VIRTPE, _vpe);
         // TODO come up with something real ;)
         nextPage = 0;
         pages = 4;
@@ -84,7 +84,7 @@ public:
         return Errors::NO_ERROR;
     }
 
-    Cap vpe;
+    ObjCap vpe;
     Treap<Region> regs;
     MemGate *mem;
     int nextPage;
@@ -107,7 +107,7 @@ public:
     }
 
     virtual void handle_delegate(MemSessionData *sess, GateIStream &args, uint capcount) override {
-        if(capcount != 1 || sess->vpe.sel() != Cap::INVALID) {
+        if(capcount != 1 || sess->vpe.sel() != ObjCap::INVALID) {
             reply_vmsg_on(args, Errors::INV_ARGS);
             return;
         }
@@ -123,7 +123,7 @@ public:
 
         LOG(MEM, "mem::pf(virt=" << fmt(virt, "p") << ", access " << fmt(access, "#x") << ")");
 
-        if(sess->vpe.sel() == Cap::INVALID) {
+        if(sess->vpe.sel() == ObjCap::INVALID) {
             LOG(MEM, "Invalid session");
             reply_vmsg(gate, Errors::INV_ARGS);
             return;

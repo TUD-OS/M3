@@ -25,7 +25,7 @@ const size_t VPE::BUF_SIZE    = 4096;
 VPE VPE::_self INIT_PRIORITY(102);
 
 VPE::VPE(const String &name, const String &core)
-        : Cap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
+        : ObjCap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
           _mounts(), _mountlen() {
     init();

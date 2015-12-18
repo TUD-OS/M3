@@ -32,7 +32,7 @@ RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
 
 RegularFile::~RegularFile() {
     // the fs-service will revoke it. so don't try to "unactivate" it afterwards
-    _lastmem.rebind(Cap::INVALID);
+    _lastmem.rebind(ObjCap::INVALID);
     if(_fs.valid())
         _fs->close(_fd, _last_extent, _last_off);
     _memcaps.free();
@@ -160,8 +160,8 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
 ssize_t RegularFile::get_location(Position &pos, bool writing) const {
     if(!pos.valid() || (writing && _locs.get(pos.local) == 0)) {
         // the fs-service will revoke our memory-caps. thus, we have to tell that to our gate
-        // so that it passes Cap::INVALID as the old cap on the next ep-switch.
-        _lastmem.rebind(Cap::INVALID);
+        // so that it passes ObjCap::INVALID as the old cap on the next ep-switch.
+        _lastmem.rebind(ObjCap::INVALID);
         _memcaps.free();
         _locs.clear();
 

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/cap/Cap.h>
+#include <m3/cap/ObjCap.h>
 #include <m3/util/Util.h>
 #include <m3/DTU.h>
 #include <m3/EPMux.h>
@@ -31,7 +31,7 @@ namespace m3 {
  *
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
  */
-class Gate : public Cap, public SListItem {
+class Gate : public ObjCap, public SListItem {
     friend class EPMux;
 
     static const size_t NODESTROY   = -2;
@@ -52,11 +52,11 @@ protected:
      * capability you've received from somebody else.
      */
     explicit Gate(uint type, capsel_t cap, unsigned capflags, size_t epid = UNBOUND)
-        : Cap(type, cap, capflags), SListItem(), _epid(epid) {
+        : ObjCap(type, cap, capflags), SListItem(), _epid(epid) {
     }
 
 public:
-    Gate(Gate &&g) : Cap(Util::move(g)), SListItem(Util::move(g)), _epid(g._epid) {
+    Gate(Gate &&g) : ObjCap(Util::move(g)), SListItem(Util::move(g)), _epid(g._epid) {
         g._epid = NODESTROY;
     }
     ~Gate() {
@@ -82,7 +82,7 @@ public:
      * capability has been created, it will be released. If the selector has been allocated, it will
      * be released. If not, nothing is done.
      *
-     * @param newsel the new selector (might also be Cap::INVALID)
+     * @param newsel the new selector (might also be ObjCap::INVALID)
      */
     void rebind(capsel_t newsel) {
         EPMux::get().switch_cap(this, newsel);
@@ -92,7 +92,7 @@ public:
 
 protected:
     void ensure_activated() {
-        if(_epid == UNBOUND && sel() != Cap::INVALID)
+        if(_epid == UNBOUND && sel() != ObjCap::INVALID)
             EPMux::get().switch_to(this);
     }
     void wait_until_sent() {

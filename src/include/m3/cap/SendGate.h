@@ -78,7 +78,7 @@ public:
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
     static SendGate bind(capsel_t cap, RecvGate *rcvgate = nullptr,
-            uint flags = Cap::KEEP_CAP | Cap::KEEP_SEL) {
+            uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
         return SendGate(cap, flags, rcvgate);
     }
 

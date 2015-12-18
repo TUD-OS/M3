@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/cap/Cap.h>
+#include <m3/cap/ObjCap.h>
 #include <m3/GateStream.h>
 #include <m3/CapRngDesc.h>
 #include <m3/Errors.h>
@@ -31,7 +31,7 @@ namespace m3 {
  * At construction, the server receives an OPEN event, that allows him to associate information with
  * this session. At destruction, the server receives a CLOSE event to perform cleanup.
  */
-class Session : public Cap {
+class Session : public ObjCap {
 public:
     /**
      * Creates a session at service <name>, sending him <args> as arguments to the OPEN event.
@@ -40,7 +40,7 @@ public:
      * @param args the arguments
      */
     explicit Session(const String &name, const GateOStream &args = StaticGateOStream<1>())
-        : Cap(SESSION) {
+        : ObjCap(SESSION) {
         connect(name, args);
     }
 
@@ -49,7 +49,7 @@ public:
      *
      * @param sel the capability selector of the session
      */
-    explicit Session(capsel_t sel) : Cap(SESSION, sel) {
+    explicit Session(capsel_t sel) : ObjCap(SESSION, sel) {
     }
 
     /**
@@ -59,6 +59,14 @@ public:
         return sel() != INVALID;
     }
 
+    /**
+     * Delegates the given object capability to the server.
+     *
+     * @param sel the capability
+     */
+    void delegate_obj(capsel_t sel) {
+        delegate(CapRngDesc(CapRngDesc::OBJ, sel, 1));
+    }
     /**
      * Delegates the given capability range to the server.
      *

@@ -599,9 +599,9 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     LOG_SYS(vpe, "syscall::activate(ep=" << epid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
-    MsgCapability *oldcapobj = oldcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *oldcapobj = oldcap == ObjCap::INVALID ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
-    MsgCapability *newcapobj = newcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *newcapobj = newcap == ObjCap::INVALID ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(newcap, Capability::MSG | Capability::MEM));
     // ep 0 can never be used for sending
     if(epid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {

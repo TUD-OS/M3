@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/cap/Cap.h>
+#include <m3/cap/ObjCap.h>
 #include <m3/cap/MemGate.h>
 #include <m3/util/String.h>
 #include <m3/BitField.h>
@@ -37,7 +37,7 @@ class VFS;
  * Note that you have an object for your own VPE, but you can't use it to exchange capabilities or
  * execute programs in it. You can access the memory to derive sub areas from it, though.
  */
-class VPE : public Cap {
+class VPE : public ObjCap {
     friend class CapRngDesc;
     friend class VFS;
 
@@ -53,7 +53,7 @@ public:
 
     // don't revoke these. they kernel does so on exit
     explicit VPE()
-        : Cap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
+        : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
           _caps(), _eps(), _mounts(), _mountlen() {
         init_state();
         init();

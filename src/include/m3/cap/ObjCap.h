@@ -28,7 +28,7 @@ namespace m3 {
  * this does not make sense in most cases anyway. Considering how much it decreases code-size and
  * increases performance, it's worth it, I think.
  */
-class Cap {
+class ObjCap {
 public:
     static const capsel_t INVALID   = 0xFFFF;
 
@@ -57,20 +57,20 @@ public:
      * @param flags control whether the selector and/or the capability should be free'd
      *  during destruction
      */
-    explicit Cap(uint type, capsel_t sel = INVALID, uint flags = 0)
+    explicit ObjCap(uint type, capsel_t sel = INVALID, uint flags = 0)
         : _sel(sel), _type(type), _flags(flags) {
     }
 
     // object-caps are non-copyable, because I think there are very few usecases
-    Cap(const Cap&) = delete;
-    Cap& operator=(const Cap&) = delete;
+    ObjCap(const ObjCap&) = delete;
+    ObjCap& operator=(const ObjCap&) = delete;
 
     // but moving is allowed
-    Cap(Cap &&c) : _sel(c._sel), _type(c._type), _flags(c._flags) {
+    ObjCap(ObjCap &&c) : _sel(c._sel), _type(c._type), _flags(c._flags) {
         // don't destroy anything with the old cap
         c._flags = KEEP_SEL | KEEP_CAP;
     }
-    Cap& operator=(Cap &&c) {
+    ObjCap& operator=(ObjCap &&c) {
         if(&c != this) {
             _sel = c._sel;
             _type = c._type;
@@ -84,7 +84,7 @@ public:
     /**
      * Destructor. Depending on the flags, it frees the selector and/or the capability (revoke).
      */
-    ~Cap() {
+    ~ObjCap() {
         release();
     }
 

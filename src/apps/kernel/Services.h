@@ -35,7 +35,7 @@ class Service : public m3::SListItem, public RefCounted {
 public:
     explicit Service(KVPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-          _sgate(m3::SendGate::bind(gate, nullptr, m3::Cap::KEEP_CAP)), _queue(capacity) {
+          _sgate(m3::SendGate::bind(gate, nullptr, m3::ObjCap::KEEP_CAP)), _queue(capacity) {
     }
     ~Service();
 
