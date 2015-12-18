@@ -113,7 +113,7 @@ public:
         }
 
         sess->init(VPE::self().alloc_cap());
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(sess->vpe.sel()));
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->vpe.sel()));
     }
 
     void pf(RecvGate &gate, GateIStream &is) {

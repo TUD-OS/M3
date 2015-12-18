@@ -21,7 +21,7 @@
 namespace m3 {
 
 CapRngDesc CapRngDesc::All() {
-    return CapRngDesc(VPE::SEL_START, VPE::SEL_COUNT);
+    return CapRngDesc(OBJ, VPE::SEL_START, VPE::SEL_COUNT);
 }
 
 void CapRngDesc::revoke() {
@@ -29,7 +29,8 @@ void CapRngDesc::revoke() {
 }
 
 void CapRngDesc::free() {
-    VPE::self().free_caps(_start, _count);
+    if(_type == OBJ)
+        VPE::self().free_caps(_start, _count);
 }
 
 }

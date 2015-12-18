@@ -99,11 +99,11 @@ public:
           _sgate(SendGate::create_for(rd, _recvep, 0, CREDITS, nullptr, _mem.sel() + 1)) {
         assert(Math::is_aligned(size, DTU_PKG_SIZE));
         if(&rd != &VPE::self() && rd.is_cap_free(caps()))
-            rd.delegate(CapRngDesc(caps()));
+            rd.delegate(CapRngDesc(CapRngDesc::OBJ, caps()));
         // we assume here that either both have been delegated or none since this does basically
         // only occur if we delegate all our caps to the VPE
         if(&wr != &VPE::self() && wr.is_cap_free(caps()))
-            wr.delegate(CapRngDesc(caps(), 2));
+            wr.delegate(CapRngDesc(CapRngDesc::OBJ, caps(), 2));
     }
     Pipe(const Pipe&) = delete;
     Pipe &operator=(const Pipe&) = delete;

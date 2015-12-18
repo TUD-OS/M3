@@ -100,7 +100,7 @@ void VPE::obtain(const CapRngDesc &crd) {
 }
 
 void VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
-    Syscalls::get().exchange(sel(), CapRngDesc(dest, crd.count()), crd, true);
+    Syscalls::get().exchange(sel(), CapRngDesc(CapRngDesc::OBJ, dest, crd.count()), crd, true);
 }
 
 int VPE::wait() {

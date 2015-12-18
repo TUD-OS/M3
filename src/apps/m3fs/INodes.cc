@@ -81,7 +81,7 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         return nullptr;
     }
 
-    crd = CapRngDesc(VPE::self().alloc_caps(locs), locs);
+    crd = CapRngDesc(CapRngDesc::OBJ, VPE::self().alloc_caps(locs), locs);
     Extent *indir = nullptr;
     // we're reusing the locations
     _locs.clear();

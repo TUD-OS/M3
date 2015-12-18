@@ -144,7 +144,7 @@ public:
         : Session(service), _buffer(RecvBuf::create(VPE::self().alloc_ep(), buford, msgord, 0)),
           _rgate(RecvGate::create(&_buffer)), _sgate(SendGate::create(SendGate::UNLIMITED, &_rgate)) {
         if(!Errors::occurred())
-            delegate(CapRngDesc(_sgate.sel()));
+            delegate(CapRngDesc(CapRngDesc::OBJ, _sgate.sel()));
     }
 
     RecvGate &gate() {

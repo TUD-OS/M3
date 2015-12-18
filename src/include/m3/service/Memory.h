@@ -40,7 +40,7 @@ public:
 
     explicit Memory(const String &service, const VPE &vpe)
         : Session(service), _gate(SendGate::bind(obtain(1).start())) {
-        delegate(CapRngDesc(vpe.sel(), 1));
+        delegate(CapRngDesc(CapRngDesc::OBJ, vpe.sel(), 1));
     }
 
     const SendGate &gate() const {

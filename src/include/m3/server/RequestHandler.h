@@ -79,7 +79,7 @@ protected:
         sess->_rgate = new RecvGate(RecvGate::create(recvbuf(ctrlbuf), sess));
         sess->_sgate = new SendGate(SendGate::create(credits(), sess->_rgate));
         sess->_rgate->subscribe(std::bind(&RequestHandler::handle_message, this, _1, _2));
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(sess->send_gate()->sel()));
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->send_gate()->sel()));
     }
 
 public:

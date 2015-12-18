@@ -34,7 +34,7 @@ public:
             return;
         }
 
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(_vgamem->sel()));
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, _vgamem->sel()));
     }
 
 private:

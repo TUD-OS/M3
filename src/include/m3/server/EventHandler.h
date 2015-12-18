@@ -63,7 +63,7 @@ protected:
         }
 
         sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(sess->gate()->sel()));
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->gate()->sel()));
     }
 
 private:

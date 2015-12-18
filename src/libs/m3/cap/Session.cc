@@ -41,13 +41,13 @@ GateIStream Session::delegate(const CapRngDesc &crd, const GateOStream &args) {
 }
 
 CapRngDesc Session::obtain(uint count) {
-    CapRngDesc crd(VPE::self().alloc_caps(count), count);
+    CapRngDesc crd(CapRngDesc::OBJ, VPE::self().alloc_caps(count), count);
     Syscalls::get().obtain(sel(), crd);
     return crd;
 }
 
 GateIStream Session::obtain(uint count, CapRngDesc &crd, const GateOStream &args) {
-    crd = CapRngDesc(VPE::self().alloc_caps(count), count);
+    crd = CapRngDesc(CapRngDesc::OBJ, VPE::self().alloc_caps(count), count);
     GateIStream reply = Syscalls::get().obtain(sel(), crd, args);
     reply >> Errors::last;
     return reply;

@@ -25,7 +25,7 @@ void Cap::release() {
         if(~_flags & KEEP_SEL)
             VPE::self().free_cap(sel());
         if(~_flags & KEEP_CAP)
-            Syscalls::get().revoke(CapRngDesc(sel()));
+            Syscalls::get().revoke(CapRngDesc(CapRngDesc::OBJ, sel()));
     }
 }
 

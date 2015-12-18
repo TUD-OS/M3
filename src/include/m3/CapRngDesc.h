@@ -26,6 +26,11 @@ namespace m3 {
  */
 class CapRngDesc {
 public:
+    enum Type {
+        OBJ,
+        MAP,
+    };
+
     /**
      * @return the complete range of capabilities
      */
@@ -34,14 +39,21 @@ public:
     /**
      * Empty range
      */
-    explicit CapRngDesc() : _start(), _count() {
+    explicit CapRngDesc() : _type(OBJ), _start(), _count() {
     }
     /**
      * Creates a range from <start> to <start>+<count>-1.
      */
-    explicit CapRngDesc(capsel_t start, uint count = 1) : _start(start), _count(count) {
+    explicit CapRngDesc(Type type, capsel_t start, uint count = 1)
+        : _type(type), _start(start), _count(count) {
     }
 
+    /**
+     * @return the type of descriptor: OBJ or MAP
+     */
+    Type type() const {
+        return _type;
+    }
     /**
      * @return the start, i.e. the first capability
      */
@@ -72,11 +84,13 @@ public:
     void free();
 
     friend OStream &operator <<(OStream &os, const CapRngDesc &crd) {
-        os << "CRD[" << crd.start() << ":" << crd.count() << "]";
+        os << "CRD[" << (crd._type == OBJ ? "OBJ" : "MAP") << ":"
+           << crd.start() << ":" << crd.count() << "]";
         return os;
     }
 
 private:
+    Type _type;
     capsel_t _start;
     uint _count;
 };

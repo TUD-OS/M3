@@ -253,7 +253,7 @@ void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
     if(mcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is invalid");
 
-    if(!vpe->mapcaps().range_unused(CapRngDesc(dst, pages)))
+    if(!vpe->mapcaps().range_unused(CapRngDesc(CapRngDesc::MAP, dst, pages)))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Map capability range is not unused");
     if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is not page aligned");
@@ -482,6 +482,10 @@ Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c
     const CapRngDesc &srcrng = obtain ? c2 : c1;
     const CapRngDesc &dstrng = obtain ? c1 : c2;
 
+    if(c1.type() != c2.type()) {
+        LOG(KSYSC, v1->id() << ": Descriptor types don't match (" << Errors::INV_ARGS << ")");
+        return Errors::INV_ARGS;
+    }
     if((obtain && c2.count() > c1.count()) || (!obtain && c2.count() != c1.count())) {
         LOG(KSYSC, v1->id() << ": Server gave me invalid CRD (" << Errors::INV_ARGS << ")");
         return Errors::INV_ARGS;
@@ -491,12 +495,14 @@ Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c
         return Errors::INV_ARGS;
     }
 
+    CapTable &srctab = c1.type() == CapRngDesc::OBJ ? src.objcaps() : src.mapcaps();
+    CapTable &dsttab = c1.type() == CapRngDesc::OBJ ? dst.objcaps() : dst.mapcaps();
     for(uint i = 0; i < c2.count(); ++i) {
         capsel_t srccap = srcrng.start() + i;
         capsel_t dstcap = dstrng.start() + i;
-        Capability *scapobj = src.objcaps().get(srccap);
-        assert(dst.objcaps().get(dstcap) == nullptr);
-        dst.objcaps().obtain(dstcap, scapobj);
+        Capability *scapobj = srctab.get(srccap);
+        assert(dsttab.get(dstcap) == nullptr);
+        dsttab.obtain(dstcap, scapobj);
     }
     return Errors::NO_ERROR;
 }
@@ -636,17 +642,20 @@ void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
     KVPE *vpe = gate.session<KVPE>();
     CapRngDesc crd;
     is >> crd;
-    LOG_SYS(vpe, "syscall::revoke(" << crd.start() << ":" << crd.count() << ")");
+    LOG_SYS(vpe, "syscall::revoke(" << crd << ")");
 
-    if(crd.start() < 2)
+    if(crd.type() == CapRngDesc::OBJ && crd.start() < 2)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
-    Errors::Code res = vpe->objcaps().revoke(crd);
+    CapTable &table = crd.type() == CapRngDesc::OBJ ? vpe->objcaps() : vpe->mapcaps();
+    Errors::Code res = table.revoke(crd);
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "Revoke failed");
 
-    // maybe we have removed a VPE
-    tryTerminate();
+    if(crd.type() == CapRngDesc::OBJ) {
+        // maybe we have removed a VPE
+        tryTerminate();
+    }
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
