@@ -49,7 +49,6 @@ int main() {
             PANIC("Unable to unmap memory:" << Errors::to_string(res));
     }
 
-    // TODO since we do not revoke the mappings yet, this does still work
     volatile int *addr = reinterpret_cast<volatile int*>(virt);
     addr[0] = 1;
 

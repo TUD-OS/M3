@@ -31,6 +31,11 @@ public:
     explicit Region(uintptr_t addr, size_t size, uint _flags)
         : TreapNode<uintptr_t>(addr), flags(_flags), _size(size) {
     }
+    ~Region() {
+        // revoke mappings
+        CapRngDesc crd(CapRngDesc::MAP, addr() >> PAGE_BITS, size() >> PAGE_BITS);
+        Syscalls::get().revoke(crd);
+    }
 
     bool matches(uintptr_t k) override {
         return k >= addr() && k < addr() + _size;
@@ -196,7 +201,6 @@ public:
         Errors::Code res = Errors::INV_ARGS;
         Region *reg = sess->regs.find(virt);
         if(reg) {
-            // TODO revoke mappings
             sess->regs.remove(reg);
             delete reg;
             res = Errors::NO_ERROR;
