@@ -68,8 +68,8 @@ Errors::Code ServiceCapability::revoke() {
     return Errors::NO_ERROR;
 }
 
-VPECapability::VPECapability(KVPE *p)
-    : Capability(VPE), vpe(p) {
+VPECapability::VPECapability(CapTable *tbl, capsel_t sel, KVPE *p)
+    : Capability(tbl, sel, VPE), vpe(p) {
     p->ref();
 }
 

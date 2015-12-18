@@ -91,8 +91,8 @@ public:
     const String &name() const {
         return _name;
     }
-    CapTable &capabilities() {
-        return _caps;
+    CapTable &objcaps() {
+        return _objcaps;
     }
     RecvGate &syscall_gate() {
         return _syscgate;
@@ -125,7 +125,7 @@ private:
     int _state;
     int _exitcode;
     String _name;
-    CapTable _caps;
+    CapTable _objcaps;
     MemGate _sepsgate;
     RecvGate _syscgate;
     RecvGate _srvgate;

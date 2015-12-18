@@ -93,7 +93,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     LOG_SYS(vpe, "syscall::createsrv(gate=" << gatesel
         << ", srv=" << srv << ", name=" << name << ")");
 
-    Capability *gatecap = vpe->capabilities().get(gatesel, Capability::MSG);
+    Capability *gatecap = vpe->objcaps().get(gatesel, Capability::MSG);
     if(gatecap == nullptr || name.length() == 0)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap or name");
     if(ServiceList::get().find(name) != nullptr)
@@ -104,7 +104,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 
     int capacity = 1;   // TODO this depends on the credits that the kernel has
     Service *s = ServiceList::get().add(*vpe, srv, name, kcap, capacity);
-    vpe->capabilities().set(srv, new ServiceCapability(s));
+    vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)
     // TODO ugly hack
@@ -130,7 +130,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
     is >> cap >> name;
     LOG_SYS(vpe, "syscall::createsess(name=" << name << ", cap=" << cap << ")");
 
-    if(!vpe->capabilities().unused(cap))
+    if(!vpe->objcaps().unused(cap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap");
 
     Service *s = ServiceList::get().find(name);
@@ -156,11 +156,12 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
 
             // inherit the session-cap from the service-cap. this way, it will be automatically
             // revoked if the service-cap is revoked
-            Capability *srvcap = rsrv->vpe().capabilities().get(rsrv->selector(), Capability::SERVICE);
+            Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
             assert(srvcap != nullptr);
-            SessionCapability *sesscap = new SessionCapability(const_cast<Service*>(&*rsrv), sess);
-            vpe->capabilities().inherit(srvcap, sesscap);
-            vpe->capabilities().set(cap, sesscap);
+            SessionCapability *sesscap = new SessionCapability(
+                &vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), sess);
+            vpe->objcaps().inherit(srvcap, sesscap);
+            vpe->objcaps().set(cap, sesscap);
 
             auto reply = create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
@@ -194,15 +195,16 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
         PANIC("Unlimited credits are not yet supported on gem5");
 #endif
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
     // 0 points to the SEPs and can't be delegated to someone else
-    if(epid == 0 || epid >= EP_COUNT || !vpe->capabilities().unused(dstcap))
+    if(epid == 0 || epid >= EP_COUNT || !vpe->objcaps().unused(dstcap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap or ep");
 
-    vpe->capabilities().set(dstcap, new MsgCapability(label, tcapobj->vpe->core(), epid, credits));
+    vpe->objcaps().set(dstcap,
+        new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->core(), epid, credits));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -215,7 +217,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     LOG_SYS(vpe, "syscall::createvpe(name=" << name << ", core=" << core
         << ", tcap=" << tcap << ", mcap=" << mcap << ")");
 
-    if(!vpe->capabilities().unused(tcap) || !vpe->capabilities().unused(mcap))
+    if(!vpe->objcaps().unused(tcap) || !vpe->objcaps().unused(mcap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid VPE or memory cap");
 
     const char *corename = core.c_str()[0] == '\0'
@@ -225,8 +227,8 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, Errors::NO_FREE_CORE, "No free and suitable core found");
 
-    vpe->capabilities().obtain(tcap, nvpe->capabilities().get(0));
-    vpe->capabilities().obtain(mcap, nvpe->capabilities().get(1));
+    vpe->objcaps().obtain(tcap, nvpe->objcaps().get(0));
+    vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
@@ -244,7 +246,7 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
         << ", addr=" << fmt(addr, "p") << ", size=" << fmt(1UL << order, "#x")
         << ", msgsize=" << fmt(1UL << msgorder, "#x") << ", flags=" << fmt(flags, "#x") << ")");
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -263,7 +265,7 @@ void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
     is >> tcap >> ep;
     LOG_SYS(vpe, "syscall::detachrb(vpe=" << tcap << ", ep=" << ep << ")");
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->capabilities().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -282,7 +284,7 @@ void SyscallHandler::exchange(RecvGate &gate, GateIStream &is) {
         << ", other=" << other << ", obtain=" << obtain << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
-            vpe->capabilities().get(tcap, Capability::VPE));
+            vpe->objcaps().get(tcap, Capability::VPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid VPE cap");
 
@@ -303,7 +305,7 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
             << ", pid=" << pid << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
-            vpe->capabilities().get(tcap, Capability::VPE));
+            vpe->objcaps().get(tcap, Capability::VPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap");
 
@@ -340,7 +342,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
         << ", addr=#" << fmt(addr, "x") << ", size=#" << fmt(size, "x")
         << ", perms=" << perms << ")");
 
-    if(!vpe->capabilities().unused(cap))
+    if(!vpe->objcaps().unused(cap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap");
     if(size == 0 || (size & MemGate::RWX) || perms == 0 || (perms & ~(MemGate::RWX)))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Size or permissions invalid");
@@ -360,7 +362,8 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
     LOG(KSYSC, "Requested " << (size / 1024) << " KiB of memory @ " << fmt(addr, "p"));
 
     // TODO if addr was 0, we don't want to free it on revoke
-    vpe->capabilities().set(cap, new MemCapability(addr, size, perms, MEMORY_CORE, mem.epid()));
+    vpe->objcaps().set(cap,
+        new MemCapability(&vpe->objcaps(), cap, addr, size, perms, MEMORY_CORE, mem.epid()));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -375,15 +378,15 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
         << ", size=" << size << ", off=" << offset << ", perms=" << perms << ")");
 
     MemCapability *srccap = static_cast<MemCapability*>(
-            vpe->capabilities().get(src, Capability::MEM));
-    if(srccap == nullptr || !vpe->capabilities().unused(dst))
+            vpe->objcaps().get(src, Capability::MEM));
+    if(srccap == nullptr || !vpe->objcaps().unused(dst))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
 
     if(offset + size < offset || offset + size > srccap->size() || size == 0 ||
             (perms & ~(MemGate::RWX)))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid args");
 
-    MemCapability *dercap = static_cast<MemCapability*>(vpe->capabilities().obtain(dst, srccap));
+    MemCapability *dercap = static_cast<MemCapability*>(vpe->objcaps().obtain(dst, srccap));
     dercap->obj = Reference<MsgObject>(new MemObject(
         srccap->addr() + offset,
         size,
@@ -415,7 +418,7 @@ Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c
         LOG(KSYSC, v1->id() << ": Server gave me invalid CRD (" << Errors::INV_ARGS << ")");
         return Errors::INV_ARGS;
     }
-    if(!dst.capabilities().range_unused(dstrng)) {
+    if(!dst.objcaps().range_unused(dstrng)) {
         LOG(KSYSC, v1->id() << ": Invalid destination caps (" << Errors::INV_ARGS << ")");
         return Errors::INV_ARGS;
     }
@@ -423,9 +426,9 @@ Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c
     for(uint i = 0; i < c2.count(); ++i) {
         capsel_t srccap = srcrng.start() + i;
         capsel_t dstcap = dstrng.start() + i;
-        Capability *scapobj = src.capabilities().get(srccap);
-        assert(dst.capabilities().get(dstcap) == nullptr);
-        dst.capabilities().obtain(dstcap, scapobj);
+        Capability *scapobj = src.objcaps().get(srccap);
+        assert(dst.objcaps().get(dstcap) == nullptr);
+        dst.objcaps().obtain(dstcap, scapobj);
     }
     return Errors::NO_ERROR;
 }
@@ -440,7 +443,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
             << "(sess=" << sesscap << ", caps=" << caps.start() << ":" << caps.count() << ")");
 
     SessionCapability *sess = static_cast<SessionCapability*>(
-        vpe->capabilities().get(sesscap, Capability::SESSION));
+        vpe->objcaps().get(sesscap, Capability::SESSION));
     if(sess == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid session-cap");
     if(sess->obj->srv->closing)
@@ -523,9 +526,9 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
         oldcap << ", new=" << newcap << ")");
 
     MsgCapability *oldcapobj = oldcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
-            vpe->capabilities().get(oldcap, Capability::MSG | Capability::MEM));
+            vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
     MsgCapability *newcapobj = newcap == Cap::INVALID ? nullptr : static_cast<MsgCapability*>(
-            vpe->capabilities().get(newcap, Capability::MSG | Capability::MEM));
+            vpe->objcaps().get(newcap, Capability::MSG | Capability::MEM));
     // ep 0 can never be used for sending
     if(epid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s) (old=" << oldcap << "," << oldcapobj
@@ -570,7 +573,7 @@ void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
     if(crd.start() < 2)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
-    Errors::Code res = vpe->capabilities().revoke(crd);
+    Errors::Code res = vpe->objcaps().revoke(crd);
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "Revoke failed");
 

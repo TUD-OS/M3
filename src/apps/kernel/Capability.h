@@ -18,10 +18,10 @@
 
 #include <m3/Common.h>
 #include <m3/cap/MemGate.h>
+#include <m3/col/Treap.h>
 #include <m3/DTU.h>
 
 #include "Services.h"
-#include "Treap.h"
 
 namespace m3 {
 
@@ -45,8 +45,8 @@ public:
         VPE     = 0x10,
     };
 
-    explicit Capability(unsigned type)
-        : TreapNode<capsel_t>(-1), type(type), _tbl(), _child(), _parent(), _next(), _prev() {
+    explicit Capability(CapTable *tbl, capsel_t sel, unsigned type)
+        : TreapNode<capsel_t>(sel), type(type), _tbl(tbl), _child(), _parent(), _next(), _prev() {
     }
     virtual ~Capability() {
     }
@@ -72,16 +72,16 @@ public:
     const Capability *child() const {
         return _child;
     }
+    void put(CapTable *tbl, capsel_t sel) {
+        _tbl = tbl;
+        key(sel);
+    }
 
 private:
     virtual Errors::Code revoke() {
         return Errors::NO_ERROR;
     }
-    virtual Capability *clone() = 0;
-    void put(CapTable *tbl, capsel_t sel) {
-        _tbl = tbl;
-        key(sel);
-    }
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) = 0;
 
 public:
     unsigned type;
@@ -130,22 +130,23 @@ public:
 
 class MsgCapability : public Capability {
 protected:
-    explicit MsgCapability(unsigned type, MsgObject *_obj)
-        : Capability(type), localepid(-1), obj(_obj) {
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, unsigned type, MsgObject *_obj)
+        : Capability(tbl, sel, type), localepid(-1), obj(_obj) {
     }
 
 public:
-    explicit MsgCapability(label_t label, int core, int epid,
-            word_t credits)
-        : MsgCapability(MSG, new MsgObject(label, core, epid, credits)) {
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, int core, int epid,
+        word_t credits)
+        : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, epid, credits)) {
     }
 
     void print(OStream &os) const override;
 
 protected:
     virtual Errors::Code revoke() override;
-    virtual Capability *clone() override {
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MsgCapability *c = new MsgCapability(*this);
+        c->put(tbl, sel);
         c->localepid = -1;
         return c;
     }
@@ -157,9 +158,9 @@ public:
 
 class MemCapability : public MsgCapability {
 public:
-    explicit MemCapability(uintptr_t addr, size_t size, uint perms,
+    explicit MemCapability(CapTable *tbl, capsel_t sel, uintptr_t addr, size_t size, uint perms,
             int core, int epid)
-        : MsgCapability(MEM | MSG, new MemObject(addr, size, perms, core, epid)) {
+        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, epid)) {
     }
 
     void print(OStream &os) const override;
@@ -175,8 +176,9 @@ public:
     }
 
 private:
-    virtual Capability *clone() override {
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MemCapability *c = new MemCapability(*this);
+        c->put(tbl, sel);
         c->localepid = -1;
         return c;
     }
@@ -184,15 +186,15 @@ private:
 
 class ServiceCapability : public Capability {
 public:
-    explicit ServiceCapability(Service *_inst)
-        : Capability(SERVICE), inst(_inst) {
+    explicit ServiceCapability(CapTable *tbl, capsel_t sel, Service *_inst)
+        : Capability(tbl, sel, SERVICE), inst(_inst) {
     }
 
     void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;
-    virtual Capability *clone() override {
+    virtual Capability *clone(CapTable *, capsel_t) override {
         /* not cloneable */
         return nullptr;
     }
@@ -203,16 +205,18 @@ public:
 
 class SessionCapability : public Capability {
 public:
-    explicit SessionCapability(Service *srv, word_t ident)
-        : Capability(SESSION), obj(new SessionObject(srv, ident)) {
+    explicit SessionCapability(CapTable *tbl, capsel_t sel, Service *srv, word_t ident)
+        : Capability(tbl, sel, SESSION), obj(new SessionObject(srv, ident)) {
     }
 
     void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;
-    virtual Capability *clone() override {
-        return new SessionCapability(*this);
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        SessionCapability *s = new SessionCapability(*this);
+        s->put(tbl, sel);
+        return s;
     }
 
 public:
@@ -221,15 +225,17 @@ public:
 
 class VPECapability : public Capability {
 public:
-    explicit VPECapability(KVPE *p);
+    explicit VPECapability(CapTable *tbl, capsel_t sel, KVPE *p);
     VPECapability(const VPECapability &t);
 
     void print(OStream &os) const override;
 
 private:
     virtual Errors::Code revoke() override;
-    virtual Capability *clone() override {
-        return new VPECapability(*this);
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        VPECapability *v = new VPECapability(*this);
+        v->put(tbl, sel);
+        return v;
     }
 
 public:

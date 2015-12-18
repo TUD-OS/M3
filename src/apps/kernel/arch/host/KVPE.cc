@@ -71,7 +71,8 @@ void KVPE::activate_sysc_ep(void *addr) {
         CapTable::kernel_table().get(_sepsgate.sel(), Capability::MEM));
     if(mcap == nullptr) {
         size_t len = DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
-        mcap = new MemCapability(iaddr, len, MemGate::X | MemGate::W, core(), 0);
+        mcap = new MemCapability(&CapTable::kernel_table(), _sepsgate.sel(),
+            iaddr, len, MemGate::X | MemGate::W, core(), 0);
         CapTable::kernel_table().set(_sepsgate.sel(), mcap);
     }
     else
@@ -121,7 +122,7 @@ KVPE::~KVPE() {
     free_reqs();
 
     // revoke all caps first because we might need the sepsgate for that
-    _caps.revoke_all();
+    _objcaps.revoke_all();
     // now remove the sepsgate from our cap-table
     CapTable::kernel_table().unset(_sepsgate.sel());
 }

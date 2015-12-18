@@ -19,11 +19,11 @@
 #include <m3/Common.h>
 #include <m3/cap/VPE.h>
 #include <m3/CapRngDesc.h>
+#include <m3/col/Treap.h>
 #include <m3/Log.h>
 
 #include "Services.h"
 #include "Capability.h"
-#include "Treap.h"
 
 namespace m3 {
 
@@ -94,7 +94,8 @@ public:
     void set(capsel_t i, Capability *c) {
         assert(get(i) == nullptr);
         if(c) {
-            c->put(this, i);
+            assert(c->table() == this);
+            assert(c->sel() == i);
             _caps.insert(c);
             LOG(CAPS, "CapTable[" << _id << "]: Setting " << i << " to " << *c);
         }

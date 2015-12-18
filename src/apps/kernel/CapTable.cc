@@ -33,7 +33,7 @@ void CapTable::revoke_all() {
 Capability *CapTable::obtain(capsel_t dst, Capability *c) {
     Capability *nc = c;
     if(c) {
-        nc = c->clone();
+        nc = c->clone(this, dst);
         if(nc)
             inherit(c, nc);
     }
