@@ -26,14 +26,6 @@ fi
 export M3_BUILD M3_TARGET M3_CORE
 
 if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
-    if [ "$M3_GEM5_DBG" = "" ]; then
-        M3_GEM5_DBG="Dtu"
-    fi
-    if [ "$M3_GEM5_CPU" = "" ]; then
-        M3_GEM5_CPU="detailed"
-    fi
-    export M3_GEM5_DBG M3_GEM5_CPU
-
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
     crossprefix=''
 else

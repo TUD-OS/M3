@@ -109,6 +109,17 @@ build_params_host() {
 build_params_gem5() {
     kargs=`generate_kargs $1 | tr ',' ' '`
 
+    if [ "$M3_GEM5_DBG" = "" ]; then
+        M3_GEM5_DBG="Dtu"
+    fi
+    if [ "$M3_GEM5_CPU" = "" ]; then
+        if [ "$debug" != "" ]; then
+            M3_GEM5_CPU="timing"
+        else
+            M3_GEM5_CPU="detailed"
+        fi
+    fi
+
     if [ ! -z $M3_CORES ]; then
         maxcores=$M3_CORES
     else
