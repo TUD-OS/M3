@@ -15,6 +15,7 @@
  */
 
 #include <m3/Common.h>
+#include <m3/arch/gem5/Exception.h>
 
 typedef void (*constr_func)();
 
@@ -24,6 +25,8 @@ extern constr_func CTORS_BEGIN;
 extern constr_func CTORS_END;
 
 EXTERN_C void _init() {
+    m3::Exceptions::init();
+
     // call constructors
     for(constr_func *func = &CTORS_BEGIN; func < &CTORS_END; ++func)
         (*func)();
