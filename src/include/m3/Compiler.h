@@ -27,6 +27,7 @@
 #define UNREACHED               __builtin_unreachable()
 #define WEAK                    __attribute__ ((weak))
 #define INIT_PRIORITY(X)        __attribute__ ((init_priority((X))))
+#define ALIGNED(X)              __attribute__ ((aligned(X)))
 
 #ifdef __clang__
 #    define COMPILER_NAME       "clang " __VERSION__
