@@ -73,6 +73,7 @@ help() {
     echo "    shfs=<fsimg> ...:        show m3-fs in <fsimg>"
     echo "    fsck=<fsimg> ...:        run m3fsck on <fsimg>"
     echo "    exfs=<fsimg> <dir>:      export contents of <fsimg> to <dir>"
+    echo "    list:                    list the link-address of all programs"
     echo ""
     echo "Environment variables:"
     echo "    M3_TARGET:               the target. Either 'host' for using the Linux-based"
