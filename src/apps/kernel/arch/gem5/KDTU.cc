@@ -24,16 +24,83 @@ namespace m3 {
 
 void KDTU::wakeup(int core) {
     // wakeup core
-    alignas(DTU_PKG_SIZE) DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::CmdOpCode::WAKEUP_CORE);
+    alignas(DTU_PKG_SIZE) DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::WAKEUP_CORE);
     Sync::compiler_barrier();
-    write_mem(core, DTU::cmd_reg_addr(DTU::CmdRegs::COMMAND), &cmd, sizeof(cmd));
+    write_mem(core, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &cmd, sizeof(cmd));
 }
 
 void KDTU::deprivilege(int core) {
-    // unset the privileged flag (writes to other bits are ignored)
+    // unset the privileged flag
     alignas(DTU_PKG_SIZE) DTU::reg_t status = 0;
     Sync::compiler_barrier();
     write_mem(core, DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), &status, sizeof(status));
+}
+
+void KDTU::config_pf_remote(int core, int ep, uint64_t rootpt) {
+    static_assert(static_cast<int>(DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
+    static_assert(static_cast<int>(DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
+    static_assert(static_cast<int>(DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
+
+    // TODO read the root pt from the core; the HW sets it atm
+    config_mem_local(_ep, core, DTU::dtu_reg_addr(DTU::DtuRegs::ROOT_PT), sizeof(rootpt));
+    DTU::get().read(_ep, &rootpt, sizeof(rootpt), 0);
+
+    alignas(DTU_PKG_SIZE) DTU::reg_t dtuRegs[3];
+    dtuRegs[static_cast<size_t>(DTU::DtuRegs::STATUS)]  = DTU::StatusFlags::PAGEFAULTS;
+    dtuRegs[static_cast<size_t>(DTU::DtuRegs::ROOT_PT)] = rootpt;
+    dtuRegs[static_cast<size_t>(DTU::DtuRegs::PF_EP)]   = ep;
+    Sync::compiler_barrier();
+    write_mem(core, DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), dtuRegs, sizeof(dtuRegs));
+}
+
+static uintptr_t get_pte_addr(uintptr_t virt, int level) {
+    static uintptr_t recMask = (DTU::PTE_REC_IDX << (PAGE_BITS + DTU::LEVEL_BITS * 2)) |
+                               (DTU::PTE_REC_IDX << (PAGE_BITS + DTU::LEVEL_BITS * 1)) |
+                               (DTU::PTE_REC_IDX << (PAGE_BITS + DTU::LEVEL_BITS * 0));
+
+    // at first, just shift it accordingly.
+    virt >>= PAGE_BITS + level * DTU::LEVEL_BITS;
+    virt <<= DTU::PTE_BITS;
+
+    // now put in one PTE_REC_IDX's for each loop that we need to take
+    int shift = level + 1;
+    uintptr_t remMask = (1UL << (PAGE_BITS + DTU::LEVEL_BITS * (DTU::LEVEL_CNT - shift))) - 1;
+    virt |= recMask & ~remMask;
+
+    // finally, make sure that we stay within the bounds for virtual addresses
+    // this is because of recMask, that might actually have too many of those.
+    virt &= (1UL << (DTU::LEVEL_CNT * DTU::LEVEL_BITS + PAGE_BITS)) - 1;
+    return virt;
+}
+
+void KDTU::map_page(int core, uintptr_t virt, uintptr_t phys, int perm) {
+    // configure the memory EP once and use it for all accesses
+    config_mem_local(_ep, core, 0, 0xFFFFFFFFFFFFFFFF);
+    for(int level = DTU::LEVEL_CNT - 1; level >= 0; --level) {
+        uintptr_t pteAddr = get_pte_addr(virt, level);
+        DTU::pte_t pte;
+        if(level > 0) {
+            DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
+            // TODO create the pagetable on demand
+            assert((pte & DTU::PTE_IRWX) == DTU::PTE_RWX);
+        }
+        else {
+            pte = phys | perm | DTU::PTE_I;
+            DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
+        }
+    }
+}
+
+void KDTU::unmap_page(int core, uintptr_t virt) {
+    map_page(core, virt, 0, 0);
+
+    // TODO remove pagetables on demand
+
+    // invalidate TLB entry
+    alignas(DTU_PKG_SIZE) DTU::reg_t reg = static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_PAGE);
+    reg |= virt << 2;
+    Sync::compiler_barrier();
+    write_mem(core, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
 void KDTU::invalidate_ep(int core, int ep) {

@@ -57,9 +57,20 @@ Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, siz
     return finish(send_receive_vmsg(_gate, CREATEGATE, vpe, dst, label, ep, credits));
 }
 
+Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms) {
+    LOG(SYSC, "createmap(vpe=" << vpe << ", mem=" << mem << ", first=" << first
+        << ", pages=" << pages << ", dst=" << dst << ", perms=" << perms << ")");
+    return finish(send_receive_vmsg(_gate, CREATEMAP, vpe, mem, first, pages, dst, perms));
+}
+
 Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core) {
     LOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name << ", core=" << core << ")");
     return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core));
+}
+
+Errors::Code Syscalls::setpfgate(capsel_t vpe, capsel_t gate, size_t ep) {
+    LOG(SYSC, "setpfgate(vpe=" << vpe << ", gate=" << gate << ", ep=" << ep << ")");
+    return finish(send_receive_vmsg(_gate, SETPFGATE, vpe, gate, ep));
 }
 
 Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags) {

@@ -33,6 +33,15 @@ void KDTU::deprivilege(int) {
     // nothing to do
 }
 
+void KDTU::config_pf_remote(int, int, uint64_t) {
+}
+
+void KDTU::map_page(int, uintptr_t, uintptr_t, int) {
+}
+
+void KDTU::unmap_page(int, uintptr_t) {
+}
+
 void KDTU::invalidate_ep(int core, int ep) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     memset(regs, 0, sizeof(regs));

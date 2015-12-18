@@ -26,6 +26,10 @@
 #define FS_IMG_OFFSET       0x1000000
 #define CODE_BASE_ADDR      0x60010000
 
+#define PAGE_BITS           0
+#define PAGE_SIZE           0
+#define PAGE_MASK           0
+
 // leave the first 64 MiB for the filesystem
 #define DRAM_OFFSET         (64 * 1024 * 1024)
 #define DRAM_SIZE           (64 * 1024 * 1024)

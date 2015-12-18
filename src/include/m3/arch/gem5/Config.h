@@ -25,6 +25,10 @@
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x0
 
+#define PAGE_BITS           12
+#define PAGE_SIZE           (static_cast<size_t>(1) << PAGE_BITS)
+#define PAGE_MASK           (PAGE_SIZE - 1)
+
 // leave the first 256 MiB for the filesystem and PEs
 #define DRAM_OFFSET         (256 * 1024 * 1024)
 #define DRAM_SIZE           (512 * 1024 * 1024 - DRAM_OFFSET)

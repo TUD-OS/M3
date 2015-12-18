@@ -39,22 +39,25 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 2;
+    static const size_t DTU_REGS            = 5;
     static const size_t CMD_REGS            = 6;
     static const size_t EP_REGS             = 3;
 
     enum class DtuRegs {
         STATUS              = 0,
-        MSGCNT              = 1,
+        ROOT_PT             = 1,
+        PF_EP               = 2,
+        MSGCNT              = 3,
+        EXT_CMD             = 4,
     };
 
     enum class CmdRegs {
-        COMMAND             = 2,
-        DATA_ADDR           = 3,
-        DATA_SIZE           = 4,
-        OFFSET              = 5,
-        REPLY_EP            = 6,
-        REPLY_LABEL         = 7,
+        COMMAND             = 5,
+        DATA_ADDR           = 6,
+        DATA_SIZE           = 7,
+        OFFSET              = 8,
+        REPLY_EP            = 9,
+        REPLY_LABEL         = 10,
     };
 
     enum MemFlags : reg_t {
@@ -64,6 +67,7 @@ private:
 
     enum StatusFlags : reg_t {
         PRIV                = 1 << 0,
+        PAGEFAULTS          = 1 << 1,
     };
 
     enum class EpType {
@@ -83,7 +87,33 @@ private:
         WAKEUP_CORE         = 6,
     };
 
+    enum class ExtCmdOpCode {
+        WAKEUP_CORE         = 0,
+        INV_PAGE            = 1,
+    };
+
 public:
+    typedef uint64_t pte_t;
+
+    enum {
+        PTE_BITS            = 3,
+        PTE_SIZE            = 1 << PTE_BITS,
+        LEVEL_CNT           = 2,
+        LEVEL_BITS          = PAGE_BITS - PTE_BITS,
+        LEVEL_MASK          = (1 << LEVEL_BITS) - 1,
+        PTE_REC_IDX         = LEVEL_MASK,
+    };
+
+    enum {
+        PTE_R               = 1,
+        PTE_W               = 2,
+        PTE_X               = 4,
+        PTE_I               = 8,
+        PTE_RW              = PTE_R | PTE_W,
+        PTE_RWX             = PTE_RW | PTE_X,
+        PTE_IRWX            = PTE_RWX | PTE_I,
+    };
+
     struct Header {
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
         uint8_t senderCoreId;

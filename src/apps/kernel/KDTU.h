@@ -34,6 +34,10 @@ public:
     void wakeup(int core);
     void deprivilege(int core);
 
+    void config_pf_remote(int core, int ep, uint64_t rootpt);
+    void map_page(int core, uintptr_t virt, uintptr_t phys, int perm);
+    void unmap_page(int core, uintptr_t virt);
+
     void invalidate_ep(int core, int ep);
     void invalidate_eps(int core);
 

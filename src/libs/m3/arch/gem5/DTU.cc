@@ -26,6 +26,10 @@ void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply
     static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
     static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
 
+    static_assert(MemGate::R == DTU::PTE_R, "DTU::PTE_R does not match MemGate::R");
+    static_assert(MemGate::W == DTU::PTE_W, "DTU::PTE_W does not match MemGate::W");
+    static_assert(MemGate::X == DTU::PTE_X, "DTU::PTE_X does not match MemGate::X");
+
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::REPLY_LABEL, replylbl);

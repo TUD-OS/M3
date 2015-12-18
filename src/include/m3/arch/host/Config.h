@@ -33,6 +33,10 @@ namespace m3 {
 #define CAP_TOTAL           128
 #define FS_IMG_OFFSET       0x0
 
+#define PAGE_BITS           0
+#define PAGE_SIZE           0
+#define PAGE_MASK           0
+
 // leave the first 64 MiB for the filesystem
 #define DRAM_OFFSET         0
 #define DRAM_SIZE           (512 * 1024 * 1024)

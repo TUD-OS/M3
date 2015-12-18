@@ -24,6 +24,7 @@ namespace m3 {
 KVPE::KVPE(String &&prog, size_t id)
     : RequestSessionData(), _id(id), _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
+      _mapcaps(id + 1),
       _sepsgate(MemGate::bind(VPE::self().alloc_cap(), Cap::KEEP_CAP)),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(RecvGate::create(SyscallHandler::get().srvrcvbuf())), _requires() {

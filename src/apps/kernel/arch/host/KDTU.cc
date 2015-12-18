@@ -34,6 +34,18 @@ void KDTU::invalidate_eps(int core) {
     delete[] regs;
 }
 
+void KDTU::config_pf_remote(int, int, uint64_t) {
+}
+
+void KDTU::map_page(int, uintptr_t, uintptr_t, int) {
+}
+
+void KDTU::unmap_page(int, uintptr_t) {
+}
+
+void KDTU::config_send_remote(int, int, label_t, int, int, size_t, word_t) {
+}
+
 void KDTU::config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags) {
     word_t *regs = reinterpret_cast<word_t*>(e);
     regs[DTU::EP_BUF_ADDR]       = buf;

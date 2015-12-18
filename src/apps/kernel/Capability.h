@@ -42,7 +42,8 @@ public:
         SESSION = 0x02,
         MSG     = 0x04,
         MEM     = 0x08,
-        VPE     = 0x10,
+        MAP     = 0x10,
+        VPE     = 0x20,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type)
@@ -182,6 +183,23 @@ private:
         c->localepid = -1;
         return c;
     }
+};
+
+class MapCapability : public Capability {
+public:
+    explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr);
+
+    void print(OStream &os) const override;
+
+private:
+    virtual Errors::Code revoke() override;
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        return new MapCapability(tbl, sel, phys, attr);
+    }
+
+public:
+    uintptr_t phys;
+    uint attr;
 };
 
 class ServiceCapability : public Capability {

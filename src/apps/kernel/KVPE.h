@@ -94,6 +94,9 @@ public:
     CapTable &objcaps() {
         return _objcaps;
     }
+    CapTable &mapcaps() {
+        return _mapcaps;
+    }
     RecvGate &syscall_gate() {
         return _syscgate;
     }
@@ -126,6 +129,7 @@ private:
     int _exitcode;
     String _name;
     CapTable _objcaps;
+    CapTable _mapcaps;
     MemGate _sepsgate;
     RecvGate _syscgate;
     RecvGate _srvgate;

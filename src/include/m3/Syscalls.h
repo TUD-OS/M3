@@ -36,6 +36,8 @@ public:
         CREATESESS,
         CREATEGATE,
         CREATEVPE,
+        CREATEMAP,
+        SETPFGATE,
         ATTACHRB,
         DETACHRB,
         EXCHANGE,
@@ -77,6 +79,8 @@ public:
     Errors::Code createsess(capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core);
+    Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
+    Errors::Code setpfgate(capsel_t vpe, capsel_t gate, size_t ep);
     Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
     Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);

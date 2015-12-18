@@ -53,6 +53,18 @@ Errors::Code MsgCapability::revoke() {
     return Errors::NO_ERROR;
 }
 
+MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
+    : Capability(tbl, sel, MAP), phys(_phys), attr(_attr) {
+    KVPE &vpe = PEManager::get().vpe(tbl->id() - 1);
+    KDTU::get().map_page(vpe.core(), sel << PAGE_BITS, phys, attr);
+}
+
+Errors::Code MapCapability::revoke() {
+    KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
+    KDTU::get().unmap_page(vpe.core(), sel() << PAGE_BITS);
+    return Errors::NO_ERROR;
+}
+
 Errors::Code SessionCapability::revoke() {
     obj.unref();
     return Errors::NO_ERROR;
@@ -96,6 +108,12 @@ void MemCapability::print(OStream &os) const {
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << fmt(obj->label, "#x")
        << ", crd=#" << fmt(obj->credits, "x") << "]";
+}
+
+void MapCapability::print(OStream &os) const {
+    os << fmt(sel(), 2) << ": map [virt=#" << fmt(sel() << PAGE_BITS, "x")
+       << ", phys=#" << fmt(phys, "x")
+       << ", attr=#" << fmt(attr, "x") << "]";
 }
 
 void ServiceCapability::print(OStream &os) const {

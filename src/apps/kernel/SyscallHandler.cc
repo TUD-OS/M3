@@ -67,6 +67,8 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::CREATESESS, &SyscallHandler::createsess);
     add_operation(Syscalls::CREATEGATE, &SyscallHandler::creategate);
     add_operation(Syscalls::CREATEVPE, &SyscallHandler::createvpe);
+    add_operation(Syscalls::CREATEMAP, &SyscallHandler::createmap);
+    add_operation(Syscalls::SETPFGATE, &SyscallHandler::setpfgate);
     add_operation(Syscalls::ATTACHRB, &SyscallHandler::attachrb);
     add_operation(Syscalls::DETACHRB, &SyscallHandler::detachrb);
     add_operation(Syscalls::EXCHANGE, &SyscallHandler::exchange);
@@ -229,6 +231,72 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
 
     vpe->objcaps().obtain(tcap, nvpe->objcaps().get(0));
     vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
+
+    reply_vmsg(gate, Errors::NO_ERROR);
+}
+
+void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_createmap();
+    KVPE *vpe = gate.session<KVPE>();
+    capsel_t tcap, mcap;
+    capsel_t first, pages, dst;
+    int perms;
+    is >> tcap >> mcap >> first >> pages >> dst >> perms;
+    LOG_SYS(vpe, "syscall::createmap(vpe=" << tcap << ", mem=" << mcap
+        << ", first=" << first << ", pages=" << pages << ", dst=" << dst
+        << ", perms=" << perms << ")");
+
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    if(tcapobj == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
+    MemCapability *mcapobj = static_cast<MemCapability*>(vpe->objcaps().get(mcap, Capability::MEM));
+    if(mcapobj == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is invalid");
+
+    if(!vpe->mapcaps().range_unused(CapRngDesc(dst, pages)))
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Map capability range is not unused");
+    if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is not page aligned");
+    if(perms & ~mcapobj->perms())
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid permissions");
+
+    size_t total = mcapobj->size() >> PAGE_BITS;
+    if(first >= total || first + pages <= first || first + pages > total)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Region of memory capability is invalid");
+
+    uintptr_t phys = mcapobj->addr() + PAGE_SIZE * first;
+    for(capsel_t i = 0; i < pages; ++i) {
+        MapCapability *mapcap = new MapCapability(&tcapobj->vpe->mapcaps(), dst + i, phys, perms);
+        tcapobj->vpe->mapcaps().inherit(mcapobj, mapcap);
+        tcapobj->vpe->mapcaps().set(dst + i, mapcap);
+        phys += PAGE_SIZE;
+    }
+
+    reply_vmsg(gate, Errors::NO_ERROR);
+}
+
+void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
+    EVENT_TRACER_Syscall_setpfgate();
+    KVPE *vpe = gate.session<KVPE>();
+    capsel_t tcap, gcap;
+    size_t ep;
+    is >> tcap >> gcap >> ep;
+    LOG_SYS(vpe, "syscall::setpfgate(tcap=" << tcap << ", gcap=" << gcap << ", ep=" << ep << ")");
+
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    if(tcapobj == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
+
+    MsgCapability *msg = static_cast<MsgCapability*>(
+        vpe->objcaps().get(gcap, Capability::MSG));
+    if(msg == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
+
+    // TODO we need to know the max. msg size here
+    KDTU::get().config_send_remote(tcapobj->vpe->core(), ep, msg->obj->label, msg->obj->core,
+        msg->obj->epid, msg->obj->credits, msg->obj->credits);
+    // TODO what is the root-pt?
+    KDTU::get().config_pf_remote(tcapobj->vpe->core(), ep, 0);
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
