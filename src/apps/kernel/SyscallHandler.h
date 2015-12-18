@@ -84,6 +84,7 @@ public:
 private:
     Errors::Code do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c1, const CapRngDesc &c2, bool obtain);
     void exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain);
+    void tryTerminate();
 
     RecvBuf _rcvbuf;
     RecvBuf _srvrcvbuf;

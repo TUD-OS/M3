@@ -645,6 +645,9 @@ void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "Revoke failed");
 
+    // maybe we have removed a VPE
+    tryTerminate();
+
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -658,6 +661,10 @@ void SyscallHandler::exit(RecvGate &gate, GateIStream &is) {
     vpe->exit(exitcode);
     vpe->unref();
 
+    tryTerminate();
+}
+
+void SyscallHandler::tryTerminate() {
     // if there are no VPEs left, we can stop everything
     if(PEManager::get().used() == 0) {
         PEManager::destroy();
