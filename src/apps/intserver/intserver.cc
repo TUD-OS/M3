@@ -20,7 +20,7 @@
 #include <m3/WorkLoop.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/arch/host/HWInterrupts.h>
 #include <sys/time.h>
 #include <cstdlib>

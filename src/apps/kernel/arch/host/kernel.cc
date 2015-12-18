@@ -16,7 +16,7 @@
 
 #include <m3/Log.h>
 #include <m3/Config.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/DTU.h>
 
 #include <sys/types.h>

@@ -17,11 +17,11 @@
 #pragma once
 
 #include <m3/Common.h>
-#include <m3/util/SList.h>
-#include <m3/util/String.h>
-#include <m3/util/Reference.h>
+#include <m3/col/SList.h>
 #include <m3/cap/SendGate.h>
 #include <m3/cap/RecvGate.h>
+#include <m3/util/String.h>
+#include <m3/util/Reference.h>
 #include <m3/Log.h>
 
 #include "KSendQueue.h"

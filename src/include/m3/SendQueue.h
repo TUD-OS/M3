@@ -18,7 +18,7 @@
 
 #if defined(__host__)
 
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/cap/SendGate.h>
 #include <m3/WorkLoop.h>
 

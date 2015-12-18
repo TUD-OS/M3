@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/cap/RecvGate.h>
 #include <m3/CapRngDesc.h>
 #include <m3/GateStream.h>

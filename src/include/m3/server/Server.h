@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/cap/Gate.h>
 #include <m3/cap/VPE.h>
 #include <m3/server/Handler.h>

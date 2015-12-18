@@ -16,7 +16,7 @@
 
 #include <m3/Common.h>
 #include <m3/stream/Serial.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/Log.h>

@@ -19,7 +19,7 @@
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileSystem.h>
 #include <m3/service/M3FS.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/util/Reference.h>
 #include <m3/DTU.h>
 

@@ -19,7 +19,7 @@
 #include <m3/Common.h>
 #include <m3/cap/RecvGate.h>
 #include <m3/cap/SendGate.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/Heap.h>
 #include <stdlib.h>
 

@@ -17,7 +17,7 @@
 #pragma once
 
 #include <m3/arch/host/HWInterrupts.h>
-#include <m3/util/SList.h>
+#include <m3/col/SList.h>
 #include <m3/util/Util.h>
 #include <m3/Log.h>
 #include <pthread.h>
