@@ -2,7 +2,7 @@
  * Copyright (C) 2015, Matthias Lieber <matthias.lieber@tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * This file is part of M3 (Microkernel for Minimalist Manycores).
+ * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
  *
  * M3 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
