@@ -59,3 +59,4 @@ private:
     static KDTU _inst;
 };
 
+}

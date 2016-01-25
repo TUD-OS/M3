@@ -56,3 +56,4 @@ int main(int argc, char **argv) {
     // done
     Platform::shutdown();
     return 0;
+}
