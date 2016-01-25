@@ -53,7 +53,7 @@ toolchain (into the same directory). Finally, you need to copy the `config.ini.s
 
 #### gem5
 
-The submodule in `hw/gem5` needs to be pulled in and build:
+The submodule in `hw/gem5` needs to be pulled in and built:
 
     $ git submodule init
     $ git submodule update hw/gem5
