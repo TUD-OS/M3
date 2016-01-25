@@ -14,7 +14,9 @@ t2pcthip="$M3_SSH_PREFIX"thshell
 build=build/$M3_TARGET-$M3_BUILD
 bindir=$build/bin
 
-. config.ini
+if [ "$M3_TARGET" = "t2" ] || [ "$M3_TARGET" = "t3" ]; then
+    . config.ini
+fi
 
 if [ $# -lt 1 ]; then
     usage $0
