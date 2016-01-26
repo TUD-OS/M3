@@ -18,7 +18,7 @@ function funcname($funcs, $addr) {
 $funcs = array();
 $f = @fopen('php://stdin', "r");
 if(!$f)
-    die("Unable to open " . $argv[1]);
+    die("Unable to open stdin");
 while(($line = fgets($f)) !== false) {
     if(preg_match('/^([a-f0-9]+) ([a-f0-9]+) (t|T) (.+)$/', $line, $match))
         $funcs[] = array(hexdec($match[1]), hexdec($match[2]), $match[4]);
