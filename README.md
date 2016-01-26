@@ -48,8 +48,8 @@ The cross-compiler for Xtensa needs to be build first. This is described in
     $ GIT_SSH_COMMAND="ssh -l <yourname>" git submodule update hw/th
 
 It is assumed, that you have already installed both the 4.0.2 and 5.0.5 version of the Xtensa
-toolchain (into the same directory). Finally, you need to copy the `config.ini.sample` to
-`config.ini` and change it accordingly.
+toolchain (into the same directory). Finally, you need to copy the `hw/th/config.ini.sample` to
+`hw/th/config.ini` and change it accordingly.
 
 #### gem5
 

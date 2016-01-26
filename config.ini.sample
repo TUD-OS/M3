@@ -1,3 +1,0 @@
-cfgpath=hw/th/xtensa_configs
-xtroot=/your/path/to/xtensa
-buildroot=/your/path/to/buildroot/output

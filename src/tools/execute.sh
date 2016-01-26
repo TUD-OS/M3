@@ -15,7 +15,7 @@ build=build/$M3_TARGET-$M3_BUILD
 bindir=$build/bin
 
 if [ "$M3_TARGET" = "t2" ] || [ "$M3_TARGET" = "t3" ]; then
-    . config.ini
+    . hw/th/config.ini
 fi
 
 if [ $# -lt 1 ]; then

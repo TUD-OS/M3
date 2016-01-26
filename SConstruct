@@ -9,7 +9,7 @@ if target == 't2' or target == 't3':
 	toolversion = 'RE-2014.5-linux' if target == 't3' else 'RD-2011.2-linux'
 
 	# config (prefix it with [root] to make it usable from bash and python)
-	ini_str = '[root]\n' + open('config.ini', 'r').read()
+	ini_str = '[root]\n' + open('hw/th/config.ini', 'r').read()
 	config = ConfigParser.RawConfigParser()
 	config.readfp(StringIO.StringIO(ini_str))
 

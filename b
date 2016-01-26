@@ -37,7 +37,7 @@ if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
 	export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
 	crossprefix=''
 else
-	. config.ini
+	. hw/th/config.ini
 	crossprefix="/opt/m3-cross-xtensa/bin/xtensa-elf-m3-"
 	if [ "$M3_TARGET" = "t3" ]; then
 		toolversion="RE-2014.5-linux"

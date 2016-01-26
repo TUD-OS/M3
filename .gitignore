@@ -6,5 +6,4 @@
 /build
 /cross/buildroot
 /run
-/config.ini
-/hw/th/bug
+/hw/th/config.ini
