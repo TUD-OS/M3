@@ -20,13 +20,13 @@
 namespace test {
 
 void TestCase::do_assert(const Assert& a) {
-	if(!a) {
-	    LOG(DEF, "  \033[0;31mAssert failed\033[0m in " << a.get_file() << ", line " << a.get_line()
-	            << ": " << a.get_desc());
-		failed();
-	}
-	else
-		success();
+    if(!a) {
+        LOG(DEF, "  \033[0;31mAssert failed\033[0m in " << a.get_file() << ", line " << a.get_line()
+                << ": " << a.get_desc());
+        failed();
+    }
+    else
+        success();
 }
 
 }

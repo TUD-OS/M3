@@ -65,14 +65,14 @@ public:
      * @param fs the filesystem instance (has to be allocated on the heap; TODO keep that?)
      * @return Errors::NO_ERROR on success
      */
-	static Errors::Code mount(const char *path, FileSystem *fs);
+    static Errors::Code mount(const char *path, FileSystem *fs);
 
     /**
      * Unmounts the filesystem at <path>.
      *
      * @param path the path
      */
-	static void unmount(const char *path);
+    static void unmount(const char *path);
 
     /**
      * Opens the file at <path> using the given permissions.
@@ -170,7 +170,7 @@ private:
     static size_t is_in_mount(const String &mount, const char *in);
     static Reference<FileSystem> resolve(const char *in, size_t *pos);
 
-	static SList<MountPoint> _mounts;
+    static SList<MountPoint> _mounts;
 };
 
 }

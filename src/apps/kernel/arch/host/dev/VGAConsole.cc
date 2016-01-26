@@ -31,24 +31,24 @@
 
 #include "VGAConsole.h"
 
-#define KEYBOARD_CTRL       0	/* keyboard control register */
-#define KEYBOARD_DATA       1	/* keyboard data register */
+#define KEYBOARD_CTRL       0       /* keyboard control register */
+#define KEYBOARD_DATA       1       /* keyboard data register */
 
-#define KEYBOARD_RDY        0x01	/* keyboard has a character */
+#define KEYBOARD_RDY        0x01    /* keyboard has a character */
 
 #define WINDOW_SIZE_X       640
 #define WINDOW_SIZE_Y       480
 #define WINDOW_POS_X        1680
 #define WINDOW_POS_Y        400
 
-#define WIN_REFRESH_INT     (30 * 1000 * 1000)	/* window refresh interval in nanoseconds */
+#define WIN_REFRESH_INT     (30 * 1000 * 1000)  /* window refresh interval in nanoseconds */
 
 #define C2B(c,ch)           (((((c) & 0xFF) * ch.scale) >> 8) * ch.factor)
 // the first 8 bit specify the alpha-value
 #define RGB2PIXEL(r,g,b)    ((0xFF << 24) | \
-				 C2B(r, vga.red) | \
-				 C2B(g, vga.green) | \
-				 C2B(b, vga.blue))
+                            C2B(r, vga.red) | \
+                            C2B(g, vga.green) | \
+                            C2B(b, vga.blue))
 
 #define CELL_SIZE_X         8
 #define CELL_SIZE_Y         16

@@ -25,23 +25,23 @@ namespace test {
 
 class TestSuite : public m3::SListItem, public Testable {
 public:
-	explicit TestSuite(const m3::String& name)
-		: m3::SListItem(), Testable(name), _cases() {
-	}
-	~TestSuite() {
-		for(auto it = _cases.begin(); it != _cases.end(); ) {
-			auto old = it++;
-			delete &*old;
-		}
-	}
+    explicit TestSuite(const m3::String& name)
+        : m3::SListItem(), Testable(name), _cases() {
+    }
+    ~TestSuite() {
+        for(auto it = _cases.begin(); it != _cases.end(); ) {
+            auto old = it++;
+            delete &*old;
+        }
+    }
 
-	void add(TestCase* tc) {
-		_cases.append(tc);
-	}
-	void run();
+    void add(TestCase* tc) {
+        _cases.append(tc);
+    }
+    void run();
 
 private:
-	m3::SList<TestCase> _cases;
+    m3::SList<TestCase> _cases;
 };
 
 }

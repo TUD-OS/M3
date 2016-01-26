@@ -20,19 +20,19 @@
 namespace test {
 
 void TestSuite::run() {
-	for(auto &t : _cases) {
-		LOG(DEF, "  Testcase \"" << t.get_name() << "\"...");
+    for(auto &t : _cases) {
+        LOG(DEF, "  Testcase \"" << t.get_name() << "\"...");
 
-		t.run();
-		if(t.get_failed() == 0) {
-			LOG(DEF, "  \033[0;32mSUCCEEDED!\033[0m");
-			success();
-		}
-		else {
-			LOG(DEF, "  \033[0;31mFAILED!\033[0m");
-			failed();
-		}
-	}
+        t.run();
+        if(t.get_failed() == 0) {
+            LOG(DEF, "  \033[0;32mSUCCEEDED!\033[0m");
+            success();
+        }
+        else {
+            LOG(DEF, "  \033[0;31mFAILED!\033[0m");
+            failed();
+        }
+    }
 }
 
 }

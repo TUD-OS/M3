@@ -23,36 +23,36 @@ namespace test {
 
 class Testable {
 public:
-	explicit Testable(const m3::String& name)
-		: _name(name), _succeeded(), _failed() {
-	}
-	virtual ~Testable() {
-	}
+    explicit Testable(const m3::String& name)
+        : _name(name), _succeeded(), _failed() {
+    }
+    virtual ~Testable() {
+    }
 
-	const m3::String& get_name() const {
-		return _name;
-	}
-	size_t get_succeeded() const {
-		return _succeeded;
-	}
-	size_t get_failed() const {
-		return _failed;
-	}
+    const m3::String& get_name() const {
+        return _name;
+    }
+    size_t get_succeeded() const {
+        return _succeeded;
+    }
+    size_t get_failed() const {
+        return _failed;
+    }
 
-	virtual void run() = 0;
+    virtual void run() = 0;
 
 protected:
-	void success() {
-		_succeeded++;
-	}
-	void failed() {
-		_failed++;
-	}
+    void success() {
+        _succeeded++;
+    }
+    void failed() {
+        _failed++;
+    }
 
 private:
-	m3::String _name;
-	size_t _succeeded;
-	size_t _failed;
+    m3::String _name;
+    size_t _succeeded;
+    size_t _failed;
 };
 
 }

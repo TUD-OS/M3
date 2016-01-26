@@ -25,12 +25,12 @@ namespace test {
 
 class TestCase : public m3::SListItem, public Testable {
 public:
-	explicit TestCase(const m3::String& name)
-		: m3::SListItem(), Testable(name) {
-	}
+    explicit TestCase(const m3::String& name)
+        : m3::SListItem(), Testable(name) {
+    }
 
 protected:
-	void do_assert(const Assert& a);
+    void do_assert(const Assert& a);
 };
 
 }

@@ -24,23 +24,23 @@ namespace test {
 
 class TestSuiteContainer {
 public:
-	explicit TestSuiteContainer()
-		: _suites() {
-	}
-	~TestSuiteContainer() {
-		for(auto it = _suites.begin(); it != _suites.end(); ) {
-			auto old = it++;
-			delete &*old;
-		}
-	}
+    explicit TestSuiteContainer()
+        : _suites() {
+    }
+    ~TestSuiteContainer() {
+        for(auto it = _suites.begin(); it != _suites.end(); ) {
+            auto old = it++;
+            delete &*old;
+        }
+    }
 
-	void add(TestSuite* suite) {
-		_suites.append(suite);
-	}
-	int run();
+    void add(TestSuite* suite) {
+        _suites.append(suite);
+    }
+    int run();
 
 private:
-	m3::SList<TestSuite> _suites;
+    m3::SList<TestSuite> _suites;
 };
 
 }
