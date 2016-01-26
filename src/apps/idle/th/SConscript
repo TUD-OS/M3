@@ -1,6 +1,6 @@
 Import('env')
 
-ldscript = File('#src/apps/idle/' + env['ARCH'] + '/elf32xtensa.x')
+ldscript = File('#src/apps/idle/' + env['ARCH'] + '/elf32xtensa.ld')
 prog = env.M3Program(
     env,
     target = 'idle',
