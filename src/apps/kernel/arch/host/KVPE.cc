@@ -72,7 +72,7 @@ void KVPE::activate_sysc_ep(void *addr) {
     if(mcap == nullptr) {
         size_t len = DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
         mcap = new MemCapability(&CapTable::kernel_table(), _sepsgate.sel(),
-            iaddr, len, MemGate::X | MemGate::W, core(), 0);
+            iaddr, len, MemGate::X | MemGate::W, core(), id(), 0);
         CapTable::kernel_table().set(_sepsgate.sel(), mcap);
     }
     else
@@ -116,7 +116,7 @@ Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability 
 }
 
 KVPE::~KVPE() {
-    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << _id << "]");
+    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     SyscallHandler::get().remove_session(this);
     detach_rbufs();
     free_reqs();

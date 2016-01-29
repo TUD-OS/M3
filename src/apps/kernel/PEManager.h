@@ -62,12 +62,7 @@ private:
 
 public:
     KVPE *create(String &&name, const char *core);
-    void remove(int id) {
-        assert(_vpes[id] && _count > 0);
-        delete _vpes[id];
-        _vpes[id] = nullptr;
-        _count--;
-    }
+    void remove(int id, bool daemon);
 
     const char *type(int id) const {
         return _petype[id];
@@ -86,26 +81,7 @@ public:
         return *_vpes[id];
     }
 
-    void start_pending(ServiceList &serv) {
-        for(auto it = _pending.begin(); it != _pending.end(); ) {
-            bool fullfilled = true;
-            for(auto &r : it->vpe->requirements()) {
-                if(!serv.find(r.name)) {
-                    fullfilled = false;
-                    break;
-                }
-            }
-
-            if(fullfilled) {
-                auto old = it++;
-                old->vpe->start(old->argc, old->argv, 0);
-                _pending.remove(&*old);
-                delete &*old;
-            }
-            else
-                it++;
-        }
-    }
+    void start_pending(ServiceList &serv);
 
 private:
     void deprivilege_pes() {

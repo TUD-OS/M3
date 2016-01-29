@@ -35,7 +35,8 @@ public:
 
             // TODO we need the max msg size
             KDTU::get().config_send_local(id,
-                c->obj->label, c->obj->core, c->obj->epid, c->obj->credits, c->obj->credits);
+                c->obj->label, c->obj->core, c->obj->vpe, c->obj->epid,
+                c->obj->credits, c->obj->credits);
 
             LOG(IPC, "Kernel programs ep[" << id << "] to "
                 << "core=" << c->obj->core << ", ep=" << c->obj->epid

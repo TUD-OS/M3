@@ -39,7 +39,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 5;
+    static const size_t DTU_REGS            = 6;
     static const size_t CMD_REGS            = 6;
     static const size_t EP_REGS             = 3;
 
@@ -47,17 +47,18 @@ private:
         STATUS              = 0,
         ROOT_PT             = 1,
         PF_EP               = 2,
-        MSGCNT              = 3,
-        EXT_CMD             = 4,
+        VPE_ID              = 3,
+        MSGCNT              = 4,
+        EXT_CMD             = 5,
     };
 
     enum class CmdRegs {
-        COMMAND             = 5,
-        DATA_ADDR           = 6,
-        DATA_SIZE           = 7,
-        OFFSET              = 8,
-        REPLY_EP            = 9,
-        REPLY_LABEL         = 10,
+        COMMAND             = 6,
+        DATA_ADDR           = 7,
+        DATA_SIZE           = 8,
+        OFFSET              = 9,
+        REPLY_EP            = 10,
+        REPLY_LABEL         = 11,
     };
 
     enum MemFlags : reg_t {
@@ -109,6 +110,7 @@ public:
         PTE_W               = 2,
         PTE_X               = 4,
         PTE_I               = 8,
+        PTE_GONE            = 16,
         PTE_RW              = PTE_R | PTE_W,
         PTE_RWX             = PTE_RW | PTE_X,
         PTE_IRWX            = PTE_RWX | PTE_I,
@@ -121,6 +123,7 @@ public:
         uint8_t replyEpId; // for a normal message this is the reply epId
                            // for a reply this is the enpoint that receives credits
         uint16_t length;
+        uint16_t senderVpeId;
 
         uint64_t label;
         uint64_t replylabel;

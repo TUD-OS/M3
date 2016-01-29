@@ -51,8 +51,10 @@ PEManager::PEManager(int argc, char **argv)
         for(; end < argc; ++end) {
             if(strncmp(argv[end], "core=", 5) == 0)
                 _petype[no] = argv[end] + 5;
-            else if(strcmp(argv[end], "daemon") == 0)
+            else if(strcmp(argv[end], "daemon") == 0) {
                 daemon = true;
+                _vpes[no]->make_daemon();
+            }
             else if(strncmp(argv[end], "requires=", sizeof("requires=") - 1) == 0)
                  _vpes[no]->add_requirement(argv[end] + sizeof("requires=") - 1);
             else if(strcmp(argv[end], "--") == 0)
@@ -71,6 +73,27 @@ PEManager::PEManager(int argc, char **argv)
         i = end;
         if(daemon)
             _daemons++;
+    }
+}
+
+void PEManager::start_pending(ServiceList &serv) {
+    for(auto it = _pending.begin(); it != _pending.end(); ) {
+        bool fullfilled = true;
+        for(auto &r : it->vpe->requirements()) {
+            if(!serv.find(r.name)) {
+                fullfilled = false;
+                break;
+            }
+        }
+
+        if(fullfilled) {
+            auto old = it++;
+            old->vpe->start(old->argc, old->argv, 0);
+            _pending.remove(&*old);
+            delete &*old;
+        }
+        else
+            it++;
     }
 }
 
@@ -128,6 +151,20 @@ KVPE *PEManager::create(String &&name, const char *core) {
     _vpes[i] = new KVPE(std::move(name), i);
     _count++;
     return _vpes[i];
+}
+
+void PEManager::remove(int id, bool daemon) {
+    assert(_vpes[id]);
+    delete _vpes[id];
+    _vpes[id] = nullptr;
+
+    if(daemon) {
+        assert(_daemons > 0);
+        _daemons--;
+    }
+
+    assert(_count > 0);
+    _count--;
 }
 
 }

@@ -58,6 +58,7 @@ public:
         return syscc;
     }
 
+    void pagefault(RecvGate &gate, GateIStream &is);
     void createsrv(RecvGate &gate, GateIStream &is);
     void createsess(RecvGate &gate, GateIStream &is);
     void creategate(RecvGate &gate, GateIStream &is);

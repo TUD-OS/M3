@@ -23,12 +23,22 @@
 #include <cstring>
 
 #include "CapTable.h"
-#include "RecvBufs.h"
 
 namespace m3 {
 
 class KVPE : public RequestSessionData {
+    // use an object to set the VPE id at first and unset it at last
+    struct VPEId {
+        VPEId(int _id, int _core);
+        ~VPEId();
+
+        int id;
+        int core;
+    };
+
 public:
+    static const uint16_t INVALID_ID = 0xFFFF;
+
     enum State {
         RUNNING,
         DEAD
@@ -62,13 +72,13 @@ public:
     Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     int id() const {
-        return _id;
+        return _id.id;
     }
     int pid() const {
         return _pid;
     }
     int core() const {
-        return _id + APP_CORES;
+        return _id.core;
     }
     int state() const {
         return _state;
@@ -106,6 +116,9 @@ public:
     MemGate &seps_gate() {
         return _sepsgate;
     }
+    void make_daemon() {
+        _daemon = true;
+    }
 
 private:
     void write_env_file(int pid, label_t label, size_t epid);
@@ -117,12 +130,10 @@ private:
             delete &*old;
         }
     }
-    void detach_rbufs() {
-        for(size_t c = 0; c < EP_COUNT; ++c)
-            RecvBufs::detach(core(), c);
-    }
+    void detach_rbufs();
 
-    size_t _id;
+    VPEId _id;
+    bool _daemon;
     int _refs;
     int _pid;
     int _state;

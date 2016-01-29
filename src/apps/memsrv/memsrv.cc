@@ -126,6 +126,9 @@ public:
         uint64_t virt, access;
         is >> virt >> access;
 
+        // access == PTE_GONE indicates, that the VPE that owns the memory is not available
+        // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
+
         LOG(MEM, "mem::pf(virt=" << fmt(virt, "p") << ", access " << fmt(access, "#x") << ")");
 
         if(sess->vpe.sel() == ObjCap::INVALID) {

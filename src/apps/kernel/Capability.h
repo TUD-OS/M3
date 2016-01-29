@@ -97,14 +97,16 @@ private:
 
 class MsgObject : public RefCounted {
 public:
-    explicit MsgObject(label_t _label, int _core, int _epid, word_t _credits)
-        : RefCounted(), label(_label), core(_core), epid(_epid), credits(_credits), derived(false) {
+    explicit MsgObject(label_t _label, int _core, int _vpe, int _epid, word_t _credits)
+        : RefCounted(), label(_label), core(_core), vpe(_vpe), epid(_epid), credits(_credits),
+          derived(false) {
     }
     virtual ~MsgObject() {
     }
 
     label_t label;
     int core;
+    int vpe;
     int epid;
     word_t credits;
     bool derived;
@@ -112,8 +114,8 @@ public:
 
 class MemObject : public MsgObject {
 public:
-    explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int epid)
-        : MsgObject(addr | perms, core, epid, size) {
+    explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int vpe, int epid)
+        : MsgObject(addr | perms, core, vpe, epid, size) {
         assert((addr & MemGate::RWX) == 0);
     }
     virtual ~MemObject();
@@ -136,9 +138,9 @@ protected:
     }
 
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, int core, int epid,
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, int core, int vpe, int epid,
         word_t credits)
-        : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, epid, credits)) {
+        : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, vpe, epid, credits)) {
     }
 
     void print(OStream &os) const override;
@@ -160,8 +162,8 @@ public:
 class MemCapability : public MsgCapability {
 public:
     explicit MemCapability(CapTable *tbl, capsel_t sel, uintptr_t addr, size_t size, uint perms,
-            int core, int epid)
-        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, epid)) {
+            int core, int vpe, int epid)
+        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, vpe, epid)) {
     }
 
     void print(OStream &os) const override;

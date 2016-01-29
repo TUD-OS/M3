@@ -35,14 +35,14 @@ int main() {
             PANIC("Unable to map memory:" << Errors::to_string(res));
 
         volatile uint64_t *pte = reinterpret_cast<volatile uint64_t*>(0x3ffff000);
-        Serial::get() << fmt(*pte, "#0x", 16) << "\n";
+        Serial::get() << "PTE: " << fmt(*pte, "#0x", 16) << "\n";
 
         volatile int *addr = reinterpret_cast<volatile int*>(virt);
         for(size_t i = 0; i < (4 * PAGE_SIZE) / sizeof(int); ++i)
             addr[i] = i;
 
-        Serial::get() << fmt(*pte, "#0x", 16) << "\n";
-        Serial::get() << fmt(*pte, "#0x", 16) << "\n";
+        Serial::get() << "0: " << fmt(addr[0], "#0x", 8) << "\n";
+        Serial::get() << "1: " << fmt(addr[1], "#0x", 8) << "\n";
 
         res = mem.unmap(virt);
         if(res != Errors::NO_ERROR)

@@ -63,6 +63,7 @@ SyscallHandler::SyscallHandler()
     KDTU::get().config_recv_local(_srvrcvbuf.epid(), reinterpret_cast<uintptr_t>(_srvrcvbuf.addr()),
         _srvrcvbuf.order(), _srvrcvbuf.msgorder(), _srvrcvbuf.flags());
 
+    add_operation(Syscalls::PAGEFAULT, &SyscallHandler::pagefault);
     add_operation(Syscalls::CREATESRV, &SyscallHandler::createsrv);
     add_operation(Syscalls::CREATESESS, &SyscallHandler::createsess);
     add_operation(Syscalls::CREATEGATE, &SyscallHandler::creategate);
@@ -121,7 +122,20 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
 }
 
 static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    KDTU::get().reply_to(vpe.core(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+    KDTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+}
+
+void SyscallHandler::pagefault(RecvGate &gate, GateIStream &is) {
+    KVPE *vpe = gate.session<KVPE>();
+    uint64_t virt, access;
+    is >> virt >> access;
+    LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << fmt(virt, "p")
+        << ", access " << fmt(access, "#x") << ")");
+
+    // this indicates that the pf handler is not available.
+    // TODO context switch, migrate, ...
+
+    reply_vmsg(gate, Errors::NO_ERROR);
 }
 
 void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
@@ -206,7 +220,8 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap or ep");
 
     vpe->objcaps().set(dstcap,
-        new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->core(), epid, credits));
+        new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->core(),
+            tcapobj->vpe->id(), epid, credits));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -293,10 +308,10 @@ void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
 
     // TODO we need to know the max. msg size here
-    KDTU::get().config_send_remote(tcapobj->vpe->core(), ep, msg->obj->label, msg->obj->core,
+    KDTU::get().config_send_remote(*tcapobj->vpe, ep, msg->obj->label, msg->obj->core, msg->obj->vpe,
         msg->obj->epid, msg->obj->credits, msg->obj->credits);
     // TODO what is the root-pt?
-    KDTU::get().config_pf_remote(tcapobj->vpe->core(), ep, 0);
+    KDTU::get().config_pf_remote(*tcapobj->vpe, ep, 0);
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
@@ -318,7 +333,7 @@ void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
-    Errors::Code res = RecvBufs::attach(tcapobj->vpe->core(), ep, addr, order, msgorder, flags);
+    Errors::Code res = RecvBufs::attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
     if(res != Errors::NO_ERROR)
         SYS_ERROR(vpe, gate, res, "Unable to attach receive buffer");
 
@@ -337,7 +352,7 @@ void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
-    RecvBufs::detach(tcapobj->vpe->core(), ep);
+    RecvBufs::detach(*tcapobj->vpe, ep);
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -431,7 +446,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
 
     // TODO if addr was 0, we don't want to free it on revoke
     vpe->objcaps().set(cap,
-        new MemCapability(&vpe->objcaps(), cap, addr, size, perms, MEMORY_CORE, mem.epid()));
+        new MemCapability(&vpe->objcaps(), cap, addr, size, perms, MEMORY_CORE, 0, mem.epid()));
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
@@ -460,6 +475,7 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
         size,
         perms & srccap->perms(),
         srccap->obj->core,
+        srccap->obj->vpe,
         srccap->obj->epid
     ));
     dercap->obj->derived = true;

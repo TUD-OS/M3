@@ -24,6 +24,7 @@
 #include <m3/Errors.h>
 
 #include "KDTU.h"
+#include "KVPE.h"
 
 namespace m3 {
 
@@ -43,25 +44,25 @@ class RecvBufs {
     };
 
 public:
-    static bool is_attached(size_t coreid, size_t epid) {
-        RBuf &rbuf = get(coreid, epid);
+    static bool is_attached(size_t core, size_t epid) {
+        RBuf &rbuf = get(core, epid);
         return rbuf.flags & F_ATTACHED;
     }
 
-    static void subscribe(size_t coreid, size_t epid, const Subscriptions<bool>::callback_type &cb) {
-        RBuf &rbuf = get(coreid, epid);
+    static void subscribe(size_t core, size_t epid, const Subscriptions<bool>::callback_type &cb) {
+        RBuf &rbuf = get(core, epid);
         assert(~rbuf.flags & F_ATTACHED);
         rbuf.waitlist.subscribe(cb);
     }
 
-    static Errors::Code attach(size_t coreid, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
-        RBuf &rbuf = get(coreid, epid);
+    static Errors::Code attach(KVPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+        RBuf &rbuf = get(vpe.core(), epid);
         if(rbuf.flags & F_ATTACHED)
             return Errors::EXISTS;
 
         for(size_t i = 0; i < EP_COUNT; ++i) {
             if(i != epid) {
-                RBuf &rb = get(coreid, i);
+                RBuf &rb = get(vpe.core(), i);
                 if((rb.flags & F_ATTACHED) &&
                     Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
                     return Errors::INV_ARGS;
@@ -72,25 +73,25 @@ public:
         rbuf.order = order;
         rbuf.msgorder = msgorder;
         rbuf.flags = flags | F_ATTACHED;
-        configure(coreid, epid, rbuf);
+        configure(vpe, epid, rbuf);
         notify(rbuf, true);
         return Errors::NO_ERROR;
     }
 
-    static void detach(size_t coreid, size_t epid) {
-        RBuf &rbuf = get(coreid, epid);
+    static void detach(KVPE &vpe, size_t epid) {
+        RBuf &rbuf = get(vpe.core(), epid);
         if(rbuf.flags & F_ATTACHED) {
             // TODO we have to make sure here that nobody can send to that EP anymore
             // BEFORE detaching it!
             rbuf.flags = 0;
-            configure(coreid, epid, rbuf);
+            configure(vpe, epid, rbuf);
         }
         notify(rbuf, false);
     }
 
 private:
-    static void configure(size_t coreid, size_t epid, RBuf &rbuf) {
-        KDTU::get().config_recv_remote(coreid, epid,
+    static void configure(KVPE &vpe, size_t epid, RBuf &rbuf) {
+        KDTU::get().config_recv_remote(vpe, epid,
             rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
     }
 

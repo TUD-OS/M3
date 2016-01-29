@@ -21,9 +21,12 @@
 
 namespace m3 {
 
+class KVPE;
+
 class KDTU {
     explicit KDTU() : _ep(VPE::self().alloc_ep()) {
         EPMux::get().reserve(_ep);
+        init();
     }
 
 public:
@@ -31,33 +34,41 @@ public:
         return _inst;
     }
 
-    void wakeup(int core);
+    void init();
+
+    void set_vpeid(int core, int vpe);
+    void unset_vpeid(int core, int vpe);
     void deprivilege(int core);
 
-    void config_pf_remote(int core, int ep, uint64_t rootpt);
-    void map_page(int core, uintptr_t virt, uintptr_t phys, int perm);
-    void unmap_page(int core, uintptr_t virt);
+    void wakeup(KVPE &vpe);
 
-    void invalidate_ep(int core, int ep);
-    void invalidate_eps(int core);
+    void config_pf_remote(KVPE &vpe, int ep, uint64_t rootpt);
+    void map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
+    void unmap_page(KVPE &vpe, uintptr_t virt);
+
+    void invalidate_ep(KVPE &vpe, int ep);
+    void invalidate_eps(KVPE &vpe);
 
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_recv_remote(int core, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
+    void config_recv_remote(KVPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
 
-    void config_send_local(int ep, label_t label, int dstcore, int dstep, size_t msgsize, word_t credits);
-    void config_send_remote(int core, int ep, label_t label, int dstcore, int dstep, size_t msgsize, word_t credits);
+    void config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
+    void config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
 
-    void config_mem_local(int ep, int dstcore, uintptr_t addr, size_t size);
-    void config_mem_remote(int core, int ep, int dstcore, uintptr_t addr, size_t size, int perm);
+    void config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size);
+    void config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
-    void reply_to(int core, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
+    void reply_to(KVPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
 
-    void write_mem(int core, uintptr_t addr, const void *data, size_t size);
+    void write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size);
+    void write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size);
 
 private:
+    void do_set_vpeid(size_t core, int oldVPE, int newVPE);
+
     void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_send(void *e, label_t label, int dstcore, int dstep, size_t msgsize, word_t credits);
-    void config_mem(void *e, int dstcore, uintptr_t addr, size_t size, int perm);
+    void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
+    void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
     int _ep;
     static KDTU _inst;

@@ -21,6 +21,7 @@
 #include "../../SyscallHandler.h"
 #include "../../KVPE.h"
 #include "../../KDTU.h"
+#include "../../RecvBufs.h"
 
 namespace m3 {
 
@@ -29,10 +30,10 @@ void KVPE::start(int, char **, int) {
     ref();
     activate_sysc_ep();
 
-    KDTU::get().wakeup(core());
+    KDTU::get().wakeup(*this);
 
     _state = RUNNING;
-    LOG(VPES, "Started VPE '" << _name << "' [id=" << _id << "]");
+    LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 
 void KVPE::activate_sysc_ep() {
@@ -41,15 +42,15 @@ void KVPE::activate_sysc_ep() {
     memset(&conf, 0, sizeof(conf));
     conf.coreid = core();
     Sync::compiler_barrier();
-    KDTU::get().write_mem(core(), CONF_GLOBAL, &conf, sizeof(conf));
+    KDTU::get().write_mem(*this, CONF_GLOBAL, &conf, sizeof(conf));
 
     // attach default receive endpoint
     UNUSED Errors::Code res = RecvBufs::attach(
-        core(), DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+        *this, DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
     assert(res == Errors::NO_ERROR);
 
-    KDTU::get().config_send_remote(core(), DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
-        KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
+    KDTU::get().config_send_remote(*this, DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
+        KERNEL_CORE, KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
 }
 
 Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
@@ -57,25 +58,26 @@ Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
         if(n->type & Capability::MEM) {
             uintptr_t addr = n->obj->label & ~MemGate::RWX;
             int perm = n->obj->label & MemGate::RWX;
-            KDTU::get().config_mem_remote(core(), epid,
-                n->obj->core, addr, n->obj->credits, perm);
+            KDTU::get().config_mem_remote(*this, epid,
+                n->obj->core, n->obj->vpe, addr, n->obj->credits, perm);
         }
         else {
             // TODO we could use a logical ep id for receiving credits
             // TODO but we still need to make sure that one can't just activate the cap again to
             // immediately regain the credits
             // TODO we need the max-msg size here
-            KDTU::get().config_send_remote(core(), epid,
-                n->obj->label, n->obj->core, n->obj->epid, n->obj->credits, n->obj->credits);
+            KDTU::get().config_send_remote(*this, epid,
+                n->obj->label, n->obj->core, n->obj->vpe, n->obj->epid,
+                n->obj->credits, n->obj->credits);
         }
     }
     else
-        KDTU::get().invalidate_ep(core(), epid);
+        KDTU::get().invalidate_ep(*this, epid);
     return Errors::NO_ERROR;
 }
 
 KVPE::~KVPE() {
-    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << _id << "]");
+    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     SyscallHandler::get().remove_session(this);
     detach_rbufs();
     free_reqs();

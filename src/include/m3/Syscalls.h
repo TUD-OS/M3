@@ -32,6 +32,7 @@ class Syscalls {
 
 public:
     enum Operation {
+        PAGEFAULT = 0,  // sent by the DTU if the PF handler is not reachable
         CREATESRV,
         CREATESESS,
         CREATEGATE,

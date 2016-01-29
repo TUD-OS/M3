@@ -19,53 +19,66 @@
 #include <m3/DTU.h>
 
 #include "../../KDTU.h"
+#include "../../KVPE.h"
 
 namespace m3 {
 
-void KDTU::wakeup(int core) {
+void KDTU::init() {
+    // nothing to do
+}
+
+void KDTU::set_vpeid(int, int) {
+    // nothing to do
+}
+
+void KDTU::unset_vpeid(int, int) {
+    // nothing to do
+}
+
+void KDTU::wakeup(KVPE &vpe) {
     // inject an IRQ
     uint64_t val = 1;
     Sync::memory_barrier();
-    write_mem(core, IRQ_ADDR_EXTERN, &val, sizeof(val));
+    write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
 void KDTU::deprivilege(int) {
     // nothing to do
 }
 
-void KDTU::config_pf_remote(int, int, uint64_t) {
+void KDTU::config_pf_remote(KVPE &, int, uint64_t) {
 }
 
-void KDTU::map_page(int, uintptr_t, uintptr_t, int) {
+void KDTU::map_page(KVPE &, uintptr_t, uintptr_t, int) {
 }
 
-void KDTU::unmap_page(int, uintptr_t) {
+void KDTU::unmap_page(KVPE &, uintptr_t) {
 }
 
-void KDTU::invalidate_ep(int core, int ep) {
+void KDTU::invalidate_ep(KVPE &vpe, int ep) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     memset(regs, 0, sizeof(regs));
     regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
 
     Sync::memory_barrier();
     uintptr_t addr = DTU::get().get_external_cmd_addr(ep, 0);
-    write_mem(core, addr, regs, sizeof(regs));
+    write_mem(vpe, addr, regs, sizeof(regs));
 }
 
-void KDTU::invalidate_eps(int core) {
+void KDTU::invalidate_eps(KVPE &vpe) {
     for(int i = 0; i < EP_COUNT; ++i)
-        invalidate_ep(core, i);
+        invalidate_ep(vpe, i);
 }
 
 void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     DTU::get().configure_recv(ep, buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(int, int, uintptr_t, uint, uint, int, bool) {
+void KDTU::config_recv_remote(KVPE &, int, uintptr_t, uint, uint, int, bool) {
     // nothing to do; can only be done locally atm
 }
 
-void KDTU::config_send(void *e, label_t label, int dstcore, int dstep, size_t, word_t) {
+void KDTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t) {
     uint64_t *ep = reinterpret_cast<uint64_t*>(e);
 
     /* (1 << LOCAL_CFG_ADDRESS_FIFO_CMD) |
@@ -84,22 +97,22 @@ void KDTU::config_send(void *e, label_t label, int dstcore, int dstep, size_t, w
     ep[EXTERN_CFG_SIZE_CREDITS_CMD] = (uint64_t)0xFFFFFFFF << 32;
 }
 
-void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstep,
+void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
-    config_send(DTU::get().get_cmd_addr(ep, 0), label, dstcore, dstep, msgsize, credits);
+    config_send(DTU::get().get_cmd_addr(ep, 0), label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void KDTU::config_send_remote(int core, int ep, label_t label, int dstcore, int dstep,
+void KDTU::config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
-    config_send(regs, label, dstcore, dstep, msgsize, credits);
+    config_send(regs, label, dstcore, dstvpe, dstep, msgsize, credits);
 
     Sync::memory_barrier();
     uintptr_t epaddr = DTU::get().get_external_cmd_addr(ep, 0);
-    write_mem(core, epaddr, regs, sizeof(regs));
+    write_mem(vpe, epaddr, regs, sizeof(regs));
 }
 
-void KDTU::config_mem(void *e, int dstcore, uintptr_t addr, size_t, int) {
+void KDTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t, int) {
     uint64_t *ep = reinterpret_cast<uint64_t*>(e);
     ep[OVERALL_SLOT_CFG] = ((uint64_t)0xFFFFFFFF << 32);
     ep[LOCAL_CFG_ADDRESS_FIFO_CMD] = 0;
@@ -110,33 +123,33 @@ void KDTU::config_mem(void *e, int dstcore, uintptr_t addr, size_t, int) {
     ep[EXTERN_CFG_SIZE_CREDITS_CMD] = (uint64_t)0xFFFFFFFF << 32;
 }
 
-void KDTU::config_mem_local(int ep, int coreid, uintptr_t addr, size_t size) {
-    config_mem(DTU::get().get_cmd_addr(ep, 0), coreid, addr, size, MemGate::RW);
+void KDTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
+    config_mem(DTU::get().get_cmd_addr(ep, 0), dstcore, dstvpe, addr, size, MemGate::RW);
 }
 
-void KDTU::config_mem_remote(int core, int ep, int dstcore, uintptr_t addr, size_t size, int perms) {
+void KDTU::config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perms) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
-    config_mem(regs, dstcore, addr, size, perms);
+    config_mem(regs, dstcore, dstvpe, addr, size, perms);
 
     Sync::memory_barrier();
     uintptr_t epaddr = DTU::get().get_external_cmd_addr(ep, 0);
-    write_mem(core, epaddr, regs, sizeof(regs));
+    write_mem(vpe, epaddr, regs, sizeof(regs));
 }
 
-void KDTU::reply_to(int core, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+void KDTU::reply_to(KVPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
     // TODO for some reason, we need to use a different EP here.
     static int tmpep = 0;
     if(tmpep == 0) {
         tmpep = VPE::self().alloc_ep();
         EPMux::get().reserve(tmpep);
     }
-    config_send_local(tmpep, label, core, ep, size + DTU::HEADER_SIZE, size + DTU::HEADER_SIZE);
+    config_send_local(tmpep, label, vpe.core(), vpe.id(), ep, size + DTU::HEADER_SIZE, size + DTU::HEADER_SIZE);
     DTU::get().send(tmpep, msg, size, 0, 0);
     DTU::get().wait_until_ready(tmpep);
 }
 
-void KDTU::write_mem(int core, uintptr_t addr, const void *data, size_t size) {
-    config_mem_local(_ep, core, addr, size);
+void KDTU::write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size) {
+    config_mem_local(_ep, vpe.core(), vpe.id(), addr, size);
     DTU::get().write(_ep, data, size, 0);
 }
 

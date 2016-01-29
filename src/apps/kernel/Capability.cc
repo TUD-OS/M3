@@ -56,12 +56,12 @@ Errors::Code MsgCapability::revoke() {
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
     : Capability(tbl, sel, MAP), phys(_phys), attr(_attr) {
     KVPE &vpe = PEManager::get().vpe(tbl->id() - 1);
-    KDTU::get().map_page(vpe.core(), sel << PAGE_BITS, phys, attr);
+    KDTU::get().map_page(vpe, sel << PAGE_BITS, phys, attr);
 }
 
 Errors::Code MapCapability::revoke() {
     KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    KDTU::get().unmap_page(vpe.core(), sel() << PAGE_BITS);
+    KDTU::get().unmap_page(vpe, sel() << PAGE_BITS);
     return Errors::NO_ERROR;
 }
 
