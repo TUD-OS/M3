@@ -36,11 +36,14 @@ MemObject::~MemObject() {
 }
 
 SessionObject::~SessionObject() {
-    AutoGateOStream msg(ostreamsize<SyscallHandler::server_type::Command, word_t>());
-    msg << SyscallHandler::server_type::CLOSE << ident;
-    LOG(KSYSC, "Sending CLOSE message for ident " << fmt(ident, "#x", 8) << " to " << srv->name());
-    ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
-    msg.claim();
+    // only send the close message, if the service has not exited yet
+    if(srv->vpe().state() == KVPE::RUNNING) {
+        AutoGateOStream msg(ostreamsize<SyscallHandler::server_type::Command, word_t>());
+        msg << SyscallHandler::server_type::CLOSE << ident;
+        LOG(KSYSC, "Sending CLOSE message for ident " << fmt(ident, "#x", 8) << " to " << srv->name());
+        ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
+        msg.claim();
+    }
 }
 
 Errors::Code MsgCapability::revoke() {
