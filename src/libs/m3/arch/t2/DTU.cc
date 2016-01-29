@@ -79,6 +79,7 @@ retry:
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     EPConf *cfg = conf(ep);
+    assert(cfg->valid);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstep);
     LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
@@ -147,6 +148,7 @@ Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t
 
 Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
+    assert(cfg->valid);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
     uintptr_t srcaddr = base + off;
@@ -181,6 +183,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
 
 Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
+    assert(cfg->valid);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
     uintptr_t destaddr = base + off;

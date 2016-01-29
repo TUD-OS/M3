@@ -60,6 +60,9 @@ void KDTU::invalidate_ep(KVPE &vpe, int ep) {
     memset(&conf, 0, sizeof(conf));
     Sync::memory_barrier();
     uintptr_t addr = CONF_GLOBAL + offsetof(CoreConf, eps) + ep * sizeof(EPConf);
+    // TODO something is wrong here. This print statement helps to make it work in most cases, but
+    // not always. It seems to be a timing problem, but I have no clue why this occurs.
+    Serial::get() << "Invalidating EP " << ep << " on PE " << vpe.core() << "\n";
     write_mem(vpe, addr, &conf, sizeof(conf));
 }
 
@@ -81,6 +84,7 @@ void KDTU::config_recv_remote(KVPE &, int, uintptr_t, uint, uint, int, bool) {
 
 void KDTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
     EPConf *ep = reinterpret_cast<EPConf*>(e);
+    ep->valid = 1;
     ep->dstcore = dstcore;
     ep->dstep = dstep;
     ep->label = label;
@@ -103,6 +107,7 @@ void KDTU::config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int
 
 void KDTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int perm) {
     EPConf *ep = reinterpret_cast<EPConf*>(e);
+    ep->valid = 1;
     ep->dstcore = dstcore;
     ep->dstep = 0;
     ep->label = addr | perm;

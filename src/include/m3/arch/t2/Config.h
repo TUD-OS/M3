@@ -111,10 +111,11 @@ namespace m3 {
 class RecvGate;
 
 struct EPConf {
+    uchar valid;
     uchar dstcore;
     uchar dstep;
     // padding
-    ushort : sizeof(ushort) * 8;
+    uchar : sizeof(uchar) * 8;
     word_t credits;
     label_t label;
     // padding

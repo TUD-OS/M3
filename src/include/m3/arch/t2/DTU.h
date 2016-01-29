@@ -108,8 +108,9 @@ public:
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }
 
-    bool is_valid(int) {
-        return true;
+    bool is_valid(int ep) {
+        EPConf *cfg = conf(ep);
+        return cfg->valid;
     }
     bool fetch_msg(int ep);
 
