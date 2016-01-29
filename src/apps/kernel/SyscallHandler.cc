@@ -258,6 +258,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
 }
 
 void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
+#if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap, mcap;
@@ -293,11 +294,13 @@ void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
         tcapobj->vpe->mapcaps().set(dst + i, mapcap);
         phys += PAGE_SIZE;
     }
+#endif
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
 void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
+#if defined(__gem5__)
     EVENT_TRACER_Syscall_setpfgate();
     KVPE *vpe = gate.session<KVPE>();
     capsel_t tcap, gcap;
@@ -320,6 +323,7 @@ void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
         msg->obj->epid, msg->obj->credits, msg->obj->credits);
     // TODO what is the root-pt?
     KDTU::get().config_pf_remote(*tcapobj->vpe, ep, 0);
+#endif
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
