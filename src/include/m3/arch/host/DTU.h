@@ -19,6 +19,7 @@
 #include <m3/Common.h>
 #include <m3/util/String.h>
 #include <m3/util/Util.h>
+#include <m3/Errors.h>
 #include <pthread.h>
 #include <ostream>
 #include <iomanip>
@@ -191,20 +192,20 @@ public:
 
     void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    void send(int ep, const void *msg, size_t size, label_t replylbl, int replyep) {
-        fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
+    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int replyep) {
+        return fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
     }
-    void reply(int ep, const void *msg, size_t size, size_t msgidx) {
-        fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
+    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx) {
+        return fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
     }
-    void read(int ep, void *msg, size_t size, size_t off) {
-        fire(ep, READ, msg, size, off, size, label_t(), 0);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off) {
+        return fire(ep, READ, msg, size, off, size, label_t(), 0);
     }
-    void write(int ep, const void *msg, size_t size, size_t off) {
-        fire(ep, WRITE, msg, size, off, size, label_t(), 0);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off) {
+        return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
     }
-    void cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {
-        fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
+    Errors::Code cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {
+        return fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
     }
     void sendcrd(int ep, int crdep, size_t size) {
         set_cmd(CMD_EPID, ep);
@@ -258,7 +259,7 @@ public:
             wait();
     }
 
-    void fire(int ep, int op, const void *msg, size_t size, size_t offset, size_t len,
+    Errors::Code fire(int ep, int op, const void *msg, size_t size, size_t offset, size_t len,
             label_t replylbl, int replyep) {
         assert(((uintptr_t)msg & (DTU_PKG_SIZE - 1)) == 0);
         assert((size & (DTU_PKG_SIZE - 1)) == 0);
@@ -273,6 +274,8 @@ public:
             set_cmd(CMD_CTRL, (op << 3) | CTRL_START);
         else
             set_cmd(CMD_CTRL, (op << 3) | CTRL_START | CTRL_DEL_REPLY_CAP);
+        // TODO report errors here
+        return Errors::NO_ERROR;
     }
 
     void start();

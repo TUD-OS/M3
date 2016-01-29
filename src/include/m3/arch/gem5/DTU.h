@@ -20,6 +20,7 @@
 #include <m3/Config.h>
 #include <m3/util/Util.h>
 #include <m3/util/Sync.h>
+#include <m3/Errors.h>
 #include <assert.h>
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
@@ -154,12 +155,13 @@ public:
         return inst;
     }
 
-    void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
-    void reply(int ep, const void *msg, size_t size, size_t msgidx);
-    void read(int ep, void *msg, size_t size, size_t off);
-    void write(int ep, const void *msg, size_t size, size_t off);
-    void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
+    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
+    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off);
+    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
         // TODO unsupported
+        return Errors::NO_ERROR;
     }
 
     bool fetch_msg(int epid) {
@@ -186,7 +188,6 @@ public:
     }
 
     void ack_message(int ep) {
-        wait_until_ready(ep);
         // ensure that we are really done with the message before acking it
         Sync::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::INC_READ_PTR));
@@ -205,7 +206,9 @@ public:
         return true;
     }
     void wait_until_ready(int) {
-        while(read_reg(CmdRegs::COMMAND) != 0)
+        // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)
+        // compilers are the worst. let's get rid of them and just write assembly code again ;)
+        while((read_reg(CmdRegs::COMMAND) & 0x7) != 0)
             ;
     }
     bool wait_for_mem_cmd() {
@@ -214,6 +217,15 @@ public:
     }
 
 private:
+    static Errors::Code get_error() {
+        while(true) {
+            reg_t cmd = read_reg(CmdRegs::COMMAND);
+            if(static_cast<CmdOpCode>(cmd & 0x7) == CmdOpCode::IDLE)
+                return static_cast<Errors::Code>(cmd >> 11);
+        }
+        UNREACHED;
+    }
+
     static reg_t read_reg(DtuRegs reg) {
         return read_reg(static_cast<size_t>(reg));
     }

@@ -21,6 +21,7 @@
 #include <m3/stream/OStream.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/util/Util.h>
+#include <m3/Errors.h>
 #include <assert.h>
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
@@ -97,11 +98,12 @@ public:
 
     void reset();
 
-    void send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
-    void reply(int ep, const void *msg, size_t size, size_t msgidx);
-    void read(int ep, void *msg, size_t size, size_t off);
-    void write(int ep, const void *msg, size_t size, size_t off);
-    void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
+    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
+    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off);
+    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
+        return Errors::NO_ERROR;
     }
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }

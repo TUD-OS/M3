@@ -99,27 +99,8 @@ protected:
         DTU::get().wait_until_ready(_epid);
     }
 
-    void async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
-            label_t reply_lbl = 0, int reply_ep = 0) {
-        // ensure that the DMAUnit is ready. this is required if we want to mix async sends with
-        // sync sends.
-        wait_until_sent();
-        ensure_activated();
-        switch(op) {
-            case SEND:
-                DTU::get().send(_epid, data, datalen, reply_lbl, reply_ep);
-                break;
-            case READ:
-                DTU::get().read(_epid, data, datalen, off);
-                break;
-            case WRITE:
-                DTU::get().write(_epid, data, datalen, off);
-                break;
-            case CMPXCHG:
-                DTU::get().cmpxchg(_epid, data, datalen, off, size);
-                break;
-        }
-    }
+    Errors::Code async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
+            label_t reply_lbl = 0, int reply_ep = 0);
 
 private:
     size_t _epid;

@@ -144,7 +144,7 @@ Errors::Code Syscalls::revoke(const CapRngDesc &crd) {
 void Syscalls::exit(int exitcode) {
     LOG(SYSC, "exit(code=" << exitcode << ")");
     EVENT_TRACE_FLUSH();
-    return send_vmsg(_gate, EXIT, exitcode);
+    send_vmsg(_gate, EXIT, exitcode);
 }
 
 #if defined(__host__)

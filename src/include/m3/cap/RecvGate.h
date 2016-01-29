@@ -102,12 +102,14 @@ public:
      * @param data the data to send
      * @param len the length of the data
      * @param msgidx the index of the message to reply to
+     * @return the error code or Errors::NO_ERROR
      */
-    void reply_sync(const void *data, size_t len, size_t msgidx) {
-        reply_async(data, len, msgidx);
+    Errors::Code reply_sync(const void *data, size_t len, size_t msgidx) {
+        Errors::Code res = reply_async(data, len, msgidx);
         wait_until_sent();
+        return res;
     }
-    void reply_async(const void *data, size_t len, size_t msgidx) {
+    Errors::Code reply_async(const void *data, size_t len, size_t msgidx) {
         // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
@@ -115,7 +117,7 @@ public:
         DTU::get().ack_message(epid());
 #endif
         wait_until_sent();
-        DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
+        return DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
     }
 
 private:

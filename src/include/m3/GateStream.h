@@ -60,27 +60,30 @@ public:
      * Sends the current content of this GateOStream as a message to the given gate.
      *
      * @param gate the gate to send to
+     * @return the error code or Errors::NO_ERROR
      */
-    void send(SendGate &gate) {
-        gate.send_sync(bytes(), total());
+    Errors::Code send(SendGate &gate) {
+        return gate.send(bytes(), total());
     }
     /**
      * Replies the current content of this GateOStream as a message to the first not acknowledged
      * message in the receive buffer of given receive gate.
      *
      * @param gate the gate that hosts the message to reply to
+     * @return the error code or Errors::NO_ERROR
      */
-    void reply(RecvGate &gate) {
-        gate.reply_sync(bytes(), total(), DTU::get().get_msgoff(gate.epid(), &gate));
+    Errors::Code reply(RecvGate &gate) {
+        return gate.reply_sync(bytes(), total(), DTU::get().get_msgoff(gate.epid(), &gate));
     }
     /**
      * Writes the current content of this GateOStream to <offset> in the given memory area.
      *
      * @param gate the memory gate to write to
      * @param offset the offset within the area the gate points to
+     * @return the error code or Errors::NO_ERROR
      */
-    void write(MemGate &gate, size_t offset) {
-        gate.write_sync(bytes(), total(), offset);
+    Errors::Code write(MemGate &gate, size_t offset) {
+        return gate.write_sync(bytes(), total(), offset);
     }
 
     /**
@@ -188,7 +191,8 @@ public:
     }
 
     // don't do the ack twice. thus, copies never ack.
-    GateIStream(const GateIStream &is) : _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+    GateIStream(const GateIStream &is)
+        : _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
     }
     GateIStream &operator=(const GateIStream &is) {
         if(this != &is) {
@@ -209,7 +213,8 @@ public:
         }
         return *this;
     }
-    GateIStream(GateIStream &&is) : _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+    GateIStream(GateIStream &&is)
+        : _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
         is._ack = false;
     }
     ~GateIStream() {
@@ -261,18 +266,20 @@ public:
      * Replies the message constructed by <os> to this message
      *
      * @param os the GateOStream hosting the message to reply
+     * @return the error code or Errors::NO_ERROR
      */
-    void reply(const GateOStream &os) const {
-        reply(os.bytes(), os.total());
+    Errors::Code reply(const GateOStream &os) const {
+        return reply(os.bytes(), os.total());
     }
     /**
      * Replies the given message to this one
      *
      * @param data the message data
      * @param len the length of the message
+     * @return the error code or Errors::NO_ERROR
      */
-    void reply(const void *data, size_t len) const {
-        _gate->reply_sync(data, len, DTU::get().get_msgoff(_gate->epid(), _gate, _msg));
+    Errors::Code reply(const void *data, size_t len) const {
+        return _gate->reply_sync(data, len, DTU::get().get_msgoff(_gate->epid(), _gate, _msg));
     }
 
     /**
@@ -403,18 +410,19 @@ static_assert(ostreamsize<short, String>() ==
  * @param gate the gate to send to
  * @param data the message data
  * @param len the message length
+ * @return the error code or Errors::NO_ERROR
  */
-static inline void send_msg(SendGate &gate, const void *data, size_t len) {
+static inline Errors::Code send_msg(SendGate &gate, const void *data, size_t len) {
     EVENT_TRACER_send_msg();
-    gate.send_sync(data, len);
+    return gate.send(data, len);
 }
-static inline void reply_msg(RecvGate &gate, const void *data, size_t len) {
+static inline Errors::Code reply_msg(RecvGate &gate, const void *data, size_t len) {
     EVENT_TRACER_reply_msg();
-    gate.reply_sync(data, len, DTU::get().get_msgoff(gate.epid(), &gate));
+    return gate.reply_sync(data, len, DTU::get().get_msgoff(gate.epid(), &gate));
 }
-static inline void reply_msg_on(const GateIStream &is, const void *data, size_t len) {
+static inline Errors::Code reply_msg_on(const GateIStream &is, const void *data, size_t len) {
     EVENT_TRACER_reply_msg_on();
-    is.reply(data, len);
+    return is.reply(data, len);
 }
 
 /**
@@ -436,21 +444,22 @@ static inline auto create_vmsg(const Args& ... args) -> StaticGateOStream<ostrea
  *
  * @param gate the gate to send to
  * @param args the arguments to put into the message
+ * @return the error code or Errors::NO_ERROR
  */
 template<typename... Args>
-static inline void send_vmsg(SendGate &gate, const Args &... args) {
+static inline Errors::Code send_vmsg(SendGate &gate, const Args &... args) {
     EVENT_TRACER_send_vmsg();
-    create_vmsg(args...).send(gate);
+    return create_vmsg(args...).send(gate);
 }
 template<typename... Args>
-static inline void reply_vmsg(RecvGate &gate, const Args &... args) {
+static inline Errors::Code reply_vmsg(RecvGate &gate, const Args &... args) {
     EVENT_TRACER_reply_vmsg();
-    create_vmsg(args...).reply(gate);
+    return create_vmsg(args...).reply(gate);
 }
 template<typename... Args>
-static inline void reply_vmsg_on(const GateIStream &is, const Args &... args) {
+static inline Errors::Code reply_vmsg_on(const GateIStream &is, const Args &... args) {
     EVENT_TRACER_reply_vmsg_on();
-    is.reply(create_vmsg(args...));
+    return is.reply(create_vmsg(args...));
 }
 
 /**
@@ -460,11 +469,12 @@ static inline void reply_vmsg_on(const GateIStream &is, const Args &... args) {
  * @param gate the memory gate
  * @param offset the offset to write to
  * @param args the arguments to marshall
+ * @return the error code or Errors::NO_ERROR
  */
 template<typename... Args>
-static inline void write_vmsg(MemGate &gate, size_t offset, const Args &... args) {
+static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &... args) {
     EVENT_TRACER_write_vmsg();
-    create_vmsg(args...).write(gate, offset);
+    return create_vmsg(args...).write(gate, offset);
 }
 
 /**

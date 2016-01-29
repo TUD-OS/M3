@@ -20,6 +20,7 @@
 #include <m3/Config.h>
 #include <m3/stream/OStream.h>
 #include <m3/util/Util.h>
+#include <m3/Errors.h>
 #include <assert.h>
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
@@ -93,14 +94,14 @@ public:
 
     void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    void send(int ep, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_ep = 0);
-    void send_credits(int ep, uchar dst, int dst_ep, uint credits);
-    void reply(int ep, const void *msg, size_t size, size_t msgidx);
-    void read(int ep, void *msg, size_t size, size_t off);
-    void write(int ep, const void *msg, size_t size, size_t off);
-    void cmpxchg(UNUSED int ep, UNUSED const void *msg, UNUSED size_t msgsize, UNUSED size_t off, UNUSED size_t size) {
+    Errors::Code send(int ep, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_ep = 0);
+    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off);
+    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
+        return Errors::NO_ERROR;
     }
-    void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
+    void send_credits(int ep, uchar dst, int dst_ep, uint credits);
     }
 
     bool fetch_msg(int ep) {

@@ -44,7 +44,7 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder
     //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << coreid() << ":" << ep);
 }
 
-void DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {
+Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {
     LOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << ep);
 
     word_t *ptr = get_cmd_addr(ep, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
@@ -53,9 +53,11 @@ void DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int repl
     config_transfer_size(ep, size);
     config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
     fire(ep, WRITE, 1);
+
+    return Errors::NO_ERROR;
 }
 
-void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
+Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     assert(((uintptr_t)msg & (PACKET_SIZE - 1)) == 0);
     assert((size & (PACKET_SIZE - 1)) == 0);
 
@@ -75,6 +77,8 @@ void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     // DTU::Message *m = reinterpret_cast<DTU::Message*>(addr);
     // LOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
     // send_credits(ep, m->modid, m->slot, 0x80000000 | m->length);
+
+    return Errors::NO_ERROR;
 }
 
 void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
@@ -98,7 +102,7 @@ void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
     store_to(ptr + 0, credits);
 }
 
-void DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     LOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
 
     // temporary hack: read current external address, add offset, store it and restore it later
@@ -117,9 +121,11 @@ void DTU::read(int ep, void *msg, size_t size, size_t off) {
 
     // restore old value
     store_to(ptr + 0, base);
+
+    return Errors::NO_ERROR;
 }
 
-void DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     LOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
 
     // set address + offset
@@ -137,6 +143,8 @@ void DTU::write(int ep, const void *msg, size_t size, size_t off) {
 
     // restore old value
     store_to(ptr + 0, base);
+
+    return Errors::NO_ERROR;
 }
 
 }

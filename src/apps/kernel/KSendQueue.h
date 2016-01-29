@@ -22,6 +22,7 @@
 #include <m3/col/SList.h>
 #include <m3/Heap.h>
 #include <stdlib.h>
+#include <string.h>
 
 namespace m3 {
 
@@ -77,7 +78,7 @@ public:
 private:
     void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
         sgate->receive_gate(rgate);
-        sgate->send_sync(msg, size);
+        sgate->send(msg, size);
         if(Heap::is_on_heap(msg))
             Heap::free(const_cast<void*>(msg));
         _inflight++;

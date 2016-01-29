@@ -102,18 +102,16 @@ public:
 
     /**
      * Performs the send-operation with <data> of length <len>.
-     * Synchronous means that it waits until the data has been sent, but NOT until a potential reply
-     * has been received.
      *
      * @param data the data to send
      * @param len the length of the data
+     * @return the error code or Errors::NO_ERROR
      */
-    void send_sync(const void *data, size_t len) {
-        send_async(data, len);
+    Errors::Code send(const void *data, size_t len) {
+        Errors::Code res = async_cmd(SEND, const_cast<void*>(data), len, 0, 0,
+            _rcvgate->label(), _rcvgate->epid());
         wait_until_sent();
-    }
-    void send_async(const void *data, size_t len) {
-        async_cmd(SEND, const_cast<void*>(data), len, 0, 0, _rcvgate->label(), _rcvgate->epid());
+        return res;
     }
 
 private:

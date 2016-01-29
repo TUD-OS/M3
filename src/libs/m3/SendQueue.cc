@@ -32,7 +32,7 @@ void SendQueue::work() {
             delete it;
             if(_queue.length() > 0) {
                 SendItem &first = *_queue.begin();
-                first.gate.send_async(first.data, first.len);
+                first.gate.send(first.data, first.len);
                 LOG(IPC, "Sending " << &first << " from queue");
             }
         }
@@ -40,7 +40,7 @@ void SendQueue::work() {
 }
 
 void SendQueue::send_async(SendItem &it) {
-    it.gate.send_async(it.data, it.len);
+    it.gate.send(it.data, it.len);
     LOG(IPC, "Sending " << &it << " from queue");
 }
 

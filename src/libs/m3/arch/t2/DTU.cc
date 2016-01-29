@@ -77,7 +77,7 @@ retry:
     return false;
 }
 
-void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     EPConf *cfg = conf(ep);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstep);
     LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
@@ -102,9 +102,11 @@ void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply
     set_target(SLOT_NO, cfg->dstcore, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
+
+    return Errors::NO_ERROR;
 }
 
-void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
+Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     DTU::Message *orgmsg = message_at(ep, msgidx);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->epid);
     LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
@@ -127,6 +129,8 @@ void DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     set_target(SLOT_NO, orgmsg->core, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
+
+    return Errors::NO_ERROR;
 }
 
 void DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type) {
@@ -139,7 +143,7 @@ void DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, i
     }
 }
 
-void DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
@@ -166,9 +170,11 @@ void DTU::read(int ep, void *msg, size_t size, size_t off) {
         if(reinterpret_cast<unsigned char*>(msg)[size - 1] != 0xFF)
             break;
     }
+
+    return Errors::NO_ERROR;
 }
 
-void DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
     uintptr_t base = cfg->label & ~MemGate::RWX;
     size_t len = cfg->credits;
@@ -186,6 +192,8 @@ void DTU::write(int ep, const void *msg, size_t size, size_t off) {
     size_t rem;
     while((rem = get_remaining(ep)) > 0)
         ;
+
+    return Errors::NO_ERROR;
 }
 
 }

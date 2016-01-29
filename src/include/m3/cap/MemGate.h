@@ -105,11 +105,13 @@ public:
      * @param data the data to write
      * @param len the number of bytes to write
      * @param offset the start-offset
+     * @return the error code or Errors::NO_ERROR
      */
-    void write_sync(const void *data, size_t len, size_t offset) {
+    Errors::Code write_sync(const void *data, size_t len, size_t offset) {
         EVENT_TRACER_write_sync();
-        async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
+        Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
         wait_until_sent();
+        return res;
     }
 
     /**
@@ -118,8 +120,9 @@ public:
      * @param data the buffer to write into
      * @param len the number of bytes to read
      * @param offset the start-offset
+     * @return the error code or Errors::NO_ERROR
      */
-    void read_sync(void *data, size_t len, size_t offset);
+    Errors::Code read_sync(void *data, size_t len, size_t offset);
 
 #if defined(__host__)
     /**
@@ -132,8 +135,9 @@ public:
      * @param len the number of bytes of one value
      * @param offset the start-offset
      * @return true on success
+     * @return the error code or Errors::NO_ERROR
      */
-    bool cmpxchg_sync(void *data, size_t len, size_t offset);
+    Errors::Code cmpxchg_sync(void *data, size_t len, size_t offset);
 #endif
 };
 

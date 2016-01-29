@@ -23,21 +23,27 @@ namespace m3 {
  */
 struct Errors {
     enum Code {
-        NO_ERROR        = 0,
-        INV_ARGS        = -1,
-        OUT_OF_MEM      = -2,
-        NO_SUCH_FILE    = -3,
-        NO_PERM         = -4,
-        NOT_SUP         = -5,
-        NO_FREE_CORE    = -6,
-        INVALID_ELF     = -7,
-        NO_SPACE        = -8,
-        EXISTS          = -9,
-        GONE            = -10,
-        XFS_LINK        = -11,
-        DIR_NOT_EMPTY   = -12,
-        IS_DIR          = -13,
-        IS_NO_DIR       = -14,
+        NO_ERROR,
+        // DTU errors
+        MISS_CREDITS,
+        NO_RING_SPACE,
+        VPE_GONE,
+        // SW errors
+        INV_ARGS,
+        OUT_OF_MEM,
+        NO_SUCH_FILE,
+        NO_PERM,
+        NOT_SUP,
+        NO_FREE_CORE,
+        INVALID_ELF,
+        NO_SPACE,
+        EXISTS,
+        XFS_LINK,
+        DIR_NOT_EMPTY,
+        IS_DIR,
+        IS_NO_DIR,
+        EP_INVALID,
+        RECV_GONE,
     };
 
     /**

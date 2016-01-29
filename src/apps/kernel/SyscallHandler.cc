@@ -633,7 +633,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
 
             auto callback = [rinfo, vpe, epid, oldcapobj, newcapobj](bool success, Subscriber<bool> *) {
                 EVENT_TRACER_Syscall_activate();
-                Errors::Code res = success ? Errors::NO_ERROR : Errors::GONE;
+                Errors::Code res = success ? Errors::NO_ERROR : Errors::RECV_GONE;
                 if(success)
                     res = do_activate(vpe, epid, oldcapobj, newcapobj);
                 if(res != Errors::NO_ERROR)

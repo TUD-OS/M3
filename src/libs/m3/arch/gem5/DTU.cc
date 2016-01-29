@@ -22,7 +22,7 @@ namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
-void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
     static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
 
@@ -36,16 +36,20 @@ void DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply
     write_reg(CmdRegs::REPLY_EP, reply_ep);
     Sync::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::SEND));
+
+    return get_error();
 }
 
-void DTU::reply(int ep, const void *msg, size_t size, size_t) {
+Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     Sync::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::REPLY));
+
+    return get_error();
 }
 
-void DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
@@ -53,9 +57,11 @@ void DTU::read(int ep, void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ));
 
     wait_until_ready(ep);
+
+    return get_error();
 }
 
-void DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
@@ -63,6 +69,8 @@ void DTU::write(int ep, const void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE));
 
     wait_until_ready(ep);
+
+    return get_error();
 }
 
 }

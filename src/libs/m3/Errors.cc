@@ -23,24 +23,28 @@ Errors::Code Errors::last;
 
 static const char *errmsgs[] = {
     /*  0 */ "No error",
-    /*  1 */ "Invalid arguments",
-    /*  2 */ "Out of memory",
-    /*  3 */ "No such file or directory",
-    /*  4 */ "No permissions",
-    /*  5 */ "Not supported",
-    /*  6 */ "No free cores",
-    /*  7 */ "Invalid ELF file",
-    /*  8 */ "No space left",
-    /*  9 */ "Object does already exist",
-    /* 10 */ "Object gone",
-    /* 11 */ "Cross-filesystem link not possible",
-    /* 12 */ "Directory not empty",
-    /* 13 */ "Is a directory",
-    /* 13 */ "Is no directory",
+    /*  1 */ "Not enough credits",
+    /*  2 */ "Not enough ringbuffer space",
+    /*  3 */ "VPE gone",
+    /*  4 */ "Invalid arguments",
+    /*  5 */ "Out of memory",
+    /*  6 */ "No such file or directory",
+    /*  7 */ "No permissions",
+    /*  8 */ "Not supported",
+    /*  9 */ "No free cores",
+    /* 10 */ "Invalid ELF file",
+    /* 11 */ "No space left",
+    /* 12 */ "Object does already exist",
+    /* 13 */ "Cross-filesystem link not possible",
+    /* 14 */ "Directory not empty",
+    /* 15 */ "Is a directory",
+    /* 16 */ "Is no directory",
+    /* 17 */ "Endpoint is invalid",
+    /* 18 */ "Receive buffer gone",
 };
 
 const char *Errors::to_string(Code code) {
-    size_t idx = -code;
+    size_t idx = code;
     if(idx < ARRAY_SIZE(errmsgs))
         return errmsgs[idx];
     return "Unknown error";
