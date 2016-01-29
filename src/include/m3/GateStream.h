@@ -186,16 +186,17 @@ public:
      * @param gate the gate to fetch the message from
      * @param ack whether to acknowledge the message afterwards
      */
-    explicit GateIStream(RecvGate &gate, bool ack = false)
-        : _ack(ack), _pos(0), _gate(&gate), _msg(DTU::get().message(gate.epid())) {
+    explicit GateIStream(RecvGate &gate, Errors::Code err = Errors::NO_ERROR, bool ack = false)
+        : _err(err), _ack(ack), _pos(0), _gate(&gate), _msg(DTU::get().message(gate.epid())) {
     }
 
     // don't do the ack twice. thus, copies never ack.
     GateIStream(const GateIStream &is)
-        : _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        : _err(is._err), _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
     }
     GateIStream &operator=(const GateIStream &is) {
         if(this != &is) {
+            _err = is._err;
             _ack = false;
             _pos = is._pos;
             _gate = is._gate;
@@ -205,6 +206,7 @@ public:
     }
     GateIStream &operator=(GateIStream &&is) {
         if(this != &is) {
+            _err = is._err;
             _ack = is._ack;
             _pos = is._pos;
             _gate = is._gate;
@@ -214,13 +216,19 @@ public:
         return *this;
     }
     GateIStream(GateIStream &&is)
-        : _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        : _err(is._err), _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
         is._ack = false;
     }
     ~GateIStream() {
         ack();
     }
 
+    /**
+     * @return the error that occurred (or Errors::NO_ERROR)
+     */
+    Errors::Code error() const {
+        return _err;
+    }
     /**
      * @return the message (header + payload)
      */
@@ -333,6 +341,7 @@ private:
     void vpull() {
     }
 
+    Errors::Code _err;
     bool _ack;
     size_t _pos;
     RecvGate *_gate;
@@ -340,8 +349,8 @@ private:
 };
 
 inline GateIStream GateOStream::receive(RecvGate &gate) {
-    gate.wait();
-    return GateIStream(gate, true);
+    Errors::Code err = gate.wait(nullptr);
+    return GateIStream(gate, err, true);
 }
 inline void GateOStream::put(const GateIStream &is) {
     assert(fits(_bytecount, is.remaining()));
@@ -486,8 +495,8 @@ static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &
  */
 static inline GateIStream receive_msg(RecvGate &gate) {
     EVENT_TRACER_receive_msg();
-    gate.wait();
-    return GateIStream(gate, true);
+    Errors::Code err = gate.wait(nullptr);
+    return GateIStream(gate, err, true);
 }
 /**
  * Receives a message from <gate> and unmarshalls the message into <args>. Note that
@@ -500,10 +509,24 @@ static inline GateIStream receive_msg(RecvGate &gate) {
 template<typename... Args>
 static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
     EVENT_TRACER_receive_vmsg();
-    gate.wait();
-    GateIStream is(gate, true);
+    Errors::Code err = gate.wait(nullptr);
+    GateIStream is(gate, err, true);
     is.vpull(args...);
     return is;
+}
+
+/**
+ * Receives the reply for a message sent over <gate> and returns an GateIStream to unmarshall the
+ * message. Note that the GateIStream object acknowledges the message on destruction.
+ * The difference to receive_v?msg() is, that it
+ *
+ * @param gate the gate to receive the message from
+ * @return the GateIStream
+ */
+static inline GateIStream receive_reply(SendGate &gate) {
+    EVENT_TRACER_receive_msg();
+    Errors::Code err = gate.receive_gate()->wait(&gate);
+    return GateIStream(*gate.receive_gate(), err, true);
 }
 
 /**
@@ -512,13 +535,13 @@ static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
 static inline GateIStream send_receive_msg(SendGate &gate, const void *data, size_t len) {
     EVENT_TRACER_send_receive_msg();
     send_msg(gate, data, len);
-    return receive_msg(*gate.receive_gate());
+    return receive_reply(gate);
 }
 template<typename... Args>
 static inline GateIStream send_receive_vmsg(SendGate &gate, const Args &... args) {
     EVENT_TRACER_send_receive_vmsg();
     send_vmsg(gate, args...);
-    return receive_msg(*gate.receive_gate());
+    return receive_reply(gate);
 }
 
 }

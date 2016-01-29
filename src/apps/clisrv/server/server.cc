@@ -26,6 +26,10 @@ enum TestOp {
     TEST
 };
 
+class TestRequestHandler;
+
+static Server<TestRequestHandler> *srv;
+
 class TestRequestHandler : public RequestHandler<TestRequestHandler, TestOp, 1> {
 public:
     explicit TestRequestHandler() : RequestHandler<TestRequestHandler, TestOp, 1>() {
@@ -44,11 +48,16 @@ public:
             resp[str.length() - i - 1] = str[i];
         reply_vmsg(gate, String(resp,str.length()));
         delete[] resp;
+
+        // pretend that we crash after some requests
+        static int count = 0;
+        if(++count == 6)
+            srv->shutdown();
     }
 };
 
 int main() {
-    Server<TestRequestHandler> srv("test", new TestRequestHandler());
+    srv = new Server<TestRequestHandler>("test", new TestRequestHandler());
     WorkLoop::get().run();
     return 0;
 }

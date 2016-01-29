@@ -108,6 +108,9 @@ public:
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }
 
+    bool is_valid(int) {
+        return true;
+    }
     bool fetch_msg(int ep);
 
     DTU::Message *message(int ep) const {

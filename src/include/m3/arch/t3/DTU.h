@@ -102,6 +102,9 @@ public:
         return Errors::NO_ERROR;
     }
     void send_credits(int ep, uchar dst, int dst_ep, uint credits);
+
+    bool is_valid(int) {
+        return true;
     }
 
     bool fetch_msg(int ep) {

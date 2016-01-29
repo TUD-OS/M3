@@ -19,6 +19,7 @@
 #include <m3/cap/SendGate.h>
 #include <m3/RecvBuf.h>
 #include <m3/GateStream.h>
+#include <m3/Log.h>
 
 using namespace m3;
 
@@ -50,6 +51,8 @@ int main() {
 
             // 0 = TEST
             GateIStream is = send_receive_vmsg(gate, 0, req);
+            if(is.error() != Errors::NO_ERROR)
+                PANIC("Communication failed: " << Errors::to_string(is.error()));
             is >> resp;
             ser << "Got '" << resp << "'\n";
         }

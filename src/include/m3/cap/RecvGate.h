@@ -21,6 +21,8 @@
 
 namespace m3 {
 
+class SendGate;
+
 /**
  * A RecvGate can be used for receiving messages from somebody else and reply on these messages. It
  * is thus not backed by a capability (sel() will be INVALID).
@@ -76,12 +78,13 @@ public:
     }
 
     /**
-     * Busy-waits until this endpoint has received a message.
+     * Waits until this endpoint has received a message. If <sgate> is given, it will stop if as
+     * soon as it gets invalid and return the appropriate error.
+     *
+     * @param sgate the send-gate (optional), if waiting for a reply
+     * @return the error code
      */
-    void wait() const {
-        while(!DTU::get().fetch_msg(epid()))
-            DTU::get().wait();
-    }
+    Errors::Code wait(SendGate *sgate) const;
 
     /**
      * Calls all subscribers

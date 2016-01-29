@@ -214,6 +214,10 @@ public:
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
 
+    bool is_valid(int) {
+        // TODO not supported
+        return true;
+    }
     bool fetch_msg(int ep) {
         return get_ep(ep, EP_BUF_MSGCNT) > 0;
     }

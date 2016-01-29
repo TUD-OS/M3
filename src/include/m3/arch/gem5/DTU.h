@@ -164,6 +164,11 @@ public:
         return Errors::NO_ERROR;
     }
 
+    bool is_valid(int epid) {
+        reg_t r0 = read_reg(epid, 0);
+        return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
+    }
+
     bool fetch_msg(int epid) {
         reg_t r0 = read_reg(epid, 0);
         return (r0 & 0xFFFF) > 0;

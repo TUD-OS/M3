@@ -25,6 +25,8 @@ namespace m3 {
 Syscalls Syscalls::_inst INIT_PRIORITY(108);
 
 Errors::Code Syscalls::finish(GateIStream &&reply) {
+    if(reply.error())
+        return reply.error();
     reply >> Errors::last;
     return Errors::last;
 }
