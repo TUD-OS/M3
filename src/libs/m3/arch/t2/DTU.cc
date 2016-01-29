@@ -133,14 +133,16 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     return Errors::NO_ERROR;
 }
 
-void DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type) {
+Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type) {
     uintptr_t srcaddr = base + off;
     if(!(perms & type) || srcaddr < base || srcaddr + size < srcaddr ||  srcaddr + size > base + len) {
-        PANIC("No permission to " << (type == MemGate::R ? "read from" : "write to")
-                << " " << fmt(srcaddr, "p") << ".." << fmt(srcaddr + size, "p") << "\n"
-                << "Allowed is: " << fmt(base, "p") << ".." << fmt(base + len, "p")
-                << " with " << fmt(perms, "#x"));
+        // PANIC("No permission to " << (type == MemGate::R ? "read from" : "write to")
+        //         << " " << fmt(srcaddr, "p") << ".." << fmt(srcaddr + size, "p") << "\n"
+        //         << "Allowed is: " << fmt(base, "p") << ".." << fmt(base + len, "p")
+        //         << " with " << fmt(perms, "#x"));
+        return Errors::NO_PERM;
     }
+    return Errors::NO_ERROR;
 }
 
 Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
@@ -155,7 +157,10 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     // mark the end
     reinterpret_cast<unsigned char*>(msg)[size - 1] = 0xFF;
 
-    check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::R);
+    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::R);
+    if(res != Errors::NO_ERROR)
+        return res;
+
     set_target(SLOT_NO, cfg->dstcore, srcaddr);
     fire(SLOT_NO, READ, msg, size);
 
@@ -183,7 +188,10 @@ Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
 
     EVENT_TRACE_MEM_WRITE(cfg->dstcore, size);
 
-    check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::W);
+    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::W);
+    if(res != Errors::NO_ERROR)
+        return res;
+
     set_target(SLOT_NO, cfg->dstcore, destaddr);
     fire(SLOT_NO, WRITE, msg, size);
 

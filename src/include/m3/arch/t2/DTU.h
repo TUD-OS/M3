@@ -216,7 +216,8 @@ private:
         return core * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
 
-    void check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type);
+    Errors::Code check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
+        int perms, int type);
 
     EPConf *conf(int ep) {
         return coreconf()->eps + ep;
