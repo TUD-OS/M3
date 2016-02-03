@@ -311,7 +311,7 @@ void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
     capsel_t tcap, gcap;
     size_t ep;
     is >> tcap >> gcap >> ep;
-    LOG_SYS(vpe, ": syscall::setpfgate", "(tcap=" << tcap << ", gcap=" << gcap
+    LOG_SYS(vpe, ": syscall::setpfgate", "(vpe=" << tcap << ", gcap=" << gcap
         << ", ep=" << ep << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
@@ -319,7 +319,7 @@ void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
     MsgCapability *msg = static_cast<MsgCapability*>(
-        vpe->objcaps().get(gcap, Capability::MSG));
+        tcapobj->vpe->objcaps().get(gcap, Capability::MSG));
     if(msg == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
 
