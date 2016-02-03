@@ -60,7 +60,7 @@ private:
 class MemSessionData : public RequestSessionData {
 public:
     explicit MemSessionData()
-        : RequestSessionData(), vpe(ObjCap::INVALID), regs(), mem(), nextPage(), pages() {
+        : RequestSessionData(), id(nextId++), vpe(ObjCap::INVALID), regs(), mem(), nextPage(), pages() {
     }
     ~MemSessionData() {
         Region *reg;
@@ -88,12 +88,16 @@ public:
         return Errors::NO_ERROR;
     }
 
+    int id;
     ObjCap vpe;
     Treap<Region> regs;
     MemGate *mem;
     int nextPage;
     int pages;
+    static int nextId;
 };
+
+int MemSessionData::nextId = 1;
 
 class MemReqHandler;
 typedef RequestHandler<MemReqHandler, Memory::Operation, Memory::COUNT, MemSessionData> base_class_t;
@@ -128,7 +132,8 @@ public:
         // access == PTE_GONE indicates, that the VPE that owns the memory is not available
         // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
 
-        LOG(MEM, "mem::pf(virt=" << fmt(virt, "p") << ", access " << fmt(access, "#x") << ")");
+        LOG(MEM, sess->id << " : mem::pf(virt=" << fmt(virt, "p")
+            << ", access " << fmt(access, "#x") << ")");
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
             LOG(MEM, "Invalid session");
@@ -169,8 +174,9 @@ public:
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        LOG(MEM, "mem::map(virt=" << fmt(virt, "p") << ", len " << fmt(len, "#x")
-            << ", prot=" << fmt(prot, "#x") << ", flags=" << fmt(flags, "#x") << ")");
+        LOG(MEM, sess->id << " : mem::map(virt=" << fmt(virt, "p")
+            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+            << ", flags=" << fmt(flags, "#x") << ")");
 
         virt = Math::round_dn(virt, PAGE_SIZE);
         len = Math::round_up(len, PAGE_SIZE);
@@ -198,7 +204,7 @@ public:
         uintptr_t virt;
         is >> virt;
 
-        LOG(MEM, "mem::unmap(virt=" << fmt(virt, "p") << ")");
+        LOG(MEM, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
 
         Errors::Code res = Errors::INV_ARGS;
         Region *reg = sess->regs.find(virt);
