@@ -100,6 +100,7 @@ private:
     size_t _count;
     size_t _daemons;
     SList<Pending> _pending;
+    static bool _shutdown;
     static PEManager *_inst;
 };
 

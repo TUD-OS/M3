@@ -21,6 +21,7 @@
 
 namespace m3 {
 
+bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
 
 PEManager::PEManager(int argc, char **argv)
@@ -98,6 +99,10 @@ void PEManager::start_pending(ServiceList &serv) {
 }
 
 void PEManager::shutdown() {
+    if(_shutdown)
+        return;
+
+    _shutdown = true;
     ServiceList &serv = ServiceList::get();
     for(auto &s : serv) {
         Reference<Service> ref(&s);
