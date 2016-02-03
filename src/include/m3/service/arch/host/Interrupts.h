@@ -32,7 +32,7 @@ public:
           _rcvbuf(RecvBuf::create(VPE::self().alloc_ep(), buford, msgord, 0)),
           _rgate(RecvGate::create(&_rcvbuf)), _sgate(SendGate::create(SendGate::UNLIMITED, &_rgate)) {
         if(!Errors::occurred())
-            delegate(CapRngDesc(CapRngDesc::OBJ, _sgate.sel()));
+            delegate_obj(_sgate.sel());
     }
 
     RecvGate &gate() {

@@ -33,7 +33,7 @@ struct Worker {
     Worker(RecvGate &rgate, MemGate &mem, size_t offset, size_t size)
             : submem(mem.derive(offset, size)),
               sgate(SendGate::create(DTU_PKG_SIZE + DTU::HEADER_SIZE, &rgate)), vpe("worker") {
-        vpe.delegate(CapRngDesc(CapRngDesc::OBJ, submem.sel(), 1));
+        vpe.delegate_obj(submem.sel());
     }
 };
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 
     // now build the checksum
     for(int i = 0; i < vpes; ++i) {
-        worker[i]->vpe.delegate(CapRngDesc(CapRngDesc::OBJ, worker[i]->sgate.sel(), 1));
+        worker[i]->vpe.delegate_obj(worker[i]->sgate.sel());
         MemGate &vpemem = worker[i]->submem;
         SendGate &vpegate = worker[i]->sgate;
         worker[i]->vpe.run([&vpemem, &vpegate, SUBMEM_SIZE] {

@@ -149,6 +149,15 @@ public:
     void delegate_mounts();
 
     /**
+     * Delegates the given object capability to this VPE.
+     *
+     * @param sel the selector
+     */
+    void delegate_obj(capsel_t sel) {
+        delegate(CapRngDesc(CapRngDesc::OBJ, sel));
+    }
+
+    /**
      * Delegates the given range of capabilities to this VPE. They are put at the same selectors.
      *
      * @param crd the capabilities of your to VPE to delegate to this VPE

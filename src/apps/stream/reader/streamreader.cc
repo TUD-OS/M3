@@ -70,7 +70,7 @@ int main() {
             nextlog2<256>::val, RecvBuf::NO_HEADER);
     RecvGate rgate = RecvGate::create(&rcvbuf);
     SendGate sgate = SendGate::create(SendGate::UNLIMITED, &rgate);
-    qtest.delegate(CapRngDesc(CapRngDesc::OBJ, sgate.sel()));
+    qtest.delegate_obj(sgate.sel());
     StreamReader<int> str(rgate);
     while(1) {
         int val = str.read();

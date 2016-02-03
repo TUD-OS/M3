@@ -180,9 +180,9 @@ void VFS::delegate(VPE &vpe, const void *buffer, size_t size) {
                 capsel_t sess, gate;
                 um >> sess >> gate;
                 if(vpe.is_cap_free(sess))
-                    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, sess, 1));
+                    vpe.delegate_obj(sess);
                 if(vpe.is_cap_free(gate))
-                    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, gate, 1));
+                    vpe.delegate_obj(gate);
                 break;
 
             case 'P':
