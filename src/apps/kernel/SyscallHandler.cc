@@ -724,7 +724,7 @@ void SyscallHandler::init(RecvGate &gate,GateIStream &is) {
     void *addr;
     is >> addr;
     vpe->activate_sysc_ep(addr);
-    LOG_SYS(vpe, "syscall::init(" << addr << ")");
+    LOG_SYS(vpe, "syscall::init", "(" << addr << ")");
 
     // switch to this endpoint to ensure that we don't have old values programmed in our DMAUnit.
     // actually, this is currently only necessary for exec, i.e. where the address changes for
