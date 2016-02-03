@@ -50,11 +50,11 @@ void KDTU::unset_vpeid(int core, int vpe) {
 }
 
 void KDTU::wakeup(KVPE &vpe) {
-    do_ext_cmd(vpe, static_cast<int>(DTU::ExtCmdOpCode::WAKEUP_CORE));
+    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::WAKEUP_CORE));
 }
 
 void KDTU::injectIRQ(KVPE &vpe) {
-    do_ext_cmd(vpe, static_cast<int>(DTU::ExtCmdOpCode::INJECT_IRQ));
+    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 2));
 }
 
 void KDTU::deprivilege(int core) {
