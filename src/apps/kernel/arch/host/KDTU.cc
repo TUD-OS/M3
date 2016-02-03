@@ -37,6 +37,10 @@ void KDTU::wakeup(KVPE &) {
     // nothing to do
 }
 
+void KDTU::injectIRQ(KVPE &) {
+    // not supported
+}
+
 void KDTU::deprivilege(int) {
     // not supported
 }

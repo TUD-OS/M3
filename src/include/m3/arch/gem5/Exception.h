@@ -209,6 +209,9 @@ private:
     static void loadGDT(DescTable *gdt) {
         asm volatile ("lgdt (%0)" : : "r"(gdt));
     }
+    static void enableIRQs() {
+        asm volatile ("sti");
+    }
 
     static void setDesc(Desc *d,uintptr_t address,size_t limit,uint8_t granu,uint8_t type,uint8_t dpl);
     static void setDesc64(Desc *d,uintptr_t address,size_t limit,uint8_t granu,uint8_t type,uint8_t dpl);

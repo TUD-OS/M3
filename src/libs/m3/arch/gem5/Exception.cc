@@ -36,6 +36,8 @@ EXTERN_C void isr13();
 EXTERN_C void isr14();
 EXTERN_C void isr15();
 EXTERN_C void isr16();
+// for the DTU
+EXTERN_C void isr64();
 // the handler for a other interrupts
 EXTERN_C void isrNull();
 
@@ -70,6 +72,8 @@ void Exceptions::handler(State *state) {
     Serial::get() << "  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
         Serial::get() << exNames[state->intrptNo];
+    else if(state->intrptNo == 64)
+        Serial::get() << "DTU (" << state->intrptNo << ")";
     else
         Serial::get() << "<unknown> (" << state->intrptNo << ")";
     Serial::get() << "\n";
@@ -136,11 +140,16 @@ void Exceptions::init() {
     setIDT(16,isr16,Desc::DPL_KERNEL);
 
     // all other interrupts
-    for(size_t i = 17; i < 256; i++)
-        setIDT(i,isrNull,Desc::DPL_KERNEL);
+    for(size_t i = 17; i < 256; i++) {
+        if(i == 64)
+            setIDT(i,isr64,Desc::DPL_KERNEL);
+        else
+            setIDT(i,isrNull,Desc::DPL_KERNEL);
+    }
 
     // now we can use our idt
     loadIDT(&tbl);
+    enableIRQs();
 }
 
 void Exceptions::setDesc(Desc *d,uintptr_t address,size_t limit,uint8_t granu,uint8_t type,uint8_t dpl) {

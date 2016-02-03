@@ -92,6 +92,7 @@ private:
     enum class ExtCmdOpCode {
         WAKEUP_CORE         = 0,
         INV_PAGE            = 1,
+        INJECT_IRQ          = 2,
     };
 
 public:

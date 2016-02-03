@@ -36,6 +36,10 @@ void KDTU::unset_vpeid(int, int) {
 }
 
 void KDTU::wakeup(KVPE &vpe) {
+    injectIRQ(vpe);
+}
+
+void KDTU::injectIRQ(KVPE &vpe) {
     // inject an IRQ
     uint64_t val = 1;
     Sync::memory_barrier();

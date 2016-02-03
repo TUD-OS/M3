@@ -30,6 +30,12 @@ void KDTU::do_set_vpeid(size_t core, int oldVPE, int newVPE) {
         DTU::dtu_reg_addr(DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
 
+void KDTU::do_ext_cmd(KVPE &vpe, DTU::reg_t cmd) {
+    alignas(DTU_PKG_SIZE) DTU::reg_t reg = cmd;
+    Sync::compiler_barrier();
+    write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
+}
+
 void KDTU::init() {
     do_set_vpeid(KERNEL_CORE, KVPE::INVALID_ID, 0);
 }
@@ -44,10 +50,11 @@ void KDTU::unset_vpeid(int core, int vpe) {
 }
 
 void KDTU::wakeup(KVPE &vpe) {
-    // wakeup core
-    alignas(DTU_PKG_SIZE) DTU::reg_t cmd = static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::WAKEUP_CORE);
-    Sync::compiler_barrier();
-    write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &cmd, sizeof(cmd));
+    do_ext_cmd(vpe, static_cast<int>(DTU::ExtCmdOpCode::WAKEUP_CORE));
+}
+
+void KDTU::injectIRQ(KVPE &vpe) {
+    do_ext_cmd(vpe, static_cast<int>(DTU::ExtCmdOpCode::INJECT_IRQ));
 }
 
 void KDTU::deprivilege(int core) {
@@ -119,10 +126,7 @@ void KDTU::unmap_page(KVPE &vpe, uintptr_t virt) {
     // TODO remove pagetables on demand
 
     // invalidate TLB entry
-    alignas(DTU_PKG_SIZE) DTU::reg_t reg = static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_PAGE);
-    reg |= virt << 2;
-    Sync::compiler_barrier();
-    write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
+    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_PAGE) | (virt << 2));
 }
 
 void KDTU::invalidate_ep(KVPE &vpe, int ep) {
