@@ -33,8 +33,7 @@ public:
     }
     ~Region() {
         // revoke mappings
-        CapRngDesc crd(CapRngDesc::MAP, addr() >> PAGE_BITS, size() >> PAGE_BITS);
-        Syscalls::get().revoke(crd);
+        CapRngDesc(CapRngDesc::MAP, addr() >> PAGE_BITS, size() >> PAGE_BITS).revoke();
     }
 
     bool matches(uintptr_t k) override {
