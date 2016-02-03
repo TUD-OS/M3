@@ -17,6 +17,7 @@
 #pragma once
 
 #include <m3/cap/ObjCap.h>
+#include <m3/cap/VPE.h>
 #include <m3/GateStream.h>
 #include <m3/CapRngDesc.h>
 #include <m3/Errors.h>
@@ -40,7 +41,20 @@ public:
      * @param args the arguments
      */
     explicit Session(const String &name, const GateOStream &args = StaticGateOStream<1>())
-        : ObjCap(SESSION) {
+        : ObjCap(SESSION), _vpe(VPE::self()) {
+        connect(name, args);
+    }
+
+    /**
+     * Creates a session for <vpe> at service <name>, sending him <args> as arguments
+     * to the OPEN event.
+     *
+     * @param vpe the VPE to create the session for
+     * @param name the service name
+     * @param args the arguments
+     */
+    explicit Session(VPE &vpe, const String &name, const GateOStream &args = StaticGateOStream<1>())
+        : ObjCap(SESSION), _vpe(vpe) {
         connect(name, args);
     }
 
@@ -49,7 +63,7 @@ public:
      *
      * @param sel the capability selector of the session
      */
-    explicit Session(capsel_t sel) : ObjCap(SESSION, sel) {
+    explicit Session(capsel_t sel) : ObjCap(SESSION, sel), _vpe(VPE::self()) {
     }
 
     /**
@@ -101,6 +115,8 @@ public:
 
 private:
     void connect(const String &name, const GateOStream &args);
+
+    VPE &_vpe;
 };
 
 }

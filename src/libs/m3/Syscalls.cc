@@ -45,10 +45,12 @@ Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name
     return finish(send_receive_vmsg(_gate, CREATESRV, gate, srv, name));
 }
 
-Errors::Code Syscalls::createsess(capsel_t cap, const String &name, const GateOStream &args) {
-    LOG(SYSC, "createsess(cap=" << cap << ", name=" << name << ", argc=" << args.total() << ")");
-    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, size_t>(), name.length(), args.total()));
-    msg << CREATESESS << cap << name;
+Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args) {
+    LOG(SYSC, "createsess(vpe=" << vpe << ", cap=" << cap << ", name=" << name
+        << ", argc=" << args.total() << ")");
+    AutoGateOStream msg(vostreamsize(
+        ostreamsize<Operation, capsel_t, capsel_t, size_t>(), name.length(), args.total()));
+    msg << CREATESESS << vpe << cap << name;
     msg.put(args);
     return finish(send_receive_msg(_gate, msg.bytes(), msg.total()));
 }
@@ -66,7 +68,8 @@ Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, cap
 }
 
 Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core) {
-    LOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name << ", core=" << core << ")");
+    LOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
+        << ", core=" << core << ")");
     return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core));
 }
 
@@ -88,7 +91,8 @@ Errors::Code Syscalls::detachrb(capsel_t vpe, size_t ep) {
 }
 
 Errors::Code Syscalls::exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain) {
-    LOG(SYSC, "exchange(vpe=" << vpe << ", own=" << own << ", other=" << other << ", obtain=" << obtain << ")");
+    LOG(SYSC, "exchange(vpe=" << vpe << ", own=" << own << ", other=" << other
+        << ", obtain=" << obtain << ")");
     return finish(send_receive_vmsg(_gate, EXCHANGE, vpe, own, other, obtain));
 }
 
@@ -101,34 +105,35 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode)
     return Errors::last;
 }
 
-Errors::Code Syscalls::delegate(capsel_t sess, const CapRngDesc &crd) {
-    LOG(SYSC, "delegate(sess=" << sess << ", crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, DELEGATE, sess, crd));
+Errors::Code Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd) {
+    LOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
+    return finish(send_receive_vmsg(_gate, DELEGATE, vpe, sess, crd));
 }
 
-GateIStream Syscalls::delegate(capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
-    LOG(SYSC, "delegate(sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
+GateIStream Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
+    LOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
     AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, CapRngDesc>(), args.total()));
-    msg << DELEGATE << sess << crd;
+    msg << DELEGATE << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
 }
 
-Errors::Code Syscalls::obtain(capsel_t sess, const CapRngDesc &crd) {
-    LOG(SYSC, "obtain(sess=" << sess << ", crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, OBTAIN, sess, crd));
+Errors::Code Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd) {
+    LOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
+    return finish(send_receive_vmsg(_gate, OBTAIN, vpe, sess, crd));
 }
 
-GateIStream Syscalls::obtain(capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
-    LOG(SYSC, "obtain(sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
+GateIStream Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
+    LOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
     AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, CapRngDesc>(), args.total()));
-    msg << OBTAIN << sess << crd;
+    msg << OBTAIN << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
 }
 
 Errors::Code Syscalls::reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms) {
-    LOG(SYSC, "reqmem(cap=" << cap << ", addr=" << addr << ", size=" << size << ", perms=" << perms << ")");
+    LOG(SYSC, "reqmem(cap=" << cap << ", addr=" << addr << ", size=" << size
+        << ", perms=" << perms << ")");
     return finish(send_receive_vmsg(_gate, REQMEM, cap, addr, size, perms));
 }
 

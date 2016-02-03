@@ -148,12 +148,17 @@ void SyscallHandler::pagefault(RecvGate &gate, GateIStream &is) {
 void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_createsess();
     KVPE *vpe = gate.session<KVPE>();
-    capsel_t cap;
+    capsel_t tvpe, cap;
     String name;
-    is >> cap >> name;
-    LOG_SYS(vpe, ": syscall::createsess", "(name=" << name << ", cap=" << cap << ")");
+    is >> tvpe >> cap >> name;
+    LOG_SYS(vpe, ": syscall::createsess",
+        "(vpe=" << tvpe << ", name=" << name << ", cap=" << cap << ")");
 
-    if(!vpe->objcaps().unused(cap))
+    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VPE));
+    if(tvpeobj == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
+
+    if(!tvpeobj->vpe->objcaps().unused(cap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap");
 
     Service *s = ServiceList::get().find(name);
@@ -162,7 +167,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
 
     ReplyInfo rinfo(is.message());
     Reference<Service> rsrv(s);
-    vpe->service_gate().subscribe([this, rsrv, cap, vpe, rinfo]
+    vpe->service_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
             (RecvGate &sgate, Subscriber<RecvGate&> *sub) {
         EVENT_TRACER_Syscall_createsess();
         GateIStream reply(sgate);
@@ -182,9 +187,9 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
             Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
             assert(srvcap != nullptr);
             SessionCapability *sesscap = new SessionCapability(
-                &vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), sess);
-            vpe->objcaps().inherit(srvcap, sesscap);
-            vpe->objcaps().set(cap, sesscap);
+                &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), sess);
+            tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
+            tvpeobj->vpe->objcaps().set(cap, sesscap);
 
             auto reply = create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
@@ -537,15 +542,20 @@ Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c
 
 void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain) {
     KVPE *vpe = gate.session<KVPE>();
-    capsel_t sesscap;
+    capsel_t tvpe, sesscap;
     CapRngDesc caps;
-    is >> sesscap >> caps;
+    is >> tvpe >> sesscap >> caps;
     // TODO compiler-bug? if I try to print caps, it hangs on T2!? doing it here manually works
     LOG_SYS(vpe, (obtain ? "syscall::obtain" : "syscall::delegate"),
-            "(sess=" << sesscap << ", caps=" << caps.start() << ":" << caps.count() << ")");
+            "(vpe=" << tvpe << ", sess=" << sesscap << ", caps="
+            << caps.start() << ":" << caps.count() << ")");
+
+    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VPE));
+    if(tvpeobj == nullptr)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
 
     SessionCapability *sess = static_cast<SessionCapability*>(
-        vpe->objcaps().get(sesscap, Capability::SESSION));
+        tvpeobj->vpe->objcaps().get(sesscap, Capability::SESSION));
     if(sess == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid session-cap");
     if(sess->obj->srv->closing)
@@ -555,7 +565,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
     // only pass in the service-reference. we can't be sure that the session will still exist
     // when we receive the reply
     Reference<Service> rsrv(sess->obj->srv);
-    vpe->service_gate().subscribe([this, rsrv, caps, vpe, obtain, rinfo]
+    vpe->service_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
             (RecvGate &sgate, Subscriber<RecvGate&> *sub) {
         EVENT_TRACER_Syscall_delob_done();
         CapRngDesc srvcaps;
@@ -564,7 +574,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
         Errors::Code res;
         reply >> res;
         if(res != Errors::NO_ERROR) {
-            LOG(KSYSC, vpe->id() << ": Server denied cap-transfer (" << res << ")");
+            LOG(KSYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
 
             auto reply = create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
@@ -572,7 +582,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
         }
 
         reply >> srvcaps;
-        if((res = do_exchange(vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != Errors::NO_ERROR) {
+        if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != Errors::NO_ERROR) {
             auto reply = create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             goto error;

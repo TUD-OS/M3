@@ -77,7 +77,7 @@ private:
 public:
     Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
-    Errors::Code createsess(capsel_t cap, const String &name, const GateOStream &args);
+    Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
@@ -87,10 +87,10 @@ public:
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
     Errors::Code vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode);
-    Errors::Code delegate(capsel_t sess, const CapRngDesc &crd);
-    GateIStream delegate(capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
-    Errors::Code obtain(capsel_t sess, const CapRngDesc &crd);
-    GateIStream obtain(capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
+    Errors::Code delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);
+    GateIStream delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
+    Errors::Code obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);
+    GateIStream obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
     Errors::Code reqmem(capsel_t cap, size_t size, int perms) {
         return reqmemat(cap, -1, size, perms);
     }
