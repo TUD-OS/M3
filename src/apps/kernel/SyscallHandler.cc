@@ -292,7 +292,10 @@ void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
     if(first >= total || first + pages <= first || first + pages > total)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Region of memory capability is invalid");
 
-    uintptr_t phys = mcapobj->addr() + PAGE_SIZE * first;
+    // the PE-id is stored in the upper bits. 0x80 is the first one.
+    uintptr_t phys = static_cast<uintptr_t>(0x80 + mcapobj->obj->core) << 52;
+    phys |= (mcapobj->addr() + PAGE_SIZE * first);
+
     for(capsel_t i = 0; i < pages; ++i) {
         MapCapability *mapcap = new MapCapability(&tcapobj->vpe->mapcaps(), dst + i, phys, perms);
         tcapobj->vpe->mapcaps().inherit(mcapobj, mapcap);
