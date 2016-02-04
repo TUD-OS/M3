@@ -32,7 +32,11 @@ namespace m3 {
 class Serial : public IStream, public OStream {
     static const size_t OUTBUF_SIZE = 160;
     static const size_t INBUF_SIZE  = 64;
+#if defined(__t2__)
     static const size_t SUFFIX_LEN  = sizeof("\e[0m");
+#else
+    static const size_t SUFFIX_LEN  = sizeof("\e[0m") - 1;
+#endif
 
 public:
     /**
