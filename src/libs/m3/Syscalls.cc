@@ -112,7 +112,8 @@ Errors::Code Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &c
 
 GateIStream Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
     LOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
-    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, CapRngDesc>(), args.total()));
+    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, capsel_t, CapRngDesc>(),
+        args.total()));
     msg << DELEGATE << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
@@ -125,7 +126,8 @@ Errors::Code Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd
 
 GateIStream Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
     LOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
-    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, CapRngDesc>(), args.total()));
+    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, capsel_t, CapRngDesc>(),
+        args.total()));
     msg << OBTAIN << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
