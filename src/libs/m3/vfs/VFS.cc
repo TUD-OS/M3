@@ -28,7 +28,7 @@ VFS::Init VFS::Init::obj INIT_PRIORITY(109);
 
 VFS::Init::Init() {
     // we can't do that earlier because it has some dependencies
-    if(VPE::self()._mounts)
+    if(VPE::self()._mountlen > 0)
         unserialize(VPE::self()._mounts, VPE::self()._mountlen);
 }
 
