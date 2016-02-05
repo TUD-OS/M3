@@ -104,15 +104,12 @@ Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability 
 
     if(newcapobj) {
         // now do the compare-exchange
-        if(!seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * DTU::EPS_RCNT * sizeof(word_t)))
-            return Errors::INV_ARGS;
+        return seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * DTU::EPS_RCNT * sizeof(word_t));
     }
-    else {
-        // if we should just invalidate it, we don't have to do a cmpxchg
-        seps_gate().write_sync(regs + DTU::EPS_RCNT,
-            sizeof(regs) / 2, epid * DTU::EPS_RCNT * sizeof(word_t));
-    }
-    return Errors::NO_ERROR;
+
+    // if we should just invalidate it, we don't have to do a cmpxchg
+    return seps_gate().write_sync(regs + DTU::EPS_RCNT,
+        sizeof(regs) / 2, epid * DTU::EPS_RCNT * sizeof(word_t));
 }
 
 KVPE::~KVPE() {
