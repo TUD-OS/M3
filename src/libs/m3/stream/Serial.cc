@@ -62,7 +62,11 @@ void Serial::write(char c) {
         return;
 
     _outbuf[_outpos++] = c;
-    if(_outpos >= OUTBUF_SIZE - SUFFIX_LEN || c == '\n')
+    if(_outpos == OUTBUF_SIZE - SUFFIX_LEN - 1) {
+        _outbuf[_outpos++] = '\n';
+        c = '\n';
+    }
+    if(c == '\n')
         flush();
 }
 
