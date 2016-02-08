@@ -40,6 +40,10 @@ public:
         COUNT
     };
 
+    enum Flags {
+        BYTE_OFFSET = 1,
+    };
+
     explicit M3FS(const String &service)
         : Session(service), FileSystem(), _gate(SendGate::bind(obtain(1).start())) {
     }
@@ -66,7 +70,7 @@ public:
 
     template<size_t N>
     bool get_locs(int fd, size_t offset, size_t count, size_t blocks, CapRngDesc &crd, LocList<N> &locs) {
-        auto args = create_vmsg(fd, offset, count, blocks);
+        auto args = create_vmsg(fd, offset, count, blocks, 0);
         bool extended = false;
         GateIStream resp = obtain(count, crd, args);
         if(Errors::last == Errors::NO_ERROR)

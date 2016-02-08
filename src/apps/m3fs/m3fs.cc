@@ -174,11 +174,11 @@ public:
         }
 
         EVENT_TRACER_FS_getlocs();
-        int fd;
+        int fd, flags;
         size_t offset, count, blocks;
-        args >> fd >> offset >> count >> blocks;
+        args >> fd >> offset >> count >> blocks >> flags;
         LOG(FS, "fs::get_locs(fd=" << fd << ", offset=" << offset << ", count=" << count
-            << ", blocks=" << blocks << ")");
+            << ", blocks=" << blocks << ", flags=" << flags << ")");
 
         M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of || count == 0) {
@@ -194,6 +194,13 @@ public:
         // don't try to extend the file, if we're not writing
         if(~of->flags & FILE_W)
             blocks = 0;
+
+        // determine extent from byte offset
+        if(flags & M3FS::BYTE_OFFSET) {
+            size_t extent, extoff;
+            INodes::seek(_handle, of->ino, offset, SEEK_SET, extent, extoff);
+            offset = extent;
+        }
 
         CapRngDesc crd;
         bool extended = false;
