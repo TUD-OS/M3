@@ -13,6 +13,8 @@ env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
 env.M3Strip('$FSDIR/default/bin/ls', '$BINARYDIR/ls')
 env.M3Strip('$FSDIR/default/bin/noop', '$BINARYDIR/noop')
 env.M3Strip('$FSDIR/default/bin/parchksum', '$BINARYDIR/parchksum')
+if env['ARCH'] == 'gem5':
+    env.M3Strip('$FSDIR/default/bin/pgchild', '$BINARYDIR/pgchild')
 env.M3Strip('$FSDIR/default/bin/pipe', '$BINARYDIR/pipe')
 env.M3Strip('$FSDIR/default/bin/rdwr', '$BINARYDIR/rdwr')
 env.M3Strip('$FSDIR/default/bin/readelf', '$BINARYDIR/readelf')

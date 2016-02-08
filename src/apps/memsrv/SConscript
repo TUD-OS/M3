@@ -1,2 +1,0 @@
-Import('env')
-env.M3Program(env, 'memsrv', env.Glob('*.cc'))

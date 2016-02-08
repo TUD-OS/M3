@@ -1,2 +1,0 @@
-Import('env')
-env.M3Program(env, 'memtest', env.Glob('*.cc'))

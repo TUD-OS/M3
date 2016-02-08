@@ -23,11 +23,11 @@
 
 namespace m3 {
 
-class Memory : public Session {
+class Pager : public Session {
 public:
     enum Operation {
         PAGEFAULT,
-        MAP,
+        MAP_ANON,
         UNMAP,
         COUNT,
     };
@@ -38,7 +38,7 @@ public:
         EXEC    = MemGate::X,
     };
 
-    explicit Memory(const String &service, const VPE &vpe)
+    explicit Pager(const String &service, const VPE &vpe)
         : Session(service), _gate(SendGate::bind(obtain(1).start())) {
         delegate_obj(vpe.sel());
     }
@@ -47,7 +47,10 @@ public:
         return _gate;
     }
 
-    Errors::Code map(uintptr_t *virt, size_t len, int prot, int flags);
+    Errors::Code pagefault(uintptr_t addr, uint access);
+    Errors::Code map_anon(uintptr_t *virt, size_t len, int prot, int flags);
+    Errors::Code map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
+        int fd, size_t offset);
     Errors::Code unmap(uintptr_t virt);
 
 private:

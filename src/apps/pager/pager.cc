@@ -17,97 +17,55 @@
 #include <m3/col/Treap.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/service/Memory.h>
+#include <m3/service/Pager.h>
+#include <m3/vfs/LocList.h>
 #include <m3/GateStream.h>
 #include <m3/WorkLoop.h>
 #include <m3/Log.h>
+
+#include "DataSpace.h"
 
 using namespace m3;
 
 static constexpr size_t MAX_VIRT_ADDR = (1UL << (DTU::LEVEL_CNT * DTU::LEVEL_BITS + PAGE_BITS)) - 1;
 
-class Region : public TreapNode<uintptr_t> {
-public:
-    explicit Region(uintptr_t addr, size_t size, uint _flags)
-        : TreapNode<uintptr_t>(addr), flags(_flags), _size(size) {
-    }
-    ~Region() {
-        // revoke mappings
-        CapRngDesc(CapRngDesc::MAP, addr() >> PAGE_BITS, size() >> PAGE_BITS).revoke();
-    }
-
-    bool matches(uintptr_t k) override {
-        return k >= addr() && k < addr() + _size;
-    }
-
-    uintptr_t addr() const {
-        return key();
-    }
-    size_t size() const {
-        return _size;
-    }
-
-    void print(OStream &os) const override {
-        os << "Region[addr=" << fmt(addr(), "p") << ", size=" << fmt(size(), "#x")
-           << ", flags=" << flags << "]";
-    }
-
-    uint flags;
-private:
-    size_t _size;
-};
-
 class MemSessionData : public RequestSessionData {
 public:
     explicit MemSessionData()
-        : RequestSessionData(), id(nextId++), vpe(ObjCap::INVALID), regs(), mem(), nextPage(), pages() {
+        : RequestSessionData(), id(nextId++), vpe(ObjCap::INVALID), dstree() {
     }
     ~MemSessionData() {
-        Region *reg;
-        while((reg = static_cast<Region*>(regs.remove_root())))
-            delete reg;
-        delete mem;
+        DataSpace *ds;
+        while((ds = static_cast<DataSpace*>(dstree.remove_root())))
+            delete ds;
     }
 
-    const Region *find(uintptr_t virt) const {
-        return regs.find(virt);
+    const DataSpace *find(uintptr_t virt) const {
+        return dstree.find(virt);
     }
 
-    void init(capsel_t _vpe) {
+    capsel_t init(capsel_t _vpe) {
         vpe = ObjCap(ObjCap::VIRTPE, _vpe);
-        // TODO come up with something real ;)
-        nextPage = 0;
-        pages = 4;
-        mem = new MemGate(MemGate::create_global(PAGE_SIZE * pages, MemGate::RWX));
-    }
-
-    Errors::Code allocPage(int *pageNo) {
-        if(nextPage >= pages)
-            return Errors::NO_SPACE;
-        *pageNo = nextPage++;
-        return Errors::NO_ERROR;
+        return vpe.sel();
     }
 
     int id;
     ObjCap vpe;
-    Treap<Region> regs;
-    MemGate *mem;
-    int nextPage;
-    int pages;
+    Treap<DataSpace> dstree;
     static int nextId;
 };
 
 int MemSessionData::nextId = 1;
 
 class MemReqHandler;
-typedef RequestHandler<MemReqHandler, Memory::Operation, Memory::COUNT, MemSessionData> base_class_t;
+typedef RequestHandler<MemReqHandler, Pager::Operation, Pager::COUNT, MemSessionData> base_class_t;
 
 class MemReqHandler : public base_class_t {
 public:
     explicit MemReqHandler() : base_class_t() {
-        add_operation(Memory::PAGEFAULT, &MemReqHandler::pf);
-        add_operation(Memory::MAP, &MemReqHandler::map);
-        add_operation(Memory::UNMAP, &MemReqHandler::unmap);
+        add_operation(Pager::PAGEFAULT, &MemReqHandler::pf);
+        add_operation(Pager::MAP_ANON, &MemReqHandler::map_anon);
+        add_operation(Pager::UNMAP, &MemReqHandler::unmap);
     }
 
     virtual size_t credits() override {
@@ -115,13 +73,18 @@ public:
     }
 
     virtual void handle_delegate(MemSessionData *sess, GateIStream &args, uint capcount) override {
-        if(capcount != 1 || sess->vpe.sel() != ObjCap::INVALID) {
+        if(capcount != 1) {
             reply_vmsg_on(args, Errors::INV_ARGS);
             return;
         }
 
-        sess->init(VPE::self().alloc_cap());
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->vpe.sel()));
+        capsel_t sel;
+        uintptr_t virt = 0;
+        if(sess->vpe.sel() == ObjCap::INVALID)
+            sel = sess->init(VPE::self().alloc_cap());
+        else
+            sel = map_ds(sess, args, &virt);
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel), virt);
     }
 
     void pf(RecvGate &gate, GateIStream &is) {
@@ -141,40 +104,44 @@ public:
             return;
         }
 
-        Region *reg = sess->regs.find(virt);
-        if(!reg) {
-            LOG(MEM, "No region attached at " << fmt(virt, "p"));
+        DataSpace *ds = sess->dstree.find(virt);
+        if(!ds) {
+            LOG(MEM, "No dataspace attached at " << fmt(virt, "p"));
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
 
         int first;
-        Errors::Code res = sess->allocPage(&first);
+        size_t pages;
+        capsel_t mem;
+        Errors::Code res = ds->get_page(&virt, &first, &pages, &mem);
         if(res != Errors::NO_ERROR) {
-            LOG(MEM, "Not enough memory");
+            LOG(MEM, "Getting page failed: " << Errors::to_string(res));
             reply_vmsg(gate, res);
             return;
         }
 
-        res = Syscalls::get().createmap(sess->vpe.sel(), sess->mem->sel(), first,
-            1, virt >> PAGE_BITS, MemGate::RW);
-        if(res != Errors::NO_ERROR) {
-            LOG(MEM, "Unable to create PTEs: " << Errors::to_string(res));
-            reply_vmsg(gate, res);
-            return;
+        if(pages > 0) {
+            res = Syscalls::get().createmap(sess->vpe.sel(), mem, first,
+                pages, virt >> PAGE_BITS, ds->flags);
+            if(res != Errors::NO_ERROR) {
+                LOG(MEM, "Unable to create PTEs: " << Errors::to_string(res));
+                reply_vmsg(gate, res);
+                return;
+            }
         }
 
         reply_vmsg(gate, Errors::NO_ERROR);
     }
 
-    void map(RecvGate &gate, GateIStream &is) {
+    void map_anon(RecvGate &gate, GateIStream &is) {
         MemSessionData *sess = gate.session<MemSessionData>();
         uintptr_t virt;
         size_t len;
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        LOG(MEM, sess->id << " : mem::map(virt=" << fmt(virt, "p")
+        LOG(MEM, sess->id << " : mem::map_anon(virt=" << fmt(virt, "p")
             << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
 
@@ -193,10 +160,29 @@ public:
         }
 
         // TODO determine/validate virt+len
-        Region *reg = new Region(virt, len, prot | flags);
-        sess->regs.insert(reg);
+        sess->dstree.insert(new AnonDataSpace(virt, len, prot | flags));
 
         reply_vmsg(gate, Errors::NO_ERROR, virt);
+    }
+
+    capsel_t map_ds(MemSessionData *sess, GateIStream &args, uintptr_t *virt) {
+        size_t len, offset;
+        int prot, flags, id;
+        args >> *virt >> len >> prot >> flags >> id >> offset;
+
+        LOG(MEM, sess->id << " : mem::map_ds(virt=" << fmt(*virt, "p")
+            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+            << ", flags=" << fmt(flags, "#x") << ", id=" << id
+            << ", offset=" << fmt(offset, "#x") << ")");
+
+        *virt = Math::round_dn(*virt, PAGE_SIZE);
+        len = Math::round_up(len, PAGE_SIZE);
+
+        // TODO determine/validate virt+len
+        ExternalDataSpace *ds = new ExternalDataSpace(*virt, len, prot | flags, id, offset);
+        sess->dstree.insert(ds);
+
+        return ds->sess.sel();
     }
 
     void unmap(RecvGate &gate, GateIStream &is) {
@@ -207,21 +193,21 @@ public:
         LOG(MEM, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
 
         Errors::Code res = Errors::INV_ARGS;
-        Region *reg = sess->regs.find(virt);
-        if(reg) {
-            sess->regs.remove(reg);
-            delete reg;
+        DataSpace *ds = sess->dstree.find(virt);
+        if(ds) {
+            sess->dstree.remove(ds);
+            delete ds;
             res = Errors::NO_ERROR;
         }
         else
-            LOG(MEM, "No region attached at " << fmt(virt, "p"));
+            LOG(MEM, "No dataspace attached at " << fmt(virt, "p"));
 
         reply_vmsg(gate, res);
     }
 };
 
 int main() {
-    Server<MemReqHandler> srv("memsrv", new MemReqHandler());
+    Server<MemReqHandler> srv("pager", new MemReqHandler());
     WorkLoop::get().run();
     return 0;
 }

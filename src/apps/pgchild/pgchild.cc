@@ -14,26 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/service/Memory.h>
-#include <m3/GateStream.h>
+#include <m3/Common.h>
+#include <m3/stream/Serial.h>
 
-namespace m3 {
+using namespace m3;
 
-Errors::Code Memory::map(uintptr_t *virt, size_t len, int prot, int flags) {
-    GateIStream reply = send_receive_vmsg(_gate, MAP, *virt, len, prot, flags);
-    Errors::Code res;
-    reply >> res;
-    if(res != Errors::NO_ERROR)
-        return res;
-    reply >> *virt;
-    return Errors::NO_ERROR;
-}
-
-Errors::Code Memory::unmap(uintptr_t virt) {
-    GateIStream reply = send_receive_vmsg(_gate, UNMAP, virt);
-    Errors::Code res;
-    reply >> res;
-    return res;
-}
-
+int main() {
+    const char *str = reinterpret_cast<const char*>(0x104000);
+    Serial::get() << "Printing string at " << fmt((void*)str, "p") << ":\n";
+    Serial::get() << str;
+    Serial::get() << "Done\n";
+    return 0;
 }
