@@ -106,6 +106,14 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
             extended = true;
         }
 
+        size_t left = 0;
+        // extend inode size, if we're appending
+        if(i == inode->extents - 1) {
+            left = inode->size % h.sb().blocksize;
+            if(blocks > 0 && left)
+                inode->size += h.sb().blocksize - left;
+        }
+
         // create memory capability for extent
         size_t bytes = ch->length * h.sb().blocksize;
         Errors::Code res = Syscalls::get().derivemem(
@@ -116,11 +124,8 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         }
 
         // stop at file-end
-        if(blocks == 0 && i == inode->extents - 1) {
-            size_t left = inode->size % h.sb().blocksize;
-            if(left)
-                bytes -= h.sb().blocksize - left;
-        }
+        if(blocks == 0 && left)
+            bytes -= h.sb().blocksize - left;
 
         // append extent to location list
         _locs.append(bytes);
@@ -272,7 +277,9 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t off, int whence, size_t &ex
         // TODO support off != 0
         assert(off == 0);
         extent = inode->extents;
-        extoff = 0;
+        extoff = inode->size % h.sb().blocksize;
+        if(extoff)
+            extent--;
         return inode->size;
     }
 
@@ -335,7 +342,8 @@ void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff) {
         // do we need to reduce the size of <extent>?
         if(extoff < curlen) {
             size_t diff = curlen - extoff;
-            size_t blocks = diff / h.sb().blocksize;
+            size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, h.sb().blocksize) : diff;
+            size_t blocks = bdiff / h.sb().blocksize;
             if(blocks > 0)
                 h.blocks().free(h, ch->start + ch->length - blocks, blocks);
             inode->size -= diff;

@@ -191,6 +191,9 @@ public:
             assert(ch != nullptr);
             extent = inode->extents - 1;
             off = ch->length * _handle.sb().blocksize;
+            size_t mod;
+            if(((mod = inode->size % _handle.sb().blocksize)) > 0)
+                off -= _handle.sb().blocksize - mod;
         }
 
         // for directories: ensure that we don't have a changed version in the cache
@@ -329,8 +332,10 @@ public:
                 // whatever is bigger
                 if(extent > of->orgextent || (extent == of->orgextent && extoff > of->orgoff))
                     INodes::truncate(_handle, inode, extent, extoff);
-                else
+                else {
                     INodes::truncate(_handle, inode, of->orgextent, of->orgoff);
+                    inode->size = of->orgsize;
+                }
             }
         }
 
