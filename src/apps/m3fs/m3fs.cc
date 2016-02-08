@@ -32,18 +32,77 @@ using namespace m3;
 
 class M3FSRequestHandler;
 
+struct LimitedCapContainer {
+    static constexpr size_t MAX_CAPS    = 32;
+
+    explicit LimitedCapContainer() : pos(), victim() {
+        for(size_t j = 0; j < MAX_CAPS; ++j)
+            caps[j] = ObjCap::INVALID;
+    }
+    ~LimitedCapContainer() {
+        // request all to revoke all caps
+        request(MAX_CAPS);
+    }
+
+    void add(const CapRngDesc &crd) {
+        for(size_t i = 0; i < crd.count(); ++i) {
+            assert(caps[pos] == ObjCap::INVALID);
+            caps[pos] = crd.start() + i;
+            pos = (pos + 1) % MAX_CAPS;
+        }
+    }
+
+    void request(size_t count) {
+        while(count > 0) {
+            capsel_t first = caps[victim];
+            caps[victim] = ObjCap::INVALID;
+            victim = (victim + 1) % MAX_CAPS;
+            count--;
+
+            if(first != ObjCap::INVALID)
+                get_linear(first, count).free_and_revoke();
+        }
+    }
+
+    CapRngDesc get_linear(capsel_t first, size_t &rem) {
+        capsel_t last = first;
+        while(rem > 0 && caps[victim] == last + 1) {
+            caps[victim] = ObjCap::INVALID;
+            victim = (victim + 1) % MAX_CAPS;
+            rem--;
+            last++;
+        }
+        return CapRngDesc(CapRngDesc::OBJ, first, 1 + last - first);
+    }
+
+    size_t pos;
+    size_t victim;
+    capsel_t caps[MAX_CAPS];
+};
+
 class M3FSSessionData : public RequestSessionData {
     static constexpr size_t MAX_FILES   = 16;
 
 public:
+    struct OpenCap : public SListItem {
+        capsel_t sel;
+    };
+
     // TODO reference counting
     struct OpenFile {
+        explicit OpenFile() : ino(), flags(), orgsize(), orgextent(), orgoff(), caps() {
+        }
+        explicit OpenFile(ino_t _ino, int _flags, uint32_t _orgsize, size_t _orgextent, size_t _orgoff)
+            : ino(_ino), flags(_flags), orgsize(_orgsize), orgextent(_orgextent), orgoff(_orgoff),
+              caps() {
+        }
+
         inodeno_t ino;
         int flags;
         uint32_t orgsize;
         size_t orgextent;
         size_t orgoff;
-        CapRngDesc last;
+        LimitedCapContainer caps;
     };
 
     explicit M3FSSessionData() : RequestSessionData(), _files() {
@@ -55,18 +114,14 @@ public:
 
     OpenFile *get(int fd) {
         if(fd >= 0 && fd < static_cast<int>(MAX_FILES))
-            return _files + fd;
+            return _files[fd];
         return nullptr;
     }
     int request_fd(inodeno_t ino, int flags, off_t orgsize, size_t orgextent, size_t orgoff) {
         assert(flags != 0);
         for(size_t i = 0; i < MAX_FILES; ++i) {
-            if(_files[i].flags == 0) {
-                _files[i].ino = ino;
-                _files[i].flags = flags;
-                _files[i].orgsize = orgsize;
-                _files[i].orgextent = orgextent;
-                _files[i].orgoff = orgoff;
+            if(_files[i] == NULL) {
+                _files[i] = new OpenFile(ino, flags, orgsize, orgextent, orgoff);
                 return i;
             }
         }
@@ -74,16 +129,13 @@ public:
     }
     void release_fd(int fd) {
         if(fd >= 0 && fd < static_cast<int>(MAX_FILES)) {
-            _files[fd].flags = 0;
-            if(_files[fd].last.count() > 0) {
-                _files[fd].last.free_and_revoke();
-                _files[fd].last = CapRngDesc();
-            }
+            delete _files[fd];
+            _files[fd] = NULL;
         }
     }
 
 private:
-    OpenFile _files[MAX_FILES];
+    OpenFile *_files[MAX_FILES];
 };
 
 using m3fs_reqh_base_t = RequestHandler<
@@ -136,9 +188,8 @@ public:
         }
         m3::INode *inode = INodes::get(_handle, of->ino);
 
-        // revoke caps we gave out last time
-        if(of->last.count() > 0)
-            of->last.free_and_revoke();
+        // acquire space for the new caps
+        of->caps.request(count);
 
         // don't try to extend the file, if we're not writing
         if(~of->flags & FILE_W)
@@ -156,7 +207,7 @@ public:
         }
 
         reply_vmsg_on(args, Errors::NO_ERROR, crd, *locs, extended);
-        of->last = crd;
+        of->caps.add(crd);
     }
 
     void open(RecvGate &gate, GateIStream &is) {

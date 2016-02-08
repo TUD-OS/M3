@@ -159,10 +159,6 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
 
 ssize_t RegularFile::get_location(Position &pos, bool writing) const {
     if(!pos.valid() || (writing && _locs.get(pos.local) == 0)) {
-        // the fs-service will revoke our memory-caps. thus, we have to tell that to our gate
-        // so that it passes ObjCap::INVALID as the old cap on the next ep-switch.
-        _lastmem.rebind(ObjCap::INVALID);
-        _memcaps.free();
         _locs.clear();
 
         // move forward
