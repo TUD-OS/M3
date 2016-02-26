@@ -39,6 +39,11 @@ void KVPE::init() {
 void KVPE::activate_sysc_ep() {
 }
 
+void KVPE::wakeup() {
+    LOG(VPES, "Waking core " << core() << " up");
+    KDTU::get().wakeup(*this);
+}
+
 void KVPE::start(int, char **argv, int) {
     // when exiting, the program will release one reference
     ref();
@@ -47,9 +52,13 @@ void KVPE::start(int, char **argv, int) {
     init_memory(argv[0]);
 #endif
 
-    KDTU::get().wakeup(*this);
+    // do not send interrupt if the program is already running
+    // this is the case for programs loaded by a simulator for example
+    if (_state != RUNNING) {
+        wakeup();
+        _state = RUNNING;
+    }
 
-    _state = RUNNING;
     LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 

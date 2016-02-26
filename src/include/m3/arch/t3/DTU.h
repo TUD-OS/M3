@@ -155,6 +155,20 @@ public:
         store_to(ptr, msg);
     }
 
+    uint64_t get_ep_config(int ep) {
+        word_t *ptr = get_cmd_addr(ep, LOCAL_CFG_ADDRESS_FIFO_CMD);
+        uint64_t bufsize = (read_from(ptr + 1) & 0xFFFF) * PACKET_SIZE;
+        return ((uint64_t)(bufsize << 48))
+             | ((uint64_t)(0xFFFF & bufsize) << 32)
+             | (0xFFFFFFFF & recvbuf(ep));
+    }
+
+    void set_ep_config(int ep, uint64_t value) {
+        config_local(ep, 0xFFFFFFFF & value,
+                         0xFFFF & (value >> 48),
+                         0xFFFF & (value >> 32));
+    }
+
 private:
     void config_local(int slot, uintptr_t addr, size_t fifo_size, size_t token_size) {
         // both have to be packet-size aligned

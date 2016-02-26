@@ -68,10 +68,11 @@ Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, cap
 }
 
 Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core,
-        capsel_t gate, size_t ep) {
+        capsel_t gate, size_t ep, bool tmuxable) {
     LOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
-        << ", core=" << core << ", pfgate=" << gate << ", pfep=" << ep << ")");
-    return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core, gate, ep));
+        << ", core=" << core << ", pfgate=" << gate << ", pfep=" << ep
+        << ", tmuxable" << tmuxable << ")");
+    return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core, gate, ep, tmuxable));
 }
 
 Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags) {
@@ -152,6 +153,18 @@ USED void Syscalls::exit(int exitcode) {
     EVENT_TRACE_FLUSH();
     send_vmsg(_gate, EXIT, exitcode);
 }
+
+#if defined(__t3__)
+Errors::Code Syscalls::tmuxswitch() {
+    LOG(SYSC, "tmuxswitch()");
+    return finish(send_receive_vmsg(_gate, TMUXSWITCH));
+}
+
+void Syscalls::tmuxresume() {
+    LOG(SYSC, "tmuxresume()");
+    send_vmsg(_gate, TMUXRESUME); // non-blocking
+}
+#endif
 
 #if defined(__host__)
 void Syscalls::init(void *sepregs) {

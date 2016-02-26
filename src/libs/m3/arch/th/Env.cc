@@ -15,6 +15,7 @@
  */
 
 #include <m3/Common.h>
+#include <m3/arch/t3/RCTMux.h>
 #include <m3/util/Math.h>
 #include <m3/Env.h>
 #include <m3/Log.h>
@@ -25,6 +26,12 @@
 
 extern void *_bss_table_start;
 extern void *_bss_table_end;
+
+extern void *_ResetVector_text_start;
+extern void *_ResetVector_text_end;
+extern void *_iram0_text_start;
+extern void *_text_end;
+extern void *_dram0_rodata_start;
 
 EXTERN_C void *_Exception;
 static void *dummy[1];
@@ -61,6 +68,35 @@ static void get_args(Env *e) {
         e->argv = reinterpret_cast<char**>(RT_SPACE_START + size);
     }
 }
+
+static void store_app_layout() {
+    uintptr_t start, end;
+    volatile AppLayout *l = applayout();
+
+    // reset vector
+    start = Math::round_dn((uintptr_t)&_ResetVector_text_start, DTU_PKG_SIZE);
+    end = Math::round_up((uintptr_t)&_ResetVector_text_end, DTU_PKG_SIZE);
+
+    l->reset_start = start;
+    l->reset_size = end - start;
+
+    // text
+    start = Math::round_dn((uintptr_t)&_iram0_text_start, DTU_PKG_SIZE);
+    end = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);
+
+    l->text_start = start;
+    l->text_size = end - start;
+
+    // data
+    start = Math::round_dn((uintptr_t)&_dram0_rodata_start, DTU_PKG_SIZE);
+    end = Math::round_up((uintptr_t)&_bss_table_end, DTU_PKG_SIZE);
+
+    l->data_start = start;
+    l->data_size = end - start; // maintained by heap class
+
+    // stack
+    l->stack_top = (uintptr_t)STACK_TOP;
+}
 #endif
 
 void Env::pre_init() {
@@ -73,6 +109,8 @@ void Env::pre_init() {
     memset(&_bss_table_start, 0, end - start);
 
 #if defined(__t3__)
+    store_app_layout();
+
     // started from simulator?
     if(entry == 0)
         get_args(this);

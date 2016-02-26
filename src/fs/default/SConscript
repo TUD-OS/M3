@@ -31,6 +31,8 @@ env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
 env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
 env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
 env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')
+if env['ARCH'] == 't3':
+    env.M3Strip('$FSDIR/default/bin/rctmux-util-counter', '$BINARYDIR/rctmux-util-counter')
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
 if os.environ.get('M3_FSBLKS') is None:

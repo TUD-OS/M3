@@ -27,7 +27,12 @@
 
 namespace m3 {
 
+class ContextSwitcher;
+
 class KVPE : public RequestSessionData {
+
+    friend class ContextSwitcher;
+
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
         VPEId(int _id, int _core);
@@ -42,6 +47,7 @@ public:
 
     enum State {
         RUNNING,
+        SUSPENDED,
         DEAD
     };
 
@@ -53,8 +59,8 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = nextlog2<512>::val;
 
-    explicit KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
-        capsel_t pfgate = ObjCap::INVALID);
+    explicit KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int ep = -1,
+        capsel_t pfgate = ObjCap::INVALID, bool tmuxable = false);
     KVPE(const KVPE &) = delete;
     KVPE &operator=(const KVPE &) = delete;
     ~KVPE();
@@ -71,6 +77,24 @@ public:
     void exit(int exitcode);
 
     void init();
+
+    void wakeup();
+
+    void suspend() {
+        _state = SUSPENDED;
+    }
+
+    void resume() {
+        _state = RUNNING;
+
+        // notify subscribers
+        for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
+            auto cur = it++;
+            cur->callback(true, &*cur);
+            _resumesubscr.unsubscribe(&*cur);
+        }
+    }
+
     void activate_sysc_ep(void *addr);
     Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
@@ -92,11 +116,20 @@ public:
     AddrSpace *address_space() {
         return _as;
     }
+    bool tmuxable() const {
+        return _tmuxable;
+    }
     void subscribe_exit(const Subscriptions<int>::callback_type &cb) {
         _exitsubscr.subscribe(cb);
     }
     void unsubscribe_exit(Subscriber<int> *sub) {
         _exitsubscr.unsubscribe(sub);
+    }
+    void subscribe_resume(const Subscriptions<bool>::callback_type &cb) {
+        _resumesubscr.subscribe(cb);
+    }
+    void unsubscribe_resume(Subscriber<bool> *sub) {
+        _resumesubscr.unsubscribe(sub);
     }
     const SList<ServName> &requirements() const {
         return _requires;
@@ -146,6 +179,7 @@ private:
     int _pid;
     int _state;
     int _exitcode;
+    bool _tmuxable;
     String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
@@ -155,6 +189,7 @@ private:
     AddrSpace *_as;
     SList<ServName> _requires;
     Subscriptions<int> _exitsubscr;
+    Subscriptions<bool> _resumesubscr;
 };
 
 }

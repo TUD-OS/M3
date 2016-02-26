@@ -76,8 +76,10 @@ public:
      * @param name the VPE name
      * @param core the core type that is required (empty = default core)
      * @param pager the pager (optional)
+     * @param tmuxable whether this VPE can share a core with others
      */
-    explicit VPE(const String &name, const String &core = String(), const char *pager = nullptr);
+    explicit VPE(const String &name, const String &core = String(), const char *pager = nullptr,
+                 bool tmuxable = false);
     ~VPE();
 
     /**
@@ -247,6 +249,7 @@ private:
     Pager *_pager;
     void *_mounts;
     size_t _mountlen;
+    bool _tmuxable;
     static VPE _self;
 };
 

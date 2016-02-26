@@ -77,6 +77,11 @@ public:
     void exit(RecvGate &gate, GateIStream &is);
     void noop(RecvGate &gate, GateIStream &is);
 
+#if defined(__t3__)
+    void tmuxswitch(m3::RecvGate &gate, m3::GateIStream &is);
+    void tmuxresume(m3::RecvGate &gate, m3::GateIStream &is);
+#endif
+
 #if defined(__host__)
     void init(m3::RecvGate &gate, m3::GateIStream &is);
 #endif

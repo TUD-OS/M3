@@ -113,6 +113,10 @@ public:
 
     void revoke_all();
 
+#if defined(__t3__)
+    void activate_msgcaps();
+#endif
+
 private:
     static Errors::Code revoke(Capability *c);
     static Errors::Code revoke_rec(Capability *c, bool revnext);

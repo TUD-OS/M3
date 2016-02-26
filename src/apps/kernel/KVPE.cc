@@ -30,9 +30,10 @@ KVPE::VPEId::~VPEId() {
     KDTU::get().unset_vpeid(core, id);
 }
 
-KVPE::KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
-    : RequestSessionData(), _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
-      _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
+KVPE::KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int ep,
+    capsel_t pfgate, bool tmuxable)
+    : RequestSessionData(), _id(id, coreid), _daemon(), _bootmod(bootmod),
+      _refs(0), _pid(), _state(DEAD), _exitcode(), _tmuxable(tmuxable), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _sepsgate(MemGate::bind(VPE::self().alloc_cap(), ObjCap::KEEP_CAP)),
@@ -46,7 +47,7 @@ KVPE::KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfg
 
     init();
 
-    LOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << core() << "]");
+    LOG(VPES, "Created VPE '" << _name << "' [id=" << id << "] at core " << core());
     for(auto &r : _requires)
         LOG(VPES, "  requires: '" << r.name << "'");
 }

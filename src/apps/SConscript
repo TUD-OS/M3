@@ -11,7 +11,7 @@ dirs = [
 if env['ARCH'] == 't2':
     dirs += ['profiler', 'profiler_cm', 'idle', 'sendfile']
 elif env['ARCH'] == 't3':
-    dirs += ['idle']
+    dirs += ['idle', 'rctmux']
 elif env['ARCH'] == 'host':
     dirs += [
         'asciiplay', 'intserver', 'keyb', 'plasma',

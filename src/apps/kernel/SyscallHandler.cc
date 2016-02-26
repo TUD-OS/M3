@@ -21,6 +21,7 @@
 #include "Services.h"
 #include "SyscallHandler.h"
 #include "RecvBufs.h"
+#include "ContextSwitcher.h"
 
 // #define SIMPLE_SYSC_LOG
 
@@ -113,6 +114,10 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::REVOKE, &SyscallHandler::revoke);
     add_operation(Syscalls::EXIT, &SyscallHandler::exit);
     add_operation(Syscalls::NOOP, &SyscallHandler::noop);
+#if defined(__t3__)
+    add_operation(Syscalls::TMUXSWITCH, &SyscallHandler::tmuxswitch);
+    add_operation(Syscalls::TMUXRESUME, &SyscallHandler::tmuxresume);
+#endif
 #if defined(__host__)
     add_operation(Syscalls::INIT, &SyscallHandler::init);
 #endif
@@ -276,10 +281,11 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     capsel_t tcap, mcap, gcap;
     String name, core;
     size_t ep;
-    is >> tcap >> mcap >> name >> core >> gcap >> ep;
+    bool tmuxable;
+    is >> tcap >> mcap >> name >> core >> gcap >> ep >> tmuxable;
     LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name << ", core=" << core
         << ", tcap=" << tcap << ", mcap=" << mcap << ", pfgate=" << gcap
-        << ", pfep=" << ep << ")");
+        << ", pfep=" << ep << ", tmuxable=" << tmuxable << ")");
 
     if(!vpe->objcaps().unused(tcap) || !vpe->objcaps().unused(mcap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid VPE or memory cap");
@@ -297,7 +303,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
         ? PEManager::get().type(vpe->core() - APP_CORES)
         : core.c_str();
     KVPE *nvpe = PEManager::get().create(std::move(name), corename,
-        gcap != ObjCap::INVALID, ep, gcap);
+        gcap != ObjCap::INVALID, ep, gcap, tmuxable);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, Errors::NO_FREE_CORE, "No free and suitable core found");
 
@@ -729,6 +735,45 @@ void SyscallHandler::tryTerminate() {
 void SyscallHandler::noop(RecvGate &gate, GateIStream &) {
     reply_vmsg(gate, 0);
 }
+
+#if defined(__t3__)
+void SyscallHandler::tmuxswitch(RecvGate &gate, GateIStream &is) {
+
+    KVPE *vpe = gate.session<KVPE>();
+    LOG(KSYSC, vpe->name() << " syscall::tmuxswitch()");
+
+    ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
+    if (ctxswitcher) {
+        KVPE *newvpe = ctxswitcher->switch_next();
+
+        if (newvpe) {
+            ReplyInfo rinfo(is.message());
+            newvpe->subscribe_resume([vpe, is, rinfo] (bool, Subscriber<bool> *) {
+                StaticGateOStream<ostreamsize<Errors::Code>()> os;
+                os << Errors::NO_ERROR;
+                reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
+                });
+            return;
+        }
+    }
+
+    reply_vmsg(gate, Errors::NOT_SUP);
+}
+
+void SyscallHandler::tmuxresume(RecvGate &gate, GateIStream&) {
+
+    KVPE *vpe = gate.session<KVPE>();
+    LOG(KSYSC, vpe->name() << ": syscall::tmuxresume()");
+
+    ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
+    if (ctxswitcher)
+        ctxswitcher->finalize_switch();
+
+    // TODO: handle errors
+
+    // this syscall is non blocking (no reply is sent)
+}
+#endif
 
 #if defined(__host__)
 void SyscallHandler::init(RecvGate &gate,GateIStream &is) {

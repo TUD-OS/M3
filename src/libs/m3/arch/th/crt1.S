@@ -34,6 +34,9 @@
     .type   _start, @function
 
 _start:
+    # enable interrupts
+    movi            a0, 1
+    wsr.intenable   a0
     # set return-addr and stack-pointer
     movi    a0, 0
 

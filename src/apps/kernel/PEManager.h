@@ -23,6 +23,7 @@
 #include "SyscallHandler.h"
 #include "KVPE.h"
 #include "KDTU.h"
+#include "ContextSwitcher.h"
 
 namespace m3 {
 
@@ -63,7 +64,7 @@ private:
 public:
     void load(int argc, char **argv);
 
-    KVPE *create(String &&name, const char *core, bool as, int ep, capsel_t pfgate);
+    KVPE *create(String &&name, const char *core, bool as, int ep, capsel_t pfgate, bool tmuxable = false);
     void remove(int id, bool daemon);
 
     const char *type(int id) const {
@@ -83,6 +84,12 @@ public:
         return *_vpes[id];
     }
 
+#if defined(__t3__)
+    ContextSwitcher *ctxswitcher() {
+        return _ctxswitcher;
+    }
+#endif
+
     void start_pending(ServiceList &serv);
 
 private:
@@ -100,6 +107,9 @@ private:
     const char *_petype[AVAIL_PES];
     KVPE *_vpes[AVAIL_PES];
     size_t _count;
+ #if defined(__t3__)
+    ContextSwitcher *_ctxswitcher;
+#endif
     size_t _daemons;
     SList<Pending> _pending;
     static bool _shutdown;

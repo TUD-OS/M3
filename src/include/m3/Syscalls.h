@@ -51,6 +51,10 @@ public:
         REVOKE,
         EXIT,
         NOOP,
+#if defined(__t3__)
+        TMUXSWITCH,
+        TMUXRESUME,
+#endif
 #if defined(__host__)
         INIT,
 #endif
@@ -79,7 +83,8 @@ public:
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
-    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core, capsel_t gate, size_t ep);
+    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core,
+        capsel_t gate, size_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
     Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
     Errors::Code detachrb(capsel_t vpe, size_t ep);
@@ -98,6 +103,11 @@ public:
     Errors::Code revoke(const CapRngDesc &crd);
     void exit(int exitcode);
     void noop();
+
+#if defined(__t3__)
+    Errors::Code tmuxswitch();
+    void tmuxresume();
+#endif
 
 #if defined(__host__)
     void init(void *sepregs);

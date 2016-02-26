@@ -24,7 +24,12 @@ namespace m3 {
 bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
 
-PEManager::PEManager() : _petype(), _vpes(), _count(), _daemons() {
+PEManager::PEManager()
+        : _petype(), _vpes(), _count(),
+#if defined(__t3__)
+          _ctxswitcher(nullptr),
+#endif
+          _daemons() {
     deprivilege_pes();
 }
 
@@ -48,8 +53,19 @@ void PEManager::load(int argc, char **argv) {
             // allow multiple applications with the same name
             OStringStream name;
             name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new KVPE(String(name.str()), no, true, as);
+            _vpes[no] = new KVPE(String(name.str()), no, no + APP_CORES, true, as, false);
             _count++;
+
+            // VPEs started here are already running, so suspend them
+            // to prevent sending an interrupt
+            // FIXME: this feels like a dirty hack to me
+            _vpes[no]->resume();
+
+#           if defined(__t3__)
+            if (!_ctxswitcher && strcmp(argv[i], "rctmux") == 0) {
+                _ctxswitcher = new ContextSwitcher(_vpes[no]->core());
+            }
+#           endif
         }
 
         // find end of arguments
@@ -147,19 +163,41 @@ bool PEManager::core_matches(size_t i, const char *core) const {
     return strcmp(core, "default") == 0;
 }
 
-KVPE *PEManager::create(String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
+KVPE *PEManager::create(String &&name, const char *core, bool as, int ep, capsel_t pfgate, bool tmuxable) {
     if(_count == AVAIL_PES)
         return nullptr;
 
-    size_t i;
+    // FIXME: this algorithm is not correct with context switching
+    size_t i, coreid;
     for(i = 0; i < AVAIL_PES; ++i) {
         if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && core_matches(i, core))
             break;
     }
+    coreid = i + APP_CORES;
+
+#if defined(__t3__)
+    if(tmuxable) {
+        if(!_ctxswitcher) {
+            tmuxable = false;
+            LOG(VPES, "No rctmux available: ignoring request for tmuxability");
+        } else {
+            coreid = _ctxswitcher->core();
+            LOG(VPES, "Creating tmuxable VPE at core " << i);
+        }
+    }
+#endif
+
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new KVPE(std::move(name), i, false, as, ep, pfgate);
+    _vpes[i] = new KVPE(std::move(name), i, coreid, false, as, ep, pfgate, tmuxable);
+
+#if defined(__t3__)
+    if (tmuxable) {
+        _ctxswitcher->assign(_vpes[i]);
+    }
+#endif
+
     _count++;
     return _vpes[i];
 }

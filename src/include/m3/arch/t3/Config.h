@@ -43,6 +43,9 @@
 #define DRAM_OFFSET         (64 * 1024 * 1024)
 #define DRAM_SIZE           (64 * 1024 * 1024)
 
+#define RCTMUX_STORE_EP     (EP_COUNT - 1)
+#define RCTMUX_RESTORE_EP   (EP_COUNT - 2)
+
 #define STACK_TOP           0x60800000              // used for stack-copying
 #define STACK_SIZE          0x1000
 // give the stack 4K and a bit of space for idle
@@ -51,9 +54,15 @@
 #define INIT_HEAP_SIZE      0                       // not used
 #define HEAP_SIZE           0x200000                // not the actual size, but the maximum
 
+#define RCTMUX_FLAGS_LOCAL  (DMEM_VEND - 8)
+#define RCTMUX_FLAGS_GLOBAL (RCTMUX_FLAGS_LOCAL - DRAM_VOFFSET)
+
+#define APP_LAYOUT_LOCAL    (RCTMUX_FLAGS_LOCAL - 32)
+#define APP_LAYOUT_GLOBAL   (APP_LAYOUT_LOCAL - DRAM_VOFFSET)
+
 #define RT_SIZE             0x400
-#define RT_START            (DMEM_VEND - RT_SIZE)
-#define RT_END              DMEM_VEND
+#define RT_START            (APP_LAYOUT_LOCAL - RT_SIZE)
+#define RT_END              APP_LAYOUT_LOCAL
 
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)

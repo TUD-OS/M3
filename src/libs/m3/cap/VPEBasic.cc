@@ -25,24 +25,25 @@ namespace m3 {
 const size_t VPE::BUF_SIZE    = 4096;
 VPE VPE::_self INIT_PRIORITY(102);
 
-VPE::VPE(const String &name, const String &core, const char *pager)
+VPE::VPE(const String &name, const String &core, const char *pager, bool tmuxable)
         : ObjCap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _pager(), _mounts(), _mountlen() {
+          _pager(), _mounts(), _mountlen(), _tmuxable(tmuxable) {
     init();
 
     if(pager) {
         // create pager first, to create session and obtain gate cap
         _pager = new Pager(pager);
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, _pager->gate().sel(), alloc_ep());
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, _pager->gate().sel(),
+            alloc_ep(), tmuxable);
         // now delegate our VPE cap to the pager
         _pager->delegate_obj(sel());
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }
     else
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, ObjCap::INVALID, 0);
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, ObjCap::INVALID, 0, tmuxable);
 }
 
 VPE::~VPE() {

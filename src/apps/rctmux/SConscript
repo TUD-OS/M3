@@ -1,0 +1,26 @@
+Import('env')
+
+# define useful variables
+archdir = 'arch/' + env['ARCH']
+archdir_absolute = '#src/apps/rctmux/' + archdir
+
+# build rctmux
+prog = env.M3Program(
+    env,
+    target = 'rctmux',
+    source = [
+        env['BINARYDIR'].abspath + '/Window.o',
+        env.Glob('*.cc'),
+        env.Glob(archdir + '/*.S'),
+        env.Glob(archdir + '/*.cc'),
+    ],
+    NoSup = True,
+    ldscript = File(archdir_absolute + '/link-elf32.ld'),
+    libs = ['c', 'handler-reset', 'hal', 'handlers-sim']
+)
+env.Depends(prog, File(archdir_absolute + '/link-elf32.ld'))
+
+# build test and dev programs
+env.M3Program(env, 'rctmux-util-tmux-bench', ['test-utils/tmux-bench.cc'])
+env.M3Program(env, 'rctmux-util-counter',    ['test-utils/counter.cc'])
+env.M3Program(env, 'rctmux-util-occupy',     ['test-utils/occupy.cc'])
