@@ -67,13 +67,13 @@ void ContextSwitcher::reset_endpoints(KVPE *vpe, KVPE *next_vpe) {
             case RCTMUX_STORE_EP:
                 vpe->xchg_ep(RCTMUX_STORE_EP, nullptr,
                     static_cast<MsgCapability*>(
-                        vpe->objcaps().get(1, Capability::MEM)));
+                        vpe->objcaps().get(2, Capability::MEM)));
                 break;
             case RCTMUX_RESTORE_EP:
                 if (next_vpe) {
                     vpe->xchg_ep(RCTMUX_RESTORE_EP, nullptr,
                         static_cast<MsgCapability*>(
-                            next_vpe->objcaps().get(1, Capability::MEM)));
+                            next_vpe->objcaps().get(2, Capability::MEM)));
                 }
                 break;
             default:
@@ -146,8 +146,6 @@ void ContextSwitcher::switch_to(KVPE *to) {
 
         ctrl |= RCTMUXCtrlFlags::STORAGE_ATTACHED;
         send_flags(&dtu, &ctrl);
-
-        LOG(VPES, "FOO");
     }
 
     _currtmuxvpe = to;

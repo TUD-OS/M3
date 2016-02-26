@@ -43,11 +43,28 @@ KVPE::KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int e
       _requires(),
       _exitsubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, MemGate::RWX, core(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1,
+        MemGate::RWX, core(), id, 0));
 
     init();
 
-    LOG(VPES, "Created VPE '" << _name << "' [id=" << id << "] at core " << core());
+#if defined(__t3__)
+    if (tmuxable) {
+        // FIXME: how to get the size of a VPE's scratchpad?
+        static constexpr size_t STORAGE_SIZE = 1024*16;
+        // allocate memory for time-multiplexing
+        MainMemory &mem = MainMemory::get();
+        uintptr_t addr = mem.map().allocate(STORAGE_SIZE);
+        if (addr > 0) {
+            _objcaps.set(2, new MemCapability(&_objcaps, 2, addr, STORAGE_SIZE,
+                MemGate::RWX, MEMORY_CORE, 0, mem.epid()));
+        }
+        // FIXME: handle allocation errors
+    }
+#endif
+
+    LOG(VPES, "Created " << ((tmuxable) ? "tmuxable " : "") << "VPE '" <<
+        _name << "' [id=" << id << "] at core " << core());
     for(auto &r : _requires)
         LOG(VPES, "  requires: '" << r.name << "'");
 }
