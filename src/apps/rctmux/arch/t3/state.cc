@@ -3,12 +3,11 @@
 #include <m3/util/Math.h>
 #include <m3/util/Sync.h>
 #include <m3/util/Profile.h>
+#include <string.h>
 
 #include "rctmux.h"
 
 #define RCTMUX_MAGIC (0x42C0FFEE)
-
-EXTERN_C void _start();
 
 using namespace m3;
 
@@ -28,17 +27,15 @@ volatile static struct alignas(DTU_PKG_SIZE) {
 
 volatile word_t *_regstate = (word_t*)&(_state.cpu_regs);
 
-void mem_write(size_t channel, void *data, size_t size, unsigned int *offset)
-{
-    DTU::get().wait_until_ready(channel);
-    DTU::get().write(channel, data, size, *offset);
+void mem_write(size_t ep, void *data, size_t size, size_t *offset) {
+    DTU::get().wait_until_ready(ep);
+    DTU::get().write(ep, data, size, *offset);
     *offset += size;
 }
 
-void mem_read(size_t channel, void *data, size_t size, unsigned int *offset)
-{
-    DTU::get().wait_until_ready(channel);
-    DTU::get().read(channel, data, size, *offset);
+void mem_read(size_t ep, void *data, size_t size, size_t *offset) {
+    DTU::get().wait_until_ready(ep);
+    DTU::get().read(ep, data, size, *offset);
     *offset += size;
 }
 
@@ -47,7 +44,6 @@ void arch_setup() {
 }
 
 bool arch_init() {
-
     // save local endpoint config (workaround)
     for(int i = 0; i < EP_COUNT; ++i) {
         _state.local_ep_config[i] = DTU::get().get_ep_config(i);
@@ -60,7 +56,6 @@ bool arch_init() {
 }
 
 void arch_finalize() {
-
     // restore local endpoint config
     for(int i = 0; i < EP_COUNT; ++i) {
         DTU::get().set_ep_config(i, _state.local_ep_config[i]);
@@ -68,7 +63,6 @@ void arch_finalize() {
 }
 
 bool arch_save_state() {
-
     alignas(DTU_PKG_SIZE) uint32_t addr;
     size_t offset = 0;
 
@@ -102,7 +96,6 @@ bool arch_save_state() {
 }
 
 bool arch_restore_state() {
-
     alignas(DTU_PKG_SIZE) uint32_t addr;
     size_t offset = 0;
 
@@ -140,13 +133,11 @@ bool arch_restore_state() {
 }
 
 void arch_wipe_mem() {
-
     // TODO
-    /*AppLayout *l = applayout();
-    memset((void*)l->data_start, 0,
-        l->data_size + (RT_SPACE_END - DMEM_VEND));
+    AppLayout *l = applayout();
+    memset((void*)l->data_start, 0, l->data_size + (RT_SPACE_END - DMEM_VEND));
     memset((void*)_state.cpu_regs[1], 0,
-        l->stack_top - (uint32_t)_state.cpu_regs[1]);*/
+        l->stack_top - (uint32_t)_state.cpu_regs[1]);
 }
 
 void arch_idle_mode() {

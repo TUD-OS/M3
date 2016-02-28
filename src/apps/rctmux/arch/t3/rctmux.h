@@ -22,6 +22,8 @@
 #define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
 #define EPC_REG (21)
 
+EXTERN_C void _start();
+
 void arch_setup();
 bool arch_init();
 bool arch_save_state();

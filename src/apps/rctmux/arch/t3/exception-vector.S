@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/arch/t2/Config.h>
+#include <m3/arch/t3/Config.h>
 #include <xtensa/coreasm.h>
 #include <xtensa/config/specreg.h>
 
@@ -34,8 +34,13 @@ _UserExceptionVector:
     jx      a3                          // use jx to allow far jumps
     .end    literal_prefix
 
-    // check type of interrupt
     .text
+
+    .literal_position
+    .align   1
+    .literal LIT_RCTMUX_STACK_TOP, RCTMUX_STACK_TOP
+
+     // check type of interrupt
     .align  4
     .global _UserExceptionHandler
 _UserExceptionHandler:
@@ -95,6 +100,7 @@ saveIntRegs:
 
     // finally, call the C interrupt handler
     movi    a4, _interrupt_handler
+    movi    a1, LIT_RCTMUX_STACK_TOP
     mov     a5, a1
     callx4  a4
 
