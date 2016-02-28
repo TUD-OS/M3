@@ -42,6 +42,14 @@ void *Heap::alloc(size_t size) {
     void *res = try_alloc(size);
     if(!res)
         PANIC("Unable to alloc " << size << " bytes on the heap");
+
+#if defined(__t3__)
+    // update heap size if necessary
+    // FIXME: needs optimization
+    word_t *hsize = &(applayout()->data_size);
+    *hsize = end() - applayout()->data_start;
+#endif
+
     return res;
 }
 
@@ -136,6 +144,13 @@ USED void Heap::free(void *p) {
         // adjust prev of next area
         nn->prev = a->next;
     }
+
+#if defined(__t3__)
+    // update heap size if necessary
+    // FIXME: optimize this
+    word_t *size = &(applayout()->data_size);
+    *size = end() - applayout()->data_start;
+#endif
 }
 
 void Heap::print(OStream &os) {
