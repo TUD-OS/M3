@@ -28,14 +28,14 @@ int main(int, char**)
 {
     Serial::get() << "Occupy program started...\n";
 
-    // this program trys to keep the kernel busy 
+    // this program tries to keep the kernel busy 
 
     while (1) {
         {
             Serial::get() << "Allocating " << ALLOC_SIZE << "bytes...\n";
             MemGate foo = MemGate::create_global(ALLOC_SIZE, MemGate::RWX);
         }
-        // freeed when out of scope
+        // freed when out of scope
     }
 
     return 0;

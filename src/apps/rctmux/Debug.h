@@ -14,22 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#ifndef RCTMUX_ARCH_T3_H
-#define RCTMUX_ARCH_T3_H
+#pragma once
 
-#include <xtensa/xtruntime.h>
-
-#define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
-#define EPC_REG (21)
-
-EXTERN_C void _start();
-
-void arch_setup();
-bool arch_init();
-bool arch_save_state();
-bool arch_restore_state();
-void arch_finalize();
-void arch_wipe_mem();
-void arch_idle_mode();
-
-#endif /* RCTMUX_ARCH_T3_H */
+#ifndef NDEBUG
+EXTERN_C void __assert(const char *failedexpr, const char *file,
+    unsigned int line, const char *func)
+{
+    // nothing yet
+}
+#endif /* !NDEBUG */

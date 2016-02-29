@@ -109,10 +109,10 @@ void ContextSwitcher::switch_to(KVPE *to) {
 
         // -- Initialization --
 
-        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlags::SWITCHREQ
-            | RCTMUXCtrlFlags::SAVE;
+        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::SWITCHREQ
+            | RCTMUXCtrlFlag::STORE;
         if (to && to->state() == KVPE::SUSPENDED)
-            ctrl |= RCTMUXCtrlFlags::RESTORE;
+            ctrl |= RCTMUXCtrlFlag::RESTORE;
         send_flags(&dtu, &ctrl);
 
         // -- Storage --
@@ -124,7 +124,7 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // cycles so we can busy wait here; we limit the maximal amount
         // of cycles, though
         uint8_t timeout_counter = 1 << 4;
-        while (--timeout_counter && !(ctrl & RCTMUXCtrlFlags::INITIALIZED)) {
+        while (--timeout_counter && !(ctrl & RCTMUXCtrlFlag::INITIALIZED)) {
             recv_flags(&dtu, &ctrl);
         }
 
@@ -144,7 +144,7 @@ void ContextSwitcher::switch_to(KVPE *to) {
         if (to)
             to->activate_sysc_ep();
 
-        ctrl |= RCTMUXCtrlFlags::STORAGE_ATTACHED;
+        ctrl |= RCTMUXCtrlFlag::STORAGE_ATTACHED;
         send_flags(&dtu, &ctrl);
     }
 

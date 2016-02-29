@@ -14,15 +14,34 @@
  * General Public License version 2 for more details.
  */
 
-#ifndef RCTMUX_H
-#define RCTMUX_H
+#pragma once
+
+#include <m3/Config.h>
 
 #if defined(__t3__)
-#   include "arch/t3/rctmux.h"
+#   include "arch/t3/RCTMux.h"
 #elif defined(__gem5__)
-#   include "arch/gem5/rctmux.h"
+#   include "arch/gem5/RCTMux.h"
 #else
 #   error "Unsupported target"
 #endif
 
-#endif /* RCTMUX_H */
+namespace RCTMux {
+
+void setup();
+void init_switch();      // init phase
+void store();            // store phase
+void reset();            // reset phase
+void restore();          // restore phase
+void finish_switch();
+
+volatile unsigned* flags();
+void flag_set(const m3::RCTMUXCtrlFlag flag);
+void flag_unset(const m3::RCTMUXCtrlFlag flag);
+void flags_reset();
+bool flag_is_set(const m3::RCTMUXCtrlFlag flag);
+
+void notify_kernel();
+void set_idle_mode();
+
+} /* namespace RCTMux */

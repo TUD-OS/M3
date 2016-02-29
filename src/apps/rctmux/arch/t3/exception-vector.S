@@ -34,11 +34,18 @@ _UserExceptionVector:
     jx      a3                          // use jx to allow far jumps
     .end    literal_prefix
 
-    .text
+    // make space for a small stack
+    .data
+    .align 16                           // required by xtensa ABI
+    .global _RCTMuxStackBase
+    .global _RCTMuxStackEnd
+_RCTMuxStackBase:
+    .space 64, 0
+_RCTMuxStackEnd:
+    .space 16, 0
+_RCTMuxStackStart:
 
-    .literal_position
-    .align   1
-    .literal LIT_RCTMUX_STACK_TOP, RCTMUX_STACK_TOP
+    .text
 
      // check type of interrupt
     .align  4
@@ -57,7 +64,7 @@ handleInt:
     l32i    a3, a3, 0
 
 saveIntRegs:
-    // save register contents to *regstate in order to access them from C
+    // save register contents to *regstate to access them from within C++
     s32i    a0, a3, 0
     s32i    a1, a3, 4
     s32i    a2, a3, 8
@@ -100,8 +107,7 @@ saveIntRegs:
 
     // finally, call the C interrupt handler
     movi    a4, _interrupt_handler
-    movi    a1, LIT_RCTMUX_STACK_TOP
-    mov     a5, a1
+    movi    a1, _RCTMuxStackEnd
     callx4  a4
 
 returnFromInterrupt:

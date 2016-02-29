@@ -21,6 +21,10 @@
 #include <m3/stream/OStream.h>
 #include <cstring>
 
+#if defined(__t3__)
+#   include <m3/arch/t3/RCTMux.h>
+#endif
+
 namespace m3 {
 
 /*

@@ -30,7 +30,7 @@ namespace m3 {
  * The ERROR flag is a workaround for the missing hardware-reset
  * feature.
  */
-enum RCTMUXCtrlFlags {
+enum RCTMUXCtrlFlag {
     NONE                = 0,
     // general flags
     ERROR               = 1 << 0,       // an error occured
@@ -38,7 +38,7 @@ enum RCTMUXCtrlFlags {
     INITIALIZED         = 1 << 1,       // rctmux has been initialized [*]
     // kernel flags
     SWITCHREQ           = 1 << 2,       // context switch requested
-    SAVE                = 1 << 3,       // save operation required
+    STORE               = 1 << 3,       // save operation required
     RESTORE             = 1 << 4,       // restore operation required
     STORAGE_ATTACHED    = 1 << 5,       // attached save/restore storage [*]
 };

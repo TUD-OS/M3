@@ -14,15 +14,31 @@
  * General Public License version 2 for more details.
  */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#pragma once
 
-#ifndef NDEBUG
-EXTERN_C void __assert(const char *failedexpr, const char *file,
-    unsigned int line, const char *func)
-{
-    // nothing yet
+#include <xtensa/xtruntime.h>
+
+#define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
+#define EPC_REG (21)
+
+EXTERN_C void _start();
+
+namespace RCTMux {
+
+inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) |= flag;
 }
-#endif /* !NDEBUG */
 
-#endif /* DEBUG_H */
+inline void flag_unset(const m3::RCTMUXCtrlFlag flag) {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) ^= flag;
+}
+
+inline void flags_reset() {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) = 0;
+}
+
+inline bool flag_is_set(const m3::RCTMUXCtrlFlag flag) {
+    return (*((volatile unsigned *)RCTMUX_FLAGS_LOCAL) & flag);
+}
+
+} /* namespace RCTMux */
