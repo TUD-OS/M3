@@ -4,12 +4,17 @@
 #include <m3/util/Sync.h>
 #include <m3/util/Profile.h>
 #include <string.h>
+#include <xtensa/xtruntime.h>
 
 #include "RCTMux.h"
 
+using namespace m3;
+
+#define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
+#define EPC_REG (21)
 #define RCTMUX_MAGIC 0x42C0FFEE
 
-using namespace m3;
+EXTERN_C void _start();
 
 /**
  * Processor and register state is put into state.cpu_regs by
@@ -27,7 +32,6 @@ volatile static struct alignas(DTU_PKG_SIZE) {
 
 // define an unmangled symbol that can be accessed from assembler
 volatile word_t *_regstate = (word_t*)&(_state.cpu_regs);
-
 
 namespace RCTMux {
 

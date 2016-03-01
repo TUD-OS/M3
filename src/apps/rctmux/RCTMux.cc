@@ -23,6 +23,8 @@
 
 using namespace m3;
 
+EXTERN_C void _start();
+
 namespace RCTMux {
 
 static struct alignas(DTU_PKG_SIZE) syscall_noop {

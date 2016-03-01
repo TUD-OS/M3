@@ -16,13 +16,6 @@
 
 #pragma once
 
-#include <xtensa/xtruntime.h>
-
-#define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
-#define EPC_REG (21)
-
-EXTERN_C void _start();
-
 namespace RCTMux {
 
 inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
