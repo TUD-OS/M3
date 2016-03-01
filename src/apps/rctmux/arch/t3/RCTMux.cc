@@ -54,7 +54,7 @@ inline void _wipe_mem() {
         l->stack_top - (uint32_t)_state.cpu_regs[1]);
 
     // FIXME: wiping the runtime does make problems - why?
-    //memset((void*)RT_SPACE_END, 0, RCTMUX_FLAGS_LOCAL - RT_SPACE_END);
+    //memset((void*)RT_SPACE_END, 0, DMEM_VEND - RT_SPACE_END);
 }
 
 void setup() {
@@ -97,7 +97,7 @@ void store() {
     // state
     _mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
 
-    // copy end-area of heap and runtime
+    // copy end-area of heap and runtime and keep flags
     addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
     _mem_write(RCTMUX_STORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
 

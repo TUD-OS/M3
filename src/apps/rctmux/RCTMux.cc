@@ -30,9 +30,14 @@ static struct alignas(DTU_PKG_SIZE) syscall_noop {
 } _sc_tmuxresume = { Syscalls::TMUXRESUME };
 
 void notify_kernel() {
+    flag_set(SIGNAL);
+
     DTU::get().wait_until_ready(DTU::SYSC_EP);
     DTU::get().send(DTU::SYSC_EP, &_sc_tmuxresume, sizeof(_sc_tmuxresume),
         label_t(), 0);
+
+    while (flag_is_set(SIGNAL))
+        ;
 }
 
 EXTERN_C void _loop() {
@@ -72,16 +77,13 @@ EXTERN_C void _interrupt_handler(int) {
             store();
         }
 
-        if (flag_is_set(RESTORE)) {
+        if (!flag_is_set(STORE) && flag_is_set(RESTORE)) {
             restore();
         } else {
             set_idle_mode();
         }
 
         notify_kernel();
-
-        while (flag_is_set(SWITCHREQ))
-            ;
 
         if (flag_is_set(ERROR)) {
             set_idle_mode();

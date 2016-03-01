@@ -41,6 +41,8 @@ enum RCTMUXCtrlFlag {
     STORE               = 1 << 3,       // save operation required
     RESTORE             = 1 << 4,       // restore operation required
     STORAGE_ATTACHED    = 1 << 5,       // attached save/restore storage [*]
+    //
+    SIGNAL              = 1 << 7,       // used for event polling
 };
 
 /**

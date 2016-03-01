@@ -1,5 +1,4 @@
-/* This linker script generated from xt-genldscripts.tpp for LSP . */
-/* Linker Script for default link */
+/* Linker Script */
 MEMORY
 {
   dram0_0_seg :                         org = 0x607FD000, len = 0x1000
@@ -13,7 +12,11 @@ MEMORY
   iram0_8_seg :                         org = 0x608005BC, len = 0x1C
   iram0_9_seg :                         org = 0x608005D8, len = 0x4
   iram0_10_seg :                        org = 0x608005DC, len = 0x1C
-  iram0_11_seg :                        org = 0x6081F900, len = 0x700
+  iram0_11_seg :                        org = 0x6081F900, len = 0x6F8
+
+  /* if you change this, you will also have to eventually adapt the
+     addresses of .RCTMuxRegisters below and the defineis in Config.h */
+  rctmux_regs_seg :                     org = 0x6081FFF8, len = 0x8
 }
 
 PHDRS
@@ -32,6 +35,7 @@ PHDRS
   iram0_9_phdr PT_LOAD;
   iram0_10_phdr PT_LOAD;
   iram0_11_phdr PT_LOAD;
+  rctmux_regs_phdr PT_LOAD;
 }
 
 
@@ -165,7 +169,7 @@ SECTIONS
     PROVIDE(end = ALIGN(0x8));
     _stack_sentry = ALIGN(0x8);
   } >dram0_0_seg :dram0_0_bss_phdr
- __stack = 0x60600000;
+  __stack = 0x60600000;
   _heap_sentry = 0x60600000;
 
   .ResetVector.text : ALIGN(4)
@@ -259,6 +263,13 @@ SECTIONS
     _text_end = ABSOLUTE(.);
     _etext = .;
   } >iram0_11_seg :iram0_11_phdr
+
+  .RCTMuxRegisters 0x6081FFF8 : ALIGN(8)
+  {
+    KEEP(*(.RCTMuxRegisters))
+    QUAD(0x0)       /* flags register */
+  } >rctmux_regs_seg :rctmux_regs_phdr
+
   .debug  0 :  { *(.debug) }
   .line  0 :  { *(.line) }
   .debug_srcinfo  0 :  { *(.debug_srcinfo) }

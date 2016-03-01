@@ -35,6 +35,10 @@
 #define IRQ_ADDR_INTERN  \
         (PE_IDMA_CONFIG_ADDRESS + (DEBUG_CMD << PE_IDMA_CMD_POS) + (0x2 << PE_IDMA_SLOT_TRG_ID_POS))
 
+// defined in linker script
+#define RCTMUX_FLAGS_LOCAL  0x6081FFF8
+#define RCTMUX_FLAGS_GLOBAL (RCTMUX_FLAGS_LOCAL - DRAM_VOFFSET)
+
 #define PAGE_BITS           0
 #define PAGE_SIZE           0
 #define PAGE_MASK           0
@@ -57,10 +61,7 @@
 #define INIT_HEAP_SIZE      0                       // not used
 #define HEAP_SIZE           0x200000                // not the actual size, but the maximum
 
-#define RCTMUX_FLAGS_LOCAL  (DMEM_VEND - 8)
-#define RCTMUX_FLAGS_GLOBAL (RCTMUX_FLAGS_LOCAL - DRAM_VOFFSET)
-
-#define APP_LAYOUT_LOCAL    (RCTMUX_FLAGS_LOCAL - 32)
+#define APP_LAYOUT_LOCAL    (DMEM_VEND - 32)
 #define APP_LAYOUT_GLOBAL   (APP_LAYOUT_LOCAL - DRAM_VOFFSET)
 
 #define RT_SIZE             0x400
