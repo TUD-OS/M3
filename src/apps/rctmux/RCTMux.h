@@ -35,7 +35,6 @@ void reset();            // reset phase
 void restore();          // restore phase
 void finish_switch();
 
-volatile unsigned* flags();
 void flag_set(const m3::RCTMUXCtrlFlag flag);
 void flag_unset(const m3::RCTMUXCtrlFlag flag);
 void flags_reset();
