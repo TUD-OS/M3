@@ -27,8 +27,9 @@
 using namespace m3;
 
 #define REGSPILL_AREA_SIZE (XCHAL_NUM_AREGS * sizeof(word_t))
-#define EPC_REG (21)
-#define RCTMUX_MAGIC 0x42C0FFEE
+#define EPC_REG            21
+#define NUM_REGS           22
+#define RCTMUX_MAGIC       0x42C0FFEE
 
 EXTERN_C void _start();
 
@@ -41,7 +42,7 @@ EXTERN_C void _start();
  */
 volatile static struct alignas(DTU_PKG_SIZE) {
     word_t magic;
-    word_t *cpu_regs[22];
+    word_t *cpu_regs[NUM_REGS];
     uint64_t local_ep_config[EP_COUNT];
     word_t : 8 * sizeof(word_t);    // padding
 } _state;
