@@ -27,15 +27,15 @@ EXTERN_C void _start();
 
 namespace RCTMux {
 
-static struct alignas(DTU_PKG_SIZE) syscall_noop {
+static struct alignas(DTU_PKG_SIZE) syscall_tmuxctl {
     Syscalls::Operation syscall_op;
-} _sc_tmuxresume = { Syscalls::TMUXRESUME };
+} _sc_tmuxctl = { Syscalls::TMUXRESUME };
 
-void notify_kernel() {
+static void notify_kernel() {
     flag_set(SIGNAL);
 
     DTU::get().wait_until_ready(DTU::SYSC_EP);
-    DTU::get().send(DTU::SYSC_EP, &_sc_tmuxresume, sizeof(_sc_tmuxresume),
+    DTU::get().send(DTU::SYSC_EP, &_sc_tmuxctl, sizeof(_sc_tmuxctl),
         label_t(), 0);
 
     while (flag_is_set(SIGNAL))
@@ -68,7 +68,7 @@ EXTERN_C void _loop() {
 
 EXTERN_C void _interrupt_handler(int) {
 
-    init_switch();
+    init();
 
     // check if a switch has been requested
     if (flag_is_set(SWITCHREQ)) {
@@ -79,7 +79,7 @@ EXTERN_C void _interrupt_handler(int) {
             store();
         }
 
-        if (!flag_is_set(STORE) && flag_is_set(RESTORE)) {
+        if (flag_is_set(RESTORE)) {
             restore();
         } else {
             set_idle_mode();
@@ -92,7 +92,7 @@ EXTERN_C void _interrupt_handler(int) {
         }
     }
 
-    finish_switch();
+    finish();
 }
 
 } /* namespace RCTMux */

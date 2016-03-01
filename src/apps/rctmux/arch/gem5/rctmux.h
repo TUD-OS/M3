@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#ifndef ARCH_GEM5_RCTMUX_H
-#define ARCH_GEM5_RCTMUX_H
+#pragma once
 
 #endif /* ARCH_GEM5_RCTMUX_H */

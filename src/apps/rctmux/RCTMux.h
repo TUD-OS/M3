@@ -29,18 +29,16 @@
 namespace RCTMux {
 
 void setup();
-void init_switch();      // init phase
+void init();             // init phase
 void store();            // store phase
 void reset();            // reset phase
 void restore();          // restore phase
-void finish_switch();
+void finish();
+void set_idle_mode();
 
 void flag_set(const m3::RCTMUXCtrlFlag flag);
 void flag_unset(const m3::RCTMUXCtrlFlag flag);
 void flags_reset();
 bool flag_is_set(const m3::RCTMUXCtrlFlag flag);
-
-void notify_kernel();
-void set_idle_mode();
 
 } /* namespace RCTMux */

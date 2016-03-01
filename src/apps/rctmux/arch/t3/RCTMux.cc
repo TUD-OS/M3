@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2015, René Küttner <rene.kuettner@.tu-dresden.de>
+ * Economic rights: Technische Universität Dresden (Germany)
+ *
+ * This file is part of M3 (Microkernel for Minimalist Manycores).
+ *
+ * M3 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * M3 is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details.
+ */
+
 #include <m3/arch/t3/RCTMux.h>
 #include <m3/DTU.h>
 #include <m3/util/Math.h>
@@ -35,19 +51,19 @@ volatile word_t *_regstate = (word_t*)&(_state.cpu_regs);
 
 namespace RCTMux {
 
-void _mem_write(size_t ep, void *data, size_t size, size_t *offset) {
+static void mem_write(size_t ep, void *data, size_t size, size_t *offset) {
     DTU::get().wait_until_ready(ep);
     DTU::get().write(ep, data, size, *offset);
     *offset += size;
 }
 
-void _mem_read(size_t ep, void *data, size_t size, size_t *offset) {
+static void mem_read(size_t ep, void *data, size_t size, size_t *offset) {
     DTU::get().wait_until_ready(ep);
     DTU::get().read(ep, data, size, *offset);
     *offset += size;
 }
 
-inline void _wipe_mem() {
+static void wipe_mem() {
     AppLayout *l = applayout();
 
     // wipe text to heap
@@ -66,7 +82,7 @@ void setup() {
     flags_reset();
 }
 
-void init_switch() {
+void init() {
     // prevent irq from triggering again
     *(volatile unsigned *)IRQ_ADDR_INTERN = 0;
 
@@ -78,7 +94,7 @@ void init_switch() {
     flag_set(INITIALIZED);
 }
 
-void finish_switch() {
+void finish() {
     // restore local endpoint config (workaround)
     for(int i = 0; i < EP_COUNT; ++i) {
         DTU::get().set_ep_config(i, _state.local_ep_config[i]);
@@ -99,32 +115,32 @@ void store() {
         return;
 
     // state
-    _mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     // copy end-area of heap and runtime and keep flags
     addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
-    _mem_write(RCTMUX_STORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
 
     // app layout
     AppLayout *l = applayout();
-    _mem_write(RCTMUX_STORE_EP, (void*)l, sizeof(*l), &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)l, sizeof(*l), &offset);
 
     // reset vector
-    _mem_write(RCTMUX_STORE_EP, (void*)l->reset_start, l->reset_size, &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)l->reset_start, l->reset_size, &offset);
 
     // text
-    _mem_write(RCTMUX_STORE_EP, (void*)l->text_start, l->text_size, &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)l->text_start, l->text_size, &offset);
 
     // data and heap
-    _mem_write(RCTMUX_STORE_EP, (void*)l->data_start, l->data_size, &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)l->data_start, l->data_size, &offset);
 
     // copy stack
     addr = (uint32_t)_state.cpu_regs[1] - REGSPILL_AREA_SIZE;
-    _mem_write(RCTMUX_STORE_EP, (void*)addr,
+    mem_write(RCTMUX_STORE_EP, (void*)addr,
         Math::round_dn((uintptr_t)l->stack_top - addr, DTU_PKG_SIZE),
         &offset);
 
-    _wipe_mem();
+    wipe_mem();
 
     // success
     flag_unset(STORE);
@@ -141,7 +157,7 @@ void restore() {
         return;
 
     // read state
-    _mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     if (_state.magic != RCTMUX_MAGIC) {
         flag_set(ERROR);
@@ -150,24 +166,24 @@ void restore() {
 
     // restore end-area of heap and runtime before accessing applayout
     addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
-    _mem_read(RCTMUX_RESTORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
 
     // restore app layout
     AppLayout *l = applayout();
-    _mem_read(RCTMUX_RESTORE_EP, (void*)l, sizeof(*l), &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)l, sizeof(*l), &offset);
 
     // restore reset vector
-    _mem_read(RCTMUX_RESTORE_EP, (void*)l->reset_start, l->reset_size, &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)l->reset_start, l->reset_size, &offset);
 
     // restore text
-    _mem_read(RCTMUX_RESTORE_EP, (void*)l->text_start, l->text_size, &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)l->text_start, l->text_size, &offset);
 
     // restore data and heap
-    _mem_read(RCTMUX_RESTORE_EP, (void*)l->data_start, l->data_size, &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)l->data_start, l->data_size, &offset);
 
     // restore stack
     addr = ((uint32_t)_state.cpu_regs[1]) - REGSPILL_AREA_SIZE;
-    _mem_read(RCTMUX_RESTORE_EP, (void*)addr,
+    mem_read(RCTMUX_RESTORE_EP, (void*)addr,
         Math::round_up((uintptr_t)l->stack_top - addr, DTU_PKG_SIZE),
         &offset);
 

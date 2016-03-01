@@ -154,6 +154,3 @@ returnFromInterrupt:
     l32i    a3, a3, 12
 
     rfe
-
-halt:
-    j       halt
