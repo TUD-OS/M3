@@ -80,7 +80,7 @@ static void mem_read(size_t ep, void *data, size_t size, size_t *offset) {
 }
 
 static void wipe_mem() {
-    /*AppLayout *l = applayout();
+    AppLayout *l = applayout();
 
     // wipe text to heap
     memset((void*)l->text_start, 0, l->data_size);
@@ -90,7 +90,7 @@ static void wipe_mem() {
         l->stack_top - (uint32_t)_state.cpu_regs[1]);
 
     // FIXME: wiping the runtime does make problems - why?
-    //memset((void*)RT_SPACE_END, 0, DMEM_VEND - RT_SPACE_END);*/
+    //memset((void*)RT_SPACE_END, 0, DMEM_VEND - RT_SPACE_END);
 }
 
 EXTERN_C void _setup() {
