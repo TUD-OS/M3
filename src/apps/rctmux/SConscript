@@ -10,7 +10,6 @@ prog = env.M3Program(
     target = 'rctmux',
     source = [
         env['BINARYDIR'].abspath + '/Window.o',
-        env.Glob('*.cc'),
         env.Glob(archdir + '/*.S'),
         env.Glob(archdir + '/*.cc'),
     ],

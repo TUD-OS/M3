@@ -42,30 +42,6 @@ static void notify_kernel() {
         ;
 }
 
-EXTERN_C void _loop() {
-    setup();
-
-    volatile m3::Env *senv = m3::env();
-    while(1) {
-        asm volatile ("waiti   0");
-
-        // is there something to run?
-        uintptr_t ptr = senv->entry;
-        if(ptr) {
-            // remember exit location
-            senv->exit = reinterpret_cast<uintptr_t>(&_start);
-
-            // tell crt0 to set this stackpointer
-            reinterpret_cast<word_t*>(STACK_TOP)[-1] = 0xDEADBEEF;
-            reinterpret_cast<word_t*>(STACK_TOP)[-2] = senv->sp;
-            register word_t a2 __asm__ ("a2") = ptr;
-            asm volatile (
-                "jx    %0;" : : "a"(a2)
-            );
-        }
-    }
-}
-
 EXTERN_C void _interrupt_handler(int) {
 
     init();

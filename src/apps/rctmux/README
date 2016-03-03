@@ -1,1 +1,9 @@
-This code is experimental stuff and probably of no use yet.
+RCTMux - Remote Controlled Time Multiplexer
+
+Note: This code is still experimental stuff.
+
+Since most of the implementation highly depends on the architecture, all
+code for supported target platforms can be found below the arch/ directory.
+
+References:
+  [] to be done

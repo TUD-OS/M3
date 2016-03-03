@@ -35,11 +35,15 @@ ContextSwitcher::ContextSwitcher(size_t core)
 }
 
 void ContextSwitcher::finalize_switch() {
+
+    alignas(DTU_PKG_SIZE) uint64_t flags;
+    DTU &dtu = DTU::get();
+
+    // FIXME: check error flag
     restore_endpoints(_currtmuxvpe);
     _currtmuxvpe->resume();
-
-    alignas(DTU_PKG_SIZE) uint64_t flags = 0;
-    send_flags(&(DTU::get()), &flags);
+    flags = 0;
+    send_flags(&dtu, &flags);
 }
 
 void ContextSwitcher::send_flags(DTU *dtu, uint64_t *flags) {
@@ -109,10 +113,9 @@ void ContextSwitcher::switch_to(KVPE *to) {
 
         // -- Initialization --
 
-        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::SWITCHREQ
-            | RCTMUXCtrlFlag::STORE;
-        if (to && to->state() == KVPE::SUSPENDED)
-            ctrl |= RCTMUXCtrlFlag::RESTORE;
+        alignas(DTU_PKG_SIZE) uint64_t ctrl =
+            RCTMUX_FLAG_SIGNAL | RCTMUX_FLAG_STORE;
+        if (to && to->state() == KVPE::SUSPENDED) ctrl |= RCTMUX_FLAG_RESTORE;
         send_flags(&dtu, &ctrl);
 
         // -- Storage --
@@ -124,7 +127,7 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // cycles so we can busy wait here; we limit the maximal amount
         // of cycles, though
         uint8_t timeout_counter = 1 << 4;
-        while (--timeout_counter && !(ctrl & RCTMUXCtrlFlag::INITIALIZED)) {
+        while (--timeout_counter && (ctrl & RCTMUX_FLAG_SIGNAL)) {
             recv_flags(&dtu, &ctrl);
         }
 
@@ -139,12 +142,11 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // attach the memories for storage/restoration
         reset_endpoints(_currtmuxvpe, to);
 
-        // we activate the new sysc chan here to it for
-        // the 'finished' notification of RCTMux
+        // we activate the new sysc chan here for notifications by rctmux
         if (to)
             to->activate_sysc_ep();
 
-        ctrl |= RCTMUXCtrlFlag::STORAGE_ATTACHED;
+        ctrl |= RCTMUX_FLAG_SIGNAL;
         send_flags(&dtu, &ctrl);
     }
 

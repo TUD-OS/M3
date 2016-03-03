@@ -16,34 +16,13 @@
 
 #include <m3/Config.h>
 
-namespace m3 {
+#define RCTMUX_FLAG_ERROR   (1 << 0)
+#define RCTMUX_FLAG_SIGNAL  (1 << 1)
+#define RCTMUX_FLAG_STORE   (1 << 2)
+#define RCTMUX_FLAG_RESTORE (1 << 3)
 
-/**
- * These flags implement the flags register for remote controlled
- * time-multiplexing since the corresponding register is not yet
- * available in the DTU.
- *
- * Flags marked with [*] do not exist in the proposed design. They
- * allow for the polling part of the protocol or without occupying
- * additional memory.
- *
- * The ERROR flag is a workaround for the missing hardware-reset
- * feature.
- */
-enum RCTMUXCtrlFlag {
-    NONE                = 0,
-    // general flags
-    ERROR               = 1 << 0,       // an error occured
-    // rctmux flags
-    INITIALIZED         = 1 << 1,       // rctmux has been initialized [*]
-    // kernel flags
-    SWITCHREQ           = 1 << 2,       // context switch requested
-    STORE               = 1 << 3,       // save operation required
-    RESTORE             = 1 << 4,       // restore operation required
-    STORAGE_ATTACHED    = 1 << 5,       // attached save/restore storage [*]
-    //
-    SIGNAL              = 1 << 7,       // used for event polling
-};
+#if defined(__cplusplus)
+namespace m3 {
 
 /**
  * The app layout structure holds information on the segments of the
@@ -70,3 +49,4 @@ static inline AppLayout *applayout() {
 }
 
 }
+#endif
