@@ -209,6 +209,11 @@ private:
     static void loadGDT(DescTable *gdt) {
         asm volatile ("lgdt (%0)" : : "r"(gdt));
     }
+    static word_t getCR2() {
+        word_t res;
+        asm volatile ("mov %%cr2, %0" : "=r"(res));
+        return res;
+    }
     static void enableIRQs() {
         asm volatile ("sti");
     }

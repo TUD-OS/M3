@@ -68,8 +68,10 @@ Exceptions::Desc64 Exceptions::idt[IDT_COUNT];
 Exceptions::TSS Exceptions::tss ALIGNED(PAGE_SIZE);
 
 void Exceptions::handler(State *state) {
-    Serial::get() << "Interruption @ " << fmt(state->rip, "p") << "\n";
-    Serial::get() << "  irq: ";
+    Serial::get() << "Interruption @ " << fmt(state->rip, "p");
+    if(state->intrptNo == 0xe)
+        Serial::get() << " for address " << fmt(getCR2(), "p");
+    Serial::get() << "\n  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
         Serial::get() << exNames[state->intrptNo];
     else if(state->intrptNo == 64)
