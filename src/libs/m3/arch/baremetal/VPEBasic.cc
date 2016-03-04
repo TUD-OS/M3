@@ -15,6 +15,7 @@
  */
 
 #include <m3/cap/VPE.h>
+#include <m3/service/Pager.h>
 #include <m3/Syscalls.h>
 #include <m3/Log.h>
 #include <m3/ELF.h>
@@ -29,6 +30,11 @@ void VPE::init_state() {
         delete _caps;
     if(Heap::is_on_heap(_mounts))
         Heap::free(_mounts);
+
+    capsel_t pager_sess = *reinterpret_cast<capsel_t*>(BOOT_PAGER_SESS);
+    capsel_t pager_gate = *reinterpret_cast<capsel_t*>(BOOT_PAGER_GATE);
+    if(pager_sess > 0 && pager_gate)
+        _pager = new Pager(pager_sess, pager_gate);
 
     _caps = *reinterpret_cast<BitField<CAP_TOTAL>**>(BOOT_CAPS);
     if(_caps == nullptr)

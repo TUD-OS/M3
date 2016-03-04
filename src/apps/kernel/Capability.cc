@@ -51,7 +51,8 @@ Errors::Code MsgCapability::revoke() {
         LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated
-        KDTU::get().wakeup(vpe);
+        if(vpe.state() != KVPE::DEAD)
+            KDTU::get().wakeup(vpe);
     }
     obj.unref();
     return Errors::NO_ERROR;

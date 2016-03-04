@@ -3,6 +3,7 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/default', '.', scan=1)
 
+env.M3Strip('$FSDIR/default/bin/bench-syscall', '$BINARYDIR/bench-syscall')
 env.M3Strip('$FSDIR/default/bin/cat', '$BINARYDIR/cat')
 env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
 env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
@@ -10,6 +11,8 @@ env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')
 env.M3Strip('$FSDIR/default/bin/fstest', '$BINARYDIR/fstest')
 env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
 env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
+if env['ARCH'] != 'host':
+    env.M3Strip('$FSDIR/default/bin/idle', '$BINARYDIR/idle')
 env.M3Strip('$FSDIR/default/bin/ls', '$BINARYDIR/ls')
 env.M3Strip('$FSDIR/default/bin/noop', '$BINARYDIR/noop')
 env.M3Strip('$FSDIR/default/bin/parchksum', '$BINARYDIR/parchksum')

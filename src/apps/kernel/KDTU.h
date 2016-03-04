@@ -41,9 +41,10 @@ public:
     void deprivilege(int core);
 
     void wakeup(KVPE &vpe);
+    void suspend(KVPE &vpe);
     void injectIRQ(KVPE &vpe);
 
-    void config_pf_remote(KVPE &vpe, int ep, uint64_t rootpt);
+    void config_pf_remote(KVPE &vpe, int ep);
     void map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
     void unmap_page(KVPE &vpe, uintptr_t virt);
 
@@ -68,6 +69,8 @@ private:
 #if defined(__gem5__)
     void do_set_vpeid(size_t core, int oldVPE, int newVPE);
     void do_ext_cmd(KVPE &vpe, DTU::reg_t cmd);
+    void clear_pt(uintptr_t pt);
+    void disable_pfs(KVPE &vpe);
 #endif
 
     void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);

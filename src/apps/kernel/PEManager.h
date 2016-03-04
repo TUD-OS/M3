@@ -61,7 +61,7 @@ private:
     ~PEManager();
 
 public:
-    KVPE *create(String &&name, const char *core);
+    KVPE *create(String &&name, const char *core, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
     const char *type(int id) const {

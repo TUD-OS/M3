@@ -15,6 +15,7 @@
  */
 
 #include <m3/cap/VPE.h>
+#include <m3/service/Pager.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/Log.h>
@@ -24,16 +25,29 @@ namespace m3 {
 const size_t VPE::BUF_SIZE    = 4096;
 VPE VPE::_self INIT_PRIORITY(102);
 
-VPE::VPE(const String &name, const String &core)
+VPE::VPE(const String &name, const String &core, const char *pager)
         : ObjCap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _mounts(), _mountlen() {
+          _pager(), _mounts(), _mountlen() {
     init();
-    Syscalls::get().createvpe(sel(), _mem.sel(), name, core);
+
+    if(pager) {
+        // create pager first, to create session and obtain gate cap
+        _pager = new Pager(pager);
+        // now create VPE, which implicitly obtains the gate cap from us
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, _pager->gate().sel(), alloc_ep());
+        // now delegate our VPE cap to the pager
+        _pager->delegate_obj(sel());
+        // and delegate the pager cap to the VPE
+        delegate_obj(_pager->sel());
+    }
+    else
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, core, ObjCap::INVALID, 0);
 }
 
 VPE::~VPE() {
     if(this != &_self) {
+        delete _pager;
         // unarm it first. we can't do that after revoke (which would be triggered by the Gate destructor)
         EPMux::get().remove(&_mem, true);
         // only free that if it's not our own VPE. 1. it doesn't matter in this case and 2. it might

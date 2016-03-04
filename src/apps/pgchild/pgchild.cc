@@ -15,14 +15,33 @@
  */
 
 #include <m3/Common.h>
-#include <m3/stream/Serial.h>
+#include <m3/cap/VPE.h>
+#include <m3/service/Pager.h>
+#include <m3/vfs/FileRef.h>
+#include <m3/vfs/RegularFile.h>
+#include <m3/Log.h>
 
 using namespace m3;
 
 int main() {
-    const char *str = reinterpret_cast<const char*>(0x104000);
-    Serial::get() << "Printing string at " << fmt((void*)str, "p") << ":\n";
-    Serial::get() << str;
-    Serial::get() << "Done\n";
+    Serial::get() << "Hello world!\n";
+
+    if(VPE::self().pager()) {
+        FileRef file("/BitField.h", FILE_R);
+        FileInfo info;
+        file->stat(info);
+        // TODO that is not nice
+        RegularFile *rfile = static_cast<RegularFile*>(&*file);
+        uintptr_t virt = 0x104000;
+        Errors::Code res = VPE::self().pager()->map_ds(&virt, Math::round_up(info.size, PAGE_SIZE),
+            Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
+        if(res != Errors::NO_ERROR)
+            PANIC("Unable to map /largetext.txt:" << Errors::to_string(res));
+
+        const char *str = reinterpret_cast<const char*>(virt);
+        Serial::get() << "Printing string at " << fmt((void*)str, "p") << ":\n";
+        Serial::get() << str;
+        Serial::get() << "Done\n";
+    }
     return 0;
 }

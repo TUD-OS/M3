@@ -28,6 +28,9 @@
 
 namespace m3 {
 
+void KVPE::init() {
+}
+
 void KVPE::start(int argc, char **argv, int pid) {
     // when exiting, the program will release one reference
     ref();

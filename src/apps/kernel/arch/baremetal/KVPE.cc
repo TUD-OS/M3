@@ -25,32 +25,28 @@
 
 namespace m3 {
 
-void KVPE::start(int, char **, int) {
-    // when exiting, the program will release one reference
-    ref();
-    activate_sysc_ep();
-
-    KDTU::get().wakeup(*this);
-
-    _state = RUNNING;
-    LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
-}
-
-void KVPE::activate_sysc_ep() {
-    // write the config to the PE
-    alignas(DTU_PKG_SIZE) CoreConf conf;
-    memset(&conf, 0, sizeof(conf));
-    conf.coreid = core();
-    Sync::compiler_barrier();
-    KDTU::get().write_mem(*this, CONF_GLOBAL, &conf, sizeof(conf));
-
+void KVPE::init() {
     // attach default receive endpoint
     UNUSED Errors::Code res = RecvBufs::attach(
         *this, DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
     assert(res == Errors::NO_ERROR);
 
+    // configure syscall endpoint
     KDTU::get().config_send_remote(*this, DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         KERNEL_CORE, KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
+}
+
+void KVPE::activate_sysc_ep() {
+}
+
+void KVPE::start(int, char **, int) {
+    // when exiting, the program will release one reference
+    ref();
+
+    KDTU::get().wakeup(*this);
+
+    _state = RUNNING;
+    LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 
 Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
@@ -81,6 +77,12 @@ KVPE::~KVPE() {
     SyscallHandler::get().remove_session(this);
     detach_rbufs();
     free_reqs();
+    _objcaps.revoke_all();
+    _mapcaps.revoke_all();
+    if(_as) {
+        KDTU::get().suspend(*this);
+        delete _as;
+    }
 }
 
 }

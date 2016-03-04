@@ -64,7 +64,6 @@ public:
     void creategate(RecvGate &gate, GateIStream &is);
     void createvpe(RecvGate &gate, GateIStream &is);
     void createmap(RecvGate &gate, GateIStream &is);
-    void setpfgate(RecvGate &gate, GateIStream &is);
     void attachrb(RecvGate &gate, GateIStream &is);
     void detachrb(RecvGate &gate, GateIStream &is);
     void exchange(RecvGate &gate, GateIStream &is);

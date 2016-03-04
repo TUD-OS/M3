@@ -28,6 +28,9 @@
 namespace m3 {
 
 class VFS;
+class Pager;
+class FStream;
+class Executable;
 
 /**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
@@ -54,7 +57,7 @@ public:
     // don't revoke these. they kernel does so on exit
     explicit VPE()
         : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
-          _caps(), _eps(), _mounts(), _mountlen() {
+          _caps(), _eps(), _pager(), _mounts(), _mountlen() {
         init_state();
         init();
     }
@@ -72,9 +75,17 @@ public:
      *
      * @param name the VPE name
      * @param core the core type that is required (empty = default core)
+     * @param pager the pager (optional)
      */
-    explicit VPE(const String &name, const String &core = String());
+    explicit VPE(const String &name, const String &core = String(), const char *pager = nullptr);
     ~VPE();
+
+    /**
+     * @return the pager of this VPE (or nullptr)
+     */
+    Pager *pager() {
+        return _pager;
+    }
 
     /**
      * Allocates capability selectors.
@@ -196,6 +207,13 @@ public:
     Errors::Code exec(int argc, const char **argv);
 
     /**
+     * Executes the given executable on this VPE.
+     *
+     * @param exec the executable to run
+     */
+    Errors::Code exec(Executable &exec);
+
+    /**
      * Clones this program onto this VPE and executes the given function.
      *
      * @param f the function to execute
@@ -214,7 +232,8 @@ public:
 private:
     void init();
     Errors::Code run(void *lambda);
-    Errors::Code load(int argc, const char **argv, uintptr_t *entry);
+    Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
+    Errors::Code load(Executable &exec, uintptr_t *entry);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
     void start(uintptr_t entry, void *caps, void *eps, void *lambda, void *mounts, size_t mountlen);
 
@@ -226,6 +245,7 @@ private:
     MemGate _mem;
     BitField<SEL_TOTAL> *_caps;
     BitField<EP_COUNT> *_eps;
+    Pager *_pager;
     void *_mounts;
     size_t _mountlen;
     static VPE _self;

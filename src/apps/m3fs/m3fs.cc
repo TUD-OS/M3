@@ -147,7 +147,7 @@ public:
     explicit M3FSRequestHandler(size_t fssize)
             : m3fs_reqh_base_t(),
               _mem(MemGate::create_global_for(FS_IMG_OFFSET,
-                Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RW)),
+                Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
               _handle(_mem.sel()) {
         add_operation(M3FS::OPEN, &M3FSRequestHandler::open);
         add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
@@ -196,10 +196,13 @@ public:
             blocks = 0;
 
         // determine extent from byte offset
+        off_t firstOff = 0;
         if(flags & M3FS::BYTE_OFFSET) {
             size_t extent, extoff;
-            INodes::seek(_handle, of->ino, offset, SEEK_SET, extent, extoff);
+            off_t rem = offset;
+            INodes::seek(_handle, of->ino, rem, SEEK_SET, extent, extoff);
             offset = extent;
+            firstOff = rem;
         }
 
         CapRngDesc crd;
@@ -213,7 +216,7 @@ public:
             return;
         }
 
-        reply_vmsg_on(args, Errors::NO_ERROR, crd, *locs, extended);
+        reply_vmsg_on(args, Errors::NO_ERROR, crd, *locs, extended, firstOff);
         of->caps.add(crd);
     }
 
@@ -279,7 +282,7 @@ public:
         }
 
         off_t pos = INodes::seek(_handle, of->ino, off, whence, extent, extoff);
-        reply_vmsg(gate, Errors::NO_ERROR, extent, extoff, pos);
+        reply_vmsg(gate, Errors::NO_ERROR, extent, extoff, pos + off);
     }
 
     void stat(RecvGate &gate, GateIStream &is) {

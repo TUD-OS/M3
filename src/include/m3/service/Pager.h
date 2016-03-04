@@ -19,7 +19,6 @@
 #include <m3/cap/Session.h>
 #include <m3/cap/SendGate.h>
 #include <m3/cap/MemGate.h>
-#include <m3/cap/VPE.h>
 
 namespace m3 {
 
@@ -38,9 +37,11 @@ public:
         EXEC    = MemGate::X,
     };
 
-    explicit Pager(const String &service, const VPE &vpe)
+    explicit Pager(capsel_t sess, capsel_t gate)
+        : Session(sess), _gate(SendGate::bind(gate)) {
+    }
+    explicit Pager(const String &service)
         : Session(service), _gate(SendGate::bind(obtain(1).start())) {
-        delegate_obj(vpe.sel());
     }
 
     const SendGate &gate() const {

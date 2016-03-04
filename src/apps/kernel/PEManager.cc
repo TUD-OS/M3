@@ -141,7 +141,7 @@ bool PEManager::core_matches(size_t i, const char *core) const {
     return strcmp(core, "default") == 0;
 }
 
-KVPE *PEManager::create(String &&name, const char *core) {
+KVPE *PEManager::create(String &&name, const char *core, int ep, capsel_t pfgate) {
     if(_count == AVAIL_PES)
         return nullptr;
 
@@ -153,7 +153,7 @@ KVPE *PEManager::create(String &&name, const char *core) {
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new KVPE(std::move(name), i);
+    _vpes[i] = new KVPE(std::move(name), i, ep, pfgate);
     _count++;
     return _vpes[i];
 }

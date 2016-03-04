@@ -18,6 +18,7 @@
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 
+#include "../../MainMemory.h"
 #include "../../KDTU.h"
 #include "../../KVPE.h"
 
@@ -36,8 +37,25 @@ void KDTU::do_ext_cmd(KVPE &vpe, DTU::reg_t cmd) {
     write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
+void KDTU::clear_pt(uintptr_t pt) {
+    // clear the pagetable
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    uintptr_t addr = DTU::noc_to_virt(pt);
+    for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
+        write_mem_at(MEMORY_CORE, 0, addr + i * sizeof(buffer), buffer, sizeof(buffer));
+}
+
 void KDTU::init() {
     do_set_vpeid(KERNEL_CORE, KVPE::INVALID_ID, 0);
+}
+
+void KDTU::deprivilege(int core) {
+    // unset the privileged flag
+    alignas(DTU_PKG_SIZE) DTU::reg_t status = 0;
+    Sync::compiler_barrier();
+    write_mem_at(core, KVPE::INVALID_ID,
+        DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
 void KDTU::set_vpeid(int core, int vpe) {
@@ -50,29 +68,45 @@ void KDTU::unset_vpeid(int core, int vpe) {
 }
 
 void KDTU::wakeup(KVPE &vpe) {
+    // write the core id to the PE
+    alignas(DTU_PKG_SIZE) CoreConf conf;
+    conf.coreid = vpe.core();
+    Sync::compiler_barrier();
+    write_mem(vpe, CONF_GLOBAL, &conf, sizeof(conf));
+
     do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::WAKEUP_CORE));
+}
+
+void KDTU::suspend(KVPE &vpe) {
+    // invalidate TLB and cache
+    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_TLB));
+    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_CACHE));
 }
 
 void KDTU::injectIRQ(KVPE &vpe) {
     do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 2));
 }
 
-void KDTU::deprivilege(int core) {
-    // unset the privileged flag
-    alignas(DTU_PKG_SIZE) DTU::reg_t status = 0;
-    Sync::compiler_barrier();
-    write_mem_at(core, KVPE::INVALID_ID,
-        DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), &status, sizeof(status));
-}
-
-void KDTU::config_pf_remote(KVPE &vpe, int ep, uint64_t rootpt) {
+void KDTU::config_pf_remote(KVPE &vpe, int ep) {
     static_assert(static_cast<int>(DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
     static_assert(static_cast<int>(DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
 
-    // TODO read the root pt from the core; the HW sets it atm
-    config_mem_local(_ep, vpe.core(), vpe.id(), DTU::dtu_reg_addr(DTU::DtuRegs::ROOT_PT), sizeof(rootpt));
-    DTU::get().read(_ep, &rootpt, sizeof(rootpt), 0);
+    uint64_t rootpt = vpe.address_space()->root_pt();
+    if(!rootpt) {
+        // TODO read the root pt from the core; the HW sets it atm for apps that are started at boot
+        uintptr_t addr = DTU::dtu_reg_addr(DTU::DtuRegs::ROOT_PT);
+        config_mem_local(_ep, vpe.core(), vpe.id(), addr, sizeof(rootpt));
+        DTU::get().read(_ep, &rootpt, sizeof(rootpt), 0);
+    }
+    else {
+        clear_pt(rootpt);
+
+        // insert recursive entry
+        uintptr_t addr = DTU::noc_to_virt(rootpt);
+        DTU::pte_t pte = rootpt | DTU::PTE_RWX;
+        write_mem_at(MEMORY_CORE, 0, addr + PAGE_SIZE - sizeof(pte), &pte, sizeof(pte));
+    }
 
     alignas(DTU_PKG_SIZE) DTU::reg_t dtuRegs[3];
     dtuRegs[static_cast<size_t>(DTU::DtuRegs::STATUS)]  = DTU::StatusFlags::PAGEFAULTS;
@@ -103,6 +137,8 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
 }
 
 void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
+    assert(vpe.state() == KVPE::RUNNING);
+
     // configure the memory EP once and use it for all accesses
     config_mem_local(_ep, vpe.core(), vpe.id(), 0, 0xFFFFFFFFFFFFFFFF);
     for(int level = DTU::LEVEL_CNT - 1; level >= 0; --level) {
@@ -110,11 +146,25 @@ void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
         DTU::pte_t pte;
         if(level > 0) {
             DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
-            // TODO create the pagetable on demand
+
+            // create the pagetable on demand
+            if(pte == 0) {
+                // if we don't have a pagetable for that yet, unmapping is a noop
+                if(perm == 0)
+                    return;
+
+                // TODO this is prelimilary
+                uintptr_t addr = MainMemory::get().map().allocate(PAGE_SIZE);
+                pte = DTU::build_noc_addr(MEMORY_CORE, addr) | DTU::PTE_RWX;
+                LOG(PF, "Creating level 1 PTE for " << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
+                DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
+            }
+
             assert((pte & DTU::PTE_IRWX) == DTU::PTE_RWX);
         }
         else {
             pte = phys | perm | DTU::PTE_I;
+            LOG(PF, "Creating level 0 PTE for " << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
             DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
         }
     }

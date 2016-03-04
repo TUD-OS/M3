@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include "CapTable.h"
+#include "AddrSpace.h"
 
 namespace m3 {
 
@@ -52,7 +53,7 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = nextlog2<512>::val;
 
-    explicit KVPE(String &&prog, size_t id);
+    explicit KVPE(String &&prog, size_t id, int ep = -1, capsel_t pfgate = ObjCap::INVALID);
     KVPE(const KVPE &) = delete;
     KVPE &operator=(const KVPE &) = delete;
     ~KVPE();
@@ -68,6 +69,7 @@ public:
     void start(int argc, char **argv, int pid);
     void exit(int exitcode);
 
+    void init();
     void activate_sysc_ep(void *addr);
     Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
@@ -85,6 +87,9 @@ public:
     }
     int exitcode() const {
         return _exitcode;
+    }
+    AddrSpace *address_space() {
+        return _as;
     }
     void subscribe_exit(const Subscriptions<int>::callback_type &cb) {
         _exitsubscr.subscribe(cb);
@@ -144,6 +149,7 @@ private:
     MemGate _sepsgate;
     RecvGate _syscgate;
     RecvGate _srvgate;
+    AddrSpace *_as;
     SList<ServName> _requires;
     Subscriptions<int> _exitsubscr;
 };

@@ -81,6 +81,14 @@ public:
         return inst;
     }
 
+    /* unused */
+    static uintptr_t noc_to_virt(uint64_t) {
+        return 0;
+    }
+    static uint64_t build_noc_addr(int, uintptr_t) {
+        return 0;
+    }
+
     void configure(int ep, label_t label, int coreid, int epid, word_t) {
         // TODO use unlimited credits for the moment
         config_remote(ep, coreid, epid, 0xFFFFFFFF, 0);

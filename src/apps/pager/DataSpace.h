@@ -30,6 +30,8 @@
 
 namespace m3 {
 
+static char zeros[4096];
+
 class DataSpace : public TreapNode<uintptr_t> {
 public:
     explicit DataSpace(uintptr_t addr, size_t size, uint _flags)
@@ -81,6 +83,10 @@ public:
         *pageNo = 0;
         *pages = reg->size() >> PAGE_BITS;
         *sel = reg->mem()->sel();
+        *virt = addr() + reg->offset();
+        // zero the memory
+        for(size_t i = 0; i < *pages; ++i)
+            reg->mem()->write_sync(zeros, sizeof(zeros), i * PAGE_SIZE);
         return Errors::NO_ERROR;
     }
 };
@@ -101,7 +107,8 @@ public:
         }
 
         // get memory caps for the region
-        auto args = create_vmsg(id, offset + reg->offset(), 1, 0, M3FS::BYTE_OFFSET);
+        size_t count = 1, blocks = 0;
+        auto args = create_vmsg(id, offset + reg->offset(), count, blocks, M3FS::BYTE_OFFSET);
         CapRngDesc crd;
         loclist_type locs;
         GateIStream resp = sess.obtain(1, crd, args);
@@ -109,12 +116,16 @@ public:
             return Errors::last;
 
         // adjust region
-        resp >> locs;
-        reg->size(Math::round_up(locs.get(0), PAGE_SIZE));
+        bool extended;
+        off_t off;
+        resp >> locs >> extended >> off;
+        size_t sz = Math::round_up(locs.get(0) - off, PAGE_SIZE);
+        if(sz < reg->size())
+            reg->size(sz);
         reg->mem(new MemGate(MemGate::bind(crd.start())));
 
         // that's what we want to map
-        *pageNo = 0;
+        *pageNo = off >> PAGE_BITS;
         *pages = reg->size() >> PAGE_BITS;
         *virt = addr() + reg->offset();
         *sel = crd.start();

@@ -268,7 +268,7 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
     mark_dirty(h, inode->inode);
 }
 
-off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t off, int whence, size_t &extent, size_t &extoff) {
+off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t &off, int whence, size_t &extent, size_t &extoff) {
     Extent *indir = nullptr;
     INode *inode = get(h, ino);
 
@@ -280,11 +280,12 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t off, int whence, size_t &ex
         extoff = inode->size % h.sb().blocksize;
         if(extoff)
             extent--;
+        off = 0;
         return inode->size;
     }
 
     size_t i = 0;
-    off_t rem = off, pos = 0;
+    off_t pos = 0;
     // for SEEK_CUR, we need to know the file position until <extent>+<extoff>
     if(whence == SEEK_CUR) {
         for(; i < extent; ++i) {
@@ -294,7 +295,7 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t off, int whence, size_t &ex
 
             pos += ch->length * h.sb().blocksize;
         }
-        rem += extoff;
+        off += extoff;
     }
 
     // now search until we've found the extent covering the desired file position
@@ -303,18 +304,18 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t off, int whence, size_t &ex
         if(!ch)
             break;
 
-        if(rem < (off_t)(ch->length * h.sb().blocksize)) {
+        if(off < (off_t)(ch->length * h.sb().blocksize)) {
             extent = i;
-            extoff = rem;
-            return pos + rem;
+            extoff = off;
+            return pos;
         }
         pos += ch->length * h.sb().blocksize;
-        rem -= ch->length * h.sb().blocksize;
+        off -= ch->length * h.sb().blocksize;
     }
 
     extent = inode->extents;
-    extoff = rem;
-    return pos + rem;
+    extoff = off;
+    return pos;
 }
 
 void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff) {

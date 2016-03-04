@@ -92,7 +92,9 @@ private:
     enum class ExtCmdOpCode {
         WAKEUP_CORE         = 0,
         INV_PAGE            = 1,
-        INJECT_IRQ          = 2,
+        INV_TLB             = 2,
+        INV_CACHE           = 3,
+        INJECT_IRQ          = 4,
     };
 
 public:
@@ -154,6 +156,13 @@ public:
 
     static DTU &get() {
         return inst;
+    }
+
+    static uintptr_t noc_to_virt(uint64_t noc) {
+        return noc & ((static_cast<uint64_t>(1) << 52) - 1);
+    }
+    static uint64_t build_noc_addr(int pe, uintptr_t virt) {
+        return (static_cast<uintptr_t>(0x80 + pe) << 52) | virt;
     }
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);

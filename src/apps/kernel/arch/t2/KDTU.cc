@@ -27,16 +27,36 @@ void KDTU::init() {
     // nothing to do
 }
 
+void KDTU::deprivilege(int) {
+    // unsupported
+}
+
 void KDTU::set_vpeid(int, int) {
-    // nothing to do
+    // unsupported
 }
 
 void KDTU::unset_vpeid(int, int) {
-    // nothing to do
+    // unsupported
 }
 
 void KDTU::wakeup(KVPE &vpe) {
+    // first, invalidate all endpoints to start fresh
+    alignas(DTU_PKG_SIZE) CoreConf conf;
+    memset(&conf, 0, sizeof(conf));
+    conf.coreid = vpe.core();
+    Sync::memory_barrier();
+    write_mem(vpe, CONF_GLOBAL, &conf, sizeof(conf));
+
+    // configure syscall endpoint again
+    config_send_remote(vpe, DTU::SYSC_EP, reinterpret_cast<label_t>(&vpe.syscall_gate()),
+        KERNEL_CORE, KERNEL_CORE, DTU::SYSC_EP,
+        1 << KVPE::SYSC_CREDIT_ORD, 1 << KVPE::SYSC_CREDIT_ORD);
+
     injectIRQ(vpe);
+}
+
+void KDTU::suspend(KVPE &) {
+    // nothing to do
 }
 
 void KDTU::injectIRQ(KVPE &vpe) {
@@ -46,17 +66,16 @@ void KDTU::injectIRQ(KVPE &vpe) {
     write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
-void KDTU::deprivilege(int) {
-    // nothing to do
-}
-
-void KDTU::config_pf_remote(KVPE &, int, uint64_t) {
+void KDTU::config_pf_remote(KVPE &, int) {
+    // unsupported
 }
 
 void KDTU::map_page(KVPE &, uintptr_t, uintptr_t, int) {
+    // unsupported
 }
 
 void KDTU::unmap_page(KVPE &, uintptr_t) {
+    // unsupported
 }
 
 void KDTU::invalidate_ep(KVPE &vpe, int ep) {

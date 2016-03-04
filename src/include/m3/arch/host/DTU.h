@@ -154,6 +154,18 @@ public:
     static const int SYSC_EP      = 1;
     static const int DEF_RECVEP   = 2;
 
+    static DTU &get() {
+        return inst;
+    }
+
+    /* unused */
+    static uintptr_t noc_to_virt(uint64_t) {
+        return 0;
+    }
+    static uint64_t build_noc_addr(int, uintptr_t) {
+        return 0;
+    }
+
     explicit DTU();
 
     void reset();
@@ -174,10 +186,6 @@ public:
     }
     void set_ep(int i, size_t reg, word_t val) {
         _epregs[i * EPS_RCNT + reg] = val;
-    }
-
-    static DTU &get() {
-        return inst;
     }
 
     void configure(int i, label_t label, int coreid, int epid, word_t credits) {

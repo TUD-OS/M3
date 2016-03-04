@@ -16,7 +16,10 @@
 
 #include <m3/cap/VPE.h>
 #include <m3/Syscalls.h>
+#include <m3/service/Pager.h>
 #include <m3/stream/FStream.h>
+#include <m3/vfs/RegularFile.h>
+#include <m3/vfs/Executable.h>
 #include <m3/Log.h>
 #include <m3/ELF.h>
 #include <stdlib.h>
@@ -38,8 +41,13 @@ Errors::Code VPE::run(void *lambda) {
 }
 
 Errors::Code VPE::exec(int argc, const char **argv) {
+    Executable e(argc, argv);
+    return exec(e);
+}
+
+Errors::Code VPE::exec(Executable &exec) {
     uintptr_t entry;
-    Errors::Code err = load(argc, argv, &entry);
+    Errors::Code err = load(exec, &entry);
     if(err != Errors::NO_ERROR)
         return err;
 
@@ -68,7 +76,8 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
 }
 
-void VPE::start(uintptr_t entry, void *caps, void *eps, void *lambda, void *mounts, size_t mountlen) {
+void VPE::start(uintptr_t entry, void *caps, void *eps, void *lambda,
+        void *mounts, size_t mountlen) {
     static_assert(BOOT_LAMBDA == BOOT_ENTRY - 8, "BOOT_LAMBDA or BOOT_ENTRY is wrong");
 
     /* give the PE the entry point and the address of the lambda */
@@ -78,6 +87,8 @@ void VPE::start(uintptr_t entry, void *caps, void *eps, void *lambda, void *moun
         (word_t)eps,
         (word_t)mounts,
         mountlen,
+        _pager ? _pager->gate().sel() : -1,
+        _pager ? _pager->sel() : -1,
         (word_t)lambda,
         entry,
         (word_t)get_sp(),
@@ -95,10 +106,50 @@ void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {
     }
 }
 
-Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry) {
+Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
+    if(_pager) {
+        int prot = 0;
+        if(pheader.p_flags & PF_R)
+            prot |= Pager::READ;
+        if(pheader.p_flags & PF_W)
+            prot |= Pager::WRITE;
+        if(pheader.p_flags & PF_X)
+            prot |= Pager::EXEC;
+
+        uintptr_t virt = pheader.p_vaddr;
+        size_t sz = Math::round_up(pheader.p_memsz, static_cast<size_t>(PAGE_SIZE));
+        if(pheader.p_memsz == pheader.p_filesz)
+            return _pager->map_ds(&virt, sz, prot, 0, exec.sess(), exec.fd(), pheader.p_offset);
+
+        assert(pheader.p_filesz == 0);
+        return _pager->map_anon(&virt, sz, prot, 0);
+    }
+
+    /* seek to that offset and copy it to destination core */
+    if(exec.stream().seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
+        return Errors::INVALID_ELF;
+
+    size_t count = pheader.p_filesz;
+    size_t segoff = pheader.p_vaddr;
+    while(count > 0) {
+        size_t amount = std::min(count, BUF_SIZE);
+        if(exec.stream().read(buffer, amount) != amount)
+            return Errors::last;
+
+        _mem.write_sync(buffer, Math::round_up(amount, DTU_PKG_SIZE), segoff);
+        count -= amount;
+        segoff += amount;
+    }
+
+    /* zero the rest */
+    clear_mem(buffer, pheader.p_memsz - pheader.p_filesz, segoff);
+    return Errors::NO_ERROR;
+}
+
+Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
     Errors::Code err = Errors::NO_ERROR;
     uint64_t val;
-    FStream bin(argv[0], FILE_R);
+    FStream &bin = exec.stream();
     if(!bin)
         return Errors::last;
 
@@ -131,41 +182,38 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry) {
         if(pheader.p_type != PT_LOAD || pheader.p_memsz == 0 || skip_section(&pheader))
             continue;
 
-        /* seek to that offset and copy it to destination core */
-        if(bin.seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset) {
-            err = Errors::INVALID_ELF;
+        load_segment(exec, pheader, buffer);
+    }
+
+    if(_pager) {
+        // TODO temporary: just map idle where it's expected
+        // note that this assumes that the first page within that file contains the code
+        FStream *idle = new FStream("/bin/idle", FILE_RWX);
+        uintptr_t virt = 0x3ff000;
+        const RegularFile *rfile = static_cast<const RegularFile*>(&idle->file());
+        err = _pager->map_ds(&virt, PAGE_SIZE, Pager::READ | Pager::WRITE | Pager::EXEC, 0,
+            *rfile->fs(), rfile->fd(), 0);
+        if(err != Errors::NO_ERROR)
             goto error;
-        }
 
-        size_t count = pheader.p_filesz;
-        size_t segoff = pheader.p_vaddr;
-        while(count > 0) {
-            size_t amount = std::min(count, BUF_SIZE);
-            if(bin.read(buffer, amount) != amount) {
-                err = Errors::last;
-                goto error;
-            }
-
-            _mem.write_sync(buffer, Math::round_up(amount, DTU_PKG_SIZE), segoff);
-            count -= amount;
-            segoff += amount;
-        }
-
-        /* zero the rest */
-        clear_mem(buffer, pheader.p_memsz - pheader.p_filesz, segoff);
+        // create area for stack and runtime stuff
+        virt = Math::round_dn<size_t>(RT_SPACE_END, PAGE_SIZE);
+        err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
+        if(err != Errors::NO_ERROR)
+            goto error;
     }
 
     {
         /* copy arguments and arg pointers to buffer */
         char **argptr = (char**)buffer;
-        char *args = buffer + argc * sizeof(char*);
-        for(int i = 0; i < argc; ++i) {
-            size_t len = strlen(argv[i]);
+        char *args = buffer + exec.argc() * sizeof(char*);
+        for(int i = 0; i < exec.argc(); ++i) {
+            size_t len = strlen(exec.argv()[i]);
             if(args + len >= buffer + BUF_SIZE) {
                 err = Errors::INV_ARGS;
                 goto error;
             }
-            strcpy(args,argv[i]);
+            strcpy(args, exec.argv()[i]);
             *argptr++ = (char*)(ARGV_START + (args - buffer));
             args += len + 1;
         }
@@ -175,7 +223,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry) {
     }
 
     /* set argc and argv */
-    val = argc;
+    val = exec.argc();
     _mem.write_sync(&val, sizeof(val), ARGC_ADDR);
     val = ARGV_START;
     _mem.write_sync(&val, sizeof(val), ARGV_ADDR);

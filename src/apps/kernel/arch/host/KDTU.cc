@@ -26,23 +26,27 @@ void KDTU::init() {
 }
 
 void KDTU::set_vpeid(int, int) {
-    // nothing to do
+    // unsupported
 }
 
 void KDTU::unset_vpeid(int, int) {
-    // nothing to do
+    // unsupported
 }
 
 void KDTU::wakeup(KVPE &) {
     // nothing to do
 }
 
+void KDTU::suspend(KVPE &) {
+    // nothing to do
+}
+
 void KDTU::injectIRQ(KVPE &) {
-    // not supported
+    // unsupported
 }
 
 void KDTU::deprivilege(int) {
-    // not supported
+    // unsupported
 }
 
 void KDTU::invalidate_eps(KVPE &vpe) {
@@ -53,16 +57,20 @@ void KDTU::invalidate_eps(KVPE &vpe) {
     delete[] regs;
 }
 
-void KDTU::config_pf_remote(KVPE &, int, uint64_t) {
+void KDTU::config_pf_remote(KVPE &, int) {
+    // unsupported
 }
 
 void KDTU::map_page(KVPE &, uintptr_t, uintptr_t, int) {
+    // unsupported
 }
 
 void KDTU::unmap_page(KVPE &, uintptr_t) {
+    // unsupported
 }
 
 void KDTU::config_send_remote(KVPE &, int, label_t, int, int, int, size_t, word_t) {
+    // nothing to do
 }
 
 void KDTU::config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags) {

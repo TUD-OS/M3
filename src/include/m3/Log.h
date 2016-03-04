@@ -71,6 +71,7 @@ public:
         KERR        = 1 << 16,
         TRACE       = 1 << 17,
         MEM         = 1 << 18,
+        PF          = 1 << 19,
     };
 
 #if defined(__t2__) || defined(__t3__)

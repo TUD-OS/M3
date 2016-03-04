@@ -96,6 +96,14 @@ public:
         return inst;
     }
 
+    /* unused */
+    static uintptr_t noc_to_virt(uint64_t) {
+        return 0;
+    }
+    static uint64_t build_noc_addr(int, uintptr_t) {
+        return 0;
+    }
+
     void reset();
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);

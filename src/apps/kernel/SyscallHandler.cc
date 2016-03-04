@@ -58,6 +58,31 @@ struct ReplyInfo {
     word_t replycrd;
 };
 
+static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
+    KDTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+}
+
+static Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+    if(newcapobj) {
+        LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to lbl="
+                << fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
+                << ", ep=" << newcapobj->obj->epid
+                << ", crd=#" << fmt(newcapobj->obj->credits, "x"));
+    }
+    else
+        LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to NUL");
+
+    Errors::Code res = vpe->xchg_ep(epid, oldcapobj, newcapobj);
+    if(res != Errors::NO_ERROR)
+        return res;
+
+    if(oldcapobj)
+        oldcapobj->localepid = -1;
+    if(newcapobj)
+        newcapobj->localepid = epid;
+    return Errors::NO_ERROR;
+}
+
 SyscallHandler::SyscallHandler()
         : RequestHandler<SyscallHandler, Syscalls::Operation, Syscalls::COUNT>(),
           _rcvbuf(RecvBuf::create(epid(),
@@ -76,7 +101,6 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::CREATEGATE, &SyscallHandler::creategate);
     add_operation(Syscalls::CREATEVPE, &SyscallHandler::createvpe);
     add_operation(Syscalls::CREATEMAP, &SyscallHandler::createmap);
-    add_operation(Syscalls::SETPFGATE, &SyscallHandler::setpfgate);
     add_operation(Syscalls::ATTACHRB, &SyscallHandler::attachrb);
     add_operation(Syscalls::DETACHRB, &SyscallHandler::detachrb);
     add_operation(Syscalls::EXCHANGE, &SyscallHandler::exchange);
@@ -128,19 +152,28 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
-static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    KDTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
-}
-
 void SyscallHandler::pagefault(RecvGate &gate, GateIStream &is) {
+#if defined(__gem5__)
     KVPE *vpe = gate.session<KVPE>();
     uint64_t virt, access;
     is >> virt >> access;
     LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << fmt(virt, "p")
         << ", access " << fmt(access, "#x") << ")");
 
-    // this indicates that the pf handler is not available.
-    // TODO context switch, migrate, ...
+    // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
+
+    if(!vpe->address_space())
+        SYS_ERROR(vpe, gate, Errors::NOT_SUP, "No address space");
+
+    capsel_t gcap = vpe->address_space()->gate();
+    MsgCapability *msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
+    if(msg == nullptr || msg->localepid != -1)
+        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
+
+    Errors::Code res = do_activate(vpe, vpe->address_space()->ep(), nullptr, msg);
+    if(res != Errors::NO_ERROR)
+        SYS_ERROR(vpe, gate, res, "Activate failed");
+#endif
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
@@ -240,24 +273,44 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
 void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
     KVPE *vpe = gate.session<KVPE>();
-    capsel_t tcap, mcap;
+    capsel_t tcap, mcap, gcap;
     String name, core;
-    is >> tcap >> mcap >> name >> core;
+    size_t ep;
+    is >> tcap >> mcap >> name >> core >> gcap >> ep;
     LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name << ", core=" << core
-        << ", tcap=" << tcap << ", mcap=" << mcap << ")");
+        << ", tcap=" << tcap << ", mcap=" << mcap << ", pfgate=" << gcap
+        << ", pfep=" << ep << ")");
 
     if(!vpe->objcaps().unused(tcap) || !vpe->objcaps().unused(mcap))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid VPE or memory cap");
 
+    // if it has a pager, we need a gate cap
+    MsgCapability *msg = nullptr;
+    if(gcap != ObjCap::INVALID) {
+        msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
+        if(msg == nullptr)
+            SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
+    }
+
+    // create VPE
     const char *corename = core.c_str()[0] == '\0'
         ? PEManager::get().type(vpe->core() - APP_CORES)
         : core.c_str();
-    KVPE *nvpe = PEManager::get().create(std::move(name), corename);
+    KVPE *nvpe = PEManager::get().create(std::move(name), corename, ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, Errors::NO_FREE_CORE, "No free and suitable core found");
 
+    // inherit VPE and mem caps to the parent
     vpe->objcaps().obtain(tcap, nvpe->objcaps().get(0));
     vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
+
+    // initialize paging
+    if(gcap != ObjCap::INVALID) {
+        // delegate pf gate to the new VPE
+        nvpe->objcaps().obtain(gcap, msg);
+
+        KDTU::get().config_pf_remote(*nvpe, ep);
+    }
 
     reply_vmsg(gate, Errors::NO_ERROR);
 }
@@ -292,45 +345,13 @@ void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
     if(first >= total || first + pages <= first || first + pages > total)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Region of memory capability is invalid");
 
-    // the PE-id is stored in the upper bits. 0x80 is the first one.
-    uintptr_t phys = static_cast<uintptr_t>(0x80 + mcapobj->obj->core) << 52;
-    phys |= (mcapobj->addr() + PAGE_SIZE * first);
-
+    uintptr_t phys = DTU::build_noc_addr(mcapobj->obj->core, mcapobj->addr() + PAGE_SIZE * first);
     for(capsel_t i = 0; i < pages; ++i) {
         MapCapability *mapcap = new MapCapability(&tcapobj->vpe->mapcaps(), dst + i, phys, perms);
         tcapobj->vpe->mapcaps().inherit(mcapobj, mapcap);
         tcapobj->vpe->mapcaps().set(dst + i, mapcap);
         phys += PAGE_SIZE;
     }
-#endif
-
-    reply_vmsg(gate, Errors::NO_ERROR);
-}
-
-void SyscallHandler::setpfgate(RecvGate &gate, GateIStream &is) {
-#if defined(__gem5__)
-    EVENT_TRACER_Syscall_setpfgate();
-    KVPE *vpe = gate.session<KVPE>();
-    capsel_t tcap, gcap;
-    size_t ep;
-    is >> tcap >> gcap >> ep;
-    LOG_SYS(vpe, ": syscall::setpfgate", "(vpe=" << tcap << ", gcap=" << gcap
-        << ", ep=" << ep << ")");
-
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
-    if(tcapobj == nullptr)
-        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "VPE capability is invalid");
-
-    MsgCapability *msg = static_cast<MsgCapability*>(
-        tcapobj->vpe->objcaps().get(gcap, Capability::MSG));
-    if(msg == nullptr)
-        SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Invalid cap(s)");
-
-    // TODO we need to know the max. msg size here
-    KDTU::get().config_send_remote(*tcapobj->vpe, ep, msg->obj->label, msg->obj->core, msg->obj->vpe,
-        msg->obj->epid, msg->obj->credits, msg->obj->credits);
-    // TODO what is the root-pt?
-    KDTU::get().config_pf_remote(*tcapobj->vpe, ep, 0);
 #endif
 
     reply_vmsg(gate, Errors::NO_ERROR);
@@ -606,27 +627,6 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
     msg.put(is);
     sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total());
     msg.claim();
-}
-
-static Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
-    if(newcapobj) {
-        LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to lbl="
-                << fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
-                << ", ep=" << newcapobj->obj->epid
-                << ", crd=#" << fmt(newcapobj->obj->credits, "x"));
-    }
-    else
-        LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to NUL");
-
-    Errors::Code res = vpe->xchg_ep(epid, oldcapobj, newcapobj);
-    if(res != Errors::NO_ERROR)
-        return res;
-
-    if(oldcapobj)
-        oldcapobj->localepid = -1;
-    if(newcapobj)
-        newcapobj->localepid = epid;
-    return Errors::NO_ERROR;
 }
 
 void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {

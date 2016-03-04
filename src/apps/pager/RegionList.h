@@ -33,6 +33,9 @@ public:
         delete _mem;
     }
 
+    MemGate *mem() {
+        return _mem;
+    }
     const MemGate *mem() const {
         return _mem;
     }
