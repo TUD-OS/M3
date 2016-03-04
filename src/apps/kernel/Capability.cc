@@ -31,7 +31,6 @@ MemObject::~MemObject() {
     if(core == MEMORY_CORE && !derived) {
         uintptr_t addr = label & ~MemGate::RWX;
         MainMemory::get().map().free(addr, credits);
-        LOG(KSYSC, "Free'd " << (credits / 1024) << " KiB of memory @ " << fmt(addr, "p"));
     }
 }
 

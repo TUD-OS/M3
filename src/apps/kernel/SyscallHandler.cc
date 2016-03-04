@@ -462,8 +462,6 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
     else
         addr += mem.base();
 
-    LOG(KSYSC, "Requested " << (size / 1024) << " KiB of memory @ " << fmt(addr, "p"));
-
     // TODO if addr was 0, we don't want to free it on revoke
     vpe->objcaps().set(cap,
         new MemCapability(&vpe->objcaps(), cap, addr, size, perms, MEMORY_CORE, 0, mem.epid()));

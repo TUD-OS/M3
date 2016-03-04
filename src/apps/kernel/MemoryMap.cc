@@ -15,6 +15,8 @@
  */
 
 #include <assert.h>
+#include <m3/Log.h>
+
 #include "MemoryMap.h"
 
 namespace m3 {
@@ -56,10 +58,13 @@ uintptr_t MemoryMap::allocate(size_t size) {
             list = a->next;
         delete a;
     }
+    LOG(MEM, "Requested " << (size / 1024) << " KiB of memory @ " << fmt(res, "p"));
     return res;
 }
 
 void MemoryMap::free(uintptr_t addr, size_t size) {
+    LOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << fmt(addr, "p"));
+
     /* find the area behind ours */
     Area *n, *p = nullptr;
     for(n = list; n != nullptr && addr > n->addr; p = n, n = n->next)
