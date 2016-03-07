@@ -16,8 +16,8 @@
 
 #include <m3/arch/host/SharedMemory.h>
 #include <m3/util/Util.h>
+#include <m3/Env.h>
 #include <m3/Log.h>
-#include <m3/Config.h>
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -29,7 +29,7 @@ namespace m3 {
 SharedMemory::SharedMemory(const String &name, size_t size, Op op)
         : _fd(-1), _name(name), _addr(), _size(size) {
     OStringStream os;
-    os << Config::get().shm_prefix() << name;
+    os << env()->shm_prefix() << name;
     _fd = shm_open(os.str(), O_RDWR | (op == CREATE ? O_CREAT : 0) | O_EXCL, S_IRUSR | S_IWUSR);
     if(_fd == -1)
         PANIC("shm_open: Unable to open '" << os.str() << "': " << strerror(errno));
@@ -49,9 +49,9 @@ SharedMemory::~SharedMemory() {
         munmap(_addr, _size);
         // shm_open seems to do no reference-counting. thus, shm_unlink will remove it regardless
         // of how many users there are left. so, let only the kernel unlink a shared memory.
-        if(Config::get().is_kernel()) {
+        if(env()->is_kernel()) {
             OStringStream os;
-            os << Config::get().shm_prefix() << _name;
+            os << env()->shm_prefix() << _name;
             LOG(SHM, "Del " << os.str());
             shm_unlink(os.str());
         }

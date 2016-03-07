@@ -91,7 +91,7 @@ Tracing::Tracing() {
         trace_core[i] = !!((1 << i) & PE_MASK);
 #endif
 
-    if(coreid() != KERNEL_CORE)
+    if(env()->coreid != KERNEL_CORE)
         reinit();
     else
         reset();
@@ -138,7 +138,7 @@ void Tracing::flush() {
 }
 
 void Tracing::reinit() {
-    assert(coreid() == KERNEL_CORE);
+    assert(env()->coreid == KERNEL_CORE);
     trace_enabled = false;
     reset();
 
@@ -159,7 +159,7 @@ void Tracing::reinit() {
 }
 
 void Tracing::init_kernel() {
-    assert(coreid() != KERNEL_CORE);
+    assert(env()->coreid != KERNEL_CORE);
     trace_enabled = false;
     reset();
 
@@ -178,7 +178,7 @@ void Tracing::init_kernel() {
 }
 
 void Tracing::trace_dump() {
-    assert(coreid() != KERNEL_CORE);
+    assert(env()->coreid != KERNEL_CORE);
     trace_enabled = false;
 
     for(uint icore = 0; icore < MAX_CORES; ++icore) {
@@ -318,7 +318,7 @@ void Tracing::send_event_buffer_to_mem() {
     else if(next_event < eventbuf_half && next_event > eventbuf)
         next_event = eventbuf_half;
 
-    if(!between_flush_and_reinit && trace_core[coreid()])
+    if(!between_flush_and_reinit && trace_core[env()->coreid])
         record_event_func(EVENT_FUNC_ENTER, EVENT_FUNC_buffer_to_mem);
 
     LOG(TRACE, "Tracing::send_event_buffer_to_mem: "
@@ -335,14 +335,14 @@ void Tracing::send_event_buffer_to_mem() {
     // write buffer to Mem
     mem_write(membuf_cur, ptr, size);
     membuf_cur += size;
-    if(!between_flush_and_reinit && trace_core[coreid()])
+    if(!between_flush_and_reinit && trace_core[env()->coreid])
         record_event_func(EVENT_FUNC_EXIT, EVENT_FUNC_buffer_to_mem);
 }
 
 void Tracing::reset() {
     last_mem_event = 0;
     next_event = eventbuf;
-    membuf_start = membuf_of(coreid() - FIRST_PE_ID);
+    membuf_start = membuf_of(env()->coreid - FIRST_PE_ID);
     membuf_cur = membuf_start + 8; // this will be overwritten in reinit()
     event_counter = 0;
     eventbuf_half = eventbuf + TRACE_EVENTBUF_SIZE / 2;

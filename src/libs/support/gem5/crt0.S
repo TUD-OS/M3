@@ -17,61 +17,20 @@
 #include <m3/Config.h>
 
 .global _start
-.extern main
-.extern lambda_main
-.extern exit
-.extern __clibrary_init
-.extern __clibrary_init_lambda
+.extern env_run
 
 _start:
-    # set the stack pointer (BOOT_SP is set if we are calling a lambda)
-    mov     $BOOT_SP, %rax
-    mov     (%rax), %rsp
-    test    %rsp, %rsp
-    jne     1f
-    mov     $STACK_TOP, %rsp
-1:
-    mov     $0, %rbp
-
-    # check if we should call a lambda
-    mov     $BOOT_LAMBDA, %rax
-    mov     (%rax), %rax
-    test    %rax, %rax
+    # stack pointer already set?
+    mov     $0xDEADBEEF, %rcx
+    cmp     %rcx, %rax
     je      1f
 
-    # __clibrary_init_lambda(argc, argv)
-    mov     $ARGC_ADDR, %rdi
-    mov     (%rdi), %rdi
-    mov     $ARGV_ADDR, %rsi
-    mov     (%rsi), %rsi
-    call    __clibrary_init_lambda
-
-    # res = lambda_main(lambda)
-    mov     $BOOT_LAMBDA, %rdi
-    mov     (%rdi), %rdi
-    call    lambda_main
-
-    jmp     2f
+    # set default stack pointer
+    mov     $(STACK_TOP - 8), %rsp
+    mov     %rsp, %rbp
 
 1:
-    # __clibrary_init(argc, argv)
-    mov     $ARGC_ADDR, %rdi
-    mov     (%rdi), %rdi
-    mov     $ARGV_ADDR, %rsi
-    mov     (%rsi), %rsi
-    call    __clibrary_init
-
-    # res = main(argc, argv)
-    mov     $ARGC_ADDR, %rdi
-    mov     (%rdi), %rdi
-    mov     $ARGV_ADDR, %rsi
-    mov     (%rsi), %rsi
-    call    main
-
-2:
-    # exit(res)
-    mov     %rax, %rdi
-    call    exit
+    call    env_run
 
     # just to be sure
     hlt

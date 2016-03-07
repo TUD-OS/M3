@@ -2,7 +2,7 @@
 /* Linker Script for default link */
 MEMORY
 {
-  dram0_0_seg :                           org = 0x6000CD70, len = 0x160
+  dram0_0_seg :                           org = 0x6000d590, len = 0x160
   iram0_0_seg :                           org = 0x60010000, len = 0x2E0
   iram0_2_seg :                           org = 0x60010400, len = 0x178
   iram0_3_seg :                           org = 0x60010578, len = 0x4
@@ -13,7 +13,7 @@ MEMORY
   iram0_8_seg :                           org = 0x600105BC, len = 0x1C
   iram0_9_seg :                           org = 0x600105D8, len = 0x4
   iram0_10_seg :                          org = 0x600105DC, len = 0x1C
-  iram0_11_seg :                          org = 0x60017C00, len = 0x8400
+  iram0_11_seg :                          org = 0x60017A00, len = 0x8600
 }
 
 PHDRS

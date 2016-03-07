@@ -41,11 +41,12 @@ void KDTU::unset_vpeid(int, int) {
 
 void KDTU::wakeup(KVPE &vpe) {
     // first, invalidate all endpoints to start fresh
-    alignas(DTU_PKG_SIZE) CoreConf conf;
-    memset(&conf, 0, sizeof(conf));
-    conf.coreid = vpe.core();
-    Sync::memory_barrier();
-    write_mem(vpe, CONF_GLOBAL, &conf, sizeof(conf));
+    invalidate_eps(vpe);
+
+    // write the core id to the PE
+    uint64_t id = vpe.core();
+    Sync::compiler_barrier();
+    write_mem(vpe, RT_START, &id, sizeof(id));
 
     // configure syscall endpoint again
     config_send_remote(vpe, DTU::SYSC_EP, reinterpret_cast<label_t>(&vpe.syscall_gate()),
@@ -82,19 +83,15 @@ void KDTU::invalidate_ep(KVPE &vpe, int ep) {
     alignas(DTU_PKG_SIZE) EPConf conf;
     memset(&conf, 0, sizeof(conf));
     Sync::memory_barrier();
-    uintptr_t addr = CONF_GLOBAL + offsetof(CoreConf, eps) + ep * sizeof(EPConf);
-    // TODO something is wrong here. This print statement helps to make it work in most cases, but
-    // not always. It seems to be a timing problem, but I have no clue why this occurs.
-    Serial::get() << "Invalidating EP " << ep << " on PE " << vpe.core() << "\n";
+    uintptr_t addr = EPS_START + ep * sizeof(EPConf);
     write_mem(vpe, addr, &conf, sizeof(conf));
 }
 
 void KDTU::invalidate_eps(KVPE &vpe) {
-    alignas(DTU_PKG_SIZE) CoreConf conf;
-    memset(&conf, 0, sizeof(conf));
-    conf.coreid = vpe.core();
+    alignas(DTU_PKG_SIZE) char eps[EPS_SIZE];
+    memset(eps, 0, sizeof(eps));
     Sync::memory_barrier();
-    write_mem(vpe, CONF_GLOBAL, &conf, sizeof(conf));
+    write_mem(vpe, EPS_START, eps, sizeof(eps));
 }
 
 void KDTU::config_recv_local(int, uintptr_t, uint, uint, int) {
@@ -116,7 +113,7 @@ void KDTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size
 
 void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
-    config_send(coreconf()->eps + ep, label, dstcore, dstvpe, dstep, msgsize, credits);
+    config_send(eps() + ep, label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
 void KDTU::config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
@@ -124,7 +121,7 @@ void KDTU::config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int
     alignas(DTU_PKG_SIZE) EPConf conf;
     config_send(&conf, label, dstcore, dstvpe, dstep, msgsize, credits);
     Sync::memory_barrier();
-    uintptr_t epaddr = CONF_GLOBAL + offsetof(CoreConf, eps) + ep * sizeof(EPConf);
+    uintptr_t epaddr = EPS_START + ep * sizeof(EPConf);
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
 
@@ -138,14 +135,14 @@ void KDTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, in
 }
 
 void KDTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
-    config_mem(coreconf()->eps + ep, dstcore, dstvpe, addr, size, MemGate::RW);
+    config_mem(eps() + ep, dstcore, dstvpe, addr, size, MemGate::RW);
 }
 
 void KDTU::config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
     alignas(DTU_PKG_SIZE) EPConf conf;
     config_mem(&conf, dstcore, dstvpe, addr, size, perm);
     Sync::memory_barrier();
-    uintptr_t epaddr = CONF_GLOBAL + offsetof(CoreConf, eps) + ep * sizeof(EPConf);
+    uintptr_t epaddr = EPS_START + ep * sizeof(EPConf);
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
 

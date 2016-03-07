@@ -86,7 +86,7 @@ void KVPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
-    of << Config::get().shm_prefix().c_str() << "\n";
+    of << env()->shm_prefix().c_str() << "\n";
     of << core() << "\n";
     of << label << "\n";
     of << epid << "\n";

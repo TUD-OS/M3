@@ -14,28 +14,24 @@
 # General Public License version 2 for more details.
 #
 
-#include <m3/Config.h>
-
 .global _start
 
-_start:
-    # check if there is something to run
-    mov     $BOOT_ENTRY, %rax
-    mov     (%rax), %rcx
-    test    %rcx, %rcx
-    jne     1f
+.text
 
-    # wait until we get waked up
+_start:
+    # use a small stack
+    mov     $stack, %rsp
+    mov     %rsp, %rbp
+
+    # check if there is something to run
+    call    try_run
+
+    # _if we get here, there was none, so idle
     hlt
     jmp     _start
 
-1:
-    # set the location to jump to on exit
-    mov     $BOOT_EXIT, %rax
-    movq    $_start, (%rax)
+.data
 
-    # jump to entry point
-    jmp     *%rcx
-
-    # just to be sure
-    hlt
+    .align 16
+    .space 64, 0
+stack:

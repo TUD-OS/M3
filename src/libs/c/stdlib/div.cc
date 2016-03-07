@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <c/div.h>
 
 template<typename T>
@@ -38,7 +38,7 @@ T divmod(T n, T d, T *rem) {
 
 #if defined(__t2__)
 long divide(long n, long d, long *rem) {
-    if(m3::coreid() == CM_CORE)
+    if(m3::env()->coreid == CM_CORE)
         return divmod(n, d, rem);
 
     *rem = n % d;
@@ -46,7 +46,7 @@ long divide(long n, long d, long *rem) {
 }
 
 llong divide(llong n, llong d, llong *rem) {
-    if(m3::coreid() == CM_CORE)
+    if(m3::env()->coreid == CM_CORE)
         return divmod(n, d, rem);
 
     *rem = n % d;

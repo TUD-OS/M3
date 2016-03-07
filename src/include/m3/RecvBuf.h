@@ -67,7 +67,7 @@ public:
     }
     static RecvBuf create(size_t epid) {
         return RecvBuf(epid, reinterpret_cast<void*>(
-            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(coreid(), epid)),
+            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(env()->coreid, epid)),
             nextlog2<RECV_BUF_MSGSIZE>::val, nextlog2<RECV_BUF_MSGSIZE>::val, NONE);
     }
 #else

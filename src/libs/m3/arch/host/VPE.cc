@@ -16,7 +16,7 @@
 
 #include <m3/cap/VPE.h>
 #include <m3/Syscalls.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <m3/stream/FStream.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/Log.h>
@@ -99,7 +99,7 @@ Errors::Code VPE::run(void *lambda) {
         read(fd[0], &byte, 1);
         close(fd[0]);
 
-        Config::get().reset();
+        env()->reset();
         VPE::self().init_state();
 
         std::function<int()> *func = reinterpret_cast<std::function<int()>*>(lambda);

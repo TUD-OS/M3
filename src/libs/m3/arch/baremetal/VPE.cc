@@ -29,14 +29,29 @@ namespace m3 {
 Errors::Code VPE::run(void *lambda) {
     copy_sections();
 
-    /* clear core config */
-    char *buffer = (char*)Heap::alloc(BUF_SIZE);
-    clear_mem(buffer, sizeof(CoreConf), CONF_LOCAL);
-    Heap::free(buffer);
+    alignas(DTU_PKG_SIZE) Env senv;
+    senv.coreid = 0;
+    senv.argc = 0;
+    senv.argv = 0;
+    senv.sp = get_sp();
+    senv.entry = get_entry();
+    senv.lambda = reinterpret_cast<uintptr_t>(lambda);
+    senv.exit = 0;
+
+    senv.mount_len = _mountlen;
+    senv.mounts = reinterpret_cast<uintptr_t>(_mounts);
+    senv.caps = reinterpret_cast<uintptr_t>(_caps);
+    senv.eps = reinterpret_cast<uintptr_t>(_eps);
+    senv.pager_gate = 0;
+    senv.pager_sess = 0;
+
+    senv.def_recvbuf = env()->def_recvbuf;
+    senv.def_recvgate = env()->def_recvgate;
+
+    /* write start env to PE */
+    _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    uintptr_t entry = get_entry();
-    start(entry, _caps, _eps, lambda, _mounts, _mountlen);
     return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
 }
 
@@ -46,54 +61,63 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 }
 
 Errors::Code VPE::exec(Executable &exec) {
+    alignas(DTU_PKG_SIZE) Env senv;
+    char *buffer = (char*)Heap::alloc(BUF_SIZE);
+
     uintptr_t entry;
-    Errors::Code err = load(exec, &entry);
-    if(err != Errors::NO_ERROR)
+    size_t size;
+    Errors::Code err = load(exec, &entry, buffer, &size);
+    if(err != Errors::NO_ERROR) {
+        Heap::free(buffer);
         return err;
-
-    /* store state to the VPE's memory */
-    size_t statesize = _mountlen +
-        Math::round_up(sizeof(*_caps), DTU_PKG_SIZE) +
-        Math::round_up(sizeof(*_eps), DTU_PKG_SIZE);
-    if(statesize > STATE_SIZE)
-        PANIC("State is too large");
-
-    size_t offset = STATE_SPACE;
-    if(_mountlen > 0) {
-        _mem.write_sync(_mounts, _mountlen, offset);
-        offset += _mountlen;
     }
 
-    void *caps = reinterpret_cast<void*>(offset);
-    _mem.write_sync(_caps, Math::round_up(sizeof(*_caps), DTU_PKG_SIZE), offset);
-    offset += Math::round_up(sizeof(*_caps), DTU_PKG_SIZE);
+    senv.argc = exec.argc();
+    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+    senv.sp = get_sp();
+    senv.entry = entry;
+    senv.lambda = 0;
+    senv.exit = 0;
 
-    void *eps = reinterpret_cast<void*>(offset);
-    _mem.write_sync(_eps, Math::round_up(sizeof(*_eps), DTU_PKG_SIZE), offset);
+    /* check state size */
+    if(size + _mountlen + sizeof(*_caps) + sizeof(*_eps) > RT_SPACE_SIZE)
+        PANIC("State is too large");
+
+    /* add mounts, caps and eps */
+    /* align it because we cannot necessarily read e.g. integers from unaligned addresses */
+    size_t offset = Math::round_up(size, sizeof(word_t));
+    senv.mount_len = _mountlen;
+    senv.mounts = RT_SPACE_START + offset;
+    if(_mountlen > 0) {
+        memcpy(buffer + offset, _mounts, _mountlen);
+        offset = Math::round_up(offset + _mountlen, sizeof(word_t));
+    }
+
+    senv.caps = RT_SPACE_START + offset;
+    memcpy(buffer + offset, _caps, sizeof(*_caps));
+    offset = Math::round_up(offset + sizeof(*_caps), sizeof(word_t));
+
+    senv.eps = RT_SPACE_START + offset;
+    memcpy(buffer + offset, _eps, sizeof(*_eps));
+    offset = Math::round_up(offset + sizeof(*_eps), DTU_PKG_SIZE);
+
+    /* write entire runtime stuff */
+    _mem.write_sync(buffer, offset, RT_SPACE_START);
+
+    Heap::free(buffer);
+
+    /* set pager info */
+    senv.pager_sess = _pager ? _pager->sel() : 0;
+    senv.pager_gate = _pager ? _pager->gate().sel() : 0;
+
+    senv.def_recvbuf = nullptr;
+    senv.def_recvgate = nullptr;
+
+    /* write start env to PE */
+    _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    start(entry, caps, eps, nullptr, reinterpret_cast<void*>(STATE_SPACE), _mountlen);
     return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
-}
-
-void VPE::start(uintptr_t entry, void *caps, void *eps, void *lambda,
-        void *mounts, size_t mountlen) {
-    static_assert(BOOT_LAMBDA == BOOT_ENTRY - 8, "BOOT_LAMBDA or BOOT_ENTRY is wrong");
-
-    /* give the PE the entry point and the address of the lambda */
-    /* additionally, it needs the already allocated caps and endpoints */
-    uint64_t vals[] = {
-        (word_t)caps,
-        (word_t)eps,
-        (word_t)mounts,
-        mountlen,
-        _pager ? _pager->gate().sel() : -1,
-        _pager ? _pager->sel() : -1,
-        (word_t)lambda,
-        entry,
-        (word_t)get_sp(),
-    };
-    _mem.write_sync(vals, sizeof(vals), BOOT_CAPS);
 }
 
 void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {
@@ -146,9 +170,7 @@ Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
-    Errors::Code err = Errors::NO_ERROR;
-    uint64_t val;
+Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size) {
     FStream &bin = exec.stream();
     if(!bin)
         return Errors::last;
@@ -162,22 +184,16 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
         header.e_ident[3] != 'F')
         return Errors::INVALID_ELF;
 
-    char *buffer = (char*)Heap::alloc(BUF_SIZE);
-
     /* copy load segments to destination core */
     uintptr_t end = 0;
     off_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
         ElfPh pheader;
-        if(bin.seek(off, SEEK_SET) != off) {
-            err = Errors::INVALID_ELF;
-            goto error;
-        }
-        if(bin.read(&pheader, sizeof(pheader)) != sizeof(pheader)) {
-            err = Errors::last;
-            goto error;
-        }
+        if(bin.seek(off, SEEK_SET) != off)
+            return Errors::INVALID_ELF;
+        if(bin.read(&pheader, sizeof(pheader)) != sizeof(pheader))
+            return Errors::last;
 
         /* we're only interested in non-empty load segments */
         if(pheader.p_type != PT_LOAD || pheader.p_memsz == 0 || skip_section(&pheader))
@@ -190,15 +206,15 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
     if(_pager) {
         // create area for stack and boot/runtime stuff
         uintptr_t virt = RT_START;
-        err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
+        Errors::Code err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
-            goto error;
+            return err;
 
         // create heap
         virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
         err = _pager->map_anon(&virt, INIT_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
-            goto error;
+            return err;
     }
 
     {
@@ -207,33 +223,18 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
         char *args = buffer + exec.argc() * sizeof(char*);
         for(int i = 0; i < exec.argc(); ++i) {
             size_t len = strlen(exec.argv()[i]);
-            if(args + len >= buffer + BUF_SIZE) {
-                err = Errors::INV_ARGS;
-                goto error;
-            }
+            if(args + len >= buffer + BUF_SIZE)
+                return Errors::INV_ARGS;
             strcpy(args, exec.argv()[i]);
-            *argptr++ = (char*)(ARGV_START + (args - buffer));
+            *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
             args += len + 1;
         }
 
-        /* write it to the target core */
-        _mem.write_sync(buffer, Math::round_up((size_t)(args - buffer), DTU_PKG_SIZE), ARGV_START);
+        *size = args - buffer;
     }
 
-    /* set argc and argv */
-    val = exec.argc();
-    _mem.write_sync(&val, sizeof(val), ARGC_ADDR);
-    val = ARGV_START;
-    _mem.write_sync(&val, sizeof(val), ARGV_ADDR);
-
-    /* clear core config */
-    clear_mem(buffer, sizeof(CoreConf), CONF_LOCAL);
-
     *entry = header.e_entry;
-
-error:
-    Heap::free(buffer);
-    return err;
+    return Errors::NO_ERROR;
 }
 
 }

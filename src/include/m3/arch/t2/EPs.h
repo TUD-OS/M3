@@ -14,17 +14,32 @@
  * General Public License version 2 for more details.
  */
 
+#pragma once
+
 #include <m3/Common.h>
-#include <m3/Env.h>
-#include <cstdlib>
+#include <m3/Config.h>
 
-EXTERN_C NORETURN void _exit(int) {
-    uintptr_t jmpaddr = m3::env()->exit;
-    if(jmpaddr != 0) {
-        m3::env()->entry = 0;
-        asm volatile ("jx    %0" : : "r"(jmpaddr));
-    }
+namespace m3 {
 
-    while(1)
-        asm volatile ("waiti 0");
+struct EPConf {
+    uchar valid;
+    uchar dstcore;
+    uchar dstep;
+    // padding
+    uchar : sizeof(uchar) * 8;
+    word_t credits;
+    label_t label;
+    // padding
+    word_t : sizeof(word_t) * 8;
+} PACKED;
+
+static inline EPConf *eps() {
+    // don't require this to be true for host programs (mkm3fs, ...)
+#if !defined(__tools__)
+    static_assert(sizeof(EPConf) == EP_SIZE, "EP_SIZE wrong");
+#endif
+
+    return reinterpret_cast<EPConf*>(EPS_START);
+}
+
 }

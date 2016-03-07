@@ -39,14 +39,14 @@ void RecvBuf::attach(size_t i) {
         EPMux::get().reserve(i);
 
 #if defined(__t3__)
-        if(coreid() != KERNEL_CORE) {
+        if(env()->coreid != KERNEL_CORE) {
             // required for t3 because one can't write to these registers externally
             DTU::get().configure_recv(i, reinterpret_cast<word_t>(_buf), _order, _msgorder,
                 _flags & ~DELETE_BUF);
         }
 #endif
 
-        if(coreid() != KERNEL_CORE && i > DTU::DEF_RECVEP) {
+        if(env()->coreid != KERNEL_CORE && i > DTU::DEF_RECVEP) {
             if(Syscalls::get().attachrb(VPE::self().sel(), i, reinterpret_cast<word_t>(_buf),
                     _order, _msgorder, _flags & ~DELETE_BUF) != Errors::NO_ERROR)
                 PANIC("Attaching receive buffer to " << i << " failed: " << Errors::to_string(Errors::last));
@@ -80,7 +80,7 @@ void RecvBuf::disable() {
 }
 
 void RecvBuf::detach() {
-    if(coreid() != KERNEL_CORE && _epid > DTU::DEF_RECVEP && _epid != UNBOUND) {
+    if(env()->coreid != KERNEL_CORE && _epid > DTU::DEF_RECVEP && _epid != UNBOUND) {
         Syscalls::get().detachrb(VPE::self().sel(), _epid);
         _epid = UNBOUND;
     }

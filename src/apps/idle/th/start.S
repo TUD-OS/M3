@@ -25,12 +25,9 @@
 
     .literal LIT_STACK_TOP, STACK_TOP
     .literal LIT_PS, 0x00040020
-    .literal LIT_BOOT_ENTRY, BOOT_ENTRY
-    .literal LIT_BOOT_EXIT, BOOT_EXIT
 
     .extern  setup_irq
-    .extern  run_task
-    .extern  print
+    .extern  loop
 
     .align  4
     .global _start
@@ -45,36 +42,10 @@ _start:
     wsr.ps  a3
     rsync
 
-    # let the program know where to jump to when finished
-    l32r    a4, LIT_BOOT_EXIT
-    # start over to reset the stack-pointer etc.
-    movi.n  a3, _start
-    s32i.n  a3, a4, 0
-
     # setup interrupts
     call4   setup_irq
 
-1:
-    # wait for an interrupt
-    # TODO is broken on the FFT core
-    # TODO is broken on CM core
-#if !defined(__t3__) && !defined(__t2__)
-    waiti   0
-#endif
-
-    # is there a callback?
-    l32r    a4, LIT_BOOT_ENTRY
-    l32i.n  a3, a4, 0
-    # _if its zero, there is nothing to call
-    beqz.n  a3, 2f
-    jx      a3
-
-2:
-    # check if there is a task to run
-#if defined(__t2__)
-    call4   run_task
-#endif
-    j       1b
+    call4   loop
 
     # not reached
 1:  j       1b

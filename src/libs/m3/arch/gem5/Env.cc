@@ -15,16 +15,27 @@
  */
 
 #include <m3/Common.h>
+#include <m3/arch/gem5/Exception.h>
 #include <m3/Env.h>
-#include <cstdlib>
 
-EXTERN_C NORETURN void _exit(int) {
-    uintptr_t jmpaddr = m3::env()->exit;
-    if(jmpaddr != 0) {
-        m3::env()->entry = 0;
-        asm volatile ("jx    %0" : : "r"(jmpaddr));
-    }
+typedef void (*constr_func)();
 
-    while(1)
-        asm volatile ("waiti 0");
+void *__dso_handle;
+
+extern constr_func CTORS_BEGIN;
+extern constr_func CTORS_END;
+
+namespace m3 {
+
+void Env::pre_init() {
+}
+
+void Env::post_init() {
+    m3::Exceptions::init();
+
+    // call constructors
+    for(constr_func *func = &CTORS_BEGIN; func < &CTORS_END; ++func)
+        (*func)();
+}
+
 }

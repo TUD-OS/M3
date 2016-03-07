@@ -80,7 +80,7 @@ retry:
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
-    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), cfg->dstep);
+    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, cfg->dstep);
     LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
@@ -98,7 +98,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     head.label = cfg->label;
     head.replylabel = replylbl;
     head.has_replycap = 1;
-    head.core = coreid();
+    head.core = env()->coreid;
     head.epid = reply_ep;
     set_target(SLOT_NO, cfg->dstcore, destaddr);
     Sync::memory_barrier();
@@ -109,7 +109,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
 
 Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     DTU::Message *orgmsg = message_at(ep, msgidx);
-    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(coreid(), orgmsg->epid);
+    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, orgmsg->epid);
     LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
@@ -126,7 +126,7 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     head.length = size;
     head.label = orgmsg->replylabel;
     head.has_replycap = 0;
-    head.core = coreid();
+    head.core = env()->coreid;
     set_target(SLOT_NO, orgmsg->core, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));

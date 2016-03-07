@@ -65,7 +65,7 @@ void MsgBackend::send(int core, int ep, const DTU::Buffer *buf) {
 ssize_t MsgBackend::recv(int ep, DTU::Buffer *buf) {
     int msgqid = DTU::get().get_ep(ep, DTU::EP_BUF_MSGQID);
     if(msgqid == 0) {
-        msgqid = msgget(get_msgkey(coreid(), ep), 0);
+        msgqid = msgget(get_msgkey(env()->coreid, ep), 0);
         DTU::get().set_ep(ep, DTU::EP_BUF_MSGQID, msgqid);
     }
 
@@ -104,7 +104,7 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
         if(fcntl(_localsocks[epid], F_SETFL, O_NONBLOCK) == -1)
             PANIC("Setting O_NONBLOCK failed: " << strerror(errno));
 
-        sockaddr_un *ep = _endpoints + coreid() * EP_COUNT + epid;
+        sockaddr_un *ep = _endpoints + env()->coreid * EP_COUNT + epid;
         if(bind(_localsocks[epid], (struct sockaddr*)ep, sizeof(*ep)) == -1)
             PANIC("Binding socket for ep " << epid << " failed: " << strerror(errno));
     }

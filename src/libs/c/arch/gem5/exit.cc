@@ -15,13 +15,13 @@
  */
 
 #include <m3/Common.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <cstdlib>
 
 EXTERN_C NORETURN void _exit(int) {
-    uintptr_t jmpaddr = *(uintptr_t*)BOOT_EXIT;
+    uintptr_t jmpaddr = m3::env()->exit;
     if(jmpaddr != 0) {
-        *(uintptr_t*)BOOT_ENTRY = 0;
+        m3::env()->entry = 0;
         asm volatile ("jmp *%0" : : "r"(jmpaddr));
     }
 

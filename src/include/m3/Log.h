@@ -18,11 +18,11 @@
 
 #include <m3/stream/Serial.h>
 #include <m3/Backtrace.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 
 #if defined(__host__)
-#   define __log_lock()   m3::Config::get().log_lock()
-#   define __log_unlock() m3::Config::get().log_unlock()
+#   define __log_lock()   m3::env()->log_lock()
+#   define __log_unlock() m3::env()->log_unlock()
 #else
 #   define __log_lock()
 #   define __log_unlock()

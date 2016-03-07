@@ -145,7 +145,7 @@ public:
     }
 
     inline void event_msg_send(uchar remotecore, size_t length, uint16_t tag) {
-        if(trace_enabled && trace_sendrecv && trace_core[remotecore] && trace_core[coreid()]) {
+        if(trace_enabled && trace_sendrecv && trace_core[remotecore] && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_msg(EVENT_MSG_SEND, remotecore, length, tag);
             trace_enabled = true;
@@ -153,7 +153,7 @@ public:
     }
 
     inline void event_msg_recv(uchar remotecore, size_t length, uint16_t tag) {
-        if(trace_enabled && trace_sendrecv && trace_core[remotecore] && trace_core[coreid()]) {
+        if(trace_enabled && trace_sendrecv && trace_core[remotecore] && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_msg(EVENT_MSG_RECV, remotecore, length, tag);
             trace_enabled = true;
@@ -161,7 +161,7 @@ public:
     }
 
     inline void event_mem_read(uchar remotecore, size_t length) {
-        if(trace_enabled && trace_read && trace_core[remotecore] && trace_core[coreid()]) {
+        if(trace_enabled && trace_read && trace_core[remotecore] && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_mem(EVENT_MEM_READ, remotecore, length);
             trace_enabled = true;
@@ -169,7 +169,7 @@ public:
     }
 
     inline void event_mem_write(uchar remotecore, size_t length) {
-        if(trace_enabled && trace_write && trace_core[remotecore] && trace_core[coreid()]) {
+        if(trace_enabled && trace_write && trace_core[remotecore] && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_mem(EVENT_MEM_WRITE, remotecore, length);
             trace_enabled = true;
@@ -185,7 +185,7 @@ public:
     }
 
     inline void event_ufunc_enter(const char name[5]) {
-        if(trace_enabled && trace_ufunc && trace_core[coreid()]) {
+        if(trace_enabled && trace_ufunc && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_func(EVENT_UFUNC_ENTER, *((uint32_t*)name));
             trace_enabled = true;
@@ -193,7 +193,7 @@ public:
     }
 
     inline void event_ufunc_exit() {
-        if(trace_enabled && trace_ufunc && trace_core[coreid()]) {
+        if(trace_enabled && trace_ufunc && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_func_exit(EVENT_UFUNC_EXIT);
             trace_enabled = true;
@@ -201,7 +201,7 @@ public:
     }
 
     inline void event_func_enter(uint32_t id) {
-        if(trace_enabled && trace_func && trace_core[coreid()]) {
+        if(trace_enabled && trace_func && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_func(EVENT_FUNC_ENTER, id);
             trace_enabled = true;
@@ -209,7 +209,7 @@ public:
     }
 
     inline void event_func_exit() {
-        if(trace_enabled && trace_func && trace_core[coreid()]) {
+        if(trace_enabled && trace_func && trace_core[env()->coreid]) {
             trace_enabled = false;
             record_event_func_exit(EVENT_FUNC_EXIT);
             trace_enabled = true;

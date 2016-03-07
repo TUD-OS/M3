@@ -31,21 +31,19 @@ void VPE::init_state() {
     if(Heap::is_on_heap(_mounts))
         Heap::free(_mounts);
 
-    capsel_t pager_sess = *reinterpret_cast<capsel_t*>(BOOT_PAGER_SESS);
-    capsel_t pager_gate = *reinterpret_cast<capsel_t*>(BOOT_PAGER_GATE);
-    if(pager_sess > 0 && pager_gate)
-        _pager = new Pager(pager_sess, pager_gate);
+    if(env()->pager_sess && env()->pager_gate)
+        _pager = new Pager(env()->pager_sess, env()->pager_gate);
 
-    _caps = *reinterpret_cast<BitField<CAP_TOTAL>**>(BOOT_CAPS);
+    _caps = reinterpret_cast<BitField<CAP_TOTAL>*>(env()->caps);
     if(_caps == nullptr)
         _caps = new BitField<CAP_TOTAL>();
 
-    _eps = *reinterpret_cast<BitField<EP_COUNT>**>(BOOT_EPS);
+    _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
     if(_eps == nullptr)
         _eps = new BitField<EP_COUNT>();
 
-    _mounts = *reinterpret_cast<void**>(BOOT_MOUNTS);
-    _mountlen = *reinterpret_cast<size_t*>(BOOT_MOUNTLEN);
+    _mounts = reinterpret_cast<void*>(env()->mounts);
+    _mountlen = env()->mount_len;
 }
 
 }

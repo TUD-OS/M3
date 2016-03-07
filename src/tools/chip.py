@@ -6,31 +6,21 @@ import select
 import time
 import ConfigParser
 import StringIO
+from ctypes import *
 
 # read memory layout
 ini_str = open('memlayout.ini', 'r').read()
 config = ConfigParser.RawConfigParser()
 config.readfp(StringIO.StringIO(ini_str))
 
-ARGC_ADDR = int(config.get("memlayout", "ARGC_ADDR"))
-ARGV_ADDR = int(config.get("memlayout", "ARGV_ADDR"))
-ARGV_SIZE = int(config.get("memlayout", "ARGV_SIZE"))
-ARGV_START = int(config.get("memlayout", "ARGV_START"))
+RT_START = int(config.get("memlayout", "RT_START"))
+RT_SIZE = int(config.get("memlayout", "RT_SIZE"))
+EPS_START = int(config.get("memlayout", "EPS_START"))
+EPS_SIZE = int(config.get("memlayout", "EPS_SIZE"))
 SERIAL_ACK = int(config.get("memlayout", "SERIAL_ACK"))
 SERIAL_INWAIT = int(config.get("memlayout", "SERIAL_INWAIT"))
 SERIAL_BUF = int(config.get("memlayout", "SERIAL_BUF"))
 SERIAL_BUFSIZE = int(config.get("memlayout", "SERIAL_BUFSIZE"))
-BOOT_ENTRY = int(config.get("memlayout", "BOOT_ENTRY"))
-BOOT_SP = int(config.get("memlayout", "BOOT_SP"))
-BOOT_EPS = int(config.get("memlayout", "BOOT_EPS"))
-BOOT_CAPS = int(config.get("memlayout", "BOOT_CAPS"))
-BOOT_LAMBDA = int(config.get("memlayout", "BOOT_LAMBDA"))
-BOOT_MOUNTS = int(config.get("memlayout", "BOOT_MOUNTS"))
-STATE_SPACE = int(config.get("memlayout", "STATE_SPACE"))
-BOOT_EXIT = int(config.get("memlayout", "BOOT_EXIT"))
-BOOT_DATA = int(config.get("memlayout", "BOOT_DATA"))
-CORE_CONF = int(config.get("memlayout", "CORE_CONF"))
-CORE_CONF_SIZE = int(config.get("memlayout", "CORE_CONF_SIZE"))
 DRAM_CCOUNT = int(config.get("memlayout", "DRAM_CCOUNT"))
 TRACE_MEMBUF_SIZE = int(config.get("memlayout", "TRACE_MEMBUF_SIZE"))
 TRACE_MEMBUF_ADDR = int(config.get("memlayout", "TRACE_MEMBUF_ADDR"))
@@ -40,6 +30,30 @@ DRAM_FILESIZE = int(config.get("memlayout", "DRAM_FILESIZE"))
 DRAM_FILENAME = int(config.get("memlayout", "DRAM_FILENAME"))
 DRAM_FILENAME_LEN = int(config.get("memlayout", "DRAM_FILENAME_LEN"))
 FS_IMG_OFFSET = int(config.get("memlayout", "FS_IMG_OFFSET"))
+
+class Env(Structure):
+    _fields_ = [
+        ('coreid', c_uint64),
+        ('argc', c_uint32),
+        ('argv', c_uint32),
+        ('mods', c_uint32 * 8),
+
+        ('sp', c_uint32),
+        ('entry', c_uint32),
+        ('callable', c_uint32),
+        ('pager_sess', c_uint32),
+        ('pager_gate', c_uint32),
+        ('mountlen', c_uint32),
+        ('mounts', c_uint32),
+        ('eps', c_uint32),
+        ('caps', c_uint32),
+        ('exit', c_uint32),
+
+        ('def_recvbuf', c_uint32),
+        ('def_recvgate', c_uint32),
+    ]
+    def send(self):
+        return buffer(self)[:]
 
 BOLD_START = '\033[1m'
 BOLD_END = '\033[0m'
@@ -75,8 +89,8 @@ def stringToInt64s(str):
     return vals
 
 def checkOffset(off):
-    if off >= ARGV_START + ARGV_SIZE:
-        print "Error: Argument size is too large!"
+    if off >= RT_START + RT_SIZE:
+        print "Arguments too long: %#x exceeds %#x .. %#x!" % (off, RT_START, RT_START + RT_SIZE)
         sys.exit(1)
 
 def read64bit(core, addr):
@@ -105,20 +119,15 @@ def writeStr(core, str, addr):
         addr += 8
     write64bit(core, addr, 0)
 
-def initState(core):
-    # set argc and argv
-    write64bit(core, ARGC_ADDR, 0)
-    write64bit(core, ARGV_ADDR, 0)
+def initState(core, argv):
+    senv = Env()
+    senv.coreid = 0
 
-    # ensure that he waits
-    write64bit(core, BOOT_ENTRY, 0)
-    # ensure that we don't receive prints
-    write64bit(core, SERIAL_ACK, 0)
+    senv.argc = len(argv)
+    senv.argv = RT_START + sizeof(senv)
 
-def initMem(core, argv):
     # init arguments in argv space
-    write64bit(core, ARGV_START, ARGV_START + 4)
-    off = ARGV_START + ((len(argv) + 1) / 2) * 8
+    off = senv.argv + (len(argv) + 1) * 8
     argptr = []
     for a in argv:
         argptr += [off]
@@ -135,27 +144,30 @@ def initMem(core, argv):
         val = argptr[a]
         if a < len(argptr) - 1:
             val |= argptr[a + 1] << 32
-        write64bit(core, ARGV_START + a * 4, val)
+        write64bit(core, senv.argv + a * 4, val)
 
-    # start with empty caps and eps
-    write64bit(core, BOOT_CAPS, 0)
-    write64bit(core, BOOT_EPS, 0)
-    write64bit(core, BOOT_MOUNTS, 0)
-    write64bit(core, STATE_SPACE, 0)
-    # set argc and argv
-    write64bit(core, ARGC_ADDR, len(argv))
-    write64bit(core, ARGV_ADDR, ARGV_START)
     # call main
-    write64bit(core, BOOT_LAMBDA, 0)
-    write64bit(core, BOOT_EXIT, 0)
+    senv.callable = 0
+    senv.exit = 0
     # use default stack pointer
-    write64bit(core, BOOT_SP, 0)
+    senv.sp = 0
 
-    # clear core config
+    senv.pager_gate = 0
+    senv.pager_sess = 0
+    senv.caps = 0
+    senv.eps = 0
+    senv.mountlen = 0
+    senv.mounts = 0
+
+    # write Env to core
+    off = RT_START
+    for a in stringToInt64s(senv.send()):
+        write64bit(core, off, a)
+        off += 8
+
+    # init serial protocol
     write64bit(core, SERIAL_ACK, 0)
     write64bit(core, SERIAL_INWAIT, 0)
-    for a in range(0, CORE_CONF_SIZE, 8):
-        write64bit(core, CORE_CONF + a, 0)
 
 def readFile(mod, addr, len, filename):
     f = open(filename, "wb")
@@ -278,11 +290,8 @@ for duo_pe in th.duo_pes[0:len(progs)]:
     # load program
     duo_pe.initMem(progs[i][0] + ".mem")
 
-    # init basic state
-    initState(duo_pe)
-
-    # set arguments, ...
-    initMem(duo_pe, progs[i])
+    # init state
+    initState(duo_pe, progs[i])
 
     i += 1
 
@@ -299,8 +308,8 @@ for duo_pe in th.duo_pes[len(progs):]:
     # load program
     duo_pe.initMem("idle.mem")
 
-    # init basic state
-    initState(duo_pe)
+    # init state
+    initState(duo_pe, [])
 
     i += 1
 
@@ -311,12 +320,8 @@ th.cm_core.set_ptable_val(10)   # 400 MHz
 print BOLD_START + "Initializing memory of CM with " + cmprog + BOLD_END
 th.cm_core.initMem(cmprog)
 
-# init basic state
-initState(th.cm_core)
-
-# set arguments, ...
-if cmprog != "idle.mem":
-    initMem(th.cm_core, [cmprog[:-4]])
+# init CM state
+initState(th.cm_core, [cmprog[:-4]])
 
 th.cm_core.start()
 

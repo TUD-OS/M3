@@ -45,65 +45,6 @@
 #define STACK_TOP           (RT_END + STACK_SIZE)
 #define STACK_BOTTOM        RT_END
 
-// boot state
-#define ARGV_START          (RT_START + (2 + MODS_MAX) * 8)
-#define ARGV_SIZE           (RT_START + 0x1000 - ARGV_START)
-#define ARGC_ADDR           (RT_START + 0)
-#define ARGV_ADDR           (RT_START + 8)
-#define MODS_MAX            8
-#define MODS_ADDR           (RT_START + 16)
-
-#define BOOT_SP             (RT_END - 8)
-#define BOOT_ENTRY          (BOOT_SP - 8)
-#define BOOT_LAMBDA         (BOOT_ENTRY - 8)
-#define BOOT_PAGER_SESS     (BOOT_LAMBDA - 8)
-#define BOOT_PAGER_GATE     (BOOT_PAGER_SESS - 8)
-#define BOOT_MOUNTLEN       (BOOT_PAGER_GATE - 8)
-#define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
-#define BOOT_EPS            (BOOT_MOUNTS - 8)
-#define BOOT_CAPS           (BOOT_EPS - 8)
-#define BOOT_EXIT           (BOOT_CAPS - 8)
-
-#define STATE_SIZE          0x100
-#define STATE_SPACE         (BOOT_EXIT - STATE_SIZE)
-
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
-#define DEF_RCVBUF          (STATE_SPACE - DEF_RCVBUF_SIZE)
-
-#define CONF_LOCAL          (DEF_RCVBUF - sizeof(word_t) * 2)
-#define CONF_GLOBAL         CONF_LOCAL
-
-// end of space for runtime
-#define RT_SPACE_END        CONF_LOCAL
-
-#if defined(__cplusplus)
-
-#   include <m3/Common.h>
-
-namespace m3 {
-
-class RecvGate;
-extern RecvGate *def_rgate;
-
-struct CoreConf {
-    word_t coreid;
-    /* padding */
-    word_t : sizeof(word_t) * 8;
-} PACKED;
-
-static inline CoreConf *coreconf() {
-    return reinterpret_cast<CoreConf*>(CONF_LOCAL);
-}
-
-static inline int coreid() {
-    return coreconf()->coreid;
-}
-
-static inline RecvGate *def_rcvgate() {
-    return def_rgate;
-}
-
-}
-
-#endif
+#define DEF_RCVBUF          (RT_END - DEF_RCVBUF_SIZE)

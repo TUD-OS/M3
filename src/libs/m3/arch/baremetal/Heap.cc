@@ -31,7 +31,7 @@ void Heap::init() {
     uintptr_t end = Math::round_up(begin, PAGE_SIZE) + INIT_HEAP_SIZE;
     _end = reinterpret_cast<Area*>(end) - 1;
 #else
-    _end = reinterpret_cast<Area*>(Math::round_dn<size_t>(RT_SPACE_END, sizeof(Area))) - 1;
+    _end = reinterpret_cast<Area*>(Math::round_dn<size_t>(RT_START, sizeof(Area))) - 1;
 #endif
     _end->next = 0;
     _end->prev = (_end - _begin) * sizeof(Area);

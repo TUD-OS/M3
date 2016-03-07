@@ -15,48 +15,6 @@ using task_call_6_t = void (*)(int *, int *, int *, int *, int *, int *);
 using task_call_7_t = void (*)(int *, int *, int *, int *, int *, int *, int *);
 using task_call_8_t = void (*)(int *, int *, int *, int *, int *, int *, int *, int *);
 
-#if 0
-void memcpy(void *dest, const void *src, size_t len) {
-    char *d = reinterpret_cast<char*>(dest);
-    const char *s = reinterpret_cast<const char*>(src);
-    while(len-- > 0)
-        *d++ = *s++;
-}
-
-void memset(void *dest, int val, size_t len) {
-    char *d = reinterpret_cast<char*>(dest);
-    while(len-- > 0)
-        *d++ = val;
-}
-
-char *printu(char *buffer, ulong n, uint base) {
-    if(n >= base)
-        buffer = printu(buffer, n / base, base);
-    *buffer = "0123456789ABCDEF"[n % base];
-    return buffer + 1;
-}
-
-int print(const char *str, size_t len) {
-    volatile uint *ack = reinterpret_cast<volatile uint*>(SERIAL_ACK);
-    char *buffer = reinterpret_cast<char*>(SERIAL_BUF);
-    assert((len & (DTU_PKG_SIZE - 1)) == 0);
-    assert(len <= SERIAL_BUFSIZE);
-    memcpy(buffer, str, len);
-    *ack = len;
-    while(*ack != 0)
-        ;
-    return 0;
-}
-
-extern "C" void notify(uint32_t arg) {
-    char buffer[16];
-    memset(buffer, ' ', sizeof(buffer));
-    printu(buffer, arg, 16);
-    buffer[sizeof(buffer) - 1] = '\n';
-    print(buffer, sizeof(buffer));
-}
-#endif
-
 void interrupt_handler(int) {
     /* clear level-triggered interrupt */
     volatile unsigned *tmp = (volatile unsigned *)IRQ_ADDR_INTERN;

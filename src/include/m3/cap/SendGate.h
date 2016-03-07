@@ -19,6 +19,7 @@
 #include <m3/cap/Gate.h>
 #include <m3/cap/RecvGate.h>
 #include <m3/Errors.h>
+#include <m3/Env.h>
 
 namespace m3 {
 
@@ -39,7 +40,8 @@ class SendGate : public Gate {
     friend class Syscalls;
 
     explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t epid = UNBOUND)
-        : Gate(SEND_GATE, cap, capflags, epid), _rcvgate(rcvgate == nullptr ? def_rcvgate() : rcvgate) {
+        : Gate(SEND_GATE, cap, capflags, epid),
+            _rcvgate(rcvgate == nullptr ? env()->def_recvgate : rcvgate) {
     }
 
 public:

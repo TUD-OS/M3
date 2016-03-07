@@ -15,7 +15,7 @@
  */
 
 #include <m3/cap/RecvGate.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <m3/Syscalls.h>
 #include <m3/DTU.h>
 #include <m3/Log.h>
@@ -41,11 +41,11 @@ int __default_conf WEAK = 1;
 
 namespace m3 {
 
-Config *Config::_inst = nullptr;
-Config::Init Config::_init INIT_PRIORITY(107);
-char Config::_exec[128];
-char Config::_exec_short[128];
-const char *Config::_exec_short_ptr = nullptr;
+Env *Env::_inst = nullptr;
+Env::Init Env::_init INIT_PRIORITY(107);
+char Env::_exec[128];
+char Env::_exec_short[128];
+const char *Env::_exec_short_ptr = nullptr;
 
 static const char *gen_prefix() {
     static char prefix[32];
@@ -66,32 +66,32 @@ static void on_exit_func(int status, void *) {
     stop_dtu();
 }
 
-Config::Init::Init() {
+Env::Init::Init() {
 #ifndef NDEBUG
     char *val = getenv("M3_WAIT");
-    if(val && strstr(Config::executable(), val) != nullptr) {
+    if(val && strstr(Env::executable(), val) != nullptr) {
         while(wait_for_debugger)
             usleep(20000);
     }
 #endif
 
     if(__default_conf)
-        new Config();
+        new Env();
     else
-        new Config(0, gen_prefix());
+        new Env(0, gen_prefix());
 
     // use on_exit to get the return-value of main and pass it to the m3 kernel
     if(!_inst->is_kernel())
         on_exit(on_exit_func, nullptr);
 }
 
-Config::Init::~Init() {
+Env::Init::~Init() {
     delete _inst;
 }
 
-void Config::reset() {
+void Env::reset() {
     set_params(this, nullptr, false);
-    Serial::init(executable(), coreid());
+    Serial::init(executable(), env()->coreid);
 
     DTU::get().reset();
     EPMux::get().reset();
@@ -102,30 +102,30 @@ void Config::reset() {
     Syscalls::get().init(DTU::get().ep_regs());
 }
 
-Config::Config()
-        : _core(), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, nullptr, false)),
+Env::Env()
+        : coreid(), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, nullptr, false)),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER),
           // the memory receive buffer is required to let others access our memory via DTU
           _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
           _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
-          _def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
+          def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
     init();
 }
 
-Config::Config(int core, const char *shmprefix)
-        : _core(core), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, shmprefix, true)),
+Env::Env(int core, const char *shmprefix)
+        : coreid(core), _logfd(-1), _shm_prefix(), _is_kernel(set_params(this, shmprefix, true)),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER),
           _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
           _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
-          _def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
+          def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
     init();
 }
 
-void Config::init_executable() {
+void Env::init_executable() {
     int fd = open("/proc/self/cmdline", O_RDONLY);
     if(fd == -1)
         PANIC("open");
@@ -137,13 +137,13 @@ void Config::init_executable() {
     _exec_short_ptr = basename(_exec_short);
 }
 
-void Config::init() {
-    Serial::init(executable(), coreid());
+void Env::init() {
+    Serial::init(executable(), env()->coreid);
 
     init_dtu();
 }
 
-void Config::init_dtu() {
+void Env::init_dtu() {
     // we have to init that here, too, because the kernel doesn't know where it is
     DTU::get().configure_recv(DTU::MEM_EP, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
         _mem_recvbuf.order(), _mem_recvbuf.msgorder(), _mem_recvbuf.flags());
@@ -155,7 +155,7 @@ void Config::init_dtu() {
     DTU::get().start();
 }
 
-bool Config::set_params(Config *env, const char *shm_prefix, bool is_kernel) {
+bool Env::set_params(Env *env, const char *shm_prefix, bool is_kernel) {
     if(!is_kernel) {
         char path[64];
         snprintf(path, sizeof(path), "/tmp/m3/%d", getpid());
@@ -164,7 +164,7 @@ bool Config::set_params(Config *env, const char *shm_prefix, bool is_kernel) {
             PANIC("Unable to read " << path);
         label_t lbl;
         std::string shm_prefix;
-        in >> shm_prefix >> env->_core >> lbl >> env->_sysc_epid;
+        in >> shm_prefix >> env->coreid >> lbl >> env->_sysc_epid;
         in >> env->_sysc_credits;
         env->_shm_prefix = String(shm_prefix.c_str());
         env->_sysc_label = lbl;
@@ -179,7 +179,7 @@ bool Config::set_params(Config *env, const char *shm_prefix, bool is_kernel) {
     return is_kernel;
 }
 
-void Config::print() const {
+void Env::print() const {
     char **env = environ;
     while(*env) {
         if(strstr(*env, "M3_") != nullptr || strstr(*env, "LD_") != nullptr) {
@@ -192,9 +192,9 @@ void Config::print() const {
     }
 }
 
-Config::~Config() {
+Env::~Env() {
     delete _mem_recvgate;
-    delete _def_recvgate;
+    delete def_recvgate;
     if(is_kernel())
         stop_dtu();
 }

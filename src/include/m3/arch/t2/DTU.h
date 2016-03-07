@@ -17,11 +17,12 @@
 #pragma once
 
 #include <m3/Common.h>
-#include <m3/Config.h>
+#include <m3/arch/t2/EPs.h>
 #include <m3/stream/OStream.h>
 #include <m3/tracing/Tracing.h>
 #include <m3/util/Util.h>
 #include <m3/Errors.h>
+#include <m3/Env.h>
 #include <assert.h>
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
@@ -127,7 +128,7 @@ public:
         return _last[ep];
     }
     Message *message_at(int ep, size_t msgidx) const {
-        return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(coreid(), ep) + msgidx);
+        return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(env()->coreid, ep) + msgidx);
     }
 
     size_t get_msgoff(int ep, RecvGate *rcvgate) const {
@@ -135,7 +136,7 @@ public:
     }
     size_t get_msgoff(int ep, RecvGate *, const Message *msg) const {
         // currently we just return the offset here, because we're implementing reply() in SW.
-        return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(coreid(), ep);
+        return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(env()->coreid, ep);
     }
 
     void ack_message(int ep) {
@@ -152,7 +153,7 @@ public:
     }
 
     void wait_until_ready(int) {
-        int core = coreid();
+        int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
 
@@ -168,7 +169,7 @@ public:
     }
 
     void set_target(int, uchar dst, uintptr_t addr) {
-        int core = coreid();
+        int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
 
@@ -179,7 +180,7 @@ public:
     }
 
     void fire(int, Operation op, const void *msg, size_t size) {
-        int core = coreid();
+        int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
 
@@ -206,7 +207,7 @@ public:
     }
 
     size_t get_remaining(int) {
-        int core = coreid();
+        int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
 
@@ -229,7 +230,7 @@ private:
         int perms, int type);
 
     EPConf *conf(int ep) {
-        return coreconf()->eps + ep;
+        return eps() + ep;
     }
 
     size_t _pos[EP_COUNT];

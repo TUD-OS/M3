@@ -37,10 +37,9 @@ void KDTU::unset_vpeid(int, int) {
 
 void KDTU::wakeup(KVPE &vpe) {
     // write the core id to the PE
-    alignas(DTU_PKG_SIZE) CoreConf conf;
-    conf.coreid = vpe.core();
+    uint64_t id = vpe.core();
     Sync::compiler_barrier();
-    write_mem(vpe, CONF_GLOBAL, &conf, sizeof(conf));
+    write_mem(vpe, RT_START, &id, sizeof(id));
 
     injectIRQ(vpe);
 }

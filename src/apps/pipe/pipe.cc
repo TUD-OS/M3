@@ -123,7 +123,7 @@ int main() {
             PipeWriter wr(pipe1);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from VPE " << coreid() << "!";
+                os << "Hello World from VPE " << env()->coreid << "!";
                 wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
             }
             return 0;
@@ -133,7 +133,7 @@ int main() {
             PipeWriter wr(pipe2);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from VPE " << coreid() << "!";
+                os << "Hello World from VPE " << env()->coreid << "!";
                 wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
             }
             return 0;

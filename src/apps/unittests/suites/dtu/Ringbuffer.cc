@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <m3/RecvBuf.h>
 #include "Ringbuffer.h"
 
@@ -27,7 +27,7 @@ void RingbufferTestSuite::SendAckTestCase::run() {
     DTU &dtu = DTU::get();
     RecvBuf buf = RecvBuf::create(rcvepid, nextlog2<128>::val, nextlog2<64>::val, 0);
     label_t lbl = 0xDEADBEEF;
-    dtu.configure(sendepid, lbl, coreid(), buf.epid(), -1);
+    dtu.configure(sendepid, lbl, env()->coreid, buf.epid(), -1);
 
     {
         dmasend(&data, sizeof(data), sendepid);
@@ -61,7 +61,7 @@ void RingbufferTestSuite::IterationTestCase::run() {
     DTU &dtu = DTU::get();
     RecvBuf buf = RecvBuf::create(rcvepid, nextlog2<128>::val, nextlog2<64>::val, 0);
     label_t lbl = 0xDEADBEEF;
-    dtu.configure(sendepid, lbl, coreid(), buf.epid(), -1);
+    dtu.configure(sendepid, lbl, env()->coreid, buf.epid(), -1);
 
     {
         dmasend(&data, sizeof(data), sendepid);
@@ -131,7 +131,7 @@ void RingbufferTestSuite::NoHeaderTestCase::run() {
     DTU &dtu = DTU::get();
     RecvBuf buf = RecvBuf::create(rcvepid, nextlog2<sizeof(word_t) * 4>::val, RecvBuf::NO_HEADER);
     label_t lbl = 0xDEADBEEF;
-    dtu.configure(sendepid, lbl, coreid(), buf.epid(), -1);
+    dtu.configure(sendepid, lbl, env()->coreid, buf.epid(), -1);
     word_t *ringbuf = reinterpret_cast<word_t*>(buf.addr());
     // we assume here that its initialized with zeros
     memset(ringbuf, 0, 1UL << buf.order());
@@ -201,7 +201,7 @@ void RingbufferTestSuite::NoRingNoHeaderTestCase::run() {
             RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF);
     word_t *ringbuf = reinterpret_cast<word_t*>(buf.addr());
     label_t lbl = 0xDEADBEEF;
-    dtu.configure(sendepid, lbl, coreid(), buf.epid(), -1);
+    dtu.configure(sendepid, lbl, env()->coreid, buf.epid(), -1);
 
     {
         dmasend(data, sizeof(data), sendepid);

@@ -15,19 +15,23 @@
  */
 
 #include <m3/Common.h>
-#include <m3/arch/gem5/Exception.h>
+#include <m3/Env.h>
 
-typedef void (*constr_func)();
+typedef void (*start_func)();
 
-void *__dso_handle;
+extern void *_start;
 
-extern constr_func CTORS_BEGIN;
-extern constr_func CTORS_END;
-
-EXTERN_C void _init() {
-    m3::Exceptions::init();
-
-    // call constructors
-    for(constr_func *func = &CTORS_BEGIN; func < &CTORS_END; ++func)
-        (*func)();
+EXTERN_C void try_run() {
+    // is there something to run?
+    start_func ptr = reinterpret_cast<start_func>(m3::env()->entry);
+    if(ptr) {
+        // remember exit location
+        m3::env()->exit = reinterpret_cast<uintptr_t>(&_start);
+        asm volatile (
+            // tell crt0 that we're set the stackpointer
+            "mov %2, %%rsp;"
+            "jmp *%1;"
+            : : "a"(0xDEADBEEF), "r"(ptr), "r"(m3::env()->sp)
+        );
+    }
 }

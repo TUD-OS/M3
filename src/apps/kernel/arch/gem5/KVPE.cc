@@ -32,17 +32,17 @@ struct BootModule {
 } PACKED;
 
 static size_t count = 0;
-static BootModule mods[MODS_MAX];
+static BootModule mods[Env::MODS_MAX];
 static uint32_t loaded = 0;
 static BootModule *idles[MAX_CORES];
 static char buffer[4096];
 
 static BootModule *get_mod(const char *name, bool *first) {
-    static_assert(sizeof(loaded) * 8 >= MODS_MAX, "Too few bits for modules");
+    static_assert(sizeof(loaded) * 8 >= Env::MODS_MAX, "Too few bits for modules");
 
     if(count == 0) {
-        void **marray = reinterpret_cast<void**>(MODS_ADDR);
-        for(size_t i = 0; i < MODS_MAX && marray[i]; ++i) {
+        uintptr_t *marray = m3::env()->mods;
+        for(size_t i = 0; i < Env::MODS_MAX && marray[i]; ++i) {
             uintptr_t addr = DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
             KDTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
@@ -215,7 +215,6 @@ void KVPE::init_memory(const char *name) {
 
         // load app
         uint64_t entry = load_mod(*this, mod, !appFirst, true);
-        KDTU::get().write_mem(*this, BOOT_ENTRY, &entry, sizeof(entry));
 
         // count arguments
         int argc = 1;
@@ -229,11 +228,11 @@ void KVPE::init_memory(const char *name) {
         char *args = buffer + argc * sizeof(char*);
         char c;
         size_t i, off = args - buffer;
-        *argptr++ = (char*)(ARGV_START + off);
+        *argptr++ = (char*)(RT_SPACE_START + off);
         for(i = 0; i < sizeof(buffer) && (c = mod->name[i]); ++i) {
             if(c == ' ') {
                 args[i] = '\0';
-                *argptr++ = (char*)(ARGV_START + off + i + 1);
+                *argptr++ = (char*)(RT_SPACE_START + off + i + 1);
             }
             else
                 args[i] = c;
@@ -241,15 +240,20 @@ void KVPE::init_memory(const char *name) {
         if(i == sizeof(buffer))
             PANIC("Not enough space for arguments");
 
-        // write buffer to the target core
+        // write buffer to the target PE
         size_t argssize = Math::round_up(off + i, DTU_PKG_SIZE);
-        KDTU::get().write_mem(*this, ARGV_START, buffer, argssize);
+        KDTU::get().write_mem(*this, RT_SPACE_START, buffer, argssize);
 
-        // set argc and argv
-        uint64_t val = argc;
-        KDTU::get().write_mem(*this, ARGC_ADDR, &val, sizeof(val));
-        val = ARGV_START;
-        KDTU::get().write_mem(*this, ARGV_ADDR, &val, sizeof(val));
+        // write env to targetPE
+        m3::Env senv;
+        memset(&senv, 0, sizeof(senv));
+
+        senv.argc = argc;
+        senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+        senv.sp = STACK_TOP - sizeof(word_t);
+        senv.entry = entry;
+
+        KDTU::get().write_mem(*this, RT_START, &senv, sizeof(senv));
     }
 
     map_idle(*this);

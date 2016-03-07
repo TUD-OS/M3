@@ -37,11 +37,11 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder
     size_t size = 1 << order;
     size_t msgsize = 1 << msgorder;
     config_local(ep, buf, size, msgsize);
-    config_remote(ep, coreid(), ep, 0, 0);
+    config_remote(ep, env()->coreid, ep, 0, 0);
     fire(ep, READ, 0);
 
     // TODO not possible because of bootstrap problems
-    //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << coreid() << ":" << ep);
+    //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << env()->coreid << ":" << ep);
 }
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {

@@ -17,7 +17,7 @@
 #pragma once
 
 #include <m3/Common.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <m3/util/Util.h>
 #include <m3/util/Sync.h>
 #include <m3/Errors.h>

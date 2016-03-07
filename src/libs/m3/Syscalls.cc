@@ -146,7 +146,8 @@ Errors::Code Syscalls::revoke(const CapRngDesc &crd) {
     return finish(send_receive_vmsg(_gate, REVOKE, crd));
 }
 
-void Syscalls::exit(int exitcode) {
+// the USED seems to be necessary, because the libc calls it and LTO removes it otherwise
+USED void Syscalls::exit(int exitcode) {
     LOG(SYSC, "exit(code=" << exitcode << ")");
     EVENT_TRACE_FLUSH();
     send_vmsg(_gate, EXIT, exitcode);

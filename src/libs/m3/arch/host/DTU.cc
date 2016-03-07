@@ -19,7 +19,7 @@
 #include <m3/cap/MemGate.h>
 #include <m3/Log.h>
 #include <m3/DTU.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -53,7 +53,7 @@ void DTU::start() {
 #else
     _backend = new SocketBackend();
 #endif
-    if(Config::get().is_kernel())
+    if(env()->is_kernel())
         _backend->create();
 
     int res = pthread_create(&_tid, nullptr, thread, this);
@@ -526,7 +526,7 @@ void DTU::handle_receive(int i) {
 
 void *DTU::thread(void *arg) {
     DTU *dma = static_cast<DTU*>(arg);
-    int core = coreid();
+    int core = env()->coreid;
 
     // don't allow any interrupts here
     HWInterrupts::Guard noints;
@@ -542,7 +542,7 @@ void *DTU::thread(void *arg) {
         dma->wait();
     }
 
-    if(Config::get().is_kernel())
+    if(env()->is_kernel())
         dma->_backend->destroy();
     delete dma->_backend;
     return 0;

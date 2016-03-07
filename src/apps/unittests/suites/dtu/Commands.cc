@@ -56,7 +56,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     Serial::get() << "-- Test errors --\n";
     {
-        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
             rcvepid, datasize);
 
         dmacmd(nullptr, 0, sndepid, 0, datasize, DTU::WRITE);
@@ -74,7 +74,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     Serial::get() << "-- Test reading --\n";
     {
-        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
             rcvepid, datasize);
 
         word_t buf[datasize / sizeof(word_t)];
@@ -105,7 +105,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     Serial::get() << "-- Test errors --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
             rcvepid, sizeof(data));
 
         dmacmd(nullptr, 0, sndepid, 0, sizeof(data), DTU::READ);
@@ -115,7 +115,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     Serial::get() << "-- Test writing --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
             rcvepid, sizeof(data));
 
         dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::WRITE);
@@ -150,7 +150,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test errors --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
             rcvepid, refdatasize);
 
         dmacmd(data, sizeof(data), sndepid, 0, sizeof(refdata), DTU::READ);
@@ -163,7 +163,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test failure --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
             rcvepid, refdatasize);
 
         dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
@@ -175,7 +175,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test success --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
             rcvepid, refdatasize);
 
         dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
@@ -187,7 +187,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     Serial::get() << "-- Test offset --\n";
     {
         word_t data[] = {3344, 4455};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, coreid(),
+        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
             rcvepid, refdatasize);
 
         dmacmd(data, sizeof(data), sndepid, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);

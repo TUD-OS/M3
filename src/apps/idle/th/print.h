@@ -15,16 +15,7 @@
  */
 
 #include <m3/Common.h>
-#include <m3/Env.h>
-#include <cstdlib>
 
-EXTERN_C NORETURN void _exit(int) {
-    uintptr_t jmpaddr = m3::env()->exit;
-    if(jmpaddr != 0) {
-        m3::env()->entry = 0;
-        asm volatile ("jx    %0" : : "r"(jmpaddr));
-    }
-
-    while(1)
-        asm volatile ("waiti 0");
-}
+EXTERN_C char *fmtu(char *buffer, ulong n, uint base);
+EXTERN_C int print(const char *str, size_t len);
+EXTERN_C void notify(uint32_t arg);

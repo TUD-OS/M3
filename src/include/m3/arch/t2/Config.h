@@ -16,6 +16,10 @@
 
 #pragma once
 
+#if defined(__cplusplus)
+#   include <m3/arch/t2/Addr.h>
+#endif
+
 #define MAX_CORES           12
 #define AVAIL_PES           MAX_CORES
 #define PE_MASK             0xFE2       // CM, PE1, ..., PE7
@@ -29,6 +33,9 @@
 #define PAGE_BITS           0
 #define PAGE_SIZE           0
 #define PAGE_MASK           0
+
+#define IRQ_ADDR_EXTERN     0x20020
+#define IRQ_ADDR_INTERN     CM_SO_PE_CLEAR_IRQ
 
 // leave the first 64 MiB for the filesystem
 #define DRAM_OFFSET         (64 * 1024 * 1024)
@@ -68,93 +75,25 @@
 #define RECV_BUF_LOCAL      (DMEM_VEND - (EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES))
 #define RECV_BUF_GLOBAL     (RECV_BUF_LOCAL - DRAM_VOFFSET)
 
-// actually, it does not really matter here what the values are
-#define DEF_RCVBUF_ORDER    4
-#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
-#define DEF_RCVBUF          0
-
-#define RT_START            0                       // not used
-
-#define ARGC_ADDR           (RECV_BUF_LOCAL - 8)
-#define ARGV_ADDR           (ARGC_ADDR - 8)
-#define ARGV_SIZE           0x400
-#define ARGV_START          (ARGV_ADDR - ARGV_SIZE)
-
-#define SERIAL_ACK          (ARGV_START - 8)
+#define SERIAL_ACK          (RECV_BUF_LOCAL - 8)
 #define SERIAL_INWAIT       (SERIAL_ACK - 8)
 #define SERIAL_BUFSIZE      0x100
 #define SERIAL_BUF          (SERIAL_INWAIT - SERIAL_BUFSIZE)
 
-#define BOOT_SP             (SERIAL_BUF - 8)
-#define BOOT_ENTRY          (BOOT_SP - 8)
-#define BOOT_LAMBDA         (BOOT_ENTRY - 8)
-#define BOOT_PAGER_SESS     (BOOT_LAMBDA - 8)
-#define BOOT_PAGER_GATE     (BOOT_PAGER_SESS - 8)
-#define BOOT_MOUNTLEN       (BOOT_PAGER_GATE - 8)
-#define BOOT_MOUNTS         (BOOT_MOUNTLEN - 8)
-#define BOOT_EPS            (BOOT_MOUNTS - 8)
-#define BOOT_CAPS           (BOOT_EPS - 8)
-#define BOOT_EXIT           (BOOT_CAPS - 8)
-
-#define STATE_SIZE          0x100
-#define STATE_SPACE         (BOOT_EXIT - STATE_SIZE)
-
 // this is currently used for the data of the boot-code (it can't overlap with the data of
 // normal programs)
 #define BOOT_DATA_SIZE      0x160
-#define BOOT_DATA           (STATE_SPACE - BOOT_DATA_SIZE)
+#define BOOT_DATA           (SERIAL_BUF - BOOT_DATA_SIZE)
 
-#ifdef __cplusplus
-#   include <m3/Common.h>
-#   include <m3/arch/t2/Addr.h>
-#   include <m3/BitField.h>
+#define EP_SIZE             16
+#define EPS_SIZE            (EP_COUNT * EP_SIZE)
+#define EPS_START           (BOOT_DATA - EPS_SIZE)
 
-#   define IRQ_ADDR_EXTERN  0x20020
-#   define IRQ_ADDR_INTERN  CM_SO_PE_CLEAR_IRQ
+#define RT_SIZE             0x400
+#define RT_START            (EPS_START - RT_SIZE)
+#define RT_END              EPS_START
 
-namespace m3 {
-
-class RecvGate;
-
-struct EPConf {
-    uchar valid;
-    uchar dstcore;
-    uchar dstep;
-    // padding
-    uchar : sizeof(uchar) * 8;
-    word_t credits;
-    label_t label;
-    // padding
-    word_t : sizeof(word_t) * 8;
-} PACKED;
-
-struct CoreConf {
-    word_t coreid;
-    // padding
-    word_t : sizeof(word_t) * 8;
-    EPConf eps[EP_COUNT];
-} PACKED;
-
-// align it properly
-#   define CONF_LOCAL          (BOOT_DATA - ((sizeof(m3::CoreConf) + 8 - 1) & ~(8 - 1)))
-#   define CONF_GLOBAL         (CONF_LOCAL - DRAM_VOFFSET)
-
-// end of space for runtime
-#   define RT_SPACE_END        CONF_LOCAL
-
-extern RecvGate *def_rgate;
-
-static inline CoreConf *coreconf() {
-    return reinterpret_cast<CoreConf*>(CONF_LOCAL);
-}
-
-static inline int coreid() {
-    return coreconf()->coreid;
-}
-
-static inline RecvGate *def_rcvgate() {
-    return def_rgate;
-}
-
-}
-#endif
+// actually, it does not really matter here what the values are
+#define DEF_RCVBUF_ORDER    4
+#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
+#define DEF_RCVBUF          0

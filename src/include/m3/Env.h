@@ -14,17 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Env.h>
-#include <cstdlib>
+#pragma once
 
-EXTERN_C NORETURN void _exit(int) {
-    uintptr_t jmpaddr = m3::env()->exit;
-    if(jmpaddr != 0) {
-        m3::env()->entry = 0;
-        asm volatile ("jx    %0" : : "r"(jmpaddr));
-    }
-
-    while(1)
-        asm volatile ("waiti 0");
-}
+#if defined(__host__)
+#   include <m3/arch/host/Env.h>
+#else
+#   include <m3/arch/baremetal/Env.h>
+#endif

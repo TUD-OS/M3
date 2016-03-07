@@ -19,6 +19,7 @@
 #include <m3/cap/SendGate.h>
 #include <m3/util/String.h>
 #include <m3/CapRngDesc.h>
+#include <m3/Env.h>
 
 namespace m3 {
 
@@ -68,7 +69,7 @@ public:
 private:
     explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr,DTU::SYSC_EP) {
 #if defined(__host__)
-        if(!Config::get().is_kernel())
+        if(!env()->is_kernel())
             init(DTU::get().ep_regs());
 #endif
     }

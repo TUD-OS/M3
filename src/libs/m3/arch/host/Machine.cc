@@ -15,7 +15,7 @@
  */
 
 #include <m3/stream/Serial.h>
-#include <m3/Config.h>
+#include <m3/Env.h>
 #include <m3/Machine.h>
 
 #include <sys/file.h>
@@ -28,7 +28,7 @@ void Machine::shutdown() {
 }
 
 int Machine::write(const char *str, size_t len) {
-    return ::write(Config::get().log_fd(), str, len);
+    return ::write(env()->log_fd(), str, len);
 }
 
 ssize_t Machine::read(char *buf, size_t len) {

@@ -19,7 +19,6 @@
 #else
 #   include <m3/arch/t3/Config.h>
 #endif
-#include <xtensa/simcall.h>
 
     .text
     .literal_position
@@ -27,17 +26,8 @@
     .literal LIT_STACK_TOP, STACK_TOP
     # user vector mode and windowed overflow detection
     .literal LIT_PS_VALUE, 0x00040020
-    .literal LIT_BSS_START, _bss_table_start
-    .literal LIT_BSS_END, _bss_table_end
-    .literal LIT_ARGC_ADDR, ARGC_ADDR
-    .literal LIT_ARGV_ADDR, ARGV_ADDR
-    .literal LIT_BOOT_LAMBDA, BOOT_LAMBDA
-    .literal LIT_BOOT_ENTRY, BOOT_ENTRY
-    .literal LIT_BOOT_SP, BOOT_SP
 
-    .extern   __clibrary_init
-    .extern  main
-    .extern  exit
+    .extern  env_run
 
     .align  4
     .global _start
@@ -46,102 +36,26 @@
 _start:
     # set return-addr and stack-pointer
     movi    a0, 0
-    # set stack-pointer; either from BOOT_SP or the default one
-    l32r    a1, LIT_BOOT_SP
-    l32i.n  a1, a1, 0
-    bnez.n  a1, 1f
+
     l32r    a1, LIT_STACK_TOP
+    # use default stack pointer?
+    addi.n  a1, a1, -4
+    l32i    a2, a1, 0
+    movi    a3, 0xDEADBEEF
+    addi.n  a1, a1, -4
+    bne     a2, a3, 1f
+    # load SP from next word
+    l32i    a1, a1, 0
 1:
+
     # set PS
     l32r    a3, LIT_PS_VALUE
     wsr.ps  a3
     rsync
 
-#if defined(__t3__)
-    # test whether we were started from M3 or from the simulator
-    l32r    a3, LIT_BOOT_ENTRY
-    l32i.n  a3, a3, 0
-    bnez.n  a3, _m3_start
+    call4   env_run
 
-    # we need some space for the arguments
-    movi    a2, SYS_iss_argv_size
-    simcall
-    addi.n  a2, a2, 15
-    srli    a2, a2, 4
-    slli    a2, a2, 4
-    sub     a1, a1, a2
-
-    # call memset(BSS_START, 0, BSS_END - BSS_START)
-    l32r    a2, LIT_BSS_END
-    l32r    a6, LIT_BSS_START
-    movi.n  a7, 0
-    sub     a8, a2, a6
-    call4   memset
-
-    # put argv here
-    or      a3, a1, a1
-    movi    a2, SYS_iss_set_argv
-    simcall
-    # get argc
-    movi    a2, SYS_iss_argc
-    simcall
-
-    # call __clibrary_init(argc, argv)
-    mov.n   a6, a2
-    mov.n   a7, a1
-    call4   __clibrary_init
-
-    # call res = main(argc, argv)
-    mov.n   a6, a2
-    mov.n   a7, a1
-    call4   main
-    j       2f
-#endif
-
-_m3_start:
-    # should we call main or a callback?
-    l32r    a4, LIT_BOOT_LAMBDA
-    l32i.n  a4, a4, 0
-    beqi    a4, 0, 1f
-
-    # init serial for ourself
-    l32r    a3, LIT_ARGV_ADDR
-    movi    a6, 0
-    l32i.n  a7, a3, 0
-    call4   __clibrary_init_lambda
-
-    # call callback
-    l32r    a6, LIT_BOOT_LAMBDA
-    l32i.n  a6, a6, 0
-    call4   lambda_main
-    j       2f
-
-    # call memset(BSS_START, 0, BSS_END - BSS_START)
+    # just to be sure
 1:
-    l32r    a2, LIT_BSS_END
-    l32r    a6, LIT_BSS_START
-    movi.n  a7, 0
-    sub     a8, a2, a6
-    call4   memset
-
-    # load argc and argv
-    l32r    a2, LIT_ARGC_ADDR
-    l32i.n  a2, a2, 0
-    l32r    a3, LIT_ARGV_ADDR
-    l32i.n  a3, a3, 0
-
-    # call __clibrary_init(argc, argv)
-    mov.n   a6, a2
-    mov.n   a7, a3
-    call4   __clibrary_init
-
-    # call res = main(argc, argv)
-    mov.n   a6, a2
-    mov.n   a7, a3
-    call4   main
-
-2:
-    # call exit(res)
-    call4   exit
-
+    j       1b
     .size   _start, .-_start

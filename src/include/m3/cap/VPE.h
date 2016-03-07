@@ -233,9 +233,8 @@ private:
     void init();
     Errors::Code run(void *lambda);
     Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
-    Errors::Code load(Executable &exec, uintptr_t *entry);
+    Errors::Code load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
-    void start(uintptr_t entry, void *caps, void *eps, void *lambda, void *mounts, size_t mountlen);
 
     uintptr_t get_entry();
     static word_t get_sp();
