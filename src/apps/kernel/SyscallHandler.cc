@@ -334,7 +334,7 @@ void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
     if(mcapobj == nullptr)
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is invalid");
 
-    if(!vpe->mapcaps().range_unused(CapRngDesc(CapRngDesc::MAP, dst, pages)))
+    if(!tcapobj->vpe->mapcaps().range_unused(CapRngDesc(CapRngDesc::MAP, dst, pages)))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Map capability range is not unused");
     if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
         SYS_ERROR(vpe, gate, Errors::INV_ARGS, "Memory capability is not page aligned");
