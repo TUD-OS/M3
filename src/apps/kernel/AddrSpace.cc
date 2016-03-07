@@ -29,7 +29,7 @@ AddrSpace::AddrSpace(int ep, capsel_t gate)
 }
 
 AddrSpace::~AddrSpace() {
-    MainMemory::get().map().free(_rootpt, PAGE_SIZE);
+    MainMemory::get().map().free(DTU::noc_to_virt(_rootpt), PAGE_SIZE);
 }
 
 }
