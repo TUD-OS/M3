@@ -304,7 +304,7 @@ build_params_t2_chip() {
         tar -C $build/mem -cf - $M3_FS.mem | gzip > $temp
         scp $temp $t2pcip:thtest/$M3_FS.mem.tar.gz
         ssh -t $t2pcip "chmod ugo+rw thtest/$M3_FS.mem.tar.gz"
-        ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup.sh && rm -f *.txt; " \
+        ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup-new.sh && rm -f *.txt; " \
             "echo ./chip.py $M3_FS.mem $profargs log.txt $args > run.sh && chmod +x run.sh; " \
             "tar xfz $M3_FS.mem.tar.gz && ./run.sh && " \
             "tar cfz $M3_FS.mem.out.tar.gz $M3_FS.mem.out"
@@ -314,7 +314,7 @@ build_params_t2_chip() {
                 rm $M3_FS.mem.out.tar.gz )
         fi
     else
-        ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup.sh && rm -f *.txt; " \
+        ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup-new.sh && rm -f *.txt; " \
             "echo ./chip.py - $profargs log.txt $args > run.sh && chmod +x run.sh; " \
             "./run.sh"
     fi
