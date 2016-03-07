@@ -60,6 +60,7 @@
 // give the stack 4K
 #define DMEM_VEND           0x6000F000
 
+#define INIT_HEAP_SIZE      0                       // not used
 #define HEAP_SIZE           0x7000                  // not the actual size, but the maximum
 
 #define RECV_BUF_MSGSIZE    64
@@ -70,6 +71,8 @@
 #define DEF_RCVBUF_ORDER    4
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
 #define DEF_RCVBUF          0
+
+#define RT_START            0                       // not used
 
 #define ARGC_ADDR           (RECV_BUF_LOCAL - 8)
 #define ARGV_ADDR           (ARGC_ADDR - 8)

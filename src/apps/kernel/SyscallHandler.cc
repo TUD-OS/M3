@@ -163,7 +163,7 @@ void SyscallHandler::pagefault(RecvGate &gate, GateIStream &is) {
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
 
     if(!vpe->address_space())
-        SYS_ERROR(vpe, gate, Errors::NOT_SUP, "No address space");
+        SYS_ERROR(vpe, gate, Errors::NOT_SUP, "No address space / PF handler");
 
     capsel_t gcap = vpe->address_space()->gate();
     MsgCapability *msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
@@ -296,7 +296,8 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     const char *corename = core.c_str()[0] == '\0'
         ? PEManager::get().type(vpe->core() - APP_CORES)
         : core.c_str();
-    KVPE *nvpe = PEManager::get().create(std::move(name), corename, ep, gcap);
+    KVPE *nvpe = PEManager::get().create(std::move(name), corename,
+        gcap != ObjCap::INVALID, ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, Errors::NO_FREE_CORE, "No free and suitable core found");
 

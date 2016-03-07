@@ -165,6 +165,7 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
     char *buffer = (char*)Heap::alloc(BUF_SIZE);
 
     /* copy load segments to destination core */
+    uintptr_t end = 0;
     off_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
@@ -183,22 +184,19 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry) {
             continue;
 
         load_segment(exec, pheader, buffer);
+        end = pheader.p_vaddr + pheader.p_memsz;
     }
 
     if(_pager) {
-        // TODO temporary: just map idle where it's expected
-        // note that this assumes that the first page within that file contains the code
-        FStream *idle = new FStream("/bin/idle", FILE_RWX);
-        uintptr_t virt = 0x3ff000;
-        const RegularFile *rfile = static_cast<const RegularFile*>(&idle->file());
-        err = _pager->map_ds(&virt, PAGE_SIZE, Pager::READ | Pager::WRITE | Pager::EXEC, 0,
-            *rfile->fs(), rfile->fd(), 0);
+        // create area for stack and boot/runtime stuff
+        uintptr_t virt = RT_START;
+        err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
             goto error;
 
-        // create area for stack and runtime stuff
-        virt = Math::round_dn<size_t>(RT_SPACE_END, PAGE_SIZE);
-        err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
+        // create heap
+        virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
+        err = _pager->map_anon(&virt, INIT_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
             goto error;
     }

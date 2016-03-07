@@ -19,11 +19,6 @@
 .global _start
 
 _start:
-    # set the location to jump to on exit
-    mov     $BOOT_EXIT, %rax
-    movq    $_start, (%rax)
-
-1:
     # check if there is something to run
     mov     $BOOT_ENTRY, %rax
     mov     (%rax), %rcx
@@ -32,9 +27,13 @@ _start:
 
     # wait until we get waked up
     hlt
-    jmp     1b
+    jmp     _start
 
 1:
+    # set the location to jump to on exit
+    mov     $BOOT_EXIT, %rax
+    movq    $_start, (%rax)
+
     # jump to entry point
     jmp     *%rcx
 

@@ -81,6 +81,11 @@ void KDTU::suspend(KVPE &vpe) {
     // invalidate TLB and cache
     do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_TLB));
     do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INV_CACHE));
+
+    // disable paging
+    alignas(DTU_PKG_SIZE) DTU::reg_t status = 0;
+    Sync::compiler_barrier();
+    write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
 void KDTU::injectIRQ(KVPE &vpe) {
@@ -96,8 +101,7 @@ void KDTU::config_pf_remote(KVPE &vpe, int ep) {
     if(!rootpt) {
         // TODO read the root pt from the core; the HW sets it atm for apps that are started at boot
         uintptr_t addr = DTU::dtu_reg_addr(DTU::DtuRegs::ROOT_PT);
-        config_mem_local(_ep, vpe.core(), vpe.id(), addr, sizeof(rootpt));
-        DTU::get().read(_ep, &rootpt, sizeof(rootpt), 0);
+        read_mem_at(vpe.core(), vpe.id(), addr, &rootpt, sizeof(rootpt));
     }
     else {
         clear_pt(rootpt);
@@ -137,8 +141,6 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
 }
 
 void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
-    assert(vpe.state() == KVPE::RUNNING);
-
     // configure the memory EP once and use it for all accesses
     config_mem_local(_ep, vpe.core(), vpe.id(), 0, 0xFFFFFFFFFFFFFFFF);
     for(int level = DTU::LEVEL_CNT - 1; level >= 0; --level) {
@@ -156,7 +158,8 @@ void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
                 // TODO this is prelimilary
                 uintptr_t addr = MainMemory::get().map().allocate(PAGE_SIZE);
                 pte = DTU::build_noc_addr(MEMORY_CORE, addr) | DTU::PTE_RWX;
-                LOG(PF, "Creating level 1 PTE for " << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
+                LOG(PTES, "PE" << vpe.core() << ": lvl 1 PTE for "
+                    << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
                 DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
             }
 
@@ -164,7 +167,8 @@ void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
         }
         else {
             pte = phys | perm | DTU::PTE_I;
-            LOG(PF, "Creating level 0 PTE for " << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
+            LOG(PTES, "PE" << vpe.core() << ": lvl 0 PTE for "
+                << fmt(virt, "p") << ": " << fmt(pte, "#0x", 16));
             DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
         }
     }
@@ -284,6 +288,11 @@ void KDTU::write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size) {
 void KDTU::write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size) {
     config_mem_local(_ep, core, vpe, addr, size);
     DTU::get().write(_ep, data, size, 0);
+}
+
+void KDTU::read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size) {
+    config_mem_local(_ep, core, vpe, addr, size);
+    DTU::get().read(_ep, data, size, 0);
 }
 
 }

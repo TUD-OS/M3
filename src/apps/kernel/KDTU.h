@@ -64,6 +64,9 @@ public:
 
     void write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size);
     void write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size);
+#if defined(__gem5__)
+    void read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size);
+#endif
 
 private:
 #if defined(__gem5__)

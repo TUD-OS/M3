@@ -131,7 +131,7 @@ build_params_gem5() {
             if [ $c -eq 0 ]; then
                 echo -n $bindir/$line $kargs,
             else
-                echo -n $bindir/$(remove_kernel_args "$line"),
+                echo -n $bindir/idle,
             fi
             c=$((c + 1))
         done

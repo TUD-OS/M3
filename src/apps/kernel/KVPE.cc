@@ -30,15 +30,15 @@ KVPE::VPEId::~VPEId() {
     KDTU::get().unset_vpeid(core, id);
 }
 
-KVPE::KVPE(String &&prog, size_t id, int ep, capsel_t pfgate)
-    : RequestSessionData(), _id(id, id + APP_CORES), _daemon(), _refs(0), _pid(), _state(DEAD),
-      _exitcode(), _name(std::move(prog)),
+KVPE::KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
+    : RequestSessionData(), _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
+      _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _sepsgate(MemGate::bind(VPE::self().alloc_cap(), ObjCap::KEEP_CAP)),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(RecvGate::create(SyscallHandler::get().srvrcvbuf())),
-      _as(pfgate != ObjCap::INVALID ? new AddrSpace(ep, pfgate) : nullptr),
+      _as(as ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));

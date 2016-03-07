@@ -53,7 +53,8 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = nextlog2<512>::val;
 
-    explicit KVPE(String &&prog, size_t id, int ep = -1, capsel_t pfgate = ObjCap::INVALID);
+    explicit KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
+        capsel_t pfgate = ObjCap::INVALID);
     KVPE(const KVPE &) = delete;
     KVPE &operator=(const KVPE &) = delete;
     ~KVPE();
@@ -126,6 +127,7 @@ public:
     }
 
 private:
+    void init_memory(const char *name);
     void write_env_file(int pid, label_t label, size_t epid);
     void activate_sysc_ep();
 
@@ -139,6 +141,7 @@ private:
 
     VPEId _id;
     bool _daemon;
+    bool _bootmod;
     int _refs;
     int _pid;
     int _state;

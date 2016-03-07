@@ -42,8 +42,8 @@ class PEManager {
     };
 
 public:
-    static void create(int argc, char **argv) {
-        _inst = new PEManager(argc, argv);
+    static void create() {
+        _inst = new PEManager();
     }
     static PEManager &get() {
         return *_inst;
@@ -57,11 +57,13 @@ public:
     }
 
 private:
-    explicit PEManager(int argc, char **argv);
+    explicit PEManager();
     ~PEManager();
 
 public:
-    KVPE *create(String &&name, const char *core, int ep, capsel_t pfgate);
+    void load(int argc, char **argv);
+
+    KVPE *create(String &&name, const char *core, bool as, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
     const char *type(int id) const {

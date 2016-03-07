@@ -33,20 +33,27 @@
 #define DRAM_OFFSET         (256 * 1024 * 1024)
 #define DRAM_SIZE           (512 * 1024 * 1024 - DRAM_OFFSET)
 
+#define INIT_HEAP_SIZE      (64 * 1024)
 #define HEAP_SIZE           0x10000
 #define EP_COUNT            7
 
-#define SPM_END             (8 * 1024 * 1024)
-// leave one page for idle
-#define STACK_TOP           (SPM_END - 0x1000)
-#define STACK_BOTTOM        (STACK_TOP - 0x1000)
+#define RT_START            0x1000
+#define RT_SIZE             0x2000
+#define RT_END              (RT_START + RT_SIZE)
 
-#define ARGV_SIZE           (0x1000 - 16)
-#define ARGV_START          (STACK_BOTTOM - ARGV_SIZE)
-#define ARGC_ADDR           (ARGV_START - 16)
-#define ARGV_ADDR           (ARGV_START - 8)
+#define STACK_SIZE          0x1000
+#define STACK_TOP           (RT_END + STACK_SIZE)
+#define STACK_BOTTOM        RT_END
 
-#define BOOT_SP             (ARGV_START - 24)
+// boot state
+#define ARGV_START          (RT_START + (2 + MODS_MAX) * 8)
+#define ARGV_SIZE           (RT_START + 0x1000 - ARGV_START)
+#define ARGC_ADDR           (RT_START + 0)
+#define ARGV_ADDR           (RT_START + 8)
+#define MODS_MAX            8
+#define MODS_ADDR           (RT_START + 16)
+
+#define BOOT_SP             (RT_END - 8)
 #define BOOT_ENTRY          (BOOT_SP - 8)
 #define BOOT_LAMBDA         (BOOT_ENTRY - 8)
 #define BOOT_PAGER_SESS     (BOOT_LAMBDA - 8)

@@ -60,7 +60,8 @@ int main(int argc, char *argv[]) {
 
     ser << "Initializing PEs...\n";
 
-    PEManager::create(argc - 1, argv + 1);
+    PEManager::create();
+    PEManager::get().load(argc - 1, argv + 1);
 
     KWorkLoop::run();
 

@@ -24,9 +24,15 @@ namespace m3 {
 bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
 
-PEManager::PEManager(int argc, char **argv)
-        : _petype(), _vpes(), _count(), _daemons() {
+PEManager::PEManager() : _petype(), _vpes(), _count(), _daemons() {
     deprivilege_pes();
+}
+
+void PEManager::load(int argc, char **argv) {
+    bool as = false;
+#if defined(__gem5__)
+    as = true;
+#endif
 
     size_t no = 0;
     for(int i = 0; i < argc; ++i) {
@@ -42,7 +48,7 @@ PEManager::PEManager(int argc, char **argv)
             // allow multiple applications with the same name
             OStringStream name;
             name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new KVPE(String(name.str()), no);
+            _vpes[no] = new KVPE(String(name.str()), no, true, as);
             _count++;
         }
 
@@ -141,7 +147,7 @@ bool PEManager::core_matches(size_t i, const char *core) const {
     return strcmp(core, "default") == 0;
 }
 
-KVPE *PEManager::create(String &&name, const char *core, int ep, capsel_t pfgate) {
+KVPE *PEManager::create(String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
     if(_count == AVAIL_PES)
         return nullptr;
 
@@ -153,7 +159,7 @@ KVPE *PEManager::create(String &&name, const char *core, int ep, capsel_t pfgate
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new KVPE(std::move(name), i, ep, pfgate);
+    _vpes[i] = new KVPE(std::move(name), i, false, as, ep, pfgate);
     _count++;
     return _vpes[i];
 }

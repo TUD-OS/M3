@@ -39,9 +39,13 @@ void KVPE::init() {
 void KVPE::activate_sysc_ep() {
 }
 
-void KVPE::start(int, char **, int) {
+void KVPE::start(int, char **argv, int) {
     // when exiting, the program will release one reference
     ref();
+
+#if defined(__gem5__)
+    init_memory(argv[0]);
+#endif
 
     KDTU::get().wakeup(*this);
 

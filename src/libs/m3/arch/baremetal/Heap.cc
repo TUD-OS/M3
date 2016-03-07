@@ -26,7 +26,13 @@ namespace m3 {
 void Heap::init() {
     uintptr_t begin = reinterpret_cast<uintptr_t>(&_bss_end);
     _begin = reinterpret_cast<Area*>(Math::round_up<size_t>(begin, sizeof(Area)));
+    // TODO temporary
+#if defined(__gem5__)
+    uintptr_t end = Math::round_up(begin, PAGE_SIZE) + INIT_HEAP_SIZE;
+    _end = reinterpret_cast<Area*>(end) - 1;
+#else
     _end = reinterpret_cast<Area*>(Math::round_dn<size_t>(RT_SPACE_END, sizeof(Area))) - 1;
+#endif
     _end->next = 0;
     _end->prev = (_end - _begin) * sizeof(Area);
     Area *a = _begin;

@@ -52,7 +52,7 @@ void VPE::copy_sections() {
     _mem.write_sync((void*)start_addr, end_addr - start_addr, start_addr);
 
     /* copy end-area of heap */
-    start_addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
+    start_addr = Math::round_up((uintptr_t)&_bss_end + INIT_HEAP_SIZE, PAGE_SIZE) - DTU_PKG_SIZE;
     _mem.write_sync((void*)start_addr, DTU_PKG_SIZE, start_addr);
 
     /* copy stack */

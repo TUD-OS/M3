@@ -134,7 +134,8 @@ int main(int argc, char *argv[]) {
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
     LOG(DEF, "Initializing PEs.");
-    PEManager::create(argc - argstart - 1, argv + argstart + 1);
+    PEManager::create();
+    PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
     KWorkLoop::run();
 
     LOG(DEF, "Shutting down.");
