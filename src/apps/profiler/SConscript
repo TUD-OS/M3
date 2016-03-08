@@ -11,7 +11,7 @@ env.M3Program(
         Glob('*.cc'),
         env.Glob('*.S')
     ],
-    core = 'oli_ten_570t_8',
+    tgtcore = 'oli_ten_570t_8',
     libs = ['hal', 'handlers-sim'],
     NoSup = True
 )

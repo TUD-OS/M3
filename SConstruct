@@ -194,14 +194,14 @@ def M3Strip(env, target, source):
 
 link_addr = 0x200000
 
-def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core = None,
+def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtcore = None,
               ldscript = None, varAddr = True):
     myenv = env.Clone()
     if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
         # set variables, depending on core
-        if core is None:
-            core = os.environ.get('M3_CORE')
-        runtimedir = configpath.abspath + '/' + core + '/xtensa-elf/lib/' + runtime
+        if tgtcore is None:
+            tgtcore = core
+        runtimedir = configpath.abspath + '/' + tgtcore + '/xtensa-elf/lib/' + runtime
 
         sources = []
         if not NoSup:
@@ -221,7 +221,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
 
         myenv.Append(CPPPATH = [
             '#src/include',
-            Dir(configpath.abspath + '/' + core + '/xtensa-elf/arch/include'),
+            Dir(configpath.abspath + '/' + tgtcore + '/xtensa-elf/arch/include'),
             Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/xtensa-elf/include'),
         ])
 
@@ -230,7 +230,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, core
             sources,
             LIBS = ['handler-reset'] + libs,
             LIBPATH = [myenv['LIBDIR'], myenv['SUPDIR']] + libpaths,
-            SUPDIR = Dir(configpath.abspath + '/' + core + '/xtensa-elf/arch/lib')
+            SUPDIR = Dir(configpath.abspath + '/' + tgtcore + '/xtensa-elf/arch/lib')
         )
         myenv.M3MemDump(target + '.mem', prog)
         myenv.Depends(prog, ldscript)
