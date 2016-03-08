@@ -41,6 +41,8 @@ namespace m3 {
 #define DRAM_OFFSET         0
 #define DRAM_SIZE           (512 * 1024 * 1024)
 
+#define STACK_SIZE          0x1000
+
 class RecvGate;
 
 class Config {

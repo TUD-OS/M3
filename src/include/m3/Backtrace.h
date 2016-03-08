@@ -16,26 +16,20 @@
 
 #pragma once
 
-#include <m3/stream/OStream.h>
-#include <execinfo.h>
+#include <m3/Common.h>
 
 namespace m3 {
 
-class Backtrace;
-OStream &operator<<(OStream &os, const Backtrace &bt);
+class OStream;
 
 class Backtrace {
-    friend OStream &operator<<(OStream &os, const Backtrace &bt);
+    static const size_t CALL_INSTR_SIZE;
+    static const size_t MAX_DEPTH       = 10;
 
-    static const size_t MAX_DEPTH       = 32;
+    Backtrace();
 
 public:
-    explicit Backtrace() : _trace(), _count() {
-        _count = backtrace(_trace, MAX_DEPTH);
-    }
-
-    void *_trace[MAX_DEPTH];
-    size_t _count;
+    static void print(OStream &os);
 };
 
 }

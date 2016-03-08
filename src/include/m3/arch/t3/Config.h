@@ -35,6 +35,7 @@
 #define DRAM_SIZE           (64 * 1024 * 1024)
 
 #define STACK_TOP           0x60800000              // used for stack-copying
+#define STACK_SIZE          0x1000
 // give the stack 4K and a bit of space for idle
 #define DMEM_VEND           0x607FD000
 

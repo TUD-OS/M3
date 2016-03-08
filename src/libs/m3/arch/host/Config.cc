@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/arch/host/Backtrace.h>
 #include <m3/cap/RecvGate.h>
 #include <m3/Config.h>
 #include <m3/Syscalls.h>

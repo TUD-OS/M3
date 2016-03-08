@@ -57,6 +57,7 @@
 #endif
 
 #define STACK_TOP           0x60010000              // actually, we only control that on the chip
+#define STACK_SIZE          0x1000
 // give the stack 4K
 #define DMEM_VEND           0x6000F000
 

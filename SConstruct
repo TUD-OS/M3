@@ -90,6 +90,7 @@ if target == 't2' or target == 't3':
     env.Replace(AR = cross + '-ar')
     env.Replace(RANLIB = cross + '-ranlib')
 else:
+    env.Append(CXXFLAGS = ' -fno-omit-frame-pointer')
     if target == 'gem5':
         # no build-id because it confuses gem5
         env.Append(LINKFLAGS = ' -static -Wl,--build-id=none -nostdlib')

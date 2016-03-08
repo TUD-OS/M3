@@ -73,6 +73,7 @@ help() {
     echo "    shfs=<fsimg> ...:        show m3-fs in <fsimg>"
     echo "    fsck=<fsimg> ...:        run m3fsck on <fsimg>"
     echo "    exfs=<fsimg> <dir>:      export contents of <fsimg> to <dir>"
+    echo "    bt=<prog>:               print the backtrace, using given symbols"
     echo "    list:                    list the link-address of all programs"
     echo ""
     echo "Environment variables:"
@@ -354,6 +355,10 @@ case "$cmd" in
 
     exfs=*)
         $build/src/tools/exm3fs/exm3fs $build/${cmd#exfs=} $script
+        ;;
+
+    bt=*)
+        ./src/tools/backtrace $bindir/${cmd#bt=}
         ;;
 
     list)
