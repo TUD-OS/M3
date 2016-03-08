@@ -82,7 +82,7 @@ Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int ord
 }
 
 Errors::Code Syscalls::detachrb(capsel_t vpe, size_t ep) {
-    LOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep);
+    LOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep << ")");
     return finish(send_receive_vmsg(_gate, DETACHRB, vpe, ep));
 }
 
