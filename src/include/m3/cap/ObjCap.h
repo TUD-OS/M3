@@ -119,7 +119,7 @@ protected:
      * @param flags the new flags
      */
     void flags(unsigned flags) {
-        _sel = flags;
+        _flags = flags;
     }
 
     /**
