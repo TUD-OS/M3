@@ -16,15 +16,13 @@
 
 #include <xtensa/config/core-isa.h>
 #include <m3/Common.h>
+#include <m3/Backtrace.h>
 #include <m3/stream/Serial.h>
 #include <stdlib.h>
 
 using namespace m3;
 
 #define VERBOSE_EXCEPTIONS          0
-
-#define CALL_INSTR_SIZE             3
-#define MAKE_PC_FROM_RA(ra, sp)     (((ra) & 0x3fffffff) | ((sp) & 0xc0000000))
 
 struct State {
     uint32_t ar[16];
@@ -90,18 +88,15 @@ static inline uint32_t get_excvaddr() {
     return val;
 }
 
-static uintptr_t get_caller(const State *state) {
-    return MAKE_PC_FROM_RA(state->ar[0], state->pc) - CALL_INSTR_SIZE;
-}
-
 EXTERN_C void ExceptionHandler(uint cause, const State *state) {
     Serial &ser = Serial::get();
     ser << "PANIC: " << excauses[cause] << "\n";
     ser << "    @ " << fmt(state->pc, "p")
-        << ", for addr " << fmt(get_excvaddr(), "p")
-        << ", called from " << fmt(get_caller(state), "p") << "\n";
+        << ", for addr " << fmt(get_excvaddr(), "p") << "\n";
 
 #if VERBOSE_EXCEPTIONS
+    Backtrace::print(ser);
+
     ser << "State @ " << state << "\n";
     for(size_t i = 0; i < ARRAY_SIZE(state->ar); ++i)
         ser << "    a" << fmt(i, "0", 2) << "  = " << fmt(state->ar[i], "#0x", 8) << "\n";

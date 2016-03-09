@@ -17,6 +17,7 @@
 #pragma once
 
 #include <m3/stream/Serial.h>
+#include <m3/Backtrace.h>
 #include <m3/Config.h>
 
 #if defined(__host__)
@@ -40,8 +41,9 @@
 #define PANIC(expr) do {                                             \
         __log_lock();                                                \
         m3::Serial::get() << expr << "\n";                           \
+        m3::Backtrace::print(m3::Serial::get());                     \
         __log_unlock();                                              \
-        ::exit(1);                                                     \
+        ::exit(1);                                                   \
     }                                                                \
     while(0)
 

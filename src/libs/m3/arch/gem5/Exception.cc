@@ -15,6 +15,7 @@
  */
 
 #include <m3/Common.h>
+#include <m3/Backtrace.h>
 #include <m3/arch/gem5/Exception.h>
 #include <m3/stream/Serial.h>
 
@@ -79,6 +80,8 @@ void Exceptions::handler(State *state) {
     else
         Serial::get() << "<unknown> (" << state->intrptNo << ")";
     Serial::get() << "\n";
+
+    Backtrace::print(Serial::get());
 
     Serial::get() << "  err: " << state->errorCode << "\n";
     Serial::get() << "  rax: " << fmt(state->rax,    "#0x", 16) << "\n";
