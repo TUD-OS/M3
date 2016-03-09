@@ -267,4 +267,21 @@ USED int OStream::puts(const char *str, ulong prec) {
     return str - begin;
 }
 
+void OStream::dump(const void *data, size_t size) {
+    const uint8_t *bytes = reinterpret_cast<const uint8_t*>(data);
+    for(size_t i = 0; i < size; ++i) {
+        if((i % 16) == 0) {
+            if(i > 0)
+                write('\n');
+            printupad(i, 16, 4, FormatParams::PADZEROS);
+            write(':');
+            write(' ');
+        }
+        printupad(bytes[i], 16, 2, FormatParams::PADZEROS);
+        if(i + 1 < size)
+            write(' ');
+    }
+    write('\n');
+}
+
 }

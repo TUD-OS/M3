@@ -301,6 +301,14 @@ public:
     }
 
     /**
+     * Produces a hexdump of the given data.
+     *
+     * @param data the data
+     * @param size the number of bytes
+     */
+    void dump(const void *data, size_t size);
+
+    /**
      * Writes the given character into the stream.
      *
      * @param c the character
