@@ -57,6 +57,9 @@ baseenv = Environment(
 
 # for host compilation
 hostenv = baseenv.Clone()
+hostenv.Append(
+    CPPFLAGS = ' -D__tools__'
+)
 
 # for target compilation
 env = baseenv.Clone()

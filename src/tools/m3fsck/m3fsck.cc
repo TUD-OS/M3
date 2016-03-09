@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#define FS_TOOLS
-
 #include <m3/Common.h>
 #include <m3/BitField.h>
 #include <fs/internal.h>

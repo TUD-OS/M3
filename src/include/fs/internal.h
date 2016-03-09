@@ -238,7 +238,7 @@ private:
 
 }
 
-#ifdef FS_TOOLS
+#if defined(__tools__)
 
 #include <stdlib.h>
 #include <stdio.h>
