@@ -73,6 +73,7 @@ help() {
     echo "    shfs=<fsimg> ...:        show m3-fs in <fsimg>"
     echo "    fsck=<fsimg> ...:        run m3fsck on <fsimg>"
     echo "    exfs=<fsimg> <dir>:      export contents of <fsimg> to <dir>"
+    echo "    memlayout:               show the memory layout using const2ini"
     echo "    bt=<prog>:               print the backtrace, using given symbols"
     echo "    list:                    list the link-address of all programs"
     echo ""
@@ -355,6 +356,13 @@ case "$cmd" in
 
     exfs=*)
         $build/src/tools/exm3fs/exm3fs $build/${cmd#exfs=} $script
+        ;;
+
+    memlayout)
+        $build/src/tools/consts2ini/consts2ini | awk '{
+            if($3)
+                printf("%s = %#x\n", $1, $3);
+        }'
         ;;
 
     bt=*)
