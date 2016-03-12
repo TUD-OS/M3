@@ -21,17 +21,19 @@
 namespace m3 {
 
 File *M3FS::open(const char *path, int perms) {
-    int res;
+    int fd;
     // ensure that the message gets acked immediately.
     {
+        Errors::Code res;
         GateIStream resp = send_receive_vmsg(_gate, OPEN, path, perms);
         resp >> res;
+        if(res != Errors::NO_ERROR) {
+            Errors::last = res;
+            return nullptr;
+        }
+        resp >> fd;
     }
-    if(res < 0) {
-        Errors::last = static_cast<Errors::Code>(res);
-        return nullptr;
-    }
-    return new RegularFile(res, Reference<M3FS>(this), perms);
+    return new RegularFile(fd, Reference<M3FS>(this), perms);
 }
 
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {

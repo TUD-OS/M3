@@ -262,7 +262,7 @@ public:
             INodes::write_back(_handle, inode);
 
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);
-        reply_vmsg(gate, fd);
+        reply_vmsg(gate, Errors::NO_ERROR, fd);
     }
 
     void seek(RecvGate &gate, GateIStream &is) {
