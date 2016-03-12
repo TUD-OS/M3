@@ -4,10 +4,10 @@ to copy the overlay directory appropriately, if you clone to repository to somew
 
     $ git clone git://git.buildroot.net/buildroot
 
-Now checkout the 2015.02 branch
+Now checkout the 2016.02 branch
 
     $ cd buildroot
-    $ git checkout -b m3 2015.02
+    $ git checkout -b m3 2016.02
 
 Finally, copy the config file and build it:
 

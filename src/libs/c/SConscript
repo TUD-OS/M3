@@ -3,8 +3,7 @@ Import('env')
 myenv = env.Clone()
 # disable lto for gem5 for now, since it doesn't workhere ("plugin needed to handle lto object")
 # I don't know why it works for libm3, but not for libc.
-if myenv['ARCH'] == 'gem5':
-    myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-flto', '')
+myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-flto', '')
 lib = myenv.StaticLibrary(
     target = 'libc',
     source = [

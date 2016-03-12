@@ -15,7 +15,7 @@ if target == 't2' or target == 't3':
 
     cross = 'xtensa-buildroot-linux-uclibc'
     crossdir = Dir(config.get('root', 'buildroot')).abspath + '/host/usr/'
-    crossver = '4.8.4'
+    crossver = '5.3.0'
     runtime = 'sim' if target == 't3' else 'min-rt'
     configpath = Dir(config.get('root', 'cfgpath'))
     xtroot = Dir(config.get('root', 'xtroot'))
@@ -44,7 +44,7 @@ if core is None:
 # build basic environment
 baseenv = Environment(
     CPPFLAGS = '-D__' + target + '__',
-    CXXFLAGS = ' -std=c++11 -Wall -Wextra',
+    CXXFLAGS = ' -std=c++11 -Wall -Wextra -fdiagnostics-color=always',
     CFLAGS = ' -std=c99 -Wall -Wextra',
     CPPPATH = ['#src/include'],
     ENV = {
@@ -90,8 +90,8 @@ if target == 't2' or target == 't3':
     env.Replace(F90 = cross + '-gfortran')
     env.Replace(CC = cross + '-gcc')
     env.Replace(LD = cross + '-ld')
-    env.Replace(AR = cross + '-ar')
-    env.Replace(RANLIB = cross + '-ranlib')
+    env.Replace(AR = cross + '-gcc-ar')
+    env.Replace(RANLIB = cross + '-gcc-ranlib')
 else:
     env.Append(CXXFLAGS = ' -fno-omit-frame-pointer')
     if target == 'gem5':
