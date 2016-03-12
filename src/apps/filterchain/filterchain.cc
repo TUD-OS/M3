@@ -32,7 +32,7 @@ static const size_t BUF_SIZE    = 4096;
 int main(int argc, char **argv) {
     size_t memSize = 8 * 1024 * 1024;
     if(argc > 1)
-        memSize = IStringStream::read_from<size_t>(argv[1]);
+        memSize = Math::round_up(IStringStream::read_from<size_t>(argv[1]), BUF_SIZE);
 
     Random::init(0x1234);
 
