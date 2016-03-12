@@ -42,5 +42,6 @@ else:
     blocks = int(os.environ.get('M3_FSBLKS'))
 env.M3Mkfs(target = 'default.img', source = '$FSDIR/default', blocks = blocks, inodes = 256, blks_per_ext = bpe)
 
-args = '--sim' if env['ARCH'] == 't3' else ''
-env.M3FileDump(target = 'default.img.mem', source = 'default.img', addr = 0x1000000, args = args)
+if env['ARCH'] == 't2' or env['ARCH'] == 't3':
+    args = '--sim' if env['ARCH'] == 't3' else ''
+    env.M3FileDump(target = 'default.img.mem', source = 'default.img', addr = 0x1000000, args = args)
