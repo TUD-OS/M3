@@ -1,31 +1,11 @@
 #!/usr/bin/env php
 <?php
+include_once 'symbols.php';
+
 if($argc != 2)
     die("Usage: $argv[0] <trace>; with the output of nm -SC in stdin");
 
-function func_compare($a, $b) {
-    return $a[0] < $b[0];
-}
-
-function funcname($funcs, $addr) {
-    foreach($funcs as $f) {
-        if($addr >= $f[0] && $addr <= $f[0] + $f[1])
-            return $f[2];
-    }
-    return sprintf("<Unknown>: %08x", $addr);
-}
-
-$funcs = array();
-$f = @fopen('php://stdin', "r");
-if(!$f)
-    die("Unable to open stdin");
-while(($line = fgets($f)) !== false) {
-    if(preg_match('/^([a-f0-9]+) ([a-f0-9]+) (t|T) (.+)$/', $line, $match))
-        $funcs[] = array(hexdec($match[1]), hexdec($match[2]), $match[4]);
-}
-fclose($f);
-
-usort($funcs,'func_compare');
+$funcs = get_funcs_from_stdin();
 
 $f = @fopen($argv[1], "r");
 if(!$f)
@@ -41,12 +21,12 @@ while(($line = fgets($f)) !== false) {
     else if(substr($line, 0, 6) == "\t\$time") {
         preg_match('/^\s*\$time\(\s*"iss",\s*"clocks",\s*(\\d+),\s*"cycle",\s*(\\d+)/', $line, $match);
         $func = funcname($funcs, $lastaddr);
-        if($lastfunc != '' && $func != $lastfunc) {
+        if($lastfunc != '' && $func[2] != $lastfunc) {
             printf("@%8d: %5d: %s\n", $laststart, $count, $lastfunc);
             $laststart = $match[2];
             $count = 0;
         }
-        $lastfunc = $func;
+        $lastfunc = $func[2];
         $count += $match[1];
     }
 }
