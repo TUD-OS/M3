@@ -28,6 +28,9 @@ int main() {
 
     if(VPE::self().pager()) {
         FileRef file("/BitField.h", FILE_R);
+        if(Errors::last != Errors::NO_ERROR)
+            PANIC("Unable to open /BitField.h: " << Errors::to_string(Errors::last));
+
         FileInfo info;
         file->stat(info);
         // TODO that is not nice
