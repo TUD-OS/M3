@@ -21,6 +21,9 @@
 #define RCTMUX_FLAG_STORE   (1 << 2)
 #define RCTMUX_FLAG_RESTORE (1 << 3)
 
+#define RCTMUX_STORE_EP     (EP_COUNT - 1)
+#define RCTMUX_RESTORE_EP   (EP_COUNT - 2)
+
 #if defined(__cplusplus)
 namespace m3 {
 

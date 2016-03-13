@@ -154,8 +154,7 @@ EXTERN_C void _store_context() {
     mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     // copy end-area of heap and runtime and keep flags
-    addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
-    mem_write(RCTMUX_STORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
+    mem_write(RCTMUX_STORE_EP, (void*)RT_START, RT_SIZE, &offset);
 
     // app layout
     AppLayout *l = applayout();
@@ -213,8 +212,7 @@ EXTERN_C void _restore_context() {
     }
 
     // restore end-area of heap and runtime before accessing applayout
-    addr = Math::round_dn((uintptr_t)(RT_SPACE_END - DTU_PKG_SIZE), DTU_PKG_SIZE);
-    mem_read(RCTMUX_RESTORE_EP, (void*)addr, DMEM_VEND - addr, &offset);
+    mem_read(RCTMUX_RESTORE_EP, (void*)RT_START, RT_SIZE, &offset);
 
     // restore app layout
     AppLayout *l = applayout();

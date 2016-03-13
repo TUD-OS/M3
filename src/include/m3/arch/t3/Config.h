@@ -46,10 +46,6 @@
 #define DRAM_OFFSET         (64 * 1024 * 1024)
 #define DRAM_SIZE           (64 * 1024 * 1024)
 
-// reserve small extra stack space for rctmux
-#define RCTMUX_STORE_EP     (EP_COUNT - 1)
-#define RCTMUX_RESTORE_EP   (EP_COUNT - 2)
-
 // used for stack-copying
 #define STACK_TOP           0x60800000
 #define STACK_SIZE          0x1000

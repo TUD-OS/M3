@@ -12,7 +12,7 @@ MEMORY
   iram0_8_seg :                         org = 0x608005BC, len = 0x1C
   iram0_9_seg :                         org = 0x608005D8, len = 0x4
   iram0_10_seg :                        org = 0x608005DC, len = 0x1C
-  iram0_11_seg :                        org = 0x6081F900, len = 0x6F8
+  iram0_11_seg :                        org = 0x6081F800, len = 0x7F8
 
   /* if you change this, you will also have to eventually adapt the
      addresses of .RCTMuxRegisters below and the defineis in Config.h */

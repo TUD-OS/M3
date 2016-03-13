@@ -26,6 +26,10 @@
 namespace m3 {
 
 void KVPE::init() {
+    activate_sysc_ep();
+}
+
+void KVPE::activate_sysc_ep() {
     // attach default receive endpoint
     UNUSED Errors::Code res = RecvBufs::attach(
         *this, DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
@@ -34,9 +38,6 @@ void KVPE::init() {
     // configure syscall endpoint
     KDTU::get().config_send_remote(*this, DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         KERNEL_CORE, KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
-}
-
-void KVPE::activate_sysc_ep() {
 }
 
 void KVPE::wakeup() {
@@ -51,6 +52,11 @@ void KVPE::start(int, char **argv, int) {
 #if defined(__gem5__)
     init_memory(argv[0]);
 #endif
+
+    // write the core id to the PE
+    uint64_t coreid = core();
+    Sync::compiler_barrier();
+    KDTU::get().write_mem(*this, RT_START, &coreid, sizeof(coreid));
 
     // do not send interrupt if the program is already running
     // this is the case for programs loaded by a simulator for example
