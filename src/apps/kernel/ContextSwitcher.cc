@@ -126,7 +126,7 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // wait for rctmux to be initialized - this should only take a few
         // cycles so we can busy wait here; we limit the maximal amount
         // of cycles, though
-        uint8_t timeout_counter = 1 << 4;
+        uint8_t timeout_counter = 1 << 6;
         while (--timeout_counter && (ctrl & RCTMUX_FLAG_SIGNAL)) {
             recv_flags(&dtu, &ctrl);
         }
