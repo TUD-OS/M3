@@ -159,7 +159,7 @@ build_params_gem5() {
         gdb --tui hw/gem5/build/X86/gem5.debug --command=$tmp
         rm $tmp
     else
-        xargs -a $params hw/gem5/build/X86/gem5.opt | tee run/log.txt
+        xargs -a $params hw/gem5/build/X86/gem5.opt
     fi
 
     rm $params

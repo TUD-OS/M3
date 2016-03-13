@@ -182,7 +182,7 @@ case "$cmd" in
             run_on_host $script
             kill_m3_procs
         else
-            ./src/tools/execute.sh $script
+            ./src/tools/execute.sh $script 2>&1 | tee run/log.txt
         fi
         ;;
 
@@ -269,7 +269,7 @@ case "$cmd" in
             rm $gdbcmd
         elif [ "$M3_TARGET" = "t3" ]; then
             truncate --size=0 run/xtsc.log
-            ./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>run/log.txt 2>/dev/null &
+            ./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>run/log.txt 2>&1 &
 
             # figure out the port that has been used
             while [ "`grep 'Debug info: port=' run/xtsc.log`" = "" ]; do
