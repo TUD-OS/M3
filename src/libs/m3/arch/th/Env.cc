@@ -15,14 +15,16 @@
  */
 
 #include <m3/Common.h>
-#include <m3/arch/t3/RCTMux.h>
 #include <m3/util/Math.h>
 #include <m3/Env.h>
 #include <m3/Log.h>
 #include <string.h>
 #include <assert.h>
 
-#include <xtensa/simcall.h>
+#if defined(__t3__)
+#   include <m3/arch/t3/RCTMux.h>
+#   include <xtensa/simcall.h>
+#endif
 
 extern void *_bss_table_start;
 extern void *_bss_table_end;

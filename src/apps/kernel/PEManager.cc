@@ -56,16 +56,16 @@ void PEManager::load(int argc, char **argv) {
             _vpes[no] = new KVPE(String(name.str()), no, no + APP_CORES, true, as, false);
             _count++;
 
+#if defined(__t3__)
             // VPEs started here are already running, so suspend them
             // to prevent sending an interrupt
             // FIXME: this feels like a dirty hack to me
             _vpes[no]->resume();
 
-#           if defined(__t3__)
             if (!_ctxswitcher && strcmp(argv[i], "rctmux") == 0) {
                 _ctxswitcher = new ContextSwitcher(_vpes[no]->core());
             }
-#           endif
+#endif
         }
 
         // find end of arguments

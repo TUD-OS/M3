@@ -34,9 +34,12 @@
     .type   _start, @function
 
 _start:
+#if defined(__t3__)
     # enable interrupts
     movi            a0, 1
     wsr.intenable   a0
+#endif
+
     # set return-addr and stack-pointer
     movi    a0, 0
 

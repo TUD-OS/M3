@@ -53,10 +53,12 @@ void KVPE::start(int, char **argv, int) {
     init_memory(argv[0]);
 #endif
 
+#if defined(__t3__)
     // write the core id to the PE
     uint64_t coreid = core();
     Sync::compiler_barrier();
     KDTU::get().write_mem(*this, RT_START, &coreid, sizeof(coreid));
+#endif
 
     // do not send interrupt if the program is already running
     // this is the case for programs loaded by a simulator for example

@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#if defined(__t3__)
+
 #include <m3/Config.h>
 #include <m3/arch/t3/RCTMux.h>
 #include <m3/DTU.h>
@@ -24,8 +26,6 @@
 #include "ContextSwitcher.h"
 
 namespace m3 {
-
-#if defined(__t3__)
 
 ContextSwitcher::ContextSwitcher(size_t core)
     : _core(core), _currtmuxvpe(nullptr)
@@ -153,6 +153,6 @@ void ContextSwitcher::switch_to(KVPE *to) {
     _currtmuxvpe = to;
 }
 
-#endif
-
 }
+
+#endif
