@@ -41,6 +41,7 @@ class Executable;
  * execute programs in it. You can access the memory to derive sub areas from it, though.
  */
 class VPE : public ObjCap {
+    friend struct Env;
     friend class CapRngDesc;
     friend class VFS;
 
@@ -226,11 +227,9 @@ public:
         return res;
     }
 
-    // should ONLY be called during initialization
-    void init_state();
-
 private:
     void init();
+    void init_state();
     Errors::Code run(void *lambda);
     Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
     Errors::Code load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size);
