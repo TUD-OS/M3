@@ -104,9 +104,6 @@ static void copytofs(MainMemory &mem, const char *file) {
     LOG(DEF, "Copied fs-image from memory back to '" << name << "'");
 }
 
-// overwrite weak-symbol __default_conf. this creates the Config object for the kernel
-int __default_conf = 0;
-
 int main(int argc, char *argv[]) {
     const char *fsimg = nullptr;
     mkdir("/tmp/m3", 0755);

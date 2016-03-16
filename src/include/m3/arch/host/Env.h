@@ -27,19 +27,17 @@ namespace m3 {
 
 class RecvGate;
 
+class HostEnvBackend : public EnvBackend {
+public:
+    explicit HostEnvBackend() {
+    }
+    virtual ~HostEnvBackend();
+};
+
 class Env {
     struct Init {
         Init();
         ~Init();
-    };
-
-    class HostEnvBackend : public EnvBackend {
-    public:
-        explicit HostEnvBackend(RecvGate *gate) : def_recvgate(gate) {
-        }
-        virtual ~HostEnvBackend();
-
-        RecvGate *def_recvgate;
     };
 
 public:
@@ -59,8 +57,7 @@ public:
         return _exec_short_ptr;
     }
 
-    explicit Env();
-    explicit Env(int core, const char *shmprefix);
+    explicit Env(EnvBackend *backend, int logfd);
     ~Env();
 
     void reset();
@@ -69,7 +66,7 @@ public:
         return _mem_recvgate;
     }
     bool is_kernel() const {
-        return _is_kernel;
+        return coreid == 0;
     }
     int log_fd() const {
         return _logfd;
@@ -85,28 +82,39 @@ public:
     }
     void print() const;
 
-private:
-    void init();
     void init_dtu();
-    static bool set_params(Env *env, const char *shm_prefix, bool is_kernel);
+    void set_params(int core, const std::string &shmprefix, label_t sysc_label,
+                    size_t sysc_epid, word_t sysc_credits) {
+        coreid = core;
+        _shm_prefix = shmprefix.c_str();
+        _sysc_label = sysc_label;
+        _sysc_epid = sysc_epid;
+        _sysc_credits = sysc_credits;
+    }
+
+private:
+    static int set_inst(Env *e) {
+        _inst = e;
+        // coreid
+        return 0;
+    }
     static void init_executable();
 
 public:
     int coreid;
+    EnvBackend *backend;
+
 private:
     int _logfd;
     String _shm_prefix;
     label_t _sysc_label;
     size_t _sysc_epid;
     word_t _sysc_credits;
-    bool _is_kernel;
     pthread_mutex_t _log_mutex;
     RecvBuf _mem_recvbuf;
     RecvBuf _def_recvbuf;
     RecvGate *_mem_recvgate;
-public:
-    HostEnvBackend *backend;
-private:
+
     static const char *_exec_short_ptr;
     static char _exec[];
     static char _exec_short[];
