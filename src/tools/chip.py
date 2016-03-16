@@ -49,8 +49,8 @@ class Env(Structure):
         ('caps', c_uint32),
         ('exit', c_uint32),
 
-        ('def_recvbuf', c_uint32),
-        ('def_recvgate', c_uint32),
+        ('backend', c_uint32),
+        ('_', c_uint32),
     ]
     def send(self):
         return buffer(self)[:]

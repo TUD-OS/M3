@@ -45,8 +45,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.pager_gate = 0;
     senv.pager_sess = 0;
 
-    senv.def_recvbuf = env()->def_recvbuf;
-    senv.def_recvgate = env()->def_recvgate;
+    senv.backend = env()->backend;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
@@ -110,8 +109,7 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.pager_sess = _pager ? _pager->sel() : 0;
     senv.pager_gate = _pager ? _pager->gate().sel() : 0;
 
-    senv.def_recvbuf = nullptr;
-    senv.def_recvgate = nullptr;
+    senv.backend = nullptr;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);

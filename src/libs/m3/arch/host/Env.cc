@@ -89,6 +89,10 @@ Env::Init::~Init() {
     delete _inst;
 }
 
+Env::HostEnvBackend::~HostEnvBackend() {
+    delete def_recvgate;
+}
+
 void Env::reset() {
     set_params(this, nullptr, false);
     Serial::init(executable(), env()->coreid);
@@ -110,7 +114,7 @@ Env::Env()
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
           _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
-          def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
+          backend(new HostEnvBackend(new RecvGate(RecvGate::create(&_def_recvbuf)))) {
     init();
 }
 
@@ -121,7 +125,7 @@ Env::Env(int core, const char *shmprefix)
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
           _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))),
-          def_recvgate(new RecvGate(RecvGate::create(&_def_recvbuf))) {
+          backend(new HostEnvBackend(new RecvGate(RecvGate::create(&_def_recvbuf)))) {
     init();
 }
 
@@ -194,7 +198,7 @@ void Env::print() const {
 
 Env::~Env() {
     delete _mem_recvgate;
-    delete def_recvgate;
+    delete backend;
     if(is_kernel())
         stop_dtu();
 }

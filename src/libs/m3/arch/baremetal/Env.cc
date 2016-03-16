@@ -14,15 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/RecvGate.h>
-#include <m3/cap/VPE.h>
 #include <m3/stream/OStream.h>
 #include <m3/stream/Serial.h>
+#include <m3/tracing/Tracing.h>
 #include <m3/Env.h>
 #include <m3/DTU.h>
 #include <functional>
 #include <string.h>
 
+EXTERN_C void init_env(m3::Env *env);
 EXTERN_C int main(int argc, char **argv);
 
 namespace m3 {
@@ -51,67 +51,23 @@ void Env::run() {
 
     int res;
     if(e->lambda) {
-        e->reinit();
+        e->backend->reinit();
 
         std::function<int()> *f = reinterpret_cast<std::function<int()>*>(e->lambda);
         EVENT_TRACER_lambda_main();
         res = (*f)();
     }
     else {
-        e->init();
+        init_env(e);
+        e->pre_init();
+        e->backend->init();
+        e->post_init();
 
         res = main(e->argc, e->argv);
     }
 
     ::exit(res);
     UNREACHED;
-}
-
-void Env::init() {
-    pre_init();
-
-    bool kernel = argv && strstr(argv[0], "kernel") != nullptr;
-    if(!kernel) {
-        // wait until the kernel has initialized our core
-        volatile Env *senv = this;
-        while(senv->coreid == 0)
-            ;
-    }
-    // the kernel is always on a predefined core
-    else
-        coreid = KERNEL_CORE;
-
-    def_recvbuf = new RecvBuf(RecvBuf::bindto(
-        DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-    def_recvgate = new RecvGate(RecvGate::create(def_recvbuf));
-
-    // TODO argv is always present, isn't it?
-    Serial::init(argv ? argv[0] : "Unknown", coreid);
-
-    post_init();
-}
-
-void Env::reinit() {
-    // wait until the kernel has initialized our core
-    volatile Env *senv = this;
-    while(senv->coreid == 0)
-        ;
-
-#if defined(__t3__)
-    // set default receive buffer again
-    DTU::get().configure_recv(def_recvbuf->epid(), reinterpret_cast<word_t>(def_recvbuf->addr()),
-        def_recvbuf->order(), def_recvbuf->msgorder(), def_recvbuf->flags());
-#endif
-
-    Serial::init(argv ? argv[0] : "Unknown", senv->coreid);
-    EPMux::get().reset();
-#if defined(__t2__)
-    DTU::get().reset();
-#endif
-
-    VPE::self().init_state();
-
-    EVENT_TRACE_REINIT();
 }
 
 }

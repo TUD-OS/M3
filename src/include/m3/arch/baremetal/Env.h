@@ -18,6 +18,7 @@
 
 #include <m3/Common.h>
 #include <m3/Config.h>
+#include <m3/EnvBackend.h>
 
 namespace m3 {
 
@@ -27,6 +28,14 @@ class OStream;
 
 struct Env;
 OStream &operator<<(OStream &, const Env &senv);
+
+class BaremetalEnvBackend : public EnvBackend {
+public:
+    virtual void init() = 0;
+    virtual void reinit() = 0;
+
+    RecvBuf *def_recvbuf;
+};
 
 struct Env {
     friend OStream &operator<<(OStream &, const Env &senv);
@@ -49,16 +58,16 @@ struct Env {
     uintptr_t caps;
     uintptr_t exit;
 
-    RecvBuf *def_recvbuf;
-    RecvGate *def_recvgate;
+    BaremetalEnvBackend *backend;
+#if defined(__t2__) || defined(__t3__)
+    uint32_t : 32;
+#endif
 
     static void run() asm("env_run");
 
 private:
-    void init();
     void pre_init();
     void post_init();
-    void reinit();
 } PACKED;
 
 #define RT_SPACE_SIZE           (RT_SIZE - (DEF_RCVBUF_SIZE + sizeof(word_t) * 2 + sizeof(m3::Env)))

@@ -41,7 +41,7 @@ class SendGate : public Gate {
 
     explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t epid = UNBOUND)
         : Gate(SEND_GATE, cap, capflags, epid),
-            _rcvgate(rcvgate == nullptr ? env()->def_recvgate : rcvgate) {
+            _rcvgate(rcvgate == nullptr ? env()->backend->def_recvgate : rcvgate) {
     }
 
 public:

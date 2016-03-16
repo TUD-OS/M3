@@ -31,6 +31,7 @@ class VFS;
 class Pager;
 class FStream;
 class Executable;
+class EnvUserBackend;
 
 /**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
@@ -41,7 +42,7 @@ class Executable;
  * execute programs in it. You can access the memory to derive sub areas from it, though.
  */
 class VPE : public ObjCap {
-    friend struct Env;
+    friend class EnvUserBackend;
     friend class CapRngDesc;
     friend class VFS;
 

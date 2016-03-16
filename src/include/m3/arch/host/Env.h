@@ -18,6 +18,7 @@
 
 #include <m3/util/String.h>
 #include <m3/BitField.h>
+#include <m3/EnvBackend.h>
 #include <m3/RecvBuf.h>
 #include <pthread.h>
 #include <assert.h>
@@ -30,6 +31,15 @@ class Env {
     struct Init {
         Init();
         ~Init();
+    };
+
+    class HostEnvBackend : public EnvBackend {
+    public:
+        explicit HostEnvBackend(RecvGate *gate) : def_recvgate(gate) {
+        }
+        virtual ~HostEnvBackend();
+
+        RecvGate *def_recvgate;
     };
 
 public:
@@ -95,7 +105,7 @@ private:
     RecvBuf _def_recvbuf;
     RecvGate *_mem_recvgate;
 public:
-    RecvGate *def_recvgate;
+    HostEnvBackend *backend;
 private:
     static const char *_exec_short_ptr;
     static char _exec[];
