@@ -41,22 +41,6 @@ using namespace m3;
 static SList<Device> devices;
 static size_t fssize = 0;
 
-class KernelEPSwitcher : public EPSwitcher {
-public:
-    virtual void switch_ep(size_t victim, capsel_t, capsel_t newcap) override {
-        // we don't need to clear endpoint-registers since nobody does cmpxchg here.
-        if(newcap != ObjCap::INVALID) {
-            MsgCapability *c = static_cast<MsgCapability*>(
-                CapTable::kernel_table().get(newcap, Capability::MSG));
-            assert(c != nullptr);
-            DTU::get().configure(victim, c->obj->label, c->obj->core, c->obj->epid, c->obj->credits);
-            LOG(IPC, "Kernel programs SEP[" << victim << "] to "
-                    << "core=" << c->obj->core << ", ep=" << c->obj->epid
-                    << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2));
-        }
-    }
-};
-
 static void sigint(int) {
     WorkLoop::get().stop();
 }
@@ -107,8 +91,6 @@ static void copytofs(MainMemory &mem, const char *file) {
 int main(int argc, char *argv[]) {
     const char *fsimg = nullptr;
     mkdir("/tmp/m3", 0755);
-    KernelEPSwitcher *epsw = new KernelEPSwitcher();
-    EPMux::get().set_epswitcher(epsw);
     signal(SIGINT, sigint);
 
     for(int i = 1; i < argc; ++i) {
@@ -144,7 +126,6 @@ int main(int argc, char *argv[]) {
         old->stop();
         delete &*old;
     }
-    delete epsw;
     delete_dir("/tmp/m3");
     return EXIT_SUCCESS;
 }

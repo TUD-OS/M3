@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <m3/Common.h>
+
 namespace m3 {
 
 class RecvGate;
@@ -26,6 +28,8 @@ public:
     }
     virtual ~EnvBackend() {
     }
+
+    virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
 
     RecvGate *def_recvgate;
 };

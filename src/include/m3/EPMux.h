@@ -25,17 +25,6 @@ namespace m3 {
 class Gate;
 
 /**
- * Actually switches two endpoints.
- */
-class EPSwitcher {
-public:
-    virtual ~EPSwitcher() {
-    }
-
-    virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
-};
-
-/**
  * The endpoint multiplexer allows us to have more gates than endpoints by multiplexing
  * the endpoints among the gates.
  */
@@ -48,16 +37,6 @@ public:
      */
     static EPMux &get() {
         return _inst;
-    }
-
-    /**
-     * Sets the EPSwitcher instance.
-     *
-     * @param epsw the new switcher
-     */
-    void set_epswitcher(EPSwitcher *epsw) {
-        delete _epsw;
-        _epsw = epsw;
     }
 
     /**
@@ -103,7 +82,6 @@ private:
     size_t select_victim();
 
     size_t _next_victim;
-    EPSwitcher *_epsw;
     Gate *_gates[EP_COUNT];
     static EPMux _inst;
 };

@@ -14,33 +14,18 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/stream/Serial.h>
-#include <m3/Env.h>
-#include <m3/RecvBuf.h>
+#include <m3/EnvBackend.h>
+#include <m3/Syscalls.h>
+#include <m3/Log.h>
 
 namespace m3 {
 
-class EnvKernelBackend : public BaremetalEnvBackend {
-public:
-    virtual void init() override {
-        env()->coreid = KERNEL_CORE;
-
-        def_recvbuf = new RecvBuf(RecvBuf::bindto(
-            DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        def_recvgate = new RecvGate(RecvGate::create(def_recvbuf));
-
-        Serial::init("kernel", KERNEL_CORE);
+void EnvBackend::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
+    if(Syscalls::get().activate(victim, oldcap, newcap) != Errors::NO_ERROR) {
+        // if we wanted to deactivate a cap, we can ignore the failure
+        if(newcap != ObjCap::INVALID)
+            PANIC("Unable to arm SEP " << victim << ": " << Errors::last);
     }
-
-    virtual void reinit() override {
-        // not used
-    }
-};
-
-EXTERN_C void init_env(Env *e) {
-    e->backend = new EnvKernelBackend();
 }
 
 }

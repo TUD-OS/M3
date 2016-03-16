@@ -69,6 +69,10 @@ void KDTU::unmap_page(KVPE &, uintptr_t) {
     // unsupported
 }
 
+void KDTU::config_send_local(int ep, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
+    DTU::get().configure(ep, label, dstcore, dstep, credits);
+}
+
 void KDTU::config_send_remote(KVPE &, int, label_t, int, int, int, size_t, word_t) {
     // nothing to do
 }

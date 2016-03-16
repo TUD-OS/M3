@@ -16,38 +16,38 @@
 
 #include <m3/Common.h>
 #include <m3/cap/RecvGate.h>
+#include <m3/stream/Serial.h>
 #include <m3/Env.h>
-#include <m3/EnvBackend.h>
-
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <m3/RecvBuf.h>
+#include <m3/Log.h>
 
 #include "../../KEPMux.h"
 
 namespace m3 {
 
-class HostKEnvBackend : public HostEnvBackend {
+class BaremetalKEnvBackend : public BaremetalEnvBackend {
 public:
+    virtual void init() override {
+        env()->coreid = KERNEL_CORE;
+
+        def_recvbuf = new RecvBuf(RecvBuf::bindto(
+            DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
+        def_recvgate = new RecvGate(RecvGate::create(def_recvbuf));
+
+        Serial::init("kernel", KERNEL_CORE);
+    }
+
+    virtual void reinit() override {
+        // not used
+    }
+
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
         KEPMux::switch_ep(victim, oldcap, newcap);
     }
 };
 
-static const char *gen_prefix() {
-    static char prefix[32];
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    srand(tv.tv_usec);
-    snprintf(prefix, sizeof(prefix), "/asyncipc-%d-", rand());
-    return prefix;
-}
-
-EXTERN_C void init_env() {
-    int logfd = open("run/log.txt", O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0644);
-
-    new Env(new HostKEnvBackend(), logfd);
-    env()->set_params(0, gen_prefix(), 0, 0, 0);
+EXTERN_C void init_env(Env *e) {
+    e->backend = new BaremetalKEnvBackend();
 }
 
 }

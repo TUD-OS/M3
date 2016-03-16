@@ -26,35 +26,12 @@
 
 using namespace m3;
 
-class KernelEPSwitcher : public EPSwitcher {
-public:
-    virtual void switch_ep(size_t id, capsel_t, capsel_t newcap) override {
-        if(newcap != ObjCap::INVALID) {
-            MsgCapability *c = static_cast<MsgCapability*>(
-                CapTable::kernel_table().get(newcap, Capability::MSG));
-
-            // TODO we need the max msg size
-            KDTU::get().config_send_local(id,
-                c->obj->label, c->obj->core, c->obj->vpe, c->obj->epid,
-                c->obj->credits, c->obj->credits);
-
-            LOG(IPC, "Kernel programs ep[" << id << "] to "
-                << "core=" << c->obj->core << ", ep=" << c->obj->epid
-                << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
-                << ", credits=" << fmt(c->obj->credits, "#x"));
-        }
-    }
-};
-
 int main(int argc, char *argv[]) {
     Serial &ser = Serial::get();
     if(argc < 2) {
         ser << "Usage: " << argv[0] << " <program>...\n";
         Machine::shutdown();
     }
-
-    KernelEPSwitcher *epsw = new KernelEPSwitcher();
-    EPMux::get().set_epswitcher(epsw);
 
     EVENT_TRACE_INIT_KERNEL();
 
@@ -70,7 +47,6 @@ int main(int argc, char *argv[]) {
     ser << "Shutting down...\n";
 
     PEManager::destroy();
-    delete epsw;
 
     Machine::shutdown();
 }
