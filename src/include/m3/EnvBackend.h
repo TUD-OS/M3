@@ -21,6 +21,7 @@
 namespace m3 {
 
 class RecvGate;
+class RecvBuf;
 
 class EnvBackend {
 public:
@@ -28,6 +29,9 @@ public:
     }
     virtual ~EnvBackend() {
     }
+
+    virtual void attach_recvbuf(RecvBuf *rb);
+    virtual void detach_recvbuf(RecvBuf *rb);
 
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
 

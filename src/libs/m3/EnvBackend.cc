@@ -15,10 +15,33 @@
  */
 
 #include <m3/EnvBackend.h>
+#include <m3/cap/VPE.h>
+#include <m3/RecvBuf.h>
 #include <m3/Syscalls.h>
 #include <m3/Log.h>
 
 namespace m3 {
+
+void EnvBackend::attach_recvbuf(RecvBuf *rb) {
+#if defined(__t3__)
+    // required for t3 because one can't write to these registers externally
+    DTU::get().configure_recv(rb->epid(), reinterpret_cast<word_t>(rb->addr()), rb->order(),
+        rb->msgorder(), rb->flags());
+#endif
+
+    if(rb->epid() > DTU::DEF_RECVEP) {
+        Errors::Code res = Syscalls::get().attachrb(VPE::self().sel(), rb->epid(),
+            reinterpret_cast<word_t>(rb->addr()), rb->order(),
+            rb->msgorder(), rb->flags());
+        if(res != Errors::NO_ERROR)
+            PANIC("Attaching receive buffer to " << rb->epid() << " failed: " << Errors::to_string(Errors::last));
+    }
+}
+
+void EnvBackend::detach_recvbuf(RecvBuf *rb) {
+    if(rb->epid() > DTU::DEF_RECVEP && rb->epid() != RecvBuf::UNBOUND)
+        Syscalls::get().detachrb(VPE::self().sel(), rb->epid());
+}
 
 void EnvBackend::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
     if(Syscalls::get().activate(victim, oldcap, newcap) != Errors::NO_ERROR) {

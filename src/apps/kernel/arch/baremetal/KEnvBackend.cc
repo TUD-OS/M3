@@ -41,6 +41,10 @@ public:
         // not used
     }
 
+    virtual void attach_recvbuf(RecvBuf *) override {
+    }
+    virtual void detach_recvbuf(RecvBuf *) override {
+    }
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
         KEPMux::switch_ep(victim, oldcap, newcap);
     }
