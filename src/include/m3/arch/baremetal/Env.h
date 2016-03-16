@@ -26,20 +26,24 @@ class RecvBuf;
 class RecvGate;
 class OStream;
 
-struct Env;
+class Env;
 OStream &operator<<(OStream &, const Env &senv);
 
 class BaremetalEnvBackend : public EnvBackend {
+    friend class Env;
+
 public:
     virtual void init() = 0;
     virtual void reinit() = 0;
 
-    RecvBuf *def_recvbuf;
+protected:
+    RecvBuf *_def_recvbuf;
 };
 
-struct Env {
+class Env {
     friend OStream &operator<<(OStream &, const Env &senv);
 
+public:
     static const size_t MODS_MAX    = 8;
 
     uint64_t coreid;
@@ -62,6 +66,13 @@ struct Env {
 #if defined(__t2__) || defined(__t3__)
     uint32_t : 32;
 #endif
+
+    RecvGate *def_recvgate() {
+        return backend->_def_recvgate;
+    }
+    WorkLoop *workloop() {
+        return backend->_workloop;
+    }
 
     static void run() asm("env_run");
 

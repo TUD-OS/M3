@@ -37,6 +37,6 @@ int main() {
         PANIC("Unable to connect to service 'interrupts'");
     timerirqs.gate().subscribe(timer_event);
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
     return 0;
 }

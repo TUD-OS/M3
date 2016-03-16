@@ -53,8 +53,8 @@ int main() {
     // now, register service
     server = new Server<EventHandler>("streamer", new EventHandler());
 
-    env()->backend->workloop->add(new Sender(), true);
-    env()->backend->workloop->add(&SendQueue::get(), true);
-    env()->backend->workloop->run();
+    env()->workloop()->add(new Sender(), true);
+    env()->workloop()->add(&SendQueue::get(), true);
+    env()->workloop()->run();
     return 0;
 }

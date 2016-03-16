@@ -55,6 +55,6 @@ int main() {
     Plasma plasma("plasma");
     kb.gate().subscribe(std::bind(kb_event, &plasma, std::placeholders::_1, std::placeholders::_2));
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
     return 0;
 }

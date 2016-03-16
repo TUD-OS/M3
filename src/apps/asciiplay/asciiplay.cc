@@ -124,6 +124,6 @@ int main(int argc, char **argv) {
     Keyboard kb("keyb");
     kb.gate().subscribe(kb_event);
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
     return 0;
 }

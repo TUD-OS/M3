@@ -58,7 +58,7 @@ int main() {
     // now, register service
     server = new Server<EventHandler>("queuetest", new EventHandler(), nextlog2<4096>::val);
 
-    env()->backend->workloop->add(&SendQueue::get(), true);
-    env()->backend->workloop->run();
+    env()->workloop()->add(&SendQueue::get(), true);
+    env()->workloop()->run();
     return 0;
 }

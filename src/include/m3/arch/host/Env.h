@@ -25,9 +25,12 @@
 
 namespace m3 {
 
+class Env;
 class RecvGate;
 
 class HostEnvBackend : public EnvBackend {
+    friend class Env;
+
 public:
     explicit HostEnvBackend();
     virtual ~HostEnvBackend();
@@ -60,6 +63,13 @@ public:
     ~Env();
 
     void reset();
+
+    RecvGate *def_recvgate() {
+        return backend->_def_recvgate;
+    }
+    WorkLoop *workloop() {
+        return backend->_workloop;
+    }
 
     RecvGate *mem_rcvgate() {
         return _mem_recvgate;

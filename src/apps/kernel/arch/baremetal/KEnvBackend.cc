@@ -29,15 +29,15 @@ namespace m3 {
 class BaremetalKEnvBackend : public BaremetalEnvBackend {
 public:
     explicit BaremetalKEnvBackend() {
-        workloop = new KWorkLoop();
+        _workloop = new KWorkLoop();
     }
 
     virtual void init() override {
         env()->coreid = KERNEL_CORE;
 
-        def_recvbuf = new RecvBuf(RecvBuf::bindto(
+        _def_recvbuf = new RecvBuf(RecvBuf::bindto(
             DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        def_recvgate = new RecvGate(RecvGate::create(def_recvbuf));
+        _def_recvgate = new RecvGate(RecvGate::create(_def_recvbuf));
 
         Serial::init("kernel", KERNEL_CORE);
     }

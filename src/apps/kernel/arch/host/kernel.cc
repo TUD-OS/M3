@@ -41,7 +41,7 @@ static SList<Device> devices;
 static size_t fssize = 0;
 
 static void sigint(int) {
-    env()->backend->workloop->stop();
+    env()->workloop()->stop();
 }
 
 static void delete_dir(const char *dir) {
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
 
     LOG(DEF, "Shutting down.");
     if(fsimg)

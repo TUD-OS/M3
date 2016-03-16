@@ -54,7 +54,7 @@ int main() {
         srv = new Server<MyHandler>("srvtest-server", &hdl);
         if(Errors::occurred())
             break;
-        env()->backend->workloop->run();
+        env()->workloop()->run();
         delete srv;
     }
     return 0;

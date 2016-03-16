@@ -423,6 +423,6 @@ int main(int argc, char *argv[]) {
 
     int size = IStringStream::read_from<int>(argv[1]);
     Server<M3FSRequestHandler> srv("m3fs", new M3FSRequestHandler(size));
-    env()->backend->workloop->run();
+    env()->workloop()->run();
     return 0;
 }

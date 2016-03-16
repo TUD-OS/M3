@@ -26,7 +26,7 @@ namespace m3 {
 class EnvUserBackend : public BaremetalEnvBackend {
 public:
     explicit EnvUserBackend() {
-        workloop = new WorkLoop();
+        _workloop = new WorkLoop();
     }
 
     virtual void init() override {
@@ -35,9 +35,9 @@ public:
         while(senv->coreid == 0)
             ;
 
-        def_recvbuf = new RecvBuf(RecvBuf::bindto(
+        _def_recvbuf = new RecvBuf(RecvBuf::bindto(
             DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        def_recvgate = new RecvGate(RecvGate::create(def_recvbuf));
+        _def_recvgate = new RecvGate(RecvGate::create(_def_recvbuf));
 
         // TODO argv is always present, isn't it?
         Serial::init(env()->argv ? env()->argv[0] : "Unknown", env()->coreid);
@@ -51,8 +51,8 @@ public:
 
 #if defined(__t3__)
         // set default receive buffer again
-        DTU::get().configure_recv(def_recvbuf->epid(), reinterpret_cast<word_t>(def_recvbuf->addr()),
-            def_recvbuf->order(), def_recvbuf->msgorder(), def_recvbuf->flags());
+        DTU::get().configure_recv(_def_recvbuf->epid(), reinterpret_cast<word_t>(_def_recvbuf->addr()),
+            _def_recvbuf->order(), _def_recvbuf->msgorder(), _def_recvbuf->flags());
 #endif
 
         Serial::init(env()->argv ? env()->argv[0] : "Unknown", senv->coreid);

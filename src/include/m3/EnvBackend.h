@@ -20,11 +20,14 @@
 
 namespace m3 {
 
+class Env;
 class RecvGate;
 class RecvBuf;
 class WorkLoop;
 
 class EnvBackend {
+    friend class Env;
+
 public:
     explicit EnvBackend() {
     }
@@ -36,8 +39,9 @@ public:
 
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
 
-    WorkLoop *workloop;
-    RecvGate *def_recvgate;
+protected:
+    WorkLoop *_workloop;
+    RecvGate *_def_recvgate;
 };
 
 }

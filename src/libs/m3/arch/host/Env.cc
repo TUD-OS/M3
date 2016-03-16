@@ -74,11 +74,11 @@ EXTERN_C WEAK void init_env() {
 }
 
 HostEnvBackend::HostEnvBackend() {
-    workloop = new WorkLoop();
+    _workloop = new WorkLoop();
 }
 
 HostEnvBackend::~HostEnvBackend() {
-    delete def_recvgate;
+    delete _def_recvgate;
 }
 
 Env::Init::Init() {
@@ -123,7 +123,7 @@ Env::Env(EnvBackend *backend, int logfd)
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
           _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))) {
-    backend->def_recvgate = new RecvGate(RecvGate::create(&_def_recvbuf));
+    backend->_def_recvgate = new RecvGate(RecvGate::create(&_def_recvbuf));
 }
 
 void Env::init_executable() {

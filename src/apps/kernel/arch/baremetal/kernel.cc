@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     PEManager::create();
     PEManager::get().load(argc - 1, argv + 1);
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
 
     EVENT_TRACE_FLUSH();
 

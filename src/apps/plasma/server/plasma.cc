@@ -411,6 +411,6 @@ int main() {
 
     Server<PlasmaRequestHandler> srv("plasma", new PlasmaRequestHandler());
 
-    env()->backend->workloop->run();
+    env()->workloop()->run();
     return 0;
 }
