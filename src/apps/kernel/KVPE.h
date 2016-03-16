@@ -17,7 +17,6 @@
 #pragma once
 
 #include <m3/col/SList.h>
-#include <m3/server/RequestHandler.h>
 #include <m3/cap/MemGate.h>
 #include <m3/Log.h>
 #include <cstring>
@@ -27,7 +26,7 @@
 
 namespace m3 {
 
-class KVPE : public RequestSessionData {
+class KVPE {
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
         VPEId(int _id, int _core);

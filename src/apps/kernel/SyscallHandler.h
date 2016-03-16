@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
 #include <m3/Syscalls.h>
 
@@ -26,14 +25,31 @@
 
 namespace m3 {
 
-class SyscallHandler : public RequestHandler<SyscallHandler, Syscalls::Operation, Syscalls::COUNT> {
+class SyscallHandler {
     explicit SyscallHandler();
 
 public:
     using server_type = Server<SyscallHandler>;
+    using handler_func = void (SyscallHandler::*)(RecvGate &gate, GateIStream &is);
 
     static SyscallHandler &get() {
         return _inst;
+    }
+
+    void add_operation(Syscalls::Operation op, handler_func func) {
+        _callbacks[op] = func;
+    }
+
+    void handle_message(RecvGate &gate, Subscriber<RecvGate&> *) {
+        EVENT_TRACER_handle_message();
+        GateIStream msg(gate);
+        Syscalls::Operation op;
+        msg >> op;
+        if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
+            (this->*_callbacks[op])(gate, msg);
+            return;
+        }
+        reply_vmsg(gate, Errors::INV_ARGS);
     }
 
     size_t epid() const {
@@ -53,9 +69,7 @@ public:
     RecvGate create_gate(KVPE *vpe) {
         using std::placeholders::_1;
         using std::placeholders::_2;
-        RecvGate syscc = RecvGate::create(&_rcvbuf, vpe);
-        add_session(vpe);
-        return syscc;
+        return RecvGate::create(&_rcvbuf, vpe);
     }
 
     void pagefault(RecvGate &gate, GateIStream &is);
@@ -88,6 +102,7 @@ private:
 
     RecvBuf _rcvbuf;
     RecvBuf _srvrcvbuf;
+    handler_func _callbacks[Syscalls::COUNT];
     static SyscallHandler _inst;
 };
 

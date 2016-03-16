@@ -15,6 +15,7 @@
  */
 
 #include <m3/util/Sync.h>
+#include <m3/util/Math.h>
 #include <m3/ELF.h>
 #include <m3/Log.h>
 

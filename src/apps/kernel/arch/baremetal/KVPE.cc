@@ -78,7 +78,6 @@ Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
 
 KVPE::~KVPE() {
     LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    SyscallHandler::get().remove_session(this);
     detach_rbufs();
     free_reqs();
     _objcaps.revoke_all();

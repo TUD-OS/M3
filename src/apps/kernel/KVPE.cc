@@ -31,7 +31,7 @@ KVPE::VPEId::~VPEId() {
 }
 
 KVPE::KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
-    : RequestSessionData(), _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
+    : _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),

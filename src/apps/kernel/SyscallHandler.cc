@@ -84,8 +84,7 @@ static Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldcapobj
 }
 
 SyscallHandler::SyscallHandler()
-        : RequestHandler<SyscallHandler, Syscalls::Operation, Syscalls::COUNT>(),
-          _rcvbuf(RecvBuf::create(epid(),
+        : _rcvbuf(RecvBuf::create(epid(),
             nextlog2<AVAIL_PES>::val + KVPE::SYSC_CREDIT_ORD, KVPE::SYSC_CREDIT_ORD, 0)),
           _srvrcvbuf(RecvBuf::create(VPE::self().alloc_ep(),
             nextlog2<1024>::val, nextlog2<256>::val, 0)) {
