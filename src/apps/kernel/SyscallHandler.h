@@ -67,8 +67,6 @@ public:
     }
 
     RecvGate create_gate(KVPE *vpe) {
-        using std::placeholders::_1;
-        using std::placeholders::_2;
         return RecvGate::create(&_rcvbuf, vpe);
     }
 
