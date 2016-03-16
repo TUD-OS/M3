@@ -53,22 +53,19 @@ static void check_childs() {
 
 namespace m3 {
 
-class KWorkLoop {
-    KWorkLoop() = delete;
-
+class KWorkLoop : public WorkLoop {
 public:
-    static void run() {
+    virtual void run() override {
 #if defined(__host__)
         signal(SIGCHLD, sigchild);
 #endif
         EVENT_TRACER_KWorkLoop_run();
 
-        WorkLoop &wl = WorkLoop::get();
         DTU &dtu = DTU::get();
         SyscallHandler &sysch = SyscallHandler::get();
         int sysep = sysch.epid();
         int srvep = sysch.srvepid();
-        while(wl.has_items()) {
+        while(has_items()) {
             DTU::get().wait();
 
             if(dtu.fetch_msg(sysep)) {

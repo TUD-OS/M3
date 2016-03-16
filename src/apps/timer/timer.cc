@@ -37,6 +37,6 @@ int main() {
         PANIC("Unable to connect to service 'interrupts'");
     timerirqs.gate().subscribe(timer_event);
 
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

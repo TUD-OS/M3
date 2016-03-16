@@ -47,7 +47,7 @@ void RecvBuf::attach(size_t i) {
         if(i != DTU::MEM_EP && (~_flags & DTU::FLAG_NO_HEADER)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
-                WorkLoop::get().add(_workitem, i == DTU::MEM_EP || i == DTU::DEF_RECVEP);
+                env()->backend->workloop->add(_workitem, i == DTU::MEM_EP || i == DTU::DEF_RECVEP);
             }
             else
                 _workitem->epid(i);
@@ -60,7 +60,7 @@ void RecvBuf::attach(size_t i) {
 
 void RecvBuf::disable() {
     if(_workitem) {
-        WorkLoop::get().remove(_workitem);
+        env()->backend->workloop->remove(_workitem);
         delete _workitem;
         _workitem = nullptr;
     }

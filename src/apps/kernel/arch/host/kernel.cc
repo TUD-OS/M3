@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#include "../../KWorkLoop.h"
 #include "../../Services.h"
 #include "../../PEManager.h"
 #include "../../KVPE.h"
@@ -42,7 +41,7 @@ static SList<Device> devices;
 static size_t fssize = 0;
 
 static void sigint(int) {
-    WorkLoop::get().stop();
+    env()->backend->workloop->stop();
 }
 
 static void delete_dir(const char *dir) {
@@ -115,7 +114,8 @@ int main(int argc, char *argv[]) {
     LOG(DEF, "Initializing PEs.");
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
-    KWorkLoop::run();
+
+    env()->backend->workloop->run();
 
     LOG(DEF, "Shutting down.");
     if(fsimg)

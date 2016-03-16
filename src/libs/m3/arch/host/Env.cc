@@ -73,6 +73,10 @@ EXTERN_C WEAK void init_env() {
     on_exit(on_exit_func, nullptr);
 }
 
+HostEnvBackend::HostEnvBackend() {
+    workloop = new WorkLoop();
+}
+
 HostEnvBackend::~HostEnvBackend() {
     delete def_recvgate;
 }

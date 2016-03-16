@@ -58,6 +58,6 @@ public:
 
 int main() {
     srv = new Server<TestRequestHandler>("test", new TestRequestHandler());
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

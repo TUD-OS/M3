@@ -60,6 +60,6 @@ int main() {
     Server<EventHandler> kbserver("keyb", new EventHandler());
     kbirqs.gate().subscribe(std::bind(kb_irq, &kbserver, std::placeholders::_1, std::placeholders::_2));
 
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

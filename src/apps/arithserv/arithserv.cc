@@ -71,6 +71,6 @@ int main() {
     if(Errors::occurred())
         PANIC("Unable to register service 'arith'");
 
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

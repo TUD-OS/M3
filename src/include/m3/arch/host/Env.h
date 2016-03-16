@@ -29,8 +29,7 @@ class RecvGate;
 
 class HostEnvBackend : public EnvBackend {
 public:
-    explicit HostEnvBackend() {
-    }
+    explicit HostEnvBackend();
     virtual ~HostEnvBackend();
 };
 

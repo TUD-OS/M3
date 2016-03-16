@@ -91,7 +91,7 @@ int main() {
     evhandler = new IntEventHandler();
     Server<IntEventHandler> srv("interrupts", evhandler);
 
-    WorkLoop::get().add(&hwirqs, true);
-    WorkLoop::get().run();
+    env()->backend->workloop->add(&hwirqs, true);
+    env()->backend->workloop->run();
     return 0;
 }

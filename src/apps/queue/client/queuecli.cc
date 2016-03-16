@@ -45,6 +45,6 @@ int main() {
     qtest.delegate_obj(sgate.sel());
     rgate.subscribe(received_data);
 
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

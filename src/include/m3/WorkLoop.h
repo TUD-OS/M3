@@ -35,12 +35,8 @@ public:
 class WorkLoop {
     static const size_t MAX_ITEMS   = 8;
 
-    explicit WorkLoop() : _changed(false), _permanents(0), _count(), _items() {
-    }
-
 public:
-    static WorkLoop &get() {
-        return _inst;
+    explicit WorkLoop() : _changed(false), _permanents(0), _count(), _items() {
     }
 
     bool has_items() const {
@@ -50,7 +46,7 @@ public:
     void add(WorkItem *item, bool permanent);
     void remove(WorkItem *item);
 
-    void run();
+    virtual void run();
     void stop() {
         _permanents = _count;
     }
@@ -60,7 +56,6 @@ private:
     uint _permanents;
     size_t _count;
     WorkItem *_items[MAX_ITEMS];
-    static WorkLoop _inst;
 };
 
 }

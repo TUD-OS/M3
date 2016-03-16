@@ -88,8 +88,10 @@ public:
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
     RecvBuf(RecvBuf &&r) : _buf(r._buf), _order(r._order), _msgorder(r._msgorder),
-            _epid(r._epid), _flags(r._flags) {
+            _epid(r._epid), _flags(r._flags), _workitem(r._workitem) {
         r._flags &= ~DELETE_BUF;
+        r._epid = UNBOUND;
+        r._workitem = nullptr;
     }
     ~RecvBuf() {
         if(_flags & DELETE_BUF)

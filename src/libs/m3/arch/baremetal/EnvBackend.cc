@@ -25,6 +25,10 @@ namespace m3 {
 
 class EnvUserBackend : public BaremetalEnvBackend {
 public:
+    explicit EnvUserBackend() {
+        workloop = new WorkLoop();
+    }
+
     virtual void init() override {
         // wait until the kernel has initialized our core
         volatile Env *senv = env();

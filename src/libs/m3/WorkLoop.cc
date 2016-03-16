@@ -18,8 +18,6 @@
 
 namespace m3 {
 
-WorkLoop WorkLoop::_inst INIT_PRIORITY(106);
-
 void WorkLoop::add(WorkItem *item, bool permanent) {
     assert(_count < MAX_ITEMS);
     _items[_count++] = item;

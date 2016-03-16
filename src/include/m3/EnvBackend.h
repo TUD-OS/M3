@@ -22,6 +22,7 @@ namespace m3 {
 
 class RecvGate;
 class RecvBuf;
+class WorkLoop;
 
 class EnvBackend {
 public:
@@ -35,6 +36,7 @@ public:
 
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
 
+    WorkLoop *workloop;
     RecvGate *def_recvgate;
 };
 

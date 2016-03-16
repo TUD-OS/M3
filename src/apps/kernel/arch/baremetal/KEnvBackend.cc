@@ -22,11 +22,16 @@
 #include <m3/Log.h>
 
 #include "../../KEPMux.h"
+#include "../../KWorkLoop.h"
 
 namespace m3 {
 
 class BaremetalKEnvBackend : public BaremetalEnvBackend {
 public:
+    explicit BaremetalKEnvBackend() {
+        workloop = new KWorkLoop();
+    }
+
     virtual void init() override {
         env()->coreid = KERNEL_CORE;
 

@@ -50,6 +50,6 @@ int main() {
     if(Errors::occurred())
         PANIC("Unable to register service 'vga'");
 
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }

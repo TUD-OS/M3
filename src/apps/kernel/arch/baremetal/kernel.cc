@@ -22,7 +22,6 @@
 #include "../../CapTable.h"
 #include "../../PEManager.h"
 #include "../../SyscallHandler.h"
-#include "../../KWorkLoop.h"
 
 using namespace m3;
 
@@ -40,7 +39,7 @@ int main(int argc, char *argv[]) {
     PEManager::create();
     PEManager::get().load(argc - 1, argv + 1);
 
-    KWorkLoop::run();
+    env()->backend->workloop->run();
 
     EVENT_TRACE_FLUSH();
 

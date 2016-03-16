@@ -24,11 +24,16 @@
 #include <fcntl.h>
 
 #include "../../KEPMux.h"
+#include "../../KWorkLoop.h"
 
 namespace m3 {
 
 class HostKEnvBackend : public HostEnvBackend {
 public:
+    explicit HostKEnvBackend() {
+        workloop = new KWorkLoop();
+    }
+
     virtual void attach_recvbuf(RecvBuf *) override {
     }
     virtual void detach_recvbuf(RecvBuf *) override {

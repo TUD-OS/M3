@@ -228,6 +228,6 @@ public:
 
 int main() {
     Server<MemReqHandler> srv("pager", new MemReqHandler());
-    WorkLoop::get().run();
+    env()->backend->workloop->run();
     return 0;
 }
