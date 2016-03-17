@@ -151,7 +151,7 @@ void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
-void SyscallHandler::pagefault(RecvGate &gate, GateIStream &is) {
+void SyscallHandler::pagefault(RecvGate &gate, UNUSED GateIStream &is) {
 #if defined(__gem5__)
     KVPE *vpe = gate.session<KVPE>();
     uint64_t virt, access;
@@ -315,7 +315,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     reply_vmsg(gate, Errors::NO_ERROR);
 }
 
-void SyscallHandler::createmap(RecvGate &gate, GateIStream &is) {
+void SyscallHandler::createmap(RecvGate &gate, UNUSED GateIStream &is) {
 #if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
     KVPE *vpe = gate.session<KVPE>();

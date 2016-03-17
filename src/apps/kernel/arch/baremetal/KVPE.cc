@@ -39,7 +39,7 @@ void KVPE::init() {
 void KVPE::activate_sysc_ep() {
 }
 
-void KVPE::start(int, char **argv, int) {
+void KVPE::start(int, UNUSED char **argv, int) {
     // when exiting, the program will release one reference
     ref();
 

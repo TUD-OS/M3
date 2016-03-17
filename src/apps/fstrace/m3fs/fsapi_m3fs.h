@@ -56,7 +56,7 @@ public:
         // TODO not implemented
     }
 
-    virtual void waituntil(const waituntil_args_t *args, int) override {
+    virtual void waituntil(UNUSED const waituntil_args_t *args, int) override {
 #if defined(__t2__) || defined(__t3__)
         int rem = args->timestamp / 4;
         while(rem > 0)

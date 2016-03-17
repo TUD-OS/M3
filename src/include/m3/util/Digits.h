@@ -48,7 +48,7 @@ public:
      * @return the number of digits the number has when represented in base <base>
      */
     template<typename T>
-    static uint count_signed(T n, uint base) {
+    static uint count_signed(T n, int base) {
         // we have at least one char
         uint width = 1;
         if(n < 0) {
