@@ -26,7 +26,7 @@ EXTERN_C void try_run() {
     start_func ptr = reinterpret_cast<start_func>(m3::env()->entry);
     if(ptr) {
         // remember exit location
-        m3::env()->exit = reinterpret_cast<uintptr_t>(&_start);
+        m3::env()->exitaddr = reinterpret_cast<uintptr_t>(&_start);
         asm volatile (
             // tell crt0 that we're set the stackpointer
             "mov %2, %%rsp;"

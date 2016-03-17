@@ -22,6 +22,10 @@
 
 namespace m3 {
 
+void EnvBackend::exit(int code) {
+    Syscalls::get().exit(code);
+}
+
 void EnvBackend::attach_recvbuf(RecvBuf *rb) {
 #if defined(__t3__)
     // required for t3 because one can't write to these registers externally

@@ -34,6 +34,8 @@ public:
     virtual ~EnvBackend() {
     }
 
+    virtual void exit(int code);
+
     virtual void attach_recvbuf(RecvBuf *rb);
     virtual void detach_recvbuf(RecvBuf *rb);
 

@@ -104,6 +104,10 @@ public:
         _sysc_credits = sysc_credits;
     }
 
+    void exit(int code) NORETURN {
+        ::exit(code);
+    }
+
 private:
     void init_syscall(void *sepregs);
 

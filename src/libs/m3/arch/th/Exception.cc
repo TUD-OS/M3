@@ -110,5 +110,5 @@ EXTERN_C void ExceptionHandler(uint cause, const State *state) {
     ser << "    pc   = " << fmt(state->pc, "#0x", 8) << "\n";
 #endif
 
-    exit(1);
+    env()->exit(1);
 }

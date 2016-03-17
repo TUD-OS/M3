@@ -43,7 +43,7 @@
         m3::Serial::get() << expr << "\n";                           \
         m3::Backtrace::print(m3::Serial::get());                     \
         __log_unlock();                                              \
-        ::exit(1);                                                   \
+        m3::env()->exit(1);                                          \
     }                                                                \
     while(0)
 

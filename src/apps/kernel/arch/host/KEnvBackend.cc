@@ -34,6 +34,8 @@ public:
         _workloop = new KWorkLoop();
     }
 
+    virtual void exit(int) override {
+    }
     virtual void attach_recvbuf(RecvBuf *) override {
     }
     virtual void detach_recvbuf(RecvBuf *) override {

@@ -42,7 +42,7 @@ OStream &operator<<(OStream &os, const Env &senv) {
     os << "mounts: " << fmt(senv.mounts, "p") << "\n";
     os << "eps   : " << fmt(senv.eps, "p") << "\n";
     os << "caps  : " << fmt(senv.caps, "p") << "\n";
-    os << "exit  : " << fmt(senv.exit, "p") << "\n";
+    os << "exit  : " << fmt(senv.exitaddr, "p") << "\n";
     return os;
 }
 
@@ -66,8 +66,14 @@ void Env::run() {
         res = main(e->argc, e->argv);
     }
 
-    ::exit(res);
+    e->exit(res);
     UNREACHED;
+}
+
+USED void Env::exit(int code) {
+    backend->exit(code);
+    entry = 0;
+    jmpto(exitaddr);
 }
 
 }

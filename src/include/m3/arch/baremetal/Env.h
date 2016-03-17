@@ -60,7 +60,7 @@ public:
     uintptr_t mounts;
     uintptr_t eps;
     uintptr_t caps;
-    uintptr_t exit;
+    uintptr_t exitaddr;
 
     BaremetalEnvBackend *backend;
 #if defined(__t2__) || defined(__t3__)
@@ -76,7 +76,10 @@ public:
 
     static void run() asm("env_run");
 
+    void exit(int code) NORETURN;
+
 private:
+    void jmpto(uintptr_t addr) NORETURN;
     void pre_init();
     void post_init();
 } PACKED;

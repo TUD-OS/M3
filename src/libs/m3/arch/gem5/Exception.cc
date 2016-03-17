@@ -101,7 +101,7 @@ void Exceptions::handler(State *state) {
     Serial::get() << "  r14: " << fmt(state->r14,    "#0x", 16) << "\n";
     Serial::get() << "  r15: " << fmt(state->r15,    "#0x", 16) << "\n";
     Serial::get() << "  flg: " << fmt(state->rflags, "#0x", 16) << "\n";
-    exit(1);
+    env()->exit(1);
 }
 
 void Exceptions::init() {

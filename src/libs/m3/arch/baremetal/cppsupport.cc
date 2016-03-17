@@ -61,7 +61,7 @@ void operator delete[](void *ptr) throw() {
 }
 
 EXTERN_C void __cxa_pure_virtual() {
-    exit(1);
+    PANIC("pure virtual function call");
 }
 
 EXTERN_C void __cxa_atexit() {

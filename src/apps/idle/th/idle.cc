@@ -38,7 +38,7 @@ EXTERN_C void loop() {
         start_func ptr = reinterpret_cast<start_func>(senv->entry);
         if(ptr) {
             // remember exit location
-            senv->exit = reinterpret_cast<uintptr_t>(&_start);
+            senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
 
             // tell crt0 to set this stackpointer
             reinterpret_cast<word_t*>(STACK_TOP)[-1] = 0xDEADBEEF;

@@ -84,4 +84,11 @@ void Env::post_init() {
     _init();
 }
 
+void Env::jmpto(uintptr_t addr) {
+    if(addr != 0)
+        asm volatile ("jx    %0" : : "r"(addr));
+    while(1)
+        asm volatile ("waiti 0");
+}
+
 }

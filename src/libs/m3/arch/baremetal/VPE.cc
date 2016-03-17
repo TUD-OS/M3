@@ -36,7 +36,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.sp = get_sp();
     senv.entry = get_entry();
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
-    senv.exit = 0;
+    senv.exitaddr = 0;
 
     senv.mount_len = _mountlen;
     senv.mounts = reinterpret_cast<uintptr_t>(_mounts);
@@ -76,7 +76,7 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.sp = get_sp();
     senv.entry = entry;
     senv.lambda = 0;
-    senv.exit = 0;
+    senv.exitaddr = 0;
 
     /* check state size */
     if(size + _mountlen + sizeof(*_caps) + sizeof(*_eps) > RT_SPACE_SIZE)
