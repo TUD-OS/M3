@@ -15,7 +15,6 @@
  */
 
 #include <m3/Common.h>
-#include <m3/cap/RecvGate.h>
 #include <m3/Env.h>
 #include <m3/EnvBackend.h>
 
