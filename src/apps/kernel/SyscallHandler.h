@@ -100,7 +100,8 @@ private:
 
     RecvBuf _rcvbuf;
     RecvBuf _srvrcvbuf;
-    handler_func _callbacks[Syscalls::COUNT];
+    // +1 for init on host
+    handler_func _callbacks[Syscalls::COUNT + 1];
     static SyscallHandler _inst;
 };
 

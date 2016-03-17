@@ -153,11 +153,4 @@ USED void Syscalls::exit(int exitcode) {
     send_vmsg(_gate, EXIT, exitcode);
 }
 
-#if defined(__host__)
-void Syscalls::init(void *sepregs) {
-    LOG(SYSC, "init(addr=" << sepregs << ")");
-    send_receive_vmsg(_gate, INIT, sepregs);
-}
-#endif
-
 }

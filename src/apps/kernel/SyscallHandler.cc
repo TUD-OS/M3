@@ -113,7 +113,7 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::EXIT, &SyscallHandler::exit);
     add_operation(Syscalls::NOOP, &SyscallHandler::noop);
 #if defined(__host__)
-    add_operation(Syscalls::INIT, &SyscallHandler::init);
+    add_operation(Syscalls::COUNT, &SyscallHandler::init);
 #endif
 }
 

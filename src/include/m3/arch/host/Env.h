@@ -41,6 +41,9 @@ class Env {
         Init();
         ~Init();
     };
+    struct PostInit {
+        PostInit();
+    };
 
 public:
     static Env &get() {
@@ -102,6 +105,8 @@ public:
     }
 
 private:
+    void init_syscall(void *sepregs);
+
     static int set_inst(Env *e) {
         _inst = e;
         // coreid
@@ -129,6 +134,7 @@ private:
     static char _exec_short[];
     static Env *_inst;
     static Init _init;
+    static PostInit _postInit;
 };
 
 static inline Env *env() {

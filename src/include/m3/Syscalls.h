@@ -23,11 +23,14 @@
 
 namespace m3 {
 
+class Env;
 class RecvBuf;
 class GateIStream;
 class GateOStream;
 
 class Syscalls {
+    friend class Env;
+
     static constexpr size_t BUFSIZE     = 1024;
     static constexpr size_t MSGSIZE     = 256;
 
@@ -51,9 +54,6 @@ public:
         REVOKE,
         EXIT,
         NOOP,
-#if defined(__host__)
-        INIT,
-#endif
         COUNT
     };
 
@@ -68,10 +68,6 @@ public:
 
 private:
     explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr,DTU::SYSC_EP) {
-#if defined(__host__)
-        if(!env()->is_kernel())
-            init(DTU::get().ep_regs());
-#endif
     }
 
 public:
@@ -98,10 +94,6 @@ public:
     Errors::Code revoke(const CapRngDesc &crd);
     void exit(int exitcode);
     void noop();
-
-#if defined(__host__)
-    void init(void *sepregs);
-#endif
 
 private:
     Errors::Code finish(GateIStream &&reply);

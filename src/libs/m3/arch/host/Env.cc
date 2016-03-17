@@ -17,6 +17,7 @@
 #include <m3/cap/RecvGate.h>
 #include <m3/Env.h>
 #include <m3/Syscalls.h>
+#include <m3/GateStream.h>
 #include <m3/DTU.h>
 #include <m3/Log.h>
 
@@ -32,6 +33,7 @@ namespace m3 {
 
 Env *Env::_inst = nullptr;
 Env::Init Env::_init INIT_PRIORITY(107);
+Env::PostInit Env::_postInit INIT_PRIORITY(109);
 char Env::_exec[128];
 char Env::_exec_short[128];
 const char *Env::_exec_short_ptr = nullptr;
@@ -100,6 +102,16 @@ Env::Init::~Init() {
     delete _inst;
 }
 
+Env::PostInit::PostInit() {
+    if(!env()->is_kernel())
+        env()->init_syscall(DTU::get().ep_regs());
+}
+
+void Env::init_syscall(void *sepregs) {
+    LOG(SYSC, "init(addr=" << sepregs << ")");
+    send_receive_vmsg(Syscalls::get()._gate, Syscalls::COUNT, sepregs);
+}
+
 void Env::reset() {
     load_params(this);
 
@@ -111,7 +123,7 @@ void Env::reset() {
     init_dtu();
 
     // we have to call init for this VPE in case we hadn't done that yet
-    Syscalls::get().init(DTU::get().ep_regs());
+    init_syscall(DTU::get().ep_regs());
 }
 
 Env::Env(EnvBackend *backend, int logfd)
