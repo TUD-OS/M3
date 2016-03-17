@@ -22,7 +22,7 @@
 
 #include "../../MemoryMap.h"
 
-namespace m3 {
+namespace kernel {
 
 class MainMemory {
     explicit MainMemory() : _size(DRAM_SIZE), _map(addr(), DRAM_SIZE) {

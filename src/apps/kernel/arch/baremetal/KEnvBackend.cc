@@ -24,22 +24,22 @@
 #include "../../KEPMux.h"
 #include "../../KWorkLoop.h"
 
-namespace m3 {
+namespace kernel {
 
-class BaremetalKEnvBackend : public BaremetalEnvBackend {
+class BaremetalKEnvBackend : public m3::BaremetalEnvBackend {
 public:
     explicit BaremetalKEnvBackend() {
         _workloop = new KWorkLoop();
     }
 
     virtual void init() override {
-        env()->coreid = KERNEL_CORE;
+        m3::env()->coreid = KERNEL_CORE;
 
-        _def_recvbuf = new RecvBuf(RecvBuf::bindto(
-            DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        _def_recvgate = new RecvGate(RecvGate::create(_def_recvbuf));
+        _def_recvbuf = new m3::RecvBuf(m3::RecvBuf::bindto(
+            m3::DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
+        _def_recvgate = new m3::RecvGate(m3::RecvGate::create(_def_recvbuf));
 
-        Serial::init("kernel", KERNEL_CORE);
+        m3::Serial::init("kernel", KERNEL_CORE);
     }
 
     virtual void reinit() override {
@@ -48,16 +48,16 @@ public:
 
     virtual void exit(int) override {
     }
-    virtual void attach_recvbuf(RecvBuf *) override {
+    virtual void attach_recvbuf(m3::RecvBuf *) override {
     }
-    virtual void detach_recvbuf(RecvBuf *) override {
+    virtual void detach_recvbuf(m3::RecvBuf *) override {
     }
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
         KEPMux::switch_ep(victim, oldcap, newcap);
     }
 };
 
-EXTERN_C void init_env(Env *e) {
+EXTERN_C void init_env(m3::Env *e) {
     e->backend = new BaremetalKEnvBackend();
 }
 

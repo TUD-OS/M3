@@ -20,16 +20,16 @@
 #include "CapTable.h"
 #include "PEManager.h"
 
-namespace m3 {
+namespace kernel {
 
-OStream &operator<<(OStream &os, const Capability &cc) {
+m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
     cc.print(os);
     return os;
 }
 
 MemObject::~MemObject() {
     if(core == MEMORY_CORE && !derived) {
-        uintptr_t addr = label & ~MemGate::RWX;
+        uintptr_t addr = label & ~m3::MemGate::RWX;
         MainMemory::get().map().free(addr, credits);
     }
 }
@@ -37,15 +37,15 @@ MemObject::~MemObject() {
 SessionObject::~SessionObject() {
     // only send the close message, if the service has not exited yet
     if(srv->vpe().state() == KVPE::RUNNING) {
-        AutoGateOStream msg(ostreamsize<SyscallHandler::server_type::Command, word_t>());
+        m3::AutoGateOStream msg(m3::ostreamsize<SyscallHandler::server_type::Command, word_t>());
         msg << SyscallHandler::server_type::CLOSE << ident;
-        LOG(KSYSC, "Sending CLOSE message for ident " << fmt(ident, "#x", 8) << " to " << srv->name());
+        LOG(KSYSC, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8) << " to " << srv->name());
         ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
         msg.claim();
     }
 }
 
-Errors::Code MsgCapability::revoke() {
+m3::Errors::Code MsgCapability::revoke() {
     if(localepid != -1) {
         KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
         LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
@@ -55,7 +55,7 @@ Errors::Code MsgCapability::revoke() {
             KDTU::get().wakeup(vpe);
     }
     obj.unref();
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
@@ -64,25 +64,25 @@ MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint 
     KDTU::get().map_page(vpe, sel << PAGE_BITS, phys, attr);
 }
 
-Errors::Code MapCapability::revoke() {
+m3::Errors::Code MapCapability::revoke() {
     KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
     KDTU::get().unmap_page(vpe, sel() << PAGE_BITS);
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
-Errors::Code SessionCapability::revoke() {
+m3::Errors::Code SessionCapability::revoke() {
     obj.unref();
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
-Errors::Code ServiceCapability::revoke() {
+m3::Errors::Code ServiceCapability::revoke() {
     bool closing = inst->closing;
     inst->closing = true;
     // if we have childs, i.e. sessions, we need to send the close-message to the service first,
     // in which case there will be pending requests, which need to be handled first.
     if(inst->pending() > 0 || (child() != nullptr && !closing))
-        return Errors::INV_ARGS;
-    return Errors::NO_ERROR;
+        return m3::Errors::INV_ARGS;
+    return m3::Errors::NO_ERROR;
 }
 
 VPECapability::VPECapability(CapTable *tbl, capsel_t sel, KVPE *p)
@@ -94,45 +94,45 @@ VPECapability::VPECapability(const VPECapability &t) : Capability(t), vpe(t.vpe)
     vpe->ref();
 }
 
-Errors::Code VPECapability::revoke() {
+m3::Errors::Code VPECapability::revoke() {
     vpe->unref();
     // TODO reset core and release it (make it free to use for others)
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
-void MsgCapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": mesg[refs=" << obj->refcount()
+void MsgCapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": mesg[refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid
-       << ", lbl=" << fmt(obj->label, "#0x", sizeof(label_t) * 2)
-       << ", crd=#" << fmt(obj->credits, "x") << "]";
+       << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
+       << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
 
-void MemCapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": mem [refs=" << obj->refcount()
+void MemCapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": mem [refs=" << obj->refcount()
        << ", curep=" << localepid
-       << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << fmt(obj->label, "#x")
-       << ", crd=#" << fmt(obj->credits, "x") << "]";
+       << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
+       << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
 
-void MapCapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": map [virt=#" << fmt(sel() << PAGE_BITS, "x")
-       << ", phys=#" << fmt(phys, "x")
-       << ", attr=#" << fmt(attr, "x") << "]";
+void MapCapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
+       << ", phys=#" << m3::fmt(phys, "x")
+       << ", attr=#" << m3::fmt(attr, "x") << "]";
 }
 
-void ServiceCapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": serv[name=" << inst->name() << "]";
+void ServiceCapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": serv[name=" << inst->name() << "]";
 }
 
-void SessionCapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": sess[refs=" << obj->refcount()
+void SessionCapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
-        << ", ident=#" << fmt(obj->ident, "x") << "]";
+        << ", ident=#" << m3::fmt(obj->ident, "x") << "]";
 }
 
-void VPECapability::print(OStream &os) const {
-    os << fmt(sel(), 2) << ": vpe [refs=" << vpe->refcount()
+void VPECapability::print(m3::OStream &os) const {
+    os << m3::fmt(sel(), 2) << ": vpe [refs=" << vpe->refcount()
        << ", name=" << vpe->name() << "]";
 }
 

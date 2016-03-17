@@ -18,7 +18,7 @@
 
 #include "KDTU.h"
 
-namespace m3 {
+namespace kernel {
 
 KDTU KDTU::_inst;
 

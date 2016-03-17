@@ -26,7 +26,7 @@
 #include "KDTU.h"
 #include "KVPE.h"
 
-namespace m3 {
+namespace kernel {
 
 class RecvBufs {
     RecvBufs() = delete;
@@ -40,7 +40,7 @@ class RecvBufs {
         int order;
         int msgorder;
         int flags;
-        Subscriptions<bool> waitlist;
+        m3::Subscriptions<bool> waitlist;
     };
 
 public:
@@ -49,23 +49,23 @@ public:
         return rbuf.flags & F_ATTACHED;
     }
 
-    static void subscribe(size_t core, size_t epid, const Subscriptions<bool>::callback_type &cb) {
+    static void subscribe(size_t core, size_t epid, const m3::Subscriptions<bool>::callback_type &cb) {
         RBuf &rbuf = get(core, epid);
         assert(~rbuf.flags & F_ATTACHED);
         rbuf.waitlist.subscribe(cb);
     }
 
-    static Errors::Code attach(KVPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+    static m3::Errors::Code attach(KVPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
         RBuf &rbuf = get(vpe.core(), epid);
         if(rbuf.flags & F_ATTACHED)
-            return Errors::EXISTS;
+            return m3::Errors::EXISTS;
 
         for(size_t i = 0; i < EP_COUNT; ++i) {
             if(i != epid) {
                 RBuf &rb = get(vpe.core(), i);
                 if((rb.flags & F_ATTACHED) &&
-                    Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
-                    return Errors::INV_ARGS;
+                    m3::Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
+                    return m3::Errors::INV_ARGS;
             }
         }
 
@@ -75,7 +75,7 @@ public:
         rbuf.flags = flags | F_ATTACHED;
         configure(vpe, epid, rbuf);
         notify(rbuf, true);
-        return Errors::NO_ERROR;
+        return m3::Errors::NO_ERROR;
     }
 
     static void detach(KVPE &vpe, size_t epid) {

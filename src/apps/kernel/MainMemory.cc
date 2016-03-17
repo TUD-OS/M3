@@ -16,7 +16,7 @@
 
 #include "MainMemory.h"
 
-namespace m3 {
+namespace kernel {
 
 MainMemory MainMemory::_inst;
 

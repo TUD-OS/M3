@@ -26,7 +26,7 @@
 #include <cstring>
 #include <cerrno>
 
-namespace m3 {
+namespace kernel {
 
 void KVPE::init() {
 }
@@ -73,46 +73,46 @@ void KVPE::activate_sysc_ep(void *addr) {
     MemCapability *mcap = static_cast<MemCapability*>(
         CapTable::kernel_table().get(_sepsgate.sel(), Capability::MEM));
     if(mcap == nullptr) {
-        size_t len = DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
+        size_t len = m3::DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
         mcap = new MemCapability(&CapTable::kernel_table(), _sepsgate.sel(),
-            iaddr, len, MemGate::X | MemGate::W, core(), id(), 0);
+            iaddr, len, m3::MemGate::X | m3::MemGate::W, core(), id(), 0);
         CapTable::kernel_table().set(_sepsgate.sel(), mcap);
     }
     else
-        mcap->obj->label = iaddr | MemGate::X | MemGate::W;
+        mcap->obj->label = iaddr | m3::MemGate::X | m3::MemGate::W;
 }
 
 void KVPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
-    of << env()->shm_prefix().c_str() << "\n";
+    of << m3::env()->shm_prefix().c_str() << "\n";
     of << core() << "\n";
     of << label << "\n";
     of << epid << "\n";
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 
-Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     // set registers for caps
-    word_t regs[DTU::EPS_RCNT * 2];
+    word_t regs[m3::DTU::EPS_RCNT * 2];
     memset(regs, 0, sizeof(regs));
     MsgCapability *co[] = {oldcapobj, newcapobj};
     for(size_t i = 0; i < 2; ++i) {
         if(co[i]) {
-            DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->core,
+            m3::DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->core,
                 co[i]->obj->epid, co[i]->obj->credits);
         }
     }
 
     if(newcapobj) {
         // now do the compare-exchange
-        return seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * DTU::EPS_RCNT * sizeof(word_t));
+        return seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * m3::DTU::EPS_RCNT * sizeof(word_t));
     }
 
     // if we should just invalidate it, we don't have to do a cmpxchg
-    return seps_gate().write_sync(regs + DTU::EPS_RCNT,
-        sizeof(regs) / 2, epid * DTU::EPS_RCNT * sizeof(word_t));
+    return seps_gate().write_sync(regs + m3::DTU::EPS_RCNT,
+        sizeof(regs) / 2, epid * m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
 KVPE::~KVPE() {

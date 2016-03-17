@@ -24,16 +24,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-namespace m3 {
+namespace kernel {
 
 class KSendQueue {
-    struct Entry : public SListItem {
-        explicit Entry(RecvGate *_rgate, SendGate *_sgate, const void *_msg, size_t _size)
+    struct Entry : public m3::SListItem {
+        explicit Entry(m3::RecvGate *_rgate, m3::SendGate *_sgate, const void *_msg, size_t _size)
             : SListItem(), rgate(_rgate), sgate(_sgate), msg(_msg), size(_size) {
         }
 
-        RecvGate *rgate;
-        SendGate *sgate;
+        m3::RecvGate *rgate;
+        m3::SendGate *sgate;
         const void *msg;
         size_t size;
     };
@@ -49,13 +49,13 @@ public:
         return _queue.length();
     }
 
-    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
+    void send(m3::RecvGate *rgate, m3::SendGate *sgate, const void *msg, size_t size) {
         if(_inflight < _capacity)
             do_send(rgate, sgate, msg, size);
         else {
             // if it's not already on the heap, put it there
-            if(!Heap::is_on_heap(msg)) {
-                void *nmsg = Heap::alloc(size);
+            if(!m3::Heap::is_on_heap(msg)) {
+                void *nmsg = m3::Heap::alloc(size);
                 memcpy(nmsg, msg, size);
                 msg = nmsg;
             }
@@ -76,15 +76,15 @@ public:
     }
 
 private:
-    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
+    void do_send(m3::RecvGate *rgate, m3::SendGate *sgate, const void *msg, size_t size) {
         sgate->receive_gate(rgate);
         sgate->send(msg, size);
-        if(Heap::is_on_heap(msg))
-            Heap::free(const_cast<void*>(msg));
+        if(m3::Heap::is_on_heap(msg))
+            m3::Heap::free(const_cast<void*>(msg));
         _inflight++;
     }
 
-    SList<Entry> _queue;
+    m3::SList<Entry> _queue;
     int _capacity;
     int _inflight;
 };

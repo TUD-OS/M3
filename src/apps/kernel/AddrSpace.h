@@ -18,7 +18,7 @@
 
 #include <m3/Common.h>
 
-namespace m3 {
+namespace kernel {
 
 class AddrSpace {
 public:

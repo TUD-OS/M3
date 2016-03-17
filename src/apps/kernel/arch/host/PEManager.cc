@@ -22,7 +22,7 @@
 #include <csignal>
 #include <unistd.h>
 
-namespace m3 {
+namespace kernel {
 
 PEManager::~PEManager() {
     for(size_t i = 0; i < AVAIL_PES; ++i) {
@@ -34,11 +34,11 @@ PEManager::~PEManager() {
     }
 }
 
-String PEManager::fork_name(const String &name) {
+m3::String PEManager::fork_name(const m3::String &name) {
     char buf[256];
-    OStringStream nname(buf, sizeof(buf));
+    m3::OStringStream nname(buf, sizeof(buf));
     size_t pos = strrchr(name.c_str(), '-') - name.c_str();
-    nname << fmt(name.c_str(), 1, pos) << '-' << rand();
+    nname << m3::fmt(name.c_str(), 1, pos) << '-' << rand();
     return nname.str();
 }
 

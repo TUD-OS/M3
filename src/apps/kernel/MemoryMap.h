@@ -19,7 +19,7 @@
 #include <m3/Common.h>
 #include <m3/stream/OStream.h>
 
-namespace m3 {
+namespace kernel {
 
 class MemoryMap {
     struct Area {
@@ -69,11 +69,11 @@ public:
      */
     size_t get_size(size_t *areas) const;
 
-    friend OStream &operator<<(OStream &os, const MemoryMap &map) {
+    friend m3::OStream &operator<<(m3::OStream &os, const MemoryMap &map) {
         size_t areas;
         os << "Total: " << (map.get_size(&areas) / 1024) << " KiB:\n";
         for(Area *a = map.list; a != nullptr; a = a->next)
-            os << "\t@ " << fmt(a->addr, "p") << ", " << (a->size / 1024) << " KiB\n";
+            os << "\t@ " << m3::fmt(a->addr, "p") << ", " << (a->size / 1024) << " KiB\n";
         return os;
     }
 

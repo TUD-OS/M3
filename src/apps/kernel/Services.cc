@@ -19,7 +19,7 @@
 #include "Services.h"
 #include "SyscallHandler.h"
 
-namespace m3 {
+namespace kernel {
 
 ServiceList ServiceList::_inst;
 
@@ -28,14 +28,14 @@ Service::~Service() {
     ServiceList::get().remove(this);
 }
 
-void ServiceList::send_and_receive(Reference<Service> serv, const void *msg, size_t size) {
+void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size) {
     // better use a new RecvGate here to not interfere with other syscalls
-    RecvGate *rgate = new RecvGate(RecvGate::create(SyscallHandler::get().srvrcvbuf()));
-    rgate->subscribe([this, rgate, serv] (RecvGate &, Subscriber<RecvGate&> *s) {
-        Reference<Service> srvcpy = serv;
+    m3::RecvGate *rgate = new m3::RecvGate(m3::RecvGate::create(SyscallHandler::get().srvrcvbuf()));
+    rgate->subscribe([this, rgate, serv] (m3::RecvGate &, m3::Subscriber<m3::RecvGate&> *s) {
+        m3::Reference<Service> srvcpy = serv;
         srvcpy->received_reply();
         // unsubscribe will delete the lambda
-        RecvGate *rgatecpy = rgate;
+        m3::RecvGate *rgatecpy = rgate;
         rgate->unsubscribe(s);
         delete rgatecpy;
     });

@@ -24,14 +24,14 @@
 #include "KVPE.h"
 #include "KDTU.h"
 
-namespace m3 {
+namespace kernel {
 
 class KVPE;
 
 class PEManager {
     friend class KVPE;
 
-    struct Pending : public SListItem {
+    struct Pending : public m3::SListItem {
         explicit Pending(KVPE *_vpe, int _argc, char **_argv)
             : vpe(_vpe), argc(_argc), argv(_argv) {
         }
@@ -63,7 +63,7 @@ private:
 public:
     void load(int argc, char **argv);
 
-    KVPE *create(String &&name, const char *core, bool as, int ep, capsel_t pfgate);
+    KVPE *create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
     const char *type(int id) const {
@@ -101,7 +101,7 @@ private:
     KVPE *_vpes[AVAIL_PES];
     size_t _count;
     size_t _daemons;
-    SList<Pending> _pending;
+    m3::SList<Pending> _pending;
     static bool _shutdown;
     static PEManager *_inst;
 };

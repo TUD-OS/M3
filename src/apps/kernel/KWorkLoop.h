@@ -51,9 +51,9 @@ static void check_childs() {
 }
 #endif
 
-namespace m3 {
+namespace kernel {
 
-class KWorkLoop : public WorkLoop {
+class KWorkLoop : public m3::WorkLoop {
 public:
     virtual void run() override {
 #if defined(__host__)
@@ -61,24 +61,24 @@ public:
 #endif
         EVENT_TRACER_KWorkLoop_run();
 
-        DTU &dtu = DTU::get();
+        m3::DTU &dtu = m3::DTU::get();
         SyscallHandler &sysch = SyscallHandler::get();
         int sysep = sysch.epid();
         int srvep = sysch.srvepid();
         while(has_items()) {
-            DTU::get().wait();
+            m3::DTU::get().wait();
 
             if(dtu.fetch_msg(sysep)) {
                 // we know the subscriber here, so optimize that a bit
-                DTU::Message *msg = dtu.message(sysep);
-                RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
+                m3::DTU::Message *msg = dtu.message(sysep);
+                m3::RecvGate *rgate = reinterpret_cast<m3::RecvGate*>(msg->label);
                 sysch.handle_message(*rgate, nullptr);
                 dtu.ack_message(sysep);
                 EVENT_TRACE_FLUSH_LIGHT();
             }
             if(dtu.fetch_msg(srvep)) {
-                DTU::Message *msg = dtu.message(srvep);
-                RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
+                m3::DTU::Message *msg = dtu.message(srvep);
+                m3::RecvGate *gate = reinterpret_cast<m3::RecvGate*>(msg->label);
                 gate->notify_all();
                 dtu.ack_message(srvep);
             }

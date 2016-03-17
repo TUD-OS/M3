@@ -23,17 +23,17 @@
 #include "../../KDTU.h"
 #include "../../RecvBufs.h"
 
-namespace m3 {
+namespace kernel {
 
 void KVPE::init() {
     // attach default receive endpoint
-    UNUSED Errors::Code res = RecvBufs::attach(
-        *this, DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
-    assert(res == Errors::NO_ERROR);
+    UNUSED m3::Errors::Code res = RecvBufs::attach(
+        *this, m3::DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    assert(res == m3::Errors::NO_ERROR);
 
     // configure syscall endpoint
-    KDTU::get().config_send_remote(*this, DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
-        KERNEL_CORE, KERNEL_CORE, DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
+    KDTU::get().config_send_remote(*this, m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
+        KERNEL_CORE, KERNEL_CORE, m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
 }
 
 void KVPE::activate_sysc_ep() {
@@ -53,11 +53,11 @@ void KVPE::start(int, UNUSED char **argv, int) {
     LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 
-Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
+m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
     if(n) {
         if(n->type & Capability::MEM) {
-            uintptr_t addr = n->obj->label & ~MemGate::RWX;
-            int perm = n->obj->label & MemGate::RWX;
+            uintptr_t addr = n->obj->label & ~m3::MemGate::RWX;
+            int perm = n->obj->label & m3::MemGate::RWX;
             KDTU::get().config_mem_remote(*this, epid,
                 n->obj->core, n->obj->vpe, addr, n->obj->credits, perm);
         }
@@ -73,7 +73,7 @@ Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
     }
     else
         KDTU::get().invalidate_ep(*this, epid);
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
 KVPE::~KVPE() {

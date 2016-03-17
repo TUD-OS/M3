@@ -25,18 +25,18 @@
 
 extern int int_target;
 
-namespace m3 {
+namespace kernel {
 
-class Device : public SListItem {
+class Device : public m3::SListItem {
 public:
-    explicit Device() : SListItem(), _tid(), _run(true) {
+    explicit Device() : m3::SListItem(), _tid(), _run(true) {
     }
     virtual ~Device() {
     }
 
-    void trigger_irq(HWInterrupts::IRQ irq) {
+    void trigger_irq(m3::HWInterrupts::IRQ irq) {
         if(int_target != -1)
-            HWInterrupts::trigger(int_target, irq);
+            m3::HWInterrupts::trigger(int_target, irq);
     }
     void stop() {
         _run = false;

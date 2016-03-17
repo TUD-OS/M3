@@ -25,14 +25,14 @@
 #include "../../MemoryMap.h"
 #include "../../KDTU.h"
 
-namespace m3 {
+namespace kernel {
 
 class MainMemory {
     explicit MainMemory()
             : _addr(mmap(0, DRAM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0)),
               _size(DRAM_SIZE), _map(addr(), DRAM_SIZE),
-              _rbuf(RecvBuf::create(VPE::self().alloc_ep(), 0,
-                      RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)) {
+              _rbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(), 0,
+                      m3::RecvBuf::NO_HEADER | m3::RecvBuf::NO_RINGBUF)) {
         // needs to be done manually in the kernel
         KDTU::get().config_recv_local(_rbuf.epid(),
             reinterpret_cast<uintptr_t>(_rbuf.addr()), _rbuf.order(), _rbuf.msgorder(),

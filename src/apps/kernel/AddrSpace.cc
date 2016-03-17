@@ -20,16 +20,16 @@
 #include "AddrSpace.h"
 #include "MainMemory.h"
 
-namespace m3 {
+namespace kernel {
 
 AddrSpace::AddrSpace(int ep, capsel_t gate)
     : _ep(ep),
       _gate(gate),
-      _rootpt(DTU::build_noc_addr(MEMORY_CORE, MainMemory::get().map().allocate(PAGE_SIZE))) {
+      _rootpt(m3::DTU::build_noc_addr(MEMORY_CORE, MainMemory::get().map().allocate(PAGE_SIZE))) {
 }
 
 AddrSpace::~AddrSpace() {
-    MainMemory::get().map().free(DTU::noc_to_virt(_rootpt), PAGE_SIZE);
+    MainMemory::get().map().free(m3::DTU::noc_to_virt(_rootpt), PAGE_SIZE);
 }
 
 }

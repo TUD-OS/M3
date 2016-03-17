@@ -19,7 +19,7 @@
 
 #include "MemoryMap.h"
 
-namespace m3 {
+namespace kernel {
 
 MemoryMap::MemoryMap(uintptr_t addr, size_t size) : list(new Area()) {
     list->addr = addr;
@@ -58,12 +58,12 @@ uintptr_t MemoryMap::allocate(size_t size) {
             list = a->next;
         delete a;
     }
-    LOG(MEM, "Requested " << (size / 1024) << " KiB of memory @ " << fmt(res, "p"));
+    LOG(MEM, "Requested " << (size / 1024) << " KiB of memory @ " << m3::fmt(res, "p"));
     return res;
 }
 
 void MemoryMap::free(uintptr_t addr, size_t size) {
-    LOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << fmt(addr, "p"));
+    LOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << m3::fmt(addr, "p"));
 
     /* find the area behind ours */
     Area *n, *p = nullptr;

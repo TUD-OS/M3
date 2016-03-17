@@ -19,7 +19,7 @@
 #include "../../PEManager.h"
 #include "../../KDTU.h"
 
-namespace m3 {
+namespace kernel {
 
 PEManager::~PEManager() {
     for(size_t i = 0; i < AVAIL_PES; ++i) {

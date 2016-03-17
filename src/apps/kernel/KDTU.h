@@ -19,13 +19,13 @@
 #include <m3/Common.h>
 #include <m3/cap/VPE.h>
 
-namespace m3 {
+namespace kernel {
 
 class KVPE;
 
 class KDTU {
-    explicit KDTU() : _ep(VPE::self().alloc_ep()) {
-        EPMux::get().reserve(_ep);
+    explicit KDTU() : _ep(m3::VPE::self().alloc_ep()) {
+        m3::EPMux::get().reserve(_ep);
         init();
     }
 
@@ -71,7 +71,7 @@ public:
 private:
 #if defined(__gem5__)
     void do_set_vpeid(size_t core, int oldVPE, int newVPE);
-    void do_ext_cmd(KVPE &vpe, DTU::reg_t cmd);
+    void do_ext_cmd(KVPE &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
     void disable_pfs(KVPE &vpe);
 #endif

@@ -62,8 +62,6 @@
 #define KBD_BUF_MAX         100
 #define KBD_BUF_NEXT(p)     (((p) + 1) % KBD_BUF_MAX)
 
-using namespace m3;
-
 typedef struct {
     unsigned long scale;
     unsigned long factor;
@@ -690,9 +688,11 @@ static void keyboardInit(void) {
 
 /**************************************************************/
 
+namespace kernel {
+
 VGAConsoleDevice::VGAConsoleDevice()
-        : Device(), _vgamem("vga", TEXT_SIZE_X * TEXT_SIZE_Y * 2, SharedMemory::CREATE),
-          _kbdmem("kbd", sizeof(unsigned) * 2, SharedMemory::CREATE) {
+        : Device(), _vgamem("vga", TEXT_SIZE_X * TEXT_SIZE_Y * 2, m3::SharedMemory::CREATE),
+          _kbdmem("kbd", sizeof(unsigned) * 2, m3::SharedMemory::CREATE) {
     kbdmem = reinterpret_cast<unsigned*>(_kbdmem.addr());
     text = reinterpret_cast<unsigned short*>(_vgamem.addr());
     displayInit();
@@ -726,5 +726,7 @@ void VGAConsoleDevice::check() {
     kbdBufReadPtr = KBD_BUF_NEXT(kbdBufReadPtr);
     kbdCtrl |= KEYBOARD_RDY;
     kbdmem[KEYBOARD_CTRL] = kbdCtrl;
-    trigger_irq(HWInterrupts::KEYB);
+    trigger_irq(m3::HWInterrupts::KEYB);
+}
+
 }

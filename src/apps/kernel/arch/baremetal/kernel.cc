@@ -23,13 +23,13 @@
 #include "../../PEManager.h"
 #include "../../SyscallHandler.h"
 
-using namespace m3;
+using namespace kernel;
 
 int main(int argc, char *argv[]) {
-    Serial &ser = Serial::get();
+    m3::Serial &ser = m3::Serial::get();
     if(argc < 2) {
         ser << "Usage: " << argv[0] << " <program>...\n";
-        Machine::shutdown();
+        m3::Machine::shutdown();
     }
 
     EVENT_TRACE_INIT_KERNEL();
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     PEManager::create();
     PEManager::get().load(argc - 1, argv + 1);
 
-    env()->workloop()->run();
+    m3::env()->workloop()->run();
 
     EVENT_TRACE_FLUSH();
 
@@ -47,5 +47,5 @@ int main(int argc, char *argv[]) {
 
     PEManager::destroy();
 
-    Machine::shutdown();
+    m3::Machine::shutdown();
 }

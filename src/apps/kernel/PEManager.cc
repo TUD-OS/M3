@@ -19,7 +19,7 @@
 
 #include "PEManager.h"
 
-namespace m3 {
+namespace kernel {
 
 bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
@@ -46,9 +46,9 @@ void PEManager::load(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle") != 0) {
             // allow multiple applications with the same name
-            OStringStream name;
-            name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new KVPE(String(name.str()), no, true, as);
+            m3::OStringStream name;
+            name << path_to_name(m3::String(argv[i]), nullptr).c_str() << "-" << no;
+            _vpes[no] = new KVPE(m3::String(name.str()), no, true, as);
             _count++;
         }
 
@@ -111,19 +111,19 @@ void PEManager::shutdown() {
     _shutdown = true;
     ServiceList &serv = ServiceList::get();
     for(auto &s : serv) {
-        Reference<Service> ref(&s);
-        AutoGateOStream msg(ostreamsize<SyscallHandler::server_type::Command>());
-        msg << m3::SyscallHandler::server_type::SHUTDOWN;
+        m3::Reference<Service> ref(&s);
+        m3::AutoGateOStream msg(m3::ostreamsize<SyscallHandler::server_type::Command>());
+        msg << SyscallHandler::server_type::SHUTDOWN;
         serv.send_and_receive(ref, msg.bytes(), msg.total());
         msg.claim();
     }
 }
 
-String PEManager::path_to_name(const String &path, const char *suffix) {
+m3::String PEManager::path_to_name(const m3::String &path, const char *suffix) {
     static char name[256];
     strncpy(name, path.c_str(), sizeof(name));
     name[sizeof(name) - 1] = '\0';
-    OStringStream os;
+    m3::OStringStream os;
     char *start = name;
     size_t len = strlen(name);
     for(ssize_t i = len - 1; i >= 0; --i) {
@@ -147,7 +147,7 @@ bool PEManager::core_matches(size_t i, const char *core) const {
     return strcmp(core, "default") == 0;
 }
 
-KVPE *PEManager::create(String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
+KVPE *PEManager::create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
     if(_count == AVAIL_PES)
         return nullptr;
 

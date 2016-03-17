@@ -25,12 +25,14 @@
 
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
 
+namespace kernel {
+class KDTU;
+}
+
 namespace m3 {
 
-class KDTU;
-
 class DTU {
-    friend class KDTU;
+    friend class kernel::KDTU;
 
     explicit DTU() {
     }

@@ -16,7 +16,7 @@
 
 #include "RecvBufs.h"
 
-namespace m3 {
+namespace kernel {
 
 RecvBufs::RBuf RecvBufs::_rbufs[AVAIL_PES * EP_COUNT];
 

@@ -20,7 +20,7 @@
 #include "RecvBufs.h"
 #include "PEManager.h"
 
-namespace m3 {
+namespace kernel {
 
 KVPE::VPEId::VPEId(int _id, int _core) : id(_id), core(_core) {
     KDTU::get().set_vpeid(core, id);
@@ -30,19 +30,19 @@ KVPE::VPEId::~VPEId() {
     KDTU::get().unset_vpeid(core, id);
 }
 
-KVPE::KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
+KVPE::KVPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
     : _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
-      _sepsgate(MemGate::bind(VPE::self().alloc_cap(), ObjCap::KEEP_CAP)),
+      _sepsgate(m3::MemGate::bind(m3::VPE::self().alloc_cap(), m3::ObjCap::KEEP_CAP)),
       _syscgate(SyscallHandler::get().create_gate(this)),
-      _srvgate(RecvGate::create(SyscallHandler::get().srvrcvbuf())),
+      _srvgate(m3::RecvGate::create(SyscallHandler::get().srvrcvbuf())),
       _as(as ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, MemGate::RWX, core(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, m3::MemGate::RWX, core(), id, 0));
 
     init();
 

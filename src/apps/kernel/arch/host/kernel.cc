@@ -35,13 +35,13 @@
 #include "dev/TimerDevice.h"
 #include "dev/VGAConsole.h"
 
-using namespace m3;
+using namespace kernel;
 
-static SList<Device> devices;
+static m3::SList<Device> devices;
 static size_t fssize = 0;
 
 static void sigint(int) {
-    env()->workloop()->stop();
+    m3::env()->workloop()->stop();
 }
 
 static void delete_dir(const char *dir) {
@@ -72,7 +72,7 @@ static void copyfromfs(MainMemory &mem, const char *file) {
     mem.map().allocate(res);
 
     fssize = res;
-    LOG(DEF, "Copied fs-image '" << file << "' to 0.." << fmt(fssize, "#x"));
+    LOG(DEF, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
 }
 
 static void copytofs(MainMemory &mem, const char *file) {
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
 
-    env()->workloop()->run();
+    m3::env()->workloop()->run();
 
     LOG(DEF, "Shutting down.");
     if(fsimg)

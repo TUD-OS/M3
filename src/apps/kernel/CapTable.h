@@ -25,14 +25,14 @@
 #include "Services.h"
 #include "Capability.h"
 
-namespace m3 {
+namespace kernel {
 
 class CapTable;
 
-OStream &operator<<(OStream &os, const CapTable &ct);
+m3::OStream &operator<<(m3::OStream &os, const CapTable &ct);
 
 class CapTable {
-    friend OStream &operator<<(OStream &os, const CapTable &ct);
+    friend m3::OStream &operator<<(m3::OStream &os, const CapTable &ct);
 
 public:
     static CapTable &kernel_table() {
@@ -76,7 +76,7 @@ public:
 
     Capability *obtain(capsel_t dst, Capability *c);
     void inherit(Capability *parent, Capability *child);
-    Errors::Code revoke(const m3::CapRngDesc &crd);
+    m3::Errors::Code revoke(const m3::CapRngDesc &crd);
 
     Capability *get(capsel_t i) {
         return _caps.find(i);
@@ -114,14 +114,14 @@ public:
     void revoke_all();
 
 private:
-    static Errors::Code revoke(Capability *c);
-    static Errors::Code revoke_rec(Capability *c, bool revnext);
+    static m3::Errors::Code revoke(Capability *c);
+    static m3::Errors::Code revoke_rec(Capability *c, bool revnext);
     bool range_valid(const m3::CapRngDesc &crd) const {
         return crd.count() == 0 || crd.start() + crd.count() > crd.start();
     }
 
     uint _id;
-    Treap<Capability> _caps;
+    m3::Treap<Capability> _caps;
     static CapTable _kcaps;
 };
 

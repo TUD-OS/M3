@@ -24,7 +24,7 @@
 #include "CapTable.h"
 #include "AddrSpace.h"
 
-namespace m3 {
+namespace kernel {
 
 class KVPE {
     // use an object to set the VPE id at first and unset it at last
@@ -44,16 +44,16 @@ public:
         DEAD
     };
 
-    struct ServName : public SListItem {
-        explicit ServName(const String &_name) : name(_name) {
+    struct ServName : public m3::SListItem {
+        explicit ServName(const m3::String &_name) : name(_name) {
         }
-        String name;
+        m3::String name;
     };
 
-    static constexpr int SYSC_CREDIT_ORD    = nextlog2<512>::val;
+    static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
-    explicit KVPE(String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
-        capsel_t pfgate = ObjCap::INVALID);
+    explicit KVPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
+        capsel_t pfgate = m3::ObjCap::INVALID);
     KVPE(const KVPE &) = delete;
     KVPE &operator=(const KVPE &) = delete;
     ~KVPE();
@@ -71,7 +71,7 @@ public:
 
     void init();
     void activate_sysc_ep(void *addr);
-    Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
+    m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     int id() const {
         return _id.id;
@@ -91,19 +91,19 @@ public:
     AddrSpace *address_space() {
         return _as;
     }
-    void subscribe_exit(const Subscriptions<int>::callback_type &cb) {
+    void subscribe_exit(const m3::Subscriptions<int>::callback_type &cb) {
         _exitsubscr.subscribe(cb);
     }
-    void unsubscribe_exit(Subscriber<int> *sub) {
+    void unsubscribe_exit(m3::Subscriber<int> *sub) {
         _exitsubscr.unsubscribe(sub);
     }
-    const SList<ServName> &requirements() const {
+    const m3::SList<ServName> &requirements() const {
         return _requires;
     }
-    void add_requirement(const String &name) {
+    void add_requirement(const m3::String &name) {
         _requires.append(new ServName(name));
     }
-    const String &name() const {
+    const m3::String &name() const {
         return _name;
     }
     CapTable &objcaps() {
@@ -112,13 +112,13 @@ public:
     CapTable &mapcaps() {
         return _mapcaps;
     }
-    RecvGate &syscall_gate() {
+    m3::RecvGate &syscall_gate() {
         return _syscgate;
     }
-    RecvGate &service_gate() {
+    m3::RecvGate &service_gate() {
         return _srvgate;
     }
-    MemGate &seps_gate() {
+    m3::MemGate &seps_gate() {
         return _sepsgate;
     }
     void make_daemon() {
@@ -145,15 +145,15 @@ private:
     int _pid;
     int _state;
     int _exitcode;
-    String _name;
+    m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
-    MemGate _sepsgate;
-    RecvGate _syscgate;
-    RecvGate _srvgate;
+    m3::MemGate _sepsgate;
+    m3::RecvGate _syscgate;
+    m3::RecvGate _srvgate;
     AddrSpace *_as;
-    SList<ServName> _requires;
-    Subscriptions<int> _exitsubscr;
+    m3::SList<ServName> _requires;
+    m3::Subscriptions<int> _exitsubscr;
 };
 
 }

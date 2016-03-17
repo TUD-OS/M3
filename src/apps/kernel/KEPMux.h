@@ -21,14 +21,14 @@
 #include "CapTable.h"
 #include "KDTU.h"
 
-namespace m3 {
+namespace kernel {
 
 // don't inherit from EnvBackend here. we'll do that in the arch-specific EnvBackends and use
 // this class to implement switch_ep
 class KEPMux {
 public:
     static void switch_ep(size_t id, capsel_t, capsel_t newcap) {
-        if(newcap != ObjCap::INVALID) {
+        if(newcap != m3::ObjCap::INVALID) {
             MsgCapability *c = static_cast<MsgCapability*>(
                 CapTable::kernel_table().get(newcap, Capability::MSG));
             assert(c != nullptr);
@@ -40,8 +40,8 @@ public:
 
             LOG(IPC, "Kernel programs ep[" << id << "] to "
                 << "core=" << c->obj->core << ", ep=" << c->obj->epid
-                << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
-                << ", credits=" << fmt(c->obj->credits, "#x"));
+                << ", lbl=" << m3::fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
+                << ", credits=" << m3::fmt(c->obj->credits, "#x"));
         }
     }
 };

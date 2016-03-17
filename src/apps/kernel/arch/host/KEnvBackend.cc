@@ -25,9 +25,9 @@
 #include "../../KEPMux.h"
 #include "../../KWorkLoop.h"
 
-namespace m3 {
+namespace kernel {
 
-class HostKEnvBackend : public HostEnvBackend {
+class HostKEnvBackend : public m3::HostEnvBackend {
 public:
     explicit HostKEnvBackend() {
         _workloop = new KWorkLoop();
@@ -35,9 +35,9 @@ public:
 
     virtual void exit(int) override {
     }
-    virtual void attach_recvbuf(RecvBuf *) override {
+    virtual void attach_recvbuf(m3::RecvBuf *) override {
     }
-    virtual void detach_recvbuf(RecvBuf *) override {
+    virtual void detach_recvbuf(m3::RecvBuf *) override {
     }
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
         KEPMux::switch_ep(victim, oldcap, newcap);
@@ -56,8 +56,8 @@ static const char *gen_prefix() {
 EXTERN_C void init_env() {
     int logfd = open("run/log.txt", O_CREAT | O_TRUNC | O_WRONLY | O_APPEND, 0644);
 
-    new Env(new HostKEnvBackend(), logfd);
-    env()->set_params(0, gen_prefix(), 0, 0, 0);
+    new m3::Env(new HostKEnvBackend(), logfd);
+    m3::env()->set_params(0, gen_prefix(), 0, 0, 0);
 }
 
 }

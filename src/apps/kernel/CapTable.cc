@@ -17,7 +17,7 @@
 #include "CapTable.h"
 #include "PEManager.h"
 
-namespace m3 {
+namespace kernel {
 
 CapTable CapTable::_kcaps(0);
 
@@ -51,15 +51,15 @@ void CapTable::inherit(Capability *parent, Capability *child) {
     parent->_child = child;
 }
 
-Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
+m3::Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
     Capability *child = c->child();
     Capability *next = c->next();
 
-    Errors::Code res = c->revoke();
+    m3::Errors::Code res = c->revoke();
     // actually, this is a bit specific for service+session. although it failed to revoke the service
     // we want to revoke all childs, i.e. the sessions to remove them from the service.
     // TODO if there are other failable revokes, we need to reconsider that
-    if(res == Errors::NO_ERROR)
+    if(res == m3::Errors::NO_ERROR)
         c->table()->unset(c->sel());
     // reset the child-pointer since we're revoking all childs
     // note that we would need to do much more if delegatable capabilities could deny a revoke
@@ -74,7 +74,7 @@ Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
     return res;
 }
 
-Errors::Code CapTable::revoke(Capability *c) {
+m3::Errors::Code CapTable::revoke(Capability *c) {
     if(c) {
         if(c->_next)
             c->_next->_prev = c->_prev;
@@ -84,19 +84,19 @@ Errors::Code CapTable::revoke(Capability *c) {
             c->_parent->_child = c->_next;
         return revoke_rec(c, false);
     }
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
-Errors::Code CapTable::revoke(const m3::CapRngDesc &crd) {
+m3::Errors::Code CapTable::revoke(const m3::CapRngDesc &crd) {
     for(capsel_t i = 0; i < crd.count(); ++i) {
-        Errors::Code res = revoke(get(i + crd.start()));
-        if(res != Errors::NO_ERROR)
+        m3::Errors::Code res = revoke(get(i + crd.start()));
+        if(res != m3::Errors::NO_ERROR)
             return res;
     }
-    return Errors::NO_ERROR;
+    return m3::Errors::NO_ERROR;
 }
 
-OStream &operator<<(OStream &os, const CapTable &ct) {
+m3::OStream &operator<<(m3::OStream &os, const CapTable &ct) {
     os << "CapTable[" << ct.id() << "]:\n";
     ct._caps.print(os, false);
     return os;

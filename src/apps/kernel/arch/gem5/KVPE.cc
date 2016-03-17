@@ -24,7 +24,7 @@
 #include "../../KDTU.h"
 #include "../../MainMemory.h"
 
-namespace m3 {
+namespace kernel {
 
 struct BootModule {
     char name[128];
@@ -33,23 +33,23 @@ struct BootModule {
 } PACKED;
 
 static size_t count = 0;
-static BootModule mods[Env::MODS_MAX];
+static BootModule mods[m3::Env::MODS_MAX];
 static uint32_t loaded = 0;
 static BootModule *idles[MAX_CORES];
 static char buffer[4096];
 
 static BootModule *get_mod(const char *name, bool *first) {
-    static_assert(sizeof(loaded) * 8 >= Env::MODS_MAX, "Too few bits for modules");
+    static_assert(sizeof(loaded) * 8 >= m3::Env::MODS_MAX, "Too few bits for modules");
 
     if(count == 0) {
         uintptr_t *marray = m3::env()->mods;
-        for(size_t i = 0; i < Env::MODS_MAX && marray[i]; ++i) {
-            uintptr_t addr = DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
+        for(size_t i = 0; i < m3::Env::MODS_MAX && marray[i]; ++i) {
+            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
             KDTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
-            Serial::get() << "Module '" << mods[i].name << "':\n";
-            Serial::get() << "  addr: " << fmt(mods[i].addr, "p") << "\n";
-            Serial::get() << "  size: " << fmt(mods[i].size, "p") << "\n";
+            m3::Serial::get() << "Module '" << mods[i].name << "':\n";
+            m3::Serial::get() << "  addr: " << m3::fmt(mods[i].addr, "p") << "\n";
+            m3::Serial::get() << "  size: " << m3::fmt(mods[i].size, "p") << "\n";
 
             count++;
         }
@@ -72,17 +72,17 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file");
 
-    KDTU::get().read_mem_at(MEMORY_CORE, 0, DTU::noc_to_virt(mod->addr + offset), data, size);
+    KDTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
 }
 
 static void map_segment(KVPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
-    capsel_t kcap = VPE::self().alloc_cap();
+    capsel_t kcap = m3::VPE::self().alloc_cap();
     MemCapability *mcapobj = new MemCapability(&CapTable::kernel_table(), kcap,
-        DTU::noc_to_virt(phys), size, perms, MEMORY_CORE, 0, -1);
+        m3::DTU::noc_to_virt(phys), size, perms, MEMORY_CORE, 0, -1);
     CapTable::kernel_table().set(kcap, mcapobj);
 
     capsel_t dst = virt >> PAGE_BITS;
-    size_t pages = Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
+    size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
     for(capsel_t i = 0; i < pages; ++i) {
         MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst + i, phys, perms);
         vpe.mapcaps().inherit(mcapobj, mapcap);
@@ -97,11 +97,11 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
 
     size_t rem = size;
     while(rem > 0) {
-        size_t amount = Math::min(rem, sizeof(buffer));
+        size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
         if(!clear)
-            KDTU::get().read_mem_at(MEMORY_CORE, 0, DTU::noc_to_virt(src), buffer, amount);
-        KDTU::get().write_mem_at(core, vpe, DTU::noc_to_virt(dst), buffer, amount);
+            KDTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(src), buffer, amount);
+        KDTU::get().write_mem_at(core, vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
         src += amount;
         dst += amount;
         rem -= amount;
@@ -110,7 +110,7 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
 
 static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
     // load and check ELF header
-    ElfEh header;
+    m3::ElfEh header;
     read_from_mod(mod, &header, sizeof(header), 0);
 
     if(header.e_ident[0] != '\x7F' || header.e_ident[1] != 'E' || header.e_ident[2] != 'L' ||
@@ -122,7 +122,7 @@ static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap
     off_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
-        ElfPh pheader;
+        m3::ElfPh pheader;
         read_from_mod(mod, &pheader, sizeof(pheader), off);
 
         // we're only interested in non-empty load segments
@@ -131,20 +131,20 @@ static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap
 
         int perms = 0;
         if(pheader.p_flags & PF_R)
-            perms |= DTU::PTE_R;
+            perms |= m3::DTU::PTE_R;
         if(pheader.p_flags & PF_W)
-            perms |= DTU::PTE_W;
+            perms |= m3::DTU::PTE_W;
         if(pheader.p_flags & PF_X)
-            perms |= DTU::PTE_X;
+            perms |= m3::DTU::PTE_X;
 
-        uintptr_t offset = Math::round_dn(pheader.p_offset, PAGE_SIZE);
-        uintptr_t virt = Math::round_dn(pheader.p_vaddr, PAGE_SIZE);
+        uintptr_t offset = m3::Math::round_dn(pheader.p_offset, PAGE_SIZE);
+        uintptr_t virt = m3::Math::round_dn(pheader.p_vaddr, PAGE_SIZE);
 
         // do we need new memory for this segment?
-        if((copy && (perms & DTU::PTE_W)) || pheader.p_filesz == 0) {
+        if((copy && (perms & m3::DTU::PTE_W)) || pheader.p_filesz == 0) {
             // allocate memory
-            size_t size = Math::round_up((pheader.p_vaddr & PAGE_BITS) + pheader.p_memsz, PAGE_SIZE);
-            uintptr_t phys = DTU::build_noc_addr(
+            size_t size = m3::Math::round_up((pheader.p_vaddr & PAGE_BITS) + pheader.p_memsz, PAGE_SIZE);
+            uintptr_t phys = m3::DTU::build_noc_addr(
                 MEMORY_CORE, MainMemory::get().map().allocate(size));
 
             // map it
@@ -163,9 +163,9 @@ static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap
 
     if(needs_heap) {
         // create initial heap
-        uintptr_t phys = DTU::build_noc_addr(
+        uintptr_t phys = m3::DTU::build_noc_addr(
             MEMORY_CORE, MainMemory::get().map().allocate(INIT_HEAP_SIZE));
-        map_segment(vpe, phys, Math::round_up(end, PAGE_SIZE), INIT_HEAP_SIZE, DTU::PTE_RW);
+        map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), INIT_HEAP_SIZE, m3::DTU::PTE_RW);
     }
 
     return header.e_entry;
@@ -179,8 +179,8 @@ static void map_idle(KVPE &vpe) {
         idle = new BootModule;
 
         // copy the ELF file
-        size_t size = Math::round_up(tmp->size, PAGE_SIZE);
-        uintptr_t phys = DTU::build_noc_addr(
+        size_t size = m3::Math::round_up(tmp->size, PAGE_SIZE);
+        uintptr_t phys = m3::DTU::build_noc_addr(
             MEMORY_CORE, MainMemory::get().map().allocate(size));
         copy_clear(MEMORY_CORE, 0, phys, tmp->addr, tmp->size, false);
 
@@ -204,15 +204,15 @@ void KVPE::init_memory(const char *name) {
         if(!mod)
             PANIC("Unable to find boot module '" << name << "'");
 
-        Serial::get() << "Loading mod '" << mod->name << "':\n";
+        m3::Serial::get() << "Loading mod '" << mod->name << "':\n";
 
-        KDTU::get().config_pf_remote(*this, DTU::SYSC_EP);
+        KDTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
 
         // map runtime space
         uintptr_t virt = RT_START;
-        uintptr_t phys = DTU::build_noc_addr(MEMORY_CORE,
+        uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
             MainMemory::get().map().allocate(STACK_TOP - virt));
-        map_segment(*this, phys, virt, STACK_TOP - virt, DTU::PTE_RW);
+        map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
 
         // load app
         uint64_t entry = load_mod(*this, mod, !appFirst, true);
@@ -242,7 +242,7 @@ void KVPE::init_memory(const char *name) {
             PANIC("Not enough space for arguments");
 
         // write buffer to the target PE
-        size_t argssize = Math::round_up(off + i, DTU_PKG_SIZE);
+        size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
         KDTU::get().write_mem(*this, RT_SPACE_START, buffer, argssize);
 
         // write env to targetPE

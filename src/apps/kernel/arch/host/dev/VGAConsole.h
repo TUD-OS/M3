@@ -19,7 +19,7 @@
 #include <m3/arch/host/SharedMemory.h>
 #include "Device.h"
 
-namespace m3 {
+namespace kernel {
 
 class VGAConsoleDevice : public Device {
 public:
@@ -31,8 +31,8 @@ public:
 private:
     void check();
 
-    SharedMemory _vgamem;
-    SharedMemory _kbdmem;
+    m3::SharedMemory _vgamem;
+    m3::SharedMemory _kbdmem;
 };
 
 }

@@ -24,14 +24,17 @@
 #include "Services.h"
 
 namespace m3 {
+class OStream;
+}
+
+namespace kernel {
 
 class CapTable;
 class Capability;
-class OStream;
 
-OStream &operator<<(OStream &os, const Capability &cc);
+m3::OStream &operator<<(m3::OStream &os, const Capability &cc);
 
-class Capability : public TreapNode<capsel_t> {
+class Capability : public m3::TreapNode<capsel_t> {
     friend class CapTable;
 
 public:
@@ -79,8 +82,8 @@ public:
     }
 
 private:
-    virtual Errors::Code revoke() {
-        return Errors::NO_ERROR;
+    virtual m3::Errors::Code revoke() {
+        return m3::Errors::NO_ERROR;
     }
     virtual Capability *clone(CapTable *tbl, capsel_t sel) = 0;
 
@@ -95,7 +98,7 @@ private:
     Capability *_prev;
 };
 
-class MsgObject : public RefCounted {
+class MsgObject : public m3::RefCounted {
 public:
     explicit MsgObject(label_t _label, int _core, int _vpe, int _epid, word_t _credits)
         : RefCounted(), label(_label), core(_core), vpe(_vpe), epid(_epid), credits(_credits),
@@ -116,19 +119,19 @@ class MemObject : public MsgObject {
 public:
     explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int vpe, int epid)
         : MsgObject(addr | perms, core, vpe, epid, size) {
-        assert((addr & MemGate::RWX) == 0);
+        assert((addr & m3::MemGate::RWX) == 0);
     }
     virtual ~MemObject();
 };
 
-class SessionObject : public RefCounted {
+class SessionObject : public m3::RefCounted {
 public:
     explicit SessionObject(Service *_srv, word_t _ident) : RefCounted(), ident(_ident), srv(_srv) {
     }
     ~SessionObject();
 
     word_t ident;
-    Reference<Service> srv;
+    m3::Reference<Service> srv;
 };
 
 class MsgCapability : public Capability {
@@ -143,10 +146,10 @@ public:
         : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, vpe, epid, credits)) {
     }
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
 protected:
-    virtual Errors::Code revoke() override;
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MsgCapability *c = new MsgCapability(*this);
         c->put(tbl, sel);
@@ -156,7 +159,7 @@ protected:
 
 public:
     int localepid;
-    Reference<MsgObject> obj;
+    m3::Reference<MsgObject> obj;
 };
 
 class MemCapability : public MsgCapability {
@@ -166,16 +169,16 @@ public:
         : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, vpe, epid)) {
     }
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
     uintptr_t addr() const {
-        return obj->label & ~MemGate::RWX;
+        return obj->label & ~m3::MemGate::RWX;
     }
     size_t size() const {
         return obj->credits;
     }
     uint perms() const {
-        return obj->label & MemGate::RWX;
+        return obj->label & m3::MemGate::RWX;
     }
 
 private:
@@ -191,10 +194,10 @@ class MapCapability : public Capability {
 public:
     explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr);
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
 private:
-    virtual Errors::Code revoke() override;
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         return new MapCapability(tbl, sel, phys, attr);
     }
@@ -210,17 +213,17 @@ public:
         : Capability(tbl, sel, SERVICE), inst(_inst) {
     }
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
 private:
-    virtual Errors::Code revoke() override;
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *, capsel_t) override {
         /* not cloneable */
         return nullptr;
     }
 
 public:
-    Reference<Service> inst;
+    m3::Reference<Service> inst;
 };
 
 class SessionCapability : public Capability {
@@ -229,10 +232,10 @@ public:
         : Capability(tbl, sel, SESSION), obj(new SessionObject(srv, ident)) {
     }
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
 private:
-    virtual Errors::Code revoke() override;
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         SessionCapability *s = new SessionCapability(*this);
         s->put(tbl, sel);
@@ -240,7 +243,7 @@ private:
     }
 
 public:
-    Reference<SessionObject> obj;
+    m3::Reference<SessionObject> obj;
 };
 
 class VPECapability : public Capability {
@@ -248,10 +251,10 @@ public:
     explicit VPECapability(CapTable *tbl, capsel_t sel, KVPE *p);
     VPECapability(const VPECapability &t);
 
-    void print(OStream &os) const override;
+    void print(m3::OStream &os) const override;
 
 private:
-    virtual Errors::Code revoke() override;
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         VPECapability *v = new VPECapability(*this);
         v->put(tbl, sel);

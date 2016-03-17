@@ -26,12 +26,12 @@
 
 #include "KSendQueue.h"
 
-namespace m3 {
+namespace kernel {
 
 class KVPE;
 class Gate;
 
-class Service : public m3::SListItem, public RefCounted {
+class Service : public m3::SListItem, public m3::RefCounted {
 public:
     explicit Service(KVPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
@@ -55,7 +55,7 @@ public:
     int pending() const {
         return _queue.inflight() + _queue.pending();
     }
-    void send(RecvGate *rgate, const void *msg, size_t size) {
+    void send(m3::RecvGate *rgate, const void *msg, size_t size) {
         _queue.send(rgate, &_sgate, msg, size);
     }
     void received_reply() {
@@ -79,7 +79,7 @@ class ServiceList {
 public:
     friend class Service;
 
-    using iterator = SList<Service>::iterator;
+    using iterator = m3::SList<Service>::iterator;
 
     static ServiceList &get() {
         return _inst;
@@ -104,7 +104,7 @@ public:
         }
         return nullptr;
     }
-    void send_and_receive(Reference<Service> serv, const void *msg, size_t size);
+    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size);
 
 private:
     void remove(Service *inst) {
