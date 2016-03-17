@@ -53,7 +53,7 @@ static void check_childs() {
 
 namespace kernel {
 
-class KWorkLoop : public m3::WorkLoop {
+class WorkLoop : public m3::WorkLoop {
 public:
     virtual void run() override {
 #if defined(__host__)

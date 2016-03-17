@@ -23,14 +23,14 @@
 #include <fcntl.h>
 
 #include "../../KEPMux.h"
-#include "../../KWorkLoop.h"
+#include "../../WorkLoop.h"
 
 namespace kernel {
 
 class HostKEnvBackend : public m3::HostEnvBackend {
 public:
     explicit HostKEnvBackend() {
-        _workloop = new KWorkLoop();
+        _workloop = new WorkLoop();
     }
 
     virtual void exit(int) override {

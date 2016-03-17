@@ -22,14 +22,14 @@
 #include <m3/Log.h>
 
 #include "../../KEPMux.h"
-#include "../../KWorkLoop.h"
+#include "../../WorkLoop.h"
 
 namespace kernel {
 
 class BaremetalKEnvBackend : public m3::BaremetalEnvBackend {
 public:
     explicit BaremetalKEnvBackend() {
-        _workloop = new KWorkLoop();
+        _workloop = new WorkLoop();
     }
 
     virtual void init() override {
