@@ -51,7 +51,7 @@ public:
     void broadcast(const Args &... args) {
         auto msg = create_vmsg(args...);
         for(auto &h : *this)
-            msg.send(*static_cast<SendGate*>(h.gate()));
+            send_msg(*static_cast<SendGate*>(h.gate()), msg.bytes(), msg.total());
     }
 
 protected:

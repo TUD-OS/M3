@@ -222,4 +222,57 @@ inline void Marshaller::put(const Marshaller &os) {
     _bytecount += os.total();
 }
 
+/**
+ * The following templates are used to determine the size of given values in order to determine
+ * the size of a message.
+ */
+
+template<typename T>
+struct OStreamSize {
+    static const size_t value = Math::round_up(sizeof(T), sizeof(ulong));
+};
+template<>
+struct OStreamSize<String> {
+    static const size_t value = String::DEFAULT_MAX_LEN;
+};
+template<>
+struct OStreamSize<const char*> {
+    static const size_t value = String::DEFAULT_MAX_LEN;
+};
+
+template<typename T>
+constexpr size_t _ostreamsize() {
+    return OStreamSize<T>::value;
+}
+template<typename T1, typename T2, typename... Args>
+constexpr size_t _ostreamsize() {
+    return OStreamSize<T1>::value + _ostreamsize<T2, Args...>();
+}
+
+/**
+ * @return the size required for <T1> and <Args>.
+ */
+template<typename T1, typename... Args>
+constexpr size_t ostreamsize() {
+    return Math::round_up(_ostreamsize<T1, Args...>(), DTU_PKG_SIZE);
+}
+
+/**
+ * @return the sum of the lengths <len> and <lens>, respecting alignment
+ */
+template<typename T>
+constexpr size_t vostreamsize(T len) {
+    return Math::round_up(len, sizeof(ulong));
+}
+template<typename T1, typename... Args>
+constexpr size_t vostreamsize(T1 len, Args... lens) {
+    return Math::round_up(
+        Math::round_up(len, sizeof(ulong)) + vostreamsize<Args...>(lens...), DTU_PKG_SIZE);
+}
+
+static_assert(ostreamsize<int, float, int>() ==
+    Math::round_up(sizeof(ulong) + sizeof(ulong) + sizeof(ulong), DTU_PKG_SIZE), "failed");
+static_assert(ostreamsize<short, String>() ==
+    Math::round_up(sizeof(ulong) + String::DEFAULT_MAX_LEN, DTU_PKG_SIZE), "failed");
+
 }

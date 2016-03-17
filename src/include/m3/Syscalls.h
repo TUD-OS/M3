@@ -19,14 +19,13 @@
 #include <m3/cap/SendGate.h>
 #include <m3/util/String.h>
 #include <m3/CapRngDesc.h>
+#include <m3/GateStream.h>
 #include <m3/Env.h>
 
 namespace m3 {
 
 class Env;
 class RecvBuf;
-class GateIStream;
-class GateOStream;
 
 class Syscalls {
     friend class Env;
