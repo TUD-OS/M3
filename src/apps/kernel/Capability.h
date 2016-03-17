@@ -46,7 +46,7 @@ public:
         MSG     = 0x04,
         MEM     = 0x08,
         MAP     = 0x10,
-        VPE     = 0x20,
+        VIRTPE  = 0x20,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type)
@@ -248,7 +248,7 @@ public:
 
 class VPECapability : public Capability {
 public:
-    explicit VPECapability(CapTable *tbl, capsel_t sel, KVPE *p);
+    explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p);
     VPECapability(const VPECapability &t);
 
     void print(m3::OStream &os) const override;
@@ -262,7 +262,7 @@ private:
     }
 
 public:
-    KVPE *vpe;
+    VPE *vpe;
 };
 
 }

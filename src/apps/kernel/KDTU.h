@@ -21,7 +21,7 @@
 
 namespace kernel {
 
-class KVPE;
+class VPE;
 
 class KDTU {
     explicit KDTU() : _ep(m3::VPE::self().alloc_ep()) {
@@ -40,29 +40,29 @@ public:
     void unset_vpeid(int core, int vpe);
     void deprivilege(int core);
 
-    void wakeup(KVPE &vpe);
-    void suspend(KVPE &vpe);
-    void injectIRQ(KVPE &vpe);
+    void wakeup(VPE &vpe);
+    void suspend(VPE &vpe);
+    void injectIRQ(VPE &vpe);
 
-    void config_pf_remote(KVPE &vpe, int ep);
-    void map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
-    void unmap_page(KVPE &vpe, uintptr_t virt);
+    void config_pf_remote(VPE &vpe, int ep);
+    void map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
+    void unmap_page(VPE &vpe, uintptr_t virt);
 
-    void invalidate_ep(KVPE &vpe, int ep);
-    void invalidate_eps(KVPE &vpe);
+    void invalidate_ep(VPE &vpe, int ep);
+    void invalidate_eps(VPE &vpe);
 
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_recv_remote(KVPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
+    void config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
 
     void config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
-    void config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
+    void config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
 
     void config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size);
-    void config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
+    void config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
-    void reply_to(KVPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
+    void reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
 
-    void write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size);
+    void write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size);
     void write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size);
 #if defined(__gem5__)
     void read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size);
@@ -71,9 +71,9 @@ public:
 private:
 #if defined(__gem5__)
     void do_set_vpeid(size_t core, int oldVPE, int newVPE);
-    void do_ext_cmd(KVPE &vpe, m3::DTU::reg_t cmd);
+    void do_ext_cmd(VPE &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
-    void disable_pfs(KVPE &vpe);
+    void disable_pfs(VPE &vpe);
 #endif
 
     void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);

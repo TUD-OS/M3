@@ -33,15 +33,15 @@ void KDTU::unset_vpeid(int, int) {
     // unsupported
 }
 
-void KDTU::wakeup(KVPE &) {
+void KDTU::wakeup(VPE &) {
     // nothing to do
 }
 
-void KDTU::suspend(KVPE &) {
+void KDTU::suspend(VPE &) {
     // nothing to do
 }
 
-void KDTU::injectIRQ(KVPE &) {
+void KDTU::injectIRQ(VPE &) {
     // unsupported
 }
 
@@ -49,7 +49,7 @@ void KDTU::deprivilege(int) {
     // unsupported
 }
 
-void KDTU::invalidate_eps(KVPE &vpe) {
+void KDTU::invalidate_eps(VPE &vpe) {
     size_t total = m3::DTU::EPS_RCNT * EP_COUNT;
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
@@ -57,15 +57,15 @@ void KDTU::invalidate_eps(KVPE &vpe) {
     delete[] regs;
 }
 
-void KDTU::config_pf_remote(KVPE &, int) {
+void KDTU::config_pf_remote(VPE &, int) {
     // unsupported
 }
 
-void KDTU::map_page(KVPE &, uintptr_t, uintptr_t, int) {
+void KDTU::map_page(VPE &, uintptr_t, uintptr_t, int) {
     // unsupported
 }
 
-void KDTU::unmap_page(KVPE &, uintptr_t) {
+void KDTU::unmap_page(VPE &, uintptr_t) {
     // unsupported
 }
 
@@ -73,7 +73,7 @@ void KDTU::config_send_local(int ep, label_t label, int dstcore, int, int dstep,
     m3::DTU::get().configure(ep, label, dstcore, dstep, credits);
 }
 
-void KDTU::config_send_remote(KVPE &, int, label_t, int, int, int, size_t, word_t) {
+void KDTU::config_send_remote(VPE &, int, label_t, int, int, int, size_t, word_t) {
     // nothing to do
 }
 
@@ -92,7 +92,7 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
     config_recv(m3::DTU::get().ep_regs() + (ep * m3::DTU::EPS_RCNT), buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(KVPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
+void KDTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
         bool valid) {
     word_t regs[m3::DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));
@@ -103,7 +103,7 @@ void KDTU::config_recv_remote(KVPE &vpe, int ep, uintptr_t buf, uint order, uint
     vpe.seps_gate().write_sync(regs, sizeof(regs), ep * sizeof(word_t) * m3::DTU::EPS_RCNT);
 }
 
-void KDTU::reply_to(KVPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size) {
+void KDTU::reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size) {
     m3::DTU::get().configure(_ep, label, vpe.core(), ep, size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().sendcrd(_ep, crdep, credits);
     m3::DTU::get().wait_until_ready(_ep);

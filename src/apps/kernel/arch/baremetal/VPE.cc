@@ -19,13 +19,13 @@
 
 #include "../../PEManager.h"
 #include "../../SyscallHandler.h"
-#include "../../KVPE.h"
+#include "../../VPE.h"
 #include "../../KDTU.h"
 #include "../../RecvBufs.h"
 
 namespace kernel {
 
-void KVPE::init() {
+void VPE::init() {
     // attach default receive endpoint
     UNUSED m3::Errors::Code res = RecvBufs::attach(
         *this, m3::DTU::DEF_RECVEP, DEF_RCVBUF, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
@@ -36,10 +36,10 @@ void KVPE::init() {
         KERNEL_CORE, KERNEL_CORE, m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
 }
 
-void KVPE::activate_sysc_ep() {
+void VPE::activate_sysc_ep() {
 }
 
-void KVPE::start(int, UNUSED char **argv, int) {
+void VPE::start(int, UNUSED char **argv, int) {
     // when exiting, the program will release one reference
     ref();
 
@@ -53,7 +53,7 @@ void KVPE::start(int, UNUSED char **argv, int) {
     LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 
-m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
+m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
     if(n) {
         if(n->type & Capability::MEM) {
             uintptr_t addr = n->obj->label & ~m3::MemGate::RWX;
@@ -76,7 +76,7 @@ m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
     return m3::Errors::NO_ERROR;
 }
 
-KVPE::~KVPE() {
+VPE::~VPE() {
     LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     detach_rbufs();
     free_reqs();

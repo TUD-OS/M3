@@ -18,7 +18,7 @@
 
 #include "../../PEManager.h"
 #include "../../SyscallHandler.h"
-#include "../../KVPE.h"
+#include "../../VPE.h"
 
 #include <unistd.h>
 #include <fstream>
@@ -28,10 +28,10 @@
 
 namespace kernel {
 
-void KVPE::init() {
+void VPE::init() {
 }
 
-void KVPE::start(int argc, char **argv, int pid) {
+void VPE::start(int argc, char **argv, int pid) {
     // when exiting, the program will release one reference
     ref();
     _state = RUNNING;
@@ -67,7 +67,7 @@ void KVPE::start(int argc, char **argv, int pid) {
     }
 }
 
-void KVPE::activate_sysc_ep(void *addr) {
+void VPE::activate_sysc_ep(void *addr) {
     uintptr_t iaddr = reinterpret_cast<uintptr_t>(addr);
     // if we execute multiple programs in a VPE in a row, we already have our memory-cap
     MemCapability *mcap = static_cast<MemCapability*>(
@@ -82,7 +82,7 @@ void KVPE::activate_sysc_ep(void *addr) {
         mcap->obj->label = iaddr | m3::MemGate::X | m3::MemGate::W;
 }
 
-void KVPE::write_env_file(pid_t pid, label_t label, size_t epid) {
+void VPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
@@ -93,7 +93,7 @@ void KVPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 
-m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     // set registers for caps
     word_t regs[m3::DTU::EPS_RCNT * 2];
     memset(regs, 0, sizeof(regs));
@@ -115,7 +115,7 @@ m3::Errors::Code KVPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabil
         sizeof(regs) / 2, epid * m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
-KVPE::~KVPE() {
+VPE::~VPE() {
     LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     detach_rbufs();
     free_reqs();

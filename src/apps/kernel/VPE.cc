@@ -16,21 +16,21 @@
 
 #include <m3/Common.h>
 
-#include "KVPE.h"
+#include "VPE.h"
 #include "RecvBufs.h"
 #include "PEManager.h"
 
 namespace kernel {
 
-KVPE::VPEId::VPEId(int _id, int _core) : id(_id), core(_core) {
+VPE::VPEId::VPEId(int _id, int _core) : id(_id), core(_core) {
     KDTU::get().set_vpeid(core, id);
 }
 
-KVPE::VPEId::~VPEId() {
+VPE::VPEId::~VPEId() {
     KDTU::get().unset_vpeid(core, id);
 }
 
-KVPE::KVPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
+VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
     : _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
@@ -51,13 +51,13 @@ KVPE::KVPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t
         LOG(VPES, "  requires: '" << r.name << "'");
 }
 
-void KVPE::unref() {
+void VPE::unref() {
     // 1 because we always have a VPE-cap for ourself (not revokeable)
     if(--_refs == 1)
         PEManager::get().remove(id(), _daemon);
 }
 
-void KVPE::exit(int exitcode) {
+void VPE::exit(int exitcode) {
     KDTU::get().invalidate_eps(*this);
     detach_rbufs();
     _state = DEAD;
@@ -69,7 +69,7 @@ void KVPE::exit(int exitcode) {
     }
 }
 
-  void KVPE::detach_rbufs() {
+  void VPE::detach_rbufs() {
       for(size_t c = 0; c < EP_COUNT; ++c)
           RecvBufs::detach(*this, c);
   }

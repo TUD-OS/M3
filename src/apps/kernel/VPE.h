@@ -26,7 +26,7 @@
 
 namespace kernel {
 
-class KVPE {
+class VPE {
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
         VPEId(int _id, int _core);
@@ -52,11 +52,11 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
-    explicit KVPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
+    explicit VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
         capsel_t pfgate = m3::ObjCap::INVALID);
-    KVPE(const KVPE &) = delete;
-    KVPE &operator=(const KVPE &) = delete;
-    ~KVPE();
+    VPE(const VPE &) = delete;
+    VPE &operator=(const VPE &) = delete;
+    ~VPE();
 
     int refcount() const {
         return _refs;

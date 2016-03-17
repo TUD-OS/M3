@@ -21,7 +21,7 @@
 
 #include "CapTable.h"
 #include "Services.h"
-#include "KVPE.h"
+#include "VPE.h"
 
 namespace kernel {
 
@@ -66,7 +66,7 @@ public:
         return &_srvrcvbuf;
     }
 
-    m3::RecvGate create_gate(KVPE *vpe) {
+    m3::RecvGate create_gate(VPE *vpe) {
         return m3::RecvGate::create(&_rcvbuf, vpe);
     }
 
@@ -94,7 +94,7 @@ public:
 #endif
 
 private:
-    m3::Errors::Code do_exchange(KVPE *v1, KVPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
+    m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
     void exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is, bool obtain);
     void tryTerminate();
 

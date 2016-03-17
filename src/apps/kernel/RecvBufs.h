@@ -24,7 +24,7 @@
 #include <m3/Errors.h>
 
 #include "KDTU.h"
-#include "KVPE.h"
+#include "VPE.h"
 
 namespace kernel {
 
@@ -55,7 +55,7 @@ public:
         rbuf.waitlist.subscribe(cb);
     }
 
-    static m3::Errors::Code attach(KVPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+    static m3::Errors::Code attach(VPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
         RBuf &rbuf = get(vpe.core(), epid);
         if(rbuf.flags & F_ATTACHED)
             return m3::Errors::EXISTS;
@@ -78,7 +78,7 @@ public:
         return m3::Errors::NO_ERROR;
     }
 
-    static void detach(KVPE &vpe, size_t epid) {
+    static void detach(VPE &vpe, size_t epid) {
         RBuf &rbuf = get(vpe.core(), epid);
         if(rbuf.flags & F_ATTACHED) {
             // TODO we have to make sure here that nobody can send to that EP anymore
@@ -90,7 +90,7 @@ public:
     }
 
 private:
-    static void configure(KVPE &vpe, size_t epid, RBuf &rbuf) {
+    static void configure(VPE &vpe, size_t epid, RBuf &rbuf) {
         KDTU::get().config_recv_remote(vpe, epid,
             rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
     }

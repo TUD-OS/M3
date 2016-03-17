@@ -30,7 +30,7 @@
 
 #include "../../Services.h"
 #include "../../PEManager.h"
-#include "../../KVPE.h"
+#include "../../VPE.h"
 #include "../../SyscallHandler.h"
 #include "dev/TimerDevice.h"
 #include "dev/VGAConsole.h"

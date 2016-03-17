@@ -48,7 +48,7 @@ void PEManager::load(int argc, char **argv) {
             // allow multiple applications with the same name
             m3::OStringStream name;
             name << path_to_name(m3::String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new KVPE(m3::String(name.str()), no, true, as);
+            _vpes[no] = new VPE(m3::String(name.str()), no, true, as);
             _count++;
         }
 
@@ -147,7 +147,7 @@ bool PEManager::core_matches(size_t i, const char *core) const {
     return strcmp(core, "default") == 0;
 }
 
-KVPE *PEManager::create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
+VPE *PEManager::create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
     if(_count == AVAIL_PES)
         return nullptr;
 
@@ -159,7 +159,7 @@ KVPE *PEManager::create(m3::String &&name, const char *core, bool as, int ep, ca
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new KVPE(std::move(name), i, false, as, ep, pfgate);
+    _vpes[i] = new VPE(std::move(name), i, false, as, ep, pfgate);
     _count++;
     return _vpes[i];
 }

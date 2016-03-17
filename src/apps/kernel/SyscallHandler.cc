@@ -58,11 +58,11 @@ struct ReplyInfo {
     word_t replycrd;
 };
 
-static void reply_to_vpe(KVPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
+static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
     KDTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
-static m3::Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     if(newcapobj) {
         LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to lbl="
                 << m3::fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
@@ -85,7 +85,7 @@ static m3::Errors::Code do_activate(KVPE *vpe, size_t epid, MsgCapability *oldca
 
 SyscallHandler::SyscallHandler()
         : _rcvbuf(m3::RecvBuf::create(epid(),
-            m3::nextlog2<AVAIL_PES>::val + KVPE::SYSC_CREDIT_ORD, KVPE::SYSC_CREDIT_ORD, 0)),
+            m3::nextlog2<AVAIL_PES>::val + VPE::SYSC_CREDIT_ORD, VPE::SYSC_CREDIT_ORD, 0)),
           _srvrcvbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(),
             m3::nextlog2<1024>::val, m3::nextlog2<256>::val, 0)) {
     // configure both receive buffers (we need to do that manually in the kernel)
@@ -119,7 +119,7 @@ SyscallHandler::SyscallHandler()
 
 void SyscallHandler::createsrv(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_createsrv();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     m3::String name;
     capsel_t gatesel, srv;
     is >> gatesel >> srv >> name;
@@ -153,7 +153,7 @@ void SyscallHandler::createsrv(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::pagefault(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
 #if defined(__gem5__)
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     uint64_t virt, access;
     is >> virt >> access;
     LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << m3::fmt(virt, "p")
@@ -179,14 +179,14 @@ void SyscallHandler::pagefault(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
 
 void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_createsess();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tvpe, cap;
     m3::String name;
     is >> tvpe >> cap >> name;
     LOG_SYS(vpe, ": syscall::createsess",
         "(vpe=" << tvpe << ", name=" << name << ", cap=" << cap << ")");
 
-    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VPE));
+    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
     if(tvpeobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -240,7 +240,7 @@ void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::creategate(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_creategate();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap,dstcap;
     label_t label;
     size_t epid;
@@ -255,7 +255,7 @@ void SyscallHandler::creategate(m3::RecvGate &gate, m3::GateIStream &is) {
         PANIC("Unlimited credits are not yet supported on gem5");
 #endif
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -271,7 +271,7 @@ void SyscallHandler::creategate(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap, mcap, gcap;
     m3::String name, core;
     size_t ep;
@@ -295,7 +295,7 @@ void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
     const char *corename = core.c_str()[0] == '\0'
         ? PEManager::get().type(vpe->core() - APP_CORES)
         : core.c_str();
-    KVPE *nvpe = PEManager::get().create(std::move(name), corename,
+    VPE *nvpe = PEManager::get().create(std::move(name), corename,
         gcap != m3::ObjCap::INVALID, ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::NO_FREE_CORE, "No free and suitable core found");
@@ -318,7 +318,7 @@ void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
 void SyscallHandler::createmap(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
 #if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap, mcap;
     capsel_t first, pages, dst;
     int perms;
@@ -327,7 +327,7 @@ void SyscallHandler::createmap(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
         << ", first=" << first << ", pages=" << pages << ", dst=" << dst
         << ", perms=" << perms << ")");
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
     MemCapability *mcapobj = static_cast<MemCapability*>(vpe->objcaps().get(mcap, Capability::MEM));
@@ -359,7 +359,7 @@ void SyscallHandler::createmap(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
 
 void SyscallHandler::attachrb(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_attachrb();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
     uintptr_t addr;
     size_t ep;
@@ -370,7 +370,7 @@ void SyscallHandler::attachrb(m3::RecvGate &gate, m3::GateIStream &is) {
         << ", addr=" << m3::fmt(addr, "p") << ", size=" << m3::fmt(1UL << order, "#x")
         << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ", flags=" << m3::fmt(flags, "#x") << ")");
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -383,13 +383,13 @@ void SyscallHandler::attachrb(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::detachrb(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_detachrb();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
     size_t ep;
     is >> tcap >> ep;
     LOG_SYS(vpe, ": syscall::detachrb", "(vpe=" << tcap << ", ep=" << ep << ")");
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VPE));
+    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -399,7 +399,7 @@ void SyscallHandler::detachrb(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::exchange(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_exchange();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
     m3::CapRngDesc own, other;
     bool obtain;
@@ -408,19 +408,19 @@ void SyscallHandler::exchange(m3::RecvGate &gate, m3::GateIStream &is) {
         << ", other=" << other << ", obtain=" << obtain << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
-            vpe->objcaps().get(tcap, Capability::VPE));
+            vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid VPE cap");
 
-    KVPE *t1 = obtain ? vpecap->vpe : vpe;
-    KVPE *t2 = obtain ? vpe : vpecap->vpe;
+    VPE *t1 = obtain ? vpecap->vpe : vpe;
+    VPE *t2 = obtain ? vpe : vpecap->vpe;
     m3::Errors::Code res = do_exchange(t1, t2, own, other, obtain);
     reply_vmsg(gate, res);
 }
 
 void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_vpectrl();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
     m3::Syscalls::VPECtrl op;
     int pid;
@@ -429,7 +429,7 @@ void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
             << ", pid=" << pid << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(
-            vpe->objcaps().get(tcap, Capability::VPE));
+            vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap");
 
@@ -440,7 +440,7 @@ void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
             break;
 
         case m3::Syscalls::VCTRL_WAIT:
-            if(vpecap->vpe->state() == KVPE::DEAD)
+            if(vpecap->vpe->state() == VPE::DEAD)
                 reply_vmsg(gate, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             else {
                 ReplyInfo rinfo(is.message());
@@ -456,7 +456,7 @@ void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::reqmem(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_reqmem();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t cap;
     uintptr_t addr;
     size_t size;
@@ -491,7 +491,7 @@ void SyscallHandler::reqmem(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::derivemem(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_derivemem();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t src, dst;
     size_t offset, size;
     int perms;
@@ -531,9 +531,10 @@ void SyscallHandler::obtain(m3::RecvGate &gate, m3::GateIStream &is) {
     exchange_over_sess(gate, is, true);
 }
 
-m3::Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain) {
-    KVPE &src = obtain ? *v2 : *v1;
-    KVPE &dst = obtain ? *v1 : *v2;
+m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1,
+        const m3::CapRngDesc &c2, bool obtain) {
+    VPE &src = obtain ? *v2 : *v1;
+    VPE &dst = obtain ? *v1 : *v2;
     const m3::CapRngDesc &srcrng = obtain ? c2 : c1;
     const m3::CapRngDesc &dstrng = obtain ? c1 : c2;
 
@@ -563,7 +564,7 @@ m3::Errors::Code SyscallHandler::do_exchange(KVPE *v1, KVPE *v2, const m3::CapRn
 }
 
 void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is, bool obtain) {
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     capsel_t tvpe, sesscap;
     m3::CapRngDesc caps;
     is >> tvpe >> sesscap >> caps;
@@ -572,7 +573,7 @@ void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is,
             "(vpe=" << tvpe << ", sess=" << sesscap << ", caps="
             << caps.start() << ":" << caps.count() << ")");
 
-    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VPE));
+    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
     if(tvpeobj == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
@@ -633,7 +634,7 @@ void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is,
 
 void SyscallHandler::activate(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_activate();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     size_t epid;
     capsel_t oldcap, newcap;
     is >> epid >> oldcap >> newcap;
@@ -680,7 +681,7 @@ void SyscallHandler::activate(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::revoke(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_revoke();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     m3::CapRngDesc crd;
     is >> crd;
     LOG_SYS(vpe, ": syscall::revoke", "(" << crd << ")");
@@ -703,7 +704,7 @@ void SyscallHandler::revoke(m3::RecvGate &gate, m3::GateIStream &is) {
 
 void SyscallHandler::exit(m3::RecvGate &gate, m3::GateIStream &is) {
     EVENT_TRACER_Syscall_exit();
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     int exitcode;
     is >> exitcode;
     LOG_SYS(vpe, ": syscall::exit", "(" << exitcode << ")");
@@ -733,7 +734,7 @@ void SyscallHandler::noop(m3::RecvGate &gate, m3::GateIStream &) {
 
 #if defined(__host__)
 void SyscallHandler::init(m3::RecvGate &gate,m3::GateIStream &is) {
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = gate.session<VPE>();
     void *addr;
     is >> addr;
     vpe->activate_sysc_ep(addr);

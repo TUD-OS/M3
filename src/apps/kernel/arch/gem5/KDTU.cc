@@ -20,7 +20,7 @@
 
 #include "../../MainMemory.h"
 #include "../../KDTU.h"
-#include "../../KVPE.h"
+#include "../../VPE.h"
 
 namespace kernel {
 
@@ -31,7 +31,7 @@ void KDTU::do_set_vpeid(size_t core, int oldVPE, int newVPE) {
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
 
-void KDTU::do_ext_cmd(KVPE &vpe, m3::DTU::reg_t cmd) {
+void KDTU::do_ext_cmd(VPE &vpe, m3::DTU::reg_t cmd) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = cmd;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
@@ -47,27 +47,27 @@ void KDTU::clear_pt(uintptr_t pt) {
 }
 
 void KDTU::init() {
-    do_set_vpeid(KERNEL_CORE, KVPE::INVALID_ID, 0);
+    do_set_vpeid(KERNEL_CORE, VPE::INVALID_ID, 0);
 }
 
 void KDTU::deprivilege(int core) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
     m3::Sync::compiler_barrier();
-    write_mem_at(core, KVPE::INVALID_ID,
+    write_mem_at(core, VPE::INVALID_ID,
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
 void KDTU::set_vpeid(int core, int vpe) {
     // currently, the invalid ID is still set, so specify that
-    do_set_vpeid(core, KVPE::INVALID_ID, vpe);
+    do_set_vpeid(core, VPE::INVALID_ID, vpe);
 }
 
 void KDTU::unset_vpeid(int core, int vpe) {
-    do_set_vpeid(core, vpe, KVPE::INVALID_ID);
+    do_set_vpeid(core, vpe, VPE::INVALID_ID);
 }
 
-void KDTU::wakeup(KVPE &vpe) {
+void KDTU::wakeup(VPE &vpe) {
     // write the core id to the PE
     uint64_t id = vpe.core();
     m3::Sync::compiler_barrier();
@@ -76,7 +76,7 @@ void KDTU::wakeup(KVPE &vpe) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE));
 }
 
-void KDTU::suspend(KVPE &vpe) {
+void KDTU::suspend(VPE &vpe) {
     // invalidate TLB and cache
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_CACHE));
@@ -87,11 +87,11 @@ void KDTU::suspend(KVPE &vpe) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
-void KDTU::injectIRQ(KVPE &vpe) {
+void KDTU::injectIRQ(VPE &vpe) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 2));
 }
 
-void KDTU::config_pf_remote(KVPE &vpe, int ep) {
+void KDTU::config_pf_remote(VPE &vpe, int ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
@@ -139,7 +139,7 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
+void KDTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
     // configure the memory EP once and use it for all accesses
     config_mem_local(_ep, vpe.core(), vpe.id(), 0, 0xFFFFFFFFFFFFFFFF);
     for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
@@ -173,7 +173,7 @@ void KDTU::map_page(KVPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
     }
 }
 
-void KDTU::unmap_page(KVPE &vpe, uintptr_t virt) {
+void KDTU::unmap_page(VPE &vpe, uintptr_t virt) {
     map_page(vpe, virt, 0, 0);
 
     // TODO remove pagetables on demand
@@ -182,14 +182,14 @@ void KDTU::unmap_page(KVPE &vpe, uintptr_t virt) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 2));
 }
 
-void KDTU::invalidate_ep(KVPE &vpe, int ep) {
+void KDTU::invalidate_ep(VPE &vpe, int ep) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
-void KDTU::invalidate_eps(KVPE &vpe) {
+void KDTU::invalidate_eps(VPE &vpe) {
     m3::DTU::reg_t *eps = new m3::DTU::reg_t[m3::DTU::EP_REGS * EP_COUNT];
     size_t total = sizeof(*eps) * m3::DTU::EP_REGS * EP_COUNT;
     memset(eps, 0, total);
@@ -213,7 +213,7 @@ void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, i
         buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(KVPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
+void KDTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
         bool valid) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
@@ -242,7 +242,7 @@ void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int
         label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void KDTU::config_send_remote(KVPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void KDTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
@@ -265,7 +265,7 @@ void KDTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, siz
         dstcore, dstvpe, addr, size, m3::DTU::R | m3::DTU::W);
 }
 
-void KDTU::config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void KDTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
     config_mem(&e, dstcore, dstvpe, addr, size, perm);
@@ -275,13 +275,13 @@ void KDTU::config_mem_remote(KVPE &vpe, int ep, int dstcore, int dstvpe, uintptr
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
-void KDTU::reply_to(KVPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+void KDTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
     config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, 0, 0);
 }
 
-void KDTU::write_mem(KVPE &vpe, uintptr_t addr, const void *data, size_t size) {
+void KDTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
     write_mem_at(vpe.core(), vpe.id(), addr, data, size);
 }
 

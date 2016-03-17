@@ -36,7 +36,7 @@ MemObject::~MemObject() {
 
 SessionObject::~SessionObject() {
     // only send the close message, if the service has not exited yet
-    if(srv->vpe().state() == KVPE::RUNNING) {
+    if(srv->vpe().state() == VPE::RUNNING) {
         m3::AutoGateOStream msg(m3::ostreamsize<SyscallHandler::server_type::Command, word_t>());
         msg << SyscallHandler::server_type::CLOSE << ident;
         LOG(KSYSC, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8) << " to " << srv->name());
@@ -47,11 +47,11 @@ SessionObject::~SessionObject() {
 
 m3::Errors::Code MsgCapability::revoke() {
     if(localepid != -1) {
-        KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
+        VPE &vpe = PEManager::get().vpe(table()->id() - 1);
         LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated
-        if(vpe.state() != KVPE::DEAD)
+        if(vpe.state() != VPE::DEAD)
             KDTU::get().wakeup(vpe);
     }
     obj.unref();
@@ -60,12 +60,12 @@ m3::Errors::Code MsgCapability::revoke() {
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
     : Capability(tbl, sel, MAP), phys(_phys), attr(_attr) {
-    KVPE &vpe = PEManager::get().vpe(tbl->id() - 1);
+    VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
     KDTU::get().map_page(vpe, sel << PAGE_BITS, phys, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
-    KVPE &vpe = PEManager::get().vpe(table()->id() - 1);
+    VPE &vpe = PEManager::get().vpe(table()->id() - 1);
     KDTU::get().unmap_page(vpe, sel() << PAGE_BITS);
     return m3::Errors::NO_ERROR;
 }
@@ -85,8 +85,8 @@ m3::Errors::Code ServiceCapability::revoke() {
     return m3::Errors::NO_ERROR;
 }
 
-VPECapability::VPECapability(CapTable *tbl, capsel_t sel, KVPE *p)
-    : Capability(tbl, sel, VPE), vpe(p) {
+VPECapability::VPECapability(CapTable *tbl, capsel_t sel, VPE *p)
+    : Capability(tbl, sel, VIRTPE), vpe(p) {
     p->ref();
 }
 

@@ -21,22 +21,22 @@
 
 #include "MainMemory.h"
 #include "SyscallHandler.h"
-#include "KVPE.h"
+#include "VPE.h"
 #include "KDTU.h"
 
 namespace kernel {
 
-class KVPE;
+class VPE;
 
 class PEManager {
-    friend class KVPE;
+    friend class VPE;
 
     struct Pending : public m3::SListItem {
-        explicit Pending(KVPE *_vpe, int _argc, char **_argv)
+        explicit Pending(VPE *_vpe, int _argc, char **_argv)
             : vpe(_vpe), argc(_argc), argv(_argv) {
         }
 
-        KVPE *vpe;
+        VPE *vpe;
         int argc;
         char **argv;
     };
@@ -63,7 +63,7 @@ private:
 public:
     void load(int argc, char **argv);
 
-    KVPE *create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate);
+    VPE *create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
     const char *type(int id) const {
@@ -78,7 +78,7 @@ public:
     bool exists(int id) {
         return id < (int)AVAIL_PES && _vpes[id];
     }
-    KVPE &vpe(int id) {
+    VPE &vpe(int id) {
         assert(_vpes[id]);
         return *_vpes[id];
     }
@@ -98,7 +98,7 @@ private:
     static m3::String fork_name(const m3::String &name);
 
     const char *_petype[AVAIL_PES];
-    KVPE *_vpes[AVAIL_PES];
+    VPE *_vpes[AVAIL_PES];
     size_t _count;
     size_t _daemons;
     m3::SList<Pending> _pending;

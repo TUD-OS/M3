@@ -28,18 +28,18 @@
 
 namespace kernel {
 
-class KVPE;
+class VPE;
 class Gate;
 
 class Service : public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(KVPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity)
+    explicit Service(VPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
           _sgate(m3::SendGate::bind(gate, nullptr, m3::ObjCap::KEEP_CAP)), _queue(capacity) {
     }
     ~Service();
 
-    KVPE &vpe() const {
+    VPE &vpe() const {
         return _vpe;
     }
     int selector() const {
@@ -65,7 +65,7 @@ public:
     bool closing;
 
 private:
-    KVPE &_vpe;
+    VPE &_vpe;
     int _sel;
     m3::String _name;
     m3::SendGate _sgate;
@@ -92,7 +92,7 @@ public:
         return _list.end();
     }
 
-    Service *add(KVPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity) {
+    Service *add(VPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity) {
         Service *inst = new Service(vpe, sel, name, gate, capacity);
         _list.append(inst);
         return inst;

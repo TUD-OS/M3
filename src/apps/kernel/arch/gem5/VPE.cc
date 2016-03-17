@@ -20,7 +20,7 @@
 #include <m3/Log.h>
 
 #include "../../Capability.h"
-#include "../../KVPE.h"
+#include "../../VPE.h"
 #include "../../KDTU.h"
 #include "../../MainMemory.h"
 
@@ -75,7 +75,7 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     KDTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
 }
 
-static void map_segment(KVPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
+static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
     capsel_t kcap = m3::VPE::self().alloc_cap();
     MemCapability *mcapobj = new MemCapability(&CapTable::kernel_table(), kcap,
         m3::DTU::noc_to_virt(phys), size, perms, MEMORY_CORE, 0, -1);
@@ -108,7 +108,7 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
     }
 }
 
-static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
+static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
     // load and check ELF header
     m3::ElfEh header;
     read_from_mod(mod, &header, sizeof(header), 0);
@@ -171,7 +171,7 @@ static uintptr_t load_mod(KVPE &vpe, BootModule *mod, bool copy, bool needs_heap
     return header.e_entry;
 }
 
-static void map_idle(KVPE &vpe) {
+static void map_idle(VPE &vpe) {
     BootModule *idle = idles[vpe.core()];
     if(!idle) {
         bool first;
@@ -197,7 +197,7 @@ static void map_idle(KVPE &vpe) {
     load_mod(vpe, idle, false, false);
 }
 
-void KVPE::init_memory(const char *name) {
+void VPE::init_memory(const char *name) {
     if(_bootmod) {
         bool appFirst;
         BootModule *mod = get_mod(name, &appFirst);
