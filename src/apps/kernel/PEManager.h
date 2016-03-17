@@ -22,7 +22,7 @@
 #include "MainMemory.h"
 #include "SyscallHandler.h"
 #include "VPE.h"
-#include "KDTU.h"
+#include "DTU.h"
 
 namespace kernel {
 
@@ -89,7 +89,7 @@ private:
     void deprivilege_pes() {
         for(int i = 0; i < AVAIL_PES; ++i) {
             if(PE_MASK & (1 << i))
-                KDTU::get().deprivilege(APP_CORES + i);
+                DTU::get().deprivilege(APP_CORES + i);
         }
     }
 

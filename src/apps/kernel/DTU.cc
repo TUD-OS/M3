@@ -16,10 +16,10 @@
 
 #include <m3/Common.h>
 
-#include "KDTU.h"
+#include "DTU.h"
 
 namespace kernel {
 
-KDTU KDTU::_inst;
+DTU DTU::_inst;
 
 }

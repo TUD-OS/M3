@@ -18,28 +18,28 @@
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 
-#include "../../KDTU.h"
+#include "../../DTU.h"
 #include "../../VPE.h"
 
 namespace kernel {
 
-void KDTU::init() {
+void DTU::init() {
     // nothing to do
 }
 
-void KDTU::deprivilege(int) {
+void DTU::deprivilege(int) {
     // unsupported
 }
 
-void KDTU::set_vpeid(int, int) {
+void DTU::set_vpeid(int, int) {
     // unsupported
 }
 
-void KDTU::unset_vpeid(int, int) {
+void DTU::unset_vpeid(int, int) {
     // unsupported
 }
 
-void KDTU::wakeup(VPE &vpe) {
+void DTU::wakeup(VPE &vpe) {
     // first, invalidate all endpoints to start fresh
     invalidate_eps(vpe);
 
@@ -56,30 +56,30 @@ void KDTU::wakeup(VPE &vpe) {
     injectIRQ(vpe);
 }
 
-void KDTU::suspend(VPE &) {
+void DTU::suspend(VPE &) {
     // nothing to do
 }
 
-void KDTU::injectIRQ(VPE &vpe) {
+void DTU::injectIRQ(VPE &vpe) {
     // inject an IRQ
     uint64_t val = 1;
     m3::Sync::memory_barrier();
     write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
-void KDTU::config_pf_remote(VPE &, int) {
+void DTU::config_pf_remote(VPE &, int) {
     // unsupported
 }
 
-void KDTU::map_page(VPE &, uintptr_t, uintptr_t, int) {
+void DTU::map_page(VPE &, uintptr_t, uintptr_t, int) {
     // unsupported
 }
 
-void KDTU::unmap_page(VPE &, uintptr_t) {
+void DTU::unmap_page(VPE &, uintptr_t) {
     // unsupported
 }
 
-void KDTU::invalidate_ep(VPE &vpe, int ep) {
+void DTU::invalidate_ep(VPE &vpe, int ep) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     memset(&conf, 0, sizeof(conf));
     m3::Sync::memory_barrier();
@@ -87,22 +87,22 @@ void KDTU::invalidate_ep(VPE &vpe, int ep) {
     write_mem(vpe, addr, &conf, sizeof(conf));
 }
 
-void KDTU::invalidate_eps(VPE &vpe) {
+void DTU::invalidate_eps(VPE &vpe) {
     alignas(DTU_PKG_SIZE) char eps[EPS_SIZE];
     memset(eps, 0, sizeof(eps));
     m3::Sync::memory_barrier();
     write_mem(vpe, EPS_START, eps, sizeof(eps));
 }
 
-void KDTU::config_recv_local(int, uintptr_t, uint, uint, int) {
+void DTU::config_recv_local(int, uintptr_t, uint, uint, int) {
     // nothing to do; everything is always ready and fixed on T2 for receiving
 }
 
-void KDTU::config_recv_remote(VPE &, int, uintptr_t, uint, uint, int, bool) {
+void DTU::config_recv_remote(VPE &, int, uintptr_t, uint, uint, int, bool) {
     // nothing to do; everything is always ready and fixed on T2 for receiving
 }
 
-void KDTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
+void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
     m3::EPConf *ep = reinterpret_cast<m3::EPConf*>(e);
     ep->valid = 1;
     ep->dstcore = dstcore;
@@ -111,12 +111,12 @@ void KDTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size
     ep->credits = credits;
 }
 
-void KDTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void DTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
     config_send(m3::eps() + ep, label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void KDTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void DTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
         size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_send(&conf, label, dstcore, dstvpe, dstep, msgsize, credits);
@@ -125,7 +125,7 @@ void KDTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int 
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
 
-void KDTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int perm) {
+void DTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int perm) {
     m3::EPConf *ep = reinterpret_cast<m3::EPConf*>(e);
     ep->valid = 1;
     ep->dstcore = dstcore;
@@ -134,11 +134,11 @@ void KDTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, in
     ep->credits = size;
 }
 
-void KDTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
+void DTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
     config_mem(m3::eps() + ep, dstcore, dstvpe, addr, size, m3::MemGate::RW);
 }
 
-void KDTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_mem(&conf, dstcore, dstvpe, addr, size, perm);
     m3::Sync::memory_barrier();
@@ -146,14 +146,14 @@ void KDTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
 
-void KDTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
     config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, 0, 0);
     m3::DTU::get().wait_until_ready(_ep);
 }
 
-void KDTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
+void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
     m3::DTU::get().set_target(SLOT_NO, vpe.core(), addr);
     m3::DTU::get().fire(SLOT_NO, m3::DTU::WRITE, data, size);
 }

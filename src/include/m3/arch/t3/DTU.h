@@ -26,13 +26,13 @@
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
 
 namespace kernel {
-class KDTU;
+class DTU;
 }
 
 namespace m3 {
 
 class DTU {
-    friend class kernel::KDTU;
+    friend class kernel::DTU;
 
     static const uintptr_t DRAM_START       = 0x8000;
 

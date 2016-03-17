@@ -23,14 +23,14 @@ namespace kernel {
 
 class VPE;
 
-class KDTU {
-    explicit KDTU() : _ep(m3::VPE::self().alloc_ep()) {
+class DTU {
+    explicit DTU() : _ep(m3::VPE::self().alloc_ep()) {
         m3::EPMux::get().reserve(_ep);
         init();
     }
 
 public:
-    static KDTU &get() {
+    static DTU &get() {
         return _inst;
     }
 
@@ -81,7 +81,7 @@ private:
     void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
     int _ep;
-    static KDTU _inst;
+    static DTU _inst;
 };
 
 }

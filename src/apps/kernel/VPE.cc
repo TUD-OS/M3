@@ -23,11 +23,11 @@
 namespace kernel {
 
 VPE::VPEId::VPEId(int _id, int _core) : id(_id), core(_core) {
-    KDTU::get().set_vpeid(core, id);
+    DTU::get().set_vpeid(core, id);
 }
 
 VPE::VPEId::~VPEId() {
-    KDTU::get().unset_vpeid(core, id);
+    DTU::get().unset_vpeid(core, id);
 }
 
 VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
@@ -58,7 +58,7 @@ void VPE::unref() {
 }
 
 void VPE::exit(int exitcode) {
-    KDTU::get().invalidate_eps(*this);
+    DTU::get().invalidate_eps(*this);
     detach_rbufs();
     _state = DEAD;
     _exitcode = exitcode;

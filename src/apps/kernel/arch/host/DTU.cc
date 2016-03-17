@@ -17,39 +17,39 @@
 #include <m3/Common.h>
 
 #include "../../PEManager.h"
-#include "../../KDTU.h"
+#include "../../DTU.h"
 
 namespace kernel {
 
-void KDTU::init() {
+void DTU::init() {
     // nothing to do
 }
 
-void KDTU::set_vpeid(int, int) {
+void DTU::set_vpeid(int, int) {
     // unsupported
 }
 
-void KDTU::unset_vpeid(int, int) {
+void DTU::unset_vpeid(int, int) {
     // unsupported
 }
 
-void KDTU::wakeup(VPE &) {
+void DTU::wakeup(VPE &) {
     // nothing to do
 }
 
-void KDTU::suspend(VPE &) {
+void DTU::suspend(VPE &) {
     // nothing to do
 }
 
-void KDTU::injectIRQ(VPE &) {
+void DTU::injectIRQ(VPE &) {
     // unsupported
 }
 
-void KDTU::deprivilege(int) {
+void DTU::deprivilege(int) {
     // unsupported
 }
 
-void KDTU::invalidate_eps(VPE &vpe) {
+void DTU::invalidate_eps(VPE &vpe) {
     size_t total = m3::DTU::EPS_RCNT * EP_COUNT;
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
@@ -57,27 +57,27 @@ void KDTU::invalidate_eps(VPE &vpe) {
     delete[] regs;
 }
 
-void KDTU::config_pf_remote(VPE &, int) {
+void DTU::config_pf_remote(VPE &, int) {
     // unsupported
 }
 
-void KDTU::map_page(VPE &, uintptr_t, uintptr_t, int) {
+void DTU::map_page(VPE &, uintptr_t, uintptr_t, int) {
     // unsupported
 }
 
-void KDTU::unmap_page(VPE &, uintptr_t) {
+void DTU::unmap_page(VPE &, uintptr_t) {
     // unsupported
 }
 
-void KDTU::config_send_local(int ep, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
+void DTU::config_send_local(int ep, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
     m3::DTU::get().configure(ep, label, dstcore, dstep, credits);
 }
 
-void KDTU::config_send_remote(VPE &, int, label_t, int, int, int, size_t, word_t) {
+void DTU::config_send_remote(VPE &, int, label_t, int, int, int, size_t, word_t) {
     // nothing to do
 }
 
-void KDTU::config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags) {
     word_t *regs = reinterpret_cast<word_t*>(e);
     regs[m3::DTU::EP_BUF_ADDR]       = buf;
     regs[m3::DTU::EP_BUF_ORDER]      = order;
@@ -88,11 +88,11 @@ void KDTU::config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int fl
     regs[m3::DTU::EP_BUF_FLAGS]      = flags;
 }
 
-void KDTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     config_recv(m3::DTU::get().ep_regs() + (ep * m3::DTU::EPS_RCNT), buf, order, msgorder, flags);
 }
 
-void KDTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
+void DTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
         bool valid) {
     word_t regs[m3::DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));
@@ -103,7 +103,7 @@ void KDTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint 
     vpe.seps_gate().write_sync(regs, sizeof(regs), ep * sizeof(word_t) * m3::DTU::EPS_RCNT);
 }
 
-void KDTU::reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size) {
+void DTU::reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size) {
     m3::DTU::get().configure(_ep, label, vpe.core(), ep, size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().sendcrd(_ep, crdep, credits);
     m3::DTU::get().wait_until_ready(_ep);

@@ -23,7 +23,7 @@
 #include <m3/DTU.h>
 #include <m3/Errors.h>
 
-#include "KDTU.h"
+#include "DTU.h"
 #include "VPE.h"
 
 namespace kernel {
@@ -91,7 +91,7 @@ public:
 
 private:
     static void configure(VPE &vpe, size_t epid, RBuf &rbuf) {
-        KDTU::get().config_recv_remote(vpe, epid,
+        DTU::get().config_recv_remote(vpe, epid,
             rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
     }
 

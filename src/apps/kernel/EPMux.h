@@ -19,7 +19,7 @@
 
 #include "Capability.h"
 #include "CapTable.h"
-#include "KDTU.h"
+#include "DTU.h"
 
 namespace kernel {
 
@@ -34,7 +34,7 @@ public:
             assert(c != nullptr);
 
             // TODO we need the max msg size
-            KDTU::get().config_send_local(id,
+            DTU::get().config_send_local(id,
                 c->obj->label, c->obj->core, c->obj->vpe, c->obj->epid,
                 c->obj->credits, c->obj->credits);
 

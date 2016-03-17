@@ -59,7 +59,7 @@ struct ReplyInfo {
 };
 
 static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    KDTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+    DTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
 static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
@@ -89,9 +89,9 @@ SyscallHandler::SyscallHandler()
           _srvrcvbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(),
             m3::nextlog2<1024>::val, m3::nextlog2<256>::val, 0)) {
     // configure both receive buffers (we need to do that manually in the kernel)
-    KDTU::get().config_recv_local(_rcvbuf.epid(), reinterpret_cast<uintptr_t>(_rcvbuf.addr()),
+    DTU::get().config_recv_local(_rcvbuf.epid(), reinterpret_cast<uintptr_t>(_rcvbuf.addr()),
         _rcvbuf.order(), _rcvbuf.msgorder(), _rcvbuf.flags());
-    KDTU::get().config_recv_local(_srvrcvbuf.epid(), reinterpret_cast<uintptr_t>(_srvrcvbuf.addr()),
+    DTU::get().config_recv_local(_srvrcvbuf.epid(), reinterpret_cast<uintptr_t>(_srvrcvbuf.addr()),
         _srvrcvbuf.order(), _srvrcvbuf.msgorder(), _srvrcvbuf.flags());
 
     add_operation(m3::Syscalls::PAGEFAULT, &SyscallHandler::pagefault);
@@ -309,7 +309,7 @@ void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
         // delegate pf gate to the new VPE
         nvpe->objcaps().obtain(gcap, msg);
 
-        KDTU::get().config_pf_remote(*nvpe, ep);
+        DTU::get().config_pf_remote(*nvpe, ep);
     }
 
     reply_vmsg(gate, m3::Errors::NO_ERROR);

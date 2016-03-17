@@ -21,7 +21,7 @@
 
 #include "../../Capability.h"
 #include "../../VPE.h"
-#include "../../KDTU.h"
+#include "../../DTU.h"
 #include "../../MainMemory.h"
 
 namespace kernel {
@@ -45,7 +45,7 @@ static BootModule *get_mod(const char *name, bool *first) {
         uintptr_t *marray = m3::env()->mods;
         for(size_t i = 0; i < m3::Env::MODS_MAX && marray[i]; ++i) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
-            KDTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
+            DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
             m3::Serial::get() << "Module '" << mods[i].name << "':\n";
             m3::Serial::get() << "  addr: " << m3::fmt(mods[i].addr, "p") << "\n";
@@ -72,7 +72,7 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file");
 
-    KDTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
+    DTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
 }
 
 static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
@@ -100,8 +100,8 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
         size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
         if(!clear)
-            KDTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(src), buffer, amount);
-        KDTU::get().write_mem_at(core, vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
+            DTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(src), buffer, amount);
+        DTU::get().write_mem_at(core, vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
         src += amount;
         dst += amount;
         rem -= amount;
@@ -206,7 +206,7 @@ void VPE::init_memory(const char *name) {
 
         m3::Serial::get() << "Loading mod '" << mod->name << "':\n";
 
-        KDTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
+        DTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
 
         // map runtime space
         uintptr_t virt = RT_START;
@@ -243,7 +243,7 @@ void VPE::init_memory(const char *name) {
 
         // write buffer to the target PE
         size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
-        KDTU::get().write_mem(*this, RT_SPACE_START, buffer, argssize);
+        DTU::get().write_mem(*this, RT_SPACE_START, buffer, argssize);
 
         // write env to targetPE
         m3::Env senv;
@@ -254,7 +254,7 @@ void VPE::init_memory(const char *name) {
         senv.sp = STACK_TOP - sizeof(word_t);
         senv.entry = entry;
 
-        KDTU::get().write_mem(*this, RT_START, &senv, sizeof(senv));
+        DTU::get().write_mem(*this, RT_START, &senv, sizeof(senv));
     }
 
     map_idle(*this);
