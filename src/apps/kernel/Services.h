@@ -24,7 +24,7 @@
 #include <m3/util/Reference.h>
 #include <m3/Log.h>
 
-#include "KSendQueue.h"
+#include "SendQueue.h"
 
 namespace kernel {
 
@@ -69,7 +69,7 @@ private:
     int _sel;
     m3::String _name;
     m3::SendGate _sgate;
-    KSendQueue _queue;
+    SendQueue _queue;
 };
 
 class ServiceList {

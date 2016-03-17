@@ -26,7 +26,7 @@
 
 namespace kernel {
 
-class KSendQueue {
+class SendQueue {
     struct Entry : public m3::SListItem {
         explicit Entry(m3::RecvGate *_rgate, m3::SendGate *_sgate, const void *_msg, size_t _size)
             : SListItem(), rgate(_rgate), sgate(_sgate), msg(_msg), size(_size) {
@@ -39,7 +39,7 @@ class KSendQueue {
     };
 
 public:
-    explicit KSendQueue(int capacity) : _queue(), _capacity(capacity), _inflight(0) {
+    explicit SendQueue(int capacity) : _queue(), _capacity(capacity), _inflight(0) {
     }
 
     int inflight() const {
