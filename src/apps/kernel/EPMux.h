@@ -25,7 +25,7 @@ namespace kernel {
 
 // don't inherit from EnvBackend here. we'll do that in the arch-specific EnvBackends and use
 // this class to implement switch_ep
-class KEPMux {
+class EPMux {
 public:
     static void switch_ep(size_t id, capsel_t, capsel_t newcap) {
         if(newcap != m3::ObjCap::INVALID) {

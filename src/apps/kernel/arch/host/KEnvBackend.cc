@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../../KEPMux.h"
+#include "../../EPMux.h"
 #include "../../WorkLoop.h"
 
 namespace kernel {
@@ -40,7 +40,7 @@ public:
     virtual void detach_recvbuf(m3::RecvBuf *) override {
     }
     virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
-        KEPMux::switch_ep(victim, oldcap, newcap);
+        EPMux::switch_ep(victim, oldcap, newcap);
     }
 };
 
