@@ -76,16 +76,10 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
 }
 
 static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
-    capsel_t kcap = m3::VPE::self().alloc_cap();
-    MemCapability *mcapobj = new MemCapability(&CapTable::kernel_table(), kcap,
-        m3::DTU::noc_to_virt(phys), size, perms, MEMORY_CORE, 0, -1);
-    CapTable::kernel_table().set(kcap, mcapobj);
-
     capsel_t dst = virt >> PAGE_BITS;
     size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
     for(capsel_t i = 0; i < pages; ++i) {
         MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst + i, phys, perms);
-        vpe.mapcaps().inherit(mcapobj, mapcap);
         vpe.mapcaps().set(dst + i, mapcap);
         phys += PAGE_SIZE;
     }

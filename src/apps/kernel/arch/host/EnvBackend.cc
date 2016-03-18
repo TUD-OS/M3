@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../../EPMux.h"
 #include "../../WorkLoop.h"
 
 namespace kernel {
@@ -38,9 +37,6 @@ public:
     virtual void attach_recvbuf(m3::RecvBuf *) override {
     }
     virtual void detach_recvbuf(m3::RecvBuf *) override {
-    }
-    virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
-        EPMux::switch_ep(victim, oldcap, newcap);
     }
 };
 

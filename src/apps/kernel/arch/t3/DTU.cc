@@ -148,17 +148,19 @@ void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t
     write_mem(vpe, epaddr, regs, sizeof(regs));
 }
 
-void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+void DTU::send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
     // TODO for some reason, we need to use a different EP here.
     static int tmpep = 0;
-    if(tmpep == 0) {
-        tmpep = m3::VPE::self().alloc_ep();
-        m3::EPMux::get().reserve(tmpep);
-    }
+    if(tmpep == 0)
+        tmpep = alloc_ep();
     config_send_local(tmpep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
-    m3::DTU::get().send(tmpep, msg, size, 0, 0);
+    m3::DTU::get().send(tmpep, msg, size, replylbl, replyep);
     m3::DTU::get().wait_until_ready(tmpep);
+}
+
+void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+    send_to(vpe, ep, label, msg, size, 0, 0);
 }
 
 void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {

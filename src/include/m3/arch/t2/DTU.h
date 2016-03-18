@@ -75,6 +75,7 @@ public:
     static const int MEM_EP                 = 0;
     static const int SYSC_EP                = 1;
     static const int DEF_RECVEP             = 2;
+    static const int FIRST_FREE_EP          = 3;
 
     enum Register {
         REG_TARGET,

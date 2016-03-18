@@ -53,7 +53,7 @@ void DTU::invalidate_eps(VPE &vpe) {
     size_t total = m3::DTU::EPS_RCNT * EP_COUNT;
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
-    vpe.seps_gate().write_sync(regs, total * sizeof(word_t), 0);
+    write_mem(vpe, reinterpret_cast<uintptr_t>(vpe.eps()), regs, total * sizeof(word_t));
     delete[] regs;
 }
 
@@ -100,15 +100,39 @@ void DTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint m
     if(valid)
         config_recv(regs, buf, order, msgorder, flags);
 
-    vpe.seps_gate().write_sync(regs, sizeof(regs), ep * sizeof(word_t) * m3::DTU::EPS_RCNT);
+    uintptr_t addr = reinterpret_cast<uintptr_t>(vpe.eps()) + ep * sizeof(word_t) * m3::DTU::EPS_RCNT;
+    write_mem(vpe, addr, regs, sizeof(regs));
+}
+
+void DTU::send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
+    m3::DTU::get().wait_until_ready(_ep);
+    m3::DTU::get().configure(_ep, label, vpe.core(), ep, size + m3::DTU::HEADER_SIZE);
+    m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    m3::DTU::get().wait_until_ready(_ep);
 }
 
 void DTU::reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size) {
+    m3::DTU::get().wait_until_ready(_ep);
     m3::DTU::get().configure(_ep, label, vpe.core(), ep, size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().sendcrd(_ep, crdep, credits);
     m3::DTU::get().wait_until_ready(_ep);
     m3::DTU::get().send(_ep, msg, size, 0, 0);
     m3::DTU::get().wait_until_ready(_ep);
+}
+
+void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
+    m3::DTU::get().wait_until_ready(_ep);
+    m3::DTU::get().configure(_ep, addr | m3::MemGate::RWX, vpe.core(), 0, size);
+    m3::DTU::get().write(_ep, data, size, 0);
+    m3::DTU::get().wait_until_ready(_ep);
+}
+
+void DTU::cmpxchg_mem(VPE &vpe, uintptr_t addr, const void *data, size_t datasize, size_t off, size_t size) {
+    m3::DTU::get().wait_until_ready(_ep);
+    m3::DTU::get().configure(_ep, (addr + off) | m3::MemGate::RWX, vpe.core(), 0, datasize);
+    m3::DTU::get().cmpxchg(_ep, data, datasize, 0, size);
+    m3::DTU::get().wait_until_ready(_ep);
+    m3::DTU::get().wait_for_mem_cmd();
 }
 
 }

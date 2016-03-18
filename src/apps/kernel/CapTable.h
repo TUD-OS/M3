@@ -35,10 +35,6 @@ class CapTable {
     friend m3::OStream &operator<<(m3::OStream &os, const CapTable &ct);
 
 public:
-    static CapTable &kernel_table() {
-        return _kcaps;
-    }
-
     explicit CapTable(uint id) : _id(id), _caps() {
     }
     CapTable(const CapTable &ct, uint id) = delete;
@@ -122,7 +118,6 @@ private:
 
     uint _id;
     m3::Treap<Capability> _caps;
-    static CapTable _kcaps;
 };
 
 }

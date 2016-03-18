@@ -18,13 +18,12 @@
 
 #include <m3/Common.h>
 #include <m3/col/SList.h>
-#include <m3/cap/SendGate.h>
-#include <m3/cap/RecvGate.h>
 #include <m3/util/String.h>
 #include <m3/util/Reference.h>
 #include <m3/Log.h>
 
 #include "SendQueue.h"
+#include "Gate.h"
 
 namespace kernel {
 
@@ -33,9 +32,9 @@ class Gate;
 
 class Service : public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity)
+    explicit Service(VPE &vpe, int sel, const m3::String &name, int ep, label_t label, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-          _sgate(m3::SendGate::bind(gate, nullptr, m3::ObjCap::KEEP_CAP)), _queue(capacity) {
+          _sgate(vpe, ep, label), _queue(capacity) {
     }
     ~Service();
 
@@ -48,14 +47,14 @@ public:
     const m3::String &name() const {
         return _name;
     }
-    m3::SendGate &send_gate() const {
-        return const_cast<m3::SendGate&>(_sgate);
+    SendGate &send_gate() const {
+        return const_cast<SendGate&>(_sgate);
     }
 
     int pending() const {
         return _queue.inflight() + _queue.pending();
     }
-    void send(m3::RecvGate *rgate, const void *msg, size_t size) {
+    void send(RecvGate *rgate, const void *msg, size_t size) {
         _queue.send(rgate, &_sgate, msg, size);
     }
     void received_reply() {
@@ -68,7 +67,7 @@ private:
     VPE &_vpe;
     int _sel;
     m3::String _name;
-    m3::SendGate _sgate;
+    SendGate _sgate;
     SendQueue _queue;
 };
 
@@ -92,8 +91,8 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, int sel, const m3::String &name, capsel_t gate, int capacity) {
-        Service *inst = new Service(vpe, sel, name, gate, capacity);
+    Service *add(VPE &vpe, int sel, const m3::String &name, int ep, label_t label, int capacity) {
+        Service *inst = new Service(vpe, sel, name, ep, label, capacity);
         _list.append(inst);
         return inst;
     }

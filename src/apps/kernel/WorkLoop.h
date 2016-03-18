@@ -71,14 +71,14 @@ public:
             if(dtu.fetch_msg(sysep)) {
                 // we know the subscriber here, so optimize that a bit
                 m3::DTU::Message *msg = dtu.message(sysep);
-                m3::RecvGate *rgate = reinterpret_cast<m3::RecvGate*>(msg->label);
+                RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
                 sysch.handle_message(*rgate, nullptr);
                 dtu.ack_message(sysep);
                 EVENT_TRACE_FLUSH_LIGHT();
             }
             if(dtu.fetch_msg(srvep)) {
                 m3::DTU::Message *msg = dtu.message(srvep);
-                m3::RecvGate *gate = reinterpret_cast<m3::RecvGate*>(msg->label);
+                RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
                 gate->notify_all();
                 dtu.ack_message(srvep);
             }

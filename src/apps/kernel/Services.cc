@@ -30,12 +30,12 @@ Service::~Service() {
 
 void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size) {
     // better use a new RecvGate here to not interfere with other syscalls
-    m3::RecvGate *rgate = new m3::RecvGate(m3::RecvGate::create(SyscallHandler::get().srvrcvbuf()));
-    rgate->subscribe([this, rgate, serv] (m3::RecvGate &, m3::Subscriber<m3::RecvGate&> *s) {
+    RecvGate *rgate = new RecvGate(SyscallHandler::get().srvepid(), nullptr);
+    rgate->subscribe([this, rgate, serv] (RecvGate &, m3::Subscriber<RecvGate&> *s) {
         m3::Reference<Service> srvcpy = serv;
         srvcpy->received_reply();
         // unsubscribe will delete the lambda
-        m3::RecvGate *rgatecpy = rgate;
+        RecvGate *rgatecpy = rgate;
         rgate->unsubscribe(s);
         delete rgatecpy;
     });

@@ -20,6 +20,7 @@
 
 namespace kernel {
 
-DTU DTU::_inst;
+// the DTU has to initialize before SyscallHandler
+DTU DTU::_inst INIT_PRIORITY(120);
 
 }

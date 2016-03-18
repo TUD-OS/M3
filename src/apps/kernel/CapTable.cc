@@ -19,8 +19,6 @@
 
 namespace kernel {
 
-CapTable CapTable::_kcaps(0);
-
 void CapTable::revoke_all() {
     Capability *c;
     // TODO it might be better to do that in a different order, because it is more expensive to

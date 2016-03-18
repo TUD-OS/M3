@@ -20,6 +20,7 @@
 #include <m3/Syscalls.h>
 
 #include "CapTable.h"
+#include "Gate.h"
 #include "Services.h"
 #include "VPE.h"
 
@@ -30,7 +31,7 @@ class SyscallHandler {
 
 public:
     using server_type = m3::Server<SyscallHandler>;
-    using handler_func = void (SyscallHandler::*)(m3::RecvGate &gate, m3::GateIStream &is);
+    using handler_func = void (SyscallHandler::*)(RecvGate &gate, GateIStream &is);
 
     static SyscallHandler &get() {
         return _inst;
@@ -40,9 +41,9 @@ public:
         _callbacks[op] = func;
     }
 
-    void handle_message(m3::RecvGate &gate, m3::Subscriber<m3::RecvGate&> *) {
+    void handle_message(RecvGate &gate, m3::Subscriber<RecvGate&> *) {
         EVENT_TRACER_handle_message();
-        m3::GateIStream msg(gate);
+        GateIStream msg(gate);
         m3::Syscalls::Operation op;
         msg >> op;
         if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
@@ -57,49 +58,42 @@ public:
         return m3::DTU::SYSC_EP;
     }
     size_t srvepid() const {
-        return _srvrcvbuf.epid();
-    }
-    m3::RecvBuf *rcvbuf() {
-        return &_rcvbuf;
-    }
-    m3::RecvBuf *srvrcvbuf() {
-        return &_srvrcvbuf;
+        return _serv_ep;
     }
 
-    m3::RecvGate create_gate(VPE *vpe) {
-        return m3::RecvGate::create(&_rcvbuf, vpe);
+    RecvGate create_gate(VPE *vpe) {
+        return RecvGate(epid(), vpe);
     }
 
-    void pagefault(m3::RecvGate &gate, m3::GateIStream &is);
-    void createsrv(m3::RecvGate &gate, m3::GateIStream &is);
-    void createsess(m3::RecvGate &gate, m3::GateIStream &is);
-    void creategate(m3::RecvGate &gate, m3::GateIStream &is);
-    void createvpe(m3::RecvGate &gate, m3::GateIStream &is);
-    void createmap(m3::RecvGate &gate, m3::GateIStream &is);
-    void attachrb(m3::RecvGate &gate, m3::GateIStream &is);
-    void detachrb(m3::RecvGate &gate, m3::GateIStream &is);
-    void exchange(m3::RecvGate &gate, m3::GateIStream &is);
-    void vpectrl(m3::RecvGate &gate, m3::GateIStream &is);
-    void delegate(m3::RecvGate &gate, m3::GateIStream &is);
-    void obtain(m3::RecvGate &gate, m3::GateIStream &is);
-    void activate(m3::RecvGate &gate, m3::GateIStream &is);
-    void reqmem(m3::RecvGate &gate, m3::GateIStream &is);
-    void derivemem(m3::RecvGate &gate, m3::GateIStream &is);
-    void revoke(m3::RecvGate &gate, m3::GateIStream &is);
-    void exit(m3::RecvGate &gate, m3::GateIStream &is);
-    void noop(m3::RecvGate &gate, m3::GateIStream &is);
+    void pagefault(RecvGate &gate, GateIStream &is);
+    void createsrv(RecvGate &gate, GateIStream &is);
+    void createsess(RecvGate &gate, GateIStream &is);
+    void creategate(RecvGate &gate, GateIStream &is);
+    void createvpe(RecvGate &gate, GateIStream &is);
+    void createmap(RecvGate &gate, GateIStream &is);
+    void attachrb(RecvGate &gate, GateIStream &is);
+    void detachrb(RecvGate &gate, GateIStream &is);
+    void exchange(RecvGate &gate, GateIStream &is);
+    void vpectrl(RecvGate &gate, GateIStream &is);
+    void delegate(RecvGate &gate, GateIStream &is);
+    void obtain(RecvGate &gate, GateIStream &is);
+    void activate(RecvGate &gate, GateIStream &is);
+    void reqmem(RecvGate &gate, GateIStream &is);
+    void derivemem(RecvGate &gate, GateIStream &is);
+    void revoke(RecvGate &gate, GateIStream &is);
+    void exit(RecvGate &gate, GateIStream &is);
+    void noop(RecvGate &gate, GateIStream &is);
 
 #if defined(__host__)
-    void init(m3::RecvGate &gate, m3::GateIStream &is);
+    void init(RecvGate &gate, GateIStream &is);
 #endif
 
 private:
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
-    void exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is, bool obtain);
+    void exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain);
     void tryTerminate();
 
-    m3::RecvBuf _rcvbuf;
-    m3::RecvBuf _srvrcvbuf;
+    int _serv_ep;
     // +1 for init on host
     handler_func _callbacks[m3::Syscalls::COUNT + 1];
     static SyscallHandler _inst;

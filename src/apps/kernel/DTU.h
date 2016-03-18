@@ -17,21 +17,24 @@
 #pragma once
 
 #include <m3/Common.h>
-#include <m3/cap/VPE.h>
+#include <m3/DTU.h>
 
 namespace kernel {
 
 class VPE;
 
 class DTU {
-    explicit DTU() : _ep(m3::VPE::self().alloc_ep()) {
-        m3::EPMux::get().reserve(_ep);
+    explicit DTU() : _next_ep(m3::DTU::FIRST_FREE_EP), _ep(alloc_ep()) {
         init();
     }
 
 public:
     static DTU &get() {
         return _inst;
+    }
+
+    int alloc_ep() {
+        return _next_ep++;
     }
 
     void init();
@@ -60,6 +63,7 @@ public:
     void config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size);
     void config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
+    void send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep);
     void reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
 
     void write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size);
@@ -67,6 +71,8 @@ public:
 #if defined(__gem5__)
     void read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size);
 #endif
+
+    void cmpxchg_mem(VPE &vpe, uintptr_t addr, const void *data, size_t datasize, size_t off, size_t size);
 
 private:
 #if defined(__gem5__)
@@ -80,6 +86,7 @@ private:
     void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
     void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
+    int _next_ep;
     int _ep;
     static DTU _inst;
 };

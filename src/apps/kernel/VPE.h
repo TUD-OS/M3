@@ -22,6 +22,7 @@
 #include <cstring>
 
 #include "CapTable.h"
+#include "Capability.h"
 #include "AddrSpace.h"
 
 namespace kernel {
@@ -112,14 +113,14 @@ public:
     CapTable &mapcaps() {
         return _mapcaps;
     }
-    m3::RecvGate &syscall_gate() {
+    RecvGate &syscall_gate() {
         return _syscgate;
     }
-    m3::RecvGate &service_gate() {
+    RecvGate &service_gate() {
         return _srvgate;
     }
-    m3::MemGate &seps_gate() {
-        return _sepsgate;
+    void *eps() {
+        return _eps;
     }
     void make_daemon() {
         _daemon = true;
@@ -148,9 +149,9 @@ private:
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
-    m3::MemGate _sepsgate;
-    m3::RecvGate _syscgate;
-    m3::RecvGate _srvgate;
+    void *_eps;
+    RecvGate _syscgate;
+    RecvGate _srvgate;
     AddrSpace *_as;
     m3::SList<ServName> _requires;
     m3::Subscriptions<int> _exitsubscr;

@@ -40,7 +40,8 @@ void VPE::start(int argc, char **argv, int pid) {
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
-            write_env_file(getpid(), _syscgate.label(), SyscallHandler::get().epid());
+            write_env_file(getpid(), reinterpret_cast<label_t>(&_syscgate),
+                SyscallHandler::get().epid());
             char **childargs = new char*[argc + 1];
             int i = 0, j = 0;
             for(; i < argc; ++i) {
@@ -62,24 +63,13 @@ void VPE::start(int argc, char **argv, int pid) {
     }
     else {
         _pid = pid;
-        write_env_file(_pid, _syscgate.label(), SyscallHandler::get().epid());
+        write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate), SyscallHandler::get().epid());
         LOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
     }
 }
 
 void VPE::activate_sysc_ep(void *addr) {
-    uintptr_t iaddr = reinterpret_cast<uintptr_t>(addr);
-    // if we execute multiple programs in a VPE in a row, we already have our memory-cap
-    MemCapability *mcap = static_cast<MemCapability*>(
-        CapTable::kernel_table().get(_sepsgate.sel(), Capability::MEM));
-    if(mcap == nullptr) {
-        size_t len = m3::DTU::EPS_RCNT * EP_COUNT * sizeof(word_t);
-        mcap = new MemCapability(&CapTable::kernel_table(), _sepsgate.sel(),
-            iaddr, len, m3::MemGate::X | m3::MemGate::W, core(), id(), 0);
-        CapTable::kernel_table().set(_sepsgate.sel(), mcap);
-    }
-    else
-        mcap->obj->label = iaddr | m3::MemGate::X | m3::MemGate::W;
+    _eps = addr;
 }
 
 void VPE::write_env_file(pid_t pid, label_t label, size_t epid) {
@@ -107,12 +97,15 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabili
 
     if(newcapobj) {
         // now do the compare-exchange
-        return seps_gate().cmpxchg_sync(regs, sizeof(regs), epid * m3::DTU::EPS_RCNT * sizeof(word_t));
+        DTU::get().cmpxchg_mem(*this, reinterpret_cast<uintptr_t>(_eps), regs, sizeof(regs),
+            epid * m3::DTU::EPS_RCNT * sizeof(word_t), sizeof(regs) / 2);
+        return m3::Errors::NO_ERROR;
     }
 
     // if we should just invalidate it, we don't have to do a cmpxchg
-    return seps_gate().write_sync(regs + m3::DTU::EPS_RCNT,
-        sizeof(regs) / 2, epid * m3::DTU::EPS_RCNT * sizeof(word_t));
+    uintptr_t addr = reinterpret_cast<uintptr_t>(_eps) + epid * m3::DTU::EPS_RCNT * sizeof(word_t);
+    DTU::get().write_mem(*this, addr, regs + m3::DTU::EPS_RCNT, sizeof(regs) / 2);
+    return m3::Errors::NO_ERROR;
 }
 
 VPE::~VPE() {
@@ -122,8 +115,6 @@ VPE::~VPE() {
 
     // revoke all caps first because we might need the sepsgate for that
     _objcaps.revoke_all();
-    // now remove the sepsgate from our cap-table
-    CapTable::kernel_table().unset(_sepsgate.sel());
 }
 
 }

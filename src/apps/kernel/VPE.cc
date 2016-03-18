@@ -35,9 +35,9 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t p
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
-      _sepsgate(m3::MemGate::bind(m3::VPE::self().alloc_cap(), m3::ObjCap::KEEP_CAP)),
+      _eps(),
       _syscgate(SyscallHandler::get().create_gate(this)),
-      _srvgate(m3::RecvGate::create(SyscallHandler::get().srvrcvbuf())),
+      _srvgate(SyscallHandler::get().srvepid(), nullptr),
       _as(as ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr() {

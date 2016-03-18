@@ -15,13 +15,11 @@
  */
 
 #include <m3/Common.h>
-#include <m3/cap/RecvGate.h>
 #include <m3/stream/Serial.h>
 #include <m3/Env.h>
 #include <m3/RecvBuf.h>
 #include <m3/Log.h>
 
-#include "../../EPMux.h"
 #include "../../WorkLoop.h"
 
 namespace kernel {
@@ -35,9 +33,9 @@ public:
     virtual void init() override {
         m3::env()->coreid = KERNEL_CORE;
 
-        _def_recvbuf = new m3::RecvBuf(m3::RecvBuf::bindto(
-            m3::DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        _def_recvgate = new m3::RecvGate(m3::RecvGate::create(_def_recvbuf));
+        // not required here
+        _def_recvbuf = nullptr;
+        _def_recvgate = nullptr;
 
         m3::Serial::init("kernel", KERNEL_CORE);
     }
@@ -51,9 +49,6 @@ public:
     virtual void attach_recvbuf(m3::RecvBuf *) override {
     }
     virtual void detach_recvbuf(m3::RecvBuf *) override {
-    }
-    virtual void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) override {
-        EPMux::switch_ep(victim, oldcap, newcap);
     }
 };
 

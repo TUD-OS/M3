@@ -275,6 +275,12 @@ void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
+void DTU::send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
+    config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
+        size + m3::DTU::HEADER_SIZE);
+    m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+}
+
 void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
     config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);

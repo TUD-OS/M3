@@ -30,7 +30,7 @@ extern int int_target;
 
 namespace kernel {
 
-SyscallHandler SyscallHandler::_inst;
+SyscallHandler SyscallHandler::_inst INIT_PRIORITY(121);
 
 #if defined(SIMPLE_SYSC_LOG)
 #   define LOG_SYS(vpe, sysname, expr) \
@@ -83,16 +83,23 @@ static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcap
     return m3::Errors::NO_ERROR;
 }
 
-SyscallHandler::SyscallHandler()
-        : _rcvbuf(m3::RecvBuf::create(epid(),
-            m3::nextlog2<AVAIL_PES>::val + VPE::SYSC_CREDIT_ORD, VPE::SYSC_CREDIT_ORD, 0)),
-          _srvrcvbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(),
-            m3::nextlog2<1024>::val, m3::nextlog2<256>::val, 0)) {
+SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
+#if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
-    DTU::get().config_recv_local(_rcvbuf.epid(), reinterpret_cast<uintptr_t>(_rcvbuf.addr()),
-        _rcvbuf.order(), _rcvbuf.msgorder(), _rcvbuf.flags());
-    DTU::get().config_recv_local(_srvrcvbuf.epid(), reinterpret_cast<uintptr_t>(_srvrcvbuf.addr()),
-        _srvrcvbuf.order(), _srvrcvbuf.msgorder(), _srvrcvbuf.flags());
+    int buford = m3::nextlog2<AVAIL_PES>::val + VPE::SYSC_CREDIT_ORD;
+    size_t bufsize = static_cast<size_t>(1) << buford;
+    DTU::get().config_recv_local(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+        buford, VPE::SYSC_CREDIT_ORD, 0);
+
+    buford = m3::nextlog2<1024>::val;
+    bufsize = static_cast<size_t>(1) << buford;
+    DTU::get().config_recv_local(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+        buford, m3::nextlog2<256>::val, 0);
+#endif
+
+    // add a dummy item to workloop; we handle everything manually anyway
+    // but one item is needed to not stop immediately
+    m3::env()->workloop()->add(nullptr, false);
 
     add_operation(m3::Syscalls::PAGEFAULT, &SyscallHandler::pagefault);
     add_operation(m3::Syscalls::CREATESRV, &SyscallHandler::createsrv);
@@ -117,7 +124,7 @@ SyscallHandler::SyscallHandler()
 #endif
 }
 
-void SyscallHandler::createsrv(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::createsrv(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_createsrv();
     VPE *vpe = gate.session<VPE>();
     m3::String name;
@@ -126,17 +133,15 @@ void SyscallHandler::createsrv(m3::RecvGate &gate, m3::GateIStream &is) {
     LOG_SYS(vpe, ": syscall::createsrv", "(gate=" << gatesel
         << ", srv=" << srv << ", name=" << name << ")");
 
-    Capability *gatecap = vpe->objcaps().get(gatesel, Capability::MSG);
+    MsgCapability *gatecap = static_cast<MsgCapability*>(vpe->objcaps().get(gatesel, Capability::MSG));
     if(gatecap == nullptr || name.length() == 0)
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap or name");
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::EXISTS, "Service does already exist");
 
-    capsel_t kcap = m3::VPE::self().alloc_cap();
-    CapTable::kernel_table().obtain(kcap, gatecap);
-
     int capacity = 1;   // TODO this depends on the credits that the kernel has
-    Service *s = ServiceList::get().add(*vpe, srv, name, kcap, capacity);
+    Service *s = ServiceList::get().add(*vpe, srv, name,
+        gatecap->obj->epid, gatecap->obj->label, capacity);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)
@@ -151,7 +156,7 @@ void SyscallHandler::createsrv(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::pagefault(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
+void SyscallHandler::pagefault(RecvGate &gate, UNUSED GateIStream &is) {
 #if defined(__gem5__)
     VPE *vpe = gate.session<VPE>();
     uint64_t virt, access;
@@ -177,7 +182,7 @@ void SyscallHandler::pagefault(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_createsess();
     VPE *vpe = gate.session<VPE>();
     capsel_t tvpe, cap;
@@ -200,14 +205,14 @@ void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
     ReplyInfo rinfo(is.message());
     m3::Reference<Service> rsrv(s);
     vpe->service_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
-            (m3::RecvGate &sgate, m3::Subscriber<m3::RecvGate&> *sub) {
+            (RecvGate &sgate, m3::Subscriber<RecvGate&> *sub) {
         EVENT_TRACER_Syscall_createsess();
-        m3::GateIStream reply(sgate);
+        GateIStream reply(sgate);
         m3::Errors::Code res;
         reply >> res;
         if(res != m3::Errors::NO_ERROR) {
             LOG(KSYSC, vpe->id() << ": Server denied session creation (" << res << ")");
-            auto reply = create_vmsg(res);
+            auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
         }
         else {
@@ -223,7 +228,7 @@ void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
             tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
             tvpeobj->vpe->objcaps().set(cap, sesscap);
 
-            auto reply = create_vmsg(res);
+            auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
         }
 
@@ -231,14 +236,14 @@ void SyscallHandler::createsess(m3::RecvGate &gate, m3::GateIStream &is) {
         vpe->service_gate().unsubscribe(sub);
     });
 
-    m3::AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command>(), is.remaining()));
+    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command>(), is.remaining()));
     msg << server_type::OPEN;
     msg.put(is);
     s->send(&vpe->service_gate(), msg.bytes(), msg.total());
     msg.claim();
 }
 
-void SyscallHandler::creategate(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_creategate();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap,dstcap;
@@ -269,7 +274,7 @@ void SyscallHandler::creategate(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap, mcap, gcap;
@@ -315,7 +320,7 @@ void SyscallHandler::createvpe(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::createmap(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
+void SyscallHandler::createmap(RecvGate &gate, UNUSED GateIStream &is) {
 #if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
     VPE *vpe = gate.session<VPE>();
@@ -357,7 +362,7 @@ void SyscallHandler::createmap(m3::RecvGate &gate, UNUSED m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::attachrb(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::attachrb(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_attachrb();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
@@ -381,7 +386,7 @@ void SyscallHandler::attachrb(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::detachrb(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::detachrb(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_detachrb();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
@@ -397,7 +402,7 @@ void SyscallHandler::detachrb(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::exchange(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::exchange(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_exchange();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
@@ -418,7 +423,7 @@ void SyscallHandler::exchange(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, res);
 }
 
-void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_vpectrl();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
@@ -446,7 +451,7 @@ void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
                 ReplyInfo rinfo(is.message());
                 vpecap->vpe->subscribe_exit([vpe, is, rinfo] (int exitcode, m3::Subscriber<int> *) {
                     EVENT_TRACER_Syscall_vpectrl();
-                    auto reply = create_vmsg(m3::Errors::NO_ERROR,exitcode);
+                    auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR,exitcode);
                     reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
                 });
             }
@@ -454,7 +459,7 @@ void SyscallHandler::vpectrl(m3::RecvGate &gate, m3::GateIStream &is) {
     }
 }
 
-void SyscallHandler::reqmem(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_reqmem();
     VPE *vpe = gate.session<VPE>();
     capsel_t cap;
@@ -489,7 +494,7 @@ void SyscallHandler::reqmem(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::derivemem(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_derivemem();
     VPE *vpe = gate.session<VPE>();
     capsel_t src, dst;
@@ -521,12 +526,12 @@ void SyscallHandler::derivemem(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::delegate(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::delegate(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_delegate();
     exchange_over_sess(gate, is, false);
 }
 
-void SyscallHandler::obtain(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::obtain(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_obtain();
     exchange_over_sess(gate, is, true);
 }
@@ -563,7 +568,7 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngD
     return m3::Errors::NO_ERROR;
 }
 
-void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is, bool obtain) {
+void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain) {
     VPE *vpe = gate.session<VPE>();
     capsel_t tvpe, sesscap;
     m3::CapRngDesc caps;
@@ -589,30 +594,30 @@ void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is,
     // when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
     vpe->service_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
-            (m3::RecvGate &sgate, m3::Subscriber<m3::RecvGate&> *sub) {
+            (RecvGate &sgate, m3::Subscriber<RecvGate&> *sub) {
         EVENT_TRACER_Syscall_delob_done();
         m3::CapRngDesc srvcaps;
 
-        m3::GateIStream reply(sgate);
+        GateIStream reply(sgate);
         m3::Errors::Code res;
         reply >> res;
         if(res != m3::Errors::NO_ERROR) {
             LOG(KSYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
 
-            auto reply = create_vmsg(res);
+            auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             goto error;
         }
 
         reply >> srvcaps;
         if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
-            auto reply = create_vmsg(res);
+            auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             goto error;
         }
 
         {
-            m3::AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::Errors, m3::CapRngDesc>(),
+            AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::Errors, m3::CapRngDesc>(),
                 reply.remaining()));
             msg << m3::Errors::NO_ERROR;
             msg.put(reply);
@@ -624,7 +629,7 @@ void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is,
         vpe->service_gate().unsubscribe(sub);
     });
 
-    m3::AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command, word_t,
+    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command, word_t,
         m3::CapRngDesc>(), is.remaining()));
     msg << (obtain ? server_type::OBTAIN : server_type::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
@@ -632,7 +637,7 @@ void SyscallHandler::exchange_over_sess(m3::RecvGate &gate, m3::GateIStream &is,
     msg.claim();
 }
 
-void SyscallHandler::activate(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_activate();
     VPE *vpe = gate.session<VPE>();
     size_t epid;
@@ -665,7 +670,7 @@ void SyscallHandler::activate(m3::RecvGate &gate, m3::GateIStream &is) {
                 if(res != m3::Errors::NO_ERROR)
                     LOG(KERR, vpe->name() << ": activate failed (" << res << ")");
 
-                auto reply = create_vmsg(res);
+                auto reply = kernel::create_vmsg(res);
                 reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             };
             RecvBufs::subscribe(newcapobj->obj->core, newcapobj->obj->epid, callback);
@@ -679,7 +684,7 @@ void SyscallHandler::activate(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::revoke(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::revoke(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_revoke();
     VPE *vpe = gate.session<VPE>();
     m3::CapRngDesc crd;
@@ -702,7 +707,7 @@ void SyscallHandler::revoke(m3::RecvGate &gate, m3::GateIStream &is) {
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::exit(m3::RecvGate &gate, m3::GateIStream &is) {
+void SyscallHandler::exit(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_exit();
     VPE *vpe = gate.session<VPE>();
     int exitcode;
@@ -719,31 +724,25 @@ void SyscallHandler::tryTerminate() {
     // if there are no VPEs left, we can stop everything
     if(PEManager::get().used() == 0) {
         PEManager::destroy();
-        // ensure that the workloop stops
-        _rcvbuf.detach();
-        _srvrcvbuf.detach();
+        m3::env()->workloop()->stop();
     }
     // if there are only daemons left, start the shutdown-procedure
     else if(PEManager::get().used() == PEManager::get().daemons())
         PEManager::shutdown();
 }
 
-void SyscallHandler::noop(m3::RecvGate &gate, m3::GateIStream &) {
+void SyscallHandler::noop(RecvGate &gate, GateIStream &) {
     reply_vmsg(gate, 0);
 }
 
 #if defined(__host__)
-void SyscallHandler::init(m3::RecvGate &gate,m3::GateIStream &is) {
+void SyscallHandler::init(RecvGate &gate,GateIStream &is) {
     VPE *vpe = gate.session<VPE>();
     void *addr;
     is >> addr;
     vpe->activate_sysc_ep(addr);
     LOG_SYS(vpe, "syscall::init", "(" << addr << ")");
 
-    // switch to this endpoint to ensure that we don't have old values programmed in our DMAUnit.
-    // actually, this is currently only necessary for exec, i.e. where the address changes for
-    // the same VPE.
-    m3::EPMux::get().switch_to(&vpe->seps_gate());
     reply_vmsg(gate, m3::Errors::NO_ERROR);
 }
 #endif

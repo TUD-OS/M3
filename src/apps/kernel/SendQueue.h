@@ -17,23 +17,23 @@
 #pragma once
 
 #include <m3/Common.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/cap/SendGate.h>
 #include <m3/col/SList.h>
 #include <m3/Heap.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "Gate.h"
+
 namespace kernel {
 
 class SendQueue {
     struct Entry : public m3::SListItem {
-        explicit Entry(m3::RecvGate *_rgate, m3::SendGate *_sgate, const void *_msg, size_t _size)
+        explicit Entry(RecvGate *_rgate, SendGate *_sgate, const void *_msg, size_t _size)
             : SListItem(), rgate(_rgate), sgate(_sgate), msg(_msg), size(_size) {
         }
 
-        m3::RecvGate *rgate;
-        m3::SendGate *sgate;
+        RecvGate *rgate;
+        SendGate *sgate;
         const void *msg;
         size_t size;
     };
@@ -49,7 +49,7 @@ public:
         return _queue.length();
     }
 
-    void send(m3::RecvGate *rgate, m3::SendGate *sgate, const void *msg, size_t size) {
+    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
         if(_inflight < _capacity)
             do_send(rgate, sgate, msg, size);
         else {
@@ -76,9 +76,8 @@ public:
     }
 
 private:
-    void do_send(m3::RecvGate *rgate, m3::SendGate *sgate, const void *msg, size_t size) {
-        sgate->receive_gate(rgate);
-        sgate->send(msg, size);
+    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
+        sgate->send(msg, size, rgate);
         if(m3::Heap::is_on_heap(msg))
             m3::Heap::free(const_cast<void*>(msg));
         _inflight++;
