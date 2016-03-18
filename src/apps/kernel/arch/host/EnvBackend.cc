@@ -45,7 +45,7 @@ static const char *gen_prefix() {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
     srand(tv.tv_usec);
-    snprintf(prefix, sizeof(prefix), "/asyncipc-%d-", rand());
+    snprintf(prefix, sizeof(prefix), "/m3-%d-", rand());
     return prefix;
 }
 
