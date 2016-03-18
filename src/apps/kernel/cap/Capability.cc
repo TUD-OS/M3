@@ -16,9 +16,9 @@
 
 #include <m3/Log.h>
 
-#include "Capability.h"
-#include "CapTable.h"
-#include "PEManager.h"
+#include "pes/PEManager.h"
+#include "cap/Capability.h"
+#include "cap/CapTable.h"
 
 namespace kernel {
 

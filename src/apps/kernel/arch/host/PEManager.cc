@@ -14,13 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include "../../PEManager.h"
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sstream>
 #include <csignal>
 #include <unistd.h>
+
+#include "pes/PEManager.h"
 
 namespace kernel {
 

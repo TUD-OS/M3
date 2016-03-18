@@ -16,9 +16,9 @@
 
 #include <m3/Common.h>
 
-#include "VPE.h"
-#include "RecvBufs.h"
-#include "PEManager.h"
+#include "com/RecvBufs.h"
+#include "pes/VPE.h"
+#include "pes/PEManager.h"
 
 namespace kernel {
 

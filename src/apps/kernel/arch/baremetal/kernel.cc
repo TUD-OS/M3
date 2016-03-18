@@ -19,9 +19,8 @@
 #include <m3/DTU.h>
 #include <m3/Log.h>
 
-#include "../../CapTable.h"
-#include "../../PEManager.h"
-#include "../../SyscallHandler.h"
+#include "pes/PEManager.h"
+#include "SyscallHandler.h"
 
 using namespace kernel;
 

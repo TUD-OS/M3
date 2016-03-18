@@ -21,9 +21,9 @@
 #include <m3/Log.h>
 #include <cstring>
 
-#include "CapTable.h"
-#include "Capability.h"
-#include "AddrSpace.h"
+#include "cap/CapTable.h"
+#include "cap/Capability.h"
+#include "mem/AddrSpace.h"
 
 namespace kernel {
 

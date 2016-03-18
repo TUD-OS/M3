@@ -16,7 +16,7 @@
 
 #include <m3/Common.h>
 
-#include "Services.h"
+#include "com/Services.h"
 #include "SyscallHandler.h"
 
 namespace kernel {

@@ -19,10 +19,10 @@
 #include <m3/ELF.h>
 #include <m3/Log.h>
 
-#include "../../Capability.h"
-#include "../../VPE.h"
-#include "../../DTU.h"
-#include "../../MainMemory.h"
+#include "cap/Capability.h"
+#include "mem/MainMemory.h"
+#include "pes/VPE.h"
+#include "DTU.h"
 
 namespace kernel {
 

@@ -16,8 +16,8 @@
 
 #include <m3/Common.h>
 
-#include "../../PEManager.h"
-#include "../../DTU.h"
+#include "pes/PEManager.h"
+#include "DTU.h"
 
 namespace kernel {
 

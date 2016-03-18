@@ -16,8 +16,7 @@
 
 #include <m3/util/Sync.h>
 
-#include "../../PEManager.h"
-#include "../../DTU.h"
+#include "pes/PEManager.h"
 
 namespace kernel {
 

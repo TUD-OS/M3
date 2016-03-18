@@ -28,12 +28,11 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#include "../../Services.h"
-#include "../../PEManager.h"
-#include "../../VPE.h"
-#include "../../SyscallHandler.h"
+#include "pes/PEManager.h"
+#include "pes/VPE.h"
 #include "dev/TimerDevice.h"
 #include "dev/VGAConsole.h"
+#include "SyscallHandler.h"
 
 using namespace kernel;
 

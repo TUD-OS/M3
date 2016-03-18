@@ -18,8 +18,8 @@
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 
-#include "../../DTU.h"
-#include "../../VPE.h"
+#include "pes/VPE.h"
+#include "DTU.h"
 
 namespace kernel {
 

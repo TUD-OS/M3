@@ -22,9 +22,9 @@
 #include <m3/Log.h>
 #include <sys/mman.h>
 
-#include "../../MemoryMap.h"
-#include "../../DTU.h"
-#include "../../Gate.h"
+#include "mem/MemoryMap.h"
+#include "DTU.h"
+#include "Gate.h"
 
 namespace kernel {
 

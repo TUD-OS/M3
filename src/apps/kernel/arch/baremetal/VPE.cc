@@ -17,11 +17,11 @@
 #include <m3/util/Sync.h>
 #include <m3/Log.h>
 
-#include "../../PEManager.h"
-#include "../../SyscallHandler.h"
-#include "../../VPE.h"
-#include "../../DTU.h"
-#include "../../RecvBufs.h"
+#include "com/RecvBufs.h"
+#include "pes/PEManager.h"
+#include "pes/VPE.h"
+#include "SyscallHandler.h"
+#include "DTU.h"
 
 namespace kernel {
 

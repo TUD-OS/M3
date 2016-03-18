@@ -22,8 +22,8 @@
 #include <m3/col/Treap.h>
 #include <m3/Log.h>
 
-#include "Services.h"
-#include "Capability.h"
+#include "com/Services.h"
+#include "cap/Capability.h"
 
 namespace kernel {
 

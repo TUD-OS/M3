@@ -14,10 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include "MainMemory.h"
+#include "com/RecvBufs.h"
 
 namespace kernel {
 
-MainMemory MainMemory::_inst;
+RecvBufs::RBuf RecvBufs::_rbufs[AVAIL_PES * EP_COUNT];
 
 }

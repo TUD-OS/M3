@@ -17,10 +17,10 @@
 #include <m3/tracing/Tracing.h>
 #include <m3/Log.h>
 
-#include "PEManager.h"
-#include "Services.h"
+#include "pes/PEManager.h"
+#include "com/Services.h"
+#include "com/RecvBufs.h"
 #include "SyscallHandler.h"
-#include "RecvBufs.h"
 
 // #define SIMPLE_SYSC_LOG
 

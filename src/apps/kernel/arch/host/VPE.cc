@@ -16,15 +16,15 @@
 
 #include <m3/Log.h>
 
-#include "../../PEManager.h"
-#include "../../SyscallHandler.h"
-#include "../../VPE.h"
-
 #include <unistd.h>
 #include <fstream>
 #include <cstdio>
 #include <cstring>
 #include <cerrno>
+
+#include "pes/PEManager.h"
+#include "pes/VPE.h"
+#include "SyscallHandler.h"
 
 namespace kernel {
 

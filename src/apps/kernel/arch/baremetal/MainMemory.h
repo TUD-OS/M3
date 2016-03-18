@@ -20,7 +20,7 @@
 #include <m3/Config.h>
 #include <m3/Log.h>
 
-#include "../../MemoryMap.h"
+#include "mem/MemoryMap.h"
 
 namespace kernel {
 

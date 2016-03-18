@@ -18,9 +18,9 @@
 #include <m3/util/Sync.h>
 #include <m3/DTU.h>
 
-#include "../../MainMemory.h"
-#include "../../DTU.h"
-#include "../../VPE.h"
+#include "mem/MainMemory.h"
+#include "pes/VPE.h"
+#include "DTU.h"
 
 namespace kernel {
 

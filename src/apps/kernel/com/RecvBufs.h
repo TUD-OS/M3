@@ -23,8 +23,8 @@
 #include <m3/DTU.h>
 #include <m3/Errors.h>
 
+#include "pes/VPE.h"
 #include "DTU.h"
-#include "VPE.h"
 
 namespace kernel {
 

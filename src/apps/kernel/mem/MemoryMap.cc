@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <m3/Log.h>
 
-#include "MemoryMap.h"
+#include "mem/MemoryMap.h"
 
 namespace kernel {
 

@@ -17,8 +17,8 @@
 #include <m3/Common.h>
 #include <m3/Config.h>
 
-#include "AddrSpace.h"
-#include "MainMemory.h"
+#include "mem/AddrSpace.h"
+#include "mem/MainMemory.h"
 
 namespace kernel {
 

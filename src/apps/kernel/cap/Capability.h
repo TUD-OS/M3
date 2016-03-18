@@ -21,7 +21,7 @@
 #include <m3/col/Treap.h>
 #include <m3/DTU.h>
 
-#include "Services.h"
+#include "com/Services.h"
 
 namespace m3 {
 class OStream;

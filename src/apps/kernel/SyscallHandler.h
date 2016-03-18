@@ -19,10 +19,10 @@
 #include <m3/server/Server.h>
 #include <m3/Syscalls.h>
 
-#include "CapTable.h"
+#include "cap/CapTable.h"
+#include "com/Services.h"
+#include "pes/VPE.h"
 #include "Gate.h"
-#include "Services.h"
-#include "VPE.h"
 
 namespace kernel {
 

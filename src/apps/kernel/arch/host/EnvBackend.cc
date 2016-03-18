@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../../WorkLoop.h"
+#include "WorkLoop.h"
 
 namespace kernel {
 

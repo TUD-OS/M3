@@ -20,7 +20,7 @@
 #include <m3/RecvBuf.h>
 #include <m3/Log.h>
 
-#include "../../WorkLoop.h"
+#include "WorkLoop.h"
 
 namespace kernel {
 

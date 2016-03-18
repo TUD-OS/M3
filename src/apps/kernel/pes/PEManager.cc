@@ -17,7 +17,7 @@
 #include <m3/stream/OStringStream.h>
 #include <string.h>
 
-#include "PEManager.h"
+#include "pes/PEManager.h"
 
 namespace kernel {
 

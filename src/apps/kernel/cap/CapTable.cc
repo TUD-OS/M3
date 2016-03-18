@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include "CapTable.h"
-#include "PEManager.h"
+#include "cap/CapTable.h"
+#include "pes/PEManager.h"
 
 namespace kernel {
 

@@ -19,9 +19,9 @@
 #include <m3/WorkLoop.h>
 #include <m3/stream/OStringStream.h>
 
-#include "MainMemory.h"
+#include "mem/MainMemory.h"
+#include "pes/VPE.h"
 #include "SyscallHandler.h"
-#include "VPE.h"
 #include "DTU.h"
 
 namespace kernel {
