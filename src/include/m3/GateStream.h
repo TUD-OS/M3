@@ -44,7 +44,7 @@ static inline Errors::Code send_msg(SendGate &gate, const void *data, size_t len
 }
 static inline Errors::Code reply_msg(RecvGate &gate, const void *data, size_t len) {
     EVENT_TRACER_reply_msg();
-    return gate.reply_sync(data, len, DTU::get().get_msgoff(gate.epid(), &gate));
+    return gate.reply_sync(data, len, DTU::get().get_msgoff(gate.epid()));
 }
 static inline Errors::Code reply_msg_on(const GateIStream &is, const void *data, size_t len) {
     EVENT_TRACER_reply_msg_on();

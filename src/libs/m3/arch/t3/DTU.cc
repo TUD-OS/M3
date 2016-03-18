@@ -22,20 +22,24 @@
 
 namespace m3 {
 
+// workaround for the problem that T3 doesn't allow us to figure out the receive buffer address
+// afterwards. so, just store it here
+uintptr_t DTU::recvbufs[EP_COUNT];
 DTU DTU::inst INIT_PRIORITY(106);
 
-size_t DTU::get_msgoff(int ep, RecvGate *rcvgate) const {
-    return get_msgoff(ep, rcvgate, message(ep));
+size_t DTU::get_msgoff(int ep) const {
+    return get_msgoff(ep, message(ep));
 }
 
-size_t DTU::get_msgoff(int, RecvGate *rcvgate, const Message *msg) const {
-    size_t off = (reinterpret_cast<uintptr_t>(msg) - reinterpret_cast<uintptr_t>(rcvgate->buffer()->addr()));
-    return off >> rcvgate->buffer()->msgorder();
+size_t DTU::get_msgoff(int ep, const Message *msg) const {
+    size_t off = reinterpret_cast<uintptr_t>(msg) - recvbufs[ep];
+    return off / msgsize(ep);
 }
 
 void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
     size_t size = 1 << order;
     size_t msgsize = 1 << msgorder;
+    recvbufs[ep] = buf;
     config_local(ep, buf, size, msgsize);
     config_remote(ep, env()->coreid, ep, 0, 0);
     fire(ep, READ, 0);

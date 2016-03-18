@@ -130,8 +130,8 @@ public:
         return reinterpret_cast<Message*>(rbuf + msgidx * sz);
     }
 
-    size_t get_msgoff(int ep, RecvGate *rcvgate) const;
-    size_t get_msgoff(int, RecvGate *rcvgate, const Message *msg) const;
+    size_t get_msgoff(int ep) const;
+    size_t get_msgoff(int ep, const Message *msg) const;
 
     void ack_message(int ep) {
         word_t *ptr = get_cmd_addr(ep, IDMA_SLOT_FIFO_RELEASE_ELEM);
@@ -268,6 +268,7 @@ private:
         return res;
     }
 
+    static uintptr_t recvbufs[EP_COUNT];
     static DTU inst;
 };
 

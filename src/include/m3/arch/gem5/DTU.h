@@ -196,10 +196,10 @@ public:
         return nullptr;
     }
 
-    size_t get_msgoff(int, RecvGate *) const {
+    size_t get_msgoff(int) const {
         return 0;
     }
-    size_t get_msgoff(int, RecvGate *, const Message *) const {
+    size_t get_msgoff(int, const Message *) const {
         // TODO unsupported
         return 0;
     }

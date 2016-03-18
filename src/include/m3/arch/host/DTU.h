@@ -243,10 +243,10 @@ public:
         return reinterpret_cast<Message*>(addr + ((msgidx << msgord) & ((1UL << ord) - 1)));
     }
 
-    size_t get_msgoff(int ep, RecvGate *rcvgate) const {
-        return get_msgoff(ep, rcvgate, message(ep));
+    size_t get_msgoff(int ep) const {
+        return get_msgoff(ep, message(ep));
     }
-    size_t get_msgoff(int ep, RecvGate *, const Message *msg) const {
+    size_t get_msgoff(int ep, const Message *msg) const {
         word_t addr = get_ep(ep, EP_BUF_ADDR);
         size_t ord = get_ep(ep, EP_BUF_MSGORDER);
         return (reinterpret_cast<word_t>(msg) - addr) >> ord;

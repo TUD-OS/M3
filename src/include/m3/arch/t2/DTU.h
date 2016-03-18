@@ -131,10 +131,10 @@ public:
         return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(env()->coreid, ep) + msgidx);
     }
 
-    size_t get_msgoff(int ep, RecvGate *rcvgate) const {
-        return get_msgoff(ep, rcvgate, message(ep));
+    size_t get_msgoff(int ep) const {
+        return get_msgoff(ep, message(ep));
     }
-    size_t get_msgoff(int ep, RecvGate *, const Message *msg) const {
+    size_t get_msgoff(int ep, const Message *msg) const {
         // currently we just return the offset here, because we're implementing reply() in SW.
         return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(env()->coreid, ep);
     }
