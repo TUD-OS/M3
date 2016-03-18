@@ -119,7 +119,8 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         Errors::Code res = Syscalls::get().derivemem(
             h.mem().sel(), crd.start() + _locs.count(), ch->start * h.sb().blocksize, bytes, perms);
         if(res != Errors::NO_ERROR) {
-            crd.free_and_revoke();
+            VPE::self().free_caps(crd.start(), crd.count());
+            Syscalls::get().revoke(crd);
             return nullptr;
         }
 

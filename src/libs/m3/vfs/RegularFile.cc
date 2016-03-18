@@ -35,7 +35,7 @@ RegularFile::~RegularFile() {
     _lastmem.rebind(ObjCap::INVALID);
     if(_fs.valid())
         _fs->close(_fd, _last_extent, _last_off);
-    _memcaps.free();
+    VPE::self().free_caps(_memcaps.start(), _memcaps.count());
 }
 
 int RegularFile::stat(FileInfo &info) const {

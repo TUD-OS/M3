@@ -32,11 +32,6 @@ public:
     };
 
     /**
-     * @return the complete range of capabilities
-     */
-    static CapRngDesc All();
-
-    /**
      * Empty range
      */
     explicit CapRngDesc() : _type(OBJ), _start(), _count() {
@@ -66,22 +61,6 @@ public:
     uint count() const  {
         return _count;
     }
-
-    /**
-     * Free's the selectors and revokes the capabilities in this range
-     */
-    void free_and_revoke() {
-        revoke();
-        free();
-    }
-    /**
-     * Revokes the capabilities in this range
-     */
-    void revoke();
-    /**
-     * Free's the selectors in this range
-     */
-    void free();
 
     friend OStream &operator <<(OStream &os, const CapRngDesc &crd) {
         os << "CRD[" << (crd._type == OBJ ? "OBJ" : "MAP") << ":"

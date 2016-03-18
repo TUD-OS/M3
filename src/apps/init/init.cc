@@ -79,7 +79,7 @@ int main() {
 
     {
         VPE vpe("hello");
-        vpe.delegate(CapRngDesc::All());
+        vpe.delegate(VPE::all_caps());
         if(Errors::occurred())
             PANIC("Unable to delegate caps to VPE: " << Errors::to_string(Errors::last));
 

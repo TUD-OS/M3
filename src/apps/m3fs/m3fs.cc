@@ -59,8 +59,11 @@ struct LimitedCapContainer {
             victim = (victim + 1) % MAX_CAPS;
             count--;
 
-            if(first != ObjCap::INVALID)
-                get_linear(first, count).free_and_revoke();
+            if(first != ObjCap::INVALID) {
+                CapRngDesc caps = get_linear(first, count);
+                VPE::self().free_caps(caps.start(), caps.count());
+                Syscalls::get().revoke(caps);
+            }
         }
     }
 

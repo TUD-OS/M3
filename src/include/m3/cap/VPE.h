@@ -73,6 +73,13 @@ public:
     }
 
     /**
+     * @return the complete range of object capabilities
+     */
+    static CapRngDesc all_caps() {
+        return CapRngDesc(CapRngDesc::OBJ, SEL_START, SEL_COUNT);
+    }
+
+    /**
      * Creates a new VPE and assigns the given name to it.
      *
      * @param name the VPE name
