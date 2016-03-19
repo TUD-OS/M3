@@ -441,7 +441,7 @@ void FSTestSuite::MetaFileTestCase::run() {
     }
 
     {
-        assert_int(VFS::mount("/fs/", new M3FS("m3fs")), 0);
+        assert_int(VFS::mount("/fs/", new M3FS("m3fs")), Errors::NO_ERROR);
         assert_int(VFS::link("/example/myfile", "/fs/foo"), Errors::XFS_LINK);
         VFS::unmount("/fs");
     }
