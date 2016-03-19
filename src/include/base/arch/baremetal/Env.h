@@ -22,8 +22,6 @@
 
 namespace m3 {
 
-class RecvBuf;
-class RecvGate;
 class OStream;
 
 class Env;
@@ -35,9 +33,6 @@ class BaremetalEnvBackend : public EnvBackend {
 public:
     virtual void init() = 0;
     virtual void reinit() = 0;
-
-protected:
-    RecvBuf *_def_recvbuf;
 };
 
 class Env {

@@ -34,10 +34,6 @@ public:
 
     virtual void exit(int) override {
     }
-    virtual void attach_recvbuf(m3::RecvBuf *) override {
-    }
-    virtual void detach_recvbuf(m3::RecvBuf *) override {
-    }
 };
 
 static const char *gen_prefix() {

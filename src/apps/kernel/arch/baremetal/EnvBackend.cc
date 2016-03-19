@@ -19,8 +19,6 @@
 #include <base/Env.h>
 #include <base/Log.h>
 
-#include <m3/com/RecvBuf.h>
-
 #include "WorkLoop.h"
 
 namespace kernel {
@@ -34,9 +32,6 @@ public:
     virtual void init() override {
         m3::env()->coreid = KERNEL_CORE;
 
-        // not required here
-        _def_recvgate = nullptr;
-
         m3::Serial::init("kernel", KERNEL_CORE);
     }
 
@@ -45,10 +40,6 @@ public:
     }
 
     virtual void exit(int) override {
-    }
-    virtual void attach_recvbuf(m3::RecvBuf *) override {
-    }
-    virtual void detach_recvbuf(m3::RecvBuf *) override {
     }
 };
 

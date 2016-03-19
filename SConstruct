@@ -220,6 +220,9 @@ link_addr = 0x200000
 def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtcore = None,
               ldscript = None, varAddr = True):
     myenv = env.Clone()
+
+    m3libs = ['base'] if target == 'kernel' else ['base', 'm3']
+
     if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
         # set variables, depending on core
         if tgtcore is None:
@@ -235,7 +238,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
                 myenv['LIBDIR'].abspath + '/crtn.o',
                 myenv['LIBDIR'].abspath + '/Window.o'
             ]
-            libs = ['hal', 'handlers-sim', 'c', 'base', 'm3', 'c', 'gcc'] + libs
+            libs = ['hal', 'handlers-sim', 'gcc', 'c'] + m3libs + libs
         sources += source
 
         if ldscript is None:
@@ -261,7 +264,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
         myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
     elif myenv['ARCH'] == 'gem5':
         if not NoSup:
-            libs = ['c', 'base', 'm3'] + libs
+            libs = ['c'] + m3libs + libs
             source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
 
         if ldscript is None:

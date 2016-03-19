@@ -20,6 +20,7 @@
 
 #include <m3/com/RecvGate.h>
 #include <m3/com/RecvBuf.h>
+#include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
 namespace m3 {
@@ -66,6 +67,13 @@ public:
 
         EVENT_TRACE_REINIT();
     }
+
+    void exit(int code) override {
+        Syscalls::get().exit(code);
+    }
+
+private:
+    RecvBuf *_def_recvbuf;
 };
 
 EXTERN_C void init_env(Env *e) {

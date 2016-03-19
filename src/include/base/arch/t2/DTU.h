@@ -29,11 +29,9 @@
 
 namespace m3 {
 
-class KDTU;
 class RecvBuf;
 
 class DTU {
-    friend class KDTU;
     friend class RecvBuf;
 
     static const uintptr_t DRAM_START       = 0x8000;

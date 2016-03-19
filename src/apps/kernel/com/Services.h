@@ -28,7 +28,6 @@
 namespace kernel {
 
 class VPE;
-class Gate;
 
 class Service : public m3::SListItem, public m3::RefCounted {
 public:

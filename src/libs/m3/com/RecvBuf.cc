@@ -19,6 +19,8 @@
 #include <m3/com/RecvGate.h>
 #include <m3/com/EPMux.h>
 #include <m3/com/RecvBuf.h>
+#include <m3/Syscalls.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
@@ -40,7 +42,18 @@ void RecvBuf::attach(size_t i) {
         // first reserve the endpoint; we might need to invalidate it
         EPMux::get().reserve(i);
 
-        env()->backend->attach_recvbuf(this);
+#if defined(__t3__)
+        // required for t3 because one can't write to these registers externally
+        DTU::get().configure_recv(epid(), reinterpret_cast<word_t>(addr()), order(),
+            msgorder(), flags());
+#endif
+
+        if(epid() > DTU::DEF_RECVEP) {
+            Errors::Code res = Syscalls::get().attachrb(VPE::self().sel(), epid(),
+                reinterpret_cast<word_t>(addr()), order(), msgorder(), flags());
+            if(res != Errors::NO_ERROR)
+                PANIC("Attaching recvbuf to " << epid() << " failed: " << Errors::to_string(res));
+        }
 
         // if we may receive messages from the endpoint, create a worker for it
         // TODO hack for host: we don't want to do that for MEM_EP but know that only afterwards
@@ -68,7 +81,8 @@ void RecvBuf::disable() {
 }
 
 void RecvBuf::detach() {
-    env()->backend->detach_recvbuf(this);
+    if(epid() > DTU::DEF_RECVEP && epid() != RecvBuf::UNBOUND)
+        Syscalls::get().detachrb(VPE::self().sel(), epid());
     _epid = UNBOUND;
 
     disable();

@@ -28,6 +28,29 @@
 
 namespace m3 {
 
+void VPE::init_state() {
+    if(Heap::is_on_heap(_eps))
+        delete _eps;
+    if(Heap::is_on_heap(_caps))
+        delete _caps;
+    if(Heap::is_on_heap(_mounts))
+        Heap::free(_mounts);
+
+    if(env()->pager_sess && env()->pager_gate)
+        _pager = new Pager(env()->pager_sess, env()->pager_gate);
+
+    _caps = reinterpret_cast<BitField<CAP_TOTAL>*>(env()->caps);
+    if(_caps == nullptr)
+        _caps = new BitField<CAP_TOTAL>();
+
+    _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
+    if(_eps == nullptr)
+        _eps = new BitField<EP_COUNT>();
+
+    _mounts = reinterpret_cast<void*>(env()->mounts);
+    _mountlen = env()->mount_len;
+}
+
 Errors::Code VPE::run(void *lambda) {
     copy_sections();
 

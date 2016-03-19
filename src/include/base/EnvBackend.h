@@ -22,7 +22,6 @@ namespace m3 {
 
 class Env;
 class RecvGate;
-class RecvBuf;
 class WorkLoop;
 
 class EnvBackend {
@@ -34,10 +33,7 @@ public:
     virtual ~EnvBackend() {
     }
 
-    virtual void exit(int code);
-
-    virtual void attach_recvbuf(RecvBuf *rb);
-    virtual void detach_recvbuf(RecvBuf *rb);
+    virtual void exit(int code) = 0;
 
 protected:
     WorkLoop *_workloop;

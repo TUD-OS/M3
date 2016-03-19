@@ -32,6 +32,9 @@ class RecvGate;
 class HostEnvBackend : public EnvBackend {
     friend class Env;
 
+    void exit(int) override {
+    }
+
 public:
     explicit HostEnvBackend();
     virtual ~HostEnvBackend();
