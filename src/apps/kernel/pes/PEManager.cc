@@ -113,8 +113,8 @@ void PEManager::shutdown() {
     ServiceList &serv = ServiceList::get();
     for(auto &s : serv) {
         m3::Reference<Service> ref(&s);
-        m3::AutoGateOStream msg(m3::ostreamsize<SyscallHandler::server_type::Command>());
-        msg << SyscallHandler::server_type::SHUTDOWN;
+        AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command>());
+        msg << m3::KIF::Service::SHUTDOWN;
         serv.send_and_receive(ref, msg.bytes(), msg.total());
         msg.claim();
     }

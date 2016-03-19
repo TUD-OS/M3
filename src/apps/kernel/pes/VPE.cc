@@ -42,7 +42,7 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t p
       _requires(),
       _exitsubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, m3::MemGate::RWX, core(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, m3::KIF::Perm::RWX, core(), id, 0));
 
     init();
 

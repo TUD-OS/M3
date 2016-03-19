@@ -18,8 +18,6 @@
 #include <base/DTU.h>
 #include <base/Log.h>
 
-#include <m3/com/MemGate.h>
-
 namespace m3 {
 
 // workaround for the problem that T3 doesn't allow us to figure out the receive buffer address

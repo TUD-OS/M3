@@ -29,7 +29,7 @@ m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
 
 MemObject::~MemObject() {
     if(core == MEMORY_CORE && !derived) {
-        uintptr_t addr = label & ~m3::MemGate::RWX;
+        uintptr_t addr = label & ~m3::KIF::Perm::RWX;
         MainMemory::get().map().free(addr, credits);
     }
 }
@@ -37,8 +37,8 @@ MemObject::~MemObject() {
 SessionObject::~SessionObject() {
     // only send the close message, if the service has not exited yet
     if(srv->vpe().state() == VPE::RUNNING) {
-        m3::AutoGateOStream msg(m3::ostreamsize<SyscallHandler::server_type::Command, word_t>());
-        msg << SyscallHandler::server_type::CLOSE << ident;
+        AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command, word_t>());
+        msg << m3::KIF::Service::CLOSE << ident;
         LOG(KSYSC, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8) << " to " << srv->name());
         ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
         msg.claim();

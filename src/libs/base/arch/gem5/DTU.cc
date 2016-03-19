@@ -16,20 +16,19 @@
 
 #include <base/util/Sync.h>
 #include <base/DTU.h>
-
-#include <m3/com/MemGate.h>
+#include <base/KIF.h>
 
 namespace m3 {
 
 DTU DTU::inst INIT_PRIORITY(106);
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
-    static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
-    static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
+    static_assert(KIF::Perm::R == DTU::R, "DTU::R does not match KIF::Perm::R");
+    static_assert(KIF::Perm::W == DTU::W, "DTU::W does not match KIF::Perm::W");
 
-    static_assert(MemGate::R == DTU::PTE_R, "DTU::PTE_R does not match MemGate::R");
-    static_assert(MemGate::W == DTU::PTE_W, "DTU::PTE_W does not match MemGate::W");
-    static_assert(MemGate::X == DTU::PTE_X, "DTU::PTE_X does not match MemGate::X");
+    static_assert(KIF::Perm::R == DTU::PTE_R, "DTU::PTE_R does not match KIF::Perm::R");
+    static_assert(KIF::Perm::W == DTU::PTE_W, "DTU::PTE_W does not match KIF::Perm::W");
+    static_assert(KIF::Perm::X == DTU::PTE_X, "DTU::PTE_X does not match KIF::Perm::X");
 
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);

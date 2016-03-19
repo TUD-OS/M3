@@ -56,8 +56,8 @@ void VPE::start(int, UNUSED char **argv, int) {
 m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
     if(n) {
         if(n->type & Capability::MEM) {
-            uintptr_t addr = n->obj->label & ~m3::MemGate::RWX;
-            int perm = n->obj->label & m3::MemGate::RWX;
+            uintptr_t addr = n->obj->label & ~m3::KIF::Perm::RWX;
+            int perm = n->obj->label & m3::KIF::Perm::RWX;
             DTU::get().config_mem_remote(*this, epid,
                 n->obj->core, n->obj->vpe, addr, n->obj->credits, perm);
         }

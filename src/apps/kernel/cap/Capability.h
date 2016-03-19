@@ -19,8 +19,7 @@
 #include <base/Common.h>
 #include <base/col/Treap.h>
 #include <base/DTU.h>
-
-#include <m3/com/MemGate.h>
+#include <base/KIF.h>
 
 #include "com/Services.h"
 
@@ -120,7 +119,7 @@ class MemObject : public MsgObject {
 public:
     explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int vpe, int epid)
         : MsgObject(addr | perms, core, vpe, epid, size) {
-        assert((addr & m3::MemGate::RWX) == 0);
+        assert((addr & m3::KIF::Perm::RWX) == 0);
     }
     virtual ~MemObject();
 };
@@ -173,13 +172,13 @@ public:
     void print(m3::OStream &os) const override;
 
     uintptr_t addr() const {
-        return obj->label & ~m3::MemGate::RWX;
+        return obj->label & ~m3::KIF::Perm::RWX;
     }
     size_t size() const {
         return obj->credits;
     }
     uint perms() const {
-        return obj->label & m3::MemGate::RWX;
+        return obj->label & m3::KIF::Perm::RWX;
     }
 
 private:

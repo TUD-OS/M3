@@ -109,7 +109,7 @@ Env::PostInit::PostInit() {
 
 void Env::init_syscall(void *sepregs) {
     LOG(SYSC, "init(addr=" << sepregs << ")");
-    send_receive_vmsg(Syscalls::get()._gate, Syscalls::COUNT, sepregs);
+    send_receive_vmsg(Syscalls::get()._gate, KIF::Syscall::COUNT, sepregs);
 }
 
 void Env::reset() {

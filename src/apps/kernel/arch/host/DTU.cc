@@ -122,14 +122,14 @@ void DTU::reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, c
 
 void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
     m3::DTU::get().wait_until_ready(_ep);
-    m3::DTU::get().configure(_ep, addr | m3::MemGate::RWX, vpe.core(), 0, size);
+    m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.core(), 0, size);
     m3::DTU::get().write(_ep, data, size, 0);
     m3::DTU::get().wait_until_ready(_ep);
 }
 
 void DTU::cmpxchg_mem(VPE &vpe, uintptr_t addr, const void *data, size_t datasize, size_t off, size_t size) {
     m3::DTU::get().wait_until_ready(_ep);
-    m3::DTU::get().configure(_ep, (addr + off) | m3::MemGate::RWX, vpe.core(), 0, datasize);
+    m3::DTU::get().configure(_ep, (addr + off) | m3::KIF::Perm::RWX, vpe.core(), 0, datasize);
     m3::DTU::get().cmpxchg(_ep, data, datasize, 0, size);
     m3::DTU::get().wait_until_ready(_ep);
     m3::DTU::get().wait_for_mem_cmd();

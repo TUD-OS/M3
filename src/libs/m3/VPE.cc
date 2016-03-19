@@ -128,7 +128,7 @@ void VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
 
 int VPE::wait() {
     int exitcode;
-    Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_WAIT, 0, &exitcode);
+    Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, 0, &exitcode);
     return exitcode;
 }
 

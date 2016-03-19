@@ -16,11 +16,10 @@
 
 #include <base/arch/host/HWInterrupts.h>
 #include <base/arch/host/DTUBackend.h>
-#include <base/Log.h>
 #include <base/DTU.h>
 #include <base/Env.h>
-
-#include <m3/com/MemGate.h>
+#include <base/KIF.h>
+#include <base/Log.h>
 
 #include <cstdio>
 #include <cstring>
@@ -86,7 +85,7 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int f
 
 int DTU::check_cmd(int ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
     if(op == READ || op == WRITE || op == CMPXCHG) {
-        uint perms = label & MemGate::RWX;
+        uint perms = label & KIF::Perm::RWX;
         if(!(perms & (1 << op))) {
             LOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
                     << perms << ", op=" << op << ")");
@@ -322,7 +321,7 @@ void DTU::send_msg(int epid, int dstcoreid, int dstepid, bool isreply) {
 }
 
 void DTU::handle_read_cmd(int epid) {
-    word_t base = _buf.label & ~MemGate::RWX;
+    word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t dest = reinterpret_cast<word_t*>(_buf.data)[2];
@@ -345,7 +344,7 @@ void DTU::handle_read_cmd(int epid) {
 }
 
 void DTU::handle_write_cmd(int) {
-    word_t base = _buf.label & ~MemGate::RWX;
+    word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LOG(DTU, "(write) " << length << " bytes to #" << fmt(base, "x")
@@ -355,7 +354,7 @@ void DTU::handle_write_cmd(int) {
 }
 
 void DTU::handle_resp_cmd() {
-    word_t base = _buf.label & ~MemGate::RWX;
+    word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t resp = reinterpret_cast<word_t*>(_buf.data)[2];
@@ -369,7 +368,7 @@ void DTU::handle_resp_cmd() {
 }
 
 void DTU::handle_cmpxchg_cmd(int epid) {
-    word_t base = _buf.label & ~MemGate::RWX;
+    word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")

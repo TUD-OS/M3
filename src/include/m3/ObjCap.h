@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/KIF.h>
 
 namespace m3 {
 
@@ -30,7 +31,7 @@ namespace m3 {
  */
 class ObjCap {
 public:
-    static const capsel_t INVALID   = 0xFFFF;
+    static const capsel_t INVALID   = KIF::INV_SEL;
 
     enum {
         // whether we don't want to free the selector

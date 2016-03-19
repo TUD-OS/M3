@@ -76,7 +76,7 @@ Errors::Code VPE::run(void *lambda) {
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
 }
 
 Errors::Code VPE::exec(int argc, const char **argv) {
@@ -140,7 +140,7 @@ Errors::Code VPE::exec(Executable &exec) {
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
 }
 
 void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {

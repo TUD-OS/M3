@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/tracing/Tracing.h>
+#include <base/KIF.h>
 
 #include <m3/com/Gate.h>
 
@@ -35,9 +36,9 @@ class MemGate : public Gate {
     }
 
 public:
-    static const int R = 1;
-    static const int W = 2;
-    static const int X = 4;
+    static const int R = KIF::Perm::R;
+    static const int W = KIF::Perm::W;
+    static const int X = KIF::Perm::X;
     static const int RW = R | W;
     static const int RWX = R | W | X;
     static const int PERM_BITS = 3;

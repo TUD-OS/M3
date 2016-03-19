@@ -18,6 +18,7 @@
 #include <base/tracing/Tracing.h>
 #include <base/DTU.h>
 #include <base/Log.h>
+#include <base/WorkLoop.h>
 
 #include "pes/PEManager.h"
 #include "SyscallHandler.h"

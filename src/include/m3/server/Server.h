@@ -18,8 +18,9 @@
 
 #include <base/col/SList.h>
 #include <base/tracing/Tracing.h>
-#include <base/Log.h>
 #include <base/Errors.h>
+#include <base/KIF.h>
+#include <base/Log.h>
 
 #include <m3/com/Gate.h>
 #include <m3/com/GateStream.h>
@@ -37,14 +38,6 @@ public:
     static constexpr size_t DEF_BUFSIZE     = 8192;
     static constexpr size_t DEF_MSGSIZE     = 256;
 
-    enum Command {
-        OPEN,
-        OBTAIN,
-        DELEGATE,
-        CLOSE,
-        SHUTDOWN
-    };
-
     explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
@@ -58,11 +51,11 @@ public:
         using std::placeholders::_2;
         _ctrl_rgate.subscribe(std::bind(&Server::handle_message, this, _1, _2));
 
-        _ctrl_handler[OPEN] = &Server::handle_open;
-        _ctrl_handler[OBTAIN] = &Server::handle_obtain;
-        _ctrl_handler[DELEGATE] = &Server::handle_delegate;
-        _ctrl_handler[CLOSE] = &Server::handle_close;
-        _ctrl_handler[SHUTDOWN] = &Server::handle_shutdown;
+        _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
+        _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
+        _ctrl_handler[KIF::Service::DELEGATE] = &Server::handle_delegate;
+        _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
+        _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
     }
     ~Server() {
         // if it fails, there are pending requests. this might happen multiple times because
@@ -93,7 +86,7 @@ public:
 private:
     void handle_message(RecvGate &gate, Subscriber<RecvGate&> *) {
         GateIStream msg(gate);
-        Command op;
+        KIF::Service::Command op;
         msg >> op;
         if(static_cast<size_t>(op) < ARRAY_SIZE(_ctrl_handler)) {
             (this->*_ctrl_handler[op])(gate, msg);

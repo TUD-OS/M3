@@ -19,6 +19,7 @@
 #include <base/util/String.h>
 #include <base/util/CapRngDesc.h>
 #include <base/Env.h>
+#include <base/KIF.h>
 
 #include <m3/com/SendGate.h>
 #include <m3/com/GateStream.h>
@@ -35,33 +36,6 @@ class Syscalls {
     static constexpr size_t MSGSIZE     = 256;
 
 public:
-    enum Operation {
-        PAGEFAULT = 0,  // sent by the DTU if the PF handler is not reachable
-        CREATESRV,
-        CREATESESS,
-        CREATEGATE,
-        CREATEVPE,
-        CREATEMAP,
-        ATTACHRB,
-        DETACHRB,
-        EXCHANGE,
-        VPECTRL,
-        DELEGATE,
-        OBTAIN,
-        ACTIVATE,
-        REQMEM,
-        DERIVEMEM,
-        REVOKE,
-        EXIT,
-        NOOP,
-        COUNT
-    };
-
-    enum VPECtrl {
-        VCTRL_START,
-        VCTRL_WAIT,
-    };
-
     static Syscalls &get() {
         return _inst;
     }
@@ -81,7 +55,7 @@ public:
     Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
-    Errors::Code vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode);
+    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPECtrl op, int pid, int *exitcode);
     Errors::Code delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);
     GateIStream delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
     Errors::Code obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);

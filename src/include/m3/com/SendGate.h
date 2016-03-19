@@ -46,7 +46,7 @@ class SendGate : public Gate {
     }
 
 public:
-    static const word_t UNLIMITED   = -1;
+    static const word_t UNLIMITED   = KIF::UNLIM_CREDITS;
 
     /**
      * Creates a new send-gate for your own VPE. That is, a gate is created for one of your endpoints

@@ -17,9 +17,8 @@
 #pragma once
 
 #include <base/col/SList.h>
+#include <base/KIF.h>
 #include <base/Log.h>
-
-#include <m3/com/MemGate.h>
 
 #include <cstring>
 
@@ -56,7 +55,7 @@ public:
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
     explicit VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep = -1,
-        capsel_t pfgate = m3::ObjCap::INVALID);
+        capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
     ~VPE();

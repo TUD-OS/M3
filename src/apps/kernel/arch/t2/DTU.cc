@@ -135,7 +135,7 @@ void DTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int
 }
 
 void DTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
-    config_mem(m3::eps() + ep, dstcore, dstvpe, addr, size, m3::MemGate::RW);
+    config_mem(m3::eps() + ep, dstcore, dstvpe, addr, size, m3::KIF::Perm::RW);
 }
 
 void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {

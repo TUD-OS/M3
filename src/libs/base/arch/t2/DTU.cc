@@ -17,9 +17,8 @@
 #include <base/util/Sync.h>
 #include <base/tracing/Tracing.h>
 #include <base/DTU.h>
+#include <base/KIF.h>
 #include <base/Log.h>
-
-#include <m3/com/MemGate.h>
 
 namespace m3 {
 
@@ -138,7 +137,7 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
 Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type) {
     uintptr_t srcaddr = base + off;
     if(!(perms & type) || srcaddr < base || srcaddr + size < srcaddr ||  srcaddr + size > base + len) {
-        // PANIC("No permission to " << (type == MemGate::R ? "read from" : "write to")
+        // PANIC("No permission to " << (type == KIF::Perm::R ? "read from" : "write to")
         //         << " " << fmt(srcaddr, "p") << ".." << fmt(srcaddr + size, "p") << "\n"
         //         << "Allowed is: " << fmt(base, "p") << ".." << fmt(base + len, "p")
         //         << " with " << fmt(perms, "#x"));
@@ -150,7 +149,7 @@ Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t
 Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
-    uintptr_t base = cfg->label & ~MemGate::RWX;
+    uintptr_t base = cfg->label & ~KIF::Perm::RWX;
     size_t len = cfg->credits;
     uintptr_t srcaddr = base + off;
     LOG(DTU, "Reading " << size << "b from " << cfg->dstcore << " @ " << fmt(srcaddr, "p"));
@@ -160,7 +159,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     // mark the end
     reinterpret_cast<unsigned char*>(msg)[size - 1] = 0xFF;
 
-    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::R);
+    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & KIF::Perm::RWX, KIF::Perm::R);
     if(res != Errors::NO_ERROR)
         return res;
 
@@ -185,14 +184,14 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
 Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
-    uintptr_t base = cfg->label & ~MemGate::RWX;
+    uintptr_t base = cfg->label & ~KIF::Perm::RWX;
     size_t len = cfg->credits;
     uintptr_t destaddr = base + off;
     LOG(DTU, "Writing " << size << "b to " << cfg->dstcore << " @ " << fmt(destaddr, "p"));
 
     EVENT_TRACE_MEM_WRITE(cfg->dstcore, size);
 
-    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & MemGate::RWX, MemGate::W);
+    Errors::Code res = check_rw_access(base, len, off, size, cfg->label & KIF::Perm::RWX, KIF::Perm::W);
     if(res != Errors::NO_ERROR)
         return res;
 

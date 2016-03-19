@@ -16,6 +16,7 @@
 
 #include <base/tracing/Tracing.h>
 #include <base/Log.h>
+#include <base/WorkLoop.h>
 
 #include "pes/PEManager.h"
 #include "com/Services.h"
@@ -101,26 +102,26 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     // but one item is needed to not stop immediately
     m3::env()->workloop()->add(nullptr, false);
 
-    add_operation(m3::Syscalls::PAGEFAULT, &SyscallHandler::pagefault);
-    add_operation(m3::Syscalls::CREATESRV, &SyscallHandler::createsrv);
-    add_operation(m3::Syscalls::CREATESESS, &SyscallHandler::createsess);
-    add_operation(m3::Syscalls::CREATEGATE, &SyscallHandler::creategate);
-    add_operation(m3::Syscalls::CREATEVPE, &SyscallHandler::createvpe);
-    add_operation(m3::Syscalls::CREATEMAP, &SyscallHandler::createmap);
-    add_operation(m3::Syscalls::ATTACHRB, &SyscallHandler::attachrb);
-    add_operation(m3::Syscalls::DETACHRB, &SyscallHandler::detachrb);
-    add_operation(m3::Syscalls::EXCHANGE, &SyscallHandler::exchange);
-    add_operation(m3::Syscalls::VPECTRL, &SyscallHandler::vpectrl);
-    add_operation(m3::Syscalls::DELEGATE, &SyscallHandler::delegate);
-    add_operation(m3::Syscalls::OBTAIN, &SyscallHandler::obtain);
-    add_operation(m3::Syscalls::ACTIVATE, &SyscallHandler::activate);
-    add_operation(m3::Syscalls::REQMEM, &SyscallHandler::reqmem);
-    add_operation(m3::Syscalls::DERIVEMEM, &SyscallHandler::derivemem);
-    add_operation(m3::Syscalls::REVOKE, &SyscallHandler::revoke);
-    add_operation(m3::Syscalls::EXIT, &SyscallHandler::exit);
-    add_operation(m3::Syscalls::NOOP, &SyscallHandler::noop);
+    add_operation(m3::KIF::Syscall::PAGEFAULT, &SyscallHandler::pagefault);
+    add_operation(m3::KIF::Syscall::CREATESRV, &SyscallHandler::createsrv);
+    add_operation(m3::KIF::Syscall::CREATESESS, &SyscallHandler::createsess);
+    add_operation(m3::KIF::Syscall::CREATEGATE, &SyscallHandler::creategate);
+    add_operation(m3::KIF::Syscall::CREATEVPE, &SyscallHandler::createvpe);
+    add_operation(m3::KIF::Syscall::CREATEMAP, &SyscallHandler::createmap);
+    add_operation(m3::KIF::Syscall::ATTACHRB, &SyscallHandler::attachrb);
+    add_operation(m3::KIF::Syscall::DETACHRB, &SyscallHandler::detachrb);
+    add_operation(m3::KIF::Syscall::EXCHANGE, &SyscallHandler::exchange);
+    add_operation(m3::KIF::Syscall::VPECTRL, &SyscallHandler::vpectrl);
+    add_operation(m3::KIF::Syscall::DELEGATE, &SyscallHandler::delegate);
+    add_operation(m3::KIF::Syscall::OBTAIN, &SyscallHandler::obtain);
+    add_operation(m3::KIF::Syscall::ACTIVATE, &SyscallHandler::activate);
+    add_operation(m3::KIF::Syscall::REQMEM, &SyscallHandler::reqmem);
+    add_operation(m3::KIF::Syscall::DERIVEMEM, &SyscallHandler::derivemem);
+    add_operation(m3::KIF::Syscall::REVOKE, &SyscallHandler::revoke);
+    add_operation(m3::KIF::Syscall::EXIT, &SyscallHandler::exit);
+    add_operation(m3::KIF::Syscall::NOOP, &SyscallHandler::noop);
 #if defined(__host__)
-    add_operation(m3::Syscalls::COUNT, &SyscallHandler::init);
+    add_operation(m3::KIF::Syscall::COUNT, &SyscallHandler::init);
 #endif
 }
 
@@ -236,8 +237,8 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
         vpe->service_gate().unsubscribe(sub);
     });
 
-    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command>(), is.remaining()));
-    msg << server_type::OPEN;
+    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command>(), is.remaining()));
+    msg << m3::KIF::Service::OPEN;
     msg.put(is);
     s->send(&vpe->service_gate(), msg.bytes(), msg.total());
     msg.claim();
@@ -256,7 +257,7 @@ void SyscallHandler::creategate(RecvGate &gate, GateIStream &is) {
         << ", ep=" << epid << ", crd=#" << m3::fmt(credits, "0x") << ")");
 
 #if defined(__gem5__)
-    if(credits == m3::SendGate::UNLIMITED)
+    if(credits == m3::KIF::UNLIM_CREDITS)
         PANIC("Unlimited credits are not yet supported on gem5");
 #endif
 
@@ -290,7 +291,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
 
     // if it has a pager, we need a gate cap
     MsgCapability *msg = nullptr;
-    if(gcap != m3::ObjCap::INVALID) {
+    if(gcap != m3::KIF::INV_SEL) {
         msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
         if(msg == nullptr)
             SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap(s)");
@@ -301,7 +302,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
         ? PEManager::get().type(vpe->core() - APP_CORES)
         : core.c_str();
     VPE *nvpe = PEManager::get().create(std::move(name), corename,
-        gcap != m3::ObjCap::INVALID, ep, gcap);
+        gcap != m3::KIF::INV_SEL, ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, gate, m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 
@@ -310,7 +311,7 @@ void SyscallHandler::createvpe(RecvGate &gate, GateIStream &is) {
     vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
 
     // initialize paging
-    if(gcap != m3::ObjCap::INVALID) {
+    if(gcap != m3::KIF::INV_SEL) {
         // delegate pf gate to the new VPE
         nvpe->objcaps().obtain(gcap, msg);
 
@@ -427,7 +428,7 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
     EVENT_TRACER_Syscall_vpectrl();
     VPE *vpe = gate.session<VPE>();
     capsel_t tcap;
-    m3::Syscalls::VPECtrl op;
+    m3::KIF::Syscall::VPECtrl op;
     int pid;
     is >> tcap >> op >> pid;
     LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tcap << ", op=" << op
@@ -439,12 +440,12 @@ void SyscallHandler::vpectrl(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap");
 
     switch(op) {
-        case m3::Syscalls::VCTRL_START:
+        case m3::KIF::Syscall::VCTRL_START:
             vpecap->vpe->start(0, nullptr, pid);
             reply_vmsg(gate, m3::Errors::NO_ERROR);
             break;
 
-        case m3::Syscalls::VCTRL_WAIT:
+        case m3::KIF::Syscall::VCTRL_WAIT:
             if(vpecap->vpe->state() == VPE::DEAD)
                 reply_vmsg(gate, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             else {
@@ -473,7 +474,7 @@ void SyscallHandler::reqmem(RecvGate &gate, GateIStream &is) {
 
     if(!vpe->objcaps().unused(cap))
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap");
-    if(size == 0 || (size & m3::MemGate::RWX) || perms == 0 || (perms & ~(m3::MemGate::RWX)))
+    if(size == 0 || (size & m3::KIF::Perm::RWX) || perms == 0 || (perms & ~(m3::KIF::Perm::RWX)))
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Size or permissions invalid");
 
     MainMemory &mem = MainMemory::get();
@@ -510,7 +511,7 @@ void SyscallHandler::derivemem(RecvGate &gate, GateIStream &is) {
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid cap(s)");
 
     if(offset + size < offset || offset + size > srccap->size() || size == 0 ||
-            (perms & ~(m3::MemGate::RWX)))
+            (perms & ~(m3::KIF::Perm::RWX)))
         SYS_ERROR(vpe, gate, m3::Errors::INV_ARGS, "Invalid args");
 
     MemCapability *dercap = static_cast<MemCapability*>(vpe->objcaps().obtain(dst, srccap));
@@ -629,9 +630,9 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
         vpe->service_gate().unsubscribe(sub);
     });
 
-    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<server_type::Command, word_t,
+    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command, word_t,
         m3::CapRngDesc>(), is.remaining()));
-    msg << (obtain ? server_type::OBTAIN : server_type::DELEGATE) << sess->obj->ident << caps.count();
+    msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
     sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total());
     msg.claim();
@@ -646,9 +647,9 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
-    MsgCapability *oldcapobj = oldcap == m3::ObjCap::INVALID ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *oldcapobj = oldcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
-    MsgCapability *newcapobj = newcap == m3::ObjCap::INVALID ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *newcapobj = newcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(newcap, Capability::MSG | Capability::MEM));
     // ep 0 can never be used for sending
     if(epid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {

@@ -16,8 +16,7 @@
 
 #pragma once
 
-#include <m3/server/Server.h>
-#include <m3/Syscalls.h>
+#include <base/KIF.h>
 
 #include "cap/CapTable.h"
 #include "com/Services.h"
@@ -30,21 +29,20 @@ class SyscallHandler {
     explicit SyscallHandler();
 
 public:
-    using server_type = m3::Server<SyscallHandler>;
     using handler_func = void (SyscallHandler::*)(RecvGate &gate, GateIStream &is);
 
     static SyscallHandler &get() {
         return _inst;
     }
 
-    void add_operation(m3::Syscalls::Operation op, handler_func func) {
+    void add_operation(m3::KIF::Syscall::Operation op, handler_func func) {
         _callbacks[op] = func;
     }
 
     void handle_message(RecvGate &gate, m3::Subscriber<RecvGate&> *) {
         EVENT_TRACER_handle_message();
         GateIStream msg(gate);
-        m3::Syscalls::Operation op;
+        m3::KIF::Syscall::Operation op;
         msg >> op;
         if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
             (this->*_callbacks[op])(gate, msg);
@@ -95,7 +93,7 @@ private:
 
     int _serv_ep;
     // +1 for init on host
-    handler_func _callbacks[m3::Syscalls::COUNT + 1];
+    handler_func _callbacks[m3::KIF::Syscall::COUNT + 1];
     static SyscallHandler _inst;
 };
 
