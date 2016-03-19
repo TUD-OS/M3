@@ -28,11 +28,12 @@ EXTERN_C void loop() {
     volatile m3::Env *senv = m3::env();
     while(1) {
         // wait for an interrupt
-        // TODO is broken on the FFT core
+#if defined(__t2__)
         // TODO is broken on CM core
-#if 0
-        asm volatile ("waiti   0");
+        if(m3::env()->coreid != CM_CORE)
 #endif
+        // TODO is broken on the FFT core
+        asm volatile ("waiti   0");
 
         // is there something to run?
         start_func ptr = reinterpret_cast<start_func>(senv->entry);
