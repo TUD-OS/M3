@@ -201,7 +201,7 @@ public:
     /**
      * Inserts the given item into the list after <p>. This works in constant time.
      *
-     * @param p the previous item (p = insert it at the beginning)
+     * @param p the previous item (nullptr = insert it at the beginning)
      * @param e the list item
      * @return the position where it has been inserted
      */
