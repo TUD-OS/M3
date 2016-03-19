@@ -19,10 +19,10 @@
 #include <base/stream/IStringStream.h>
 #include <base/Log.h>
 
+#include <m3/stream/FStream.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
-#include <m3/stream/FStream.h>
 
 #include <vector>
 #include <algorithm>
