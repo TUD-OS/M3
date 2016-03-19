@@ -14,15 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/cap/Session.h>
-#include <m3/service/M3FS.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/session/Session.h>
+#include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

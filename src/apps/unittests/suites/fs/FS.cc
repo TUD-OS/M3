@@ -14,16 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
+#include <base/Common.h>
+#include <base/stream/OStringStream.h>
+#include <base/stream/IStringStream.h>
+#include <base/Log.h>
+
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
-#include <m3/stream/OStringStream.h>
-#include <m3/stream/IStringStream.h>
 #include <m3/stream/FStream.h>
-#include <m3/Log.h>
+
 #include <vector>
 #include <algorithm>
+
 #include "FS.h"
 
 using namespace m3;

@@ -14,9 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/MemGate.h>
-#include <m3/Log.h>
-#include <m3/RecvBuf.h>
+#include <base/Log.h>
+
+#include <m3/com/MemGate.h>
+#include <m3/com/RecvBuf.h>
+
 #include <sys/mman.h>
 
 #include "Commands.h"

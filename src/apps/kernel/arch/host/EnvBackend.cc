@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Env.h>
-#include <m3/EnvBackend.h>
+#include <base/Common.h>
+#include <base/Env.h>
+#include <base/EnvBackend.h>
 
 #include <sys/time.h>
 #include <unistd.h>

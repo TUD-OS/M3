@@ -16,12 +16,13 @@
 
 #pragma once
 
-#include <m3/col/SList.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/CapRngDesc.h>
-#include <m3/GateStream.h>
-#include <m3/RecvBuf.h>
-#include <m3/Errors.h>
+#include <base/col/SList.h>
+#include <base/util/CapRngDesc.h>
+#include <base/Errors.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 
 namespace m3 {
 

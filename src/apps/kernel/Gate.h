@@ -16,10 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/Errors.h>
-#include <m3/GateStreamBase.h>
-#include <m3/Subscriber.h>
+#include <base/Common.h>
+#include <base/com/GateStreamBase.h>
+#include <base/util/Subscriber.h>
+#include <base/Errors.h>
 
 #include "DTU.h"
 

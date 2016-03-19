@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/OStringStream.h>
+#include <base/stream/OStringStream.h>
+
 #include <string.h>
 
 #include "pes/PEManager.h"

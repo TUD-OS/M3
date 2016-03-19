@@ -16,10 +16,9 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
-#include <m3/RecvBuf.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/Log.h>
+
 #include <sys/mman.h>
 
 #include "mem/MemoryMap.h"

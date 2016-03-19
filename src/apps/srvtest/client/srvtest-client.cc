@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/Session.h>
-#include <m3/cap/VPE.h>
-#include <m3/stream/Serial.h>
+#include <base/Common.h>
+#include <base/stream/Serial.h>
+
+#include <m3/session/Session.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 

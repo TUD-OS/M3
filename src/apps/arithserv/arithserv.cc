@@ -14,12 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/stream/IStringStream.h>
+#include <base/Log.h>
+
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <m3/com/GateStream.h>
 
 using namespace m3;
 

@@ -123,7 +123,7 @@ build_params_gem5() {
     if [ ! -z $M3_CORES ]; then
         maxcores=$M3_CORES
     else
-        maxcores=`grep '#define MAX_CORES' src/include/m3/arch/gem5/Config.h | awk '{print $3 }'`
+        maxcores=`grep '#define MAX_CORES' src/include/base/arch/gem5/Config.h | awk '{print $3 }'`
     fi
 
     c=0
@@ -217,7 +217,7 @@ build_params_t3_sim() {
         if [ ! -z $M3_CORES ]; then
             maxcores=$M3_CORES
         else
-            maxcores=`grep '#define MAX_CORES' src/include/m3/arch/t3/Config.h | awk '{print $3 }'`
+            maxcores=`grep '#define MAX_CORES' src/include/base/arch/t3/Config.h | awk '{print $3 }'`
         fi
         while [ $c -lt $maxcores ]; do
             echo -n " -pe_core.SimTargetProgram=$bindir/idle --pe_core.SimDebugSynchronized=true"

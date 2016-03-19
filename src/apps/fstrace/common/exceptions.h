@@ -19,7 +19,7 @@
 #   define THROW(ex)                    throw ex()
 #   define THROW1(ex, arg1, ...)        throw ex(arg1, ## __VA_ARGS__)
 #else
-#   include <m3/Log.h>
+#   include <base/Log.h>
 #   define THROW(...)                   PANIC("Exception raised at " << __FILE__ << ":" << __LINE__)
 #   define THROW1(ex, err, exp, line)   PANIC("Exception raised for " << line \
                                             << " at " << __FILE__ << ":" << __LINE__ \

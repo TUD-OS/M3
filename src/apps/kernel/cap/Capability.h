@@ -16,10 +16,11 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/MemGate.h>
-#include <m3/col/Treap.h>
-#include <m3/DTU.h>
+#include <base/Common.h>
+#include <base/col/Treap.h>
+#include <base/DTU.h>
+
+#include <m3/com/MemGate.h>
 
 #include "com/Services.h"
 

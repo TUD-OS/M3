@@ -1,5 +1,6 @@
-#include <m3/Common.h>
-#include <m3/Config.h>
+#include <base/Common.h>
+#include <base/Config.h>
+
 #include <assert.h>
 
 #include <xtensa/xtruntime.h>

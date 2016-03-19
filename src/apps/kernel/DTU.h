@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/DTU.h>
+#include <base/Common.h>
+#include <base/DTU.h>
 
 namespace kernel {
 

@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <m3/arch/host/SharedMemory.h>
+#include <base/arch/host/SharedMemory.h>
+
 #include "Device.h"
 
 namespace kernel {

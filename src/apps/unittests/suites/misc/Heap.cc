@@ -14,9 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Config.h>
-#include <m3/stream/Serial.h>
+#include <base/Common.h>
+#include <base/Config.h>
+#include <base/stream/Serial.h>
+
 #include <cstdlib>
 
 #include "Heap.h"

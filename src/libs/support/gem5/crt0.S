@@ -14,7 +14,7 @@
 # General Public License version 2 for more details.
 #
 
-#include <m3/Config.h>
+#include <base/Config.h>
 
 .global _start
 .extern env_run

@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
+#include <base/stream/Serial.h>
 
 int main() {
     /* on the host, we rely on Config to get linked in. this doesn't happen because the linker

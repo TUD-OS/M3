@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
-#include <m3/service/M3FS.h>
 
 namespace m3 {
 

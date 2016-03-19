@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/cap/VPE.h>
 #include <m3/server/Handler.h>
-#include <m3/GateStream.h>
+#include <m3/com/GateStream.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 

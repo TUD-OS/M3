@@ -16,15 +16,16 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/Treap.h>
-#include <m3/cap/MemGate.h>
-#include <m3/cap/Session.h>
-#include <m3/stream/OStream.h>
-#include <m3/service/M3FS.h>
-#include <m3/CapRngDesc.h>
-#include <m3/DTU.h>
-#include <m3/Errors.h>
+#include <base/Common.h>
+#include <base/col/Treap.h>
+#include <base/stream/OStream.h>
+#include <base/util/CapRngDesc.h>
+#include <base/DTU.h>
+#include <base/Errors.h>
+
+#include <m3/com/MemGate.h>
+#include <m3/session/Session.h>
+#include <m3/session/M3FS.h>
 
 #include "RegionList.h"
 

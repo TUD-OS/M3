@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/Log.h>
 
 using namespace m3;
 

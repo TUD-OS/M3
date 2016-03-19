@@ -10,7 +10,7 @@
 #ifndef __TRACE_BENCH_CLOCK_H
 #define __TRACE_BENCH_CLOCK_H
 
-#include <m3/Common.h>
+#include <base/Common.h>
 
 #include <sys/time.h>
 #include <stdint.h>

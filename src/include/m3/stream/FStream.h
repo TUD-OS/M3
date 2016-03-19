@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/stream/IStream.h>
-#include <m3/stream/OStream.h>
+#include <base/Common.h>
+#include <base/stream/IStream.h>
+#include <base/stream/OStream.h>
+
 #include <m3/vfs/File.h>
 #include <m3/vfs/VFS.h>
 

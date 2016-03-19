@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/service/arch/host/Keyboard.h>
+#include <m3/session/arch/host/Keyboard.h>
 
 class Scancodes {
     struct Entry {

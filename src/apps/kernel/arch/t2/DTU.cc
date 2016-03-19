@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/util/Sync.h>
-#include <m3/DTU.h>
+#include <base/Common.h>
+#include <base/util/Sync.h>
+#include <base/DTU.h>
 
 #include "pes/VPE.h"
 #include "DTU.h"

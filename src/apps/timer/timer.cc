@@ -14,12 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/Session.h>
-#include <m3/service/arch/host/Interrupts.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/session/Session.h>
+#include <m3/session/arch/host/Interrupts.h>
 #include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

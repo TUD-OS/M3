@@ -16,8 +16,9 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/SList.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+
 #include <test/Testable.h>
 #include <test/TestCase.h>
 

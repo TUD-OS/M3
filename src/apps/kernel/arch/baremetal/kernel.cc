@@ -14,10 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/DTU.h>
-#include <m3/Log.h>
+#include <base/stream/Serial.h>
+#include <base/tracing/Tracing.h>
+#include <base/DTU.h>
+#include <base/Log.h>
 
 #include "pes/PEManager.h"
 #include "SyscallHandler.h"

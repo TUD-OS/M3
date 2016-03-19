@@ -14,14 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/col/SList.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/col/SList.h>
-#include <m3/arch/host/HWInterrupts.h>
+#include <m3/Syscalls.h>
+
 #include <sys/time.h>
 #include <cstdlib>
 

@@ -16,9 +16,11 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+#include <base/DTU.h>
+
 #include <m3/vfs/LocList.h>
-#include <m3/DTU.h>
+
 #include <string.h>
 
 namespace m3 {

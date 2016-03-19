@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/service/Pager.h>
+#include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
 #include <m3/vfs/RegularFile.h>
 

@@ -14,14 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
-#include <m3/util/Profile.h>
-#include <m3/service/M3FS.h>
-#include <m3/vfs/VFS.h>
-#include <m3/vfs/FileRef.h>
+#include <base/util/Profile.h>
+#include <base/Log.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/pipe/PipeFS.h>
 #include <m3/pipe/Pipe.h>
-#include <m3/Log.h>
+#include <m3/vfs/VFS.h>
+#include <m3/vfs/FileRef.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 

@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
+#include <base/Log.h>
 
 #include <unistd.h>
 #include <fstream>

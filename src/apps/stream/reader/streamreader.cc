@@ -14,13 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/Session.h>
-#include <m3/cap/VPE.h>
-#include <m3/util/Sync.h>
+#include <base/util/Sync.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/session/Session.h>
 #include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
 
 #include <unistd.h>
 #include <fcntl.h>

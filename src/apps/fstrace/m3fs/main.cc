@@ -14,10 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/service/M3FS.h>
+#include <base/Common.h>
+#include <base/Log.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/vfs/VFS.h>
-#include <m3/Log.h>
+
 #include <cstring>
 
 #include "common/traceplayer.h"

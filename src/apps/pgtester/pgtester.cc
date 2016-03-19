@@ -14,12 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
-#include <m3/service/M3FS.h>
+#include <base/Log.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Executable.h>
 #include <m3/Syscalls.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 

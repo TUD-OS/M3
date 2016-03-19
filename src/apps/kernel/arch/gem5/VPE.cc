@@ -14,10 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
-#include <m3/util/Math.h>
-#include <m3/ELF.h>
-#include <m3/Log.h>
+#include <base/util/Sync.h>
+#include <base/util/Math.h>
+#include <base/ELF.h>
+#include <base/Log.h>
 
 #include "cap/Capability.h"
 #include "mem/MainMemory.h"

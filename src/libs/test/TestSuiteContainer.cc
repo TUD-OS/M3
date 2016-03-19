@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Log.h>
+
 #include <test/TestSuiteContainer.h>
-#include <m3/Log.h>
 
 namespace test {
 

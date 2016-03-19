@@ -14,11 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Config.h>
+#include <base/Common.h>
+#include <base/Config.h>
+#include <base/Log.h>
+
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
-#include <m3/Log.h>
+
 #include <libgen.h>
 
 using namespace m3;

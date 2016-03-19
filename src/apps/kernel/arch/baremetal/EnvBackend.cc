@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
-#include <m3/Env.h>
-#include <m3/RecvBuf.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/stream/Serial.h>
+#include <base/Env.h>
+#include <base/Log.h>
+
+#include <m3/com/RecvBuf.h>
 
 #include "WorkLoop.h"
 
@@ -34,7 +35,6 @@ public:
         m3::env()->coreid = KERNEL_CORE;
 
         // not required here
-        _def_recvbuf = nullptr;
         _def_recvgate = nullptr;
 
         m3::Serial::init("kernel", KERNEL_CORE);

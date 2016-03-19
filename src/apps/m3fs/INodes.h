@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <m3/CapRngDesc.h>
+#include <base/util/CapRngDesc.h>
+
 #include <fs/internal.h>
 
 #include "Allocator.h"

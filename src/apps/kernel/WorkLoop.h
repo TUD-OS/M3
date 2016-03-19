@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/tracing/Tracing.h>
-#include <m3/Common.h>
-#include <m3/WorkLoop.h>
+#include <base/Common.h>
+#include <base/tracing/Tracing.h>
+#include <base/WorkLoop.h>
 
 #include "SyscallHandler.h"
 

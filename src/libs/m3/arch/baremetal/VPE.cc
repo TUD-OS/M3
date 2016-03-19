@@ -14,14 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
-#include <m3/Syscalls.h>
-#include <m3/service/Pager.h>
+#include <base/ELF.h>
+#include <base/Log.h>
+
+#include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
 #include <m3/vfs/RegularFile.h>
 #include <m3/vfs/Executable.h>
-#include <m3/Log.h>
-#include <m3/ELF.h>
+#include <m3/Syscalls.h>
+#include <m3/VPE.h>
+
 #include <stdlib.h>
 
 namespace m3 {

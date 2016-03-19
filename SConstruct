@@ -235,7 +235,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
                 myenv['LIBDIR'].abspath + '/crtn.o',
                 myenv['LIBDIR'].abspath + '/Window.o'
             ]
-            libs = ['hal', 'handlers-sim', 'c', 'm3', 'c', 'gcc'] + libs
+            libs = ['hal', 'handlers-sim', 'c', 'base', 'm3', 'c', 'gcc'] + libs
         sources += source
 
         if ldscript is None:
@@ -261,7 +261,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
         myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
     elif myenv['ARCH'] == 'gem5':
         if not NoSup:
-            libs = ['c', 'm3'] + libs
+            libs = ['c', 'base', 'm3'] + libs
             source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
 
         if ldscript is None:
@@ -282,7 +282,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
     else:
         prog = myenv.Program(
             target, source,
-            LIBS = ['m3', 'pthread'] + libs,
+            LIBS = ['base', 'm3', 'pthread'] + libs,
             LIBPATH = [myenv['LIBDIR']] + libpaths
         )
 

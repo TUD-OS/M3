@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/pipe/Pipe.h>
-#include <m3/GateStream.h>
 
 namespace m3 {
 

@@ -16,8 +16,7 @@
 
 #pragma once
 
-#include <m3/WorkLoop.h>
-#include <m3/stream/OStringStream.h>
+#include <base/stream/OStringStream.h>
 
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"

@@ -14,8 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Env.h>
-#include <m3/RecvBuf.h>
+#include <base/Env.h>
+
+#include <m3/com/RecvBuf.h>
+
 #include "Ringbuffer.h"
 
 using namespace m3;

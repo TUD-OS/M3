@@ -16,16 +16,17 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/MemGate.h>
-#include <m3/cap/SendGate.h>
-#include <m3/cap/VPE.h>
-#include <m3/stream/OStringStream.h>
-#include <m3/util/Math.h>
+#include <base/Common.h>
+#include <base/stream/OStringStream.h>
+#include <base/util/Math.h>
+
+#include <m3/com/MemGate.h>
+#include <m3/com/SendGate.h>
+#include <m3/VPE.h>
 
 #define DEBUG_PIPE  0
 #if DEBUG_PIPE
-#   include <m3/stream/Serial.h>
+#   include <base/stream/Serial.h>
 #   define DBG_PIPE(expr)   Serial::get() << expr
 #else
 #   define DBG_PIPE(...)

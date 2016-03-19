@@ -16,11 +16,9 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/SList.h>
-#include <m3/Heap.h>
-#include <stdlib.h>
-#include <string.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+#include <base/Heap.h>
 
 #include "Gate.h"
 

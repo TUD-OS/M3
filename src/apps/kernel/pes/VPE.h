@@ -16,9 +16,11 @@
 
 #pragma once
 
-#include <m3/col/SList.h>
-#include <m3/cap/MemGate.h>
-#include <m3/Log.h>
+#include <base/col/SList.h>
+#include <base/Log.h>
+
+#include <m3/com/MemGate.h>
+
 #include <cstring>
 
 #include "cap/CapTable.h"

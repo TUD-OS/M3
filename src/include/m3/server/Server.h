@@ -16,15 +16,16 @@
 
 #pragma once
 
-#include <m3/col/SList.h>
-#include <m3/cap/Gate.h>
-#include <m3/cap/VPE.h>
+#include <base/col/SList.h>
+#include <base/tracing/Tracing.h>
+#include <base/Log.h>
+#include <base/Errors.h>
+
+#include <m3/com/Gate.h>
+#include <m3/com/GateStream.h>
 #include <m3/server/Handler.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/GateStream.h>
 #include <m3/Syscalls.h>
-#include <m3/Log.h>
-#include <m3/Errors.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 

@@ -14,12 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/stream/IStringStream.h>
+#include <base/stream/Serial.h>
+#include <base/stream/IStringStream.h>
+#include <base/Log.h>
+
 #include <m3/stream/FStream.h>
-#include <m3/vfs/Pipe.h>
 #include <m3/pipe/PipeFS.h>
-#include <m3/Log.h>
+#include <m3/vfs/Pipe.h>
 
 using namespace m3;
 

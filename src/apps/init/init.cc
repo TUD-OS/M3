@@ -14,15 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
-#include <m3/cap/VPE.h>
-#include <m3/cap/MemGate.h>
+#include <base/Common.h>
+#include <base/stream/Serial.h>
+#include <base/util/Sync.h>
+#include <base/Log.h>
+
+#include <m3/com/MemGate.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
-#include <m3/util/Sync.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 

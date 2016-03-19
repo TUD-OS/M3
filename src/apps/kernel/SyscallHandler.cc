@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/tracing/Tracing.h>
-#include <m3/Log.h>
+#include <base/tracing/Tracing.h>
+#include <base/Log.h>
 
 #include "pes/PEManager.h"
 #include "com/Services.h"

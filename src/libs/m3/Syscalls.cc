@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/tracing/Tracing.h>
+#include <base/tracing/Tracing.h>
+#include <base/Errors.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/Errors.h>
-#include <m3/Log.h>
 
 namespace m3 {
 

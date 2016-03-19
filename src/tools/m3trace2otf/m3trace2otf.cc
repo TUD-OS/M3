@@ -24,13 +24,13 @@
 #include <otf.h>
 
 // enforce TRACE_HUMAN_READABLE
-#include <m3/tracing/Config.h>
+#include <base/tracing/Config.h>
 #ifndef TRACE_HUMAN_READABLE
 #   define TRACE_HUMAN_READABLE
 #endif
 #define TRACE_FUNCS_TO_STRING
 
-#include <m3/tracing/Event.h>
+#include <base/tracing/Event.h>
 
 #include <iostream>
 #include <queue>

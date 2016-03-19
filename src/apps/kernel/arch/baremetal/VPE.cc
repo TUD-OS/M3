@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
-#include <m3/Log.h>
+#include <base/util/Sync.h>
+#include <base/Log.h>
 
 #include "com/RecvBufs.h"
 #include "pes/PEManager.h"

@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/tracing/Tracing.h>
-#include <m3/Config.h>
+#include <base/tracing/Tracing.h>
+#include <base/Config.h>
+
 #include <iostream>
 
 using namespace std;

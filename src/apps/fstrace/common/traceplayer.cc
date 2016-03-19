@@ -25,8 +25,8 @@
 #include "exceptions.h"
 
 #ifndef __LINUX__
-#   include <m3/util/Profile.h>
-#   include <m3/Log.h>
+#   include <base/util/Profile.h>
+#   include <base/Log.h>
 #endif
 
 /*

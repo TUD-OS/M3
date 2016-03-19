@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/SList.h>
-#include <m3/util/String.h>
-#include <m3/util/Reference.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+#include <base/util/String.h>
+#include <base/util/Reference.h>
+#include <base/Log.h>
 
 #include "SendQueue.h"
 #include "Gate.h"

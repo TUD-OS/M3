@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/stream/IStringStream.h>
+
 #include <m3/pipe/PipeFS.h>
-#include <m3/stream/IStringStream.h>
 #include <m3/vfs/Pipe.h>
 
 namespace m3 {

@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
-#include <m3/util/Math.h>
-#include <m3/Config.h>
-#include <m3/Heap.h>
+#include <base/Common.h>
+#include <base/util/Math.h>
+#include <base/Config.h>
+#include <base/Heap.h>
+
+#include <m3/VPE.h>
 
 namespace m3 {
 

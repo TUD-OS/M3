@@ -16,12 +16,13 @@
 
 #pragma once
 
+#include <base/tracing/Tracing.h>
+#include <base/Errors.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/com/SendGate.h>
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
-#include <m3/cap/SendGate.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/GateStream.h>
-#include <m3/Errors.h>
 
 namespace m3 {
 

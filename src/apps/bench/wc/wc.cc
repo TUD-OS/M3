@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Profile.h>
-#include <m3/util/Chars.h>
+#include <base/util/Profile.h>
+#include <base/util/Chars.h>
+#include <base/Log.h>
+
 #include <m3/vfs/FileRef.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

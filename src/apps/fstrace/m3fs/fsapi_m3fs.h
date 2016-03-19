@@ -16,11 +16,12 @@
 
 #pragma once
 
+#include <base/util/Profile.h>
+#include <base/Log.h>
+
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
-#include <m3/util/Profile.h>
-#include <m3/Log.h>
 
 #include "common/exceptions.h"
 #include "common/fsapi.h"

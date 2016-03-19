@@ -14,10 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Config.h>
-#include <m3/col/SList.h>
-#include <m3/DTU.h>
+#include <base/col/SList.h>
+#include <base/Config.h>
+#include <base/DTU.h>
+#include <base/Log.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>

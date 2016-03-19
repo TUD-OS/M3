@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
+#include <base/Common.h>
 
 #include "pes/PEManager.h"
 #include "DTU.h"

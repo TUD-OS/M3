@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/CapRngDesc.h>
-#include <m3/service/M3FS.h>
+#include <base/Common.h>
+#include <base/util/CapRngDesc.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/vfs/LocList.h>
 #include <m3/vfs/FileSystem.h>
 #include <m3/vfs/File.h>

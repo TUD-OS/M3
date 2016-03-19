@@ -14,9 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/BitField.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/util/BitField.h>
+#include <base/Log.h>
+
 #include "BitField.h"
 
 using namespace m3;

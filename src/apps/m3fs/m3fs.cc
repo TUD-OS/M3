@@ -14,15 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/service/M3FS.h>
+#include <base/Common.h>
+#include <base/stream/IStringStream.h>
+#include <base/Log.h>
+#include <base/Errors.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
-#include <m3/Errors.h>
-#include <cstring>
 
 #include "FSHandle.h"
 #include "INodes.h"

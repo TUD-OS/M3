@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
+#include <base/stream/Serial.h>
+#include <base/util/Profile.h>
+#include <base/Log.h>
+
 #include <m3/pipe/PipeWriter.h>
 #include <m3/pipe/PipeReader.h>
-#include <m3/util/Profile.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

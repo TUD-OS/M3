@@ -14,12 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/cap/Session.h>
-#include <m3/cap/SendGate.h>
-#include <m3/RecvBuf.h>
-#include <m3/GateStream.h>
-#include <m3/Log.h>
+#include <base/stream/Serial.h>
+#include <base/Log.h>
+
+#include <m3/com/SendGate.h>
+#include <m3/com/RecvBuf.h>
+#include <m3/com/GateStream.h>
+#include <m3/session/Session.h>
 
 using namespace m3;
 

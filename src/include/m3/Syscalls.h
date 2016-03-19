@@ -16,11 +16,12 @@
 
 #pragma once
 
-#include <m3/cap/SendGate.h>
-#include <m3/util/String.h>
-#include <m3/CapRngDesc.h>
-#include <m3/GateStream.h>
-#include <m3/Env.h>
+#include <base/util/String.h>
+#include <base/util/CapRngDesc.h>
+#include <base/Env.h>
+
+#include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
 
 namespace m3 {
 

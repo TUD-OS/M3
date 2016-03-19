@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/Config.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/Config.h>
+#include <base/Log.h>
 
 #include "mem/MemoryMap.h"
 

@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
+#include <base/Common.h>
+#include <base/stream/Serial.h>
+#include <base/ELF.h>
+#include <base/Log.h>
+
 #include <m3/stream/FStream.h>
-#include <m3/ELF.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

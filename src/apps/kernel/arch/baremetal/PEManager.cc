@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
+#include <base/util/Sync.h>
 
 #include "pes/PEManager.h"
 

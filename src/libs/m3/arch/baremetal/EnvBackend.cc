@@ -14,12 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/cap/VPE.h>
-#include <m3/stream/Serial.h>
-#include <m3/Env.h>
-#include <m3/RecvBuf.h>
+#include <base/Common.h>
+#include <base/stream/Serial.h>
+#include <base/Env.h>
+
+#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 

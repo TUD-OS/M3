@@ -16,11 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
-#include <m3/CapRngDesc.h>
-#include <m3/col/Treap.h>
-#include <m3/Log.h>
+#include <base/Common.h>
+#include <base/col/Treap.h>
+#include <base/util/CapRngDesc.h>
+#include <base/Log.h>
 
 #include "com/Services.h"
 #include "cap/Capability.h"

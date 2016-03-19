@@ -14,16 +14,16 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/com/SendQueue.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/cap/Session.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/Session.h>
 #include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/SendQueue.h>
-#include <m3/Log.h>
 
 #include <unistd.h>
 #include <fcntl.h>

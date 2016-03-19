@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/EnvBackend.h>
-#include <m3/cap/VPE.h>
-#include <m3/RecvBuf.h>
+#include <base/EnvBackend.h>
+#include <base/Log.h>
+
+#include <m3/com/RecvBuf.h>
 #include <m3/Syscalls.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 

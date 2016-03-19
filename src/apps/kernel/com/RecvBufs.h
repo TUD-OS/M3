@@ -16,12 +16,12 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/util/Math.h>
-#include <m3/Subscriber.h>
-#include <m3/Config.h>
-#include <m3/DTU.h>
-#include <m3/Errors.h>
+#include <base/Common.h>
+#include <base/util/Math.h>
+#include <base/util/Subscriber.h>
+#include <base/Config.h>
+#include <base/DTU.h>
+#include <base/Errors.h>
 
 #include "pes/VPE.h"
 #include "DTU.h"

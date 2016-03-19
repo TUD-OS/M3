@@ -16,10 +16,11 @@
 
 #pragma once
 
-#include <m3/arch/host/HWInterrupts.h>
-#include <m3/col/SList.h>
-#include <m3/util/Util.h>
-#include <m3/Log.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/col/SList.h>
+#include <base/util/Util.h>
+#include <base/Log.h>
+
 #include <pthread.h>
 #include <csignal>
 

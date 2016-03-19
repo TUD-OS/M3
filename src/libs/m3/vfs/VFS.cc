@@ -14,12 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
-#include <m3/service/M3FS.h>
+#include <base/com/Marshalling.h>
+#include <base/stream/Serial.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/pipe/PipeFS.h>
 #include <m3/vfs/VFS.h>
-#include <m3/Marshalling.h>
-#include <m3/stream/Serial.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 

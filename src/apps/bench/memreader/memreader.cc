@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/cap/MemGate.h>
-#include <m3/util/Profile.h>
+#include <base/stream/Serial.h>
+#include <base/stream/IStringStream.h>
+#include <base/util/Profile.h>
+
+#include <m3/com/MemGate.h>
 
 using namespace m3;
 

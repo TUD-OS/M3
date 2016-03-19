@@ -14,16 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/SendGate.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/VGA.h>
-#include <m3/stream/IStringStream.h>
+#include <base/Common.h>
+#include <base/stream/IStringStream.h>
+#include <base/Log.h>
+
+#include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/VGA.h>
 #include <m3/stream/FStream.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
 
 using namespace m3;
 

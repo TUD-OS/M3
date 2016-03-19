@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/com/GateStream.h>
 #include <m3/pipe/PipeWriter.h>
-#include <m3/GateStream.h>
 
 namespace m3 {
 

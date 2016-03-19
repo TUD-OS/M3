@@ -15,18 +15,19 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/cap/Session.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/util/Profile.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
 #include <m3/server/RequestHandler.h>
-#include <m3/service/arch/host/Plasma.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/service/arch/host/VGA.h>
-#include <m3/arch/host/HWInterrupts.h>
-#include <m3/util/Profile.h>
-#include <m3/WorkLoop.h>
+#include <m3/session/arch/host/Plasma.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/arch/host/VGA.h>
+#include <m3/session/Session.h>
+#include <m3/Syscalls.h>
+
 #include <math.h>
 
 #define INTRO_TIME      200      // irqs

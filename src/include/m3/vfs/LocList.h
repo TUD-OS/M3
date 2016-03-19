@@ -16,8 +16,9 @@
 
 #pragma once
 
-#include <m3/stream/OStream.h>
-#include <m3/GateStream.h>
+#include <base/stream/OStream.h>
+
+#include <m3/com/GateStream.h>
 
 namespace m3 {
 

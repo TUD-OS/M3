@@ -14,8 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/GateStream.h>
-#include <m3/Log.h>
+#include <base/Log.h>
+
+#include <m3/com/GateStream.h>
+
 #include "Memory.h"
 
 using namespace m3;

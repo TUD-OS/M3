@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/IStringStream.h>
+#include <base/Common.h>
+#include <base/stream/IStringStream.h>
+#include <base/stream/Serial.h>
+#include <base/util/Math.h>
+
 #include <m3/stream/FStream.h>
-#include <m3/stream/Serial.h>
-#include <m3/util/Math.h>
 
 #include "Stream.h"
 

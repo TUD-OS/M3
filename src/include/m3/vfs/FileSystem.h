@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <m3/util/Reference.h>
-#include <m3/util/String.h>
-#include <m3/Errors.h>
+#include <base/util/Reference.h>
+#include <base/util/String.h>
+#include <base/Errors.h>
+
 #include <fs/internal.h>
 
 namespace m3 {

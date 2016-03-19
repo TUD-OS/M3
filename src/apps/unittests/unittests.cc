@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
+#include <base/Common.h>
+#include <base/Log.h>
+
 #include <m3/vfs/VFS.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 

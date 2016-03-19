@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Env.h>
+#include <base/Common.h>
+#include <base/Env.h>
 #include <cstdlib>
 
 void exit(int code) {

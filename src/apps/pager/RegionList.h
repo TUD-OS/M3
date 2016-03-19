@@ -16,11 +16,12 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/SList.h>
-#include <m3/cap/MemGate.h>
-#include <m3/CapRngDesc.h>
-#include <m3/DTU.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+#include <base/util/CapRngDesc.h>
+#include <base/DTU.h>
+
+#include <m3/com/MemGate.h>
 
 namespace m3 {
 

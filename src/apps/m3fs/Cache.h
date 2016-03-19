@@ -16,8 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/MemGate.h>
+#include <base/Common.h>
+
+#include <m3/com/MemGate.h>
+
 #include <fs/internal.h>
 
 class Cache {
