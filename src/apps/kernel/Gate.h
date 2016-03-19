@@ -17,7 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/com/GateStreamBase.h>
+#include <base/com/GateStream.h>
 #include <base/util/Subscriber.h>
 #include <base/Errors.h>
 

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <base/com/GateStreamBase.h>
+#include <base/com/GateStream.h>
 
 #include <m3/com/SendGate.h>
 #include <m3/com/MemGate.h>
