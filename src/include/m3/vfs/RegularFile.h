@@ -84,6 +84,9 @@ public:
         return _fs;
     }
 
+    virtual char type() const override {
+        return 'M';
+    }
     virtual bool seekable() const override {
         return true;
     }
@@ -95,6 +98,11 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) override {
         return do_write(buffer, count, _pos);
     }
+
+    virtual size_t serialize_length() override;
+    virtual void delegate(VPE &vpe) override;
+    virtual void serialize(Marshaller &m) override;
+    static RegularFile *unserialize(Unmarshaller &um);
 
 private:
     virtual ssize_t fill(void *buffer, size_t size) override;

@@ -27,7 +27,7 @@
 
 namespace m3 {
 
-EPMux EPMux::_inst INIT_PRIORITY(103);
+EPMux EPMux::_inst INIT_PRIORITY(104);
 
 EPMux::EPMux()
     : _next_victim(1), _gates() {

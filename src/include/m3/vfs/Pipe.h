@@ -37,16 +37,8 @@ public:
         return false;
     }
 
-    virtual int stat(FileInfo &info) const override {
-        // TODO
-        info.devno = 0;
-        info.inode = 0;
-        info.lastaccess = info.lastmod = 0;
-        info.links = 1;
-        info.mode = S_IFPIP | S_IRUSR | S_IWUSR;
-        info.size = 0;
-        return 0;
-    }
+    virtual int stat(FileInfo &info) const override;
+
     virtual off_t seek(off_t, int) override {
         return 0;
     }
@@ -71,11 +63,25 @@ public:
     explicit PipeFileReader(capsel_t caps, size_t rep) : PipeFile(), _rd(caps, rep) {
     }
 
+    virtual char type() const override {
+        return 'P';
+    }
     virtual ssize_t read(void *buffer, size_t count) override {
         return _rd.read(buffer, count);
     }
     virtual ssize_t write(const void *, size_t) override {
         return 0;
+    }
+
+    virtual size_t serialize_length() override {
+        return 0;
+    }
+    virtual void delegate(VPE &) override {
+    }
+    virtual void serialize(Marshaller &) override {
+    }
+    static PipeFileReader *unserialize(Unmarshaller &) {
+        return nullptr;
     }
 
 private:
@@ -92,11 +98,25 @@ public:
     explicit PipeFileWriter(capsel_t caps, size_t size) : PipeFile(), _wr(caps, size) {
     }
 
+    virtual char type() const override {
+        return 'Q';
+    }
     virtual ssize_t read(void *, size_t) override {
         return 0;
     }
     virtual ssize_t write(const void *buffer, size_t count) override {
         return _wr.write(buffer, count);
+    }
+
+    virtual size_t serialize_length() override {
+        return 0;
+    }
+    virtual void delegate(VPE &) override {
+    }
+    virtual void serialize(Marshaller &) override {
+    }
+    static PipeFileWriter *unserialize(Unmarshaller &) {
+        return nullptr;
     }
 
 private:

@@ -26,37 +26,12 @@
 
 namespace m3 {
 
-class RegularFile;
-
 /**
  * A VPE-local virtual file system. It allows to mount filesystems at a given path and directs
  * filesystem operations like open, mkdir, ... to the corresponding filesystem.
  */
 class VFS {
     friend class RegularFile;
-
-    struct Init {
-        Init();
-        static Init obj;
-    };
-
-    class MountPoint : public SListItem {
-    public:
-        explicit MountPoint(const char *path, FileSystem *fs)
-            : SListItem(), _path(path), _fs(fs) {
-        }
-
-        const String &path() const {
-            return _path;
-        }
-        const Reference<FileSystem> &fs() const {
-            return _fs;
-        }
-
-    private:
-        String _path;
-        Reference<FileSystem> _fs;
-    };
 
 public:
     /**
@@ -80,9 +55,16 @@ public:
      *
      * @param path the path to the file to open
      * @param perms the permissions (FILE_*)
-     * @return the File instance or nullptr if it failed
+     * @return the file descriptor or FileTable::INVALID if it failed
      */
-    static File *open(const char *path, int perms);
+    static fd_t open(const char *path, int perms);
+
+    /**
+     * Closes the given file
+     *
+     * @param fd the file descriptor
+     */
+    static void close(fd_t fd);
 
     /**
      * Retrieves the file information for the given path.
@@ -128,39 +110,6 @@ public:
     static Errors::Code unlink(const char *path);
 
     /**
-     * Determines the number of bytes for serializing the mounts.
-     *
-     * @return the number of bytes
-     */
-    static size_t serialize_length();
-
-    /**
-     * Serializes the current mounts into the given buffer
-     *
-     * @param buffer the buffer
-     * @param size the capacity of the buffer
-     * @return the space used
-     */
-    static size_t serialize(void *buffer, size_t size);
-
-    /**
-     * Delegates the capabilities necessary for given mounts to <vpe>.
-     *
-     * @param vpe the VPE to delegate the caps to
-     * @param buffer the buffer with the serialized mounts
-     * @param size the length of the data
-     */
-    static void delegate(VPE &vpe, const void *buffer, size_t size);
-
-    /**
-     * Unserializes the mounts from the buffer and mounts them
-     *
-     * @param buffer the buffer
-     * @param size the length of the data
-     */
-    static void unserialize(const void *buffer, size_t size);
-
-    /**
      * Prints the current mounts to <os>.
      *
      * @param os the stream to write to
@@ -168,10 +117,7 @@ public:
     static void print(OStream &os);
 
 private:
-    static size_t is_in_mount(const String &mount, const char *in);
-    static Reference<FileSystem> resolve(const char *in, size_t *pos);
-
-    static SList<MountPoint> _mounts;
+    static MountSpace *ms();
 };
 
 }

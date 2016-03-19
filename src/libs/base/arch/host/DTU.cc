@@ -42,8 +42,8 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
         LOG(DTUERR, "  " << tmp.str().c_str());
 }
 
-DTU DTU::inst INIT_PRIORITY(106);
-DTU::Buffer DTU::_buf INIT_PRIORITY(106);
+DTU DTU::inst INIT_PRIORITY(101);
+DTU::Buffer DTU::_buf INIT_PRIORITY(101);
 
 DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid() {
 }

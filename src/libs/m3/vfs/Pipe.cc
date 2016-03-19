@@ -14,22 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/vfs/Pipe.h>
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+namespace m3 {
 
-using uchar     = unsigned char;
-using ushort    = unsigned short;
-using uint      = unsigned int;
-using ulong     = unsigned long;
-using llong     = long long;
-using ullong    = unsigned long long;
+int PipeFile::stat(FileInfo &info) const {
+    // TODO
+    info.devno = 0;
+    info.inode = 0;
+    info.lastaccess = info.lastmod = 0;
+    info.links = 1;
+    info.mode = S_IFPIP | S_IRUSR | S_IWUSR;
+    info.size = 0;
+    return 0;
+}
 
-using word_t    = unsigned long;
-using label_t   = word_t;
-using capsel_t  = unsigned;
-using off_t     = long;
-using fd_t      = int;
-using cycles_t  = uint64_t;
+}

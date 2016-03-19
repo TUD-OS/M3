@@ -28,7 +28,9 @@ EXTERN_C int main(int argc, char **argv);
 namespace m3 {
 
 OStream &operator<<(OStream &os, const Env &senv) {
+#if defined(__t2__) || defined(__t3__)
     static_assert((sizeof(Env) % DTU_PKG_SIZE) == 0, "sizeof(Env) % 8 !=  0");
+#endif
 
     os << "core  : " << senv.coreid << "\n";
     os << "argc  : " << senv.argc << "\n";
@@ -38,7 +40,10 @@ OStream &operator<<(OStream &os, const Env &senv) {
     os << "lambda: " << fmt(senv.lambda, "p") << "\n";
     os << "pgsess: " << senv.pager_sess << "\n";
     os << "pggate: " << senv.pager_gate << "\n";
-    os << "mntlen: " << senv.mount_len << "\n";
+    os << "mounts: " << senv.mounts << "\n";
+    os << "mntlen: " << senv.mounts_len << "\n";
+    os << "fds   : " << senv.fds << "\n";
+    os << "fdslen: " << senv.fds_len << "\n";
     os << "mounts: " << fmt(senv.mounts, "p") << "\n";
     os << "eps   : " << fmt(senv.eps, "p") << "\n";
     os << "caps  : " << fmt(senv.caps, "p") << "\n";

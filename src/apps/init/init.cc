@@ -67,7 +67,9 @@ int main() {
 
     {
         VPE vpe("hello");
-        vpe.delegate_mounts();
+
+        vpe.mountspace(*VPE::self().mountspace());
+        vpe.obtain_mountspace();
 
         const char *args[] = {"/bin/hello", "foo", "bar"};
         Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
@@ -80,9 +82,13 @@ int main() {
 
     {
         VPE vpe("hello");
+
         vpe.delegate(VPE::all_caps());
         if(Errors::occurred())
             PANIC("Unable to delegate caps to VPE: " << Errors::to_string(Errors::last));
+
+        vpe.mountspace(*VPE::self().mountspace());
+        vpe.obtain_mountspace();
 
         int foo = 123;
         Errors::Code res = vpe.run([&mem,foo]() {

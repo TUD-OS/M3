@@ -18,6 +18,7 @@
 
 #include <m3/session/M3FS.h>
 #include <m3/vfs/RegularFile.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/vfs/VFS.h>
 
 namespace m3 {
@@ -235,6 +236,34 @@ bool RegularFile::seek_to(off_t newpos) {
         }
     }
     return false;
+}
+
+size_t RegularFile::serialize_length() {
+    return ostreamsize<int, int, size_t, bool, off_t, Position, uint16_t, size_t>();
+}
+
+void RegularFile::delegate(VPE &) {
+    // nothing to do, because we let the child fetch new mem caps
+}
+
+void RegularFile::serialize(Marshaller &m) {
+    size_t mid = VPE::self().mountspace()->get_mount_id(&*_fs);
+    m << _fd << flags() << mid << _extended << _begin << _pos;
+    m << _last_extent << _last_off;
+}
+
+RegularFile *RegularFile::unserialize(Unmarshaller &um) {
+    int fd, flags;
+    size_t mid;
+    um >> fd >> flags >> mid;
+
+    Reference<M3FS> fs(static_cast<M3FS*>(VPE::self().mountspace()->get_mount(mid)));
+    RegularFile *file = new RegularFile(fd, fs, flags);
+    um >> file->_extended >> file->_begin >> file->_pos;
+    um >> file->_last_extent >> file->_last_off;
+    // we want to get new mem caps
+    file->_pos.local = MAX_LOCS;
+    return file;
 }
 
 }

@@ -20,6 +20,7 @@
 #include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
 #include <m3/vfs/RegularFile.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/vfs/Executable.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -33,8 +34,10 @@ void VPE::init_state() {
         delete _eps;
     if(Heap::is_on_heap(_caps))
         delete _caps;
-    if(Heap::is_on_heap(_mounts))
-        Heap::free(_mounts);
+    if(Heap::is_on_heap(_fds))
+        delete _fds;
+    if(Heap::is_on_heap(_ms))
+        delete _ms;
 
     if(env()->pager_sess && env()->pager_gate)
         _pager = new Pager(env()->pager_sess, env()->pager_gate);
@@ -47,8 +50,15 @@ void VPE::init_state() {
     if(_eps == nullptr)
         _eps = new BitField<EP_COUNT>();
 
-    _mounts = reinterpret_cast<void*>(env()->mounts);
-    _mountlen = env()->mount_len;
+    if(env()->mounts_len)
+        _ms = MountSpace::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
+    else
+        _ms = reinterpret_cast<MountSpace*>(env()->mounts);
+
+    if(env()->fds_len)
+        _fds = FileTable::unserialize(reinterpret_cast<const void*>(env()->fds), env()->fds_len);
+    else
+        _fds = reinterpret_cast<FileTable*>(env()->fds);
 }
 
 Errors::Code VPE::run(void *lambda) {
@@ -63,8 +73,10 @@ Errors::Code VPE::run(void *lambda) {
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
     senv.exitaddr = 0;
 
-    senv.mount_len = _mountlen;
-    senv.mounts = reinterpret_cast<uintptr_t>(_mounts);
+    senv.mounts_len = 0;
+    senv.mounts = reinterpret_cast<uintptr_t>(_ms);
+    senv.fds_len = 0;
+    senv.fds = reinterpret_cast<uintptr_t>(_fds);
     senv.caps = reinterpret_cast<uintptr_t>(_caps);
     senv.eps = reinterpret_cast<uintptr_t>(_eps);
     senv.pager_gate = 0;
@@ -103,19 +115,22 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.lambda = 0;
     senv.exitaddr = 0;
 
-    /* check state size */
-    if(size + _mountlen + sizeof(*_caps) + sizeof(*_eps) > RT_SPACE_SIZE)
-        PANIC("State is too large");
-
-    /* add mounts, caps and eps */
+    /* add mounts, fds, caps and eps */
     /* align it because we cannot necessarily read e.g. integers from unaligned addresses */
     size_t offset = Math::round_up(size, sizeof(word_t));
-    senv.mount_len = _mountlen;
+
     senv.mounts = RT_SPACE_START + offset;
-    if(_mountlen > 0) {
-        memcpy(buffer + offset, _mounts, _mountlen);
-        offset = Math::round_up(offset + _mountlen, sizeof(word_t));
-    }
+    senv.mounts_len = _ms->serialize(buffer + offset, RT_SPACE_SIZE - offset);
+    offset = Math::round_up(offset + senv.mounts_len, sizeof(word_t));
+
+    senv.fds = RT_SPACE_START + offset;
+    senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
+    offset = Math::round_up(offset + senv.fds_len, sizeof(word_t));
+
+    size_t eps_caps = Math::round_up(sizeof(*_caps), sizeof(word_t)) +
+        Math::round_up(sizeof(*_eps), sizeof(word_t));
+    if(RT_SPACE_SIZE - offset < eps_caps)
+        PANIC("State is too large");
 
     senv.caps = RT_SPACE_START + offset;
     memcpy(buffer + offset, _caps, sizeof(*_caps));

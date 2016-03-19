@@ -9,6 +9,7 @@ env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
 env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
 env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')
 env.M3Strip('$FSDIR/default/bin/fstest', '$BINARYDIR/fstest')
+env.M3Strip('$FSDIR/default/bin/fdchild', '$BINARYDIR/fdchild')
 env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
 env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
 if env['ARCH'] != 'host':

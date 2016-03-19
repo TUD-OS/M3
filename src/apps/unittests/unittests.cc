@@ -41,7 +41,10 @@ int main() {
     for(size_t i = 0; i < ARRAY_SIZE(progs); ++i) {
         VPE t("tests");
         const char *args[] = {progs[i]};
-        t.delegate_mounts();
+
+        t.mountspace(*VPE::self().mountspace());
+        t.obtain_mountspace();
+
         t.exec(ARRAY_SIZE(args), args);
         uint32_t res = t.wait();
         if((res >> 16) != 0)

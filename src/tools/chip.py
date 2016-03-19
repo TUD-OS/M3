@@ -45,6 +45,8 @@ class Env(Structure):
         ('pager_gate', c_uint32),
         ('mountlen', c_uint32),
         ('mounts', c_uint32),
+        ('fdslen', c_uint32),
+        ('fds', c_uint32),
         ('eps', c_uint32),
         ('caps', c_uint32),
         ('exit', c_uint32),
@@ -158,6 +160,8 @@ def initState(core, argv):
     senv.eps = 0
     senv.mountlen = 0
     senv.mounts = 0
+    senv.fdslen = 0
+    senv.fds = 0
 
     # write Env to core
     off = RT_START

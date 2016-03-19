@@ -30,6 +30,8 @@
 namespace m3 {
 
 class VFS;
+class FileTable;
+class MountSpace;
 class Pager;
 class FStream;
 class Executable;
@@ -58,13 +60,7 @@ public:
      */
     static constexpr uint SEL_TOTAL     = CAP_TOTAL;
 
-    // don't revoke these. they kernel does so on exit
-    explicit VPE()
-        : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
-          _caps(), _eps(), _pager(), _mounts(), _mountlen() {
-        init_state();
-        init();
-    }
+    explicit VPE();
 
 public:
     /**
@@ -97,6 +93,45 @@ public:
     Pager *pager() {
         return _pager;
     }
+
+    /**
+     * @return the mountspace
+     */
+    MountSpace *mountspace() {
+        return _ms;
+    }
+
+    /**
+     * Clones the given mountspace into this VPE.
+     *
+     * @param ms the mountspace
+     */
+    void mountspace(const MountSpace &ms);
+
+    /**
+     * Lets this VPE obtain all capabilities that are necessary for the current mountspace.
+     */
+    void obtain_mountspace();
+
+    /**
+     * @return the file descriptors
+     */
+    FileTable *fds() {
+        return _fds;
+    }
+
+    /**
+     * Clones the given file descriptors into this VPE. Note that the file descriptors depend
+     * on the mountspace, so that you should always prepare the mountspace first.
+     *
+     * @param fds the file descriptors
+     */
+    void fds(const FileTable &fds);
+
+    /**
+     * Lets this VPE obtain all capabilities that are necessary for the current file descriptors.
+     */
+    void obtain_fds();
 
     /**
      * Allocates capability selectors.
@@ -164,11 +199,6 @@ public:
     const MemGate &mem() const {
         return _mem;
     }
-
-    /**
-     * Delegates the current mounts to this VPE. Note that this can only be done once.
-     */
-    void delegate_mounts();
 
     /**
      * Delegates the given object capability to this VPE.
@@ -254,8 +284,8 @@ private:
     BitField<SEL_TOTAL> *_caps;
     BitField<EP_COUNT> *_eps;
     Pager *_pager;
-    void *_mounts;
-    size_t _mountlen;
+    MountSpace *_ms;
+    FileTable *_fds;
     static VPE _self;
 };
 

@@ -14,22 +14,18 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <base/Common.h>
+#include <base/Log.h>
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <m3/stream/FStream.h>
 
-using uchar     = unsigned char;
-using ushort    = unsigned short;
-using uint      = unsigned int;
-using ulong     = unsigned long;
-using llong     = long long;
-using ullong    = unsigned long long;
+using namespace m3;
 
-using word_t    = unsigned long;
-using label_t   = word_t;
-using capsel_t  = unsigned;
-using off_t     = long;
-using fd_t      = int;
-using cycles_t  = uint64_t;
+static char buffer[1024];
+
+int main() {
+    FStream f(0);
+    size_t size = f.read(buffer, sizeof(buffer));
+    Serial::get().dump(buffer, size);
+    return 0;
+}

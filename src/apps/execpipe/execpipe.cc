@@ -45,13 +45,19 @@ int main(int argc, char **argv) {
     {
         String path = pipe.get_path('w', "/pipe/");
         const char *args[] = {argv[1], argv[3], path.c_str()};
-        writer.delegate_mounts();
+
+        writer.mountspace(*VPE::self().mountspace());
+        writer.obtain_mountspace();
+
         writer.exec(ARRAY_SIZE(args), args);
     }
     {
         String path = pipe.get_path('r', "/pipe/");
         const char *args[] = {argv[2], path.c_str()};
-        reader.delegate_mounts();
+
+        reader.mountspace(*VPE::self().mountspace());
+        reader.obtain_mountspace();
+
         reader.exec(ARRAY_SIZE(args), args);
     }
 

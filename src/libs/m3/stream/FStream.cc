@@ -19,29 +19,37 @@
 
 namespace m3 {
 
+FStream::FStream(int fd, size_t bufsize)
+    : IStream(), OStream(), _fd(fd), _fpos(),
+      _rbuf(new char[bufsize], bufsize), _wbuf(new char[bufsize], bufsize), _flags(FL_DEL_BUF) {
+}
+
 FStream::FStream(const char *filename, int perms, size_t bufsize)
-    : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
+    : IStream(), OStream(), _fd(VFS::open(filename, get_perms(perms))), _fpos(),
       _rbuf((perms & FILE_R) ? new char[bufsize] : nullptr, bufsize),
       _wbuf((perms & FILE_W) ? new char[bufsize] : nullptr, bufsize),
-      _del(true) {
-    _state |= _file ? 0 : FL_ERROR;
+      _flags(FL_DEL_BUF | FL_DEL_FILE) {
+    if(_fd == FileTable::INVALID)
+        _state |= FL_ERROR;
 }
 
 FStream::FStream(const char *filename, char *rbuf, size_t rsize,
         char *wbuf, size_t wsize, int perms)
-    : IStream(), OStream(), _file(VFS::open(filename, get_perms(perms))), _fpos(),
+    : IStream(), OStream(), _fd(VFS::open(filename, get_perms(perms))), _fpos(),
       _rbuf(rbuf, rsize), _wbuf(wbuf, wsize),
-      _del(false) {
-    _state |= _file ? 0 : FL_ERROR;
+      _flags(FL_DEL_FILE) {
+    if(_fd == FileTable::INVALID)
+        _state |= FL_ERROR;
 }
 
 FStream::~FStream() {
     flush();
-    if(!_del) {
+    if(!(_flags & FL_DEL_BUF)) {
         _rbuf.data = nullptr;
         _wbuf.data = nullptr;
     }
-    delete _file;
+    if((_flags & FL_DEL_FILE) && _fd != FileTable::INVALID)
+        VFS::close(_fd);
 }
 
 void FStream::set_error(ssize_t res) {
@@ -63,7 +71,7 @@ size_t FStream::read(void *dst, size_t count) {
     if(!_rbuf.cur && Math::is_aligned(_fpos, DTU_PKG_SIZE) &&
                      Math::is_aligned(dst, DTU_PKG_SIZE) &&
                      Math::is_aligned(count, DTU_PKG_SIZE)) {
-        ssize_t res = _file->read(dst, count);
+        ssize_t res = file()->read(dst, count);
         if(res > 0)
             _fpos += res;
         else
@@ -92,7 +100,7 @@ size_t FStream::read(void *dst, size_t count) {
         // we can assume here that we are always at the position (_idx, _off), because our
         // read-buffer is empty, which means that we've used everything that we read via _file->read
         // last time.
-        ssize_t res = _file->read(_rbuf.data, _rbuf.size);
+        ssize_t res = file()->read(_rbuf.data, _rbuf.size);
         if(res <= 0) {
             set_error(res);
             _rbuf.cur = 0;
@@ -115,21 +123,21 @@ void FStream::flush() {
         size_t posoff = _wbuf.cur & (DTU_PKG_SIZE - 1);
         // first, write the aligned part
         if(_wbuf.cur - posoff > 0)
-            set_error(_file->write(_wbuf.data, _wbuf.cur - posoff));
+            set_error(file()->write(_wbuf.data, _wbuf.cur - posoff));
 
         // if there is anything left, read that first and write it back
         if(posoff != 0) {
             alignas(DTU_PKG_SIZE) uint8_t tmpbuf[DTU_PKG_SIZE];
-            set_error(_file->fill(tmpbuf, DTU_PKG_SIZE));
+            set_error(file()->fill(tmpbuf, DTU_PKG_SIZE));
             memcpy(tmpbuf, _wbuf.data + _wbuf.cur - posoff, posoff);
-            set_error(_file->write(tmpbuf, DTU_PKG_SIZE));
+            set_error(file()->write(tmpbuf, DTU_PKG_SIZE));
         }
         _wbuf.cur = 0;
     }
 }
 
 off_t FStream::seek(off_t offset, int whence) {
-    if(!_file->seekable()) {
+    if(!file()->seekable()) {
         _state |= FL_ERROR;
         return 0;
     }
@@ -152,7 +160,7 @@ off_t FStream::do_seek(off_t offset, int whence) {
             }
         }
 
-        if(_file->seek_to(newpos)) {
+        if(file()->seek_to(newpos)) {
             _fpos = newpos;
             // the buffer is invalid now
             _rbuf.cur = 0;
@@ -162,7 +170,7 @@ off_t FStream::do_seek(off_t offset, int whence) {
 
     // File::seek assumes that it is aligned. _fpos needs to reflect the actual position, of course
     size_t posoff = offset & (DTU_PKG_SIZE - 1);
-    _fpos = _file->seek(offset - posoff, whence) + posoff;
+    _fpos = file()->seek(offset - posoff, whence) + posoff;
     _rbuf.cur = 0;
     return _fpos;
 }
@@ -175,7 +183,7 @@ size_t FStream::write(const void *src, size_t count) {
     if(!_wbuf.cur && Math::is_aligned(_fpos, DTU_PKG_SIZE) &&
                      Math::is_aligned(src, DTU_PKG_SIZE) &&
                      Math::is_aligned(count, DTU_PKG_SIZE)) {
-        ssize_t res = _file->write(src, count);
+        ssize_t res = file()->write(src, count);
         set_error(res);
         return res < 0 ? 0 : res;
     }
@@ -193,7 +201,7 @@ size_t FStream::write(const void *src, size_t count) {
             _wbuf.pos = _fpos + total - posoff;
             _wbuf.cur = posoff;
             if(_wbuf.cur > 0) {
-                ssize_t res = _file->fill(_wbuf.data, DTU_PKG_SIZE);
+                ssize_t res = file()->fill(_wbuf.data, DTU_PKG_SIZE);
                 if(res <= 0) {
                     set_error(res);
                     return res;

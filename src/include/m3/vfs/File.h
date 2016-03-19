@@ -49,6 +49,11 @@ public:
     }
 
     /**
+     * @return the unique character for serialization
+     */
+    virtual char type() const = 0;
+
+    /**
      * @return if seeking is possible
      */
     virtual bool seekable() const = 0;
@@ -87,6 +92,27 @@ public:
      * @return the number of written bytes
      */
     virtual ssize_t write(const void *buffer, size_t count) = 0;
+
+    /**
+     * Determines the number of bytes to serialize this object.
+     *
+     * @return the number of bytes
+     */
+    virtual size_t serialize_length() = 0;
+
+    /**
+     * Delegates all capabilities that are required for this file to the given VPE.
+     *
+     * @param vpe the VPE
+     */
+    virtual void delegate(VPE &vpe) = 0;
+
+    /**
+     * Serializes this object to the given marshaller.
+     *
+     * @param m the marshaller
+     */
+    virtual void serialize(Marshaller &m) = 0;
 
 private:
     virtual ssize_t fill(void *buffer, size_t size) = 0;

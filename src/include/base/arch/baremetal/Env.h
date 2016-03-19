@@ -51,8 +51,10 @@ public:
     uintptr_t lambda;
     uint32_t pager_sess;
     uint32_t pager_gate;
-    uint32_t mount_len;
+    uint32_t mounts_len;
     uintptr_t mounts;
+    uint32_t fds_len;
+    uintptr_t fds;
     uintptr_t eps;
     uintptr_t caps;
     uintptr_t exitaddr;

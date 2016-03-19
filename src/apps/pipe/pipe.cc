@@ -34,7 +34,10 @@ int main() {
         Pipe pipe(reader, VPE::self(), 64);
 
         String rpath = pipe.get_path('r', "/pipes/");
-        reader.delegate_mounts();
+
+        reader.mountspace(*VPE::self().mountspace());
+        reader.obtain_mountspace();
+
         reader.run([rpath] {
             FStream f(rpath.c_str(), FILE_R);
             if(!f)
@@ -62,7 +65,9 @@ int main() {
         VPE writer("writer");
         Pipe pipe(VPE::self(), writer, 0x1000);
 
-        writer.delegate_mounts();
+        writer.mountspace(*VPE::self().mountspace());
+        writer.obtain_mountspace();
+
         writer.run([&pipe] {
             PipeWriter wr(pipe);
             for(int i = 0; i < 10; ++i) {
@@ -87,7 +92,9 @@ int main() {
         VPE writer("writer");
         Pipe pipe(reader, writer, 0x1000);
 
-        reader.delegate_mounts();
+        reader.mountspace(*VPE::self().mountspace());
+        reader.obtain_mountspace();
+
         reader.run([&pipe] {
             PipeReader rd(pipe);
             size_t res, i = 0;
@@ -95,7 +102,10 @@ int main() {
                 Serial::get() << "Read " << res << ": '" << buffer << "'\n";
             return 0;
         });
-        writer.delegate_mounts();
+
+        writer.mountspace(*VPE::self().mountspace());
+        writer.obtain_mountspace();
+
         writer.run([&pipe] {
             PipeWriter wr(pipe);
             for(int i = 0; i < 10; ++i) {
@@ -119,7 +129,9 @@ int main() {
         Pipe pipe1(reader, writer1, 0x1000);
         Pipe pipe2(reader, writer2, 0x1000);
 
-        writer1.delegate_mounts();
+        writer1.mountspace(*VPE::self().mountspace());
+        writer1.obtain_mountspace();
+
         writer1.run([&pipe1] {
             PipeWriter wr(pipe1);
             for(int i = 0; i < 10; ++i) {
@@ -129,7 +141,10 @@ int main() {
             }
             return 0;
         });
-        writer2.delegate_mounts();
+
+        writer2.mountspace(*VPE::self().mountspace());
+        writer2.obtain_mountspace();
+
         writer2.run([&pipe2] {
             PipeWriter wr(pipe2);
             for(int i = 0; i < 10; ++i) {
@@ -140,7 +155,9 @@ int main() {
             return 0;
         });
 
-        reader.delegate_mounts();
+        reader.mountspace(*VPE::self().mountspace());
+        reader.obtain_mountspace();
+
         reader.run([&pipe1, &pipe2] {
             PipeReader rd1(pipe1);
             PipeReader rd2(pipe2);
@@ -169,7 +186,9 @@ int main() {
         // t1 -> t2
         Pipe p1(t2, t1, 0x1000);
 
-        t1.delegate_mounts();
+        t1.mountspace(*VPE::self().mountspace());
+        t1.obtain_mountspace();
+
         t1.run([&p1] {
             PipeWriter wr(p1);
             for(int i = 0; i < 10; ++i) {
@@ -183,7 +202,9 @@ int main() {
         // t2 -> self
         Pipe p2(VPE::self(), t2, 0x1000);
 
-        t2.delegate_mounts();
+        t2.mountspace(*VPE::self().mountspace());
+        t2.obtain_mountspace();
+
         t2.run([&p1, &p2] {
             PipeReader rd(p1);
             PipeWriter wr(p2);

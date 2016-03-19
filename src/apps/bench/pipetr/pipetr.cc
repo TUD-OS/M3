@@ -54,7 +54,9 @@ int main(int argc, char **argv) {
     VPE writer("writer");
     Pipe pipe(VPE::self(), writer, MEM_SIZE);
 
-    writer.delegate_mounts();
+    writer.mountspace(*VPE::self().mountspace());
+    writer.obtain_mountspace();
+
     writer.run([argv, &pipe] {
         FileRef input(argv[1], FILE_R);
         if(Errors::occurred())

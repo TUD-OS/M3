@@ -20,6 +20,8 @@
 
 #include <m3/stream/FStream.h>
 #include <m3/vfs/FileRef.h>
+#include <m3/vfs/FileTable.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -29,6 +31,9 @@
 #include <unistd.h>
 
 namespace m3 {
+
+// this should be enough for now
+static const size_t STATE_BUF_SIZE    = 4096;
 
 static void write_file(pid_t pid, const char *suffix, const void *data, size_t size) {
     if(data) {
@@ -67,7 +72,8 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 void VPE::init_state() {
     delete _eps;
     delete _caps;
-    Heap::free(_mounts);
+    delete _ms;
+    delete _fds;
 
     _caps = new BitField<CAP_TOTAL>();
     size_t len = sizeof(*_caps);
@@ -77,7 +83,15 @@ void VPE::init_state() {
     len = sizeof(*_eps);
     read_from("eps", _eps, len);
 
-    _mounts = read_from("mounts", nullptr, _mountlen);
+    len = STATE_BUF_SIZE;
+    char *buf = new char[len];
+    read_from("ms", buf, len);
+    _ms = MountSpace::unserialize(buf, len);
+
+    len = STATE_BUF_SIZE;
+    read_from("fds", buf, len);
+    _fds = FileTable::unserialize(buf, len);
+    delete[] buf;
 }
 
 Errors::Code VPE::run(void *lambda) {
@@ -116,7 +130,15 @@ Errors::Code VPE::run(void *lambda) {
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
         write_file(pid, "eps", _eps, sizeof(*_eps));
-        write_file(pid, "mounts", _mounts, _mountlen);
+
+        size_t len = STATE_BUF_SIZE;
+        char *buf = new char[len];
+        len = _ms->serialize(buf, len);
+        write_file(pid, "ms", buf, len);
+
+        len = _fds->serialize(buf, STATE_BUF_SIZE);
+        write_file(pid, "fds", buf, len);
+        delete[] buf;
 
         // notify child; it can start now
         write(fd[1], &byte, 1);
@@ -185,7 +207,15 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
         write_file(pid, "eps", _eps, sizeof(*_eps));
-        write_file(pid, "mounts", _mounts, _mountlen);
+
+        size_t len = STATE_BUF_SIZE;
+        char *buf = new char[len];
+        len = _ms->serialize(buf, len);
+        write_file(pid, "ms", buf, len);
+
+        len = _fds->serialize(buf, STATE_BUF_SIZE);
+        write_file(pid, "fds", buf, len);
+        delete[] buf;
 
         // notify child; it can start now
         write(fd[1], &byte, 1);

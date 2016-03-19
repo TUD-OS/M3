@@ -67,7 +67,10 @@ int main() {
 
         // execute the command
         VPE vpe(args[0], core);
-        vpe.delegate_mounts();
+
+        vpe.mountspace(*VPE::self().mountspace());
+        vpe.obtain_mountspace();
+
         if((err = vpe.exec(argc, const_cast<const char**>(args))) != Errors::NO_ERROR)
             ser << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";
         int res = vpe.wait();

@@ -40,11 +40,11 @@ public:
         return _fs;
     }
     const Session &sess() const {
-        const RegularFile *rfile = static_cast<const RegularFile*>(&_fs.file());
+        const RegularFile *rfile = static_cast<const RegularFile*>(_fs.file());
         return *rfile->fs();
     }
     int fd() const {
-        const RegularFile *rfile = static_cast<const RegularFile*>(&_fs.file());
+        const RegularFile *rfile = static_cast<const RegularFile*>(_fs.file());
         return rfile->fd();
     }
 

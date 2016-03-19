@@ -1,0 +1,6 @@
+Import('env')
+
+myenv = env.Clone()
+myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-Os', '-O1 -g')
+myenv['LINKFLAGS'] = str(myenv['LINKFLAGS']).replace('-Os', '-O1 -g')
+myenv.M3Program(myenv, 'fdtest', myenv.Glob('*.cc'))

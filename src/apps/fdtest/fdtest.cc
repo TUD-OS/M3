@@ -14,15 +14,17 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Common.h>
 #include <base/Log.h>
 
 #include <m3/session/M3FS.h>
+#include <m3/stream/FStream.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/vfs/VFS.h>
-#include <m3/vfs/Executable.h>
-#include <m3/Syscalls.h>
-#include <m3/VPE.h>
 
 using namespace m3;
+
+static char buffer[1024];
 
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
@@ -31,31 +33,43 @@ int main() {
     }
 
     {
-        VPE child("child", "", "pager");
+        FStream f("/test.txt", FILE_R);
+
+        VPE child("child");
 
         child.mountspace(*VPE::self().mountspace());
         child.obtain_mountspace();
 
-        const char *args[] = {"/bin/pgchild"};
-        Executable exec(ARRAY_SIZE(args), args);
+        child.fds(*VPE::self().fds());
+        child.obtain_fds();
 
-        child.exec(exec);
-        child.wait();
+        child.run([&f] {
+            f.read(buffer, sizeof(buffer));
+            Serial::get() << buffer << "\n";
+            return 0;
+        });
+        int res = child.wait();
+        Serial::get() << "result: " << res << "\n";
     }
 
     {
-        VPE child("child", "", "pager");
+        FStream f("/pat.bin", FILE_R, 128);
+
+        size_t size = f.read(buffer, 128);
+        Serial::get().dump(buffer, size);
+
+        VPE child("child");
 
         child.mountspace(*VPE::self().mountspace());
         child.obtain_mountspace();
 
-        const char *args[] = {"/bin/bench-syscall"};
-        Executable exec(ARRAY_SIZE(args), args);
+        child.fds(*VPE::self().fds());
+        child.obtain_fds();
 
-        child.exec(exec);
-        child.wait();
+        const char *args[] = {"/bin/fdchild"};
+        child.exec(ARRAY_SIZE(args), args);
+        int res = child.wait();
+        Serial::get() << "result: " << res << "\n";
     }
-
-    Serial::get() << "Bye World!\n";
     return 0;
 }

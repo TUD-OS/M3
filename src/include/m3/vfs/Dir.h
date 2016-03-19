@@ -50,7 +50,7 @@ public:
      * @return 0 on success
      */
     int stat(FileInfo &info) const {
-        return _f.file().stat(info);
+        return _f.file()->stat(info);
     }
 
     /**

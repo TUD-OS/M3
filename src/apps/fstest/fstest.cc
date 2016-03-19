@@ -55,7 +55,7 @@ int main() {
             PANIC("open of " << filename << " failed (" << Errors::last << ")");
 
         FileInfo info;
-        if(file.file().stat(info) < 0)
+        if(file.file()->stat(info) < 0)
             PANIC("stat of " << filename << " failed");
         Serial::get() << "Info:" << "\n";
         Serial::get() << "  devno  : " << info.devno << "\n";

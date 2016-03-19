@@ -18,18 +18,33 @@
 
 #include <m3/session/Pager.h>
 #include <m3/vfs/VFS.h>
+#include <m3/vfs/FileTable.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
 namespace m3 {
-
 const size_t VPE::BUF_SIZE    = 4096;
-VPE VPE::_self INIT_PRIORITY(102);
+VPE VPE::_self INIT_PRIORITY(103);
+
+// don't revoke these. they kernel does so on exit
+VPE::VPE()
+    : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _mem(MemGate::bind(1)),
+      _caps(), _eps(), _pager(), _ms(), _fds() {
+    init_state();
+    init();
+
+    if(!_ms)
+        _ms = new MountSpace();
+    if(!_fds)
+        _fds = new FileTable();
+}
 
 VPE::VPE(const String &name, const String &core, const char *pager)
-        : ObjCap(VIRTPE, VPE::self().alloc_cap()), _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
+        : ObjCap(VIRTPE, VPE::self().alloc_cap()),
+          _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _pager(), _mounts(), _mountlen() {
+          _pager(), _ms(new MountSpace()), _fds(new FileTable()) {
     init();
 
     if(pager) {
@@ -55,7 +70,8 @@ VPE::~VPE() {
         // be stored not on the heap but somewhere else
         delete _eps;
         delete _caps;
-        Heap::free(_mounts);
+        delete _fds;
+        delete _ms;
     }
 }
 
@@ -102,12 +118,22 @@ size_t VPE::alloc_ep() {
     return ep;
 }
 
-void VPE::delegate_mounts() {
-    assert(!_mounts);
-    _mountlen = VFS::serialize_length();
-    _mounts = Heap::alloc(_mountlen);
-    VFS::serialize(_mounts, _mountlen);
-    VFS::delegate(*this, _mounts, _mountlen);
+void VPE::mountspace(const MountSpace &ms) {
+    delete _ms;
+    _ms = new MountSpace(ms);
+}
+
+void VPE::obtain_mountspace() {
+    _ms->delegate(*this);
+}
+
+void VPE::fds(const FileTable &fds) {
+    delete _fds;
+    _fds = new FileTable(fds);
+}
+
+void VPE::obtain_fds() {
+    _fds->delegate(*this);
 }
 
 void VPE::delegate(const CapRngDesc &crd) {

@@ -21,6 +21,7 @@
 #include <base/stream/OStream.h>
 
 #include <m3/vfs/File.h>
+#include <m3/vfs/FileTable.h>
 #include <m3/vfs/VFS.h>
 
 namespace m3 {
@@ -30,6 +31,9 @@ namespace m3 {
  * buffering for the input and output.
  */
 class FStream : public IStream, public OStream {
+    static const uint FL_DEL_BUF    = 1;
+    static const uint FL_DEL_FILE   = 2;
+
     struct Buffer {
         explicit Buffer(char *_data, size_t _size) : data(_data), size(_size), cur(), pos() {
             assert(Math::is_aligned(data, DTU_PKG_SIZE) && Math::is_aligned(size, DTU_PKG_SIZE));
@@ -53,6 +57,15 @@ class FStream : public IStream, public OStream {
     }
 
 public:
+    /**
+     * Binds this object to the given file descriptor and uses a buffer size of <bufsize> for
+     * both reading and writing.
+     *
+     * @param fd the file descriptor
+     * @param bufsize the size of the buffer for input/output
+     */
+    explicit FStream(int fd, size_t bufsize = 512);
+
     /**
      * Opens <filename> with given permissions and a buffer size of <bufsize>. Which buffer is
      * created depends on <perms>.
@@ -81,8 +94,8 @@ public:
     /**
      * @return the File instance
      */
-    const File &file() const {
-        return *_file;
+    File *file() const {
+        return VPE::self().fds()->get(_fd);
     }
 
     /**
@@ -92,7 +105,7 @@ public:
      * @return 0 on success
      */
     int stat(FileInfo &info) const {
-        return _file->stat(info);
+        return file()->stat(info);
     }
 
     /**
@@ -148,11 +161,11 @@ private:
     off_t do_seek(off_t offset, int whence);
     void set_error(ssize_t res);
 
-    File *_file;
+    int _fd;
     off_t _fpos;
     Buffer _rbuf;
     Buffer _wbuf;
-    bool _del;
+    uint _flags;
 };
 
 }
