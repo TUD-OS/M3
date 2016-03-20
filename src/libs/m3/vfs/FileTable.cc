@@ -19,6 +19,7 @@
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/RegularFile.h>
+#include <m3/vfs/SerialFile.h>
 
 namespace m3 {
 
@@ -70,6 +71,9 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
         switch(type) {
             case 'M':
                 obj->_fds[fd] = RegularFile::unserialize(um);
+                break;
+            case 'S':
+                obj->_fds[fd] = SerialFile::unserialize(um);
                 break;
         }
     }

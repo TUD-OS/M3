@@ -20,6 +20,7 @@
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/MountSpace.h>
+#include <m3/vfs/SerialFile.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -38,6 +39,14 @@ VPE::VPE()
         _ms = new MountSpace();
     if(!_fds)
         _fds = new FileTable();
+
+    // create stdin, stdout and stderr, if not existing
+    if(_fds->get(0) == nullptr) {
+        SerialFile *s = new SerialFile();
+        _fds->alloc(s);
+        _fds->alloc(s);
+        _fds->alloc(s);
+    }
 }
 
 VPE::VPE(const String &name, const String &core, const char *pager)
