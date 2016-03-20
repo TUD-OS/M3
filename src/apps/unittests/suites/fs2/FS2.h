@@ -18,32 +18,29 @@
 
 #include <test/TestSuite.h>
 
-class FSTestSuite : public test::TestSuite {
+class FS2TestSuite : public test::TestSuite {
 private:
-    class DirTestCase : public test::TestCase {
+    class WriteFileTestCase : public test::TestCase {
     public:
-        explicit DirTestCase() : test::TestCase("Directories") {
+        explicit WriteFileTestCase() : test::TestCase("Writing files") {
         }
         virtual void run() override;
+    private:
+        void check_content(const char *filename, size_t size);
     };
-    class FileTestCase : public test::TestCase {
+    class MetaFileTestCase : public test::TestCase {
     public:
-        explicit FileTestCase() : test::TestCase("Files") {
+        explicit MetaFileTestCase() : test::TestCase("Meta operations") {
         }
         virtual void run() override;
-    };
-    class BufferedFileTestCase : public test::TestCase {
-    public:
-        explicit BufferedFileTestCase() : test::TestCase("Buffered files") {
-        }
-        virtual void run() override;
+    private:
+        void check_content(const char *filename, size_t size);
     };
 
 public:
-    explicit FSTestSuite()
-        : TestSuite("FS") {
-        add(new DirTestCase());
-        add(new FileTestCase());
-        add(new BufferedFileTestCase());
+    explicit FS2TestSuite()
+        : TestSuite("FS2") {
+        add(new WriteFileTestCase());
+        add(new MetaFileTestCase());
     }
 };

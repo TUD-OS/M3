@@ -29,6 +29,7 @@ env.M3Strip('$FSDIR/default/bin/unittests', '$BINARYDIR/unittests')
 if env['ARCH'] == 'host':
     env.M3Strip('$FSDIR/default/bin/unittests-dtu', '$BINARYDIR/unittests-dtu')
 env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
+env.M3Strip('$FSDIR/default/bin/unittests-fs2', '$BINARYDIR/unittests-fs2')
 env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
 env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
 env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')

@@ -28,6 +28,7 @@ static const char *progs[] = {
 #endif
     "/bin/unittests-stream",
     "/bin/unittests-fs",
+    "/bin/unittests-fs2",
     "/bin/unittests-misc",
 };
 

@@ -13,6 +13,7 @@ def build_test(env, name):
 if myenv['ARCH'] == 'host':
     build_test(myenv, 'dtu')
 build_test(myenv, 'fs')
+build_test(myenv, 'fs2')
 build_test(myenv, 'stream')
 build_test(myenv, 'misc')
 env.M3Program(env, target = 'unittests', source = ['unittests.cc'])
