@@ -31,23 +31,34 @@ void Machine::shutdown() {
 int Machine::write(const char *str, size_t len) {
     volatile uint *ack = reinterpret_cast<volatile uint*>(SERIAL_ACK);
     char *buffer = reinterpret_cast<char*>(SERIAL_BUF);
-    assert(len <= SERIAL_BUFSIZE);
-    memcpy(buffer, str, len);
-    *ack = len;
-    while(*ack != 0)
-        ;
+    size_t off = 0;
+    while(len > 0) {
+        // copy to serial buffer
+        size_t amount = Math::min(static_cast<size_t>(SERIAL_BUFSIZE), len);
+        memcpy(buffer, str + off, amount);
+        off += amount;
+        len -= amount;
+
+        // padding for alignment
+        while(amount % DTU_PKG_SIZE)
+            buffer[amount++] = '\0';
+
+        // notify python script and wait
+        *ack = amount;
+        while(*ack != 0)
+            ;
+    }
     return 0;
 }
 
 ssize_t Machine::read(char *dst, UNUSED size_t max) {
     volatile uint *wait = reinterpret_cast<volatile uint*>(SERIAL_INWAIT);
     char *buffer = reinterpret_cast<char*>(SERIAL_BUF);
-    assert(max <= SERIAL_BUFSIZE);
     *wait = 1;
     while(*wait)
         ;
     size_t len = strlen(buffer);
-    memcpy(dst, buffer, Math::min(max, len));
+    memcpy(dst, buffer, Math::min(max, Math::min(static_cast<size_t>(SERIAL_BUFSIZE), len)));
     return len;
 }
 

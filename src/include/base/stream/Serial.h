@@ -32,11 +32,7 @@ namespace m3 {
 class Serial : public IStream, public OStream {
     static const size_t OUTBUF_SIZE = 160;
     static const size_t INBUF_SIZE  = 64;
-#if defined(__t2__)
-    static const size_t SUFFIX_LEN  = sizeof("\e[0m");
-#else
     static const size_t SUFFIX_LEN  = sizeof("\e[0m") - 1;
-#endif
 
 public:
     /**
@@ -57,12 +53,7 @@ public:
     /**
      * Flushes the output
      */
-    void flush() {
-        strcpy(_outbuf + _outpos, "\e[0m");
-        Machine::write(_outbuf, _outpos + SUFFIX_LEN);
-        // keep prefix
-        _outpos = _start;
-    }
+    void flush();
 
 private:
     explicit Serial() : IStream(), OStream(), _outpos(0), _inpos(0), _inlen(0) {

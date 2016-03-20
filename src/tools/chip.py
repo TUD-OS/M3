@@ -6,6 +6,7 @@ import select
 import time
 import ConfigParser
 import StringIO
+import string
 from ctypes import *
 
 # read memory layout
@@ -185,16 +186,23 @@ def readFile(mod, addr, len, filename):
     f.close()
     return 0
 
+lastnl = True
 def fetchPrint(core, id):
     length = read64bit(core, SERIAL_ACK) & 0xFFFFFFFF
-    if length != 0 and length < 256:
-        line = ""
+    if length != 0 and length <= SERIAL_BUFSIZE:
         t1 = time.time()
-        line += "%08.4f> " % (t1 - t0)
-        line += readStr(core, SERIAL_BUF, length)
-        sys.stdout.write(line)
+
+        global lastnl
+        line = readStr(core, SERIAL_BUF, length)
+        for s in line:
+            if lastnl:
+                sys.stdout.write("%08.4f> " % (t1 - t0))
+            sys.stdout.write(s)
+            log.write(s)
+            lastnl = s == '\n'
+        sys.stdout.write('\033[0m')
         sys.stdout.flush()
-        log.write(line)
+
         write64bit(core, SERIAL_ACK, 0)
         if "kernel" in line and "Shutting down..." in line:
             return 2

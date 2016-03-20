@@ -88,4 +88,14 @@ bool Serial::putback(char c) {
     return true;
 }
 
+void Serial::flush() {
+#if !defined(__t2__)
+    strcpy(_outbuf + _outpos, "\e[0m");
+    _outpos += SUFFIX_LEN;
+#endif
+    Machine::write(_outbuf, _outpos);
+    // keep prefix
+    _outpos = _start;
+}
+
 }
