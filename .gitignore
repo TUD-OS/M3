@@ -7,3 +7,4 @@
 /cross/buildroot
 /run
 /hw/th/config.ini
+/config.log
