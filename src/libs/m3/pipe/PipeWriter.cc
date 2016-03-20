@@ -23,10 +23,13 @@ size_t PipeWriter::write(const void *buffer, size_t count) {
     if(_eof)
         return 0;
 
+    assert((reinterpret_cast<uintptr_t>(buffer) & (DTU_PKG_SIZE - 1)) == 0);
+
+    ssize_t rem = count;
     const char *buf = reinterpret_cast<const char*>(buffer);
     do {
-        size_t amount = count;
-        size_t off = find_spot(&amount);
+        size_t aligned_amount = Math::round_up(rem, static_cast<ssize_t>(DTU_PKG_SIZE));
+        size_t off = find_spot(&aligned_amount);
         if(_capacity == 0 || off == static_cast<size_t>(-1)) {
             size_t len;
             receive_vmsg(_rgate, len);
@@ -39,24 +42,26 @@ size_t PipeWriter::write(const void *buffer, size_t count) {
                 return 0;
             }
             if(_capacity == 0 || off == static_cast<size_t>(-1)) {
-                off = find_spot(&amount);
+                off = find_spot(&aligned_amount);
                 if(off == static_cast<size_t>(-1))
                     return 0;
             }
         }
 
+        size_t amount = Math::min(static_cast<ssize_t>(aligned_amount), rem);
         DBG_PIPE("[write] send pos=" << off << ", len=" << amount << "\n");
-        if(amount) {
-            _mgate.write_sync(buf, amount, off);
-            _wrpos = (off + amount) % _size;
+
+        if(aligned_amount) {
+            _mgate.write_sync(buf, aligned_amount, off);
+            _wrpos = (off + aligned_amount) % _size;
         }
-        _free -= amount;
+        _free -= aligned_amount;
         _capacity--;
         send_vmsg(_sgate, off, amount);
-        count -= amount;
-        buf += amount;
+        rem -= aligned_amount;
+        buf += aligned_amount;
     }
-    while(count > 0);
+    while(rem > 0);
     return buf - reinterpret_cast<const char*>(buffer);
 }
 

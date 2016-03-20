@@ -34,21 +34,6 @@ class FStream : public IStream, public OStream {
     static const uint FL_DEL_BUF    = 1;
     static const uint FL_DEL_FILE   = 2;
 
-    struct Buffer {
-        explicit Buffer(char *_data, size_t _size) : data(_data), size(_size), cur(), pos() {
-            assert(Math::is_aligned(data, DTU_PKG_SIZE) && Math::is_aligned(size, DTU_PKG_SIZE));
-        }
-        ~Buffer() {
-            if(data)
-                delete[] data;
-        }
-
-        char *data;
-        size_t size;
-        size_t cur;
-        off_t pos;
-    };
-
     static int get_perms(int perms) {
         // if we want to write, we need read-permission to handle unaligned writes
         if((perms & FILE_RW) == FILE_W)
@@ -58,13 +43,13 @@ class FStream : public IStream, public OStream {
 
 public:
     /**
-     * Binds this object to the given file descriptor and uses a buffer size of <bufsize> for
-     * both reading and writing.
+     * Binds this object to the given file descriptor and uses a buffer size of <bufsize>.
      *
      * @param fd the file descriptor
+     * @param perms the permissions that determine which buffer to create (FILE_*)
      * @param bufsize the size of the buffer for input/output
      */
-    explicit FStream(int fd, size_t bufsize = 512);
+    explicit FStream(int fd, int perms = FILE_RW, size_t bufsize = 512);
 
     /**
      * Opens <filename> with given permissions and a buffer size of <bufsize>. Which buffer is
@@ -77,17 +62,14 @@ public:
     explicit FStream(const char *filename, int perms = FILE_RW, size_t bufsize = 512);
 
     /**
-     * Opens <filename> with given permissions and given buffers.
+     * Opens <filename> with given permissions and given buffer sizes.
      *
      * @param filename the file to open
-     * @param rbuf the input-buffer (may be nullptr if FILE_R is not set)
      * @param rsize the size of the input-buffer (may be 0 if FILE_R is not set)
-     * @param wbuf the output-buffer (may be nullptr if FILE_W is not set)
      * @param wsize the size of the output-buffer (may be 0 if FILE_W is not set)
      * @param perms the permissions (FILE_*)
      */
-    explicit FStream(const char *filename, char *rbuf, size_t rsize,
-            char *wbuf, size_t wsize, int perms = FILE_RW);
+    explicit FStream(const char *filename, size_t rsize, size_t wsize, int perms = FILE_RW);
 
     virtual ~FStream();
 
@@ -105,7 +87,9 @@ public:
      * @return 0 on success
      */
     int stat(FileInfo &info) const {
-        return file()->stat(info);
+        if(file())
+            return file()->stat(info);
+        return -1;
     }
 
     /**
@@ -148,23 +132,23 @@ public:
         return c;
     }
     virtual bool putback(char c) override {
-        if(!_rbuf.cur || _fpos <= _rbuf.pos || _fpos > (off_t)(_rbuf.pos + _rbuf.cur))
-            return false;
-        _rbuf.data[--_fpos - _rbuf.pos] = c;
-        return true;
+        if(_rbuf->putback(_fpos, c)) {
+            _fpos--;
+            return true;
+        }
+        return false;
     }
     virtual void write(char c) override {
         write(&c, 1);
     }
 
 private:
-    off_t do_seek(off_t offset, int whence);
     void set_error(ssize_t res);
 
     int _fd;
     off_t _fpos;
-    Buffer _rbuf;
-    Buffer _wbuf;
+    File::Buffer *_rbuf;
+    File::Buffer *_wbuf;
     uint _flags;
 };
 

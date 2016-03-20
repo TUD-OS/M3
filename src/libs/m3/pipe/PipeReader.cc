@@ -50,8 +50,9 @@ size_t PipeReader::read(void *buffer, size_t count) {
     if(amount == 0)
         _eof |= Pipe::WRITE_EOF;
     else {
-        _mgate.read_sync(buffer, amount, _pos);
-        _pos += amount;
+        size_t aligned_amount = Math::round_up(amount, DTU_PKG_SIZE);
+        _mgate.read_sync(buffer, aligned_amount, _pos);
+        _pos += aligned_amount;
         _rem -= amount;
     }
     return amount;

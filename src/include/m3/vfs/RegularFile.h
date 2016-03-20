@@ -28,6 +28,7 @@ namespace m3 {
 
 class M3FS;
 class FStream;
+class RegFileBuffer;
 
 /**
  * The File implementation for regular files. Note that this is the low-level API for working with
@@ -42,6 +43,7 @@ class FStream;
 class RegularFile : public File {
     friend class FStream;
     friend class M3FS;
+    friend class RegFileBuffer;
 
     struct Position {
         explicit Position() : local(MAX_LOCS), global(), offset() {
@@ -84,11 +86,9 @@ public:
         return _fs;
     }
 
+    virtual Buffer *create_buf(size_t size) override;
     virtual char type() const override {
         return 'M';
-    }
-    virtual bool seekable() const override {
-        return true;
     }
     virtual int stat(FileInfo &info) const override;
     virtual off_t seek(off_t offset, int whence) override;
@@ -105,8 +105,8 @@ public:
     static RegularFile *unserialize(Unmarshaller &um);
 
 private:
-    virtual ssize_t fill(void *buffer, size_t size) override;
     virtual bool seek_to(off_t offset) override;
+    ssize_t fill(void *buffer, size_t size);
     ssize_t do_read(void *buffer, size_t count, Position &pos) const;
     ssize_t do_write(const void *buffer, size_t count, Position &pos) const;
     ssize_t get_location(Position &pos, bool writing) const;

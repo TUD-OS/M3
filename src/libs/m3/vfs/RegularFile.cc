@@ -23,6 +23,95 @@
 
 namespace m3 {
 
+class RegFileBuffer : public File::Buffer {
+public:
+    explicit RegFileBuffer(size_t size) : File::Buffer(size) {
+    }
+
+    virtual bool putback(off_t off, char c) override {
+        if(!cur || off <= pos || off > (off_t)(pos + cur))
+            return false;
+        buffer[off - 1 - pos] = c;
+        return true;
+    }
+
+    virtual ssize_t read(File *file, off_t off, void *dst, size_t amount) override {
+        // something in the buffer?
+        if(cur && off >= pos && off < static_cast<off_t>(pos + cur)) {
+            size_t count = std::min<size_t>(amount, pos + cur - off);
+            memcpy(dst, buffer + (off - pos), count);
+            return count;
+        }
+
+        size_t posoff = off & (DTU_PKG_SIZE - 1);
+        pos = off - posoff;
+        // we can assume here that we are always at the position (_idx, _off), because our
+        // read-buffer is empty, which means that we've used everything that we read via _file->read
+        // last time.
+        ssize_t res = file->read(buffer, size);
+        if(res <= 0)
+            return res;
+        cur = res;
+        size_t copyamnt = std::min(std::min(static_cast<size_t>(res), size - posoff), amount);
+        memcpy(dst, buffer + posoff, copyamnt);
+        return copyamnt;
+    }
+
+    virtual ssize_t write(File *file, off_t off, const void *src, size_t amount) override {
+        if(cur == 0) {
+            size_t posoff = off & (DTU_PKG_SIZE - 1);
+            pos = off - posoff;
+            cur = posoff;
+            if(cur > 0) {
+                ssize_t res = static_cast<RegularFile*>(file)->fill(buffer, DTU_PKG_SIZE);
+                if(res <= 0)
+                    return res;
+            }
+        }
+
+        if(cur == size) {
+            ssize_t res = flush(file);
+            if(res <= 0)
+                return res;
+        }
+
+        size_t count = std::min(size - cur, amount);
+        memcpy(buffer + cur, src, count);
+        cur += amount;
+        return count;
+    }
+
+    virtual int seek(off_t off, int whence, off_t &offset) override {
+        // if we seek within our read-buffer, it's enough to set the position
+        offset = whence == SEEK_CUR ? off + offset : offset;
+        if(cur) {
+            if(offset >= pos && offset <= static_cast<off_t>(pos + cur))
+                return 1;
+        }
+        return 0;
+    }
+
+    virtual ssize_t flush(File *file) override {
+        ssize_t res = 1;
+        if(cur > 0) {
+            size_t posoff = cur & (DTU_PKG_SIZE - 1);
+            // first, write the aligned part
+            if(cur - posoff > 0)
+                res = file->write(buffer, cur - posoff);
+
+            // if there is anything left, read that first and write it back
+            if(posoff != 0) {
+                alignas(DTU_PKG_SIZE) uint8_t tmpbuf[DTU_PKG_SIZE];
+                res = static_cast<RegularFile*>(file)->fill(tmpbuf, DTU_PKG_SIZE);
+                memcpy(tmpbuf, buffer + cur - posoff, posoff);
+                res = file->write(tmpbuf, DTU_PKG_SIZE);
+            }
+            cur = 0;
+        }
+        return res;
+    }
+};
+
 RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
     : File(perms), _fd(fd), _extended(), _begin(), _length(), _pos(),
       /* pass an arbitrary selector first */
@@ -38,6 +127,10 @@ RegularFile::~RegularFile() {
     if(_fs.valid())
         _fs->close(_fd, _last_extent, _last_off);
     VPE::self().free_caps(_memcaps.start(), _memcaps.count());
+}
+
+File::Buffer *RegularFile::create_buf(size_t size) {
+    return new RegFileBuffer(size);
 }
 
 int RegularFile::stat(FileInfo &info) const {

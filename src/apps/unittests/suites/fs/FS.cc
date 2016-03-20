@@ -236,12 +236,9 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.eof() && !file.error());
     }
 
-    alignas(DTU_PKG_SIZE) char rbuf[600];
-    alignas(DTU_PKG_SIZE) char wbuf[256];
-
     Serial::get() << "-- Read and write --\n";
     {
-        FStream file(filename, rbuf, sizeof(rbuf), wbuf, sizeof(wbuf), FILE_RW);
+        FStream file(filename, 600, 256, FILE_RW);
         if(Errors::occurred())
             PANIC("open of " << filename << " failed (" << Errors::last << ")");
 
@@ -272,7 +269,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
 
     Serial::get() << "-- Write only --\n";
     {
-        FStream file(filename, rbuf, sizeof(rbuf), wbuf, sizeof(wbuf), FILE_W);
+        FStream file(filename, 600, 256, FILE_W);
         if(Errors::occurred())
             PANIC("open of " << filename << " failed (" << Errors::last << ")");
 
@@ -287,7 +284,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
     Serial::get() << "-- Write with seek --\n";
     {
         static_assert(DTU_PKG_SIZE == 8, "Unexpected DTU_PKG_SIZE");
-        FStream file(filename, rbuf, sizeof(rbuf), wbuf, sizeof(wbuf), FILE_RW);
+        FStream file(filename, 600, 256, FILE_RW);
         if(Errors::occurred())
             PANIC("open of " << filename << " failed (" << Errors::last << ")");
 

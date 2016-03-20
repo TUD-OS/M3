@@ -33,21 +33,17 @@ protected:
     }
 
 public:
-    virtual bool seekable() const override {
-        return false;
-    }
-
     virtual int stat(FileInfo &info) const override;
 
     virtual off_t seek(off_t, int) override {
         return 0;
     }
 
-private:
-    virtual ssize_t fill(void *buffer, size_t size) override {
-        memset(buffer, ' ', size);
-        return size;
+    virtual Buffer *create_buf(size_t size) override {
+        return new File::Buffer(size);
     }
+
+private:
     virtual bool seek_to(off_t) override {
         return false;
     }
