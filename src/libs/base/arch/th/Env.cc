@@ -30,6 +30,7 @@ EXTERN_C void *_Exception;
 static void *dummy[1];
 
 EXTERN_C void _init();
+EXTERN_C void _fini();
 EXTERN_C void sim_init(uint32_t *argc, char ***argv);
 
 namespace m3 {
@@ -82,6 +83,11 @@ void Env::pre_init() {
 void Env::post_init() {
     // call constructors
     _init();
+}
+
+void Env::pre_exit() {
+    // call destructors
+    _fini();
 }
 
 void Env::jmpto(uintptr_t addr) {

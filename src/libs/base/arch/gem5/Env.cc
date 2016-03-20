@@ -38,6 +38,9 @@ void Env::post_init() {
         (*func)();
 }
 
+void Env::pre_exit() {
+}
+
 void Env::jmpto(uintptr_t addr) {
     if(addr != 0)
         asm volatile ("jmp *%0" : : "r"(addr));

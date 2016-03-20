@@ -20,7 +20,18 @@
 #include <base/Log.h>
 #include <functional>
 
+#define MAX_EXIT_FUNCS      8
+
 using namespace m3;
+
+struct GlobalObj {
+    void (*f)(void*);
+    void *p;
+    void *d;
+};
+
+static size_t exit_count = 0;
+static GlobalObj exit_funcs[MAX_EXIT_FUNCS];
 
 namespace std {
     namespace placeholders {
@@ -64,8 +75,20 @@ EXTERN_C void __cxa_pure_virtual() {
     PANIC("pure virtual function call");
 }
 
-EXTERN_C void __cxa_atexit() {
-    // TODO
+EXTERN_C int __cxa_atexit(void (*f)(void *),void *p,void *d) {
+    if(exit_count >= MAX_EXIT_FUNCS)
+        return -1;
+
+    exit_funcs[exit_count].f = f;
+    exit_funcs[exit_count].p = p;
+    exit_funcs[exit_count].d = d;
+    exit_count++;
+    return 0;
+}
+
+EXTERN_C void __cxa_finalize(void *) {
+    for(ssize_t i = exit_count - 1; i >= 0; i--)
+        exit_funcs[i].f(exit_funcs[i].p);
 }
 
 /* Fortran support */

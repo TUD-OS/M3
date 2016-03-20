@@ -79,6 +79,7 @@ private:
     void jmpto(uintptr_t addr) NORETURN;
     void pre_init();
     void post_init();
+    void pre_exit();
 } PACKED;
 
 #define RT_SPACE_SIZE           (RT_SIZE - (DEF_RCVBUF_SIZE + sizeof(word_t) * 2 + sizeof(m3::Env)))

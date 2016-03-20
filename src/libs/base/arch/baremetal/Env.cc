@@ -22,6 +22,7 @@
 #include <functional>
 #include <string.h>
 
+EXTERN_C void __cxa_finalize(void *);
 EXTERN_C void init_env(m3::Env *env);
 EXTERN_C int main(int argc, char **argv);
 
@@ -76,6 +77,8 @@ void Env::run() {
 }
 
 USED void Env::exit(int code) {
+    pre_exit();
+    __cxa_finalize(nullptr);
     backend->exit(code);
     entry = 0;
     jmpto(exitaddr);
