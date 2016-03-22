@@ -274,6 +274,7 @@ private:
     Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
     Errors::Code load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
+    size_t store_arguments(char *buffer, int argc, const char **argv);
 
     uintptr_t get_entry();
     static word_t get_sp();

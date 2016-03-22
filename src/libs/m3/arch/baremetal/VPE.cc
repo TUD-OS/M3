@@ -66,8 +66,8 @@ Errors::Code VPE::run(void *lambda) {
 
     alignas(DTU_PKG_SIZE) Env senv;
     senv.coreid = 0;
-    senv.argc = 0;
-    senv.argv = 0;
+    senv.argc = env()->argc;
+    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = get_sp();
     senv.entry = get_entry();
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
@@ -86,6 +86,12 @@ Errors::Code VPE::run(void *lambda) {
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
+
+    /* write args */
+    char *buffer = (char*)Heap::alloc(BUF_SIZE);
+    size_t size = store_arguments(buffer, env()->argc, const_cast<const char**>(env()->argv));
+    _mem.write_sync(buffer, size, RT_SPACE_START);
+    Heap::free(buffer);
 
     /* go! */
     return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
@@ -255,24 +261,25 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
             return err;
     }
 
-    {
-        /* copy arguments and arg pointers to buffer */
-        char **argptr = (char**)buffer;
-        char *args = buffer + exec.argc() * sizeof(char*);
-        for(int i = 0; i < exec.argc(); ++i) {
-            size_t len = strlen(exec.argv()[i]);
-            if(args + len >= buffer + BUF_SIZE)
-                return Errors::INV_ARGS;
-            strcpy(args, exec.argv()[i]);
-            *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
-            args += len + 1;
-        }
-
-        *size = args - buffer;
-    }
+    *size = store_arguments(buffer, exec.argc(), exec.argv());
 
     *entry = header.e_entry;
     return Errors::NO_ERROR;
+}
+
+size_t VPE::store_arguments(char *buffer, int argc, const char **argv) {
+    /* copy arguments and arg pointers to buffer */
+    char **argptr = (char**)buffer;
+    char *args = buffer + argc * sizeof(char*);
+    for(int i = 0; i < argc; ++i) {
+        size_t len = strlen(argv[i]);
+        if(args + len >= buffer + BUF_SIZE)
+            return Errors::INV_ARGS;
+        strcpy(args, argv[i]);
+        *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
+        args += len + 1;
+    }
+    return args - buffer;
 }
 
 }
