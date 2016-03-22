@@ -87,9 +87,6 @@ public:
     }
 
     virtual Buffer *create_buf(size_t size) override;
-    virtual char type() const override {
-        return 'M';
-    }
     virtual int stat(FileInfo &info) const override;
     virtual off_t seek(off_t offset, int whence) override;
     virtual ssize_t read(void *buffer, size_t count) override {
@@ -99,6 +96,9 @@ public:
         return do_write(buffer, count, _pos);
     }
 
+    virtual char type() const override {
+        return 'M';
+    }
     virtual size_t serialize_length() override;
     virtual void delegate(VPE &vpe) override;
     virtual void serialize(Marshaller &m) override;

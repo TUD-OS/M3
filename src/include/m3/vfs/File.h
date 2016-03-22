@@ -142,11 +142,6 @@ public:
     virtual Buffer *create_buf(size_t size) = 0;
 
     /**
-     * @return the unique character for serialization
-     */
-    virtual char type() const = 0;
-
-    /**
      * Retrieves information about this file
      *
      * @param info the struct to fill
@@ -180,6 +175,11 @@ public:
      * @return the number of written bytes
      */
     virtual ssize_t write(const void *buffer, size_t count) = 0;
+
+    /**
+     * @return the unique character for serialization
+     */
+    virtual char type() const = 0;
 
     /**
      * Determines the number of bytes to serialize this object.

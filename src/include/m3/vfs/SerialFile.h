@@ -43,9 +43,6 @@ public:
         return new File::Buffer(size);
     }
 
-    virtual char type() const override {
-        return 'S';
-    }
     virtual ssize_t read(void *buffer, size_t count) override {
         return Machine::read(reinterpret_cast<char*>(buffer), count);
     }
@@ -54,6 +51,9 @@ public:
         return res < 0 ? res : count;
     }
 
+    virtual char type() const override {
+        return 'S';
+    }
     virtual size_t serialize_length() override {
         return 0;
     }
