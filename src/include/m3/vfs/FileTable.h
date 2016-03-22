@@ -81,10 +81,28 @@ public:
 
     /**
      * @param fd the file descriptor
+     * @return true if the given file descriptor exists
+     */
+    bool exists(fd_t fd) const {
+        return _fds[fd] != nullptr;
+    }
+
+    /**
+     * @param fd the file descriptor
      * @return the file for given fd
      */
     File *get(fd_t fd) const {
         return _fds[fd];
+    }
+
+    /**
+     * Sets <fd> to <file>.
+     *
+     * @param fd the file descriptor
+     * @param file the file
+     */
+    void set(fd_t fd, File *file) {
+        _fds[fd] = file;
     }
 
     /**

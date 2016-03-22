@@ -17,6 +17,7 @@
 #include <base/Log.h>
 
 #include <m3/session/Pager.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/MountSpace.h>
@@ -25,6 +26,7 @@
 #include <m3/VPE.h>
 
 namespace m3 {
+
 const size_t VPE::BUF_SIZE    = 4096;
 VPE VPE::_self INIT_PRIORITY(103);
 
@@ -41,12 +43,12 @@ VPE::VPE()
         _fds = new FileTable();
 
     // create stdin, stdout and stderr, if not existing
-    if(_fds->get(0) == nullptr) {
-        SerialFile *s = new SerialFile();
-        _fds->alloc(s);
-        _fds->alloc(s);
-        _fds->alloc(s);
-    }
+    if(!_fds->exists(STDIN_FILENO))
+        _fds->set(STDIN_FILENO, new SerialFile());
+    if(!_fds->exists(STDOUT_FILENO))
+        _fds->set(STDOUT_FILENO, new SerialFile());
+    if(!_fds->exists(STDERR_FILENO))
+        _fds->set(STDERR_FILENO, new SerialFile());
 }
 
 VPE::VPE(const String &name, const String &core, const char *pager)
