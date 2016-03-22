@@ -33,14 +33,14 @@ fd_t FileTable::alloc(File *file) {
     return MAX_FDS;
 }
 
-void FileTable::delegate(VPE &vpe) {
+void FileTable::delegate(VPE &vpe) const {
     for(fd_t i = 0; i < MAX_FDS; ++i) {
         if(_fds[i])
             _fds[i]->delegate(vpe);
     }
 }
 
-size_t FileTable::serialize(void *buffer, size_t size) {
+size_t FileTable::serialize(void *buffer, size_t size) const {
     Marshaller m(static_cast<unsigned char*>(buffer), size);
 
     size_t count = 0;

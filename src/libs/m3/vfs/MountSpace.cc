@@ -135,7 +135,7 @@ void MountSpace::remove(size_t i) {
     _count--;
 }
 
-size_t MountSpace::get_mount_id(FileSystem *fs) {
+size_t MountSpace::get_mount_id(FileSystem *fs) const {
     for(size_t i = 0; i < _count; ++i) {
         if(&*_mounts[i]->fs() == fs)
             return i;
@@ -143,7 +143,7 @@ size_t MountSpace::get_mount_id(FileSystem *fs) {
     return MAX_MOUNTS;
 }
 
-FileSystem *MountSpace::get_mount(size_t id) {
+FileSystem *MountSpace::get_mount(size_t id) const {
     for(size_t i = 0; i < _count; ++i) {
         if(id-- == 0)
             return const_cast<FileSystem*>(&*_mounts[i]->fs());
@@ -151,7 +151,7 @@ FileSystem *MountSpace::get_mount(size_t id) {
     return nullptr;
 }
 
-size_t MountSpace::serialize(void *buffer, size_t size) {
+size_t MountSpace::serialize(void *buffer, size_t size) const {
     Marshaller m(static_cast<unsigned char*>(buffer), size);
 
     m << _count;
@@ -173,7 +173,7 @@ size_t MountSpace::serialize(void *buffer, size_t size) {
     return m.total();
 }
 
-void MountSpace::delegate(VPE &vpe) {
+void MountSpace::delegate(VPE &vpe) const {
     for(size_t i = 0; i < _count; ++i) {
         char type = _mounts[i]->fs()->type();
         switch(type) {
@@ -217,7 +217,7 @@ MountSpace *MountSpace::unserialize(const void *buffer, size_t size) {
     return ms;
 }
 
-void MountSpace::print(OStream &os) {
+void MountSpace::print(OStream &os) const {
     os << "Mounts:\n";
     for(size_t i = 0; i < _count; ++i)
         os << "  " << _mounts[i]->path() << ": " << _mounts[i]->fs()->type() << "\n";

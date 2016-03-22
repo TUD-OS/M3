@@ -72,13 +72,13 @@ public:
      * @param fs the filesystem instance
      * @return the mountpoint id of the given filesystem instance
      */
-    size_t get_mount_id(FileSystem *fs);
+    size_t get_mount_id(FileSystem *fs) const;
 
     /**
      * @param id the mountpoint id
      * @return the filesystem instance for the mountpoint with given id
      */
-    FileSystem *get_mount(size_t id);
+    FileSystem *get_mount(size_t id) const;
 
     /**
      * Adds the given mountpoint
@@ -117,7 +117,7 @@ public:
      *
      * @param vpe the VPE to delegate the caps to
      */
-    void delegate(VPE &vpe);
+    void delegate(VPE &vpe) const;
 
     /**
      * Serializes the current mounts into the given buffer
@@ -126,7 +126,7 @@ public:
      * @param size the capacity of the buffer
      * @return the space used
      */
-    size_t serialize(void *buffer, size_t size);
+    size_t serialize(void *buffer, size_t size) const;
 
     /**
      * Unserializes the mounts from the buffer into a new MountSpace object.
@@ -142,7 +142,7 @@ public:
      *
      * @param os the stream to write to
      */
-    void print(OStream &os);
+    void print(OStream &os) const;
 
 private:
     void remove(size_t i);

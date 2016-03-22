@@ -92,7 +92,7 @@ public:
      *
      * @param vpe the VPE to delegate the caps to
      */
-    void delegate(VPE &vpe);
+    void delegate(VPE &vpe) const;
 
     /**
      * Serializes the current files into the given buffer
@@ -101,7 +101,7 @@ public:
      * @param size the capacity of the buffer
      * @return the space used
      */
-    size_t serialize(void *buffer, size_t size);
+    size_t serialize(void *buffer, size_t size) const;
 
     /**
      * Unserializes the given buffer into a new FileTable object.
