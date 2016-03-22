@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstring>
 #include <sstream>
+#include <unistd.h>
 
 namespace m3 {
 

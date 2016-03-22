@@ -16,17 +16,17 @@
 
 #pragma once
 
-#include "Device.h"
+#include "TimerDevice.h"
+
+#include <unistd.h>
 
 namespace kernel {
 
-class TimerDevice : public Device {
-public:
-    explicit TimerDevice() : Device() {
-        start();
+void TimerDevice::run() {
+    while(should_run()) {
+        usleep(20000);
+        trigger_irq(m3::HWInterrupts::TIMER);
     }
-
-    virtual void run() override;
-};
+}
 
 }

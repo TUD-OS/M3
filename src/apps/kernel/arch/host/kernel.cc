@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include "pes/PEManager.h"
 #include "pes/VPE.h"
