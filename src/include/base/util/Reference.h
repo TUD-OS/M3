@@ -68,22 +68,13 @@ public:
     bool valid() const {
         return _obj != nullptr;
     }
-    T *operator->() {
+    T *operator->() const {
         return _obj;
     }
-    const T *operator->() const {
-        return _obj;
-    }
-    T &operator*() {
+    T &operator*() const {
         return *_obj;
     }
-    const T &operator*() const {
-        return *_obj;
-    }
-    T *get() {
-        return _obj;
-    }
-    const T *get() const {
+    T *get() const {
         return _obj;
     }
 
