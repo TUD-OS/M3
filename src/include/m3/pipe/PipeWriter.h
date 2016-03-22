@@ -18,79 +18,82 @@
 
 #include <base/Common.h>
 
-#include <m3/pipe/Pipe.h>
+#include <m3/vfs/File.h>
 
 namespace m3 {
+
+class Pipe;
 
 /**
  * Writes into a previously constructed pipe.
  */
-class PipeWriter {
+class PipeWriter : public File {
+    friend class Pipe;
+
+    struct State {
+        explicit State(capsel_t caps, size_t size);
+        ~State();
+
+        size_t find_spot(size_t *len);
+        void read_replies();
+
+        MemGate _mgate;
+        RecvBuf _rbuf;
+        RecvGate _rgate;
+        SendGate _sgate;
+        size_t _size;
+        size_t _free;
+        size_t _rdpos;
+        size_t _wrpos;
+        int _capacity;
+        int _eof;
+    };
+
+    explicit PipeWriter(capsel_t caps, size_t size, State *state);
+
 public:
-    /**
-     * Constructs a pipe-writer for given pipe.
-     *
-     * @param p the pipe
-     */
-    explicit PipeWriter(const Pipe &p) : PipeWriter(p.caps(), p.size()) {
-    }
-    explicit PipeWriter(capsel_t caps, size_t size)
-        : _mgate(MemGate::bind(caps)),
-          _rbuf(RecvBuf::create(VPE::self().alloc_ep(),
-            nextlog2<Pipe::MSG_BUF_SIZE>::val, nextlog2<Pipe::MSG_SIZE>::val, 0)),
-          _rgate(RecvGate::create(&_rbuf)), _sgate(SendGate::bind(caps + 1, &_rgate)),
-          _size(size), _free(_size), _rdpos(), _wrpos(),
-          _capacity(Pipe::MSG_BUF_SIZE / Pipe::MSG_SIZE), _eof(0) {
-    }
     /**
      * Sends EOF and waits for all outstanding replies
      */
-    ~PipeWriter() {
-        send_eof();
-        read_replies();
-        VPE::self().free_ep(_rbuf.epid());
+    ~PipeWriter();
+
+    virtual Buffer *create_buf(size_t size) override {
+        return new File::Buffer(size);
     }
 
-    /**
-     * @return true if EOF has been seen
-     */
-    bool eof() const {
-        return _eof != 0;
+    virtual int stat(FileInfo &) const override {
+        // not supported
+        return -1;
     }
-    /**
-     * Sends EOF to the reader, i.e. notifies him that you are done sending data. This is done
-     * automatically on destruction, but can also be done manually by calling this function.
-     */
-    void send_eof() {
-        if(!_eof) {
-            write(nullptr, 0);
-            _eof |= Pipe::WRITE_EOF;
-        }
+    virtual off_t seek(off_t, int) override {
+        // not supported
+        return 0;
     }
 
-    /**
-     * Writes <count> bytes at <buffer> into the pipe.
-     *
-     * @param buffer the data to write
-     * @param count the number of bytes to write
-     * @return the number of written bytes (0 if it failed)
-     */
-    size_t write(const void *buffer, size_t count);
+    virtual ssize_t read(void *, size_t) override {
+        // not supported
+        return 0;
+    }
+    virtual ssize_t write(const void *buffer, size_t count) override;
+
+    virtual char type() const override {
+        return 'P';
+    }
+    virtual size_t serialize_length() override;
+    virtual void delegate(VPE &vpe) override;
+    virtual void serialize(Marshaller &m) override;
+    static File *unserialize(Unmarshaller &um);
 
 private:
-    size_t find_spot(size_t *len);
-    void read_replies();
+    virtual bool seek_to(off_t) override {
+        return false;
+    }
+    void send_eof();
 
-    MemGate _mgate;
-    RecvBuf _rbuf;
-    RecvGate _rgate;
-    SendGate _sgate;
+    capsel_t _caps;
     size_t _size;
-    size_t _free;
-    size_t _rdpos;
-    size_t _wrpos;
-    int _capacity;
-    int _eof;
+    State *_state;
+    bool _noeof;
 };
 
 }

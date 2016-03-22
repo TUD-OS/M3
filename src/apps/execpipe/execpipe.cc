@@ -18,7 +18,7 @@
 #include <base/Log.h>
 
 #include <m3/session/M3FS.h>
-#include <m3/pipe/PipeFS.h>
+#include <m3/stream/Standard.h>
 #include <m3/pipe/Pipe.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
@@ -29,7 +29,6 @@ using namespace m3;
 int main(int argc, char **argv) {
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Mounting root-fs failed");
-    VFS::mount("/pipe/", new PipeFS());
 
     if(argc < 4) {
         Serial::get() << "Usage: " << argv[0] << " <prog1> <prog2> <file>\n";
@@ -42,25 +41,29 @@ int main(int argc, char **argv) {
     VPE reader("reader");
     Pipe pipe(reader, writer, 16 * 1024);
 
+    reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+    reader.obtain_fds();
+
+    reader.mountspace(*VPE::self().mountspace());
+    reader.obtain_mountspace();
+
+    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.obtain_fds();
+
+    writer.mountspace(*VPE::self().mountspace());
+    writer.obtain_mountspace();
+
     {
-        String path = pipe.get_path('w', "/pipe/");
-        const char *args[] = {argv[1], argv[3], path.c_str()};
-
-        writer.mountspace(*VPE::self().mountspace());
-        writer.obtain_mountspace();
-
+        const char *args[] = {argv[1]};
         writer.exec(ARRAY_SIZE(args), args);
     }
     {
-        String path = pipe.get_path('r', "/pipe/");
-        const char *args[] = {argv[2], path.c_str()};
-
-        reader.mountspace(*VPE::self().mountspace());
-        reader.obtain_mountspace();
-
+        const char *args[] = {argv[2]};
         reader.exec(ARRAY_SIZE(args), args);
     }
 
+    pipe.close_reader();
+    pipe.close_writer();
     reader.wait();
     writer.wait();
 

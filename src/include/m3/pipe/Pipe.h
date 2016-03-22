@@ -39,27 +39,39 @@ namespace m3 {
  * i.e. the memory capability and the gate capability for communication. That means that the object
  * should stay alive as long as the pipe communication takes place.
  *
- * To use the pipe, you need to create a read-end and write-end, realized by PipeReadEnd and
- * PipeWriteEnd. To actually read from a pipe, you need to create a PipeReader from the PipeReadEnd
- * object. The same goes for write.
+ * To use the pipe, this class creates two file descriptors for the read-end and write-end. After
+ * being done with reading/writing, you need to close the file descriptor to notify the other
+ * end. This is also required for the part that you do not use.
+ *
+ * Caution: the current implementation does only support the communication between the two VPEs
+ *          specified on construction.
  *
  * A usage example looks like the following:
  * <code>
  *   VPE reader("reader");
- *   Pipe pipe(reader, 0x1000);
- *   PipeReadEnd pre(pipe, reader);
- *   PipeWriteEnd pwe(pipe, VPE::self());
  *
- *   reader.run([pre] {
- *       PipeReader rd(pre);
- *       // read from pipe
+ *   // construct the pipe for VPE::self -> reader
+ *   Pipe pipe(reader, VPE::self(), 0x1000);
+ *
+ *   // bind the read-end to stdin of the child
+ *   reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+ *   reader.obtain_fds();
+ *
+ *   reader.run([] {
+ *       // read from cin
  *       return 0;
  *   });
  *
- *   {
- *       PipeWriter wr(pwe);
- *       // write into pipe
- *   } // send EOF before waiting for reader
+ *   // we are done with reading
+ *   pipe.close_reader();
+ *
+ *   File *out = VPE::self().fds()->get(pipe.writer_fd());
+ *   // write into out
+ *
+ *   // we are done with writing
+ *   pipe.close_writer();
+ *
+ *   // wait until the reader exists before destroying the pipe
  *   reader.wait();
  * </code>
  */
@@ -94,23 +106,10 @@ public:
      * @param wr the writer of the pipe
      * @param size the size of the shared memory area
      */
-    explicit Pipe(VPE &rd, VPE &wr, size_t size)
-        : _rd(rd), _recvep(rd.alloc_ep()), _size(size),
-          _mem(MemGate::create_global(size, MemGate::RW, VPE::self().alloc_caps(2))),
-          _sgate(SendGate::create_for(rd, _recvep, 0, CREDITS, nullptr, _mem.sel() + 1)) {
-        assert(Math::is_aligned(size, DTU_PKG_SIZE));
-        if(&rd != &VPE::self() && rd.is_cap_free(caps()))
-            rd.delegate(CapRngDesc(CapRngDesc::OBJ, caps()));
-        // we assume here that either both have been delegated or none since this does basically
-        // only occur if we delegate all our caps to the VPE
-        if(&wr != &VPE::self() && wr.is_cap_free(caps()))
-            wr.delegate(CapRngDesc(CapRngDesc::OBJ, caps(), 2));
-    }
+    explicit Pipe(VPE &rd, VPE &wr, size_t size);
     Pipe(const Pipe&) = delete;
     Pipe &operator=(const Pipe&) = delete;
-    ~Pipe() {
-        _rd.free_ep(_recvep);
-    }
+    ~Pipe();
 
     /**
      * @return the capabilities (memory and gate)
@@ -132,28 +131,36 @@ public:
     }
 
     /**
-     * Constructs a filepath with given prefix so that one can use VFS::open to open the pipe.
-     * This is intended for cases where an application can work with any kind of file and is started
-     * via VPE::exec. The application should mount the pipe-fs at <prefix>. You can then simply
-     * pass the filepath via command line argument to the application.
-     *
-     * @param type the type ('r' for reading and 'w' for writing)
-     * @param prefix the prefix to put in front of the constructed path
-     * @return the filepath for this pipe-end
+     * @return the file descriptor for the reader
      */
-    String get_path(char type, const char *prefix) const {
-        assert(type == 'r' || type == 'w');
-        OStringStream os;
-        os << prefix << type << '_' << caps() << '_' << receive_ep() << '_' << size();
-        return os.str();
+    int reader_fd() const {
+        return _rdfd;
     }
+    /**
+     * Closes the read-end
+     */
+    void close_reader();
+
+    /**
+     * @return the file descriptor for the writer
+     */
+    int writer_fd() const {
+        return _wrfd;
+    }
+    /**
+     * Closes the write-end
+     */
+    void close_writer();
 
 private:
     VPE &_rd;
+    VPE &_wr;
     size_t _recvep;
     size_t _size;
     MemGate _mem;
     SendGate _sgate;
+    int _rdfd;
+    int _wrfd;
 };
 
 }

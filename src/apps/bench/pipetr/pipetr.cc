@@ -18,8 +18,8 @@
 #include <base/util/Profile.h>
 #include <base/Log.h>
 
-#include <m3/pipe/PipeWriter.h>
-#include <m3/pipe/PipeReader.h>
+#include <m3/stream/Standard.h>
+#include <m3/pipe/Pipe.h>
 #include <m3/vfs/FileRef.h>
 
 using namespace m3;
@@ -57,30 +57,34 @@ int main(int argc, char **argv) {
     writer.mountspace(*VPE::self().mountspace());
     writer.obtain_mountspace();
 
-    writer.run([argv, &pipe] {
+    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.obtain_fds();
+
+    writer.run([argv] {
         FileRef input(argv[1], FILE_R);
         if(Errors::occurred())
             PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
 
         size_t res;
-        PipeWriter wr(pipe);
+        File *out = VPE::self().fds()->get(STDOUT_FILENO);
         while((res = input->read(buffer, sizeof(buffer))) > 0)
-            wr.write(buffer, res);
+            out->write(buffer, res);
         return 0;
     });
+
+    pipe.close_writer();
 
     {
         FileRef output(argv[2], FILE_W | FILE_CREATE | FILE_TRUNC);
         if(Errors::occurred())
             PANIC("open of " << argv[2] << " failed (" << Errors::last << ")");
 
-        PipeReader rd(pipe);
-
         char c1 = argv[3][0];
         char c2 = argv[4][0];
 
         size_t res;
-        while((res = rd.read(buffer, sizeof(buffer))) > 0) {
+        File *in = VPE::self().fds()->get(pipe.reader_fd());
+        while((res = in->read(buffer, sizeof(buffer))) > 0) {
             cycles_t cstart = Profile::start(0xaaaa);
             replace(buffer, res, c1, c2);
             cycles_t cend = Profile::stop(0xaaaa);
@@ -88,6 +92,8 @@ int main(int argc, char **argv) {
             output->write(buffer, res);
         }
     }
+
+    pipe.close_reader();
     writer.wait();
 
     cycles_t end = Profile::stop(0);

@@ -18,8 +18,8 @@
 #include <base/util/Profile.h>
 #include <base/Log.h>
 
-#include <m3/pipe/PipeWriter.h>
-#include <m3/pipe/PipeReader.h>
+#include <m3/stream/Standard.h>
+#include <m3/pipe/Pipe.h>
 
 using namespace m3;
 
@@ -33,23 +33,28 @@ enum {
 alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
 
 int main() {
+    cycles_t start = Profile::start(0);
+
     VPE writer("writer");
     Pipe pipe(VPE::self(), writer, MEM_SIZE);
 
-    cycles_t start = Profile::start(0);
+    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.obtain_fds();
 
-    writer.run([&pipe] {
-        PipeWriter wr(pipe);
+    writer.run([] {
+        File *out = VPE::self().fds()->get(STDOUT_FILENO);
         for(size_t i = 0; i < COUNT; ++i)
-            wr.write(buffer, sizeof(buffer));
+            out->write(buffer, sizeof(buffer));
         return 0;
     });
 
-    {
-        PipeReader rd(pipe);
-        while(!rd.eof())
-            rd.read(buffer, sizeof(buffer));
-    }
+    pipe.close_writer();
+
+    File *in = VPE::self().fds()->get(pipe.reader_fd());
+    while(in->read(buffer, sizeof(buffer)) > 0)
+        ;
+
+    pipe.close_reader();
     writer.wait();
 
     cycles_t end = Profile::stop(0);

@@ -19,7 +19,6 @@
 #include <base/Log.h>
 
 #include <m3/session/M3FS.h>
-#include <m3/pipe/PipeFS.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/Syscalls.h>
@@ -40,8 +39,6 @@ int main(int argc, char **argv) {
         if(Errors::last != Errors::EXISTS)
             PANIC("Mounting root-fs failed");
     }
-    else
-        VFS::mount("/pipe/", new PipeFS());
 
     {
         FileRef input(argv[1], FILE_R);

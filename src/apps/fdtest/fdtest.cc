@@ -19,7 +19,9 @@
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/MountSpace.h>
+#include <m3/vfs/SerialFile.h>
 #include <m3/vfs/VFS.h>
 
 using namespace m3;
@@ -31,6 +33,18 @@ int main() {
         if(Errors::last != Errors::EXISTS)
             PANIC("Mounting root-fs failed");
     }
+
+    cout << "Hello World!\n";
+    cout.flush();
+
+    cout << "Enter your name: ";
+    cout.flush();
+
+    String name;
+    cin >> name;
+
+    cout << "Your name is: " << name << "\n";
+    cout.flush();
 
     {
         FStream f("/test.txt", FILE_R);
@@ -45,31 +59,31 @@ int main() {
 
         child.run([&f] {
             f.read(buffer, sizeof(buffer));
-            Serial::get() << buffer << "\n";
+            cout << buffer << "\n";
             return 0;
         });
         int res = child.wait();
-        Serial::get() << "result: " << res << "\n";
+        cout << "result: " << res << "\n";
     }
 
     {
         FStream f("/pat.bin", FILE_R, 128);
 
         size_t size = f.read(buffer, 128);
-        Serial::get().dump(buffer, size);
+        cout.dump(buffer, size);
 
         VPE child("child");
 
         child.mountspace(*VPE::self().mountspace());
         child.obtain_mountspace();
 
-        child.fds(*VPE::self().fds());
+        child.fds()->set(STDIN_FILENO, f.file());
         child.obtain_fds();
 
         const char *args[] = {"/bin/fdchild"};
         child.exec(ARRAY_SIZE(args), args);
         int res = child.wait();
-        Serial::get() << "result: " << res << "\n";
+        cout << "result: " << res << "\n";
     }
     return 0;
 }

@@ -18,7 +18,6 @@
 #include <base/com/GateStream.h>
 
 #include <m3/session/M3FS.h>
-#include <m3/pipe/PipeFS.h>
 #include <m3/vfs/MountSpace.h>
 
 namespace m3 {
@@ -207,10 +206,6 @@ MountSpace *MountSpace::unserialize(const void *buffer, size_t size) {
                 capsel_t sess, gate;
                 um >> sess >> gate;
                 ms->add(new MountPoint(path.c_str(), new M3FS(sess, gate)));
-                break;
-
-            case 'P':
-                ms->add(new MountPoint(path.c_str(), new PipeFS()));
                 break;
         }
     }

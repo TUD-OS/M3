@@ -36,9 +36,8 @@ class VPE;
  * to the child VPE.
  */
 class FileTable {
-    static const fd_t MAX_FDS       = 16;
-
 public:
+    static const fd_t MAX_FDS       = 16;
     static const fd_t INVALID       = MAX_FDS;
 
     /**
@@ -74,7 +73,6 @@ public:
      */
     File *free(fd_t fd) {
         File *file = _fds[fd];
-        assert(file != nullptr);
         _fds[fd] = nullptr;
         return file;
     }

@@ -16,6 +16,8 @@
 
 #include <base/com/Marshalling.h>
 
+#include <m3/pipe/PipeReader.h>
+#include <m3/pipe/PipeWriter.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/RegularFile.h>
@@ -74,6 +76,12 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
                 break;
             case 'S':
                 obj->_fds[fd] = SerialFile::unserialize(um);
+                break;
+            case 'P':
+                obj->_fds[fd] = PipeWriter::unserialize(um);
+                break;
+            case 'Q':
+                obj->_fds[fd] = PipeReader::unserialize(um);
                 break;
         }
     }

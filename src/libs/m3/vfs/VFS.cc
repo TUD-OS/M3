@@ -17,8 +17,6 @@
 #include <base/com/Marshalling.h>
 #include <base/stream/Serial.h>
 
-#include <m3/session/M3FS.h>
-#include <m3/pipe/PipeFS.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/MountSpace.h>
@@ -26,6 +24,14 @@
 #include <m3/VPE.h>
 
 namespace m3 {
+
+// clean them up after the standard streams have been destructed
+VFS::Cleanup VFS::_cleanup INIT_PRIORITY(103);
+
+VFS::Cleanup::~Cleanup() {
+    for(fd_t i = 0; i < FileTable::MAX_FDS; ++i)
+        delete VPE::self().fds()->free(i);
+}
 
 MountSpace *VFS::ms() {
     return VPE::self().mountspace();

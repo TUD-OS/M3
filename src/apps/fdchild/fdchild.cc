@@ -17,15 +17,14 @@
 #include <base/Common.h>
 #include <base/Log.h>
 
-#include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
 static char buffer[1024];
 
 int main() {
-    FStream f(0);
-    size_t size = f.read(buffer, sizeof(buffer));
+    size_t size = cin.read(buffer, sizeof(buffer));
     Serial::get().dump(buffer, size);
     return 0;
 }

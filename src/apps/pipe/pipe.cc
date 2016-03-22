@@ -19,71 +19,39 @@
 #include <base/Log.h>
 
 #include <m3/stream/FStream.h>
-#include <m3/pipe/PipeFS.h>
-#include <m3/vfs/Pipe.h>
+#include <m3/stream/Standard.h>
+#include <m3/pipe/Pipe.h>
 
 using namespace m3;
 
 alignas(DTU_PKG_SIZE) static char buffer[0x100];
 
 int main() {
-    VFS::mount("/pipes", new PipeFS());
-
-    {
-        VPE reader("reader");
-        Pipe pipe(reader, VPE::self(), 64);
-
-        String rpath = pipe.get_path('r', "/pipes/");
-
-        reader.mountspace(*VPE::self().mountspace());
-        reader.obtain_mountspace();
-
-        reader.run([rpath] {
-            FStream f(rpath.c_str(), FILE_R);
-            if(!f)
-                PANIC("Unable to open " << rpath);
-            while(f.good()) {
-                String s;
-                f >> s;
-                Serial::get() << "Read " << s.length() << ": '" << s << "'\n";
-            }
-            return 0;
-        });
-
-        {
-            String wpath = pipe.get_path('w', "/pipes/");
-            FStream f(wpath.c_str(), FILE_W);
-            if(!f)
-                PANIC("Unable to open " << wpath);
-            for(int i = 0; i < 10; ++i)
-                f << "Hello World from parent " << i << "!!!\n";
-        }
-        reader.wait();
-    }
-
     {
         VPE writer("writer");
         Pipe pipe(VPE::self(), writer, 0x1000);
 
-        writer.mountspace(*VPE::self().mountspace());
-        writer.obtain_mountspace();
+        writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+        writer.obtain_fds();
 
-        writer.run([&pipe] {
-            PipeWriter wr(pipe);
+        writer.run([] {
+            File *out = VPE::self().fds()->get(STDOUT_FILENO);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from child " << i << "!";
-                wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
+                out->write(buffer, strlen(buffer) + 1);
             }
             return 0;
         });
 
-        {
-            PipeReader rd(pipe);
-            size_t res, i = 0;
-            while(i++ < 3 && (res = rd.read(buffer, sizeof(buffer))) > 0)
-                Serial::get() << "Read " << res << ": '" << buffer << "'\n";
-        }
+        pipe.close_writer();
+
+        File *in = VPE::self().fds()->get(pipe.reader_fd());
+        size_t res, i = 0;
+        while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
+            Serial::get() << "Read " << res << ": '" << buffer << "'\n";
+
+        pipe.close_reader();
         writer.wait();
     }
 
@@ -92,92 +60,36 @@ int main() {
         VPE writer("writer");
         Pipe pipe(reader, writer, 0x1000);
 
-        reader.mountspace(*VPE::self().mountspace());
-        reader.obtain_mountspace();
+        reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+        reader.obtain_fds();
 
-        reader.run([&pipe] {
-            PipeReader rd(pipe);
+        reader.run([] {
+            File *in = VPE::self().fds()->get(STDIN_FILENO);
             size_t res, i = 0;
-            while(i++ < 3 && (res = rd.read(buffer, sizeof(buffer))) > 0)
+            while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
                 Serial::get() << "Read " << res << ": '" << buffer << "'\n";
             return 0;
         });
 
-        writer.mountspace(*VPE::self().mountspace());
-        writer.obtain_mountspace();
+        writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+        writer.obtain_fds();
 
-        writer.run([&pipe] {
-            PipeWriter wr(pipe);
+        writer.run([] {
+            File *out = VPE::self().fds()->get(STDOUT_FILENO);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from sibling " << i << "!";
-                wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
+                out->write(buffer, strlen(buffer) + 1);
             }
             return 0;
         });
+
+        pipe.close_writer();
+        pipe.close_reader();
+
         reader.wait();
         writer.wait();
     }
-
-    // does not work on T2 because we need at least a capacity of 2 in each recvbuf
-#if !defined(__t2__)
-    {
-        VPE reader("reader");
-        VPE writer1("writer1");
-        VPE writer2("writer2");
-
-        Pipe pipe1(reader, writer1, 0x1000);
-        Pipe pipe2(reader, writer2, 0x1000);
-
-        writer1.mountspace(*VPE::self().mountspace());
-        writer1.obtain_mountspace();
-
-        writer1.run([&pipe1] {
-            PipeWriter wr(pipe1);
-            for(int i = 0; i < 10; ++i) {
-                OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from VPE " << env()->coreid << "!";
-                wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
-            }
-            return 0;
-        });
-
-        writer2.mountspace(*VPE::self().mountspace());
-        writer2.obtain_mountspace();
-
-        writer2.run([&pipe2] {
-            PipeWriter wr(pipe2);
-            for(int i = 0; i < 10; ++i) {
-                OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from VPE " << env()->coreid << "!";
-                wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
-            }
-            return 0;
-        });
-
-        reader.mountspace(*VPE::self().mountspace());
-        reader.obtain_mountspace();
-
-        reader.run([&pipe1, &pipe2] {
-            PipeReader rd1(pipe1);
-            PipeReader rd2(pipe2);
-            while(!rd1.eof() || !rd2.eof()) {
-                size_t res = 0;
-                if(!rd1.eof() && rd1.has_data())
-                    res = rd1.read(buffer, sizeof(buffer));
-                else if(!rd2.eof() && rd2.has_data())
-                    res = rd2.read(buffer, sizeof(buffer));
-                if(res)
-                    Serial::get() << "Read " << res << ": '" << buffer << "'\n";
-            }
-            return 0;
-        });
-
-        writer1.wait();
-        writer2.wait();
-        reader.wait();
-    }
-#endif
 
     {
         VPE t1("t1");
@@ -186,15 +98,15 @@ int main() {
         // t1 -> t2
         Pipe p1(t2, t1, 0x1000);
 
-        t1.mountspace(*VPE::self().mountspace());
-        t1.obtain_mountspace();
+        t1.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(p1.writer_fd()));
+        t1.obtain_fds();
 
-        t1.run([&p1] {
-            PipeWriter wr(p1);
+        t1.run([] {
+            File *out = VPE::self().fds()->get(STDOUT_FILENO);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from child " << i << "!";
-                wr.write(buffer, Math::round_up(strlen(buffer) + 1, DTU_PKG_SIZE));
+                out->write(buffer, strlen(buffer) + 1);
             }
             return 0;
         });
@@ -202,32 +114,64 @@ int main() {
         // t2 -> self
         Pipe p2(VPE::self(), t2, 0x1000);
 
-        t2.mountspace(*VPE::self().mountspace());
-        t2.obtain_mountspace();
+        t2.fds()->set(STDIN_FILENO, VPE::self().fds()->get(p1.reader_fd()));
+        t2.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(p2.writer_fd()));
+        t2.obtain_fds();
 
-        t2.run([&p1, &p2] {
-            PipeReader rd(p1);
-            PipeWriter wr(p2);
-            while(!rd.eof()) {
-                size_t res = rd.read(buffer, sizeof(buffer));
-                if(res) {
-                    Serial::get() << "Received " << res << "b: '" << buffer << "'\n";
-                    wr.write(buffer, res);
-                }
+        t2.run([] {
+            File *in = VPE::self().fds()->get(STDIN_FILENO);
+            File *out = VPE::self().fds()->get(STDOUT_FILENO);
+            size_t res;
+            while((res = in->read(buffer, sizeof(buffer))) > 0) {
+                Serial::get() << "Received " << res << "b: '" << buffer << "'\n";
+                out->write(buffer, res);
             }
             return 0;
         });
 
-        {
-            PipeReader rd(p2);
-            while(!rd.eof()) {
-                size_t res = rd.read(buffer, sizeof(buffer));
-                if(res)
-                    Serial::get() << "Received " << res << "b: '" << buffer << "'\n";
-            }
-        }
+        p1.close_writer();
+        p1.close_reader();
+
+        p2.close_writer();
+
+        File *in = VPE::self().fds()->get(p2.reader_fd());
+        size_t res;
+        while((res = in->read(buffer, sizeof(buffer))) > 0)
+            Serial::get() << "Received " << res << "b: '" << buffer << "'\n";
+
+        p2.close_reader();
+
         t1.wait();
         t2.wait();
+    }
+
+    {
+        VPE reader("reader");
+
+        Pipe pipe(reader, VPE::self(), 64);
+
+        reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+        reader.obtain_fds();
+
+        reader.run([] {
+            while(cin.good()) {
+                String s;
+                cin >> s;
+                Serial::get() << "Read " << s.length() << ": '" << s << "'\n";
+            }
+            return 0;
+        });
+
+        pipe.close_reader();
+
+        {
+            FStream f(pipe.writer_fd(), FILE_W);
+            for(int i = 0; i < 10; ++i)
+                f << "Hello World from parent " << i << "!!!\n";
+        }
+
+        pipe.close_writer();
+        reader.wait();
     }
     return 0;
 }

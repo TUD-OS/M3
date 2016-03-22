@@ -33,6 +33,12 @@ namespace m3 {
 class VFS {
     friend class RegularFile;
 
+    struct Cleanup {
+        Cleanup() {
+        }
+        ~Cleanup();
+    };
+
 public:
     /**
      * Mounts <fs> at given path
@@ -118,6 +124,7 @@ public:
 
 private:
     static MountSpace *ms();
+    static Cleanup _cleanup;
 };
 
 }

@@ -19,73 +19,76 @@
 #include <base/Common.h>
 
 #include <m3/com/GateStream.h>
-#include <m3/pipe/Pipe.h>
+#include <m3/vfs/File.h>
 
 namespace m3 {
+
+class Pipe;
 
 /**
  * Reads from a previously constructed pipe.
  */
-class PipeReader {
+class PipeReader : public File {
+    friend class Pipe;
+
+    struct State {
+        explicit State(capsel_t caps, size_t rep);
+
+        MemGate _mgate;
+        RecvBuf _rbuf;
+        RecvGate _rgate;
+        size_t _pos;
+        size_t _rem;
+        size_t _pkglen;
+        int _eof;
+        GateIStream _is;
+    };
+
+    explicit PipeReader(capsel_t caps, size_t rep, State *state);
+
 public:
-    /**
-     * Constructs a pipe-reader for given pipe.
-     *
-     * @param p the pipe
-     */
-    explicit PipeReader(const Pipe &p) : PipeReader(p.caps(), p.receive_ep()) {
-    }
-    explicit PipeReader(capsel_t caps, size_t rep)
-        : _mgate(MemGate::bind(caps)),
-          _rbuf(RecvBuf::create(rep,
-            nextlog2<Pipe::MSG_BUF_SIZE>::val, nextlog2<Pipe::MSG_SIZE>::val, 0)),
-          _rgate(RecvGate::create(&_rbuf)),
-          _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate) {
-    }
     /**
      * Sends EOF
      */
-    ~PipeReader() {
-        send_eof();
+    ~PipeReader();
+
+    virtual Buffer *create_buf(size_t size) override {
+        return new File::Buffer(size);
     }
 
-    /**
-     * @return true if there is currently data to read
-     */
-    bool has_data() const {
-        return _rem > 0 || DTU::get().fetch_msg(_rgate.epid());
+    virtual int stat(FileInfo &) const override {
+        // not supported
+        return -1;
     }
-    /**
-     * @return true if EOF has been seen
-     */
-    bool eof() const {
-        return _eof != 0;
+    virtual off_t seek(off_t, int) override {
+        // not supported
+        return 0;
     }
 
-    /**
-     * Reads at most <count> bytes from the pipe into <buffer>.
-     *
-     * @param buffer the buffer to read into
-     * @param count the number of bytes to read (at most)
-     * @return the actual number of read bytes (0 on EOF)
-     */
-    size_t read(void *buffer, size_t count);
+    virtual ssize_t read(void *, size_t) override;
+    virtual ssize_t write(const void *, size_t) override {
+        // not supported
+        return 0;
+    }
 
-    /**
-     * Sends EOF to the writer, i.e. notifies him that you don't want to continue reading. This is
-     * done automatically on destruction, but can also be done manually by calling this function.
-     */
-    void send_eof();
+    virtual char type() const override {
+        return 'Q';
+    }
+    virtual size_t serialize_length() override;
+    virtual void delegate(VPE &vpe) override;
+    virtual void serialize(Marshaller &m) override;
+    static File *unserialize(Unmarshaller &um);
 
 private:
-    MemGate _mgate;
-    RecvBuf _rbuf;
-    RecvGate _rgate;
-    size_t _pos;
-    size_t _rem;
-    size_t _pkglen;
-    int _eof;
-    GateIStream _is;
+    virtual bool seek_to(off_t) override {
+        return false;
+    }
+    void send_eof();
+
+    bool _noeof;
+    capsel_t _caps;
+    size_t _rep;
+    State *_state;
 };
 
 }
