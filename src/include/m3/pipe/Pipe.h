@@ -54,7 +54,7 @@ namespace m3 {
  *   Pipe pipe(reader, VPE::self(), 0x1000);
  *
  *   // bind the read-end to stdin of the child
- *   reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+ *   reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
  *   reader.obtain_fds();
  *
  *   reader.run([] {

@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     writer.mountspace(*VPE::self().mountspace());
     writer.obtain_mountspace();
 
-    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
     writer.run([argv] {
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
             PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
 
         size_t res;
-        File *out = VPE::self().fds()->get(STDOUT_FILENO);
+        File *out = VPE::self().fds()->get(STDOUT_FD);
         while((res = input->read(buffer, sizeof(buffer))) > 0)
             out->write(buffer, res);
         return 0;

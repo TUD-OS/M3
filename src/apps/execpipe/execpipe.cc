@@ -41,13 +41,13 @@ int main(int argc, char **argv) {
     VPE reader("reader");
     Pipe pipe(reader, writer, 16 * 1024);
 
-    reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+    reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
     reader.obtain_fds();
 
     reader.mountspace(*VPE::self().mountspace());
     reader.obtain_mountspace();
 
-    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
     writer.mountspace(*VPE::self().mountspace());

@@ -237,8 +237,8 @@ public:
             return;
         }
         m3::INode *inode = INodes::get(_handle, ino);
-        if(((flags & FILE_W) && (~inode->mode & S_IWUSR)) ||
-            ((flags & FILE_R) && (~inode->mode & S_IRUSR))) {
+        if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
+            ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
             LOG(FS, "fs::open failed: " << Errors::to_string(Errors::NO_PERM));
             reply_vmsg(gate, Errors::NO_PERM);
             return;
@@ -260,7 +260,7 @@ public:
         }
 
         // for directories: ensure that we don't have a changed version in the cache
-        if(S_ISDIR(inode->mode))
+        if(M3FS_ISDIR(inode->mode))
             INodes::write_back(_handle, inode);
 
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);

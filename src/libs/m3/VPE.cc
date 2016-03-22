@@ -43,12 +43,12 @@ VPE::VPE()
         _fds = new FileTable();
 
     // create stdin, stdout and stderr, if not existing
-    if(!_fds->exists(STDIN_FILENO))
-        _fds->set(STDIN_FILENO, new SerialFile());
-    if(!_fds->exists(STDOUT_FILENO))
-        _fds->set(STDOUT_FILENO, new SerialFile());
-    if(!_fds->exists(STDERR_FILENO))
-        _fds->set(STDERR_FILENO, new SerialFile());
+    if(!_fds->exists(STDIN_FD))
+        _fds->set(STDIN_FD, new SerialFile());
+    if(!_fds->exists(STDOUT_FD))
+        _fds->set(STDOUT_FD, new SerialFile());
+    if(!_fds->exists(STDERR_FD))
+        _fds->set(STDERR_FD, new SerialFile());
 }
 
 VPE::VPE(const String &name, const String &core, const char *pager)

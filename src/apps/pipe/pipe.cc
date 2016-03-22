@@ -31,11 +31,11 @@ int main() {
         VPE writer("writer");
         Pipe pipe(VPE::self(), writer, 0x1000);
 
-        writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+        writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
         writer.obtain_fds();
 
         writer.run([] {
-            File *out = VPE::self().fds()->get(STDOUT_FILENO);
+            File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from child " << i << "!";
@@ -60,22 +60,22 @@ int main() {
         VPE writer("writer");
         Pipe pipe(reader, writer, 0x1000);
 
-        reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+        reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.obtain_fds();
 
         reader.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FILENO);
+            File *in = VPE::self().fds()->get(STDIN_FD);
             size_t res, i = 0;
             while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
                 Serial::get() << "Read " << res << ": '" << buffer << "'\n";
             return 0;
         });
 
-        writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+        writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
         writer.obtain_fds();
 
         writer.run([] {
-            File *out = VPE::self().fds()->get(STDOUT_FILENO);
+            File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from sibling " << i << "!";
@@ -98,11 +98,11 @@ int main() {
         // t1 -> t2
         Pipe p1(t2, t1, 0x1000);
 
-        t1.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(p1.writer_fd()));
+        t1.fds()->set(STDOUT_FD, VPE::self().fds()->get(p1.writer_fd()));
         t1.obtain_fds();
 
         t1.run([] {
-            File *out = VPE::self().fds()->get(STDOUT_FILENO);
+            File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
                 os << "Hello World from child " << i << "!";
@@ -114,13 +114,13 @@ int main() {
         // t2 -> self
         Pipe p2(VPE::self(), t2, 0x1000);
 
-        t2.fds()->set(STDIN_FILENO, VPE::self().fds()->get(p1.reader_fd()));
-        t2.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(p2.writer_fd()));
+        t2.fds()->set(STDIN_FD, VPE::self().fds()->get(p1.reader_fd()));
+        t2.fds()->set(STDOUT_FD, VPE::self().fds()->get(p2.writer_fd()));
         t2.obtain_fds();
 
         t2.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FILENO);
-            File *out = VPE::self().fds()->get(STDOUT_FILENO);
+            File *in = VPE::self().fds()->get(STDIN_FD);
+            File *out = VPE::self().fds()->get(STDOUT_FD);
             size_t res;
             while((res = in->read(buffer, sizeof(buffer))) > 0) {
                 Serial::get() << "Received " << res << "b: '" << buffer << "'\n";
@@ -150,7 +150,7 @@ int main() {
 
         Pipe pipe(reader, VPE::self(), 64);
 
-        reader.fds()->set(STDIN_FILENO, VPE::self().fds()->get(pipe.reader_fd()));
+        reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.obtain_fds();
 
         reader.run([] {

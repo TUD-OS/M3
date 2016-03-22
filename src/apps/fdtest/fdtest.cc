@@ -77,7 +77,7 @@ int main() {
         child.mountspace(*VPE::self().mountspace());
         child.obtain_mountspace();
 
-        child.fds()->set(STDIN_FILENO, f.file());
+        child.fds()->set(STDIN_FD, f.file());
         child.obtain_fds();
 
         const char *args[] = {"/bin/fdchild"};

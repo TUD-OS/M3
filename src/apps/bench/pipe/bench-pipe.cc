@@ -38,11 +38,11 @@ int main() {
     VPE writer("writer");
     Pipe pipe(VPE::self(), writer, MEM_SIZE);
 
-    writer.fds()->set(STDOUT_FILENO, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
     writer.run([] {
-        File *out = VPE::self().fds()->get(STDOUT_FILENO);
+        File *out = VPE::self().fds()->get(STDOUT_FD);
         for(size_t i = 0; i < COUNT; ++i)
             out->write(buffer, sizeof(buffer));
         return 0;

@@ -20,9 +20,9 @@
 
 namespace m3 {
 
-static const fd_t STDIN_FILENO      = 0;
-static const fd_t STDOUT_FILENO     = 1;
-static const fd_t STDERR_FILENO     = 2;
+static const fd_t STDIN_FD      = 0;
+static const fd_t STDOUT_FD     = 1;
+static const fd_t STDERR_FD     = 2;
 
 extern FStream cin;
 extern FStream cout;

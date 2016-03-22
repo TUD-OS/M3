@@ -74,7 +74,7 @@ Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t nam
                 // if we're not removing a dir, we're coming from unlink(). in this case, directories
                 // are not allowed
                 INode *inode = INodes::get(h, e->nodeno);
-                if(!isdir && S_ISDIR(inode->mode))
+                if(!isdir && M3FS_ISDIR(inode->mode))
                     return Errors::IS_DIR;
 
                 // remove entry by skipping over it or making it invalid

@@ -77,7 +77,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create) {
         }
 
         // create inode and put a link into the directory
-        INode *ninode = INodes::create(h, S_IFREG | 0644);
+        INode *ninode = INodes::create(h, M3FS_IFREG | 0644);
         if(!ninode)
             return INVALID_INO;
         Errors::Code res = Links::create(h, inode, path, namelen, ninode);
@@ -115,7 +115,7 @@ Errors::Code Dirs::create(FSHandle &h, const char *path, mode_t mode) {
         return Errors::EXISTS;
 
     INode *parinode = INodes::get(h, parino);
-    INode *dirinode = INodes::create(h, S_IFDIR | (mode & 0x777));
+    INode *dirinode = INodes::create(h, M3FS_IFDIR | (mode & 0x777));
     if(dirinode == nullptr)
         return Errors::NO_SPACE;
 
@@ -149,7 +149,7 @@ Errors::Code Dirs::remove(FSHandle &h, const char *path) {
 
     // it has to be a directory
     INode *inode = INodes::get(h, ino);
-    if(!S_ISDIR(inode->mode))
+    if(!M3FS_ISDIR(inode->mode))
         return Errors::IS_NO_DIR;
 
     // check whether it's empty
@@ -175,7 +175,7 @@ Errors::Code Dirs::link(FSHandle &h, const char *oldpath, const char *newpath) {
 
     // is can't be a directory
     INode *oldinode = INodes::get(h, oldino);
-    if(S_ISDIR(oldinode->mode))
+    if(M3FS_ISDIR(oldinode->mode))
         return Errors::IS_DIR;
 
     char buf1[BUF_SIZE], buf2[BUF_SIZE], *base, *dir;

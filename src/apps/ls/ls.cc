@@ -37,23 +37,23 @@ static void printPerm(OStream &os, mode_t mode, mode_t fl, char c) {
 }
 
 static void printMode(OStream &os, mode_t mode) {
-    if(S_ISDIR(mode))
+    if(M3FS_ISDIR(mode))
         os << 'd';
-    else if(S_ISCHR(mode))
+    else if(M3FS_ISCHR(mode))
         os << 'c';
-    else if(S_ISBLK(mode))
+    else if(M3FS_ISBLK(mode))
         os << 'b';
     else
         os << '-';
-    printPerm(os, mode, S_IRUSR, 'r');
-    printPerm(os, mode, S_IWUSR, 'w');
-    printPerm(os, mode, S_IXUSR, 'x');
-    printPerm(os, mode, S_IRGRP, 'r');
-    printPerm(os, mode, S_IWGRP, 'w');
-    printPerm(os, mode, S_IXGRP, 'x');
-    printPerm(os, mode, S_IROTH, 'r');
-    printPerm(os, mode, S_IWOTH, 'w');
-    printPerm(os, mode, S_IXOTH, 'x');
+    printPerm(os, mode, M3FS_IRUSR, 'r');
+    printPerm(os, mode, M3FS_IWUSR, 'w');
+    printPerm(os, mode, M3FS_IXUSR, 'x');
+    printPerm(os, mode, M3FS_IRGRP, 'r');
+    printPerm(os, mode, M3FS_IWGRP, 'w');
+    printPerm(os, mode, M3FS_IXGRP, 'x');
+    printPerm(os, mode, M3FS_IROTH, 'r');
+    printPerm(os, mode, M3FS_IWOTH, 'w');
+    printPerm(os, mode, M3FS_IXOTH, 'x');
 }
 
 int main(int argc, char **argv) {
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     FileInfo info;
     if((res = VFS::stat(dirname, info)) != Errors::NO_ERROR)
         PANIC("stat of " << dirname << " failed: " << Errors::to_string(res));
-    if(!S_ISDIR(info.mode))
+    if(!M3FS_ISDIR(info.mode))
         PANIC(dirname << " is no directory");
 
     Dir dir(dirname);
