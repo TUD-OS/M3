@@ -16,7 +16,6 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/stream/Serial.h>
 #include <base/util/Math.h>
 
 #include <m3/stream/FStream.h>

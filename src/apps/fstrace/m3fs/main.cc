@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
 
 #include <m3/session/M3FS.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 
 #include <cstring>
@@ -46,14 +46,14 @@ int main(int argc, char **argv) {
     TracePlayer player(prefix);
 
     // print parameters for reference
-    Serial::get() << "VPFS trace_bench started ["
-        << "n=" << num_iterations << ","
-        << "keeptime=" << (keep_time   ? "yes" : "no")
-        << "]\n";
+    cout << "VPFS trace_bench started ["
+         << "n=" << num_iterations << ","
+         << "keeptime=" << (keep_time   ? "yes" : "no")
+         << "]\n";
 
     player.play(keep_time, make_ckpt);
 
-    Serial::get() << "VPFS trace_bench benchmark terminated\n";
+    cout << "VPFS trace_bench benchmark terminated\n";
 
     // done
     Platform::shutdown();

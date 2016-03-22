@@ -17,9 +17,9 @@
 #include <base/Common.h>
 #include <base/stream/Serial.h>
 #include <base/util/Profile.h>
-#include <base/Log.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/File.h>
 #include <m3/VPE.h>
@@ -32,13 +32,13 @@ static cycles_t exec_time = 0;
 
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+        exitmsg("Mounting root-fs failed");
 
     {
         cycles_t start = Profile::start(0);
         VPE vpe("hello");
         cycles_t end = Profile::stop(0);
-        Serial::get() << "Time for VPE-creation: " << (end - start) << " cycles\n";
+        cout << "Time for VPE-creation: " << (end - start) << " cycles\n";
 
         for(int i = 0; i < COUNT; ++i) {
             cycles_t start2 = Profile::start(1);
@@ -47,14 +47,14 @@ int main() {
                 return end - start2;
             });
             if(res != Errors::NO_ERROR)
-                PANIC("Unable to load /bin/init: " << Errors::to_string(res));
+                exitmsg("Unable to load /bin/init");
 
             int time = vpe.wait();
             exec_time += time;
         }
     }
 
-    Serial::get() << "Time for run: " << (exec_time / COUNT) << " cycles\n";
+    cout << "Time for run: " << (exec_time / COUNT) << " cycles\n";
 
     exec_time = 0;
 
@@ -66,7 +66,7 @@ int main() {
                 return 0;
             });
             if(res != Errors::NO_ERROR)
-                PANIC("Unable to load /bin/init: " << Errors::to_string(res));
+                exitmsg("Unable to load /bin/init");
 
             vpe.wait();
             cycles_t end = Profile::stop(2);
@@ -74,7 +74,7 @@ int main() {
         }
     }
 
-    Serial::get() << "Time for run+wait: " << (exec_time / COUNT) << " cycles\n";
+    cout << "Time for run+wait: " << (exec_time / COUNT) << " cycles\n";
 
     exec_time = 0;
 
@@ -85,7 +85,7 @@ int main() {
             const char *args[] = {"/bin/noop"};
             Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
             if(res != Errors::NO_ERROR)
-                PANIC("Unable to load " << args[0] << ": " << Errors::to_string(res));
+                exitmsg("Unable to load " << args[0]);
 
             vpe.wait();
             cycles_t end = Profile::stop(3);
@@ -93,6 +93,6 @@ int main() {
         }
     }
 
-    Serial::get() << "Time for exec: " << (exec_time / COUNT) << " cycles\n";
+    cout << "Time for exec: " << (exec_time / COUNT) << " cycles\n";
     return 0;
 }

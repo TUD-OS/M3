@@ -14,9 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
 #include <base/util/Profile.h>
-#include <base/Log.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/Pipe.h>
@@ -58,6 +56,6 @@ int main() {
     writer.wait();
 
     cycles_t end = Profile::stop(0);
-    Serial::get() << "Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: " << (end - start) << " cycles\n";
+    cout << "Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: " << (end - start) << " cycles\n";
     return 0;
 }

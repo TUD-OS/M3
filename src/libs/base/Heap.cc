@@ -18,7 +18,7 @@
 #include <base/stream/OStream.h>
 #include <base/Heap.h>
 #include <base/DTU.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 #include <cstring>
 
 namespace m3 {

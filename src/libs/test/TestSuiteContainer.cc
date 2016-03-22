@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <m3/stream/Standard.h>
 
 #include <test/TestSuiteContainer.h>
 
@@ -26,7 +26,7 @@ int TestSuiteContainer::run() {
     size_t cases_succ = 0;
     size_t cases_failed = 0;
     for(auto &s : _suites) {
-        LOG(DEF, "\033[1mTestsuite \"" << s.get_name() << "\"...\033[0m");
+        m3::cout << "\033[1mTestsuite \"" << s.get_name() << "\"...\033[0m\n";
 
         s.run();
 
@@ -35,18 +35,18 @@ int TestSuiteContainer::run() {
         else
             suites_failed++;
 
-        LOG(DEF, "  " << (s.get_failed() == 0 ? "\033[0;32m" : "\033[0;31m") << s.get_succeeded()
-                << "\033[0m of " << (s.get_failed() + s.get_succeeded()) << " testcases successfull");
+        m3::cout << "  " << (s.get_failed() == 0 ? "\033[0;32m" : "\033[0;31m") << s.get_succeeded()
+                << "\033[0m of " << (s.get_failed() + s.get_succeeded()) << " testcases successfull\n";
         cases_succ += s.get_succeeded();
         cases_failed += s.get_failed();
     }
 
-    LOG(DEF, "");
-    LOG(DEF, "\033[1mAll tests done:\033[0m");
-    LOG(DEF, (suites_succ == _suites.length() ? "\033[0;32m" : "\033[0;31m")
-            << suites_succ << "\033[0m of " << _suites.length() << " testsuites successfull");
-    LOG(DEF, (cases_failed == 0 ? "\033[0;32m" : "\033[0;31m") << cases_succ << "\033[0m of "
-            << (cases_succ + cases_failed) << " testcases successfull");
+    m3::cout << "\n";
+    m3::cout << "\033[1mAll tests done:\033[0m\n";
+    m3::cout << (suites_succ == _suites.length() ? "\033[0;32m" : "\033[0;31m")
+             << suites_succ << "\033[0m of " << _suites.length() << " testsuites successfull\n";
+    m3::cout << (cases_failed == 0 ? "\033[0;32m" : "\033[0;31m") << cases_succ << "\033[0m of "
+             << (cases_succ + cases_failed) << " testcases successfull\n";
     return ((suites_succ + suites_failed) << 16) | suites_succ;
 }
 

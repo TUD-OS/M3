@@ -16,7 +16,7 @@
 
 #include <base/arch/host/SharedMemory.h>
 #include <base/util/Sync.h>
-#include <base/Log.h>
+#include <base/log/Services.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/session/arch/host/Keyboard.h>
@@ -49,7 +49,7 @@ static void kb_irq(Server<EventHandler> *kbserver, RecvGate &, Subscriber<RecvGa
         Keyboard::Event ev;
         ev.scancode = data;
         if(Scancodes::get_keycode(ev.isbreak, ev.keycode, ev.scancode)) {
-            LOG(KEYB, "Got " << (unsigned)ev.keycode << ":" << (unsigned)ev.isbreak);
+            SLOG(KEYB, "Got " << (unsigned)ev.keycode << ":" << (unsigned)ev.isbreak);
             static_cast<EventHandler&>(kbserver->handler()).broadcast(ev);
         }
     }

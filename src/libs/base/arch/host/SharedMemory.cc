@@ -15,9 +15,10 @@
  */
 
 #include <base/arch/host/SharedMemory.h>
+#include <base/log/Lib.h>
 #include <base/util/Util.h>
 #include <base/Env.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -41,7 +42,7 @@ SharedMemory::SharedMemory(const String &name, size_t size, Op op)
     if(_addr == MAP_FAILED)
         PANIC("mmap");
 
-    LOG(SHM, "Shm " << os.str() << " @ " << _addr);
+    LLOG(SHM, "SHM " << os.str() << " @ " << _addr);
 }
 
 SharedMemory::~SharedMemory() {
@@ -52,7 +53,7 @@ SharedMemory::~SharedMemory() {
         if(env()->is_kernel()) {
             OStringStream os;
             os << env()->shm_prefix() << _name;
-            LOG(SHM, "Del " << os.str());
+            LLOG(SHM, "Delete SHM " << os.str());
             shm_unlink(os.str());
         }
     }

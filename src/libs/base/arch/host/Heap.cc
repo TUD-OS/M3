@@ -16,8 +16,8 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
-#include <base/Log.h>
 #include <base/Heap.h>
+#include <base/Panic.h>
 
 #include <sys/mman.h>
 #include <malloc.h>

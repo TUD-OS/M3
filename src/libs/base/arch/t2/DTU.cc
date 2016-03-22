@@ -15,10 +15,11 @@
  */
 
 #include <base/util/Sync.h>
+#include <base/log/Lib.h>
 #include <base/tracing/Tracing.h>
 #include <base/DTU.h>
 #include <base/KIF.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 namespace m3 {
 
@@ -60,7 +61,7 @@ retry:
         volatile Message *msg = reinterpret_cast<volatile Message*>(
             RECV_BUF_LOCAL + DTU::get().recvbuf_offset(i, ep));
         if(msg->length != 0) {
-            LOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
+            LLOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
             EVENT_TRACE_MSG_RECV(msg->core, msg->length,
                 ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
             assert(_last[ep] == nullptr);
@@ -81,7 +82,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, cfg->dstep);
-    LOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
+    LLOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(cfg->dstcore, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
@@ -110,7 +111,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
 Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     DTU::Message *orgmsg = message_at(ep, msgidx);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, orgmsg->epid);
-    LOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
+    LLOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
@@ -152,7 +153,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;
     size_t len = cfg->credits;
     uintptr_t srcaddr = base + off;
-    LOG(DTU, "Reading " << size << "b from " << cfg->dstcore << " @ " << fmt(srcaddr, "p"));
+    LLOG(DTU, "Reading " << size << "b from " << cfg->dstcore << " @ " << fmt(srcaddr, "p"));
 
     EVENT_TRACE_MEM_READ(cfg->dstcore, size);
 
@@ -187,7 +188,7 @@ Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;
     size_t len = cfg->credits;
     uintptr_t destaddr = base + off;
-    LOG(DTU, "Writing " << size << "b to " << cfg->dstcore << " @ " << fmt(destaddr, "p"));
+    LLOG(DTU, "Writing " << size << "b to " << cfg->dstcore << " @ " << fmt(destaddr, "p"));
 
     EVENT_TRACE_MEM_WRITE(cfg->dstcore, size);
 

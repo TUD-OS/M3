@@ -15,7 +15,7 @@
  */
 
 #include <base/Errors.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <m3/com/EPMux.h>
 #include <m3/com/Gate.h>

@@ -14,12 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
@@ -33,54 +32,54 @@ alignas(DTU_PKG_SIZE) static char buffer[1024 + 1];
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     {
         const char *dirname = "/largedir";
         Dir dir(dirname);
         if(Errors::occurred())
-            PANIC("open of " << dirname << " failed (" << Errors::last << ")");
+            exitmsg("open of " << dirname << " failed");
 
-        Serial::get() << "Listing dir " << dirname << "..." << "\n";
+        cout << "Listing dir " << dirname << "..." << "\n";
         Dir::Entry e;
         while(dir.readdir(e))
-            Serial::get() << " Found " << e.name << " -> " << e.nodeno << "\n";
+            cout << " Found " << e.name << " -> " << e.nodeno << "\n";
     }
 
     {
         const char *filename = "/BitField.h";
         FStream file(filename, FILE_RW);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         FileInfo info;
         if(file.file()->stat(info) < 0)
-            PANIC("stat of " << filename << " failed");
-        Serial::get() << "Info:" << "\n";
-        Serial::get() << "  devno  : " << info.devno << "\n";
-        Serial::get() << "  inode  : " << info.inode << "\n";
-        Serial::get() << "  mode   : " << info.mode << "\n";
-        Serial::get() << "  size   : " << info.size << "\n";
-        Serial::get() << "  links  : " << info.links << "\n";
-        Serial::get() << "  acctime: " << info.lastaccess << "\n";
-        Serial::get() << "  modtime: " << info.lastmod << "\n";
-        Serial::get() << "" << "\n";
+            exitmsg("stat of " << filename << " failed");
+        cout << "Info:" << "\n";
+        cout << "  devno  : " << info.devno << "\n";
+        cout << "  inode  : " << info.inode << "\n";
+        cout << "  mode   : " << info.mode << "\n";
+        cout << "  size   : " << info.size << "\n";
+        cout << "  links  : " << info.links << "\n";
+        cout << "  acctime: " << info.lastaccess << "\n";
+        cout << "  modtime: " << info.lastmod << "\n";
+        cout << "" << "\n";
 
-        Serial::get() << "Changing content of " << filename << "..." << "\n";
+        cout << "Changing content of " << filename << "..." << "\n";
         strncpy(buffer, TEXT, sizeof(TEXT) - 1);
         size_t size = sizeof(TEXT) - 1;
         if(file.write(buffer, size) != size)
-            Serial::get() << "Writing failed" << "\n";
+            cout << "Writing failed" << "\n";
 
-        Serial::get() << "Seeking to beginning..." << "\n";
+        cout << "Seeking to beginning..." << "\n";
         file.seek(0, SEEK_SET);
 
-        Serial::get() << "Writing content of " << filename << " to stdout..." << "\n";
+        cout << "Writing content of " << filename << " to stdout..." << "\n";
         ssize_t count;
         while((count = file.read(buffer, sizeof(buffer) - 1)) > 0) {
             buffer[count] = '\0';
-            Serial::get() << buffer;
+            cout << buffer;
         }
     }
 
@@ -88,30 +87,30 @@ int main() {
         const char *dirname = "/mydir";
         Errors::Code res;
         if((res = VFS::mkdir(dirname, 0755)) != Errors::NO_ERROR)
-            PANIC("mkdir(" << dirname << ") failed: " << Errors::to_string(res));
+            exitmsg("mkdir(" << dirname << ") failed: " << Errors::to_string(res));
     }
 
     {
         const char *filename = "/mydir/foobar///";
         FStream file(filename, FILE_CREATE | FILE_W);
         if(!file)
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
         file << "My test!\n";
     }
 
     {
         if(VFS::link("/mydir/foobar", "/mydir/here") != Errors::NO_ERROR)
-            PANIC("Link failed (" << Errors::last << ")");
+            exitmsg("Link failed");
 
         if(VFS::unlink("/mydir/foobar") != Errors::NO_ERROR)
-            PANIC("Unlink failed (" << Errors::last << ")");
+            exitmsg("Unlink failed");
         if(VFS::unlink("/mydir/here") != Errors::NO_ERROR)
-            PANIC("Unlink failed (" << Errors::last << ")");
+            exitmsg("Unlink failed");
     }
 
     {
         if(VFS::rmdir("/mydir") != Errors::NO_ERROR)
-            PANIC("rmdir failed (" << Errors::last << ")");
+            exitmsg("rmdir failed");
     }
     return 0;
 }

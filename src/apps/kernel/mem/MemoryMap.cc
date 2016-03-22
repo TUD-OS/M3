@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Kernel.h>
 
 #include <assert.h>
 
@@ -59,12 +59,12 @@ uintptr_t MemoryMap::allocate(size_t size) {
             list = a->next;
         delete a;
     }
-    LOG(MEM, "Requested " << (size / 1024) << " KiB of memory @ " << m3::fmt(res, "p"));
+    KLOG(MEM, "Requested " << (size / 1024) << " KiB of memory @ " << m3::fmt(res, "p"));
     return res;
 }
 
 void MemoryMap::free(uintptr_t addr, size_t size) {
-    LOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << m3::fmt(addr, "p"));
+    KLOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << m3::fmt(addr, "p"));
 
     /* find the area behind ours */
     Area *n, *p = nullptr;

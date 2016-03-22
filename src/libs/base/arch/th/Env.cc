@@ -17,7 +17,7 @@
 #include <base/Common.h>
 #include <base/util/Math.h>
 #include <base/Env.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 #include <string.h>
 #include <assert.h>
 

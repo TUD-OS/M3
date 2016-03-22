@@ -16,7 +16,7 @@
 
 #include <base/ELF.h>
 #include <base/Env.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <m3/stream/FStream.h>
 #include <m3/vfs/FileRef.h>

@@ -15,7 +15,7 @@
  */
 
 #include <base/ELF.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>

@@ -15,10 +15,10 @@
  */
 
 #include <base/stream/IStringStream.h>
-#include <base/Log.h>
 
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
+#include <m3/stream/Standard.h>
 #include <m3/com/GateStream.h>
 
 using namespace m3;
@@ -69,7 +69,7 @@ public:
 int main() {
     Server<ArithRequestHandler> srv("arith", new ArithRequestHandler());
     if(Errors::occurred())
-        PANIC("Unable to register service 'arith'");
+        exitmsg("Unable to register service 'arith'");
 
     env()->workloop()->run();
     return 0;

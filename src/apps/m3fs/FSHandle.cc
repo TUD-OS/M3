@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Services.h>
+#include <base/Panic.h>
 
 #include "FSHandle.h"
 #include "INodes.h"
@@ -23,14 +24,14 @@ using namespace m3;
 
 bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb) {
     mem.read_sync(sb, sizeof(*sb), 0);
-    LOG(FS, "Superblock:");
-    LOG(FS, "  blocksize=" << sb->blocksize);
-    LOG(FS, "  total_inodes=" << sb->total_inodes);
-    LOG(FS, "  total_blocks=" << sb->total_blocks);
-    LOG(FS, "  free_inodes=" << sb->free_inodes);
-    LOG(FS, "  free_blocks=" << sb->free_blocks);
-    LOG(FS, "  first_free_inode=" << sb->first_free_inode);
-    LOG(FS, "  first_free_block=" << sb->first_free_block);
+    SLOG(FS, "Superblock:");
+    SLOG(FS, "  blocksize=" << sb->blocksize);
+    SLOG(FS, "  total_inodes=" << sb->total_inodes);
+    SLOG(FS, "  total_blocks=" << sb->total_blocks);
+    SLOG(FS, "  free_inodes=" << sb->free_inodes);
+    SLOG(FS, "  free_blocks=" << sb->free_blocks);
+    SLOG(FS, "  first_free_inode=" << sb->first_free_inode);
+    SLOG(FS, "  first_free_block=" << sb->first_free_block);
     if(sb->checksum != sb->get_checksum())
         PANIC("Superblock checksum is invalid. Terminating.");
     return true;

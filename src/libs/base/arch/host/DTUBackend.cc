@@ -15,8 +15,9 @@
  */
 
 #include <base/arch/host/DTUBackend.h>
+#include <base/log/Lib.h>
 #include <base/DTU.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -113,7 +114,7 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
 void SocketBackend::send(int core, int ep, const DTU::Buffer *buf) {
     if(sendto(_sock, buf, buf->length + DTU::HEADER_SIZE, 0,
         (struct sockaddr*)(_endpoints + core * EP_COUNT + ep), sizeof(sockaddr_un)) == -1)
-        LOG(DTUERR, "Sending message to EP " << core << ":" << ep << " failed: " << strerror(errno));
+        LLOG(DTUERR, "Sending message to EP " << core << ":" << ep << " failed: " << strerror(errno));
 }
 
 ssize_t SocketBackend::recv(int ep, DTU::Buffer *buf) {

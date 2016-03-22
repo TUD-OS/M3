@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Services.h>
 
 #include <limits>
 
@@ -89,7 +89,7 @@ void Cache::flush() {
 }
 
 void Cache::flush_block(size_t i) {
-    LOG(FS, "Writing block " << _blocks[i].bno << " to DRAM");
+    SLOG(FS, "Writing block " << _blocks[i].bno << " to DRAM");
     _mem.write_sync(_data + i * _blocksize, _blocksize, _blocks[i].bno * _blocksize);
     _blocks[i].dirty = false;
 }

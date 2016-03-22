@@ -15,16 +15,17 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
+
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
 int main(int argc, char **argv) {
     for(int i = 1; i < argc; ++i) {
-        Serial::get() << argv[i];
+        cout << argv[i];
         if(i < argc - 1)
-            Serial::get() << " ";
+            cout << " ";
     }
-    Serial::get() << "\n";
+    cout << "\n";
     return 0;
 }

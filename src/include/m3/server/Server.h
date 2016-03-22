@@ -16,14 +16,10 @@
 
 #pragma once
 
-#include <base/col/SList.h>
-#include <base/tracing/Tracing.h>
 #include <base/Errors.h>
 #include <base/KIF.h>
-#include <base/Log.h>
 
-#include <m3/com/Gate.h>
-#include <m3/com/GateStream.h>
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>

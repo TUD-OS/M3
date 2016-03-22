@@ -15,9 +15,10 @@
  */
 
 #include <base/col/SList.h>
+#include <base/log/Kernel.h>
 #include <base/Config.h>
 #include <base/DTU.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -72,7 +73,7 @@ static void copyfromfs(MainMemory &mem, const char *file) {
     mem.map().allocate(res);
 
     fssize = res;
-    LOG(DEF, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
+    KLOG(MEM, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
 }
 
 static void copytofs(MainMemory &mem, const char *file) {
@@ -84,7 +85,7 @@ static void copytofs(MainMemory &mem, const char *file) {
     write(fd, (void*)mem.addr(), fssize);
     close(fd);
 
-    LOG(DEF, "Copied fs-image from memory back to '" << name << "'");
+    KLOG(MEM, "Copied fs-image from memory back to '" << name << "'");
 }
 
 int main(int argc, char *argv[]) {
@@ -111,13 +112,14 @@ int main(int argc, char *argv[]) {
 
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
-    LOG(DEF, "Initializing PEs.");
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
 
+    KLOG(INFO, "Kernel is ready");
+
     m3::env()->workloop()->run();
 
-    LOG(DEF, "Shutting down.");
+    KLOG(INFO, "Shutting down");
     if(fsimg)
         copytofs(MainMemory::get(), fsimg);
     PEManager::destroy();

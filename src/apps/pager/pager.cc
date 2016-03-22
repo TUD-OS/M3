@@ -15,7 +15,7 @@
  */
 
 #include <base/col/Treap.h>
-#include <base/Log.h>
+#include <base/log/Services.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/server/RequestHandler.h>
@@ -98,24 +98,24 @@ public:
         // access == PTE_GONE indicates, that the VPE that owns the memory is not available
         // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
 
-        LOG(PF, sess->id << " : mem::pf(virt=" << fmt(virt, "p")
+        SLOG(PAGER, sess->id << " : mem::pf(virt=" << fmt(virt, "p")
             << ", access " << fmt(access, "#x") << ")");
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
-            LOG(PF, "Invalid session");
+            SLOG(PAGER, "Invalid session");
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
 
         DataSpace *ds = sess->dstree.find(virt);
         if(!ds) {
-            LOG(PF, "No dataspace attached at " << fmt(virt, "p"));
+            SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
 
         if((ds->flags & access) != access) {
-            LOG(PF, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
+            SLOG(PAGER, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
                 << " not allowed: " << fmt(ds->flags, "#x"));
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
@@ -126,7 +126,7 @@ public:
         capsel_t mem;
         Errors::Code res = ds->get_page(&virt, &first, &pages, &mem);
         if(res != Errors::NO_ERROR) {
-            LOG(PF, "Getting page failed: " << Errors::to_string(res));
+            SLOG(PAGER, "Getting page failed: " << Errors::to_string(res));
             reply_vmsg(gate, res);
             return;
         }
@@ -135,7 +135,7 @@ public:
             res = Syscalls::get().createmap(sess->vpe.sel(), mem, first,
                 pages, virt >> PAGE_BITS, ds->flags);
             if(res != Errors::NO_ERROR) {
-                LOG(PF, "Unable to create PTEs: " << Errors::to_string(res));
+                SLOG(PAGER, "Unable to create PTEs: " << Errors::to_string(res));
                 reply_vmsg(gate, res);
                 return;
             }
@@ -151,7 +151,7 @@ public:
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        LOG(PF, sess->id << " : mem::map_anon(virt=" << fmt(virt, "p")
+        SLOG(PAGER, sess->id << " : mem::map_anon(virt=" << fmt(virt, "p")
             << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
 
@@ -159,17 +159,17 @@ public:
         len = Math::round_up(len, PAGE_SIZE);
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
-            LOG(PF, "Invalid virtual address / size");
+            SLOG(PAGER, "Invalid virtual address / size");
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
         if((virt & PAGE_BITS) || (len & PAGE_BITS)) {
-            LOG(PF, "Virtual address or size not properly aligned");
+            SLOG(PAGER, "Virtual address or size not properly aligned");
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
-            LOG(PF, "Invalid protection flags");
+            SLOG(PAGER, "Invalid protection flags");
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
@@ -185,7 +185,7 @@ public:
         int prot, flags, id;
         args >> *virt >> len >> prot >> flags >> id >> offset;
 
-        LOG(PF, sess->id << " : mem::map_ds(virt=" << fmt(*virt, "p")
+        SLOG(PAGER, sess->id << " : mem::map_ds(virt=" << fmt(*virt, "p")
             << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
@@ -194,7 +194,7 @@ public:
         len = Math::round_up(len, PAGE_SIZE);
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
-            LOG(PF, "Virtual address or size not properly aligned");
+            SLOG(PAGER, "Virtual address or size not properly aligned");
             return Errors::INV_ARGS;
         }
 
@@ -210,7 +210,7 @@ public:
         uintptr_t virt;
         is >> virt;
 
-        LOG(PF, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
+        SLOG(PAGER, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
 
         Errors::Code res = Errors::INV_ARGS;
         DataSpace *ds = sess->dstree.find(virt);
@@ -220,7 +220,7 @@ public:
             res = Errors::NO_ERROR;
         }
         else
-            LOG(PF, "No dataspace attached at " << fmt(virt, "p"));
+            SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
 
         reply_vmsg(gate, res);
     }

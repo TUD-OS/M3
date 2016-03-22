@@ -16,10 +16,11 @@
 
 #include <base/arch/host/HWInterrupts.h>
 #include <base/arch/host/DTUBackend.h>
+#include <base/log/Lib.h>
 #include <base/DTU.h>
 #include <base/Env.h>
 #include <base/KIF.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <cstdio>
 #include <cstring>
@@ -33,14 +34,14 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
     tmp << std::hex << std::setfill('0');
     for(size_t i = 0; i < length; ++i) {
         if(i > 0 && i % 8 == 0) {
-            LOG(DTUERR, "  " << tmp.str().c_str());
+            LLOG(DTUERR, "  " << tmp.str().c_str());
             tmp.str(std::string());
             tmp << std::hex << std::setfill('0');
         }
         tmp << "0x" << std::setw(2) << (unsigned)bytes[i] << " ";
     }
     if(!tmp.str().empty())
-        LOG(DTUERR, "  " << tmp.str().c_str());
+        LLOG(DTUERR, "  " << tmp.str().c_str());
 }
 
 DTU DTU::inst INIT_PRIORITY(101);
@@ -88,12 +89,12 @@ int DTU::check_cmd(int ep, int op, word_t label, word_t credits, size_t offset, 
     if(op == READ || op == WRITE || op == CMPXCHG) {
         uint perms = label & KIF::Perm::RWX;
         if(!(perms & (1 << op))) {
-            LOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
+            LLOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
                     << perms << ", op=" << op << ")");
             return CTRL_ERROR;
         }
         if(offset >= credits || offset + length < offset || offset + length > credits) {
-            LOG(DTUERR, "DMA-error: invalid parameters (credits=" << credits
+            LLOG(DTUERR, "DMA-error: invalid parameters (credits=" << credits
                     << ", offset=" << offset << ", datalen=" << length << ")");
             return CTRL_ERROR;
         }
@@ -107,7 +108,7 @@ int DTU::prepare_reply(int epid,int &dstcore,int &dstep) {
     const size_t reply = get_cmd(CMD_OFFSET);
 
     if(get_ep(epid, EP_BUF_FLAGS) & FLAG_NO_HEADER) {
-        LOG(DTUERR, "DMA-error: want to reply, but header is disabled");
+        LLOG(DTUERR, "DMA-error: want to reply, but header is disabled");
         return CTRL_ERROR;
     }
 
@@ -117,7 +118,7 @@ int DTU::prepare_reply(int epid,int &dstcore,int &dstep) {
     assert(buf->has_replycap);
 
     if(reply >= MAX_MSGS || !buf->has_replycap) {
-        LOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", ep=" << epid << ")");
+        LLOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", ep=" << epid << ")");
         return CTRL_ERROR;
     }
 
@@ -140,7 +141,7 @@ int DTU::prepare_send(int epid,int &dstcore,int &dstep) {
     // check if we have enough credits
     if(credits != static_cast<word_t>(-1)) {
         if(size + HEADER_SIZE > credits) {
-            LOG(DTUERR, "DMA-error: insufficient credits on ep " << epid
+            LLOG(DTUERR, "DMA-error: insufficient credits on ep " << epid
                     << " (have #" << fmt(credits, "x") << ", need #" << fmt(size + HEADER_SIZE, "x")
                     << ")." << " Ignoring send-command");
             return CTRL_ERROR;
@@ -194,7 +195,7 @@ int DTU::prepare_cmpxchg(int epid,int &dstcore,int &dstep) {
     dstep = get_ep(epid, EP_EPID);
 
     if(size != get_cmd(CMD_LENGTH) * 2) {
-        LOG(DTUERR, "DMA-error: cmpxchg: CMD_SIZE != CMD_LENGTH * 2. Ignoring send-command");
+        LLOG(DTUERR, "DMA-error: cmpxchg: CMD_SIZE != CMD_LENGTH * 2. Ignoring send-command");
         return CTRL_ERROR;
     }
 
@@ -236,13 +237,13 @@ int DTU::prepare_ackmsg(int epid) {
     // decrease message count
     word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
     if(msgs == 0) {
-        LOG(DTUERR, "DMA-error: Unable to ack message: message count in EP" << epid << " is 0");
+        LLOG(DTUERR, "DMA-error: Unable to ack message: message count in EP" << epid << " is 0");
         return CTRL_ERROR;
     }
     msgs--;
     set_ep(epid, EP_BUF_MSGCNT, msgs);
 
-    LOG(DTU, "EP" << epid << ": acked message"
+    LLOG(DTU, "EP" << epid << ": acked message"
         << " (msgcnt=" << msgs << ", roff=#" << fmt(roff, "x") << ")");
     return 0;
 }
@@ -260,7 +261,7 @@ void DTU::handle_command(int core) {
     const word_t ctrl = get_cmd(CMD_CTRL);
     int op = (ctrl >> 3) & 0x7;
     if(epid >= EP_COUNT) {
-        LOG(DTUERR, "DMA-error: invalid ep-id (" << epid << ")");
+        LLOG(DTUERR, "DMA-error: invalid ep-id (" << epid << ")");
         newctrl |= CTRL_ERROR;
         goto error;
     }
@@ -313,7 +314,7 @@ error:
 }
 
 void DTU::send_msg(int epid, int dstcoreid, int dstepid, bool isreply) {
-    LOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
+    LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << epid << " to c:ch=" << dstcoreid << ":" << dstepid
             << " (crd=#" << fmt((long)get_ep(dstepid, EP_CREDITS), "x") << ")");
@@ -326,7 +327,7 @@ void DTU::handle_read_cmd(int epid) {
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t dest = reinterpret_cast<word_t*>(_buf.data)[2];
-    LOG(DTU, "(read) " << length << " bytes from #" << fmt(base, "x")
+    LLOG(DTU, "(read) " << length << " bytes from #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x") << " -> " << fmt(dest, "p"));
     int dstcoreid = _buf.core;
     int dstepid = _buf.rpl_epid;
@@ -348,7 +349,7 @@ void DTU::handle_write_cmd(int) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
-    LOG(DTU, "(write) " << length << " bytes to #" << fmt(base, "x")
+    LLOG(DTU, "(write) " << length << " bytes to #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x"));
     assert(length <= sizeof(_buf.data));
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 2, length);
@@ -359,7 +360,7 @@ void DTU::handle_resp_cmd() {
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t resp = reinterpret_cast<word_t*>(_buf.data)[2];
-    LOG(DTU, "(resp) " << length << " bytes to #" << fmt(base, "x")
+    LLOG(DTU, "(resp) " << length << " bytes to #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x") << " -> " << resp);
     assert(length <= sizeof(_buf.data));
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length);
@@ -372,7 +373,7 @@ void DTU::handle_cmpxchg_cmd(int epid) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
-    LOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
+    LLOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x"));
     int dstcoreid = _buf.core;
     int dstepid = _buf.rpl_epid;
@@ -386,9 +387,9 @@ void DTU::handle_cmpxchg_cmd(int epid) {
     else {
         uint8_t *expected = reinterpret_cast<uint8_t*>(_buf.data) + sizeof(word_t) * 3;
         uint8_t *actual = reinterpret_cast<uint8_t*>(offset);
-        LOG(DTUERR, "(cmpxchg) failed; expected:");
+        LLOG(DTUERR, "(cmpxchg) failed; expected:");
         dumpBytes(expected, length);
-        LOG(DTUERR, "actual:");
+        LLOG(DTUERR, "actual:");
         dumpBytes(actual, length);
         res = CTRL_ERROR;
     }
@@ -440,11 +441,11 @@ void DTU::handle_receive(int i) {
 
     if(store && (size_t)res > avail) {
         if((~flags & FLAG_NO_HEADER) || avail - HEADER_SIZE == 0) {
-            LOG(DTUERR, "DMA-error: dropping message because space is not sufficient"
+            LLOG(DTUERR, "DMA-error: dropping message because space is not sufficient"
                     << " (required: " << res << ", available: " << avail << ")");
             return;
         }
-        LOG(DTUERR, "DMA-warning: cropping message from " << res << " to " << avail << " bytes");
+        LLOG(DTUERR, "DMA-warning: cropping message from " << res << " to " << avail << " bytes");
         res = avail;
     }
 
@@ -453,7 +454,7 @@ void DTU::handle_receive(int i) {
     const char *src = (flags & FLAG_NO_HEADER) ? _buf.data : (char*)&_buf;
 
     if(store && (~flags & FLAG_NO_HEADER) && msgsize > maxmsgsize) {
-        LOG(DTUERR, "DMA-error: message too large (" << msgsize << " vs. " << maxmsgsize << ")");
+        LLOG(DTUERR, "DMA-error: message too large (" << msgsize << " vs. " << maxmsgsize << ")");
         return;
     }
 
@@ -504,18 +505,18 @@ void DTU::handle_receive(int i) {
 
     // refill credits
     if(_buf.crd_ep >= EP_COUNT)
-        LOG(DTUERR, "DMA-error: should give credits to endpoint " << _buf.crd_ep);
+        LLOG(DTUERR, "DMA-error: should give credits to endpoint " << _buf.crd_ep);
     else {
         word_t credits = get_ep(_buf.crd_ep, EP_CREDITS);
         if(_buf.credits && credits != static_cast<word_t>(-1)) {
-            LOG(DTU, "Refilling credits of ep " << _buf.crd_ep
+            LLOG(DTU, "Refilling credits of ep " << _buf.crd_ep
                 << " from #" << fmt(credits, "x") << " to #" << fmt(credits + _buf.credits, "x"));
             set_ep(_buf.crd_ep, EP_CREDITS, credits + _buf.credits);
         }
     }
 
     if(store && op != SENDCRD) {
-        LOG(DTU, "<- " << fmt(res - HEADER_SIZE, 3)
+        LLOG(DTU, "<- " << fmt(res - HEADER_SIZE, 3)
                 << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
                 << " ch=" << i
                 << " (" << "roff=#" << fmt(roff, "x") << ",woff=#"

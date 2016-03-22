@@ -14,9 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/session/M3FS.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Executable.h>
 #include <m3/Syscalls.h>
@@ -27,7 +26,7 @@ using namespace m3;
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     {
@@ -56,6 +55,6 @@ int main() {
         child.wait();
     }
 
-    Serial::get() << "Bye World!\n";
+    cout << "Bye World!\n";
     return 0;
 }

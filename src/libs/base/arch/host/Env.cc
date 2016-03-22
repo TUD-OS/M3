@@ -14,9 +14,11 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
+#include <base/Backtrace.h>
 #include <base/Env.h>
 #include <base/DTU.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <m3/com/RecvGate.h>
 #include <m3/Syscalls.h>
@@ -108,7 +110,7 @@ Env::PostInit::PostInit() {
 }
 
 void Env::init_syscall(void *sepregs) {
-    LOG(SYSC, "init(addr=" << sepregs << ")");
+    LLOG(SYSC, "init(addr=" << sepregs << ")");
     send_receive_vmsg(Syscalls::get()._gate, KIF::Syscall::COUNT, sepregs);
 }
 

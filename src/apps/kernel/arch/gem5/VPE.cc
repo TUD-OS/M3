@@ -16,8 +16,9 @@
 
 #include <base/util/Sync.h>
 #include <base/util/Math.h>
+#include <base/log/Kernel.h>
 #include <base/ELF.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include "cap/Capability.h"
 #include "mem/MainMemory.h"
@@ -47,9 +48,9 @@ static BootModule *get_mod(const char *name, bool *first) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
             DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
-            m3::Serial::get() << "Module '" << mods[i].name << "':\n";
-            m3::Serial::get() << "  addr: " << m3::fmt(mods[i].addr, "p") << "\n";
-            m3::Serial::get() << "  size: " << m3::fmt(mods[i].size, "p") << "\n";
+            KLOG(MODS, "Module '" << mods[i].name << "':");
+            KLOG(MODS, "  addr: " << m3::fmt(mods[i].addr, "p"));
+            KLOG(MODS, "  size: " << m3::fmt(mods[i].size, "p"));
 
             count++;
         }
@@ -198,7 +199,7 @@ void VPE::init_memory(const char *name) {
         if(!mod)
             PANIC("Unable to find boot module '" << name << "'");
 
-        m3::Serial::get() << "Loading mod '" << mod->name << "':\n";
+        KLOG(MODS, "Loading mod '" << mod->name << "':");
 
         DTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
 

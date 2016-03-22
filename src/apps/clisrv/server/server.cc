@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/com/GateStream.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>

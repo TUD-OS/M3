@@ -14,9 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
 #include <base/util/Profile.h>
-#include <base/Log.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/Pipe.h>
@@ -40,13 +38,11 @@ NOINLINE void replace(char *buffer, long res, char c1, char c2) {
 }
 
 int main(int argc, char **argv) {
-    if(argc < 5) {
-        Serial::get() << "Usage: " << argv[0] << " <in> <out> <s> <r>\n";
-        return 1;
-    }
+    if(argc < 5)
+        exitmsg("Usage: " << argv[0] << " <in> <out> <s> <r>");
 
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+        exitmsg("Mounting root-fs failed");
 
     cycles_t apptime = 0;
     cycles_t start = Profile::start(0);
@@ -57,13 +53,14 @@ int main(int argc, char **argv) {
     writer.mountspace(*VPE::self().mountspace());
     writer.obtain_mountspace();
 
+    writer.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
     writer.run([argv] {
         FileRef input(argv[1], FILE_R);
         if(Errors::occurred())
-            PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
+            exitmsg("open of " << argv[1] << " failed");
 
         size_t res;
         File *out = VPE::self().fds()->get(STDOUT_FD);
@@ -77,7 +74,7 @@ int main(int argc, char **argv) {
     {
         FileRef output(argv[2], FILE_W | FILE_CREATE | FILE_TRUNC);
         if(Errors::occurred())
-            PANIC("open of " << argv[2] << " failed (" << Errors::last << ")");
+            exitmsg("open of " << argv[2] << " failed");
 
         char c1 = argv[3][0];
         char c2 = argv[4][0];
@@ -97,7 +94,7 @@ int main(int argc, char **argv) {
     writer.wait();
 
     cycles_t end = Profile::stop(0);
-    Serial::get() << "Total time: " << (end - start) << " cycles\n";
-    Serial::get() << "App time: " << apptime << " cycles\n";
+    cout << "Total time: " << (end - start) << " cycles\n";
+    cout << "App time: " << apptime << " cycles\n";
     return 0;
 }

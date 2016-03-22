@@ -15,7 +15,6 @@
  */
 
 #include <base/util/Profile.h>
-#include <base/Log.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
@@ -27,13 +26,11 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+    if(argc < 4)
+        exitmsg("Usage: " << argv[0] << " <prog1> <prog2> <file>");
 
-    if(argc < 4) {
-        Serial::get() << "Usage: " << argv[0] << " <prog1> <prog2> <file>\n";
-        return 1;
-    }
+    if(VFS::mount("/", new M3FS("m3fs")) < 0)
+        exitmsg("Mounting root-fs failed");
 
     cycles_t start = Profile::start(0xA);
 
@@ -68,6 +65,6 @@ int main(int argc, char **argv) {
     writer.wait();
 
     cycles_t end = Profile::stop(0xA);
-    Serial::get() << "Total time: " << (end - start) << "\n";
+    cout << "Total time: " << (end - start) << "\n";
     return 0;
 }

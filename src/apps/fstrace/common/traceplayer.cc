@@ -26,7 +26,6 @@
 
 #ifndef __LINUX__
 #   include <base/util/Profile.h>
-#   include <base/Log.h>
 #endif
 
 /*

@@ -16,7 +16,6 @@
 
 #include <base/arch/host/HWInterrupts.h>
 #include <base/col/SList.h>
-#include <base/Log.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/server/Server.h>

@@ -18,7 +18,6 @@
 
 #include <base/col/SList.h>
 #include <base/KIF.h>
-#include <base/Log.h>
 
 #include <cstring>
 

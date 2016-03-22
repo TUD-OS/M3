@@ -14,16 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
 #include <m3/session/arch/host/Plasma.h>
 #include <m3/session/arch/host/Keyboard.h>
-#include <m3/Syscalls.h>
-
-#include <unistd.h>
-#include <fcntl.h>
 
 using namespace m3;
 

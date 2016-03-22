@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
+#include <base/stream/Serial.h>
 
 #ifndef NDEBUG
 EXTERN_C void __assert(const char *failedexpr, const char *file, int line) throw() {

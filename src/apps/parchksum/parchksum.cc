@@ -15,13 +15,12 @@
  */
 
 #include <base/stream/IStringStream.h>
-#include <base/stream/Serial.h>
-#include <base/Log.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/GateStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -35,6 +34,7 @@ struct Worker {
             : submem(mem.derive(offset, size)),
               sgate(SendGate::create(DTU_PKG_SIZE + DTU::HEADER_SIZE, &rgate)), vpe("worker") {
         vpe.delegate_obj(submem.sel());
+        vpe.fds(*VPE::self().fds());
     }
 };
 
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     for(int i = 0; i < vpes; ++i) {
         worker[i] = new Worker(rgate, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
         if(Errors::last != Errors::NO_ERROR)
-            PANIC("Unable to create worker: " << Errors::to_string(Errors::last));
+            exitmsg("Unable to create worker");
     }
 
     // write data into memory
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
                 offset += BUF_SIZE;
                 rem -= BUF_SIZE;
             }
-            Serial::get() << "Memory initialization of " << SUBMEM_SIZE << " bytes finished\n";
+            cout << "Memory initialization of " << SUBMEM_SIZE << " bytes finished\n";
             return 0;
         });
     }
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
                 rem -= BUF_SIZE;
             }
 
-            Serial::get() << "Checksum for sub area finished\n";
+            cout << "Checksum for sub area finished\n";
             send_vmsg(vpegate, checksum);
             return 0;
         });
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
         checksum += vpechksum;
     }
 
-    Serial::get() << "Checksum: " << checksum << "\n";
+    cout << "Checksum: " << checksum << "\n";
 
     for(int i = 0; i < vpes; ++i) {
         worker[i]->vpe.wait();

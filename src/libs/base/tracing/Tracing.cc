@@ -14,11 +14,11 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
 #include <base/stream/OStream.h>
 #include <base/stream/Serial.h>
-#include <base/util/Profile.h>
 #include <base/tracing/Tracing.h>
-#include <base/Log.h>
+#include <base/util/Profile.h>
 
 #if defined(TRACE_ENABLED)
 
@@ -114,7 +114,7 @@ void Tracing::flush_light() {
 
     trace_enabled = false;
 
-    LOG(TRACE, "Tracing::flush_light, event count: " << event_counter);
+    LLOG(TRACE, "Tracing::flush_light, event count: " << event_counter);
     send_event_buffer_to_mem();
 
     trace_enabled = true;
@@ -123,7 +123,7 @@ void Tracing::flush_light() {
 void Tracing::flush() {
     trace_enabled = false;
 
-    LOG(TRACE, "Tracing::flush, event count: " << event_counter);
+    LLOG(TRACE, "Tracing::flush, event count: " << event_counter);
     between_flush_and_reinit = true;
 
     send_event_buffer_to_mem();
@@ -147,7 +147,7 @@ void Tracing::reinit() {
     event_counter = c;
     membuf_cur = membuf_start + (1 + event_counter) * sizeof(Event);
 
-    LOG(TRACE, "Tracing::reinit"
+    LLOG(TRACE, "Tracing::reinit"
         << ", event_counter: " << event_counter
         << ", membuf_cur: " << fmt(membuf_cur, "p")
         << ", buffer ok: " << (membuf_cur < membuf_start + TRACE_MEMBUF_SIZE));
@@ -163,7 +163,7 @@ void Tracing::init_kernel() {
     trace_enabled = false;
     reset();
 
-    LOG(TRACE, "Tracing::init_kernel");
+    LLOG(TRACE, "Tracing::init_kernel");
 
     // set up buffers in Mem: write number of events (i.e. 0) to start addresses of each core's buffer
     for(int icore = 0; icore < MAX_CORES; ++icore) {
@@ -185,7 +185,7 @@ void Tracing::trace_dump() {
         cycles_t timestamp = 0;
         uint64_t c = 0;
         mem_read(membuf_of(icore), &c, sizeof(c));
-        LOG(TRACE, "Dumping trace events of " << icore + FIRST_PE_ID << "  " << c);
+        LLOG(TRACE, "Dumping trace events of " << icore + FIRST_PE_ID << "  " << c);
         if(c > TRACE_MEMBUF_SIZE / sizeof(Event) - 1)
             // TODO BUG?
             c = c > TRACE_MEMBUF_SIZE / sizeof(Event) - 1;
@@ -203,7 +203,7 @@ void Tracing::trace_dump() {
                     timestamp = event.init_timestamp();
                 else
                     timestamp += event.timestamp() << TIMESTAMP_SHIFT;
-                LOG(TRACE, "Trace event " << timestamp
+                LLOG(TRACE, "Trace event " << timestamp
                     << ":" << event.type()
                     << ":" << fmt(event.record >> 32,"X")
                     << ":" << fmt(event.record & 0xFFFFFFFF,"X"));
@@ -321,14 +321,14 @@ void Tracing::send_event_buffer_to_mem() {
     if(!between_flush_and_reinit && trace_core[env()->coreid])
         record_event_func(EVENT_FUNC_ENTER, EVENT_FUNC_buffer_to_mem);
 
-    LOG(TRACE, "Tracing::send_event_buffer_to_mem: "
+    LLOG(TRACE, "Tracing::send_event_buffer_to_mem: "
         << size / sizeof(Event)
         << " Events to " << fmt((void*)membuf_cur, "p"));
 
     if(membuf_cur + size > membuf_start + TRACE_MEMBUF_SIZE) {
         // Mem trace buffer overflow! truncate...
         size = membuf_start + TRACE_MEMBUF_SIZE - membuf_cur;
-        LOG(TRACE, "Tracing::send_event_buffer_to_mem: Mem buffer overflow, truncate to "
+        LLOG(TRACE, "Tracing::send_event_buffer_to_mem: Mem buffer overflow, truncate to "
             << size / sizeof(Event) << " Events");
     }
 
@@ -352,7 +352,7 @@ void Tracing::reset() {
 }
 
 void Tracing::mem_write(size_t addr, const void * buf, size_t size) {
-    LOG(TRACE, "Tracing::mem_write:"
+    LLOG(TRACE, "Tracing::mem_write:"
         << fmt((void*)addr, "p") << " " << fmt(buf, "p") << " " << fmt((void*)size, "p"));
 
     DTU::get().wait_until_ready(SLOT_NO);
@@ -368,7 +368,7 @@ void Tracing::mem_write(size_t addr, const void * buf, size_t size) {
 
 void Tracing::mem_read(size_t addr, void * buf, size_t size)
 {
-    LOG(TRACE, "Tracing::mem_read:"
+    LLOG(TRACE, "Tracing::mem_read:"
         << fmt((void*)addr, "p") << " " << fmt(buf, "p") << " " << fmt((void*)size, "p"));
 
     DTU::get().wait_until_ready(SLOT_NO);

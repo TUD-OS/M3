@@ -15,6 +15,7 @@
  */
 
 #include <base/Common.h>
+#include <base/log/Kernel.h>
 #include <base/util/Sync.h>
 #include <base/DTU.h>
 
@@ -157,7 +158,7 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
                 // TODO this is prelimilary
                 uintptr_t addr = MainMemory::get().map().allocate(PAGE_SIZE);
                 pte = m3::DTU::build_noc_addr(MEMORY_CORE, addr) | m3::DTU::PTE_RWX;
-                LOG(PTES, "PE" << vpe.core() << ": lvl 1 PTE for "
+                KLOG(PTES, "PE" << vpe.core() << ": lvl 1 PTE for "
                     << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
                 m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
             }
@@ -166,7 +167,7 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
         }
         else {
             pte = phys | perm | m3::DTU::PTE_I;
-            LOG(PTES, "PE" << vpe.core() << ": lvl 0 PTE for "
+            KLOG(PTES, "PE" << vpe.core() << ": lvl 0 PTE for "
                 << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
             m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
         }

@@ -19,7 +19,7 @@
 #include <base/arch/host/HWInterrupts.h>
 #include <base/col/SList.h>
 #include <base/util/Util.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <pthread.h>
 #include <csignal>

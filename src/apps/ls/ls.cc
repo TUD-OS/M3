@@ -16,9 +16,8 @@
 
 #include <base/Common.h>
 #include <base/col/SList.h>
-#include <base/stream/Serial.h>
-#include <base/Log.h>
 
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 
@@ -58,14 +57,12 @@ static void printMode(OStream &os, mode_t mode) {
 
 int main(int argc, char **argv) {
     char path[256];
-    if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <path>\n";
-        return 1;
-    }
+    if(argc < 2)
+        exitmsg("Usage: " << argv[0] << " <path>");
 
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     const char *dirname = argv[1];
@@ -73,13 +70,13 @@ int main(int argc, char **argv) {
     Errors::Code res;
     FileInfo info;
     if((res = VFS::stat(dirname, info)) != Errors::NO_ERROR)
-        PANIC("stat of " << dirname << " failed: " << Errors::to_string(res));
+        exitmsg("stat of " << dirname << " failed");
     if(!M3FS_ISDIR(info.mode))
-        PANIC(dirname << " is no directory");
+        exitmsg(dirname << " is no directory");
 
     Dir dir(dirname);
     if(Errors::occurred())
-        PANIC("open of " << dirname << " failed: " << Errors::to_string(Errors::last));
+        exitmsg("open of " << dirname << " failed");
 
     // count entries
     Dir::Entry e;
@@ -101,10 +98,9 @@ int main(int argc, char **argv) {
     // TODO sort by name
 
     // print
-    auto &s = Serial::get();
     for(size_t i = 0; i < total; ++i) {
-        printMode(s, files[i].info.mode);
-        s << ' ' << files[i].info.links << ' ' << files[i].info.size << ' ' << files[i].name << '\n';
+        printMode(cout, files[i].info.mode);
+        cout << ' ' << files[i].info.links << ' ' << files[i].info.size << ' ' << files[i].name << '\n';
     }
     return 0;
 }

@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Kernel.h>
 
 #include "pes/PEManager.h"
 #include "cap/Capability.h"
@@ -39,7 +39,8 @@ SessionObject::~SessionObject() {
     if(srv->vpe().state() == VPE::RUNNING) {
         AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command, word_t>());
         msg << m3::KIF::Service::CLOSE << ident;
-        LOG(KSYSC, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8) << " to " << srv->name());
+        KLOG(SERV, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8)
+            << " to " << srv->name());
         ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
         msg.claim();
     }
@@ -48,7 +49,6 @@ SessionObject::~SessionObject() {
 m3::Errors::Code MsgCapability::revoke() {
     if(localepid != -1) {
         VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-        LOG(IPC, "Invalidating ep " << localepid << " of VPE " << vpe.id() << "@" << vpe.core());
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated
         if(vpe.state() != VPE::DEAD)

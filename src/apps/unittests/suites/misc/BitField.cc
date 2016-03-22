@@ -16,7 +16,6 @@
 
 #include <base/Common.h>
 #include <base/util/BitField.h>
-#include <base/Log.h>
 
 #include "BitField.h"
 

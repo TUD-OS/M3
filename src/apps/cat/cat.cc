@@ -14,23 +14,20 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/session/M3FS.h>
 #include <m3/vfs/VFS.h>
 
 using namespace m3;
 
 int main(int argc, char **argv) {
-    if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <file>...\n";
-        return 1;
-    }
+    if(argc < 2)
+        exitmsg("Usage: " << argv[0] << " <file>...");
 
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     size_t bufsize = 128;
@@ -39,13 +36,13 @@ int main(int argc, char **argv) {
     for(int i = 1; i < argc; ++i) {
         FStream input(argv[i], FILE_R);
         if(Errors::occurred()) {
-            Serial::get() << "Open of " << argv[i] << " failed (" << Errors::last << ")\n";
+            errmsg("Open of " << argv[i] << " failed");
             continue;
         }
 
         while(!input.eof()) {
             input.getline(buffer, bufsize);
-            Serial::get() << buffer << "\n";
+            cout << buffer << "\n";
         }
     }
     return 0;

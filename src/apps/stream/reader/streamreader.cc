@@ -15,10 +15,10 @@
  */
 
 #include <base/util/Sync.h>
-#include <base/Log.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
+#include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -74,7 +74,7 @@ int main() {
     StreamReader<int> str(rgate);
     while(1) {
         int val = str.read();
-        LOG(DEF, "Got val=" << val);
+        cout << "Got val=" << val << "\n";
     }
     return 0;
 }

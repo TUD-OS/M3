@@ -15,10 +15,10 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
 #include <base/util/Profile.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
 
 using namespace m3;
@@ -37,6 +37,6 @@ int main() {
         cycles_t end = Profile::stop(0);
         total += end - start;
     }
-    Serial::get() << "Per activate: " << (total / COUNT) << "\n";
+    cout << "Per activate: " << (total / COUNT) << "\n";
     return 0;
 }

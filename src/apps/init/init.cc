@@ -15,11 +15,10 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
 #include <base/util/Sync.h>
-#include <base/Log.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
@@ -30,29 +29,29 @@ using namespace m3;
 static int myvar = 0;
 
 static int myfunc(MemGate &mem) {
-    Serial::get() << "myvar: " << myvar << "\n";
+    cout << "myvar: " << myvar << "\n";
 
     alignas(DTU_PKG_SIZE) char buffer[16];
     mem.read_sync(buffer, sizeof(buffer), 0);
     for(size_t i = 0; i < sizeof(buffer); ++i)
-        Serial::get() << i << ": " << fmt(buffer[i], "#02x") << "\n";
+        cout << i << ": " << fmt(buffer[i], "#02x") << "\n";
 
     const char *dirname = "/bin";
     Dir dir(dirname);
     if(Errors::occurred())
-        PANIC("open of " << dirname << " failed (" << Errors::last << ")");
+        exitmsg("open of " << dirname << " failed");
 
-    Serial::get() << "Listing dir " << dirname << "...\n";
+    cout << "Listing dir " << dirname << "...\n";
     Dir::Entry e;
     while(dir.readdir(e))
-        Serial::get() << " Found " << e.name << " -> " << e.nodeno << "\n";
+        cout << " Found " << e.name << " -> " << e.nodeno << "\n";
     return 0;
 }
 
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
@@ -71,13 +70,16 @@ int main() {
         vpe.mountspace(*VPE::self().mountspace());
         vpe.obtain_mountspace();
 
+        vpe.fds(*VPE::self().fds());
+        vpe.obtain_fds();
+
         const char *args[] = {"/bin/hello", "foo", "bar"};
         Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
         if(res != Errors::NO_ERROR)
-            PANIC("Unable to load " << args[0] << ": " << Errors::to_string(res));
+            exitmsg("Unable to load " << args[0]);
 
         code = vpe.wait();
-        Serial::get() << "VPE finished with exitcode " << code << "\n";
+        cout << "VPE finished with exitcode " << code << "\n";
     }
 
     {
@@ -85,23 +87,26 @@ int main() {
 
         vpe.delegate(VPE::all_caps());
         if(Errors::occurred())
-            PANIC("Unable to delegate caps to VPE: " << Errors::to_string(Errors::last));
+            exitmsg("Unable to delegate caps to VPE");
 
         vpe.mountspace(*VPE::self().mountspace());
         vpe.obtain_mountspace();
 
+        vpe.fds(*VPE::self().fds());
+        vpe.obtain_fds();
+
         int foo = 123;
         Errors::Code res = vpe.run([&mem,foo]() {
             Sync::compiler_barrier();
-            Serial::get() << "myvar: " << myvar << ", foo: " << foo << "\n";
+            cout << "myvar: " << myvar << ", foo: " << foo << "\n";
             myfunc(mem);
             return 0;
         });
         if(res != Errors::NO_ERROR)
-            PANIC("Unable to load /bin/init: " << Errors::to_string(res));
+            exitmsg("Unable to load /bin/init");
 
         code = vpe.wait();
-        Serial::get() << "VPE finished with exitcode " << code << "\n";
+        cout << "VPE finished with exitcode " << code << "\n";
     }
     return 0;
 }

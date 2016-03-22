@@ -15,6 +15,7 @@
  */
 
 #include <base/Common.h>
+#include <base/log/Kernel.h>
 
 #include "com/RecvBufs.h"
 #include "pes/VPE.h"
@@ -46,9 +47,9 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t p
 
     init();
 
-    LOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << core() << "]");
+    KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << core() << "]");
     for(auto &r : _requires)
-        LOG(VPES, "  requires: '" << r.name << "'");
+        KLOG(VPES, "  requires: '" << r.name << "'");
 }
 
 void VPE::unref() {

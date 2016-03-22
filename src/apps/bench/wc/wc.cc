@@ -16,8 +16,8 @@
 
 #include <base/util/Profile.h>
 #include <base/util/Chars.h>
-#include <base/Log.h>
 
+#include <m3/stream/Standard.h>
 #include <m3/vfs/FileRef.h>
 
 using namespace m3;
@@ -37,14 +37,12 @@ NOINLINE void count(const char *buffer, long res, long *lines, long *words, int 
 }
 
 int main(int argc, char **argv) {
-    if(argc != 2) {
-        Serial::get() << "Usage: " << argv[0] << " <file>\n";
-        return 1;
-    }
+    if(argc != 2)
+        exitmsg("Usage: " << argv[0] << " <file>");
 
     FileRef rf(argv[1], FILE_R);
     if(Errors::occurred())
-        PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
+        exitmsg("open of " << argv[1] << " failed");
 
     cycles_t start = Profile::start(0);
     long lines = 0;
@@ -59,7 +57,7 @@ int main(int argc, char **argv) {
     }
     cycles_t end = Profile::stop(0);
 
-    Serial::get() << fmt(lines, 7) << " " << fmt(words, 7) << " " << fmt(bytes, 7) << "\n";
-    Serial::get() << "Total time: " << (end - start) << "\n";
+    cout << fmt(lines, 7) << " " << fmt(words, 7) << " " << fmt(bytes, 7) << "\n";
+    cout << "Total time: " << (end - start) << "\n";
     return 0;
 }

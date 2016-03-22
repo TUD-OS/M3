@@ -15,7 +15,8 @@
  */
 
 #include <base/tracing/Tracing.h>
-#include <base/Log.h>
+#include <base/log/Kernel.h>
+#include <base/Panic.h>
 #include <base/WorkLoop.h>
 
 #include "pes/PEManager.h"
@@ -35,14 +36,14 @@ SyscallHandler SyscallHandler::_inst INIT_PRIORITY(121);
 
 #if defined(SIMPLE_SYSC_LOG)
 #   define LOG_SYS(vpe, sysname, expr) \
-        LOG(KSYSC, (vpe)->name() << (sysname))
+        KLOG(SYSC, (vpe)->name() << (sysname))
 #else
 #   define LOG_SYS(vpe, sysname, expr) \
-        LOG(KSYSC, (vpe)->name() << "@" << m3::fmt((vpe)->core(), "X") << (sysname) << expr)
+        KLOG(SYSC, (vpe)->name() << "@" << m3::fmt((vpe)->core(), "X") << (sysname) << expr)
 #endif
 
 #define SYS_ERROR(vpe, gate, error, msg) { \
-        LOG(KERR, (vpe)->name() << ": " << msg << " (" << error << ")"); \
+        KLOG(ERR, (vpe)->name() << ": " << msg << " (" << error << ")"); \
         reply_vmsg((gate), (error)); \
         return; \
     }
@@ -212,7 +213,7 @@ void SyscallHandler::createsess(RecvGate &gate, GateIStream &is) {
         m3::Errors::Code res;
         reply >> res;
         if(res != m3::Errors::NO_ERROR) {
-            LOG(KSYSC, vpe->id() << ": Server denied session creation (" << res << ")");
+            KLOG(SYSC, vpe->id() << ": Server denied session creation (" << res << ")");
             auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
         }
@@ -545,15 +546,15 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngD
     const m3::CapRngDesc &dstrng = obtain ? c1 : c2;
 
     if(c1.type() != c2.type()) {
-        LOG(KSYSC, v1->id() << ": Descriptor types don't match (" << m3::Errors::INV_ARGS << ")");
+        KLOG(SYSC, v1->id() << ": Descriptor types don't match (" << m3::Errors::INV_ARGS << ")");
         return m3::Errors::INV_ARGS;
     }
     if((obtain && c2.count() > c1.count()) || (!obtain && c2.count() != c1.count())) {
-        LOG(KSYSC, v1->id() << ": Server gave me invalid CRD (" << m3::Errors::INV_ARGS << ")");
+        KLOG(SYSC, v1->id() << ": Server gave me invalid CRD (" << m3::Errors::INV_ARGS << ")");
         return m3::Errors::INV_ARGS;
     }
     if(!dst.objcaps().range_unused(dstrng)) {
-        LOG(KSYSC, v1->id() << ": Invalid destination caps (" << m3::Errors::INV_ARGS << ")");
+        KLOG(SYSC, v1->id() << ": Invalid destination caps (" << m3::Errors::INV_ARGS << ")");
         return m3::Errors::INV_ARGS;
     }
 
@@ -603,7 +604,7 @@ void SyscallHandler::exchange_over_sess(RecvGate &gate, GateIStream &is, bool ob
         m3::Errors::Code res;
         reply >> res;
         if(res != m3::Errors::NO_ERROR) {
-            LOG(KSYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
+            KLOG(SYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
 
             auto reply = kernel::create_vmsg(res);
             reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
@@ -669,7 +670,7 @@ void SyscallHandler::activate(RecvGate &gate, GateIStream &is) {
                 if(success)
                     res = do_activate(vpe, epid, oldcapobj, newcapobj);
                 if(res != m3::Errors::NO_ERROR)
-                    LOG(KERR, vpe->name() << ": activate failed (" << res << ")");
+                    KLOG(ERR, vpe->name() << ": activate failed (" << res << ")");
 
                 auto reply = kernel::create_vmsg(res);
                 reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());

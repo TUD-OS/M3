@@ -28,4 +28,22 @@ extern FStream cin;
 extern FStream cout;
 extern FStream cerr;
 
+static inline void appenderr(FStream &os) {
+    if(Errors::last != Errors::NO_ERROR)
+        os << ": " << Errors::to_string(Errors::last);
+    os << "\n";
+}
+
+#define errmsg(expr) do {       \
+        m3::cerr << expr;       \
+        appenderr(m3::cerr);    \
+    }                           \
+    while(0)
+
+#define exitmsg(expr) do {      \
+        errmsg(expr);           \
+        ::exit(1);              \
+    }                           \
+    while(0)
+
 }

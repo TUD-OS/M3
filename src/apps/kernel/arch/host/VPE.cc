@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Kernel.h>
+#include <base/Panic.h>
 
 #include <unistd.h>
 #include <fstream>
@@ -56,15 +57,15 @@ void VPE::start(int argc, char **argv, int pid) {
             }
             childargs[j] = nullptr;
             execv(childargs[0], childargs);
-            LOG(VPES, "VPE creation failed: " << strerror(errno));
+            KLOG(VPES, "VPE creation failed: " << strerror(errno));
         }
         else
-            LOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
+            KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
     }
     else {
         _pid = pid;
         write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate), SyscallHandler::get().epid());
-        LOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
+        KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
     }
 }
 
@@ -95,6 +96,9 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabili
         }
     }
 
+    KLOG(EPS, "Setting ep " << epid << " of VPE " << id() << " to "
+        << (newcapobj ? newcapobj->sel() : -1));
+
     if(newcapobj) {
         // now do the compare-exchange
         DTU::get().cmpxchg_mem(*this, reinterpret_cast<uintptr_t>(_eps), regs, sizeof(regs),
@@ -109,7 +113,7 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabili
 }
 
 VPE::~VPE() {
-    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
+    KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     detach_rbufs();
     free_reqs();
 

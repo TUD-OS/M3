@@ -16,8 +16,8 @@
 
 #if defined(__host__)
 
+#include <base/log/Lib.h>
 #include <base/DTU.h>
-#include <base/Log.h>
 
 #include <m3/com/SendQueue.h>
 
@@ -29,12 +29,12 @@ void SendQueue::work() {
     if(_queue.length() > 0) {
         if(DTU::get().is_ready()) {
             SendItem *it = _queue.remove_first();
-            LOG(IPC, "Removing " << it << " from queue");
+            LLOG(IPC, "Removing " << it << " from queue");
             delete it;
             if(_queue.length() > 0) {
                 SendItem &first = *_queue.begin();
                 first.gate.send(first.data, first.len);
-                LOG(IPC, "Sending " << &first << " from queue");
+                LLOG(IPC, "Sending " << &first << " from queue");
             }
         }
     }
@@ -42,7 +42,7 @@ void SendQueue::work() {
 
 void SendQueue::send_async(SendItem &it) {
     it.gate.send(it.data, it.len);
-    LOG(IPC, "Sending " << &it << " from queue");
+    LLOG(IPC, "Sending " << &it << " from queue");
 }
 
 }

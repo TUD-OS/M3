@@ -16,7 +16,8 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
-#include <base/stream/Serial.h>
+
+#include <m3/stream/Standard.h>
 
 #include <cstdlib>
 
@@ -45,7 +46,7 @@ static void test_t1alloc() {
     for(size_t size = 0; size < ARRAY_SIZE(sizes); size++) {
         ptrs[size] = (uint*)Heap::alloc(sizes[size] * sizeof(uint));
         if(ptrs[size] == nullptr)
-            Serial::get() << "Not enough mem\n";
+            cout << "Not enough mem\n";
         else {
             /* write test */
             *(ptrs[size]) = 4;
@@ -122,7 +123,7 @@ void HeapTestSuite::TestCase4::run() {
 
 void HeapTestSuite::TestCase5::run() {
     for(size_t size = 0; size < ARRAY_SIZE(sizes); size++) {
-        Serial::get() << "Allocate and free " << sizes[size] * sizeof(uint)<< " bytes\n";
+        cout << "Allocate and free " << sizes[size] * sizeof(uint)<< " bytes\n";
         check_heap_before();
 
         ptrs[0] = (uint*)Heap::alloc(sizes[size] * sizeof(uint));
@@ -135,7 +136,7 @@ void HeapTestSuite::TestCase5::run() {
             check_heap_after();
         }
         else
-            Serial::get() << "Not enough mem\n";
+            cout << "Not enough mem\n";
     }
 }
 

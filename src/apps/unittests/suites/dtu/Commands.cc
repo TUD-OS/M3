@@ -14,10 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
 #include <m3/com/MemGate.h>
 #include <m3/com/RecvBuf.h>
+#include <m3/stream/Standard.h>
 
 #include <sys/mman.h>
 
@@ -28,7 +27,7 @@ using namespace m3;
 static void *map_page() {
     void *addr = mmap(0, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON,-1,0);
     if(addr == MAP_FAILED) {
-        LOG(DEF, "mmap failed. Skipping test.");
+        exitmsg("mmap failed. Skipping test.");
         return nullptr;
     }
     return addr;
@@ -56,7 +55,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     data[2] = 1122;
     data[3] = 3344;
 
-    Serial::get() << "-- Test errors --\n";
+    cout << "-- Test errors --\n";
     {
         dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
             rcvepid, datasize);
@@ -74,7 +73,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
-    Serial::get() << "-- Test reading --\n";
+    cout << "-- Test reading --\n";
     {
         dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
             rcvepid, datasize);
@@ -104,7 +103,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     if(!addr)
         return;
 
-    Serial::get() << "-- Test errors --\n";
+    cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
         dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
@@ -114,7 +113,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
-    Serial::get() << "-- Test writing --\n";
+    cout << "-- Test writing --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
         dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
@@ -149,7 +148,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     refdata[0] = 1234;
     refdata[1] = 5678;
 
-    Serial::get() << "-- Test errors --\n";
+    cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
         dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
@@ -162,7 +161,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
-    Serial::get() << "-- Test failure --\n";
+    cout << "-- Test failure --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
         dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
@@ -174,7 +173,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
         assert_word(refdata[1], 5678);
     }
 
-    Serial::get() << "-- Test success --\n";
+    cout << "-- Test success --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
         dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
@@ -186,7 +185,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
         assert_word(refdata[1], 3344);
     }
 
-    Serial::get() << "-- Test offset --\n";
+    cout << "-- Test offset --\n";
     {
         word_t data[] = {3344, 4455};
         dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,

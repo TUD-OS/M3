@@ -14,11 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
-#include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
-#include <m3/Syscalls.h>
+#include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 #include <unistd.h>
@@ -32,7 +29,7 @@ static void received_data(RecvGate &gate, Subscriber<RecvGate&> *) {
     const unsigned char *data = is.buffer();
     for(size_t i = 0; i < is.remaining(); ++i)
         sum += data[i];
-    LOG(DEF, "Received " << fmt(sum, "x"));
+    cout << "Received " << fmt(sum, "x") << "\n";
 }
 
 int main() {

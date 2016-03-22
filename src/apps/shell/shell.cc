@@ -14,8 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/VPE.h>
@@ -25,24 +24,22 @@
 using namespace m3;
 
 int main() {
-    auto &ser = Serial::get();
-
     if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Unable to mount filesystem\n");
+            exitmsg("Unable to mount filesystem\n");
     }
 
-    ser << "========================\n";
-    ser << "Welcome to the M3 shell!\n";
-    ser << "========================\n";
-    ser << "\n";
+    cout << "========================\n";
+    cout << "Welcome to the M3 shell!\n";
+    cout << "========================\n";
+    cout << "\n";
 
     while(1) {
-        ser << "> ";
-        ser.flush();
+        cout << "> ";
+        cout.flush();
 
         String line;
-        ser >> line;
+        cin >> line;
 
         if(strcmp(line.c_str(), "quit") == 0 || strcmp(line.c_str(), "exit") == 0)
             break;
@@ -71,11 +68,14 @@ int main() {
         vpe.mountspace(*VPE::self().mountspace());
         vpe.obtain_mountspace();
 
+        vpe.fds(*VPE::self().fds());
+        vpe.obtain_fds();
+
         if((err = vpe.exec(argc, const_cast<const char**>(args))) != Errors::NO_ERROR)
-            ser << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";
+            cout << "Unable to execute '" << args[0] << "': " << Errors::to_string(err) << "\n";
         int res = vpe.wait();
         if(res != 0)
-            ser << "Program terminated with exit code " << res << "\n";
+            cout << "Program terminated with exit code " << res << "\n";
     }
     return 0;
 }

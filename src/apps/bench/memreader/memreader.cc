@@ -14,11 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
 #include <base/stream/IStringStream.h>
 #include <base/util/Profile.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
         mem.read_sync(buffer, size, 0x0);
     cycles_t end2 = Profile::stop(1);
 
-    Serial::get() << "Setup time: " << (end1 - start1) << "\n";
-    Serial::get() << "Read time: " << (end2 - start2) << "\n";
+    cout << "Setup time: " << (end1 - start1) << "\n";
+    cout << "Read time: " << (end2 - start2) << "\n";
     return 0;
 }

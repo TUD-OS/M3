@@ -17,7 +17,7 @@
 #include <base/Common.h>
 #include <base/Heap.h>
 #include <base/Machine.h>
-#include <base/Log.h>
+#include <base/Panic.h>
 #include <functional>
 
 #define MAX_EXIT_FUNCS      8

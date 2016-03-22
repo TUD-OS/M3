@@ -18,16 +18,13 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
-#include <base/Log.h>
 
 #include "mem/MemoryMap.h"
 
 namespace kernel {
 
 class MainMemory {
-    explicit MainMemory() : _size(DRAM_SIZE), _map(addr(), DRAM_SIZE) {
-        LOG(DEF, "We have " << (DRAM_SIZE / 1024) << " KiB of main memory");
-    }
+    explicit MainMemory();
 
 public:
     static MainMemory &get() {

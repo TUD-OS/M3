@@ -15,12 +15,11 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
 #include <base/util/Profile.h>
 #include <base/DTU.h>
-#include <base/Log.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/Syscalls.h>
@@ -28,20 +27,20 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    Serial::get() << "Got " << argc << " arguments:\n";
+    cout << "Got " << argc << " arguments:\n";
     for(int i = 0; i < argc; ++i)
-        Serial::get() << "  " << i << ": " << argv[i] << "\n";
+        cout << "  " << i << ": " << argv[i] << "\n";
 
     const char *dirname = "/bin";
     Dir dir(dirname);
     if(!Errors::occurred()) {
-        Serial::get() << "Listing dir " << dirname << "...\n";
+        cout << "Listing dir " << dirname << "...\n";
         Dir::Entry e;
         while(dir.readdir(e))
-            Serial::get() << " Found " << e.name << " -> " << e.nodeno << "\n";
+            cout << " Found " << e.name << " -> " << e.nodeno << "\n";
     }
 
     for(int i = 0; i < 10; ++i)
-        Serial::get() << "Hello @ " << Profile::start() << "!\n";
+        cout << "Hello @ " << Profile::start() << "!\n";
     return 0;
 }

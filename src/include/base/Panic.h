@@ -14,17 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include "TimerDevice.h"
+#pragma once
 
-#include <unistd.h>
+#include <base/stream/Serial.h>
+#include <base/Backtrace.h>
+#include <base/Env.h>
 
-namespace kernel {
-
-void TimerDevice::run() {
-    while(should_run()) {
-        usleep(20000);
-        trigger_irq(m3::HWInterrupts::TIMER);
-    }
-}
-
-}
+#define PANIC(expr) do {                            \
+        m3::Serial::get() << expr << "\n";          \
+        m3::Backtrace::print(m3::Serial::get());    \
+        m3::env()->exit(1);                         \
+    }                                               \
+    while(0)

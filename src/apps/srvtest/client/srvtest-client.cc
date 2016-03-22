@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
 
 #include <m3/session/Session.h>
+#include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -27,7 +27,7 @@ int main() {
     for(int j = 0; j < 20; ++j) {
         Session sess("srvtest-server");
         if(Errors::occurred()) {
-            Serial::get() << "Unable to create sess at srvtest-server. Retrying.\n";
+            cout << "Unable to create sess at srvtest-server. Retrying.\n";
             if(++failed == 20)
                 break;
             --j;
@@ -42,7 +42,7 @@ int main() {
             if(Errors::last == Errors::INV_ARGS)
                 break;
             if(Errors::last != Errors::NOT_SUP)
-                Serial::get() << "Expected NOT_SUP, got " << Errors::to_string(Errors::last) << "\n";
+                cout << "Expected NOT_SUP, got " << Errors::to_string(Errors::last) << "\n";
         }
     }
     return 0;

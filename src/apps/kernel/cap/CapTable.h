@@ -19,7 +19,6 @@
 #include <base/Common.h>
 #include <base/col/Treap.h>
 #include <base/util/CapRngDesc.h>
-#include <base/Log.h>
 
 #include "com/Services.h"
 #include "cap/Capability.h"
@@ -86,19 +85,15 @@ public:
         return c;
     }
 
-    void set(capsel_t i, Capability *c) {
+    void set(UNUSED capsel_t i, Capability *c) {
         assert(get(i) == nullptr);
         if(c) {
             assert(c->table() == this);
             assert(c->sel() == i);
             _caps.insert(c);
-            LOG(CAPS, "CapTable[" << _id << "]: Setting " << i << " to " << *c);
         }
-        else
-            LOG(CAPS, "CapTable[" << _id << "]: Setting " << i << " to NULL");
     }
     void unset(capsel_t i) {
-        LOG(CAPS, "CapTable[" << _id << "]: Unsetting " << i);
         Capability *c = get(i);
         if(c) {
             _caps.remove(c);

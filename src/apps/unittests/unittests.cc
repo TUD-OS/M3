@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
 
 #include <m3/vfs/VFS.h>
+#include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -35,7 +35,7 @@ static const char *progs[] = {
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Unable to mount m3fs as root-fs");
+            exitmsg("Unable to mount m3fs as root-fs");
     }
 
     int succ = 0;
@@ -51,9 +51,9 @@ int main() {
         if((res >> 16) != 0)
             succ += (res & 0xFFFF) == (res >> 16);
     }
-    LOG(DEF, "---------------------------------------");
-    LOG(DEF, "\033[1mIn total: " << (succ == ARRAY_SIZE(progs) ? "\033[1;32m" : "\033[1;31m")
-            << succ << "\033[1m of " << ARRAY_SIZE(progs) << " testsuites successfull\033[0;m");
-    LOG(DEF, "---------------------------------------");
+    cout << "---------------------------------------\n";
+    cout << "\033[1mIn total: " << (succ == ARRAY_SIZE(progs) ? "\033[1;32m" : "\033[1;31m")
+            << succ << "\033[1m of " << ARRAY_SIZE(progs) << " testsuites successfull\033[0;m\n";
+    cout << "---------------------------------------\n";
     return 0;
 }

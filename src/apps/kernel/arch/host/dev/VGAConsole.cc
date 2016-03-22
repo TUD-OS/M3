@@ -29,6 +29,8 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 
+#include <base/Panic.h>
+
 #include "VGAConsole.h"
 
 #define KEYBOARD_CTRL       0       /* keyboard control register */

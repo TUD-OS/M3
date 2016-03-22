@@ -16,9 +16,9 @@
 
 #include <base/util/Profile.h>
 #include <base/stream/IStringStream.h>
-#include <base/Log.h>
 
 #include <m3/session/M3FS.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/Syscalls.h>
@@ -26,10 +26,8 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    if(argc < 3) {
-        Serial::get() << "Usage: " << argv[0] << " <in> <out>\n";
-        return 1;
-    }
+    if(argc < 3)
+        exitmsg("Usage: " << argv[0] << " <in> <out>");
 
     cycles_t start = Profile::start(0);
     // TODO temporary fix to support different use-cases without complicating debugging.
@@ -37,24 +35,24 @@ int main(int argc, char **argv) {
     // we can only use it via VPE::exec, but this would not allow to debug it in a convenient way.
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     {
         FileRef input(argv[1], FILE_R);
         if(Errors::occurred())
-            PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
+            exitmsg("open of " << argv[1] << " failed");
 
         FileRef output(argv[2], FILE_W | FILE_TRUNC | FILE_CREATE);
         if(Errors::occurred())
-            PANIC("open of " << argv[2] << " failed (" << Errors::last << ")");
+            exitmsg("open of " << argv[2] << " failed");
         cycles_t end1 = Profile::stop(0);
-        Serial::get() << "Setup time: " << (end1 - start) << "\n";
+        cout << "Setup time: " << (end1 - start) << "\n";
 
         // leave a bit of space for m3 abstractions
         size_t bufsize = 4096;//Heap::contiguous_mem() - 128;
         char *buffer = (char*)Heap::alloc(bufsize);
-        Serial::get() << "Using buffer with " << bufsize << " bytes\n";
+        cout << "Using buffer with " << bufsize << " bytes\n";
 
         ssize_t count;
         cycles_t start = Profile::start(1);
@@ -65,7 +63,7 @@ int main(int argc, char **argv) {
             output->write(buffer, (count + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1));
         }
         cycles_t end2 = Profile::stop(1);
-        Serial::get() << "Copy: " << (end2 - start) << "\n";
+        cout << "Copy: " << (end2 - start) << "\n";
     }
     return 0;
 }

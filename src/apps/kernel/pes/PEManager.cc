@@ -15,6 +15,7 @@
  */
 
 #include <base/stream/OStringStream.h>
+#include <base/log/Kernel.h>
 
 #include <string.h>
 
@@ -115,6 +116,7 @@ void PEManager::shutdown() {
         m3::Reference<Service> ref(&s);
         AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command>());
         msg << m3::KIF::Service::SHUTDOWN;
+        KLOG(SERV, "Sending SHUTDOWN message to " << ref->name());
         serv.send_and_receive(ref, msg.bytes(), msg.total());
         msg.claim();
     }

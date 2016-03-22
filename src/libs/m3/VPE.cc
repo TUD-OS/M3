@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/Panic.h>
 
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>

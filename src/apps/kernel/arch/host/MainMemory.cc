@@ -14,37 +14,22 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
-#include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
-#include <base/DTU.h>
-#include <base/WorkLoop.h>
+#include <base/Panic.h>
 
-#include "pes/PEManager.h"
-#include "SyscallHandler.h"
+#include "MainMemory.h"
 
-using namespace kernel;
+namespace kernel {
 
-int main(int argc, char *argv[]) {
-    if(argc < 2) {
-        m3::Serial::get() << "Usage: " << argv[0] << " <program>...\n";
-        m3::Machine::shutdown();
-    }
+MainMemory::MainMemory()
+        : _addr(mmap(0, DRAM_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0)),
+          _size(DRAM_SIZE), _map(addr(), DRAM_SIZE) {
+    DTU::get().config_recv_local(DTU::get().alloc_ep(), 0, 0, 0,
+        m3::DTU::FLAG_NO_HEADER | m3::DTU::FLAG_NO_RINGBUF);
 
-    EVENT_TRACE_INIT_KERNEL();
+    if(_addr == MAP_FAILED)
+        PANIC("mmap failed: " << strerror(errno));
+    KLOG(MEM, "Mapped " << (DRAM_SIZE / 1024 / 1024) << " MiB of main memory @ " << _addr);
+}
 
-    PEManager::create();
-    PEManager::get().load(argc - 1, argv + 1);
-
-    KLOG(INFO, "Kernel is ready");
-
-    m3::env()->workloop()->run();
-
-    EVENT_TRACE_FLUSH();
-
-    KLOG(INFO, "Shutting down");
-
-    PEManager::destroy();
-
-    m3::Machine::shutdown();
 }

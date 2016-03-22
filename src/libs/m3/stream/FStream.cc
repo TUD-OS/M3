@@ -16,6 +16,7 @@
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
+#include <m3/vfs/VFS.h>
 
 namespace m3 {
 

@@ -16,10 +16,12 @@
 
 #include <base/Common.h>
 #include <base/stream/Serial.h>
+#include <base/Backtrace.h>
 #include <base/Env.h>
 
 #include <m3/com/RecvGate.h>
 #include <m3/com/RecvBuf.h>
+#include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 

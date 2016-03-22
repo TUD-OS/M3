@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
+#include <base/log/Lib.h>
+#include <base/Panic.h>
 
 #include <m3/com/RecvGate.h>
 #include <m3/com/EPMux.h>
@@ -29,7 +30,7 @@ void RecvBuf::RecvBufWorkItem::work() {
     assert(_epid != UNBOUND);
     if(dtu.fetch_msg(_epid)) {
         DTU::Message *msg = dtu.message(_epid);
-        LOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
+        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
         RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
         gate->notify_all();
         dtu.ack_message(_epid);

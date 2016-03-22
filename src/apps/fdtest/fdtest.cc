@@ -15,7 +15,6 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
@@ -31,7 +30,7 @@ static char buffer[1024];
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Mounting root-fs failed");
+            exitmsg("Mounting root-fs failed");
     }
 
     cout << "Hello World!\n";

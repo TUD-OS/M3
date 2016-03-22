@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
 
 #include <m3/server/Server.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
@@ -37,11 +37,11 @@ public:
             srv->shutdown();
     }
     virtual void handle_close(SessionData *sess, GateIStream &args) override {
-        Serial::get() << "Client closed connection.\n";
+        cout << "Client closed connection.\n";
         Handler<>::handle_close(sess, args);
     }
     virtual void handle_shutdown() override {
-        Serial::get() << "Kernel wants to shut down.\n";
+        cout << "Kernel wants to shut down.\n";
         run = false;
     }
 

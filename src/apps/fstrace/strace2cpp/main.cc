@@ -11,6 +11,8 @@
 #include "exceptions.h"
 #include "platform_common.h"
 
+#include <fs/internal.h>
+
 /*
  * *************************************************************************
  */
@@ -30,6 +32,9 @@ void Platform::log(const char *msg) {
 /*
  * *************************************************************************
  */
+
+FILE *file;
+m3::SuperBlock sb;
 
 int main(int argc, char **argv) {
 

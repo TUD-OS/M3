@@ -17,9 +17,9 @@
 #include <base/Common.h>
 #include <base/stream/OStringStream.h>
 #include <base/stream/IStringStream.h>
-#include <base/Log.h>
 
 #include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
@@ -36,7 +36,7 @@ alignas(DTU_PKG_SIZE) static uint8_t largebuf[1024];
 void FS2TestSuite::WriteFileTestCase::check_content(const char *filename, size_t size) {
     FileRef file(filename, FILE_R);
     if(Errors::occurred())
-        PANIC("open of " << filename << " failed (" << Errors::last << ")");
+        exitmsg("open of " << filename << " failed");
 
     ssize_t count, pos = 0;
     while((count = file->read(largebuf, sizeof(largebuf))) > 0) {
@@ -48,18 +48,18 @@ void FS2TestSuite::WriteFileTestCase::check_content(const char *filename, size_t
 
     FileInfo info;
     if(file->stat(info) != 0)
-        PANIC("stat of '" << filename << "' failed");
+        exitmsg("stat of '" << filename << "' failed");
     assert_int(info.size, size);
 }
 
 void FS2TestSuite::WriteFileTestCase::run() {
     const char *filename = "/test.txt";
 
-    Serial::get() << "-- Extending a small file --\n";
+    cout << "-- Extending a small file --\n";
     {
         FileRef file(filename, FILE_W);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
             largebuf[i] = i & 0xFF;
@@ -72,11 +72,11 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
     check_content(filename, sizeof(largebuf) * 129);
 
-    Serial::get() << "-- Test a small write at the beginning --\n";
+    cout << "-- Test a small write at the beginning --\n";
     {
         FileRef file(filename, FILE_W);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
             largebuf[i] = i & 0xFF;
@@ -89,11 +89,11 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
     check_content(filename, sizeof(largebuf) * 129);
 
-    Serial::get() << "-- Test truncate --\n";
+    cout << "-- Test truncate --\n";
     {
         FileRef file(filename, FILE_W | FILE_TRUNC);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
             largebuf[i] = i & 0xFF;
@@ -106,11 +106,11 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
     check_content(filename, sizeof(largebuf) * 2);
 
-    Serial::get() << "-- Test append --\n";
+    cout << "-- Test append --\n";
     {
         FileRef file(filename, FILE_W | FILE_APPEND);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
             largebuf[i] = i & 0xFF;
@@ -123,11 +123,11 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
     check_content(filename, sizeof(largebuf) * 4);
 
-    Serial::get() << "-- Test append with read --\n";
+    cout << "-- Test append with read --\n";
     {
         FileRef file(filename, FILE_RW | FILE_TRUNC | FILE_CREATE);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
             largebuf[i] = i & 0xFF;

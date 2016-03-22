@@ -14,14 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
+#include <m3/stream/Standard.h>
 
 int main() {
     /* on the host, we rely on Config to get linked in. this doesn't happen because the linker
      * thinks it's not used. since this does only occur if nothing of the M3 library is used
      * (which would prevent to do anything useful), we fix that here by printing something */
 #if defined(__host__)
-    m3::Serial::get() << "Hello World!\n";
+    m3::cout << "Hello World!\n";
 #endif
     return 0;
 }

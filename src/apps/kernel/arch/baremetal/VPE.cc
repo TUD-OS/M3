@@ -15,7 +15,7 @@
  */
 
 #include <base/util/Sync.h>
-#include <base/Log.h>
+#include <base/log/Kernel.h>
 
 #include "com/RecvBufs.h"
 #include "pes/PEManager.h"
@@ -50,10 +50,12 @@ void VPE::start(int, UNUSED char **argv, int) {
     DTU::get().wakeup(*this);
 
     _state = RUNNING;
-    LOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
+    KLOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
 }
 
 m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
+    KLOG(EPS, "Setting ep " << epid << " of VPE " << id() << " to " << (n ? n->sel() : -1));
+
     if(n) {
         if(n->type & Capability::MEM) {
             uintptr_t addr = n->obj->label & ~m3::KIF::Perm::RWX;
@@ -77,7 +79,7 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
 }
 
 VPE::~VPE() {
-    LOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
+    KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     detach_rbufs();
     free_reqs();
     _objcaps.revoke_all();

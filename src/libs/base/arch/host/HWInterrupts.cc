@@ -15,7 +15,7 @@
  */
 
 #include <base/arch/host/HWInterrupts.h>
-#include <base/Log.h>
+#include <base/log/Lib.h>
 
 #include <csignal>
 
@@ -54,7 +54,7 @@ void HWInterrupts::set_handler(IRQ irq, handler_func func) {
 
 void HWInterrupts::sig_handler(int, siginfo_t *info, void *) {
     IRQ irq = static_cast<IRQ>(info->si_value.sival_int);
-    LOG(IRQS, "Got signal with " << irq);
+    LLOG(IRQS, "Got signal with " << irq);
     if(_handler[irq])
         _handler[irq](irq);
 }

@@ -16,46 +16,30 @@
 
 #pragma once
 
-#include <base/Common.h>
+#include <base/stream/Serial.h>
+#include <base/Env.h>
 
-#include <sys/mman.h>
+#define SLOG(lvl, expr)                                     \
+    do {                                                    \
+        if(m3::ServiceLog::level & (m3::ServiceLog::lvl))   \
+            m3::Serial::get() << expr << '\n';              \
+    }                                                       \
+    while(0)
 
-#include "mem/MemoryMap.h"
-#include "DTU.h"
-#include "Gate.h"
+namespace m3 {
 
-namespace kernel {
-
-class MainMemory {
-    explicit MainMemory();
+class ServiceLog {
+    ServiceLog() = delete;
 
 public:
-    static MainMemory &get() {
-        return _inst;
-    }
+    enum Level {
+        KEYB        = 1 << 0,
+        FS          = 1 << 1,
+        FS_DBG      = 1 << 2,
+        PAGER       = 1 << 3,
+    };
 
-    uintptr_t base() const {
-        return addr();
-    }
-    uintptr_t addr() const {
-        return reinterpret_cast<uintptr_t>(_addr);
-    }
-    size_t size() const {
-        return _size;
-    }
-    size_t epid() const {
-        return _epid;
-    }
-    MemoryMap &map() {
-        return _map;
-    }
-
-private:
-    void *_addr;
-    size_t _size;
-    MemoryMap _map;
-    int _epid;
-    static MainMemory _inst;
+    static const int level = 0;
 };
 
 }

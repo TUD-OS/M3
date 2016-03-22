@@ -15,10 +15,10 @@
  */
 
 #include <base/arch/host/SharedMemory.h>
-#include <base/Log.h>
 
 #include <m3/server/Server.h>
 #include <m3/session/arch/host/VGA.h>
+#include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -48,7 +48,7 @@ int main() {
 
     Server<VGAHandler> srv("vga", new VGAHandler(&memgate));
     if(Errors::occurred())
-        PANIC("Unable to register service 'vga'");
+        exitmsg("Unable to register service 'vga'");
 
     env()->workloop()->run();
     return 0;

@@ -17,9 +17,9 @@
 #include <base/Common.h>
 #include <base/stream/OStringStream.h>
 #include <base/stream/IStringStream.h>
-#include <base/Log.h>
 
 #include <m3/stream/FStream.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
@@ -38,7 +38,7 @@ void FSTestSuite::DirTestCase::run() {
     const char *dirname = "/largedir";
     Dir dir(dirname);
     if(Errors::occurred())
-        PANIC("open of " << dirname << " failed (" << Errors::last << ")");
+        exitmsg("open of " << dirname << " failed");
 
     Dir::Entry e;
     std::vector<Dir::Entry> entries;
@@ -71,7 +71,7 @@ void FSTestSuite::DirTestCase::run() {
 }
 
 void FSTestSuite::FileTestCase::run() {
-    Serial::get() << "-- Test errors --\n";
+    cout << "-- Test errors --\n";
     {
         const char *filename = "/subdir/subsubdir/testfile.txt";
 
@@ -79,20 +79,20 @@ void FSTestSuite::FileTestCase::run() {
         {
             FileRef file(filename, FILE_R);
             if(Errors::occurred())
-                PANIC("open of " << filename << " failed (" << Errors::last << ")");
+                exitmsg("open of " << filename << " failed");
             assert_long(file->write(buf, sizeof(buf)), Errors::NO_PERM);
         }
 
         {
             FileRef file(filename, FILE_W);
             if(Errors::occurred())
-                PANIC("open of " << filename << " failed (" << Errors::last << ")");
+                exitmsg("open of " << filename << " failed");
             assert_long(file->read(buf, sizeof(buf)), Errors::NO_PERM);
         }
     }
 
 #if DTU_PKG_SIZE == 8
-    Serial::get() << "-- Read a file with known content at once --\n";
+    cout << "-- Read a file with known content at once --\n";
     {
         const char *filename = "/subdir/subsubdir/testfile.txt";
         const char content[] = "This is a test!\n";
@@ -100,7 +100,7 @@ void FSTestSuite::FileTestCase::run() {
 
         FileRef file(filename, FILE_R);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         alignas(DTU_PKG_SIZE) char buf[sizeof(content)];
         assert_size(file->read(buf, sizeof(buf) - 1), sizeof(buf) - 1);
@@ -109,13 +109,13 @@ void FSTestSuite::FileTestCase::run() {
     }
 #endif
 
-    Serial::get() << "-- Read a file in 64 byte steps --\n";
+    cout << "-- Read a file in 64 byte steps --\n";
     {
         const char *filename = "/pat.bin";
 
         FileRef file(filename, FILE_R);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         alignas(DTU_PKG_SIZE) uint8_t buf[64];
         ssize_t count, pos = 0;
@@ -125,13 +125,13 @@ void FSTestSuite::FileTestCase::run() {
         }
     }
 
-    Serial::get() << "-- Read file in steps larger than block size --\n";
+    cout << "-- Read file in steps larger than block size --\n";
     {
         const char *filename = "/pat.bin";
 
         FileRef file(filename, FILE_R);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         alignas(DTU_PKG_SIZE) static uint8_t buf[1024 * 3];
         ssize_t count, pos = 0;
@@ -141,7 +141,7 @@ void FSTestSuite::FileTestCase::run() {
         }
     }
 
-    Serial::get() << "-- Write to a file and read it again --\n";
+    cout << "-- Write to a file and read it again --\n";
     {
         alignas(DTU_PKG_SIZE) char content[64] = "Foobar, a test and more and more and more!";
         const char *filename = "/pat.bin";
@@ -149,7 +149,7 @@ void FSTestSuite::FileTestCase::run() {
 
         FileRef file(filename, FILE_RW);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         ssize_t count = file->write(content, contentsz);
         assert_long(count, contentsz);
@@ -173,11 +173,11 @@ void FSTestSuite::FileTestCase::run() {
 void FSTestSuite::BufferedFileTestCase::run() {
     const char *filename = "/pat.bin";
 
-    Serial::get() << "-- Read it until the end --\n";
+    cout << "-- Read it until the end --\n";
     {
         FStream file(filename, FILE_R, 256);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         uint8_t buf[16];
         ssize_t count, pos = 0;
@@ -188,11 +188,11 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.eof() && !file.error());
     }
 
-    Serial::get() << "-- Read it with seek in between --\n";
+    cout << "-- Read it with seek in between --\n";
     {
         FStream file(filename, FILE_R, 200);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         uint8_t buf[32];
         ssize_t count, pos = 0;
@@ -222,11 +222,11 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.eof() && !file.error());
     }
 
-    Serial::get() << "-- Read with large buffer size --\n";
+    cout << "-- Read with large buffer size --\n";
     {
         FStream file(filename, FILE_R, 256);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         ssize_t count, pos = 0;
         while((count = file.read(largebuf, sizeof(largebuf))) > 0) {
@@ -236,11 +236,11 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.eof() && !file.error());
     }
 
-    Serial::get() << "-- Read and write --\n";
+    cout << "-- Read and write --\n";
     {
         FStream file(filename, 600, 256, FILE_RW);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         size_t size = file.seek(0, SEEK_END);
         file.seek(0, SEEK_SET);
@@ -267,11 +267,11 @@ void FSTestSuite::BufferedFileTestCase::run() {
         assert_true(file.good());
     }
 
-    Serial::get() << "-- Write only --\n";
+    cout << "-- Write only --\n";
     {
         FStream file(filename, 600, 256, FILE_W);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         // require a read by performing an unaligned write
         file.seek(DTU_PKG_SIZE * 10, SEEK_SET);
@@ -281,12 +281,12 @@ void FSTestSuite::BufferedFileTestCase::run() {
     }
 
 #if DTU_PKG_SIZE == 8
-    Serial::get() << "-- Write with seek --\n";
+    cout << "-- Write with seek --\n";
     {
         static_assert(DTU_PKG_SIZE == 8, "Unexpected DTU_PKG_SIZE");
         FStream file(filename, 600, 256, FILE_RW);
         if(Errors::occurred())
-            PANIC("open of " << filename << " failed (" << Errors::last << ")");
+            exitmsg("open of " << filename << " failed");
 
         file.seek(2, SEEK_SET);
         file.write("test", 4);

@@ -14,19 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
-#include <base/Log.h>
-
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvBuf.h>
 #include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
 int main() {
-    Serial &ser = Serial::get();
-
     for(int j = 0; j < 3; ++j) {
         String serv = "test";
         //ser << "Please enter the name of the service to use: ";
@@ -35,7 +31,7 @@ int main() {
 
         Session test(serv);
         if(Errors::last != Errors::NO_ERROR) {
-            ser << "Unable to connect to '" << serv << "': " << Errors::to_string(Errors::last) << "\n";
+            errmsg("Unable to connect to '" << serv << "'");
             continue;
         }
 
@@ -53,9 +49,9 @@ int main() {
             // 0 = TEST
             GateIStream is = send_receive_vmsg(gate, 0, req);
             if(is.error() != Errors::NO_ERROR)
-                PANIC("Communication failed: " << Errors::to_string(is.error()));
+                exitmsg("Communication failed");
             is >> resp;
-            ser << "Got '" << resp << "'\n";
+            cout << "Got '" << resp << "'\n";
         }
     }
     return 0;

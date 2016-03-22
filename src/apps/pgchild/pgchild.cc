@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/Log.h>
 
 #include <m3/session/Pager.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/RegularFile.h>
 #include <m3/VPE.h>
@@ -25,12 +25,12 @@
 using namespace m3;
 
 int main() {
-    Serial::get() << "Hello world!\n";
+    cout << "Hello world!\n";
 
     if(VPE::self().pager()) {
         FileRef file("/BitField.h", FILE_R);
         if(Errors::last != Errors::NO_ERROR)
-            PANIC("Unable to open /BitField.h: " << Errors::to_string(Errors::last));
+            exitmsg("Unable to open /BitField.h");
 
         FileInfo info;
         file->stat(info);
@@ -40,12 +40,12 @@ int main() {
         Errors::Code res = VPE::self().pager()->map_ds(&virt, Math::round_up(info.size, PAGE_SIZE),
             Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
         if(res != Errors::NO_ERROR)
-            PANIC("Unable to map /largetext.txt:" << Errors::to_string(res));
+            exitmsg("Unable to map /largetext.txt");
 
         const char *str = reinterpret_cast<const char*>(virt);
-        Serial::get() << "Printing string at " << fmt((void*)str, "p") << ":\n";
-        Serial::get() << str;
-        Serial::get() << "Done\n";
+        cout << "Printing string at " << fmt((void*)str, "p") << ":\n";
+        cout << str;
+        cout << "Done\n";
     }
     return 0;
 }

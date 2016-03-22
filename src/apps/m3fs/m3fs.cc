@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/Log.h>
+#include <base/log/Services.h>
 #include <base/Errors.h>
 
 #include <m3/session/M3FS.h>
@@ -179,12 +179,12 @@ public:
         int fd, flags;
         size_t offset, count, blocks;
         args >> fd >> offset >> count >> blocks >> flags;
-        LOG(FS, "fs::get_locs(fd=" << fd << ", offset=" << offset << ", count=" << count
+        SLOG(FS, "fs::get_locs(fd=" << fd << ", offset=" << offset << ", count=" << count
             << ", blocks=" << blocks << ", flags=" << flags << ")");
 
         M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of || count == 0) {
-            LOG(FS, "Invalid request (of=" << of << ")");
+            SLOG(FS, "Invalid request (of=" << of << ")");
             reply_vmsg_on(args, Errors::INV_ARGS);
             return;
         }
@@ -213,7 +213,7 @@ public:
         m3::loclist_type *locs = INodes::get_locs(_handle, inode, offset, count, blocks,
             of->flags & MemGate::RWX, crd, extended);
         if(!locs) {
-            LOG(FS, "Determining locations failed: " << Errors::to_string(Errors::last));
+            SLOG(FS, "Determining locations failed: " << Errors::to_string(Errors::last));
             reply_vmsg_on(args, Errors::last);
             return;
         }
@@ -228,18 +228,18 @@ public:
         String path;
         int fd, flags;
         is >> path >> flags;
-        LOG(FS, "fs::open(path=" << path << ", flags=" << fmt(flags, "#x") << ")");
+        SLOG(FS, "fs::open(path=" << path << ", flags=" << fmt(flags, "#x") << ")");
 
         m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), flags & FILE_CREATE);
         if(ino == INVALID_INO) {
-            LOG(FS, "fs::open failed: " << Errors::to_string(Errors::last));
+            SLOG(FS, "fs::open failed: " << Errors::to_string(Errors::last));
             reply_vmsg(gate, Errors::last);
             return;
         }
         m3::INode *inode = INodes::get(_handle, ino);
         if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
             ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
-            LOG(FS, "fs::open failed: " << Errors::to_string(Errors::NO_PERM));
+            SLOG(FS, "fs::open failed: " << Errors::to_string(Errors::NO_PERM));
             reply_vmsg(gate, Errors::NO_PERM);
             return;
         }
@@ -274,11 +274,11 @@ public:
         off_t off;
         size_t extent, extoff;
         is >> fd >> off >> whence >> extent >> extoff;
-        LOG(FS, "fs::seek(fd=" << fd << ", off=" << off << ", whence=" << whence << ")");
+        SLOG(FS, "fs::seek(fd=" << fd << ", off=" << off << ", whence=" << whence << ")");
 
         const M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of) {
-            LOG(FS, "fs::seek failed: " << Errors::to_string(Errors::INV_ARGS));
+            SLOG(FS, "fs::seek failed: " << Errors::to_string(Errors::INV_ARGS));
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
@@ -291,11 +291,11 @@ public:
         EVENT_TRACER_FS_stat();
         String path;
         is >> path;
-        LOG(FS, "fs::stat(path=" << path << ")");
+        SLOG(FS, "fs::stat(path=" << path << ")");
 
         m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
         if(ino == INVALID_INO) {
-            LOG(FS, "fs::stat failed: " << Errors::to_string(Errors::last));
+            SLOG(FS, "fs::stat failed: " << Errors::to_string(Errors::last));
             reply_vmsg(gate, Errors::last);
             return;
         }
@@ -310,11 +310,11 @@ public:
         M3FSSessionData *sess = gate.session<M3FSSessionData>();
         int fd;
         is >> fd;
-        LOG(FS, "fs::fstat(fd=" << fd << ")");
+        SLOG(FS, "fs::fstat(fd=" << fd << ")");
 
         const M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of) {
-            LOG(FS, "fs::fstat failed: " << Errors::to_string(Errors::INV_ARGS));
+            SLOG(FS, "fs::fstat failed: " << Errors::to_string(Errors::INV_ARGS));
             reply_vmsg(gate, Errors::INV_ARGS);
             return;
         }
@@ -329,11 +329,11 @@ public:
         String path;
         mode_t mode;
         is >> path >> mode;
-        LOG(FS, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
+        SLOG(FS, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
 
         Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
         if(res != Errors::NO_ERROR)
-            LOG(FS, "fs::mkdir failed: " << Errors::to_string(res));
+            SLOG(FS, "fs::mkdir failed: " << Errors::to_string(res));
         reply_vmsg(gate, res);
     }
 
@@ -341,11 +341,11 @@ public:
         EVENT_TRACER_FS_rmdir();
         String path;
         is >> path;
-        LOG(FS, "fs::rmdir(path=" << path << ")");
+        SLOG(FS, "fs::rmdir(path=" << path << ")");
 
         Errors::Code res = Dirs::remove(_handle, path.c_str());
         if(res != Errors::NO_ERROR)
-            LOG(FS, "fs::rmdir failed: " << Errors::to_string(res));
+            SLOG(FS, "fs::rmdir failed: " << Errors::to_string(res));
         reply_vmsg(gate, res);
     }
 
@@ -353,11 +353,11 @@ public:
         EVENT_TRACER_FS_link();
         String oldpath, newpath;
         is >> oldpath >> newpath;
-        LOG(FS, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
+        SLOG(FS, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
 
         Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
         if(res != Errors::NO_ERROR)
-            LOG(FS, "fs::link failed: " << Errors::to_string(res));
+            SLOG(FS, "fs::link failed: " << Errors::to_string(res));
         reply_vmsg(gate, res);
     }
 
@@ -365,11 +365,11 @@ public:
         EVENT_TRACER_FS_unlink();
         String path;
         is >> path;
-        LOG(FS, "fs::unlink(path=" << path << ")");
+        SLOG(FS, "fs::unlink(path=" << path << ")");
 
         Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
         if(res != Errors::NO_ERROR)
-            LOG(FS, "fs::unlink failed: " << Errors::to_string(res));
+            SLOG(FS, "fs::unlink failed: " << Errors::to_string(res));
         reply_vmsg(gate, res);
     }
 
@@ -379,7 +379,7 @@ public:
         int fd;
         size_t extent, extoff;
         is >> fd >> extent >> extoff;
-        LOG(FS, "fs::close(fd=" << fd << ", extent=" << extent << ", extoff=" << extoff << ")");
+        SLOG(FS, "fs::close(fd=" << fd << ", extent=" << extent << ", extoff=" << extoff << ")");
 
         if(extoff != 0) {
             const M3FSSessionData::OpenFile *of = sess->get(fd);
@@ -408,7 +408,7 @@ public:
     }
 
     virtual void handle_shutdown() override {
-        LOG(FS, "fs::shutdown()");
+        SLOG(FS, "fs::shutdown()");
         _handle.flush_cache();
     }
 

@@ -14,37 +14,35 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
+#pragma once
+
 #include <base/stream/Serial.h>
-#include <base/Backtrace.h>
 #include <base/Env.h>
 
-#include "WorkLoop.h"
+#define LLOG(lvl, expr)                                     \
+    do {                                                    \
+        if(m3::LibLog::level & (m3::LibLog::lvl))           \
+            m3::Serial::get() << expr << '\n';              \
+    }                                                       \
+    while(0)
 
-namespace kernel {
+namespace m3 {
 
-class BaremetalKEnvBackend : public m3::BaremetalEnvBackend {
+class LibLog {
+    LibLog() = delete;
+
 public:
-    explicit BaremetalKEnvBackend() {
-        _workloop = new WorkLoop();
-    }
+    enum Level {
+        SYSC        = 1 << 0,
+        DTU         = 1 << 1,
+        DTUERR      = 1 << 2,
+        IPC         = 1 << 3,
+        TRACE       = 1 << 4,
+        IRQS        = 1 << 5,
+        SHM         = 1 << 6,
+    };
 
-    virtual void init() override {
-        m3::env()->coreid = KERNEL_CORE;
-
-        m3::Serial::init("kernel", KERNEL_CORE);
-    }
-
-    virtual void reinit() override {
-        // not used
-    }
-
-    virtual void exit(int) override {
-    }
+    static const int level = 0;
 };
-
-EXTERN_C void init_env(m3::Env *e) {
-    e->backend = new BaremetalKEnvBackend();
-}
 
 }

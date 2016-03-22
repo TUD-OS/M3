@@ -14,37 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
-#include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
-#include <base/DTU.h>
-#include <base/WorkLoop.h>
 
-#include "pes/PEManager.h"
-#include "SyscallHandler.h"
+#include "MainMemory.h"
 
-using namespace kernel;
+namespace kernel {
 
-int main(int argc, char *argv[]) {
-    if(argc < 2) {
-        m3::Serial::get() << "Usage: " << argv[0] << " <program>...\n";
-        m3::Machine::shutdown();
-    }
+MainMemory::MainMemory() : _size(DRAM_SIZE), _map(addr(), DRAM_SIZE) {
+    KLOG(MEM, "We have " << (DRAM_SIZE / 1024) << " KiB of main memory");
+}
 
-    EVENT_TRACE_INIT_KERNEL();
-
-    PEManager::create();
-    PEManager::get().load(argc - 1, argv + 1);
-
-    KLOG(INFO, "Kernel is ready");
-
-    m3::env()->workloop()->run();
-
-    EVENT_TRACE_FLUSH();
-
-    KLOG(INFO, "Shutting down");
-
-    PEManager::destroy();
-
-    m3::Machine::shutdown();
 }

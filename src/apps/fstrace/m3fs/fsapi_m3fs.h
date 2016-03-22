@@ -17,8 +17,8 @@
 #pragma once
 
 #include <base/util/Profile.h>
-#include <base/Log.h>
 
+#include <m3/stream/Standard.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
@@ -32,7 +32,7 @@ class FSAPI_M3FS : public FSAPI {
 
     void checkFd(int fd) {
         if(fdMap[fd] == nullptr)
-            PANIC("Using uninitialized file @ " << fd);
+            exitmsg("Using uninitialized file @ " << fd);
         fdMap[fd]->clearerr();
     }
 
@@ -46,7 +46,7 @@ public:
     }
     virtual void stop() override {
         cycles_t end = m3::Profile::stop(0);
-        m3::Serial::get() << "Total time: " << (end - _start) << " cycles\n";
+        m3::cout << "Total time: " << (end - _start) << " cycles\n";
     }
 
     virtual int error() override {
@@ -67,7 +67,7 @@ public:
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
         if(fdMap[args->fd] != nullptr || dirMap[args->fd] != nullptr)
-            PANIC("Overwriting already used file/dir @ " << args->fd);
+            exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
             dirMap[args->fd] = new m3::Dir(add_prefix(args->name));
@@ -91,7 +91,7 @@ public:
             dirMap[args->fd] = nullptr;
         }
         else
-            PANIC("Using uninitialized file @ " << args->fd);
+            exitmsg("Using uninitialized file @ " << args->fd);
     }
 
     virtual void fsync(const fsync_args_t *, int ) override {
@@ -139,7 +139,7 @@ public:
         else if(dirMap[args->fd])
             res = dirMap[args->fd]->stat(info);
         else
-            PANIC("Using uninitialized file/dir @ " << args->fd);
+            exitmsg("Using uninitialized file/dir @ " << args->fd);
 
         if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
@@ -192,7 +192,7 @@ public:
 
     virtual void getdents(const getdents_args_t *args, UNUSED int lineNo) override {
         if(dirMap[args->fd] == nullptr)
-            PANIC("Using uninitialized dir @ " << args->fd);
+            exitmsg("Using uninitialized dir @ " << args->fd);
         m3::Dir::Entry e;
         int i;
         // we don't check the result here because strace is often unable to determine the number of

@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
 #include <base/util/Sync.h>
 #include <base/DTU.h>
-#include <base/Log.h>
 
 namespace m3 {
 
@@ -43,11 +43,11 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder
     fire(ep, READ, 0);
 
     // TODO not possible because of bootstrap problems
-    //LOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << env()->coreid << ":" << ep);
+    //LLOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << env()->coreid << ":" << ep);
 }
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {
-    LOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << ep);
+    LLOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << ep);
 
     word_t *ptr = get_cmd_addr(ep, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
     store_to(ptr + 0, reply_lbl);
@@ -63,7 +63,7 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     assert(((uintptr_t)msg & (PACKET_SIZE - 1)) == 0);
     assert((size & (PACKET_SIZE - 1)) == 0);
 
-    LOG(DTU, ">> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " to msg idx " << msgidx);
+    LLOG(DTU, ">> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " to msg idx " << msgidx);
 
     word_t *ptr = get_cmd_addr(ep, REPLY_CAP_RESP_CMD);
     store_to(ptr + 0, ((size / DTU_PKG_SIZE) << 16) | msgidx);
@@ -75,9 +75,9 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
 
     // TODO this assumes that we reply to the messages in order. but we do that currently
     // word_t addr = element_ptr(ep);
-    // LOG(DTU, "Got " << fmt(addr, "p") << " for " << ep);
+    // LLOG(DTU, "Got " << fmt(addr, "p") << " for " << ep);
     // DTU::Message *m = reinterpret_cast<DTU::Message*>(addr);
-    // LOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
+    // LLOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
     // send_credits(ep, m->modid, m->slot, 0x80000000 | m->length);
 
     return Errors::NO_ERROR;
@@ -105,7 +105,7 @@ void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
 }
 
 Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
-    LOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
+    LLOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
 
     // temporary hack: read current external address, add offset, store it and restore it later
     // set address + offset
@@ -128,7 +128,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
 }
 
 Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
-    LOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
+    LLOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
 
     // set address + offset
     word_t *ptr = get_cmd_addr(ep, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);

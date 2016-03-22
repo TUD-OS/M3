@@ -20,7 +20,6 @@
 #include <base/col/SList.h>
 #include <base/util/String.h>
 #include <base/util/Reference.h>
-#include <base/Log.h>
 
 #include "SendQueue.h"
 #include "Gate.h"

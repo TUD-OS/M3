@@ -14,12 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Log.h>
-
-#include <m3/com/GateStream.h>
 #include <m3/session/Session.h>
 #include <m3/session/arch/host/Interrupts.h>
-#include <m3/Syscalls.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
@@ -28,13 +25,13 @@ static void timer_event(RecvGate &gate, Subscriber<RecvGate&> *) {
     GateIStream is(gate);
     HWInterrupts::IRQ irq;
     is >> irq;
-    LOG(DEF, "Got IRQ #" << irq << " (" << i++ << ")");
+    cout << "Got IRQ #" << irq << " (" << i++ << ")\n";
 }
 
 int main() {
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
     if(Errors::occurred())
-        PANIC("Unable to connect to service 'interrupts'");
+        exitmsg("Unable to connect to service 'interrupts'");
     timerirqs.gate().subscribe(timer_event);
 
     env()->workloop()->run();
