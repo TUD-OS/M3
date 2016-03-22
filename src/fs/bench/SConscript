@@ -5,7 +5,13 @@ env.InstallFiles('$FSDIR/bench', '.', scan=1)
 env.M3Strip('$FSDIR/bench/bin/noop', '$BINARYDIR/noop')
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
-blocks = 16384 if os.environ.get('M3_FSBLKS') is None else int(os.environ.get('M3_FSBLKS'))
+if os.environ.get('M3_FSBLKS') is None:
+    if env['ARCH'] == 't2' or env['ARCH'] == 't3':
+        blocks = 16384
+    else:
+        blocks = 4096
+else:
+    blocks = int(os.environ.get('M3_FSBLKS'))
 env.M3Mkfs(target = 'bench.img', source = '$FSDIR/bench', blocks = blocks, inodes = 256, blks_per_ext = bpe)
 
 if env['ARCH'] == 't2' or env['ARCH'] == 't3':
