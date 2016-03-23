@@ -21,8 +21,8 @@
 namespace m3 {
 
 // create them after VPE::self() has finished, because otherwise the file objects are not available
-INIT_PRIORITY(104) FStream cerr(STDERR_FD, FILE_W);
-INIT_PRIORITY(104) FStream cout(STDOUT_FD, FILE_W);
-INIT_PRIORITY(104) FStream cin(STDIN_FD, FILE_R);
+INIT_PRIORITY(104) FStream cerr(STDERR_FD, FILE_W, 128);
+INIT_PRIORITY(104) FStream cout(STDOUT_FD, FILE_W, 256, FStream::FL_LINE_BUF);
+INIT_PRIORITY(104) FStream cin(STDIN_FD, FILE_R, 256, FStream::FL_LINE_BUF);
 
 }

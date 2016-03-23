@@ -20,11 +20,11 @@
 
 namespace m3 {
 
-FStream::FStream(int fd, int perms, size_t bufsize)
+FStream::FStream(int fd, int perms, size_t bufsize, uint flags)
     : IStream(), OStream(), _fd(fd), _fpos(),
       _rbuf(_fd != FileTable::INVALID ? file()->create_buf((perms & FILE_R) ? bufsize : 0) : nullptr),
       _wbuf(_fd != FileTable::INVALID ? file()->create_buf((perms & FILE_W) ? bufsize : 0) : nullptr),
-      _flags(FL_DEL_BUF) {
+      _flags(FL_DEL_BUF | flags) {
 }
 
 FStream::FStream(const char *filename, int perms, size_t bufsize)
@@ -180,7 +180,7 @@ size_t FStream::write(const void *src, size_t count) {
         total += res;
         count -= res;
 
-        if(count)
+        if(count || ((_flags & FL_LINE_BUF) && buf[total - 1] == '\n'))
             flush();
     }
 

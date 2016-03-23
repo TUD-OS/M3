@@ -42,14 +42,17 @@ class FStream : public IStream, public OStream {
     }
 
 public:
+    static const uint FL_LINE_BUF   = 4;
+
     /**
      * Binds this object to the given file descriptor and uses a buffer size of <bufsize>.
      *
      * @param fd the file descriptor
      * @param perms the permissions that determine which buffer to create (FILE_*)
      * @param bufsize the size of the buffer for input/output
+     * @param flags the flags (FL_*)
      */
-    explicit FStream(int fd, int perms = FILE_RW, size_t bufsize = 512);
+    explicit FStream(int fd, int perms = FILE_RW, size_t bufsize = 512, uint flags = 0);
 
     /**
      * Opens <filename> with given permissions and a buffer size of <bufsize>. Which buffer is
