@@ -14,7 +14,9 @@ env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
 env.M3Strip('$FSDIR/default/bin/init', '$BINARYDIR/init')
 if env['ARCH'] != 'host':
     env.M3Strip('$FSDIR/default/bin/idle', '$BINARYDIR/idle')
+env.M3Strip('$FSDIR/default/bin/ln', '$BINARYDIR/ln')
 env.M3Strip('$FSDIR/default/bin/ls', '$BINARYDIR/ls')
+env.M3Strip('$FSDIR/default/bin/mkdir', '$BINARYDIR/mkdir')
 env.M3Strip('$FSDIR/default/bin/noop', '$BINARYDIR/noop')
 env.M3Strip('$FSDIR/default/bin/parchksum', '$BINARYDIR/parchksum')
 if env['ARCH'] == 'gem5':
@@ -22,9 +24,13 @@ if env['ARCH'] == 'gem5':
 env.M3Strip('$FSDIR/default/bin/pipe', '$BINARYDIR/pipe')
 env.M3Strip('$FSDIR/default/bin/rdwr', '$BINARYDIR/rdwr')
 env.M3Strip('$FSDIR/default/bin/readelf', '$BINARYDIR/readelf')
+env.M3Strip('$FSDIR/default/bin/rm', '$BINARYDIR/rm')
+env.M3Strip('$FSDIR/default/bin/rmdir', '$BINARYDIR/rmdir')
 if env['ARCH'] == 't2':
     env.M3Strip('$FSDIR/default/bin/sendfile', '$BINARYDIR/sendfile')
 env.M3Strip('$FSDIR/default/bin/shell', '$BINARYDIR/shell')
+env.M3Strip('$FSDIR/default/bin/stat', '$BINARYDIR/stat')
+env.M3Strip('$FSDIR/default/bin/tr', '$BINARYDIR/tr')
 env.M3Strip('$FSDIR/default/bin/unittests', '$BINARYDIR/unittests')
 if env['ARCH'] == 'host':
     env.M3Strip('$FSDIR/default/bin/unittests-dtu', '$BINARYDIR/unittests-dtu')

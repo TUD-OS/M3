@@ -89,11 +89,6 @@ int main(int argc, char **argv) {
     if(argc < 2)
         exitmsg("Usage: " << argv[0] << " <bin>");
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
-        if(Errors::last != Errors::EXISTS)
-            exitmsg("Mounting root-fs failed");
-    }
-
     FStream bin(argv[1], FILE_R);
     if(Errors::occurred())
         exitmsg("open(" << argv[1] << ") failed");

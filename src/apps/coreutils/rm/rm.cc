@@ -14,9 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/FStream.h>
 #include <m3/stream/Standard.h>
-#include <m3/session/M3FS.h>
 #include <m3/vfs/VFS.h>
 
 using namespace m3;
@@ -25,25 +23,9 @@ int main(int argc, char **argv) {
     if(argc < 2)
         exitmsg("Usage: " << argv[0] << " <file>...");
 
-    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
-        if(Errors::last != Errors::EXISTS)
-            exitmsg("Mounting root-fs failed");
-    }
-
-    size_t bufsize = 128;
-    char *buffer = (char*)Heap::alloc(bufsize);
-
     for(int i = 1; i < argc; ++i) {
-        FStream input(argv[i], FILE_R);
-        if(Errors::occurred()) {
-            errmsg("Open of " << argv[i] << " failed");
-            continue;
-        }
-
-        while(!input.eof()) {
-            input.getline(buffer, bufsize);
-            cout << buffer << "\n";
-        }
+        if(VFS::unlink(argv[1]) != Errors::NO_ERROR)
+            errmsg("Unlink of " << argv[1] << " failed");
     }
     return 0;
 }

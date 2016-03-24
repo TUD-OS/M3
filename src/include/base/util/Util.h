@@ -72,6 +72,13 @@ public:
     static constexpr T&& forward(typename remove_reference<T>::type& a) {
         return static_cast<T&&>(a);
     }
+
+    template<class T>
+    static void swap(T& a,T& b) {
+        T tmp(a);
+        a = b;
+        b = tmp;
+    }
 };
 
 }
