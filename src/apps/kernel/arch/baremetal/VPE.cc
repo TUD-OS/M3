@@ -44,7 +44,7 @@ void VPE::start(int, UNUSED char **argv, int) {
     ref();
 
 #if defined(__gem5__)
-    init_memory(argv[0]);
+    init_memory(argv ? argv[0] : "");
 #endif
 
     DTU::get().wakeup(*this);
