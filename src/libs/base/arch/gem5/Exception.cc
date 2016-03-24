@@ -69,38 +69,39 @@ Exceptions::Desc64 Exceptions::idt[IDT_COUNT];
 Exceptions::TSS Exceptions::tss ALIGNED(PAGE_SIZE);
 
 void Exceptions::handler(State *state) {
-    Serial::get() << "Interruption @ " << fmt(state->rip, "p");
+    auto &ser = Serial::get();
+    ser << "Interruption @ " << fmt(state->rip, "p");
     if(state->intrptNo == 0xe)
-        Serial::get() << " for address " << fmt(getCR2(), "p");
-    Serial::get() << "\n  irq: ";
+        ser << " for address " << fmt(getCR2(), "p");
+    ser << "\n  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
-        Serial::get() << exNames[state->intrptNo];
+        ser << exNames[state->intrptNo];
     else if(state->intrptNo == 64)
-        Serial::get() << "DTU (" << state->intrptNo << ")";
+        ser << "DTU (" << state->intrptNo << ")";
     else
-        Serial::get() << "<unknown> (" << state->intrptNo << ")";
-    Serial::get() << "\n";
+        ser << "<unknown> (" << state->intrptNo << ")";
+    ser << "\n";
 
-    Backtrace::print(Serial::get());
+    Backtrace::print(ser);
 
-    Serial::get() << "  err: " << state->errorCode << "\n";
-    Serial::get() << "  rax: " << fmt(state->rax,    "#0x", 16) << "\n";
-    Serial::get() << "  rbx: " << fmt(state->rbx,    "#0x", 16) << "\n";
-    Serial::get() << "  rcx: " << fmt(state->rcx,    "#0x", 16) << "\n";
-    Serial::get() << "  rdx: " << fmt(state->rdx,    "#0x", 16) << "\n";
-    Serial::get() << "  rsi: " << fmt(state->rsi,    "#0x", 16) << "\n";
-    Serial::get() << "  rdi: " << fmt(state->rdi,    "#0x", 16) << "\n";
-    Serial::get() << "  rsp: " << fmt(state->rsp,    "#0x", 16) << "\n";
-    Serial::get() << "  rbp: " << fmt(state->rbp,    "#0x", 16) << "\n";
-    Serial::get() << "  r8 : " << fmt(state->r8,     "#0x", 16) << "\n";
-    Serial::get() << "  r9 : " << fmt(state->r9,     "#0x", 16) << "\n";
-    Serial::get() << "  r10: " << fmt(state->r10,    "#0x", 16) << "\n";
-    Serial::get() << "  r11: " << fmt(state->r11,    "#0x", 16) << "\n";
-    Serial::get() << "  r12: " << fmt(state->r12,    "#0x", 16) << "\n";
-    Serial::get() << "  r13: " << fmt(state->r13,    "#0x", 16) << "\n";
-    Serial::get() << "  r14: " << fmt(state->r14,    "#0x", 16) << "\n";
-    Serial::get() << "  r15: " << fmt(state->r15,    "#0x", 16) << "\n";
-    Serial::get() << "  flg: " << fmt(state->rflags, "#0x", 16) << "\n";
+    ser << "  err: " << state->errorCode << "\n";
+    ser << "  rax: " << fmt(state->rax,    "#0x", 16) << "\n";
+    ser << "  rbx: " << fmt(state->rbx,    "#0x", 16) << "\n";
+    ser << "  rcx: " << fmt(state->rcx,    "#0x", 16) << "\n";
+    ser << "  rdx: " << fmt(state->rdx,    "#0x", 16) << "\n";
+    ser << "  rsi: " << fmt(state->rsi,    "#0x", 16) << "\n";
+    ser << "  rdi: " << fmt(state->rdi,    "#0x", 16) << "\n";
+    ser << "  rsp: " << fmt(state->rsp,    "#0x", 16) << "\n";
+    ser << "  rbp: " << fmt(state->rbp,    "#0x", 16) << "\n";
+    ser << "  r8 : " << fmt(state->r8,     "#0x", 16) << "\n";
+    ser << "  r9 : " << fmt(state->r9,     "#0x", 16) << "\n";
+    ser << "  r10: " << fmt(state->r10,    "#0x", 16) << "\n";
+    ser << "  r11: " << fmt(state->r11,    "#0x", 16) << "\n";
+    ser << "  r12: " << fmt(state->r12,    "#0x", 16) << "\n";
+    ser << "  r13: " << fmt(state->r13,    "#0x", 16) << "\n";
+    ser << "  r14: " << fmt(state->r14,    "#0x", 16) << "\n";
+    ser << "  r15: " << fmt(state->r15,    "#0x", 16) << "\n";
+    ser << "  flg: " << fmt(state->rflags, "#0x", 16) << "\n";
     env()->exit(1);
 }
 
