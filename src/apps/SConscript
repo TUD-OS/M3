@@ -3,8 +3,8 @@ Import('env', 'hostenv')
 # apps that run everywhere
 dirs = [
     'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell', 'coreutils',
-    'm3fs', 'fstest', 'init', 'parchksum', 'filterchain', 'noop',
-    'float', 'srvtest', 'bench', 'pipe', 'execpipe', 'fstrace', 'fdtest', 'fdchild'
+    'm3fs', 'parchksum', 'filterchain', 'noop', 'float', 'srvtest', 'bench', 'pipe', 'execpipe',
+    'fstrace', 'fdtest', 'fdchild'
 ]
 
 # architecture / machine specific apps
