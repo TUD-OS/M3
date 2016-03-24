@@ -145,7 +145,7 @@ void Exceptions::init() {
     setIDT(16,isr16,Desc::DPL_KERNEL);
 
     // all other interrupts
-    for(size_t i = 17; i < 256; i++) {
+    for(size_t i = 17; i < IDT_COUNT; i++) {
         if(i == 64)
             setIDT(i,isr64,Desc::DPL_KERNEL);
         else

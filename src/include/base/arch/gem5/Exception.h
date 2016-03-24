@@ -146,7 +146,7 @@ class Exceptions {
          * TSS at higher addresses. The I/O map base address points to the beginning of the
          * I/O permission bit map and the end of the interrupt redirection bit map. */
         uint16_t ioMapOffset;
-        uint8_t ioMap[IO_MAP_SIZE / 8];
+        // uint8_t ioMap[IO_MAP_SIZE / 8];
         uint8_t ioMapEnd;
     } PACKED;
 
@@ -189,7 +189,7 @@ class Exceptions {
         ulong ss;
     } PACKED;
 
-    static const size_t IDT_COUNT       = 256;
+    static const size_t IDT_COUNT       = 65;
 
     /* we need 5 entries: null-entry, code for kernel, data for kernel, 2 for TSS (on x86_64) */
     static const size_t GDT_ENTRY_COUNT = 5;
