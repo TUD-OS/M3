@@ -24,13 +24,10 @@ File *M3FS::open(const char *path, int perms) {
     int fd;
     // ensure that the message gets acked immediately.
     {
-        Errors::Code res;
         GateIStream resp = send_receive_vmsg(_gate, OPEN, path, perms);
-        resp >> res;
-        if(res != Errors::NO_ERROR) {
-            Errors::last = res;
+        resp >> Errors::last;
+        if(Errors::last != Errors::NO_ERROR)
             return nullptr;
-        }
         resp >> fd;
     }
     return new RegularFile(fd, Reference<M3FS>(this), perms);
@@ -38,60 +35,53 @@ File *M3FS::open(const char *path, int perms) {
 
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {
     GateIStream reply = send_receive_vmsg(_gate, STAT, path);
-    Errors::Code res;
-    reply >> res;
-    if(res != Errors::NO_ERROR)
-        return res;
+    reply >> Errors::last;
+    if(Errors::last != Errors::NO_ERROR)
+        return Errors::last;
     reply >> info;
     return Errors::NO_ERROR;
 }
 
 int M3FS::fstat(int fd, FileInfo &info) {
     GateIStream reply = send_receive_vmsg(_gate, FSTAT, fd);
-    Errors::Code res;
-    reply >> res;
-    if(res != Errors::NO_ERROR)
-        return res;
+    reply >> Errors::last;
+    if(Errors::last != Errors::NO_ERROR)
+        return Errors::last;
     reply >> info;
     return Errors::NO_ERROR;
 }
 
 int M3FS::seek(int fd, off_t off, int whence, size_t &global, size_t &extoff, off_t &pos) {
     GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, global, extoff);
-    Errors::Code res;
-    reply >> res;
-    if(res != Errors::NO_ERROR)
-        return res;
+    reply >> Errors::last;
+    if(Errors::last != Errors::NO_ERROR)
+        return Errors::last;
     reply >> global >> extoff >> pos;
     return Errors::NO_ERROR;
 }
 
 Errors::Code M3FS::mkdir(const char *path, mode_t mode) {
     GateIStream reply = send_receive_vmsg(_gate, MKDIR, path, mode);
-    Errors::Code res;
-    reply >> res;
-    return res;
+    reply >> Errors::last;
+    return Errors::last;
 }
 
 Errors::Code M3FS::rmdir(const char *path) {
     GateIStream reply = send_receive_vmsg(_gate, RMDIR, path);
-    Errors::Code res;
-    reply >> res;
-    return res;
+    reply >> Errors::last;
+    return Errors::last;
 }
 
 Errors::Code M3FS::link(const char *oldpath, const char *newpath) {
     GateIStream reply = send_receive_vmsg(_gate, LINK, oldpath, newpath);
-    Errors::Code res;
-    reply >> res;
-    return res;
+    reply >> Errors::last;
+    return Errors::last;
 }
 
 Errors::Code M3FS::unlink(const char *path) {
     GateIStream reply = send_receive_vmsg(_gate, UNLINK, path);
-    Errors::Code res;
-    reply >> res;
-    return res;
+    reply >> Errors::last;
+    return Errors::last;
 }
 
 void M3FS::close(int fd, size_t extent, size_t off) {
