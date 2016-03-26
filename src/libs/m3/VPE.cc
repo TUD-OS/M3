@@ -28,7 +28,7 @@
 namespace m3 {
 
 const size_t VPE::BUF_SIZE    = 4096;
-VPE VPE::_self INIT_PRIORITY(103);
+VPE VPE::_self INIT_PRIORITY(105);
 
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
@@ -36,6 +36,7 @@ VPE::VPE()
       _caps(), _eps(), _pager(), _ms(), _fds() {
     init_state();
     init();
+    init_fs();
 
     if(!_ms)
         _ms = new MountSpace();

@@ -23,7 +23,7 @@
 
 namespace m3 {
 
-SendQueue SendQueue::_inst INIT_PRIORITY(105);
+SendQueue SendQueue::_inst INIT_PRIORITY(101);
 
 void SendQueue::work() {
     if(_queue.length() > 0) {

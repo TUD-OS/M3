@@ -26,7 +26,7 @@
 namespace m3 {
 
 // clean them up after the standard streams have been destructed
-VFS::Cleanup VFS::_cleanup INIT_PRIORITY(103);
+VFS::Cleanup VFS::_cleanup INIT_PRIORITY(106);
 
 VFS::Cleanup::~Cleanup() {
     for(fd_t i = 0; i < FileTable::MAX_FDS; ++i)

@@ -34,13 +34,6 @@ void VPE::init_state() {
         delete _eps;
     if(Heap::is_on_heap(_caps))
         delete _caps;
-    if(Heap::is_on_heap(_fds))
-        delete _fds;
-    if(Heap::is_on_heap(_ms))
-        delete _ms;
-
-    if(env()->pager_sess && env()->pager_gate)
-        _pager = new Pager(env()->pager_sess, env()->pager_gate);
 
     _caps = reinterpret_cast<BitField<CAP_TOTAL>*>(env()->caps);
     if(_caps == nullptr)
@@ -49,6 +42,16 @@ void VPE::init_state() {
     _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
     if(_eps == nullptr)
         _eps = new BitField<EP_COUNT>();
+}
+
+void VPE::init_fs() {
+    if(Heap::is_on_heap(_fds))
+        delete _fds;
+    if(Heap::is_on_heap(_ms))
+        delete _ms;
+
+    if(env()->pager_sess && env()->pager_gate)
+        _pager = new Pager(env()->pager_sess, env()->pager_gate);
 
     if(env()->mounts_len)
         _ms = MountSpace::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);

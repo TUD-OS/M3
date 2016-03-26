@@ -270,6 +270,7 @@ public:
 private:
     void init();
     void init_state();
+    void init_fs();
     Errors::Code run(void *lambda);
     Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
     Errors::Code load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size);

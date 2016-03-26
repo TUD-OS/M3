@@ -35,7 +35,7 @@ namespace m3 {
 
 Env *Env::_inst = nullptr;
 Env::Init Env::_init INIT_PRIORITY(102);
-Env::PostInit Env::_postInit INIT_PRIORITY(109);
+Env::PostInit Env::_postInit INIT_PRIORITY(104);
 char Env::_exec[128];
 char Env::_exec_short[128];
 const char *Env::_exec_short_ptr = nullptr;

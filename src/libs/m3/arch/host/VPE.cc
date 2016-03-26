@@ -72,8 +72,6 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 void VPE::init_state() {
     delete _eps;
     delete _caps;
-    delete _ms;
-    delete _fds;
 
     _caps = new BitField<CAP_TOTAL>();
     size_t len = sizeof(*_caps);
@@ -82,8 +80,13 @@ void VPE::init_state() {
     _eps = new BitField<EP_COUNT>();
     len = sizeof(*_eps);
     read_from("eps", _eps, len);
+}
 
-    len = STATE_BUF_SIZE;
+void VPE::init_fs() {
+    delete _ms;
+    delete _fds;
+
+    size_t len = STATE_BUF_SIZE;
     char *buf = new char[len];
     read_from("ms", buf, len);
     _ms = MountSpace::unserialize(buf, len);
@@ -116,6 +119,7 @@ Errors::Code VPE::run(void *lambda) {
 
         env()->reset();
         VPE::self().init_state();
+        VPE::self().init_fs();
 
         std::function<int()> *func = reinterpret_cast<std::function<int()>*>(lambda);
         (*func)();
