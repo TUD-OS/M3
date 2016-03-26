@@ -43,6 +43,13 @@ public:
     }
 
     /**
+     * @return true if it is ready to print
+     */
+    static bool ready() {
+        return _inst != nullptr;
+    }
+
+    /**
      * Initializes everything. Should only be called at the beginning.
      *
      * @param path the path of the program

@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/OStream.h>
+#include <base/log/Lib.h>
 #include <base/Heap.h>
 #include <base/DTU.h>
 #include <base/Panic.h>
@@ -84,6 +85,9 @@ USED void *Heap::try_alloc(size_t size) {
     }
     // mark used
     a->next |= USED_BIT;
+
+    if(Serial::ready())
+        LLOG(HEAP, "Allocated " << size << "b @ " << (void*)(a + 1));
     return a + 1;
 }
 
@@ -110,6 +114,9 @@ USED void *Heap::realloc(void *p, size_t size) {
 USED void Heap::free(void *p) {
     if(p == nullptr)
         return;
+
+    if(Serial::ready())
+        LLOG(HEAP, "Freeing " << p);
 
     /* get area and the one behind */
     Area *a = backwards(reinterpret_cast<Area*>(p), sizeof(Area));

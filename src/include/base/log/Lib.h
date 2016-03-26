@@ -34,6 +34,7 @@ public:
         TRACE       = 1 << 4,
         IRQS        = 1 << 5,
         SHM         = 1 << 6,
+        HEAP        = 1 << 7,
     };
 
     static const int level = 0;
