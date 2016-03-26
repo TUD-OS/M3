@@ -16,15 +16,9 @@
 
 #pragma once
 
-#include <base/stream/Serial.h>
-#include <base/Env.h>
+#include <base/log/Log.h>
 
-#define KLOG(lvl, expr)                                     \
-    do {                                                    \
-        if(m3::KernelLog::level & (m3::KernelLog::lvl))     \
-            m3::Serial::get() << expr << '\n';              \
-    }                                                       \
-    while(0)
+#define KLOG(lvl, msg)  LOG(KernelLog, lvl, msg)
 
 namespace m3 {
 

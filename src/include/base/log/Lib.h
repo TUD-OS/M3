@@ -16,17 +16,11 @@
 
 #pragma once
 
-#include <base/stream/Serial.h>
-#include <base/Env.h>
-
-#define LLOG(lvl, expr)                                     \
-    do {                                                    \
-        if(m3::LibLog::level & (m3::LibLog::lvl))           \
-            m3::Serial::get() << expr << '\n';              \
-    }                                                       \
-    while(0)
+#include <base/log/Log.h>
 
 namespace m3 {
+
+#define LLOG(lvl, msg)  LOG(LibLog, lvl, msg)
 
 class LibLog {
     LibLog() = delete;

@@ -28,10 +28,7 @@ void Machine::shutdown() {
 }
 
 int Machine::write(const char *str, size_t len) {
-    m3::env()->log_lock();
-    int res = ::write(env()->log_fd(), str, len);
-    m3::env()->log_unlock();
-    return res;
+    return ::write(env()->log_fd(), str, len);
 }
 
 ssize_t Machine::read(char *buf, size_t len) {

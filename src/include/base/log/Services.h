@@ -16,15 +16,9 @@
 
 #pragma once
 
-#include <base/stream/Serial.h>
-#include <base/Env.h>
+#include <base/log/Log.h>
 
-#define SLOG(lvl, expr)                                     \
-    do {                                                    \
-        if(m3::ServiceLog::level & (m3::ServiceLog::lvl))   \
-            m3::Serial::get() << expr << '\n';              \
-    }                                                       \
-    while(0)
+#define SLOG(lvl, msg)  LOG(ServiceLog, lvl, msg)
 
 namespace m3 {
 
