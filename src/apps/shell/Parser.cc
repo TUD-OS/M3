@@ -42,7 +42,7 @@ EXTERN_C int yylex() {
     char c;
     if(!eof) {
         while((c = in->read()) > 0) {
-            if(c == '|' || c == ';') {
+            if(c == '|' || c == ';' || c == '>' || c == '<') {
                 if(i == 0)
                     return c;
                 in->putback(c);
@@ -71,14 +71,16 @@ EXTERN_C int yylex() {
     return -1;
 }
 
-Command *ast_cmd_create(ArgList *args) {
+Command *ast_cmd_create(ArgList *args, RedirList *redirs) {
     Command *cmd = new Command;
     cmd->args = args;
+    cmd->redirs = redirs;
     return cmd;
 }
 
 void ast_cmd_destroy(Command *cmd) {
     if(cmd) {
+        ast_redirs_destroy(cmd->redirs);
         ast_args_destroy(cmd->args);
         delete cmd;
     }
@@ -103,6 +105,25 @@ void ast_cmds_destroy(CmdList *list) {
             ast_cmd_destroy(list->cmds[i]);
         delete list;
     }
+}
+
+RedirList *ast_redirs_create(void) {
+    RedirList *list = new RedirList;
+    list->fds[STDIN_FD] = nullptr;
+    list->fds[STDOUT_FD] = nullptr;
+    return list;
+}
+
+void ast_redirs_set(RedirList *list, int fd, const char *file) {
+    assert(fd == STDIN_FD || fd == STDOUT_FD);
+    if(list->fds[fd])
+        Heap::free((void*)list->fds[fd]);
+    list->fds[fd] = file;
+}
+
+void ast_redirs_destroy(RedirList *list) {
+    Heap::free((void*)list->fds[STDIN_FD]);
+    Heap::free((void*)list->fds[STDOUT_FD]);
 }
 
 ArgList *ast_args_create() {

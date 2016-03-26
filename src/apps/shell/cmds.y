@@ -12,21 +12,24 @@
 %union {
     ArgList *arglist;
     CmdList *cmdlist;
+    RedirList *redirlist;
     Command *cmd;
     const char *str;
 }
 
 %token T_STRING
-%left '|'
+%left '|' '<' '>'
 
 %type <str> T_STRING arg
 %type <arglist> args
 %type <cmd> cmd
 %type <cmdlist> cmds start
+%type <redirlist> redirs
 
 %destructor { free((void*)$$); } <str>
 %destructor { ast_cmds_destroy($$); } <cmdlist>
 %destructor { ast_args_destroy($$); } <arglist>
+%destructor { ast_redirs_destroy($$); } <redirlist>
 %destructor { ast_cmd_destroy($$); } <cmd>
 
 %%
@@ -47,7 +50,13 @@ cmds:       cmd                                     {
                                                     }
 ;
 
-cmd:        args                                    { $$ = ast_cmd_create($1); }
+cmd:        args redirs                             { $$ = ast_cmd_create($1, $2); }
+;
+
+redirs:
+            /* empty */                             { $$ = ast_redirs_create(); }
+            | redirs '<' T_STRING                   { $$ = $1; ast_redirs_set($1, 0, $3); }
+            | redirs '>' T_STRING                   { $$ = $1; ast_redirs_set($1, 1, $3); }
 ;
 
 args:       arg                                     {

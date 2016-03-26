@@ -11,6 +11,7 @@
 typedef union {
     ArgList *arglist;
     CmdList *cmdlist;
+    RedirList *redirlist;
     Command *cmd;
     const char *str;
 } YYSTYPE;

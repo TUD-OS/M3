@@ -27,7 +27,12 @@ typedef struct {
 } ArgList;
 
 typedef struct {
+    const char *fds[2];
+} RedirList;
+
+typedef struct {
     ArgList *args;
+    RedirList *redirs;
 } Command;
 
 typedef struct {
@@ -35,8 +40,12 @@ typedef struct {
     Command *cmds[MAX_CMDS];
 } CmdList;
 
-EXTERN_C Command *ast_cmd_create(ArgList *args);
+EXTERN_C Command *ast_cmd_create(ArgList *args, RedirList *redirs);
 EXTERN_C void ast_cmd_destroy(Command *cmd);
+
+EXTERN_C RedirList *ast_redirs_create(void);
+EXTERN_C void ast_redirs_set(RedirList *list, int fd, const char *file);
+EXTERN_C void ast_redirs_destroy(RedirList *list);
 
 EXTERN_C CmdList *ast_cmds_create(void);
 EXTERN_C void ast_cmds_append(CmdList *list, Command *cmd);
