@@ -18,18 +18,18 @@
 
 #include <base/Common.h>
 
+#include "Parser.h"
+
 class Args {
-public:
     enum {
-        MAX_ARG_COUNT   = 16,
-        MAX_ARG_LEN     = 64,
+        MAX_ARG_LEN     = 256
     };
 
-    static char **parse(const char *line, int *argc);
+public:
+    static void prefix_path(ArgList *args);
+    static void expand(ArgList *args);
 
 private:
     static int strmatch(const char *pattern, const char *str);
-    static void glob(char **args, size_t *i);
-
-    static char argvals[MAX_ARG_COUNT][MAX_ARG_LEN];
+    static void glob(ArgList *list, size_t i);
 };
