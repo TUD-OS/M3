@@ -75,7 +75,7 @@ namespace m3 {
  *   reader.wait();
  * </code>
  */
-class Pipe {
+class DirectPipe {
 public:
     static const size_t MSG_SIZE        = 64;
 
@@ -106,10 +106,10 @@ public:
      * @param wr the writer of the pipe
      * @param size the size of the shared memory area
      */
-    explicit Pipe(VPE &rd, VPE &wr, size_t size);
-    Pipe(const Pipe&) = delete;
-    Pipe &operator=(const Pipe&) = delete;
-    ~Pipe();
+    explicit DirectPipe(VPE &rd, VPE &wr, size_t size);
+    DirectPipe(const DirectPipe&) = delete;
+    DirectPipe &operator=(const DirectPipe&) = delete;
+    ~DirectPipe();
 
     /**
      * @return the capabilities (memory and gate)
@@ -133,7 +133,7 @@ public:
     /**
      * @return the file descriptor for the reader
      */
-    int reader_fd() const {
+    fd_t reader_fd() const {
         return _rdfd;
     }
     /**
@@ -144,7 +144,7 @@ public:
     /**
      * @return the file descriptor for the writer
      */
-    int writer_fd() const {
+    fd_t writer_fd() const {
         return _wrfd;
     }
     /**
@@ -159,8 +159,8 @@ private:
     size_t _size;
     MemGate _mem;
     SendGate _sgate;
-    int _rdfd;
-    int _wrfd;
+    fd_t _rdfd;
+    fd_t _wrfd;
 };
 
 }

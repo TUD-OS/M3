@@ -18,7 +18,7 @@
 
 #include <m3/stream/FStream.h>
 #include <m3/stream/Standard.h>
-#include <m3/pipe/Pipe.h>
+#include <m3/pipe/DirectPipe.h>
 
 using namespace m3;
 
@@ -27,7 +27,7 @@ alignas(DTU_PKG_SIZE) static char buffer[0x100];
 int main() {
     {
         VPE writer("writer");
-        Pipe pipe(VPE::self(), writer, 0x1000);
+        DirectPipe pipe(VPE::self(), writer, 0x1000);
 
         writer.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
         writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
@@ -57,7 +57,7 @@ int main() {
     {
         VPE reader("reader");
         VPE writer("writer");
-        Pipe pipe(reader, writer, 0x1000);
+        DirectPipe pipe(reader, writer, 0x1000);
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
@@ -97,7 +97,7 @@ int main() {
         VPE t2("t2");
 
         // t1 -> t2
-        Pipe p1(t2, t1, 0x1000);
+        DirectPipe p1(t2, t1, 0x1000);
 
         t1.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
         t1.fds()->set(STDOUT_FD, VPE::self().fds()->get(p1.writer_fd()));
@@ -114,7 +114,7 @@ int main() {
         });
 
         // t2 -> self
-        Pipe p2(VPE::self(), t2, 0x1000);
+        DirectPipe p2(VPE::self(), t2, 0x1000);
 
         t2.fds()->set(STDIN_FD, VPE::self().fds()->get(p1.reader_fd()));
         t2.fds()->set(STDOUT_FD, VPE::self().fds()->get(p2.writer_fd()));
@@ -149,7 +149,7 @@ int main() {
     {
         VPE reader("reader");
 
-        Pipe pipe(reader, VPE::self(), 64);
+        DirectPipe pipe(reader, VPE::self(), 64);
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));

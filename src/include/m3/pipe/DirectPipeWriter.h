@@ -18,39 +18,44 @@
 
 #include <base/Common.h>
 
-#include <m3/com/GateStream.h>
 #include <m3/vfs/File.h>
 
 namespace m3 {
 
-class Pipe;
+class DirectPipe;
 
 /**
- * Reads from a previously constructed pipe.
+ * Writes into a previously constructed pipe.
  */
-class PipeReader : public File {
-    friend class Pipe;
+class DirectPipeWriter : public File {
+    friend class DirectPipe;
 
     struct State {
-        explicit State(capsel_t caps, size_t rep);
+        explicit State(capsel_t caps, size_t size);
+        ~State();
+
+        size_t find_spot(size_t *len);
+        void read_replies();
 
         MemGate _mgate;
         RecvBuf _rbuf;
         RecvGate _rgate;
-        size_t _pos;
-        size_t _rem;
-        size_t _pkglen;
+        SendGate _sgate;
+        size_t _size;
+        size_t _free;
+        size_t _rdpos;
+        size_t _wrpos;
+        int _capacity;
         int _eof;
-        GateIStream _is;
     };
 
-    explicit PipeReader(capsel_t caps, size_t rep, State *state);
+    explicit DirectPipeWriter(capsel_t caps, size_t size, State *state);
 
 public:
     /**
-     * Sends EOF
+     * Sends EOF and waits for all outstanding replies
      */
-    ~PipeReader();
+    ~DirectPipeWriter();
 
     virtual Buffer *create_buf(size_t size) override {
         return new File::Buffer(size);
@@ -65,14 +70,14 @@ public:
         return 0;
     }
 
-    virtual ssize_t read(void *, size_t) override;
-    virtual ssize_t write(const void *, size_t) override {
+    virtual ssize_t read(void *, size_t) override {
         // not supported
         return 0;
     }
+    virtual ssize_t write(const void *buffer, size_t count) override;
 
     virtual char type() const override {
-        return 'Q';
+        return 'P';
     }
     virtual size_t serialize_length() override;
     virtual void delegate(VPE &vpe) override;
@@ -85,10 +90,10 @@ private:
     }
     void send_eof();
 
-    bool _noeof;
     capsel_t _caps;
-    size_t _rep;
+    size_t _size;
     State *_state;
+    bool _noeof;
 };
 
 }

@@ -17,7 +17,7 @@
 #include <base/stream/IStringStream.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/pipe/Pipe.h>
+#include <m3/pipe/DirectPipe.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/VPE.h>
@@ -88,7 +88,7 @@ static bool execute(CmdList *list) {
         VPE reader(cmd2->args->args[0]);
         VPE writer(cmd1->args->args[0]);
 
-        Pipe pipe(reader, writer, 0x1000);
+        DirectPipe pipe(reader, writer, 0x1000);
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));

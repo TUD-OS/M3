@@ -17,7 +17,7 @@
 #include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/pipe/Pipe.h>
+#include <m3/pipe/DirectPipe.h>
 #include <m3/vfs/FileRef.h>
 
 using namespace m3;
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     cycles_t start = Profile::start(0);
 
     VPE writer("writer");
-    Pipe pipe(VPE::self(), writer, MEM_SIZE);
+    DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
 
     writer.mountspace(*VPE::self().mountspace());
     writer.obtain_mountspace();

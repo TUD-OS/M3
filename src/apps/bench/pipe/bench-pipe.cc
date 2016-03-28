@@ -17,7 +17,7 @@
 #include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/pipe/Pipe.h>
+#include <m3/pipe/DirectPipe.h>
 
 using namespace m3;
 
@@ -34,7 +34,7 @@ int main() {
     cycles_t start = Profile::start(0);
 
     VPE writer("writer");
-    Pipe pipe(VPE::self(), writer, MEM_SIZE);
+    DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
 
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
