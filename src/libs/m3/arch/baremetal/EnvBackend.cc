@@ -66,6 +66,7 @@ public:
 #endif
 
         VPE::self().init_state();
+        VPE::self().init_fs();
 
         EVENT_TRACE_REINIT();
     }
