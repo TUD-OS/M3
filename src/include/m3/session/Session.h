@@ -64,7 +64,8 @@ public:
      *
      * @param sel the capability selector of the session
      */
-    explicit Session(capsel_t sel) : ObjCap(SESSION, sel), _vpe(VPE::self()) {
+    explicit Session(capsel_t sel)
+        : ObjCap(SESSION, sel, ObjCap::KEEP_CAP | ObjCap::KEEP_SEL), _vpe(VPE::self()) {
     }
 
     /**
