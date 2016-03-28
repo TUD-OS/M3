@@ -138,7 +138,11 @@ public:
         return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(env()->coreid, ep);
     }
 
-    void ack_message(int ep) {
+    void mark_read(int ep, bool ack = true) {
+        if(ack)
+            mark_acked(ep);
+    }
+    void mark_acked(int ep) {
         // we might have already acked it by doing a reply
         if(_last[ep]) {
             volatile Message *msg = message(ep);

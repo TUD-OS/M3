@@ -60,7 +60,7 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        m3::DTU::get().ack_message(epid());
+        m3::DTU::get().mark_read(epid());
 #endif
 
         m3::DTU::get().wait_until_ready(_ep);

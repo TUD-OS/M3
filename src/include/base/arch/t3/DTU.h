@@ -36,7 +36,7 @@ class DTU {
 
     static const uintptr_t DRAM_START       = 0x8000;
 
-    explicit DTU() {
+    explicit DTU() : _unack() {
     }
 
 public:
@@ -119,11 +119,20 @@ public:
     }
 
     bool fetch_msg(int ep) {
-        return element_count(ep) > 0;
+        return element_count(ep) - _unack[ep] > 0;
     }
 
     DTU::Message *message(int ep) const {
-        return reinterpret_cast<Message*>(element_ptr(ep));
+        uintptr_t cur = element_ptr(ep);
+        if(_unack[ep]) {
+            size_t msize = msgsize(ep);
+            size_t bsize = bufsize(ep);
+            size_t off = cur - recvbufs[ep];
+            off += msize * _unack[ep];
+            off &= bsize - 1;
+            cur = recvbufs[ep] + off;
+        }
+        return reinterpret_cast<Message*>(cur);
     }
     Message *message_at(int ep, size_t msgidx) const {
         uintptr_t rbuf = recvbuf(ep);
@@ -134,9 +143,15 @@ public:
     size_t get_msgoff(int ep) const;
     size_t get_msgoff(int ep, const Message *msg) const;
 
-    void ack_message(int ep) {
-        word_t *ptr = get_cmd_addr(ep, IDMA_SLOT_FIFO_RELEASE_ELEM);
-        store_to(ptr, 1);
+    void mark_read(int ep, bool ack = true) {
+        if(ack)
+            do_ack(ep);
+        else
+            _unack[ep]++;
+    }
+    void mark_acked(int ep) {
+        _unack[ep]--;
+        do_ack(ep);
     }
 
     bool wait() {
@@ -159,6 +174,11 @@ public:
     }
 
 private:
+    void do_ack(int ep) {
+        word_t *ptr = get_cmd_addr(ep, IDMA_SLOT_FIFO_RELEASE_ELEM);
+        store_to(ptr, 1);
+    }
+
     void config_local(int slot, uintptr_t addr, size_t fifo_size, size_t token_size) {
         // both have to be packet-size aligned
         assert((addr & (PACKET_SIZE - 1)) == 0);
@@ -235,6 +255,10 @@ private:
         word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
         return read_from(ptr + 0);
     }
+    size_t bufsize(int slot) const {
+        word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
+        return (read_from(ptr + 1) & 0xFFFF) * PACKET_SIZE;
+    }
     size_t msgsize(int slot) const {
         word_t *ptr = get_cmd_addr(slot, LOCAL_CFG_ADDRESS_FIFO_CMD);
         return (read_from(ptr + 1) >> 16) * PACKET_SIZE;
@@ -269,6 +293,7 @@ private:
         return res;
     }
 
+    int _unack[EP_COUNT];
     static uintptr_t recvbufs[EP_COUNT];
     static DTU inst;
 };

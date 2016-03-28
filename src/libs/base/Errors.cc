@@ -41,6 +41,7 @@ static const char *errmsgs[] = {
     /* 16 */ "Is no directory",
     /* 17 */ "Endpoint is invalid",
     /* 18 */ "Receive buffer gone",
+    /* 19 */ "End of file",
 };
 
 const char *Errors::to_string(Code code) {

@@ -47,7 +47,7 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
 DTU DTU::inst INIT_PRIORITY(101);
 DTU::Buffer DTU::_buf INIT_PRIORITY(101);
 
-DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid() {
+DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid(), _unack() {
 }
 
 void DTU::start() {

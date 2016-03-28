@@ -44,6 +44,7 @@ struct Errors {
         IS_NO_DIR,
         EP_INVALID,
         RECV_GONE,
+        END_OF_FILE,
     };
 
     /**

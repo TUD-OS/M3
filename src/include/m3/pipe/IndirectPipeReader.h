@@ -16,25 +16,32 @@
 
 #pragma once
 
-#include <base/log/Log.h>
-
-#define SLOG(lvl, msg)  LOG(ServiceLog, lvl, msg)
+#include <m3/pipe/IndirectPipe.h>
 
 namespace m3 {
 
-class ServiceLog {
-    ServiceLog() = delete;
-
+class IndirectPipeReader : public IndirectPipeFile {
 public:
-    enum Level {
-        KEYB        = 1 << 0,
-        FS          = 1 << 1,
-        FS_DBG      = 1 << 2,
-        PAGER       = 1 << 3,
-        PIPE        = 1 << 4,
-    };
+    explicit IndirectPipeReader(capsel_t mem, capsel_t sess,
+        capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
+        : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate) {
+    }
+    ~IndirectPipeReader() {
+        _pipe.close(true, _lastid);
+    }
 
-    static const int level = 0;
+    virtual ssize_t read(void *, size_t) override;
+    virtual ssize_t write(const void *, size_t) override {
+        // not supported
+        return 0;
+    }
+
+    virtual char type() const override {
+        return 'I';
+    }
+
+    virtual void delegate(VPE &vpe) override;
+    static File *unserialize(Unmarshaller &um);
 };
 
 }

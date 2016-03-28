@@ -85,6 +85,12 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
             case 'Q':
                 obj->_fds[fd] = DirectPipeReader::unserialize(um);
                 break;
+            case 'I':
+                obj->_fds[fd] = IndirectPipeReader::unserialize(um);
+                break;
+            case 'J':
+                obj->_fds[fd] = IndirectPipeWriter::unserialize(um);
+                break;
         }
     }
     return obj;

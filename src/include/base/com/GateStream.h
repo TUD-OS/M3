@@ -154,35 +154,39 @@ public:
  */
 template<class RGATE, class SGATE>
 class BaseGateIStream {
+    static const uint FL_READ   = 1;
+    static const uint FL_ACK    = 2;
+
 public:
     /**
      * Creates an object to read the first not acknowledged message from <gate>.
      *
      * @param gate the gate to fetch the message from
-     * @param ack whether to acknowledge the message afterwards
+     * @param err the error code
      */
-    explicit BaseGateIStream(RGATE &gate, Errors::Code err = Errors::NO_ERROR, bool ack = false)
-        : _err(err), _ack(ack), _pos(0), _gate(&gate), _msg(DTU::get().message(gate.epid())) {
+    explicit BaseGateIStream(RGATE &gate, Errors::Code err = Errors::NO_ERROR)
+        : _err(err), _flags(FL_READ | FL_ACK), _pos(0), _gate(&gate),
+          _msg(DTU::get().message(gate.epid())) {
     }
 
     /**
-     * Creates an object for given message
+     * Creates an object for given message.
      *
      * @param gate the gate to fetch the message from
      * @param msg the message
      */
     explicit BaseGateIStream(RGATE &gate, DTU::Message *msg)
-        : _err(Errors::NO_ERROR), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
+        : _err(Errors::NO_ERROR), _flags(FL_READ | FL_ACK), _pos(0), _gate(&gate), _msg(msg) {
     }
 
     // don't do the ack twice. thus, copies never ack.
     BaseGateIStream(const BaseGateIStream &is)
-        : _err(is._err), _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        : _err(is._err), _flags(0), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
     }
     BaseGateIStream &operator=(const BaseGateIStream &is) {
         if(this != &is) {
             _err = is._err;
-            _ack = false;
+            _flags = 0;
             _pos = is._pos;
             _gate = is._gate;
             _msg = is._msg;
@@ -192,20 +196,20 @@ public:
     BaseGateIStream &operator=(BaseGateIStream &&is) {
         if(this != &is) {
             _err = is._err;
-            _ack = is._ack;
+            _flags = is._flags;
             _pos = is._pos;
             _gate = is._gate;
             _msg = is._msg;
-            is._ack = false;
+            is._flags = 0;
         }
         return *this;
     }
     BaseGateIStream(BaseGateIStream &&is)
-        : _err(is._err), _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
-        is._ack = false;
+        : _err(is._err), _flags(is._flags), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        is._flags = 0;
     }
     ~BaseGateIStream() {
-        ack();
+        finish();
     }
 
     /**
@@ -317,13 +321,21 @@ public:
     }
 
     /**
-     * Acknowledges this message, i.e. moves the read-position in the ringbuffer forward so that
-     * we can receive new messages, possibly overwriting this one.
+     * Disables acknowledgement of the message. That is, it will be marked as read, but you have
+     * to ack the message on your own via DTU::get().mark_acked(<epid>).
      */
-    void ack() {
-        if(_ack) {
-            DTU::get().ack_message(_gate->epid());
-            _ack = false;
+    void claim() {
+        _flags &= ~FL_ACK;
+    }
+
+    /**
+     * Finishes this message, i.e. moves the read-position in the ringbuffer forward. If
+     * acknowledgement has not been disabled (see claim), it will be acked.
+     */
+    void finish() {
+        if(_flags) {
+            DTU::get().mark_read(_gate->epid(), _flags & FL_ACK);
+            _flags = 0;
         }
     }
 
@@ -333,6 +345,7 @@ private:
     }
 
     Errors::Code _err;
+    uint _flags;
     bool _ack;
     size_t _pos;
     RGATE *_gate;

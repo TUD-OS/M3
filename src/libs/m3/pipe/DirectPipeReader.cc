@@ -64,7 +64,7 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
         if(_state->_pos > 0) {
             DBG_PIPE("[read] replying len=" << _state->_pkglen << "\n");
             reply_vmsg_on(_state->_is, _state->_pkglen);
-            _state->_is.ack();
+            _state->_is.finish();
         }
         _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
         _state->_rem = _state->_pkglen;

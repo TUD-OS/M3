@@ -59,7 +59,7 @@ public:
         while(Syscalls::get().revoke(CapRngDesc(CapRngDesc::OBJ, sel())) != Errors::NO_ERROR) {
             // handle all requests
             while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
-                GateIStream is(_ctrl_rgate, Errors::NO_ERROR, true);
+                GateIStream is(_ctrl_rgate, Errors::NO_ERROR);
                 handle_message(is, nullptr);
             }
         }

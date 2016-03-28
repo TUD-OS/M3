@@ -228,14 +228,17 @@ public:
         return true;
     }
     bool fetch_msg(int ep) {
-        return get_ep(ep, EP_BUF_MSGCNT) > 0;
+        return get_ep(ep, EP_BUF_MSGCNT) - _unack[ep] > 0;
     }
 
     DTU::Message *message(int ep) const {
         size_t off = get_ep(ep, EP_BUF_ROFF);
         word_t addr = get_ep(ep, EP_BUF_ADDR);
         size_t ord = get_ep(ep, EP_BUF_ORDER);
-        return reinterpret_cast<Message*>(addr + (off & ((1UL << ord) - 1)));
+        size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
+        off += _unack[ep] * (1UL << msgord);
+        addr += off & ((1UL << ord) - 1);
+        return reinterpret_cast<Message*>(addr);
     }
     Message *message_at(int ep, size_t msgidx) const {
         word_t addr = get_ep(ep, EP_BUF_ADDR);
@@ -253,10 +256,15 @@ public:
         return (reinterpret_cast<word_t>(msg) - addr) >> ord;
     }
 
-    void ack_message(int ep) {
-        set_cmd(CMD_EPID, ep);
-        set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
-        wait_until_ready(ep);
+    void mark_read(int ep, bool ack = true) {
+        if(ack)
+            do_ack(ep);
+        else
+            _unack[ep]++;
+    }
+    void mark_acked(int ep) {
+        _unack[ep]--;
+        do_ack(ep);
     }
 
     bool is_ready() {
@@ -301,6 +309,12 @@ public:
     bool wait();
 
 private:
+    void do_ack(int ep) {
+        set_cmd(CMD_EPID, ep);
+        set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
+        wait_until_ready(ep);
+    }
+
     int prepare_reply(int epid, int &dstcore, int &dstep);
     int prepare_send(int epid, int &dstcore, int &dstep);
     int prepare_read(int epid, int &dstcore, int &dstep);
@@ -326,6 +340,7 @@ private:
     alignas(8) volatile word_t _epregs[EPS_RCNT * EP_COUNT];
     Backend *_backend;
     pthread_t _tid;
+    int _unack[EP_COUNT];
     static Buffer _buf;
     static DTU inst;
 };

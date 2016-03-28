@@ -124,7 +124,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
         getmsg(rcvepid, 1);
         for(size_t i = 0; i < sizeof(data) / sizeof(data[0]); ++i)
             assert_word(reinterpret_cast<word_t*>(addr)[i], data[i]);
-        dtu.ack_message(rcvepid);
+        dtu.mark_read(rcvepid);
     }
 
     unmap_page(addr);

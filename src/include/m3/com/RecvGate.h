@@ -122,7 +122,7 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        DTU::get().ack_message(epid());
+        DTU::get().mark_read(epid(), true);
 #endif
         wait_until_sent();
         return DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);

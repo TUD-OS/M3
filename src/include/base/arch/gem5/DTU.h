@@ -34,7 +34,7 @@ namespace m3 {
 class DTU {
     friend class kernel::DTU;
 
-    explicit DTU() {
+    explicit DTU() : _unack() {
     }
 
 public:
@@ -183,14 +183,21 @@ public:
     }
 
     bool fetch_msg(int epid) {
-        reg_t r0 = read_reg(epid, 0);
-        return (r0 & 0xFFFF) > 0;
+        reg_t r0 = read_reg(epid, 0) & 0xFFFF;
+        return r0 - _unack[epid] > 0;
     }
 
     DTU::Message *message(int epid) const {
+        reg_t r0 = read_reg(epid, 0);
         reg_t r1 = read_reg(epid, 1);
         reg_t r2 = read_reg(epid, 2);
-        return reinterpret_cast<Message*>(r1 + ((r2 >> 16) & 0xFFFF));
+        r2 = (r2 >> 16) & 0xFFFF;
+        if(EXPECT_FALSE(_unack[epid])) {
+            size_t msgsize = (r0 >> 32) & 0xFFFF;
+            r2 += _unack[epid] * msgsize;
+            r2 &= ((r0 >> 16) & 0xFFFF) * msgsize - 1;
+        }
+        return reinterpret_cast<Message*>(r1 + r2);
     }
     Message *message_at(int, size_t) const {
         // TODO unsupported
@@ -205,12 +212,15 @@ public:
         return 0;
     }
 
-    void ack_message(int ep) {
-        // ensure that we are really done with the message before acking it
-        Sync::memory_barrier();
-        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::INC_READ_PTR));
-        // ensure that we don't do something else before the ack
-        Sync::memory_barrier();
+    void mark_read(int ep, bool ack = true) {
+        if(ack)
+            do_ack(ep);
+        else
+            _unack[ep]++;
+    }
+    void mark_acked(int ep) {
+        _unack[ep]--;
+        do_ack(ep);
     }
 
     bool wait() {
@@ -235,6 +245,14 @@ public:
     }
 
 private:
+    void do_ack(int ep) {
+        // ensure that we are really done with the message before acking it
+        Sync::memory_barrier();
+        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::INC_READ_PTR));
+        // ensure that we don't do something else before the ack
+        Sync::memory_barrier();
+    }
+
     static Errors::Code get_error() {
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
@@ -290,6 +308,7 @@ private:
         return static_cast<uint>(c) | (ep << 3);
     }
 
+    int _unack[EP_COUNT];
     static DTU inst;
 };
 

@@ -38,7 +38,7 @@ void RingbufferTestSuite::SendAckTestCase::run() {
         assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 1);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
-        dtu.ack_message(buf.epid());
+        dtu.mark_read(buf.epid());
         assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 1);
     }
 
@@ -49,7 +49,7 @@ void RingbufferTestSuite::SendAckTestCase::run() {
         assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
         assert_true(msg->label == lbl);
         assert_size(msg->length, sizeof(data));
-        dtu.ack_message(buf.epid());
+        dtu.mark_read(buf.epid());
         assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
     }
 
@@ -81,8 +81,8 @@ void RingbufferTestSuite::IterationTestCase::run() {
         assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
     }
 
-    dtu.ack_message(buf.epid());
-    dtu.ack_message(buf.epid());
+    dtu.mark_read(buf.epid());
+    dtu.mark_read(buf.epid());
     assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 2);
     assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 2);
 
@@ -108,8 +108,8 @@ void RingbufferTestSuite::IterationTestCase::run() {
         data = 1234;
     }
 
-    dtu.ack_message(buf.epid());
-    dtu.ack_message(buf.epid());
+    dtu.mark_read(buf.epid());
+    dtu.mark_read(buf.epid());
     assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_ROFF), (1UL << buf.msgorder()) * 0);
     assert_word(dtu.get_ep(buf.epid(), DTU::EP_BUF_WOFF), (1UL << buf.msgorder()) * 0);
 

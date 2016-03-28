@@ -4,7 +4,7 @@ Import('env', 'hostenv')
 dirs = [
     'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell', 'coreutils',
     'm3fs', 'parchksum', 'filterchain', 'noop', 'float', 'srvtest', 'bench', 'pipe', 'execpipe',
-    'fstrace', 'fdtest', 'fdchild'
+    'fstrace', 'fdtest', 'fdchild', 'pipeserv'
 ]
 
 # architecture / machine specific apps

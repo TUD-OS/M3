@@ -116,7 +116,7 @@ static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &
 static inline GateIStream receive_msg(RecvGate &gate) {
     EVENT_TRACER_receive_msg();
     Errors::Code err = gate.wait(nullptr);
-    return GateIStream(gate, err, true);
+    return GateIStream(gate, err);
 }
 /**
  * Receives a message from <gate> and unmarshalls the message into <args>. Note that
@@ -130,7 +130,7 @@ template<typename... Args>
 static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
     EVENT_TRACER_receive_vmsg();
     Errors::Code err = gate.wait(nullptr);
-    GateIStream is(gate, err, true);
+    GateIStream is(gate, err);
     is.vpull(args...);
     return is;
 }
@@ -146,7 +146,7 @@ static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
 static inline GateIStream receive_reply(SendGate &gate) {
     EVENT_TRACER_receive_msg();
     Errors::Code err = gate.receive_gate()->wait(&gate);
-    return GateIStream(*gate.receive_gate(), err, true);
+    return GateIStream(*gate.receive_gate(), err);
 }
 
 /**
