@@ -88,9 +88,14 @@ HostEnvBackend::~HostEnvBackend() {
 Env::Init::Init() {
 #ifndef NDEBUG
     char *val = getenv("M3_WAIT");
-    if(val && strstr(Env::executable(), val) != nullptr) {
-        while(wait_for_debugger)
-            usleep(20000);
+    if(val) {
+        size_t len = strlen(val);
+        size_t execlen = strlen(Env::executable());
+        if(strcmp(Env::executable() + execlen - len, val) == 0 &&
+                Env::executable()[execlen - len - 1] == '/') {
+            while(wait_for_debugger)
+                usleep(20000);
+        }
     }
 #endif
 
