@@ -86,9 +86,9 @@ References:
 -----------
 
 [1] Nils Asmussen, Marcus Völp, Benedikt Nöthen, Hermann Härtig, and Gerhard Fettweis. *M3: A
-Hardware/Operating-System Co-Design to Tame Heterogeneous Manycores*. To appear in the proceedings
+Hardware/Operating-System Co-Design to Tame Heterogeneous Manycores*. In Proceedings
 of the Twenty-first International Conference on Architectural Support for Programming Languages and
-Operating Systems, April 2016.
+Operating Systems, pages 189-203, April 2016.
 
 [2] Oliver Arnold, Emil Matus, Benedikt Nöthen, Markus Winter, Torsten Limberg, and Gerhard
 Fettweis. *Tomahawk: Parallelism and Heterogeneity in Communications Signal Processing MPSoCs*. ACM
