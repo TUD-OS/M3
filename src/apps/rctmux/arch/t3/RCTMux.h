@@ -18,20 +18,20 @@
 
 namespace RCTMux {
 
-void flag_set(const unsigned flag) {
-    (*(volatile unsigned *)RCTMUX_FLAGS_LOCAL) |= flag;
+inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) |= flag;
 }
 
-void flag_unset(const unsigned flag) {
-    (*(volatile unsigned *)RCTMUX_FLAGS_LOCAL) ^= flag;
+inline void flag_unset(const m3::RCTMUXCtrlFlag flag) {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) ^= flag;
 }
 
-void flags_reset() {
-    (*(volatile unsigned *)RCTMUX_FLAGS_LOCAL) = 0;
+inline void flags_reset() {
+    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) = 0;
 }
 
-bool flag_is_set(const unsigned flag) {
-    return ((*(volatile unsigned *)RCTMUX_FLAGS_LOCAL) & flag);
+inline bool flag_is_set(const m3::RCTMUXCtrlFlag flag) {
+    return (*((volatile unsigned *)RCTMUX_FLAGS_LOCAL) & flag);
 }
 
 } /* namespace RCTMux */

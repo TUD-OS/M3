@@ -14,23 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/arch/t3/RCTMux.h>
+#include <m3/arch/t3/Config.h>
 #include <xtensa/coreasm.h>
 #include <xtensa/config/specreg.h>
 
     .data
 
-    .extern _store
+    .extern _interrupt_handler
     .extern _regstate
-    .extern _irqaddr
-    .extern _start
-    .extern _reset
-
-    .literal_position
-    .align  1
-    .literal LIT_RCTMUX_FLAGS, RCTMUX_FLAGS_LOCAL
-    .literal LIT_RCTMUX_FLAG_SIGNAL, RCTMUX_FLAG_SIGNAL
-    .literal LIT_RCTMUX_FLAG_STORE, RCTMUX_FLAG_STORE
 
     // place a stub at .UserExceptionVector.text that jumps to the
     // interrupt handler
@@ -56,26 +47,23 @@ _RCTMuxStackStart:
 
     .text
 
-     // filter level 1 interrupts
+     // check type of interrupt
     .align  4
     .global _UserExceptionHandler
 _UserExceptionHandler:
-
     rsr     a3, EXCCAUSE
-    beqi    a3, EXCCAUSE_LEVEL1INTERRUPT, _store
+    beqi    a3, EXCCAUSE_LEVEL1INTERRUPT, handleInt
     // TODO fail hard for now if we encounter any other interrupt type
     //      than Level1 - this is specific to the simulator
     rsr     a3, EXCSAVE_1
     break   1, 1
 
-    // --- store ---
-
-_store:
-
+handleInt:
     // load address of _regstate into a3
     movi    a3, _regstate
     l32i    a3, a3, 0
 
+saveIntRegs:
     // save register contents to *regstate to access them from within C++
     s32i    a0, a3, 0
     s32i    a1, a3, 4
@@ -117,57 +105,12 @@ _store:
     wsr     a3, PS
     rsync
 
-    // reset DTU's irq register to make further interrupts work
-    // FIXME: why do we have to do this?
-    l32r    a3, _irqaddr
-    movi    a4, 0
-    s32i.n  a4, a3, 0
-
-    // switch to rctmux' stack
-    movi    a1, _RCTMuxStackEnd
-
-    // check if a context switch has requested, if not skip over
-    l32r    a3, LIT_RCTMUX_FLAGS
-    l32i.n  a3, a3, 0
-    l32r    a4, LIT_RCTMUX_FLAG_SIGNAL
-    and     a4, a3, a4
-    beqz    a4, _skip_store
-
-    // if the store flag is not set, we proceed to reset
-    l32r    a4, LIT_RCTMUX_FLAG_STORE
-    and     a4, a3, a4
-    beqz    a4, _do_reset
-
-    // finally, call the storage-phase handler
-    movi    a4, _store_context
+    // finally, call the C interrupt handler
+    movi    a4, _interrupt_handler
     movi    a1, _RCTMuxStackEnd
     callx4  a4
 
-    // note: normally, the kernel would just reset the core, however,
-    // on t3 the reset from remote is not possible, thus we fake it
-_do_reset:
-    movi    a4, _reset
-    callx4  a4                          // will not return
-
-    // if we return here, it means no store has been performed which
-    // would have lead to a core reset, thus we just return
-_skip_store:
-    rfe
-
-    // --- restore ---
-
-    .align 4
-    .global _restore
-_restore:
-
-    movi    a4, _restore_context
-    movi    a1, _RCTMuxStackEnd
-    callx4  a4
-
-    // if the restoration was successful, the processor state
-    // will become those during the interrupt (exception mode) as soon as we
-    // restore the PS register - the application will continue to run at the
-    // address in the EPC register after return from exception (rfe)
+returnFromInterrupt:
 
     // first, restore PS
     movi    a3, _regstate
@@ -176,7 +119,7 @@ _restore:
     wsr     a4, PS
     rsync
 
-    // window could have been changed
+    // window may be changed
     movi    a3, _regstate
     l32i    a3, a3, 0
 

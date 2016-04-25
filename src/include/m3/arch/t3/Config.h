@@ -35,7 +35,8 @@
 #define IRQ_ADDR_INTERN  \
         (PE_IDMA_CONFIG_ADDRESS + (DEBUG_CMD << PE_IDMA_CMD_POS) + (0x2 << PE_IDMA_SLOT_TRG_ID_POS))
 
-#define RCTMUX_FLAGS_LOCAL  0x6081FFF8  // defined in linker script
+// defined in linker script
+#define RCTMUX_FLAGS_LOCAL  0x6081FFF8
 #define RCTMUX_FLAGS_GLOBAL (RCTMUX_FLAGS_LOCAL - DRAM_VOFFSET)
 
 #define PAGE_BITS           0

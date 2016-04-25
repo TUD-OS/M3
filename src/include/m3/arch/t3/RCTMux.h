@@ -28,6 +28,33 @@
 namespace m3 {
 
 /**
+ * These flags implement the flags register for remote controlled
+ * time-multiplexing since the corresponding register is not yet
+ * available in the DTU.
+ *
+ * Flags marked with [*] do not exist in the proposed design. They
+ * allow for the polling part of the protocol or without occupying
+ * additional memory.
+ *
+ * The ERROR flag is a workaround for the missing hardware-reset
+ * feature.
+ */
+enum RCTMUXCtrlFlag {
+    NONE                = 0,
+    // general flags
+    ERROR               = 1 << 0,       // an error occured
+    // rctmux flags
+    INITIALIZED         = 1 << 1,       // rctmux has been initialized [*]
+    // kernel flags
+    SWITCHREQ           = 1 << 2,       // context switch requested
+    STORE               = 1 << 3,       // save operation required
+    RESTORE             = 1 << 4,       // restore operation required
+    STORAGE_ATTACHED    = 1 << 5,       // attached save/restore storage [*]
+    //
+    SIGNAL              = 1 << 7,       // used for event polling
+};
+
+/**
  * The app layout structure holds information on the segments of the
  * currently running app. This information is used for time multiplexing
  * and VPE management. It is initialized by the app itself.
@@ -52,4 +79,4 @@ static inline AppLayout *applayout() {
 }
 
 }
-#endif
+#endif /* defined(__cplusplus) */

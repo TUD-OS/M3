@@ -16,7 +16,6 @@
 
 #include <m3/arch/t3/RCTMux.h>
 #include <m3/DTU.h>
-#include <m3/Syscalls.h>
 #include <m3/util/Math.h>
 #include <m3/util/Sync.h>
 #include <m3/util/Profile.h>
@@ -24,7 +23,6 @@
 #include <xtensa/xtruntime.h>
 
 #include "RCTMux.h"
-#include "../../Debug.h"
 
 using namespace m3;
 
@@ -49,23 +47,10 @@ volatile static struct alignas(DTU_PKG_SIZE) {
     word_t : 8 * sizeof(word_t);    // padding
 } _state;
 
+// define an unmangled symbol that can be accessed from assembler
 volatile word_t *_regstate = (word_t*)&(_state.cpu_regs);
-volatile word_t *_irqaddr = (word_t*)IRQ_ADDR_INTERN;
 
 namespace RCTMux {
-
-static struct alignas(DTU_PKG_SIZE) syscall_tmuxctl {
-    Syscalls::Operation syscall_op;
-} _sc_tmuxctl = { Syscalls::TMUXRESUME };
-
-static void notify_kernel() {
-    DTU::get().wait_until_ready(DTU::SYSC_EP);
-    DTU::get().send(DTU::SYSC_EP, &_sc_tmuxctl, sizeof(_sc_tmuxctl),
-        label_t(), 0);
-
-    while (flag_is_set(RCTMUX_FLAG_SIGNAL))
-        ;
-}
 
 static void mem_write(size_t ep, void *data, size_t size, size_t *offset) {
     DTU::get().wait_until_ready(ep);
@@ -93,61 +78,41 @@ static void wipe_mem() {
     //memset((void*)RT_SPACE_END, 0, DMEM_VEND - RT_SPACE_END);
 }
 
-EXTERN_C void _setup() {
+void setup() {
     _state.magic = RCTMUX_MAGIC;
     flags_reset();
 }
 
-EXTERN_C void _loop() {
-    volatile m3::Env *senv = m3::env();
-    while(1) {
-        asm volatile ("waiti   0");
+void init() {
+    // prevent irq from triggering again
+    *(volatile unsigned *)IRQ_ADDR_INTERN = 0;
 
-        // is there something to run?
-        uintptr_t ptr = senv->entry;
-        if(ptr) {
-            // remember exit location
-            senv->exit = reinterpret_cast<uintptr_t>(&_start);
-
-            // tell crt0 to set this stackpointer
-            reinterpret_cast<word_t*>(STACK_TOP)[-1] = 0xDEADBEEF;
-            reinterpret_cast<word_t*>(STACK_TOP)[-2] = senv->sp;
-            register word_t a2 __asm__ ("a2") = ptr;
-            asm volatile (
-                "jx    %0;" : : "a"(a2)
-            );
-        }
-    }
-}
-
-EXTERN_C void _reset() {
-    // simulate reset since resetting the PE from kernel side is not
-    // currently supported for t3
-    env()->entry = 0;
-    asm volatile("jx %0" : : "r"((word_t*)&_start));
-}
-
-EXTERN_C void _store_context() {
-
-    // this is necessary for further interrupts
-    *(volatile uintptr_t*)IRQ_ADDR_INTERN = 0;
-
-    alignas(DTU_PKG_SIZE) uint32_t addr;
-    size_t offset = 0;
-
-    // workaround: store local EP configuration
+    // save local endpoint config (workaround)
     for(int i = 0; i < EP_COUNT; ++i) {
         _state.local_ep_config[i] = DTU::get().get_ep_config(i);
     }
 
-    // tell the kernel that we are ready
-    flag_unset(RCTMUX_FLAG_SIGNAL);
+    flag_set(INITIALIZED);
+}
+
+void finish() {
+    // restore local endpoint config (workaround)
+    for(int i = 0; i < EP_COUNT; ++i) {
+        DTU::get().set_ep_config(i, _state.local_ep_config[i]);
+    }
+
+    flags_reset();
+}
+
+void store() {
+    alignas(DTU_PKG_SIZE) uint32_t addr;
+    size_t offset = 0;
 
     // wait for kernel
-    while (!flag_is_set(RCTMUX_FLAG_SIGNAL) && !flag_is_set(RCTMUX_FLAG_ERROR))
+    while (!flag_is_set(STORAGE_ATTACHED) && !flag_is_set(ERROR))
         ;
 
-    if (flag_is_set(RCTMUX_FLAG_ERROR))
+    if (flag_is_set(ERROR))
         return;
 
     // state
@@ -177,37 +142,25 @@ EXTERN_C void _store_context() {
 
     wipe_mem();
 
-    // notify kernel if there is no restore phase
-    if (!flag_is_set(RCTMUX_FLAG_RESTORE))
-        notify_kernel();
-
-    // since the remote reset is not supported on this platform we
-    // do not need to involve the kernel here and just proceed to the
-    // next phases automatically
-
-    _reset();
+    // success
+    flag_unset(STORE);
 }
 
-EXTERN_C void _restore_context() {
-
+void restore() {
     alignas(DTU_PKG_SIZE) uint32_t addr;
     size_t offset = 0;
 
-    // tell the kernel that we are ready
-    //flag_unset(RCTMUX_FLAG_SIGNAL);
+    while (!flag_is_set(STORAGE_ATTACHED) && !flag_is_set(ERROR))
+        ;
 
-    // wait for kernel
-    /*while (!flag_is_set(RCTMUX_FLAG_SIGNAL) && !flag_is_set(RCTMUX_FLAG_ERROR))
-        ;*/
-
-    if (flag_is_set(RCTMUX_FLAG_ERROR))
+    if (flag_is_set(ERROR))
         return;
 
     // read state
     mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     if (_state.magic != RCTMUX_MAGIC) {
-        flag_set(RCTMUX_FLAG_ERROR);
+        flag_set(ERROR);
         return;
     }
 
@@ -233,14 +186,20 @@ EXTERN_C void _restore_context() {
         Math::round_up((uintptr_t)l->stack_top - addr, DTU_PKG_SIZE),
         &offset);
 
-	notify_kernel();
+    // success
+    flag_unset(RESTORE);
+}
 
-    // restore local endpoint config (workaround)
-    for(int i = 0; i < EP_COUNT; ++i) {
-        DTU::get().set_ep_config(i, _state.local_ep_config[i]);
-    }
+void reset() {
+    // simulate reset since resetting the PE from kernel side is not
+    // currently supported for t3
+    // TODO
+}
 
-    flags_reset();
+void set_idle_mode() {
+    // set epc (exception program counter) to jump into idle mode
+    // when returning from exception
+    _state.cpu_regs[EPC_REG] = (word_t*)&_start;
 }
 
 } /* namespace RCTMux */
