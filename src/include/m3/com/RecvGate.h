@@ -23,6 +23,10 @@
 namespace m3 {
 
 class SendGate;
+class RecvGate;
+template<class RGATE, class SGATE>
+class BaseGateIStream;
+using GateIStream = BaseGateIStream<RecvGate, SendGate>;
 
 /**
  * A RecvGate can be used for receiving messages from somebody else and reply on these messages. It
@@ -36,9 +40,9 @@ class SendGate;
  * If you want to distinguish between the senders, you want to create a new RecvGate for every
  * sender.
  */
-class RecvGate : public Gate, public Subscriptions<RecvGate&> {
+class RecvGate : public Gate, public Subscriptions<GateIStream&> {
     explicit RecvGate(RecvBuf *rcvbuf, void *sess)
-        : Gate(RECV_GATE, INVALID, 0, rcvbuf->epid()), Subscriptions<RecvGate&>(),
+        : Gate(RECV_GATE, INVALID, 0, rcvbuf->epid()), Subscriptions<GateIStream&>(),
           _rcvbuf(rcvbuf), _sess(sess) {
     }
 
@@ -56,7 +60,7 @@ public:
     }
 
     RecvGate(RecvGate &&g)
-        : Gate(Util::move(g)), Subscriptions<RecvGate&>(Util::move(g)), _rcvbuf(g._rcvbuf), _sess(g._sess) {
+        : Gate(Util::move(g)), Subscriptions<GateIStream&>(Util::move(g)), _rcvbuf(g._rcvbuf), _sess(g._sess) {
     }
 
     /**
@@ -90,10 +94,10 @@ public:
     /**
      * Calls all subscribers
      */
-    void notify_all() {
+    void notify_all(GateIStream &is) {
         for(auto it = _list.begin(); it != _list.end(); ) {
             auto old = it++;
-            old->callback(*this, &*old);
+            old->callback(is, &*old);
         }
     }
 

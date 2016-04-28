@@ -20,9 +20,8 @@
 
 using namespace m3;
 
-static void timer_event(RecvGate &gate, Subscriber<RecvGate&> *) {
+static void timer_event(GateIStream &is, Subscriber<GateIStream&> *) {
     static int i = 0;
-    GateIStream is(gate);
     HWInterrupts::IRQ irq;
     is >> irq;
     cout << "Got IRQ #" << irq << " (" << i++ << ")\n";

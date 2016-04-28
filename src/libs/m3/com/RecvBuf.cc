@@ -32,8 +32,8 @@ void RecvBuf::RecvBufWorkItem::work() {
         DTU::Message *msg = dtu.message(_epid);
         LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
         RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
-        gate->notify_all();
-        dtu.ack_message(_epid);
+        GateIStream is(*gate, msg);
+        gate->notify_all(is);
     }
 }
 

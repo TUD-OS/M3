@@ -370,26 +370,26 @@ public:
         return Server<PlasmaRequestHandler>::DEF_MSGSIZE;
     }
 
-    void left(RecvGate &gate, GateIStream &) {
+    void left(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() - 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
-    void right(RecvGate &gate, GateIStream &) {
+    void right(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() + 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
 
-    void colup(RecvGate &gate, GateIStream &) {
+    void colup(GateIStream &is) {
         pa.set_color(pa.color() + 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
-    void coldown(RecvGate &gate, GateIStream &) {
+    void coldown(GateIStream &is) {
         pa.set_color(pa.color() - 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
 };
 
-static void refresh_screen(VGA *vga, RecvGate &, Subscriber<RecvGate&> *) {
+static void refresh_screen(VGA *vga, GateIStream &, Subscriber<GateIStream&> *) {
     if(irqs++ < INTRO_TIME) {
         ia.render(tsc());
         vga->gate().write_sync(ia.buffer(), ia.size(), 0);

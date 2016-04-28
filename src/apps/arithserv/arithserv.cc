@@ -37,7 +37,7 @@ public:
         return Server<ArithRequestHandler>::DEF_MSGSIZE;
     }
 
-    void calc(RecvGate &gate, GateIStream &is) {
+    void calc(GateIStream &is) {
         String str;
         is >> str;
 
@@ -62,7 +62,7 @@ public:
 
         OStringStream os;
         os << res;
-        reply_vmsg(gate, String(os.str()));
+        reply_vmsg(is.gate(), String(os.str()));
     }
 };
 

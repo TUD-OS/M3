@@ -87,8 +87,8 @@ public:
         reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel), virt);
     }
 
-    void pf(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    void pf(GateIStream &is) {
+        MemSessionData *sess = is.gate().session<MemSessionData>();
         uint64_t virt, access;
         is >> virt >> access;
 
@@ -103,21 +103,21 @@ public:
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
             SLOG(PAGER, "Invalid session");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         DataSpace *ds = sess->dstree.find(virt);
         if(!ds) {
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         if((ds->flags & access) != access) {
             SLOG(PAGER, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
                 << " not allowed: " << fmt(ds->flags, "#x"));
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
@@ -127,7 +127,7 @@ public:
         Errors::Code res = ds->get_page(&virt, &first, &pages, &mem);
         if(res != Errors::NO_ERROR) {
             SLOG(PAGER, "Getting page failed: " << Errors::to_string(res));
-            reply_vmsg(gate, res);
+            reply_vmsg(is.gate(), res);
             return;
         }
 
@@ -136,16 +136,16 @@ public:
                 pages, virt >> PAGE_BITS, ds->flags);
             if(res != Errors::NO_ERROR) {
                 SLOG(PAGER, "Unable to create PTEs: " << Errors::to_string(res));
-                reply_vmsg(gate, res);
+                reply_vmsg(is.gate(), res);
                 return;
             }
         }
 
-        reply_vmsg(gate, Errors::NO_ERROR);
+        reply_vmsg(is.gate(), Errors::NO_ERROR);
     }
 
-    void map_anon(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    void map_anon(GateIStream &is) {
+        MemSessionData *sess = is.gate().session<MemSessionData>();
         uintptr_t virt;
         size_t len;
         int prot, flags;
@@ -160,24 +160,24 @@ public:
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
             SLOG(PAGER, "Invalid virtual address / size");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
         if((virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
             SLOG(PAGER, "Invalid protection flags");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         // TODO determine/validate virt+len
         sess->dstree.insert(new AnonDataSpace(virt, len, prot | flags));
 
-        reply_vmsg(gate, Errors::NO_ERROR, virt);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, virt);
     }
 
     capsel_t map_ds(MemSessionData *sess, GateIStream &args, uintptr_t *virt) {
@@ -205,8 +205,8 @@ public:
         return ds->sess.sel();
     }
 
-    void unmap(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    void unmap(GateIStream &is) {
+        MemSessionData *sess = is.gate().session<MemSessionData>();
         uintptr_t virt;
         is >> virt;
 
@@ -222,7 +222,7 @@ public:
         else
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
 
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 };
 

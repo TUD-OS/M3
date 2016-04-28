@@ -222,9 +222,9 @@ public:
         of->caps.add(crd);
     }
 
-    void open(RecvGate &gate, GateIStream &is) {
+    void open(GateIStream &is) {
         EVENT_TRACER_FS_open();
-        M3FSSessionData *sess = gate.session<M3FSSessionData>();
+        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
         String path;
         int fd, flags;
         is >> path >> flags;
@@ -233,14 +233,14 @@ public:
         m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), flags & FILE_CREATE);
         if(ino == INVALID_INO) {
             SLOG(FS, "fs::open failed: " << Errors::to_string(Errors::last));
-            reply_vmsg(gate, Errors::last);
+            reply_vmsg(is.gate(), Errors::last);
             return;
         }
         m3::INode *inode = INodes::get(_handle, ino);
         if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
             ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
             SLOG(FS, "fs::open failed: " << Errors::to_string(Errors::NO_PERM));
-            reply_vmsg(gate, Errors::NO_PERM);
+            reply_vmsg(is.gate(), Errors::NO_PERM);
             return;
         }
 
@@ -264,12 +264,12 @@ public:
             INodes::write_back(_handle, inode);
 
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);
-        reply_vmsg(gate, Errors::NO_ERROR, fd);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, fd);
     }
 
-    void seek(RecvGate &gate, GateIStream &is) {
+    void seek(GateIStream &is) {
         EVENT_TRACER_FS_seek();
-        M3FSSessionData *sess = gate.session<M3FSSessionData>();
+        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
         int fd, whence;
         off_t off;
         size_t extent, extoff;
@@ -279,15 +279,15 @@ public:
         const M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of) {
             SLOG(FS, "fs::seek failed: " << Errors::to_string(Errors::INV_ARGS));
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         off_t pos = INodes::seek(_handle, of->ino, off, whence, extent, extoff);
-        reply_vmsg(gate, Errors::NO_ERROR, extent, extoff, pos + off);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, extent, extoff, pos + off);
     }
 
-    void stat(RecvGate &gate, GateIStream &is) {
+    void stat(GateIStream &is) {
         EVENT_TRACER_FS_stat();
         String path;
         is >> path;
@@ -296,18 +296,18 @@ public:
         m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
         if(ino == INVALID_INO) {
             SLOG(FS, "fs::stat failed: " << Errors::to_string(Errors::last));
-            reply_vmsg(gate, Errors::last);
+            reply_vmsg(is.gate(), Errors::last);
             return;
         }
 
         m3::FileInfo info;
         INodes::stat(_handle, ino, info);
-        reply_vmsg(gate, Errors::NO_ERROR, info);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, info);
     }
 
-    void fstat(RecvGate &gate, GateIStream &is) {
+    void fstat(GateIStream &is) {
         EVENT_TRACER_FS_fstat();
-        M3FSSessionData *sess = gate.session<M3FSSessionData>();
+        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
         int fd;
         is >> fd;
         SLOG(FS, "fs::fstat(fd=" << fd << ")");
@@ -315,16 +315,16 @@ public:
         const M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of) {
             SLOG(FS, "fs::fstat failed: " << Errors::to_string(Errors::INV_ARGS));
-            reply_vmsg(gate, Errors::INV_ARGS);
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         m3::FileInfo info;
         INodes::stat(_handle, of->ino, info);
-        reply_vmsg(gate, Errors::NO_ERROR, info);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, info);
     }
 
-    void mkdir(RecvGate &gate, GateIStream &is) {
+    void mkdir(GateIStream &is) {
         EVENT_TRACER_FS_mkdir();
         String path;
         mode_t mode;
@@ -334,10 +334,10 @@ public:
         Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
         if(res != Errors::NO_ERROR)
             SLOG(FS, "fs::mkdir failed: " << Errors::to_string(res));
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 
-    void rmdir(RecvGate &gate, GateIStream &is) {
+    void rmdir(GateIStream &is) {
         EVENT_TRACER_FS_rmdir();
         String path;
         is >> path;
@@ -346,10 +346,10 @@ public:
         Errors::Code res = Dirs::remove(_handle, path.c_str());
         if(res != Errors::NO_ERROR)
             SLOG(FS, "fs::rmdir failed: " << Errors::to_string(res));
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 
-    void link(RecvGate &gate, GateIStream &is) {
+    void link(GateIStream &is) {
         EVENT_TRACER_FS_link();
         String oldpath, newpath;
         is >> oldpath >> newpath;
@@ -358,10 +358,10 @@ public:
         Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
         if(res != Errors::NO_ERROR)
             SLOG(FS, "fs::link failed: " << Errors::to_string(res));
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 
-    void unlink(RecvGate &gate, GateIStream &is) {
+    void unlink(GateIStream &is) {
         EVENT_TRACER_FS_unlink();
         String path;
         is >> path;
@@ -370,12 +370,12 @@ public:
         Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
         if(res != Errors::NO_ERROR)
             SLOG(FS, "fs::unlink failed: " << Errors::to_string(res));
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 
-    void close(RecvGate &gate, GateIStream &is) {
+    void close(GateIStream &is) {
         EVENT_TRACER_FS_close();
-        M3FSSessionData *sess = gate.session<M3FSSessionData>();
+        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
         int fd;
         size_t extent, extoff;
         is >> fd >> extent >> extoff;
@@ -384,7 +384,7 @@ public:
         if(extoff != 0) {
             const M3FSSessionData::OpenFile *of = sess->get(fd);
             if(!of || (~of->flags & FILE_W)) {
-                reply_vmsg(gate, Errors::INV_ARGS);
+                reply_vmsg(is.gate(), Errors::INV_ARGS);
                 return;
             }
 
@@ -404,7 +404,7 @@ public:
 
         sess->release_fd(fd);
 
-        reply_vmsg(gate, Errors::NO_ERROR);
+        reply_vmsg(is.gate(), Errors::NO_ERROR);
     }
 
     virtual void handle_shutdown() override {

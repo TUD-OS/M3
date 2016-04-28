@@ -58,7 +58,7 @@ static void copy_to_vga(int row, int col, const char *str, size_t len, size_t to
     }
 }
 
-static void timer_event(RecvGate &, Subscriber<RecvGate&> *) {
+static void timer_event(GateIStream &, Subscriber<GateIStream&> *) {
     static Status laststatus = PLAYING;
     if(status != laststatus || ticks == next_tick) {
         if(status == PLAYING) {
@@ -91,9 +91,8 @@ static void timer_event(RecvGate &, Subscriber<RecvGate&> *) {
         ticks++;
 }
 
-static void kb_event(RecvGate &gate, Subscriber<RecvGate&> *) {
+static void kb_event(GateIStream &is, Subscriber<GateIStream&> *) {
     Keyboard::Event ev;
-    GateIStream is(gate);
     is >> ev;
     if(!ev.isbreak)
         return;

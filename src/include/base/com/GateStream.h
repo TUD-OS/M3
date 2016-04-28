@@ -165,6 +165,16 @@ public:
         : _err(err), _ack(ack), _pos(0), _gate(&gate), _msg(DTU::get().message(gate.epid())) {
     }
 
+    /**
+     * Creates an object for given message
+     *
+     * @param gate the gate to fetch the message from
+     * @param msg the message
+     */
+    explicit BaseGateIStream(RGATE &gate, DTU::Message *msg)
+        : _err(Errors::NO_ERROR), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
+    }
+
     // don't do the ack twice. thus, copies never ack.
     BaseGateIStream(const BaseGateIStream &is)
         : _err(is._err), _ack(false), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
@@ -203,6 +213,12 @@ public:
      */
     Errors::Code error() const {
         return _err;
+    }
+    /**
+     * @return the receive gate
+     */
+    RGATE &gate() {
+        return *_gate;
     }
     /**
      * @return the message (header + payload)

@@ -21,9 +21,8 @@
 
 using namespace m3;
 
-static void kb_event(Plasma *plasma, RecvGate &gate, Subscriber<RecvGate&> *) {
+static void kb_event(Plasma *plasma, GateIStream &is, Subscriber<GateIStream&> *) {
     Keyboard::Event ev;
-    GateIStream is(gate);
     is >> ev;
     if(ev.isbreak)
         return;

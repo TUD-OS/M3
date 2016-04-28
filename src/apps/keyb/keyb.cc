@@ -38,7 +38,7 @@
 
 using namespace m3;
 
-static void kb_irq(Server<EventHandler> *kbserver, RecvGate &, Subscriber<RecvGate&> *) {
+static void kb_irq(Server<EventHandler> *kbserver, GateIStream &, Subscriber<GateIStream&> *) {
     static SharedMemory kbdmem("kbd", sizeof(unsigned) * 2, SharedMemory::JOIN);
     unsigned *regs = reinterpret_cast<unsigned*>(kbdmem.addr());
     if(regs[KEYBOARD_CTRL] & KEYBOARD_RDY) {

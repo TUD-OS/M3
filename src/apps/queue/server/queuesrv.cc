@@ -35,7 +35,7 @@ static char *gendata() {
     return data;
 }
 
-static void timer_irq(RecvGate &, Subscriber<RecvGate&>*) {
+static void timer_irq(GateIStream &, Subscriber<GateIStream&>*) {
     for(auto &h : server->handler()) {
         // skip clients that have a session but no gate yet
         if(h.gate()) {

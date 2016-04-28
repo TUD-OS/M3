@@ -23,8 +23,7 @@
 
 using namespace m3;
 
-static void received_data(RecvGate &gate, Subscriber<RecvGate&> *) {
-    GateIStream is(gate);
+static void received_data(GateIStream &is, Subscriber<GateIStream&> *) {
     unsigned sum = 0;
     const unsigned char *data = is.buffer();
     for(size_t i = 0; i < is.remaining(); ++i)
