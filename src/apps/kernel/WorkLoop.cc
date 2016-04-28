@@ -70,15 +70,15 @@ void WorkLoop::run() {
             // we know the subscriber here, so optimize that a bit
             m3::DTU::Message *msg = dtu.message(sysep);
             RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
-            sysch.handle_message(*rgate, nullptr);
-            dtu.ack_message(sysep);
+            GateIStream is(*rgate, msg);
+            sysch.handle_message(is, nullptr);
             EVENT_TRACE_FLUSH_LIGHT();
         }
         if(dtu.fetch_msg(srvep)) {
             m3::DTU::Message *msg = dtu.message(srvep);
             RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
-            gate->notify_all();
-            dtu.ack_message(srvep);
+            GateIStream is(*gate, msg);
+            gate->notify_all(is);
         }
 
 #if defined(__host__)

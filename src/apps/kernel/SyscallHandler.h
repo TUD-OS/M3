@@ -29,7 +29,7 @@ class SyscallHandler {
     explicit SyscallHandler();
 
 public:
-    using handler_func = void (SyscallHandler::*)(RecvGate &gate, GateIStream &is);
+    using handler_func = void (SyscallHandler::*)(GateIStream &is);
 
     static SyscallHandler &get() {
         return _inst;
@@ -39,16 +39,15 @@ public:
         _callbacks[op] = func;
     }
 
-    void handle_message(RecvGate &gate, m3::Subscriber<RecvGate&> *) {
+    void handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *) {
         EVENT_TRACER_handle_message();
-        GateIStream msg(gate);
         m3::KIF::Syscall::Operation op;
         msg >> op;
         if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
-            (this->*_callbacks[op])(gate, msg);
+            (this->*_callbacks[op])(msg);
             return;
         }
-        reply_vmsg(gate, m3::Errors::INV_ARGS);
+        reply_vmsg(msg.gate(), m3::Errors::INV_ARGS);
     }
 
     size_t epid() const {
@@ -63,32 +62,32 @@ public:
         return RecvGate(epid(), vpe);
     }
 
-    void pagefault(RecvGate &gate, GateIStream &is);
-    void createsrv(RecvGate &gate, GateIStream &is);
-    void createsess(RecvGate &gate, GateIStream &is);
-    void creategate(RecvGate &gate, GateIStream &is);
-    void createvpe(RecvGate &gate, GateIStream &is);
-    void createmap(RecvGate &gate, GateIStream &is);
-    void attachrb(RecvGate &gate, GateIStream &is);
-    void detachrb(RecvGate &gate, GateIStream &is);
-    void exchange(RecvGate &gate, GateIStream &is);
-    void vpectrl(RecvGate &gate, GateIStream &is);
-    void delegate(RecvGate &gate, GateIStream &is);
-    void obtain(RecvGate &gate, GateIStream &is);
-    void activate(RecvGate &gate, GateIStream &is);
-    void reqmem(RecvGate &gate, GateIStream &is);
-    void derivemem(RecvGate &gate, GateIStream &is);
-    void revoke(RecvGate &gate, GateIStream &is);
-    void exit(RecvGate &gate, GateIStream &is);
-    void noop(RecvGate &gate, GateIStream &is);
+    void pagefault(GateIStream &is);
+    void createsrv(GateIStream &is);
+    void createsess(GateIStream &is);
+    void creategate(GateIStream &is);
+    void createvpe(GateIStream &is);
+    void createmap(GateIStream &is);
+    void attachrb(GateIStream &is);
+    void detachrb(GateIStream &is);
+    void exchange(GateIStream &is);
+    void vpectrl(GateIStream &is);
+    void delegate(GateIStream &is);
+    void obtain(GateIStream &is);
+    void activate(GateIStream &is);
+    void reqmem(GateIStream &is);
+    void derivemem(GateIStream &is);
+    void revoke(GateIStream &is);
+    void exit(GateIStream &is);
+    void noop(GateIStream &is);
 
 #if defined(__host__)
-    void init(RecvGate &gate, GateIStream &is);
+    void init(GateIStream &is);
 #endif
 
 private:
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
-    void exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain);
+    void exchange_over_sess(GateIStream &is, bool obtain);
     void tryTerminate();
 
     int _serv_ep;

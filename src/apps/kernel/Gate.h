@@ -26,10 +26,18 @@
 namespace kernel {
 
 class VPE;
+class RecvGate;
+class SendGate;
 
-class RecvGate : public m3::Subscriptions<RecvGate&> {
+using GateOStream = m3::BaseGateOStream<RecvGate, SendGate>;
+template<size_t SIZE>
+using StaticGateOStream = m3::BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
+using AutoGateOStream = m3::BaseAutoGateOStream<RecvGate, SendGate>;
+using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
+
+class RecvGate : public m3::Subscriptions<GateIStream&> {
 public:
-    explicit RecvGate(int ep, void *sess) : m3::Subscriptions<RecvGate&>(), _ep(ep), _sess(sess) {
+    explicit RecvGate(int ep, void *sess) : m3::Subscriptions<GateIStream&>(), _ep(ep), _sess(sess) {
     }
 
     size_t epid() const {
@@ -40,10 +48,10 @@ public:
         return static_cast<T*>(_sess);
     }
 
-    void notify_all() {
+    void notify_all(GateIStream &is) {
         for(auto it = _list.begin(); it != _list.end(); ) {
             auto old = it++;
-            old->callback(*this, &*old);
+            old->callback(is, &*old);
         }
     }
 
@@ -83,12 +91,6 @@ private:
     int _ep;
     label_t _label;
 };
-
-using GateOStream = m3::BaseGateOStream<RecvGate, SendGate>;
-template<size_t SIZE>
-using StaticGateOStream = m3::BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
-using AutoGateOStream = m3::BaseAutoGateOStream<RecvGate, SendGate>;
-using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
 
 template<typename ... Args>
 static inline auto create_vmsg(const Args& ... args) -> StaticGateOStream<m3::ostreamsize<Args...>()> {
