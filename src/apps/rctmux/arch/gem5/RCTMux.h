@@ -19,16 +19,16 @@
 namespace RCTMux {
 
 inline void cpu_wait_for_interrupt() {
-    asm volatile ("waiti 0");
+    asm volatile ("hlt");
 }
 
 inline void jump_to_app(const uintptr_t ptr, const word_t sp) {
     // tell crt0 to set this stackpointer
-    reinterpret_cast<word_t*>(STACK_TOP)[-1] = 0xDEADBEEF;
-    reinterpret_cast<word_t*>(STACK_TOP)[-2] = sp;
-
-    register word_t a2 __asm__ ("a2") = ptr;
-    asm volatile ( "jx    %0;" : : "a"(a2) );
+    asm volatile (
+        "mov %2, %%rsp;"
+        "jmp *%1;"
+        : : "a"(0xDEADBEEF), "r"(ptr), "r"(sp)
+    );
 }
 
 inline void flag_set(const m3::RCTMUXCtrlFlag flag) {

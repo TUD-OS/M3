@@ -22,7 +22,7 @@
 #include <cstring>
 
 #if defined(__t3__)
-#   include <m3/arch/t3/RCTMux.h>
+#   include <m3/RCTMux.h>
 #endif
 
 namespace m3 {
@@ -50,8 +50,8 @@ void *Heap::alloc(size_t size) {
 #if defined(__t3__)
     // update heap size if necessary
     // FIXME: needs optimization
-    word_t *hsize = &(applayout()->data_size);
-    *hsize = end() - applayout()->data_start;
+    word_t *hsize = &(spmemlayout()->data_size);
+    *hsize = end() - spmemlayout()->data_start;
 #endif
 
     return res;
@@ -152,8 +152,8 @@ USED void Heap::free(void *p) {
 #if defined(__t3__)
     // update heap size if necessary
     // FIXME: optimize this
-    word_t *size = &(applayout()->data_size);
-    *size = end() - applayout()->data_start;
+    word_t *size = &(spmemlayout()->data_size);
+    *size = end() - spmemlayout()->data_start;
 #endif
 }
 

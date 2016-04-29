@@ -4,21 +4,37 @@ Import('env')
 archdir = 'arch/' + env['ARCH']
 archdir_absolute = '#src/apps/rctmux/' + archdir
 
-# build rctmux
-prog = env.M3Program(
-    env,
-    target = 'rctmux',
-    source = [
-        env['BINARYDIR'].abspath + '/Window.o',
-        env.Glob('*.cc'),
-        env.Glob(archdir + '/*.S'),
-        env.Glob(archdir + '/*.cc'),
-    ],
-    NoSup = True,
-    ldscript = File(archdir_absolute + '/link-elf32.ld'),
-    libs = ['c', 'handler-reset', 'hal', 'handlers-sim']
-)
-env.Depends(prog, File(archdir_absolute + '/link-elf32.ld'))
+# t3
+if env['ARCH'] == 't3':
+    rctmux = env.M3Program(
+        env,
+        target = 'rctmux',
+        source = [
+            env['BINARYDIR'].abspath + '/Window.o',
+            env.Glob('*.cc'),
+            env.Glob(archdir + '/*.S'),
+            env.Glob(archdir + '/*.cc'),
+        ],
+        NoSup = True,
+        ldscript = File(archdir_absolute + '/link-elf32.ld'),
+        libs = ['c', 'handler-reset', 'hal', 'handlers-sim']
+    )
+    env.Depends(rctmux, File(archdir_absolute + '/link-elf32.ld'))
+# gem5
+elif env['ARCH'] == 'gem5':
+    myenv = env.Clone()
+    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x3FFE000')
+    myenv.M3Program(
+        myenv,
+        target = 'rctmux',
+        source = [
+            env.Glob('*.cc'),
+            env.Glob(archdir + '/*.S'),
+            env.Glob(archdir + '/*.cc'),
+        ],
+        NoSup = True,
+        varAddr = False
+    )
 
 # build test and dev programs
 env.M3Program(env, 'rctmux-util-tmux-bench', ['test-utils/tmux-bench.cc'])

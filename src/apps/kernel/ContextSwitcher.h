@@ -23,8 +23,6 @@
 
 namespace m3 {
 
-#if defined(__t3__)
-
 class ContextSwitcher {
 
     struct TMuxVPE : public SListItem {
@@ -76,10 +74,11 @@ public:
 
 private:
     void switch_to(KVPE *to);
-    void send_flags(DTU *dtu, uint64_t *flags);
-    void recv_flags(DTU *dtu, uint64_t *flags);
-    void reset_endpoints(KVPE *vpe, KVPE *next_vpe);
-    void restore_endpoints(KVPE *vpe);
+    void send_flags(KVPE &vpe, const uint64_t *flags);
+    void recv_flags(KVPE &vpe, uint64_t *flags);
+    void store_dtu_state(KVPE *vpe);
+    void attach_storage(KVPE *curr_vpe, KVPE *next_vpe);
+    void restore_dtu_state(KVPE *vpe);
 
 private:
     size_t _core;
@@ -87,7 +86,5 @@ private:
     SListIterator<TMuxVPE> _tmuxvpeit;
     KVPE *_currtmuxvpe;
 };
-
-#endif
 
 }

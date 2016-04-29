@@ -42,9 +42,9 @@ KVPE::KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int e
       _as(as ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr() {
+
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1,
-        MemGate::RWX, core(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, MemGate::RWX, core(), id, 0));
 
     init();
 

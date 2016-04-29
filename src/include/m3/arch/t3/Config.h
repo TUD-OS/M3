@@ -57,12 +57,12 @@
 #define INIT_HEAP_SIZE      0                       // not used
 #define HEAP_SIZE           0x200000                // not the actual size, but the maximum
 
-#define APP_LAYOUT_LOCAL    (DMEM_VEND - 32)
-#define APP_LAYOUT_GLOBAL   (APP_LAYOUT_LOCAL - DRAM_VOFFSET)
+#define SPMEM_LAYOUT_LOCAL  (DMEM_VEND - 32)
+#define SPMEM_LAYOUT_GLOBAL (SPMEM_LAYOUT_LOCAL - DRAM_VOFFSET)
 
 #define RT_SIZE             0x400
-#define RT_START            (APP_LAYOUT_LOCAL - RT_SIZE)
-#define RT_END              APP_LAYOUT_LOCAL
+#define RT_START            (SPMEM_LAYOUT_LOCAL - RT_SIZE)
+#define RT_END              SPMEM_LAYOUT_LOCAL
 
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)

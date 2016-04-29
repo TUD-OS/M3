@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #if defined(__t3__)
-#   include <m3/arch/t3/RCTMux.h>
+#   include <m3/RCTMux.h>
 #   include <xtensa/simcall.h>
 #endif
 
@@ -71,9 +71,10 @@ static void get_args(Env *e) {
     }
 }
 
-static void store_app_layout() {
+/* Store scratchpad memory layout for efficient access */
+static void init_spmem_layout() {
     uintptr_t start, end;
-    volatile AppLayout *l = applayout();
+    volatile SPMemLayout *l = spmemlayout();
 
     // reset vector
     start = Math::round_dn((uintptr_t)&_ResetVector_text_start, DTU_PKG_SIZE);
@@ -111,7 +112,7 @@ void Env::pre_init() {
     memset(&_bss_table_start, 0, end - start);
 
 #if defined(__t3__)
-    store_app_layout();
+    init_spmem_layout();
 
     // started from simulator?
     if(entry == 0)

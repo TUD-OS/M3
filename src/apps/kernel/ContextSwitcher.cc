@@ -14,15 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#if defined(__t3__)
-
 #include <m3/Config.h>
-#include <m3/arch/t3/RCTMux.h>
-#include <m3/DTU.h>
+#include <m3/RCTMux.h>
 #include <m3/util/Sync.h>
 #include <m3/Log.h>
 #include <m3/col/Treap.h>
 
+#include "KDTU.h"
 #include "ContextSwitcher.h"
 
 namespace m3 {
@@ -35,61 +33,19 @@ ContextSwitcher::ContextSwitcher(size_t core)
 }
 
 void ContextSwitcher::finalize_switch() {
-    restore_endpoints(_currtmuxvpe);
+    restore_dtu_state(_currtmuxvpe);
     _currtmuxvpe->resume();
 
     alignas(DTU_PKG_SIZE) uint64_t flags = 0;
-    send_flags(&(DTU::get()), &flags);
+    send_flags(*_currtmuxvpe, &flags);
 }
 
-void ContextSwitcher::send_flags(DTU *dtu, uint64_t *flags) {
-    dtu->configure_mem(DTU::DEF_RECVEP, _core,
-        RCTMUX_FLAGS_GLOBAL, sizeof(*flags));
-    Sync::memory_barrier();
-    dtu->write(DTU::DEF_RECVEP, flags, sizeof(*flags), 0);
-    dtu->wait_for_mem_cmd();
+void ContextSwitcher::send_flags(KVPE &vpe, const uint64_t *flags) {
+    KDTU::get().write_mem(vpe, RCTMUX_FLAGS_GLOBAL, flags, sizeof(*flags));
 }
 
-void ContextSwitcher::recv_flags(DTU *dtu, uint64_t *flags) {
-    dtu->configure_mem(DTU::DEF_RECVEP, _core,
-        RCTMUX_FLAGS_GLOBAL, sizeof(*flags));
-    dtu->read(DTU::DEF_RECVEP, flags, sizeof(*flags), 0);
-    dtu->wait_for_mem_cmd();
-}
-
-void ContextSwitcher::reset_endpoints(KVPE *vpe, KVPE *next_vpe) {
-
-    LOG(VPES, "Detaching endpoints of " << vpe);
-
-    // skip sysc+def_recvchan
-    for (int i = 2; i < EP_COUNT; ++i) {
-        switch(i) {
-            case RCTMUX_STORE_EP:
-                vpe->xchg_ep(RCTMUX_STORE_EP, nullptr,
-                    static_cast<MsgCapability*>(
-                        vpe->objcaps().get(2, Capability::MEM)));
-                break;
-            case RCTMUX_RESTORE_EP:
-                if (next_vpe) {
-                    vpe->xchg_ep(RCTMUX_RESTORE_EP, nullptr,
-                        static_cast<MsgCapability*>(
-                            next_vpe->objcaps().get(2, Capability::MEM)));
-                }
-                break;
-            default:
-                LOG(VPES, "Detaching EP " << i);
-                vpe->xchg_ep(i, nullptr, nullptr);
-                break;
-        }
-    }
-}
-
-void ContextSwitcher::restore_endpoints(KVPE *vpe) {
-
-    LOG(VPES, "Attaching endpoints of " << vpe);
-#if defined(__t3__)
-    vpe->objcaps().activate_msgcaps();
-#endif
+void ContextSwitcher::recv_flags(KVPE &vpe, uint64_t *flags) {
+    KDTU::get().read_mem(vpe, RCTMUX_FLAGS_GLOBAL, flags, sizeof(*flags));
 }
 
 void ContextSwitcher::switch_to(KVPE *to) {
@@ -105,15 +61,12 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // there is already a suspendable running, so we have to switch
         LOG(VPES, "TMux: Switching from " << _currtmuxvpe << " to " << to);
 
-        DTU &dtu = DTU::get();
-
         // -- Initialization --
 
-        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::SWITCHREQ
-            | RCTMUXCtrlFlag::STORE;
+        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::STORE;
         if (to && to->state() == KVPE::SUSPENDED)
             ctrl |= RCTMUXCtrlFlag::RESTORE;
-        send_flags(&dtu, &ctrl);
+        send_flags(*to, &ctrl);
 
         // -- Storage --
 
@@ -123,9 +76,9 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // wait for rctmux to be initialized - this should only take a few
         // cycles so we can busy wait here; we limit the maximal amount
         // of cycles, though
-        uint8_t timeout_counter = 1 << 6;
-        while (--timeout_counter && (ctrl & RCTMUX_FLAG_SIGNAL)) {
-            recv_flags(&dtu, &ctrl);
+        uint8_t timeout_counter = 1 << 7;
+        while (--timeout_counter && !(ctrl & RCTMUX_FLAG_SIGNAL)) {
+            recv_flags(*to, &ctrl);
         }
 
         if (!timeout_counter) {
@@ -136,21 +89,20 @@ void ContextSwitcher::switch_to(KVPE *to) {
 
         _currtmuxvpe->suspend();
 
-        // attach the memories for storage/restoration
-        reset_endpoints(_currtmuxvpe, to);
+        // store current dtu state)
+        store_dtu_state(_currtmuxvpe);
+        attach_storage(_currtmuxvpe, to);
 
-        // we activate the new sysc chan here to it for
-        // the 'finished' notification of RCTMux
+        // (re)activate the sysc chan for the
+        // 'finished' notification of RCTMux
         if (to)
             to->activate_sysc_ep();
 
-        ctrl |= RCTMUXCtrlFlag::STORAGE_ATTACHED;
-        send_flags(&dtu, &ctrl);
+        ctrl ^= RCTMUXCtrlFlag::SIGNAL;
+        send_flags(*to, &ctrl);
     }
 
     _currtmuxvpe = to;
 }
 
-}
-
-#endif
+} /* namespace m3 */

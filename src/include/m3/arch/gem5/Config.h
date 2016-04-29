@@ -41,9 +41,13 @@
 #define RT_SIZE             0x2000
 #define RT_END              (RT_START + RT_SIZE)
 
+#define RCTMUX_FLAGS_SIZE   0x8
+#define RCTMUX_FLAGS_LOCAL  RT_END
+#define RCTMUX_FLAGS_GLOBAL (RCTMUX_FLAGS_LOCAL - DRAM_OFFSET)
+
 #define STACK_SIZE          0x1000
 #define STACK_TOP           (RT_END + STACK_SIZE)
-#define STACK_BOTTOM        RT_END
+#define STACK_BOTTOM        RT_END + RCTMUX_FLAGS_SIZE
 
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)

@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/arch/t3/RCTMux.h>
+#include <m3/RCTMux.h>
 #include <m3/DTU.h>
+#include <m3/Env.h>
 #include <m3/util/Math.h>
 #include <m3/util/Sync.h>
 #include <m3/util/Profile.h>
@@ -65,15 +66,9 @@ static void mem_read(size_t ep, void *data, size_t size, size_t *offset) {
 }
 
 static void wipe_mem() {
-    AppLayout *l = applayout();
-
-    // wipe text to heap
+    SPMemLayout *l = spmemlayout();
     memset((void*)l->text_start, 0, l->data_size);
-
-    // wipe stack
-    memset((void*)_state.cpu_regs[1], 0,
-        l->stack_top - (uint32_t)_state.cpu_regs[1]);
-
+    memset((void*)_state.cpu_regs[1], 0, l->stack_top - (uint32_t)_state.cpu_regs[1]);
     // FIXME: wiping the runtime does make problems - why?
     //memset((void*)RT_SPACE_END, 0, DMEM_VEND - RT_SPACE_END);
 }
@@ -92,7 +87,8 @@ void init() {
         _state.local_ep_config[i] = DTU::get().get_ep_config(i);
     }
 
-    flag_set(INITIALIZED);
+    // tell kernel that we are ready
+    flag_set(SIGNAL);
 }
 
 void finish() {
@@ -109,7 +105,7 @@ void store() {
     size_t offset = 0;
 
     // wait for kernel
-    while (!flag_is_set(STORAGE_ATTACHED) && !flag_is_set(ERROR))
+    while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
         ;
 
     if (flag_is_set(ERROR))
@@ -122,7 +118,7 @@ void store() {
     mem_write(RCTMUX_STORE_EP, (void*)RT_START, RT_SIZE, &offset);
 
     // app layout
-    AppLayout *l = applayout();
+    SPMemLayout *l = spmemlayout();
     mem_write(RCTMUX_STORE_EP, (void*)l, sizeof(*l), &offset);
 
     // reset vector
@@ -150,7 +146,7 @@ void restore() {
     alignas(DTU_PKG_SIZE) uint32_t addr;
     size_t offset = 0;
 
-    while (!flag_is_set(STORAGE_ATTACHED) && !flag_is_set(ERROR))
+    while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
         ;
 
     if (flag_is_set(ERROR))
@@ -164,11 +160,11 @@ void restore() {
         return;
     }
 
-    // restore end-area of heap and runtime before accessing applayout
+    // restore end-area of heap and runtime before accessing spmemlayout
     mem_read(RCTMUX_RESTORE_EP, (void*)RT_START, RT_SIZE, &offset);
 
     // restore app layout
-    AppLayout *l = applayout();
+    SPMemLayout *l = spmemlayout();
     mem_read(RCTMUX_RESTORE_EP, (void*)l, sizeof(*l), &offset);
 
     // restore reset vector
@@ -197,6 +193,8 @@ void reset() {
 }
 
 void set_idle_mode() {
+    // reset program entry
+    m3::env()->entry = 0;
     // set epc (exception program counter) to jump into idle mode
     // when returning from exception
     _state.cpu_regs[EPC_REG] = (word_t*)&_start;

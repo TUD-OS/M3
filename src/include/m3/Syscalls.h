@@ -51,10 +51,8 @@ public:
         REVOKE,
         EXIT,
         NOOP,
-#if defined(__t3__)
         TMUXSWITCH,
         TMUXRESUME,
-#endif
 #if defined(__host__)
         INIT,
 #endif
@@ -104,10 +102,8 @@ public:
     void exit(int exitcode);
     void noop();
 
-#if defined(__t3__)
     Errors::Code tmuxswitch();
     void tmuxresume();
-#endif
 
 #if defined(__host__)
     void init(void *sepregs);

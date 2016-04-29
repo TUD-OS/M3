@@ -154,7 +154,6 @@ USED void Syscalls::exit(int exitcode) {
     send_vmsg(_gate, EXIT, exitcode);
 }
 
-#if defined(__t3__)
 Errors::Code Syscalls::tmuxswitch() {
     LOG(SYSC, "tmuxswitch()");
     return finish(send_receive_vmsg(_gate, TMUXSWITCH));
@@ -164,7 +163,6 @@ void Syscalls::tmuxresume() {
     LOG(SYSC, "tmuxresume()");
     send_vmsg(_gate, TMUXRESUME); // non-blocking
 }
-#endif
 
 #if defined(__host__)
 void Syscalls::init(void *sepregs) {
