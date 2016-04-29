@@ -289,6 +289,10 @@ void KDTU::write_mem_at(int core, int vpe, uintptr_t addr, const void *data, siz
     DTU::get().write(_ep, data, size, 0);
 }
 
+void KDTU::read_mem(KVPE &vpe, uintptr_t addr, void *data, size_t size) {
+    read_mem_at(vpe.core(), vpe.id(), addr, data, size);
+}
+
 void KDTU::read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size) {
     config_mem_local(_ep, core, vpe, addr, size);
     DTU::get().read(_ep, data, size, 0);
