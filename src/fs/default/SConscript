@@ -31,7 +31,7 @@ env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
 env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
 env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
 env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')
-if env['ARCH'] == 't3':
+if env['ARCH'] in ['t3', 'gem5']:
     env.M3Strip('$FSDIR/default/bin/rctmux-util-counter', '$BINARYDIR/rctmux-util-counter')
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
@@ -44,6 +44,6 @@ else:
     blocks = int(os.environ.get('M3_FSBLKS'))
 env.M3Mkfs(target = 'default.img', source = '$FSDIR/default', blocks = blocks, inodes = 256, blks_per_ext = bpe)
 
-if env['ARCH'] == 't2' or env['ARCH'] == 't3':
+if env['ARCH'] in ['t2', 't3']:
     args = '--sim' if env['ARCH'] == 't3' else ''
     env.M3FileDump(target = 'default.img.mem', source = 'default.img', addr = 0x1000000, args = args)

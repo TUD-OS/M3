@@ -20,6 +20,8 @@
 #   include <m3/arch/t3/RCTMux.h>
 #elif defined(__gem5__)
     // gem5 needs no additional declarations
+    #define RCTMUX_STORE_EP     (EP_COUNT - 1)
+    #define RCTMUX_RESTORE_EP   (EP_COUNT - 2)
 #else
 #   error "RCTMux has not yet been implemented for your target"
 #endif
