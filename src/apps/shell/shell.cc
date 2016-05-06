@@ -17,7 +17,7 @@
 #include <base/stream/IStringStream.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/pipe/DirectPipe.h>
+#include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
 #include <m3/VPE.h>
@@ -28,107 +28,53 @@
 using namespace m3;
 
 static bool execute(CmdList *list) {
-    if(list->count == 1) {
-        int res;
-        Command *cmd1 = list->cmds[0];
-        if(cmd1->args->count == 1 && strcmp(cmd1->args->args[0], "/bin/exit") == 0)
-            return false;
+    VPE *vpes[MAX_CMDS] = {nullptr};
+    IndirectPipe *pipes[MAX_CMDS] = {nullptr};
 
-        VPE vpe(cmd1->args->args[0]);
+    for(size_t i = 0; i < list->count; ++i) {
+        Command *cmd = list->cmds[i];
+        vpes[i] = new VPE(cmd->args->args[0]);
 
-        vpe.fds(*VPE::self().fds());
+        if(i > 0)
+            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[i - 1]->reader_fd()));
+        else
+            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
 
-        fd_t infd = -1, outfd = -1;
-        if(cmd1->redirs->fds[STDIN_FD]) {
-            infd = VFS::open(cmd1->redirs->fds[STDIN_FD], FILE_R);
-            if(infd == FileTable::INVALID) {
-                errmsg("Unable to open '" << cmd1->redirs->fds[STDIN_FD] << "'");
-                goto done;
-            }
-
-            vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(infd));
+        if(i + 1 < list->count) {
+            pipes[i] = new IndirectPipe(64 * 1024);
+            vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
+        else
+            vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
 
-        if(cmd1->redirs->fds[STDOUT_FD]) {
-            outfd = VFS::open(cmd1->redirs->fds[STDOUT_FD], FILE_W | FILE_TRUNC | FILE_CREATE);
-            if(outfd == FileTable::INVALID) {
-                errmsg("Unable to open '" << cmd1->redirs->fds[STDOUT_FD] << "'");
-                goto done;
-            }
+        vpes[i]->fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
+        vpes[i]->obtain_fds();
 
-            vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
-        }
-
-        vpe.obtain_fds();
-
-        vpe.mountspace(*VPE::self().mountspace());
-        vpe.obtain_mountspace();
+        vpes[i]->mountspace(*VPE::self().mountspace());
+        vpes[i]->obtain_mountspace();
 
         Errors::Code err;
-        if((err = vpe.exec(cmd1->args->count, cmd1->args->args)) != Errors::NO_ERROR) {
-            errmsg("Unable to execute '" << cmd1->args->args[0] << "'");
-            goto done;
+        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NO_ERROR) {
+            errmsg("Unable to execute '" << cmd->args->args[0] << "'");
+            break;
         }
 
-        res = vpe.wait();
-        if(res != 0)
-            cerr << "Program terminated with exit code " << res << "\n";
-
-    done:
-        if(infd != -1)
-            VFS::close(infd);
-        if(outfd != -1)
-            VFS::close(outfd);
-    }
-    // TODO workaround because of the current limitations of the pipe
-    else if(list->count == 2) {
-        Command *cmd1 = list->cmds[0];
-        Command *cmd2 = list->cmds[1];
-
-        VPE reader(cmd2->args->args[0]);
-        VPE writer(cmd1->args->args[0]);
-
-        DirectPipe pipe(reader, writer, 0x1000);
-
-        reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
-        reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
-        reader.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
-        reader.obtain_fds();
-
-        reader.mountspace(*VPE::self().mountspace());
-        reader.obtain_mountspace();
-
-        writer.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
-        writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
-        writer.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
-        writer.obtain_fds();
-
-        writer.mountspace(*VPE::self().mountspace());
-        writer.obtain_mountspace();
-
-        Errors::Code err;
-        if((err = writer.exec(cmd1->args->count, cmd1->args->args)) != Errors::NO_ERROR) {
-            errmsg("Unable to execute '" << cmd1->args->args[0] << "'");
-            return true;
+        if(i > 0) {
+            pipes[i - 1]->close_reader();
+            pipes[i - 1]->close_writer();
         }
-        if((err = reader.exec(cmd2->args->count, cmd2->args->args)) != Errors::NO_ERROR) {
-            errmsg("Unable to execute '" << cmd2->args->args[0] << "'");
-            return true;
+    }
+
+    for(size_t i = 0; i < list->count; ++i) {
+        if(vpes[i]) {
+            int res = vpes[i]->wait();
+            if(res != 0)
+                cerr << "Program terminated with exit code " << res << "\n";
+            delete vpes[i];
         }
-
-        pipe.close_writer();
-        pipe.close_reader();
-
-        int res = reader.wait();
-        if(res != 0)
-            cerr << "Program terminated with exit code " << res << "\n";
-        res = writer.wait();
-        if(res != 0)
-            cerr << "Program terminated with exit code " << res << "\n";
     }
-    else {
-        cout << "Unsupported\n";
-    }
+    for(size_t i = 0; i < list->count; ++i)
+        delete pipes[i];
     return true;
 }
 
