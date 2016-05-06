@@ -26,6 +26,7 @@
 %type <cmdlist> cmds start
 %type <redirlist> redirs
 
+
 %destructor { free((void*)$$); } <str>
 %destructor { ast_cmds_destroy($$); } <cmdlist>
 %destructor { ast_args_destroy($$); } <arglist>
@@ -40,7 +41,8 @@ start:
                                                         $$ = NULL;
                                                     }
 
-cmds:       cmd                                     {
+cmds:       /* empty */                             { $$ = ast_cmds_create(); }
+            | cmd                                   {
                                                         $$ = ast_cmds_create();
                                                         ast_cmds_append($$, $1);
                                                     }

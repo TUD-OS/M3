@@ -20,7 +20,7 @@
 
 #define YYPURE 0
 
-#line 2 "cmds.y"
+#line 2 "src/apps/shell/cmds.y"
     #include <stdlib.h>
 
     #include "Parser.h"
@@ -29,7 +29,7 @@
     void yyerror (char const *);
 
     extern void *curcmd;
-#line 12 "cmds.y"
+#line 12 "src/apps/shell/cmds.y"
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
@@ -44,7 +44,7 @@ typedef union {
     const char *str;
 } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
-#line 48 "parser.tab.c"
+#line 48 "src/apps/shell/parser.tab.c"
 
 /* compatibility with bison */
 #ifdef YYPARSE_PARAM
@@ -88,14 +88,16 @@ extern int YYPARSE_DECL();
 #define YYERRCODE 256
 typedef short YYINT;
 static const YYINT yylhs[] = {                           -1,
-    0,    4,    4,    3,    5,    5,    5,    2,    2,    1,
+    0,    4,    4,    4,    3,    5,    5,    5,    2,    2,
+    1,
 };
 static const YYINT yylen[] = {                            2,
-    1,    1,    3,    2,    0,    3,    3,    1,    2,    1,
+    1,    0,    1,    3,    2,    0,    3,    3,    1,    2,
+    1,
 };
 static const YYINT yydefred[] = {                         0,
-   10,    0,    8,    0,    2,    0,    9,    0,    0,    0,
-    0,    3,    6,    7,
+   11,    0,    9,    0,    3,    0,   10,    0,    0,    0,
+    0,    4,    7,    8,
 };
 static const YYINT yystos[] = {                           0,
   257,  259,  260,  261,  262,  263,  260,  264,  124,   60,
@@ -105,11 +107,11 @@ static const YYINT yydgoto[] = {                          2,
     3,    4,    5,    6,    8,
 };
 static const YYINT yysindex[] = {                      -257,
-    0,    0,    0, -257,    0, -120,    0,  -57, -257, -251,
- -250,    0,    0,    0,
+    0,    0,    0, -257,    0, -119,    0,  -56, -257, -250,
+ -249,    0,    0,    0,
 };
-static const YYINT yyrindex[] = {                         0,
-    0,    0,    0,    1,    0,    8,    0,    2,    0,    0,
+static const YYINT yyrindex[] = {                         2,
+    0,    0,    0,    1,    0,    9,    0,    3,    0,    0,
     0,    0,    0,    0,
 };
 #if YYBTYACC
@@ -119,27 +121,27 @@ static const YYINT yycindex[] = {                         0,
 };
 #endif
 static const YYINT yygindex[] = {                         0,
-    5,    0,    3,    0,    0,
+    6,    0,    4,    0,    0,
 };
-#define YYTABLESIZE 126
+#define YYTABLESIZE 127
 static const YYINT yytable[] = {                          1,
-    5,    4,   10,    9,   11,   13,   14,    1,    7,    0,
-    0,   12,    0,    0,    0,    0,    0,    0,    0,    0,
+    6,    2,    5,   10,    9,   11,   13,   14,    1,    7,
+    0,    0,   12,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    5,    0,    5,    0,    0,    0,    0,    0,    0,    0,
+    6,    0,    6,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    5,    4,
+    0,    0,    0,    0,    6,    2,    5,
 };
 static const YYINT yycheck[] = {                        257,
-    0,    0,   60,  124,   62,  257,  257,    0,    4,   -1,
-   -1,    9,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
+    0,    0,    0,   60,  124,   62,  257,  257,    0,    4,
+   -1,   -1,    9,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
@@ -150,7 +152,7 @@ static const YYINT yycheck[] = {                        257,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
-   -1,   -1,   -1,   -1,  124,  124,
+   -1,   -1,   -1,   -1,  124,  124,  124,
 };
 #if YYBTYACC
 static const YYINT yyctable[] = {                        -1,
@@ -166,7 +168,7 @@ static const YYINT yyctable[] = {                        -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
-   -1,   -1,   -1,   -1,   -1,
+   -1,   -1,   -1,   -1,   -1,   -1,
 };
 #endif
 #define YYFINAL 2
@@ -191,6 +193,7 @@ static const char *const yyname[] = {
 static const char *const yyrule[] = {
 "$accept : start",
 "start : cmds",
+"cmds :",
 "cmds : cmd",
 "cmds : cmds '|' cmd",
 "cmd : args redirs",
@@ -337,40 +340,40 @@ YYDESTRUCT_DECL()
     switch (psymb)
     {
 	case 257:
-#line 29 "cmds.y"
+#line 30 "src/apps/shell/cmds.y"
 	{ free((void*)(*val).str); }
 	break;
-#line 344 "parser.tab.c"
+#line 347 "src/apps/shell/parser.tab.c"
 	case 259:
-#line 30 "cmds.y"
+#line 31 "src/apps/shell/cmds.y"
 	{ ast_cmds_destroy((*val).cmdlist); }
 	break;
-#line 349 "parser.tab.c"
+#line 352 "src/apps/shell/parser.tab.c"
 	case 260:
-#line 29 "cmds.y"
+#line 30 "src/apps/shell/cmds.y"
 	{ free((void*)(*val).str); }
 	break;
-#line 354 "parser.tab.c"
+#line 357 "src/apps/shell/parser.tab.c"
 	case 261:
-#line 31 "cmds.y"
+#line 32 "src/apps/shell/cmds.y"
 	{ ast_args_destroy((*val).arglist); }
 	break;
-#line 359 "parser.tab.c"
+#line 362 "src/apps/shell/parser.tab.c"
 	case 262:
-#line 33 "cmds.y"
+#line 34 "src/apps/shell/cmds.y"
 	{ ast_cmd_destroy((*val).cmd); }
 	break;
-#line 364 "parser.tab.c"
+#line 367 "src/apps/shell/parser.tab.c"
 	case 263:
-#line 30 "cmds.y"
+#line 31 "src/apps/shell/cmds.y"
 	{ ast_cmds_destroy((*val).cmdlist); }
 	break;
-#line 369 "parser.tab.c"
+#line 372 "src/apps/shell/parser.tab.c"
 	case 264:
-#line 32 "cmds.y"
+#line 33 "src/apps/shell/cmds.y"
 	{ ast_redirs_destroy((*val).redirlist); }
 	break;
-#line 374 "parser.tab.c"
+#line 377 "src/apps/shell/parser.tab.c"
     }
 }
 #define YYDESTRUCT_IS_DECLARED 1
@@ -1033,7 +1036,7 @@ yyreduce:
     {
 case 1:
   if (!yytrial)
-#line 38 "cmds.y"
+#line 39 "src/apps/shell/cmds.y"
 	{
                                                         curcmd = yystack.l_mark[0].cmdlist;
                                                         yyval.cmdlist = NULL;
@@ -1041,62 +1044,67 @@ case 1:
 break;
 case 2:
   if (!yytrial)
-#line 43 "cmds.y"
+#line 44 "src/apps/shell/cmds.y"
+	{ yyval.cmdlist = ast_cmds_create(); }
+break;
+case 3:
+  if (!yytrial)
+#line 45 "src/apps/shell/cmds.y"
 	{
                                                         yyval.cmdlist = ast_cmds_create();
                                                         ast_cmds_append(yyval.cmdlist, yystack.l_mark[0].cmd);
                                                     }
 break;
-case 3:
+case 4:
   if (!yytrial)
-#line 47 "cmds.y"
+#line 49 "src/apps/shell/cmds.y"
 	{
                                                         yyval.cmdlist = yystack.l_mark[-2].cmdlist;
                                                         ast_cmds_append(yyval.cmdlist, yystack.l_mark[0].cmd);
                                                     }
 break;
-case 4:
-  if (!yytrial)
-#line 53 "cmds.y"
-	{ yyval.cmd = ast_cmd_create(yystack.l_mark[-1].arglist, yystack.l_mark[0].redirlist); }
-break;
 case 5:
   if (!yytrial)
-#line 57 "cmds.y"
-	{ yyval.redirlist = ast_redirs_create(); }
+#line 55 "src/apps/shell/cmds.y"
+	{ yyval.cmd = ast_cmd_create(yystack.l_mark[-1].arglist, yystack.l_mark[0].redirlist); }
 break;
 case 6:
   if (!yytrial)
-#line 58 "cmds.y"
-	{ yyval.redirlist = yystack.l_mark[-2].redirlist; ast_redirs_set(yystack.l_mark[-2].redirlist, 0, yystack.l_mark[0].str); }
+#line 59 "src/apps/shell/cmds.y"
+	{ yyval.redirlist = ast_redirs_create(); }
 break;
 case 7:
   if (!yytrial)
-#line 59 "cmds.y"
-	{ yyval.redirlist = yystack.l_mark[-2].redirlist; ast_redirs_set(yystack.l_mark[-2].redirlist, 1, yystack.l_mark[0].str); }
+#line 60 "src/apps/shell/cmds.y"
+	{ yyval.redirlist = yystack.l_mark[-2].redirlist; ast_redirs_set(yystack.l_mark[-2].redirlist, 0, yystack.l_mark[0].str); }
 break;
 case 8:
   if (!yytrial)
-#line 62 "cmds.y"
+#line 61 "src/apps/shell/cmds.y"
+	{ yyval.redirlist = yystack.l_mark[-2].redirlist; ast_redirs_set(yystack.l_mark[-2].redirlist, 1, yystack.l_mark[0].str); }
+break;
+case 9:
+  if (!yytrial)
+#line 64 "src/apps/shell/cmds.y"
 	{
                                                         yyval.arglist = ast_args_create();
                                                         ast_args_append(yyval.arglist, yystack.l_mark[0].str);
                                                     }
 break;
-case 9:
+case 10:
   if (!yytrial)
-#line 66 "cmds.y"
+#line 68 "src/apps/shell/cmds.y"
 	{
                                                         yyval.arglist = yystack.l_mark[-1].arglist;
                                                         ast_args_append(yystack.l_mark[-1].arglist, yystack.l_mark[0].str);
                                                     }
 break;
-case 10:
+case 11:
   if (!yytrial)
-#line 71 "cmds.y"
+#line 73 "src/apps/shell/cmds.y"
 	{ yyval.str = yystack.l_mark[0].str; }
 break;
-#line 1100 "parser.tab.c"
+#line 1108 "src/apps/shell/parser.tab.c"
     default:
         break;
     }

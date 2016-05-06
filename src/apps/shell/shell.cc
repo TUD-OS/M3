@@ -89,8 +89,8 @@ int main() {
     cout << "========================\n";
     cout << "\n";
 
-    while(1) {
-        cout << "> ";
+    while(!cin.eof()) {
+        cout << "$ ";
         cout.flush();
 
         // String input("echo < foo");
