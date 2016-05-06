@@ -18,6 +18,7 @@
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/DirectPipe.h>
+#include <m3/pipe/IndirectPipe.h>
 
 using namespace m3;
 
@@ -30,12 +31,8 @@ enum {
 
 alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
 
-int main() {
-    cycles_t start = Profile::start(0);
-
-    VPE writer("writer");
-    DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
-
+template<class PIPE>
+static void run_bench(VPE &writer, PIPE &pipe) {
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
@@ -54,8 +51,31 @@ int main() {
 
     pipe.close_reader();
     writer.wait();
+}
 
-    cycles_t end = Profile::stop(0);
-    cout << "Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: " << (end - start) << " cycles\n";
+int main() {
+    {
+        cycles_t start = Profile::start(0);
+
+        VPE writer("writer");
+        DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
+        run_bench(writer, pipe);
+
+        cycles_t end = Profile::stop(0);
+        cout << "[  direct] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+        cout << (end - start) << " cycles\n";
+    }
+
+    {
+        cycles_t start = Profile::start(0);
+
+        VPE writer("writer");
+        IndirectPipe pipe(MEM_SIZE);
+        run_bench(writer, pipe);
+
+        cycles_t end = Profile::stop(0);
+        cout << "[indirect] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+        cout << (end - start) << " cycles\n";
+    }
     return 0;
 }
