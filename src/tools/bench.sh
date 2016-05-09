@@ -6,21 +6,27 @@ if [ $# -ne 1 ]; then
 fi
 
 log=$1
-starttsc="fff1"
-stoptsc="fff2"
+starttsc="1ff1"
+stoptsc="1ff2"
 
 awk '
-/DMA-DEBUG-MESSAGE:/ {
-    match($4, /^([[:digit:]]+)\.[[:digit:]]+\/[[:digit:]]+:$/, m)
-    time = m[1]
-    id = substr($7,7,4)
-    if(substr($7,3,4) == "'$starttsc'") {
-        #print "STRT:", id, ":", time
+function handle(msg, time) {
+    id = substr(msg,7,4)
+    if(substr(msg,3,4) == "'$starttsc'") {
         start[id] = time
     }
-    else if(substr($7,3,4) == "'$stoptsc'") {
-        #print "STOP:", id, ":", time
+    else if(substr(msg,3,4) == "'$stoptsc'") {
         print "TIME:", id, ":", (strtonum(time) - strtonum(start[id])), "cycles"
     }
+}
+
+/DMA-DEBUG-MESSAGE:/ {
+    match($4, /^([[:digit:]]+)\.[[:digit:]]+\/[[:digit:]]+:$/, m)
+    handle($7, m[1])
+}
+
+/DEBUG [[:xdigit:]]+/ {
+    match($1, /^([[:digit:]]+):/, m)
+    handle($4, m[1] / 1000)
 }
 ' $log

@@ -88,7 +88,7 @@ private:
         READ                = 3,
         WRITE               = 4,
         INC_READ_PTR        = 5,
-        WAKEUP_CORE         = 6,
+        DEBUG_MSG           = 6,
     };
 
     enum class ExtCmdOpCode {
@@ -242,6 +242,10 @@ public:
     bool wait_for_mem_cmd() {
         // we've already waited
         return true;
+    }
+
+    void debug_msg(uint msg) {
+        write_reg(CmdRegs::COMMAND, buildCommand(msg, CmdOpCode::DEBUG_MSG));
     }
 
 private:

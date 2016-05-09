@@ -24,15 +24,15 @@ namespace m3 {
 class Profile {
     Profile() = delete;
 
+    static const unsigned START_TSC     = 0x1FF10000;
+    static const unsigned STOP_TSC      = 0x1FF20000;
+
 public:
     static cycles_t start(unsigned id = 0);
     static cycles_t stop(unsigned id = 0);
 };
 
 #if defined(__t3__)
-#   define START_TSC           0xFFF10000
-#   define STOP_TSC            0xFFF20000
-
 inline cycles_t Profile::start(unsigned id) {
     Sync::compiler_barrier();
     DTU::get().debug_msg(START_TSC | id);

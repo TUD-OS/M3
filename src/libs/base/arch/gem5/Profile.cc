@@ -15,7 +15,7 @@
  */
 
 #include <base/util/Profile.h>
-#include <sys/time.h>
+#include <base/DTU.h>
 
 namespace m3 {
 
@@ -25,12 +25,14 @@ static cycles_t rdtsc() {
     return (cycles_t)u << 32 | l;
 }
 
-cycles_t Profile::start(unsigned) {
+cycles_t Profile::start(unsigned msg) {
     Sync::memory_barrier();
+    DTU::get().debug_msg(START_TSC | msg);
     return rdtsc();
 }
 
-cycles_t Profile::stop(unsigned) {
+cycles_t Profile::stop(unsigned msg) {
+    DTU::get().debug_msg(STOP_TSC | msg);
     cycles_t res = rdtsc();
     Sync::memory_barrier();
     return res;
