@@ -89,7 +89,7 @@ void DTU::suspend(VPE &vpe) {
 }
 
 void DTU::injectIRQ(VPE &vpe) {
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 2));
+    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 3));
 }
 
 void DTU::config_pf_remote(VPE &vpe, int ep) {
