@@ -51,7 +51,7 @@ ssize_t File::Buffer::write(File *file, off_t, const void *src, size_t amount) {
 
     size_t count = Math::min(size - cur, amount);
     memcpy(buffer + cur, src, count);
-    cur += amount;
+    cur += count;
     return count;
 }
 
