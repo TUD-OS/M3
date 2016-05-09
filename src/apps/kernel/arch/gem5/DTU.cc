@@ -121,9 +121,10 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
 }
 
 static uintptr_t get_pte_addr(uintptr_t virt, int level) {
-    static uintptr_t recMask = (m3::DTU::PTE_REC_IDX << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
-                               (m3::DTU::PTE_REC_IDX << (PAGE_BITS + m3::DTU::LEVEL_BITS * 1)) |
-                               (m3::DTU::PTE_REC_IDX << (PAGE_BITS + m3::DTU::LEVEL_BITS * 0));
+    static uintptr_t recMask =
+        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
+        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 1)) |
+        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 0));
 
     // at first, just shift it accordingly.
     virt >>= PAGE_BITS + level * m3::DTU::LEVEL_BITS;
