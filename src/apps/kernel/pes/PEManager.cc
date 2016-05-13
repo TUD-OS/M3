@@ -16,6 +16,7 @@
 
 #include <base/stream/OStringStream.h>
 #include <base/log/Kernel.h>
+#include <base/Panic.h>
 
 #include <string.h>
 
@@ -56,18 +57,28 @@ void PEManager::load(int argc, char **argv) {
 
         // find end of arguments
         bool daemon = false;
-        int end = i + 1;
-        for(; end < argc; ++end) {
-            if(strncmp(argv[end], "core=", 5) == 0)
-                _petype[no] = argv[end] + 5;
-            else if(strcmp(argv[end], "daemon") == 0) {
+        bool karg = false;
+        int j = i + 1, end = i + 1;
+        for(; j < argc; ++j) {
+            if(strncmp(argv[j], "core=", 5) == 0) {
+                _petype[no] = argv[j] + 5;
+                karg = true;
+            }
+            else if(strcmp(argv[j], "daemon") == 0) {
                 daemon = true;
                 _vpes[no]->make_daemon();
+                karg = true;
             }
-            else if(strncmp(argv[end], "requires=", sizeof("requires=") - 1) == 0)
-                 _vpes[no]->add_requirement(argv[end] + sizeof("requires=") - 1);
-            else if(strcmp(argv[end], "--") == 0)
+            else if(strncmp(argv[j], "requires=", sizeof("requires=") - 1) == 0) {
+                 _vpes[no]->add_requirement(argv[j] + sizeof("requires=") - 1);
+                karg = true;
+            }
+            else if(strcmp(argv[j], "--") == 0)
                 break;
+            else if(karg)
+                PANIC("Kernel argument before program argument");
+            else
+                end++;
         }
 
         // start it, or register pending item
@@ -79,7 +90,7 @@ void PEManager::load(int argc, char **argv) {
         }
 
         no++;
-        i = end;
+        i = j;
         if(daemon)
             _daemons++;
     }
