@@ -234,7 +234,7 @@ void DTU::config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep
     ep[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((dstvpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);
     // TODO hand out "unlimited" credits atm
-    ep[1] = ((dstcore & 0xFF) << 24) | ((dstep & 0xFF) << 16) | 0xFFFF;
+    ep[1] = ((dstcore & 0xFF) << 24) | ((dstep & 0xFF) << 16) | m3::DTU::CREDITS_UNLIM;
     ep[2] = label;
 }
 

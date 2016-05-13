@@ -46,6 +46,8 @@ private:
     static const size_t CMD_REGS            = 6;
     static const size_t EP_REGS             = 3;
 
+    static const size_t CREDITS_UNLIM       = 0xFFFF;
+
     enum class DtuRegs {
         STATUS              = 0,
         ROOT_PT             = 1,
