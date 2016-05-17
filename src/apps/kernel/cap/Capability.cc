@@ -81,7 +81,7 @@ m3::Errors::Code ServiceCapability::revoke() {
     // if we have childs, i.e. sessions, we need to send the close-message to the service first,
     // in which case there will be pending requests, which need to be handled first.
     if(inst->pending() > 0 || (child() != nullptr && !closing))
-        return m3::Errors::INV_ARGS;
+        return m3::Errors::MSGS_WAITING;
     return m3::Errors::NO_ERROR;
 }
 

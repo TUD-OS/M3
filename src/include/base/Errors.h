@@ -45,6 +45,7 @@ struct Errors {
         EP_INVALID,
         RECV_GONE,
         END_OF_FILE,
+        MSGS_WAITING,
     };
 
     /**

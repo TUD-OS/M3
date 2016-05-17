@@ -56,7 +56,8 @@ public:
     ~Server() {
         // if it fails, there are pending requests. this might happen multiple times because
         // the kernel might have them still in the send-queue.
-        while(Syscalls::get().revoke(CapRngDesc(CapRngDesc::OBJ, sel())) != Errors::NO_ERROR) {
+        CapRngDesc caps(CapRngDesc::OBJ, sel());
+        while(Syscalls::get().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
             while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
                 GateIStream is(_ctrl_rgate, Errors::NO_ERROR);

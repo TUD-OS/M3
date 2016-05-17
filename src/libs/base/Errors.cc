@@ -42,6 +42,7 @@ static const char *errmsgs[] = {
     /* 17 */ "Endpoint is invalid",
     /* 18 */ "Receive buffer gone",
     /* 19 */ "End of file",
+    /* 20 */ "Messages are waiting to be handled",
 };
 
 const char *Errors::to_string(Code code) {
