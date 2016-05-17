@@ -26,7 +26,7 @@
 
 using namespace m3;
 
-#define COUNT   1
+#define COUNT   4
 
 static cycles_t exec_time = 0;
 
@@ -35,11 +35,19 @@ int main() {
         exitmsg("Mounting root-fs failed");
 
     {
-        cycles_t start = Profile::start(0);
-        VPE vpe("hello");
-        cycles_t end = Profile::stop(0);
-        cout << "Time for VPE-creation: " << (end - start) << " cycles\n";
+        for(int i = 0; i < COUNT; ++i) {
+            cycles_t start = Profile::start(0);
+            VPE vpe("hello");
+            exec_time += Profile::stop(0) - start;
+        }
 
+        cout << "Time for VPE-creation: " << (exec_time / COUNT) << " cycles\n";
+    }
+
+    exec_time = 0;
+
+    {
+        VPE vpe("hello");
         for(int i = 0; i < COUNT; ++i) {
             cycles_t start2 = Profile::start(1);
             Errors::Code res = vpe.run([start2]() {
