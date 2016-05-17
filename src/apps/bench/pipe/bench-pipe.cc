@@ -53,8 +53,15 @@ static void run_bench(VPE &writer, PIPE &pipe) {
     writer.wait();
 }
 
-int main() {
-    {
+int main(int argc, char **argv) {
+    bool direct = true;
+    bool indirect = true;
+    if(argc > 1) {
+        direct = strcmp(argv[1], "direct") == 0;
+        indirect = strcmp(argv[1], "indirect") == 0;
+    }
+
+    if(direct) {
         cycles_t start = Profile::start(0);
 
         VPE writer("writer");
@@ -66,7 +73,7 @@ int main() {
         cout << (end - start) << " cycles\n";
     }
 
-    {
+    if(indirect) {
         cycles_t start = Profile::start(0);
 
         VPE writer("writer");
