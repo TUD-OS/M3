@@ -87,11 +87,12 @@ void DTU::invalidate_ep(VPE &vpe, int ep) {
     write_mem(vpe, addr, &conf, sizeof(conf));
 }
 
-void DTU::invalidate_eps(VPE &vpe) {
+void DTU::invalidate_eps(VPE &vpe, int first) {
     alignas(DTU_PKG_SIZE) char eps[EPS_SIZE];
     memset(eps, 0, sizeof(eps));
     m3::Sync::memory_barrier();
-    write_mem(vpe, EPS_START, eps, sizeof(eps));
+    size_t start = first * sizeof(m3::EPConf);
+    write_mem(vpe, EPS_START, eps + start, sizeof(eps) - start);
 }
 
 void DTU::config_recv_local(int, uintptr_t, uint, uint, int) {

@@ -59,7 +59,7 @@ void VPE::unref() {
 }
 
 void VPE::exit(int exitcode) {
-    DTU::get().invalidate_eps(*this);
+    DTU::get().invalidate_eps(*this, m3::DTU::FIRST_FREE_EP);
     detach_rbufs();
     _state = DEAD;
     _exitcode = exitcode;

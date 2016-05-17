@@ -49,11 +49,12 @@ void DTU::deprivilege(int) {
     // unsupported
 }
 
-void DTU::invalidate_eps(VPE &vpe) {
-    size_t total = m3::DTU::EPS_RCNT * EP_COUNT;
+void DTU::invalidate_eps(VPE &vpe, int first) {
+    size_t total = m3::DTU::EPS_RCNT * (EP_COUNT - first);
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
-    write_mem(vpe, reinterpret_cast<uintptr_t>(vpe.eps()), regs, total * sizeof(word_t));
+    uintptr_t addr = reinterpret_cast<uintptr_t>(vpe.eps()) + first * sizeof(word_t) * m3::DTU::EPS_RCNT;
+    write_mem(vpe, addr, regs, total * sizeof(word_t));
     delete[] regs;
 }
 

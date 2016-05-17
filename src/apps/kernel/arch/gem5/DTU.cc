@@ -191,12 +191,12 @@ void DTU::invalidate_ep(VPE &vpe, int ep) {
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
-void DTU::invalidate_eps(VPE &vpe) {
-    m3::DTU::reg_t *eps = new m3::DTU::reg_t[m3::DTU::EP_REGS * EP_COUNT];
-    size_t total = sizeof(*eps) * m3::DTU::EP_REGS * EP_COUNT;
+void DTU::invalidate_eps(VPE &vpe, int first) {
+    m3::DTU::reg_t *eps = new m3::DTU::reg_t[m3::DTU::EP_REGS * (EP_COUNT - first)];
+    size_t total = sizeof(*eps) * m3::DTU::EP_REGS * (EP_COUNT - first);
     memset(eps, 0, total);
     m3::Sync::compiler_barrier();
-    write_mem(vpe, m3::DTU::ep_regs_addr(0), eps, total);
+    write_mem(vpe, m3::DTU::ep_regs_addr(first), eps, total);
     delete[] eps;
 }
 

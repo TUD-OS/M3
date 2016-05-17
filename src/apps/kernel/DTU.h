@@ -52,7 +52,7 @@ public:
     void unmap_page(VPE &vpe, uintptr_t virt);
 
     void invalidate_ep(VPE &vpe, int ep);
-    void invalidate_eps(VPE &vpe);
+    void invalidate_eps(VPE &vpe, int first = 0);
 
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
     void config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);

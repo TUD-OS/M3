@@ -77,8 +77,8 @@ void DTU::invalidate_ep(VPE &vpe, int ep) {
     write_mem(vpe, addr, regs, sizeof(regs));
 }
 
-void DTU::invalidate_eps(VPE &vpe) {
-    for(int i = 0; i < EP_COUNT; ++i)
+void DTU::invalidate_eps(VPE &vpe, int first) {
+    for(int i = first; i < EP_COUNT; ++i)
         invalidate_ep(vpe, i);
 }
 
