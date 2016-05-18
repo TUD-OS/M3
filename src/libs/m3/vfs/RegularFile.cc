@@ -75,7 +75,7 @@ public:
 
         size_t count = std::min(size - cur, amount);
         memcpy(buffer + cur, src, count);
-        cur += amount;
+        cur += count;
         return count;
     }
 
