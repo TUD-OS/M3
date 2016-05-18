@@ -35,6 +35,7 @@ public:
         IRQS        = 1 << 5,
         SHM         = 1 << 6,
         HEAP        = 1 << 7,
+        FS          = 1 << 8,
     };
 
     static const int level = 0;

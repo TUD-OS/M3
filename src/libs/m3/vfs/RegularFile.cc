@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
+
 #include <m3/session/M3FS.h>
 #include <m3/vfs/RegularFile.h>
 #include <m3/vfs/MountSpace.h>
@@ -171,6 +173,9 @@ off_t RegularFile::seek(off_t off, int whence) {
     }
     _pos.offset = extoff;
     adjust_written_part();
+
+    LLOG(FS, "[" << _fd << "] seek (" << fmt(off, "#0x", 6) << ", " << whence << ") -> ("
+        << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
     return pos;
 }
 
@@ -205,6 +210,9 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
         // determine next off and idx
         size_t memoff = pos.offset;
         size_t amount = get_amount(extlen, count, pos);
+
+        LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") -> ("
+            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "#0x", 6) << ")");
 
         // read from global memory
         // we need to round up here because the filesize might not be a multiple of DTU_PKG_SIZE
@@ -241,6 +249,9 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
                 _last_off = memoff + amount;
             _last_extent = lastglobal;
         }
+
+        LLOG(FS, "[" << _fd << "] write(" << fmt(amount, "#0x", 6) << ") -> ("
+            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "0", 6) << ")");
 
         // write to global memory
         _lastmem.write_sync(buf, amount, memoff);
