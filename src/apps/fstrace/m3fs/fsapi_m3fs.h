@@ -36,6 +36,14 @@ class FSAPI_M3FS : public FSAPI {
         fdMap[fd]->clearerr();
     }
 
+#if defined(__gem5__)
+    static cycles_t rdtsc() {
+        uint32_t u, l;
+        asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
+        return (cycles_t)u << 32 | l;
+    }
+#endif
+
 public:
     explicit FSAPI_M3FS(m3::String const &prefix)
         : _start(), _prefix(prefix), fdMap(), dirMap() {
@@ -62,6 +70,10 @@ public:
         int rem = args->timestamp / 4;
         while(rem > 0)
             asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
+#elif defined(__gem5__)
+        cycles_t finish = rdtsc() + args->timestamp;
+        while(rdtsc() < finish)
+            ;
 #endif
     }
 

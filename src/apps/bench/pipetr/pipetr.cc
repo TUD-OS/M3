@@ -82,9 +82,9 @@ int main(int argc, char **argv) {
         size_t res;
         File *in = VPE::self().fds()->get(pipe.reader_fd());
         while((res = in->read(buffer, sizeof(buffer))) > 0) {
-            cycles_t cstart = Profile::start(0xaaaa);
+            cycles_t cstart = Profile::start(0xbbbb);
             replace(buffer, res, c1, c2);
-            cycles_t cend = Profile::stop(0xaaaa);
+            cycles_t cend = Profile::stop(0xbbbb);
             apptime += cend - cstart;
             output->write(buffer, res);
         }

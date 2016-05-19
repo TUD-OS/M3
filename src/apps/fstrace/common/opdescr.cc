@@ -638,9 +638,13 @@ OpDescr *OpDescrFactory::create(const string &line) {
         return new _LlSeekOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "ftruncate("))
         return new FTruncateOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "fstat("))
+        return new FStatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "fstat64("))
         return new FStatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "stat64("))
+        return new StatOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "lstat("))
         return new StatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "lstat64("))
         return new StatOpDescr(line);
@@ -652,6 +656,8 @@ OpDescr *OpDescrFactory::create(const string &line) {
         return new RmdirOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "mkdir("))
         return new MkdirOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "sendfile("))
+        return new SendfileOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "sendfile64("))
         return new SendfileOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "getdents64("))

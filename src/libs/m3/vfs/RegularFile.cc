@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Profile.h>
 #include <base/log/Lib.h>
 
 #include <m3/session/M3FS.h>
@@ -217,7 +218,9 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
         // read from global memory
         // we need to round up here because the filesize might not be a multiple of DTU_PKG_SIZE
         // in which case the last extent-size is not aligned
+        Profile::start(0xaaaa);
         _lastmem.read_sync(buf, Math::round_up(amount, DTU_PKG_SIZE), memoff);
+        Profile::stop(0xaaaa);
         buf += amount;
         count -= amount;
     }
@@ -254,7 +257,9 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
             << fmt(pos.global, 2) << ", " << fmt(pos.offset, "0", 6) << ")");
 
         // write to global memory
+        Profile::start(0xaaaa);
         _lastmem.write_sync(buf, amount, memoff);
+        Profile::stop(0xaaaa);
         buf += amount;
         count -= amount;
     }

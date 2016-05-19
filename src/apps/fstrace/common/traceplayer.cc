@@ -32,7 +32,7 @@
  * *************************************************************************
  */
 
-int TracePlayer::play(bool keep_time, bool make_chkpt) {
+int TracePlayer::play(bool keep_time, bool) {
     trace_op_t *op = trace_ops;
 
     // touch all operations to make sure we don't get pagefaults in trace_ops arrary
@@ -52,7 +52,7 @@ int TracePlayer::play(bool keep_time, bool make_chkpt) {
 
     fs->start();
 #ifndef __LINUX__
-    m3::Profile::start(0xAAAA);
+    m3::Profile::start(0xBBBB);
 #endif
 
     // let's play
@@ -62,12 +62,12 @@ int TracePlayer::play(bool keep_time, bool make_chkpt) {
         m3::Profile::start(lineNo);
 #endif
 
-        if (lineNo % 100 == 0xAAAA)
-            fs->checkpoint(numReplayed, numTraceOps, make_chkpt);
+        // if (lineNo % 100 == 0)
+        //     fs->checkpoint(numReplayed, numTraceOps, make_chkpt);
 
 #ifndef __LINUX__
         if(op->opcode != WAITUNTIL_OP)
-            m3::Profile::stop(0xAAAA);
+            m3::Profile::stop(0xBBBB);
 #endif
 
         //Platform::logf("line #%u: opcode=%u,op=%p\n", lineNo, op->opcode, op);
@@ -193,7 +193,7 @@ int TracePlayer::play(bool keep_time, bool make_chkpt) {
 
 #ifndef __LINUX__
         if(op->opcode != WAITUNTIL_OP)
-            m3::Profile::start(0xAAAA);
+            m3::Profile::start(0xBBBB);
 #endif
 
         if (op->opcode != WAITUNTIL_OP)
@@ -207,7 +207,7 @@ int TracePlayer::play(bool keep_time, bool make_chkpt) {
     }
 
 #ifndef __LINUX__
-    m3::Profile::stop(0xAAAA);
+    m3::Profile::stop(0xBBBB);
 #endif
     fs->stop();
     return 0;

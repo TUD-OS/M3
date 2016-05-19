@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Profile.h>
+
 #include <m3/pipe/IndirectPipeWriter.h>
 
 namespace m3 {
@@ -25,7 +27,9 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     if(res != Errors::NO_ERROR)
         return -1;
 
+    Profile::start(0xaaaa);
     _mem.write_sync(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
+    Profile::stop(0xaaaa);
     return count;
 }
 

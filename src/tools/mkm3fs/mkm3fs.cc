@@ -44,7 +44,7 @@
 
 enum {
     MAX_BLOCKS      = 1024 * 1024,
-    MAX_INODES      = 1024,
+    MAX_INODES      = 2048,
 };
 
 m3::SuperBlock sb;

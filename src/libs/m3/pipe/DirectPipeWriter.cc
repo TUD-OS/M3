@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Profile.h>
+
 #include <m3/com/GateStream.h>
 #include <m3/pipe/DirectPipe.h>
 #include <m3/pipe/DirectPipeWriter.h>
@@ -126,7 +128,9 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
         DBG_PIPE("[write] send pos=" << off << ", len=" << amount << "\n");
 
         if(aligned_amount) {
+            Profile::start(0xaaaa);
             _state->_mgate.write_sync(buf, aligned_amount, off);
+            Profile::stop(0xaaaa);
             _state->_wrpos = (off + aligned_amount) % _size;
         }
         _state->_free -= aligned_amount;
