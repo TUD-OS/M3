@@ -49,6 +49,22 @@ void DTU::clear_pt(uintptr_t pt) {
 
 void DTU::init() {
     do_set_vpeid(KERNEL_CORE, VPE::INVALID_ID, 0);
+
+    // Enable async sends for the kernel. This is required to resolve a potential deadlock:
+    // if an application performs the clone operation at the pager, which revokes write-access to
+    // all pages for COW, it does so via the obtain syscall of the kernel. Thus, when the kernel
+    // wants to send the reply for the obtain, all pages of the receiver are readonly, so that the
+    // DTU can't place the message in the ringbuffer, but issues a pagefault. This is sent to the
+    // pager, which in turn will need the kernel to upgrade permissions.
+    // To resolve this deadlock, the kernel does not wait any longer until the message has been
+    // successfully placed in the receivers ringbuffer, but only until the message left the kernels
+    // DTU. This is also beneficial for performance, of course. And most important, the kernel does
+    // not need to wait longer anyway, because the purpose was to detect message sends to moved
+    // VPEs. The kernel moves VPEs, so that it knows that beforehand.
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = m3::DTU::PRIV | m3::DTU::ASYNC_SEND;
+    m3::Sync::compiler_barrier();
+    write_mem_at(KERNEL_CORE, 0,
+        m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
 void DTU::deprivilege(int core) {
