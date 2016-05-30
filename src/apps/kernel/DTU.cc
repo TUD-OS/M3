@@ -15,12 +15,13 @@
  */
 
 #include <base/Common.h>
+#include <base/Init.h>
 
 #include "DTU.h"
 
 namespace kernel {
 
 // the DTU has to initialize before SyscallHandler
-DTU DTU::_inst INIT_PRIORITY(120);
+INIT_PRIO_USER(1) DTU DTU::_inst;
 
 }

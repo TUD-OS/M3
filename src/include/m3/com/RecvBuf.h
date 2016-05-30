@@ -58,6 +58,10 @@ private:
     }
 
 public:
+    static RecvBuf &def() {
+        return _default;
+    }
+
 #if defined(__t2__)
     static RecvBuf create(size_t epid, int, unsigned) {
         return create(epid);
@@ -135,6 +139,7 @@ private:
     size_t _epid;
     unsigned _flags;
     RecvBufWorkItem *_workitem;
+    static RecvBuf _default;
 };
 
 }

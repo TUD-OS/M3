@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Env.h>
+
 #include <m3/session/Session.h>
 #include <m3/session/arch/host/Interrupts.h>
 #include <m3/stream/Standard.h>

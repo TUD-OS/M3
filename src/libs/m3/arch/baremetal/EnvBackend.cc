@@ -39,10 +39,6 @@ public:
         while(senv->coreid == 0)
             ;
 
-        _def_recvbuf = new RecvBuf(RecvBuf::bindto(
-            DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0));
-        _def_recvgate = new RecvGate(RecvGate::create(_def_recvbuf));
-
         // TODO argv is always present, isn't it?
         Serial::init(env()->argv ? env()->argv[0] : "Unknown", env()->coreid);
     }
@@ -55,8 +51,9 @@ public:
 
 #if defined(__t3__)
         // set default receive buffer again
-        DTU::get().configure_recv(_def_recvbuf->epid(), reinterpret_cast<word_t>(_def_recvbuf->addr()),
-            _def_recvbuf->order(), _def_recvbuf->msgorder(), _def_recvbuf->flags());
+        RecvBuf &def = RecvBuf::def();
+        DTU::get().configure_recv(def.epid(), reinterpret_cast<word_t>(def.addr()),
+            def.order(), def.msgorder(), def.flags());
 #endif
 
         Serial::init(env()->argv ? env()->argv[0] : "Unknown", senv->coreid);
@@ -74,9 +71,6 @@ public:
     void exit(int code) override {
         Syscalls::get().exit(code);
     }
-
-private:
-    RecvBuf *_def_recvbuf;
 };
 
 EXTERN_C void init_env(Env *e) {

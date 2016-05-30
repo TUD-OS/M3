@@ -16,6 +16,7 @@
 
 #include <base/com/Marshalling.h>
 #include <base/stream/Serial.h>
+#include <base/Init.h>
 
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
@@ -26,7 +27,7 @@
 namespace m3 {
 
 // clean them up after the standard streams have been destructed
-VFS::Cleanup VFS::_cleanup INIT_PRIORITY(106);
+INIT_PRIO_VFS VFS::Cleanup VFS::_cleanup;
 
 VFS::Cleanup::~Cleanup() {
     for(fd_t i = 0; i < FileTable::MAX_FDS; ++i)

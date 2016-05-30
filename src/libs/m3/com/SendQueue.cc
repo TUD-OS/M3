@@ -17,13 +17,14 @@
 #if defined(__host__)
 
 #include <base/log/Lib.h>
+#include <base/Init.h>
 #include <base/DTU.h>
 
 #include <m3/com/SendQueue.h>
 
 namespace m3 {
 
-SendQueue SendQueue::_inst INIT_PRIORITY(101);
+INIT_PRIO_SENDQUEUE SendQueue SendQueue::_inst;
 
 void SendQueue::work() {
     if(_queue.length() > 0) {

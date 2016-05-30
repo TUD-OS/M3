@@ -64,9 +64,6 @@ public:
     uint32_t : 32;
 #endif
 
-    RecvGate *def_recvgate() {
-        return backend->_def_recvgate;
-    }
     WorkLoop *workloop() {
         return backend->_workloop;
     }

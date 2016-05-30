@@ -47,6 +47,10 @@ class RecvGate : public Gate, public Subscriptions<GateIStream&> {
     }
 
 public:
+    static RecvGate &def() {
+        return _default;
+    }
+
     /**
      * Creates a new receive-gate. Note that the receive-buffer has to be bound to an endpoint.
      *
@@ -131,6 +135,7 @@ public:
 private:
     RecvBuf *_rcvbuf;
     void *_sess;
+    static RecvGate _default;
 };
 
 }

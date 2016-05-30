@@ -18,6 +18,7 @@
 #include <base/Backtrace.h>
 #include <base/Env.h>
 #include <base/DTU.h>
+#include <base/Init.h>
 #include <base/Panic.h>
 
 #include <m3/com/RecvGate.h>
@@ -34,8 +35,8 @@ volatile int wait_for_debugger = 1;
 namespace m3 {
 
 Env *Env::_inst = nullptr;
-Env::Init Env::_init INIT_PRIORITY(102);
-Env::PostInit Env::_postInit INIT_PRIORITY(104);
+INIT_PRIO_ENV Env::Init Env::_init;
+INIT_PRIO_ENV_POST Env::PostInit Env::_postInit;
 char Env::_exec[128];
 char Env::_exec_short[128];
 const char *Env::_exec_short_ptr = nullptr;
@@ -82,7 +83,6 @@ HostEnvBackend::HostEnvBackend() {
 }
 
 HostEnvBackend::~HostEnvBackend() {
-    delete _def_recvgate;
 }
 
 Env::Init::Init() {
@@ -102,7 +102,6 @@ Env::Init::Init() {
     init_env();
 
     Serial::init(executable(), env()->coreid);
-    _inst->init_dtu();
 }
 
 Env::Init::~Init() {
@@ -110,6 +109,7 @@ Env::Init::~Init() {
 }
 
 Env::PostInit::PostInit() {
+    _inst->init_dtu();
     if(!env()->is_kernel())
         env()->init_syscall(DTU::get().ep_regs());
 }
@@ -140,9 +140,7 @@ Env::Env(EnvBackend *backend, int logfd)
           // the memory receive buffer is required to let others access our memory via DTU
           _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
                            RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
-          _def_recvbuf(RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)),
           _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))) {
-    backend->_def_recvgate = new RecvGate(RecvGate::create(&_def_recvbuf));
 }
 
 void Env::init_executable() {
@@ -161,8 +159,10 @@ void Env::init_dtu() {
     // we have to init that here, too, because the kernel doesn't know where it is
     DTU::get().configure_recv(DTU::MEM_EP, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
         _mem_recvbuf.order(), _mem_recvbuf.msgorder(), _mem_recvbuf.flags());
-    DTU::get().configure_recv(DTU::DEF_RECVEP, reinterpret_cast<uintptr_t>(_def_recvbuf.addr()),
-        _def_recvbuf.order(), _def_recvbuf.msgorder(), _def_recvbuf.flags());
+
+    RecvBuf &def = RecvBuf::def();
+    DTU::get().configure_recv(DTU::DEF_RECVEP, reinterpret_cast<uintptr_t>(def.addr()),
+        def.order(), def.msgorder(), def.flags());
 
     DTU::get().configure(DTU::SYSC_EP, _sysc_label, 0, _sysc_epid, _sysc_credits);
 

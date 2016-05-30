@@ -71,9 +71,6 @@ public:
 
     void reset();
 
-    RecvGate *def_recvgate() {
-        return backend->_def_recvgate;
-    }
     WorkLoop *workloop() {
         return backend->_workloop;
     }
@@ -134,7 +131,6 @@ private:
     word_t _sysc_credits;
     pthread_mutex_t _log_mutex;
     RecvBuf _mem_recvbuf;
-    RecvBuf _def_recvbuf;
     RecvGate *_mem_recvgate;
 
     static const char *_exec_short_ptr;

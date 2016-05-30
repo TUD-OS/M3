@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
+#include <base/Env.h>
 
 #include <m3/com/SendGate.h>
 #include <m3/com/GateStream.h>

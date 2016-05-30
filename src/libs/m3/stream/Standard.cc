@@ -15,14 +15,15 @@
  */
 
 #include <base/Common.h>
+#include <base/Init.h>
 
 #include <m3/stream/Standard.h>
 
 namespace m3 {
 
 // create them after VPE::self() has finished, because otherwise the file objects are not available
-INIT_PRIORITY(107) FStream cerr(STDERR_FD, FILE_W, 256, FStream::FL_LINE_BUF);
-INIT_PRIORITY(107) FStream cout(STDOUT_FD, FILE_W, 256, FStream::FL_LINE_BUF);
-INIT_PRIORITY(107) FStream cin(STDIN_FD, FILE_R, 128);
+INIT_PRIO_STREAM FStream cerr(STDERR_FD, FILE_W, 256, FStream::FL_LINE_BUF);
+INIT_PRIO_STREAM FStream cout(STDOUT_FD, FILE_W, 256, FStream::FL_LINE_BUF);
+INIT_PRIO_STREAM FStream cin(STDIN_FD, FILE_R, 128);
 
 }

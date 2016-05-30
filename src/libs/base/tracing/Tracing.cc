@@ -19,6 +19,7 @@
 #include <base/stream/Serial.h>
 #include <base/tracing/Tracing.h>
 #include <base/util/Profile.h>
+#include <base/Init.h>
 
 #if defined(TRACE_ENABLED)
 
@@ -26,7 +27,7 @@
 
 namespace m3 {
 
-Tracing Tracing::_inst INIT_PRIORITY(1000);
+INIT_PRIO_USER(3) Tracing Tracing::_inst;
 
 OStream & operator<<(OStream &os, const Event &event) {
 #if defined(TRACE_HUMAN_READABLE)

@@ -19,6 +19,7 @@
 #include <base/log/Lib.h>
 #include <base/DTU.h>
 #include <base/Env.h>
+#include <base/Init.h>
 #include <base/KIF.h>
 #include <base/Panic.h>
 
@@ -44,8 +45,8 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
         LLOG(DTUERR, "  " << tmp.str().c_str());
 }
 
-DTU DTU::inst INIT_PRIORITY(101);
-DTU::Buffer DTU::_buf INIT_PRIORITY(101);
+INIT_PRIO_DTU DTU DTU::inst;
+INIT_PRIO_DTU DTU::Buffer DTU::_buf;
 
 DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid(), _unack() {
 }

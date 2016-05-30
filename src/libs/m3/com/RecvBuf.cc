@@ -15,6 +15,7 @@
  */
 
 #include <base/log/Lib.h>
+#include <base/Init.h>
 #include <base/Panic.h>
 
 #include <m3/com/RecvGate.h>
@@ -24,6 +25,14 @@
 #include <m3/VPE.h>
 
 namespace m3 {
+
+INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
+#if defined(__host__)
+    RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)
+#else
+    RecvBuf::bindto(DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0)
+#endif
+);
 
 void RecvBuf::RecvBufWorkItem::work() {
     DTU &dtu = DTU::get();

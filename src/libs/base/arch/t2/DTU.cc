@@ -18,12 +18,13 @@
 #include <base/log/Lib.h>
 #include <base/tracing/Tracing.h>
 #include <base/DTU.h>
+#include <base/Init.h>
 #include <base/KIF.h>
 #include <base/Panic.h>
 
 namespace m3 {
 
-DTU DTU::inst INIT_PRIORITY(106);
+INIT_PRIO_DTU DTU DTU::inst;
 
 size_t DTU::regs[2][6] = {
     // CM

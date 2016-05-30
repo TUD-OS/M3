@@ -21,7 +21,6 @@
 namespace m3 {
 
 class Env;
-class RecvGate;
 class WorkLoop;
 
 class EnvBackend {
@@ -37,7 +36,6 @@ public:
 
 protected:
     WorkLoop *_workloop;
-    RecvGate *_def_recvgate;
 };
 
 }

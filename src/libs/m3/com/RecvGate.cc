@@ -14,10 +14,14 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Init.h>
+
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 
 namespace m3 {
+
+INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
 
 Errors::Code RecvGate::wait(SendGate *sgate) const {
     while(!DTU::get().fetch_msg(epid())) {

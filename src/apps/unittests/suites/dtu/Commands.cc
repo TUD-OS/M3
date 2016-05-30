@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Env.h>
+
 #include <m3/com/MemGate.h>
 #include <m3/com/RecvBuf.h>
 #include <m3/stream/Standard.h>

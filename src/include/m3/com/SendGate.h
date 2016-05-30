@@ -17,7 +17,6 @@
 #pragma once
 
 #include <base/Errors.h>
-#include <base/Env.h>
 
 #include <m3/com/Gate.h>
 #include <m3/com/RecvGate.h>
@@ -42,7 +41,7 @@ class SendGate : public Gate {
 
     explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t epid = UNBOUND)
         : Gate(SEND_GATE, cap, capflags, epid),
-            _rcvgate(rcvgate == nullptr ? env()->def_recvgate() : rcvgate) {
+            _rcvgate(rcvgate == nullptr ? &RecvGate::def() : rcvgate) {
     }
 
 public:

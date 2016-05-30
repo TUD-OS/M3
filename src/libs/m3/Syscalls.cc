@@ -17,13 +17,14 @@
 #include <base/log/Lib.h>
 #include <base/tracing/Tracing.h>
 #include <base/Errors.h>
+#include <base/Init.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/Syscalls.h>
 
 namespace m3 {
 
-Syscalls Syscalls::_inst INIT_PRIORITY(103);
+INIT_PRIO_SYSC Syscalls Syscalls::_inst;
 
 Errors::Code Syscalls::finish(GateIStream &&reply) {
     if(reply.error())

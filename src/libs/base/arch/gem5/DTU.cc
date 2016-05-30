@@ -16,11 +16,12 @@
 
 #include <base/util/Sync.h>
 #include <base/DTU.h>
+#include <base/Init.h>
 #include <base/KIF.h>
 
 namespace m3 {
 
-DTU DTU::inst INIT_PRIORITY(106);
+INIT_PRIO_DTU DTU DTU::inst;
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     static_assert(KIF::Perm::R == DTU::R, "DTU::R does not match KIF::Perm::R");

@@ -17,13 +17,14 @@
 #include <base/log/Lib.h>
 #include <base/util/Sync.h>
 #include <base/DTU.h>
+#include <base/Init.h>
 
 namespace m3 {
 
 // workaround for the problem that T3 doesn't allow us to figure out the receive buffer address
 // afterwards. so, just store it here
 uintptr_t DTU::recvbufs[EP_COUNT];
-DTU DTU::inst INIT_PRIORITY(106);
+INIT_PRIO_DTU DTU DTU::inst;
 
 size_t DTU::get_msgoff(int ep) const {
     return get_msgoff(ep, message(ep));

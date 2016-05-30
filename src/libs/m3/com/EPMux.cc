@@ -15,6 +15,7 @@
  */
 
 #include <base/Errors.h>
+#include <base/Init.h>
 #include <base/Panic.h>
 
 #include <m3/com/EPMux.h>
@@ -27,7 +28,7 @@
 
 namespace m3 {
 
-EPMux EPMux::_inst INIT_PRIORITY(101);
+INIT_PRIO_EPMUX EPMux EPMux::_inst;
 
 EPMux::EPMux()
     : _next_victim(1), _gates() {

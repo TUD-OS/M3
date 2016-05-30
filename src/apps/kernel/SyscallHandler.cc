@@ -16,6 +16,7 @@
 
 #include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
+#include <base/Init.h>
 #include <base/Panic.h>
 #include <base/WorkLoop.h>
 
@@ -32,7 +33,7 @@ extern int int_target;
 
 namespace kernel {
 
-SyscallHandler SyscallHandler::_inst INIT_PRIORITY(121);
+INIT_PRIO_USER(2) SyscallHandler SyscallHandler::_inst;
 
 #if defined(SIMPLE_SYSC_LOG)
 #   define LOG_SYS(vpe, sysname, expr) \

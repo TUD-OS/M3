@@ -23,14 +23,14 @@
 namespace m3 {
 
 SendGate SendGate::create(word_t credits, RecvGate *rcvgate, capsel_t sel) {
-    rcvgate = rcvgate == nullptr ? env()->def_recvgate() : rcvgate;
+    rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
     return create_for(VPE::self(), rcvgate->epid(), rcvgate->label(), credits, rcvgate, sel);
 }
 
 SendGate SendGate::create_for(const VPE &vpe, size_t dstep, label_t label, word_t credits,
         RecvGate *rcvgate, capsel_t sel) {
     uint flags = 0;
-    rcvgate = rcvgate == nullptr ? env()->def_recvgate() : rcvgate;
+    rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
     if(sel == INVALID)
         sel = VPE::self().alloc_cap();
     else

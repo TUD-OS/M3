@@ -26,7 +26,7 @@
 #define UNUSED                  __attribute__ ((unused))
 #define UNREACHED               __builtin_unreachable()
 #define WEAK                    __attribute__ ((weak))
-#define INIT_PRIORITY(X)        __attribute__ ((init_priority((X))))
+#define INIT_PRIO(X)            __attribute__ ((init_priority((X))))
 #define ALIGNED(X)              __attribute__ ((aligned(X)))
 
 #ifdef __clang__
