@@ -193,7 +193,11 @@ static void map_idle(VPE &vpe) {
 }
 
 void VPE::init_memory(const char *name) {
-    if(_bootmod) {
+    if(_flags & MEMINIT)
+        return;
+    _flags |= MEMINIT;
+
+    if(_flags & BOOTMOD) {
         bool appFirst;
         BootModule *mod = get_mod(name, &appFirst);
         if(!mod)

@@ -45,6 +45,12 @@ public:
         DEAD
     };
 
+    enum Flags {
+        BOOTMOD     = 1 << 0,
+        DAEMON      = 1 << 1,
+        MEMINIT     = 1 << 2,
+    };
+
     struct ServName : public m3::SListItem {
         explicit ServName(const m3::String &_name) : name(_name) {
         }
@@ -82,6 +88,9 @@ public:
     }
     int core() const {
         return _id.core;
+    }
+    uint flags() const {
+        return _flags;
     }
     int state() const {
         return _state;
@@ -123,7 +132,7 @@ public:
         return _eps;
     }
     void make_daemon() {
-        _daemon = true;
+        _flags |= DAEMON;
     }
 
 private:
@@ -140,8 +149,7 @@ private:
     void detach_rbufs();
 
     VPEId _id;
-    bool _daemon;
-    bool _bootmod;
+    uint _flags;
     int _refs;
     int _pid;
     int _state;

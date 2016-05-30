@@ -32,7 +32,7 @@ VPE::VPEId::~VPEId() {
 }
 
 VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
-    : _id(id, id + APP_CORES), _daemon(), _bootmod(bootmod),
+    : _id(id, id + APP_CORES), _flags(bootmod ? BOOTMOD : 0),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
@@ -55,7 +55,7 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t p
 void VPE::unref() {
     // 1 because we always have a VPE-cap for ourself (not revokeable)
     if(--_refs == 1)
-        PEManager::get().remove(id(), _daemon);
+        PEManager::get().remove(id(), _flags & DAEMON);
 }
 
 void VPE::exit(int exitcode) {
