@@ -8,7 +8,7 @@ archdir_absolute = '#src/apps/rctmux/' + archdir
 if env['ARCH'] == 't3':
     rctmux = env.M3Program(
         env,
-        target = 'rctmux',
+        target = 'idle',
         source = [
             env['BINARYDIR'].abspath + '/Window.o',
             env.Glob('*.cc'),
@@ -23,10 +23,18 @@ if env['ARCH'] == 't3':
 # gem5
 elif env['ARCH'] == 'gem5':
     myenv = env.Clone()
-    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x3FFE000')
+    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x3FF0000')
+
+    # flto does not work for currently unknown reasons
+    # (hi part of adresses in idt are missing for some reason)
+    # we therefore remove this build option for the moment
+    myenv.Replace(CXXFLAGS = str(myenv['CXXFLAGS']).replace('-flto', ''))
+    myenv.Replace(CFLAGS = str(myenv['CFLAGS']).replace('-flto', ''))
+    myenv.Replace(LINKFLAGS = str(myenv['LINKFLAGS']).replace('-flto', ''))
+
     myenv.M3Program(
         myenv,
-        target = 'rctmux',
+        target = 'idle',
         source = [
             env.Glob('*.cc'),
             env.Glob(archdir + '/*.S'),
