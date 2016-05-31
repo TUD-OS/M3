@@ -93,7 +93,11 @@
 #define RT_START            (EPS_START - RT_SIZE)
 #define RT_END              EPS_START
 
+#define RECVBUF_SPACE       1                       // no limit here
+
 // actually, it does not really matter here what the values are
 #define DEF_RCVBUF_ORDER    4
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
 #define DEF_RCVBUF          0
+
+#define MEMCAP_END          0xFFFFFFFF

@@ -23,9 +23,13 @@
 
 namespace m3 {
 
+class Env;
+
 class RecvBuf {
+    friend class Env;
+
 public:
-    static const size_t UNBOUND     = -1;
+    static const size_t UNBOUND         = -1;
 
     enum {
         NONE        = 0,
@@ -57,6 +61,10 @@ private:
             attach(epid);
     }
 
+    static RecvBuf bindto(size_t epid, void *addr, int order, unsigned flags) {
+        return RecvBuf(epid, addr, order, order, flags);
+    }
+
 public:
     static RecvBuf &def() {
         return _default;
@@ -76,18 +84,12 @@ public:
     }
 #else
     static RecvBuf create(size_t epid, int order, unsigned flags) {
-        return RecvBuf(epid, new uint8_t[1UL << order], order, order, flags | DELETE_BUF);
+        return RecvBuf(epid, allocate(1UL << order), order, order, flags | DELETE_BUF);
     }
     static RecvBuf create(size_t epid, int order, int msgorder, unsigned flags) {
-        return RecvBuf(epid, new uint8_t[1UL << order], order, msgorder, flags | DELETE_BUF);
+        return RecvBuf(epid, allocate(1UL << order), order, msgorder, flags | DELETE_BUF);
     }
 #endif
-    static RecvBuf bindto(size_t epid, void *addr, int order, unsigned flags) {
-        return RecvBuf(epid, addr, order, order, flags);
-    }
-    static RecvBuf bindto(size_t epid, void *addr, int order, int msgorder, unsigned flags) {
-        return RecvBuf(epid, addr, order, msgorder, flags);
-    }
 
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
@@ -99,7 +101,7 @@ public:
     }
     ~RecvBuf() {
         if(_flags & DELETE_BUF)
-            delete[] _buf;
+            free(_buf);
         detach();
     }
 
@@ -133,12 +135,16 @@ public:
     void detach();
 
 private:
+    static uint8_t *allocate(size_t size);
+    static void free(uint8_t *);
+
     uint8_t *_buf;
     int _order;
     int _msgorder;
     size_t _epid;
     unsigned _flags;
     RecvBufWorkItem *_workitem;
+    static uintptr_t _nextbuf;
     static RecvBuf _default;
 };
 

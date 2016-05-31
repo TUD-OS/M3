@@ -381,6 +381,9 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE capability is invalid");
 
+    if(addr < RECVBUF_SPACE || (order > 20) || (msgorder > order))
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Not in receive buffer space");
+
     m3::Errors::Code res = RecvBufs::attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Unable to attach receive buffer");

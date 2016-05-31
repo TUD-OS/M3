@@ -79,7 +79,11 @@ private:
     void pre_exit();
 } PACKED;
 
-#define RT_SPACE_SIZE           (RT_SIZE - (DEF_RCVBUF_SIZE + sizeof(word_t) * 2 + sizeof(m3::Env)))
+#if !defined(__gem5__)
+#   define RT_SPACE_SIZE           (RT_SIZE - (DEF_RCVBUF_SIZE + sizeof(word_t) * 2 + sizeof(m3::Env)))
+#else
+#   define RT_SPACE_SIZE           (RT_SIZE - (sizeof(word_t) * 2 + sizeof(m3::Env)))
+#endif
 #define RT_SPACE_START          (RT_START + sizeof(m3::Env))
 #define RT_SPACE_END            (RT_SPACE_START + RT_SPACE_SIZE)
 

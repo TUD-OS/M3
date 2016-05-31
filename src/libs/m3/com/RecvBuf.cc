@@ -26,8 +26,9 @@
 
 namespace m3 {
 
+uintptr_t RecvBuf::_nextbuf = RECVBUF_SPACE;
 INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
-#if defined(__host__)
+#if defined(__host__) || defined(__gem5__)
     RecvBuf::create(DTU::DEF_RECVEP, nextlog2<256>::val, nextlog2<128>::val, 0)
 #else
     RecvBuf::bindto(DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0)

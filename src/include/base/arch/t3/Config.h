@@ -55,6 +55,10 @@
 #define RT_START            (DMEM_VEND - RT_SIZE)
 #define RT_END              DMEM_VEND
 
+#define RECVBUF_SPACE       1                       // no limit here
+
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
 #define DEF_RCVBUF          (RT_END - DEF_RCVBUF_SIZE)
+
+#define MEMCAP_END          0xFFFFFFFF

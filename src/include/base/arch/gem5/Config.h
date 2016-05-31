@@ -45,6 +45,11 @@
 #define STACK_TOP           (RT_END + STACK_SIZE)
 #define STACK_BOTTOM        RT_END
 
+#define RECVBUF_SPACE       0xE0000000
+#define RECVBUF_SIZE        (4 * PAGE_SIZE)
+
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
-#define DEF_RCVBUF          (RT_END - DEF_RCVBUF_SIZE)
+#define DEF_RCVBUF          RECVBUF_SPACE
+
+#define MEMCAP_END          RECVBUF_SPACE

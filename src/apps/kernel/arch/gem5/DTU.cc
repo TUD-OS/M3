@@ -110,8 +110,9 @@ void DTU::injectIRQ(VPE &vpe) {
 
 void DTU::config_pf_remote(VPE &vpe, int ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
+    static_assert(static_cast<int>(m3::DTU::DtuRegs::RW_BARRIER) == 1, "RW_BARRIER wrong");
+    static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 2, "ROOT_PT wrong");
+    static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 3, "PF_EP wrong");
 
     uint64_t rootpt = vpe.address_space()->root_pt();
     if(!rootpt) {
@@ -128,8 +129,9 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
         write_mem_at(MEMORY_CORE, 0, addr + PAGE_SIZE - sizeof(pte), &pte, sizeof(pte));
     }
 
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[4];
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = m3::DTU::StatusFlags::PAGEFAULTS;
+    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::RW_BARRIER)] = RECVBUF_SPACE;
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)]   = ep;
     m3::Sync::compiler_barrier();

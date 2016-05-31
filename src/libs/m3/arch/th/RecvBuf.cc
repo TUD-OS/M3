@@ -14,27 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/com/RecvBuf.h>
 
-#define MEMORY_CORE         0
-#define KERNEL_CORE         0
-#define APP_CORES           1
-#define MAX_CORES           18
-#define AVAIL_PES           (MAX_CORES - 1)
-#define PE_MASK             0xFFFFFFFF
-#define CAP_TOTAL           128
-#define FS_IMG_OFFSET       0x0
+namespace m3 {
 
-#define PAGE_BITS           0
-#define PAGE_SIZE           0
-#define PAGE_MASK           0
+uint8_t *RecvBuf::allocate(size_t size) {
+    return new uint8_t[size];
+}
 
-// leave the first 64 MiB for the filesystem
-#define DRAM_OFFSET         0
-#define DRAM_SIZE           (512 * 1024 * 1024)
+void RecvBuf::free(uint8_t *ptr) {
+    delete[] ptr;
+}
 
-#define STACK_SIZE          0x1000
-
-#define RECVBUF_SPACE       1                       // no limit here
-
-#define MEMCAP_END          0xFFFFFFFFFFFFFFFF
+}

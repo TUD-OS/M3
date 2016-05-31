@@ -257,6 +257,11 @@ void VPE::init_memory(const char *name) {
     }
 
     map_idle(*this);
+
+    // map receive buffer
+    uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
+        MainMemory::get().map().allocate(RECVBUF_SIZE));
+    map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
 }
 
 }

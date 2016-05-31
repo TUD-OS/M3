@@ -42,7 +42,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 6;
+    static const size_t DTU_REGS            = 7;
     static const size_t CMD_REGS            = 6;
     static const size_t EP_REGS             = 3;
 
@@ -50,20 +50,21 @@ private:
 
     enum class DtuRegs {
         STATUS              = 0,
-        ROOT_PT             = 1,
-        PF_EP               = 2,
-        VPE_ID              = 3,
-        MSGCNT              = 4,
-        EXT_CMD             = 5,
+        RW_BARRIER          = 1,
+        ROOT_PT             = 2,
+        PF_EP               = 3,
+        VPE_ID              = 4,
+        MSGCNT              = 5,
+        EXT_CMD             = 6,
     };
 
     enum class CmdRegs {
-        COMMAND             = 6,
-        DATA_ADDR           = 7,
-        DATA_SIZE           = 8,
-        OFFSET              = 9,
-        REPLY_EP            = 10,
-        REPLY_LABEL         = 11,
+        COMMAND             = 7,
+        DATA_ADDR           = 8,
+        DATA_SIZE           = 9,
+        OFFSET              = 10,
+        REPLY_EP            = 11,
+        REPLY_LABEL         = 12,
     };
 
     enum MemFlags : reg_t {
