@@ -165,9 +165,6 @@ public:
     virtual size_t credits() override {
         return Server<M3FSRequestHandler>::DEF_MSGSIZE;
     }
-    virtual void handle_open(GateIStream &args) override {
-        reply_vmsg_on(args, Errors::NO_ERROR, add_session(new M3FSSessionData()));
-    }
 
     virtual void handle_obtain(M3FSSessionData *sess, RecvBuf *rcvbuf, GateIStream &args, uint capcount) override {
         if(!sess->send_gate()) {
