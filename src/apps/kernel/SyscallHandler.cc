@@ -212,6 +212,9 @@ void SyscallHandler::createsess(GateIStream &is) {
         EVENT_TRACER_Syscall_createsess();
         m3::Errors::Code res;
         reply >> res;
+
+        LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
+
         if(res != m3::Errors::NO_ERROR) {
             KLOG(SYSC, vpe->id() << ": Server denied session creation (" << res << ")");
             auto reply = kernel::create_vmsg(res);
@@ -456,6 +459,9 @@ void SyscallHandler::vpectrl(GateIStream &is) {
                 ReplyInfo rinfo(is.message());
                 vpecap->vpe->subscribe_exit([vpe, is, rinfo] (int exitcode, m3::Subscriber<int> *) {
                     EVENT_TRACER_Syscall_vpectrl();
+
+                    LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << exitcode << ")");
+
                     auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR,exitcode);
                     reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
                 });
@@ -605,6 +611,10 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
 
         m3::Errors::Code res;
         reply >> res;
+
+        LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
+            "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
+
         if(res != m3::Errors::NO_ERROR) {
             KLOG(SYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
 
@@ -669,6 +679,9 @@ void SyscallHandler::activate(GateIStream &is) {
             auto callback = [rinfo, vpe, epid, oldcapobj, newcapobj](bool success, m3::Subscriber<bool> *) {
                 EVENT_TRACER_Syscall_activate();
                 m3::Errors::Code res = success ? m3::Errors::NO_ERROR : m3::Errors::RECV_GONE;
+
+                LOG_SYS(vpe, ": syscall::activate-cb", "(res=" << res << ")");
+
                 if(success)
                     res = do_activate(vpe, epid, oldcapobj, newcapobj);
                 if(res != m3::Errors::NO_ERROR)
