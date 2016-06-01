@@ -24,8 +24,10 @@ void CapTable::revoke_all() {
     // TODO it might be better to do that in a different order, because it is more expensive to
     // remove a node that has two childs (it requires a rotate). Thus, it would be better to start
     // with leaf nodes.
-    while((c = static_cast<Capability*>(_caps.remove_root())) != nullptr)
+    while((c = static_cast<Capability*>(_caps.remove_root())) != nullptr) {
         revoke(c, false);
+        delete c;
+    }
 }
 
 Capability *CapTable::obtain(capsel_t dst, Capability *c) {
