@@ -692,14 +692,15 @@ void SyscallHandler::revoke(GateIStream &is) {
     EVENT_TRACER_Syscall_revoke();
     VPE *vpe = is.gate().session<VPE>();
     m3::CapRngDesc crd;
-    is >> crd;
-    LOG_SYS(vpe, ": syscall::revoke", "(" << crd << ")");
+    bool own;
+    is >> crd >> own;
+    LOG_SYS(vpe, ": syscall::revoke", "(" << crd << ", own=" << own << ")");
 
     if(crd.type() == m3::CapRngDesc::OBJ && crd.start() < 2)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
     CapTable &table = crd.type() == m3::CapRngDesc::OBJ ? vpe->objcaps() : vpe->mapcaps();
-    m3::Errors::Code res = table.revoke(crd);
+    m3::Errors::Code res = table.revoke(crd, own);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Revoke failed");
 

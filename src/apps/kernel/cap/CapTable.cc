@@ -25,7 +25,7 @@ void CapTable::revoke_all() {
     // remove a node that has two childs (it requires a rotate). Thus, it would be better to start
     // with leaf nodes.
     while((c = static_cast<Capability*>(_caps.remove_root())) != nullptr)
-        revoke(c);
+        revoke(c, false);
 }
 
 Capability *CapTable::obtain(capsel_t dst, Capability *c) {
@@ -72,7 +72,7 @@ m3::Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
     return res;
 }
 
-m3::Errors::Code CapTable::revoke(Capability *c) {
+m3::Errors::Code CapTable::revoke(Capability *c, bool revnext) {
     if(c) {
         if(c->_next)
             c->_next->_prev = c->_prev;
@@ -80,14 +80,23 @@ m3::Errors::Code CapTable::revoke(Capability *c) {
             c->_prev->_next = c->_next;
         if(c->_parent && c->_parent->_child == c)
             c->_parent->_child = c->_next;
-        return revoke_rec(c, false);
+        return revoke_rec(c, revnext);
     }
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code CapTable::revoke(const m3::CapRngDesc &crd) {
+m3::Errors::Code CapTable::revoke(const m3::CapRngDesc &crd, bool own) {
     for(capsel_t i = 0; i < crd.count(); ++i) {
-        m3::Errors::Code res = revoke(get(i + crd.start()));
+        m3::Errors::Code res;
+        if(own)
+            res = revoke(get(i + crd.start()), false);
+        else {
+            Capability *c = get(i + crd.start());
+            if(c)
+                res = revoke(c->_child, true);
+            else
+                res = m3::Errors::NO_ERROR;
+        }
         if(res != m3::Errors::NO_ERROR)
             return res;
     }

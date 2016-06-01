@@ -143,9 +143,9 @@ Errors::Code Syscalls::derivemem(capsel_t src, capsel_t dst, size_t offset, size
     return finish(send_receive_vmsg(_gate, KIF::Syscall::DERIVEMEM, src, dst, offset, size, perms));
 }
 
-Errors::Code Syscalls::revoke(const CapRngDesc &crd) {
-    LLOG(SYSC, "revoke(crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, KIF::Syscall::REVOKE, crd));
+Errors::Code Syscalls::revoke(const CapRngDesc &crd, bool own) {
+    LLOG(SYSC, "revoke(crd=" << crd << ", own=" << own << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::REVOKE, crd, own));
 }
 
 // the USED seems to be necessary, because the libc calls it and LTO removes it otherwise
