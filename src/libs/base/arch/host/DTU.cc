@@ -71,7 +71,7 @@ void DTU::reset() {
     _backend->reset();
 }
 
-bool DTU::wait() {
+bool DTU::wait() const {
     usleep(1);
     return _run;
 }

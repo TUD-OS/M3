@@ -114,11 +114,11 @@ public:
     }
     void send_credits(int ep, uchar dst, int dst_ep, uint credits);
 
-    bool is_valid(int) {
+    bool is_valid(int) const {
         return true;
     }
 
-    bool fetch_msg(int ep) {
+    bool fetch_msg(int ep) const {
         return element_count(ep) - _unack[ep] > 0;
     }
 
@@ -154,16 +154,16 @@ public:
         do_ack(ep);
     }
 
-    bool wait() {
+    bool wait() const {
         return true;
     }
 
-    void wait_until_ready(int ep) {
+    void wait_until_ready(int ep) const {
         word_t *status = get_cmd_addr(ep,IDMA_OVERALL_SLOT_STATUS);
         while(read_from(status) != 0)
             ;
     }
-    bool wait_for_mem_cmd() {
+    bool wait_for_mem_cmd() const {
         // we've already waited
         return true;
     }
@@ -272,13 +272,13 @@ private:
         return read_from(ptr);
     }
 
-    uintptr_t get_slot_addr(int slot) {
+    uintptr_t get_slot_addr(int slot) const {
         return IDMA_DATA_PORT_ADDR | (slot << IDMA_SLOT_POS);
     }
     word_t *get_cmd_addr(int slot,unsigned cmd) const {
         return (word_t*)((uintptr_t)PE_IDMA_CONFIG_ADDRESS + (cmd << PE_IDMA_CMD_POS) + (slot << PE_IDMA_SLOT_POS));
     }
-    uintptr_t get_external_cmd_addr(int slot, unsigned cmd) {
+    uintptr_t get_external_cmd_addr(int slot, unsigned cmd) const {
         return IDMA_CONFIG_ADDR + (cmd << PE_IDMA_CMD_POS) + (slot << IDMA_SLOT_POS);
     }
 

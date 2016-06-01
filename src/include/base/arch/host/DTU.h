@@ -223,11 +223,11 @@ public:
         set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
     }
 
-    bool is_valid(int) {
+    bool is_valid(int) const {
         // TODO not supported
         return true;
     }
-    bool fetch_msg(int ep) {
+    bool fetch_msg(int ep) const {
         return get_ep(ep, EP_BUF_MSGCNT) - _unack[ep] > 0;
     }
 
@@ -267,15 +267,15 @@ public:
         do_ack(ep);
     }
 
-    bool is_ready() {
+    bool is_ready() const {
         return (get_cmd(CMD_CTRL) & CTRL_START) == 0;
     }
-    bool wait_for_mem_cmd() {
+    bool wait_for_mem_cmd() const {
         while((get_cmd(CMD_CTRL) & CTRL_ERROR) == 0 && get_cmd(CMD_SIZE) > 0)
             wait();
         return (get_cmd(CMD_CTRL) & CTRL_ERROR) == 0;
     }
-    void wait_until_ready(int) {
+    void wait_until_ready(int) const {
         while(!is_ready())
             wait();
     }
@@ -306,7 +306,7 @@ public:
     pthread_t tid() const {
         return _tid;
     }
-    bool wait();
+    bool wait() const;
 
 private:
     void do_ack(int ep) {

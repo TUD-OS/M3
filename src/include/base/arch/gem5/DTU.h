@@ -181,12 +181,12 @@ public:
         return Errors::NO_ERROR;
     }
 
-    bool is_valid(int epid) {
+    bool is_valid(int epid) const {
         reg_t r0 = read_reg(epid, 0);
         return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
     }
 
-    bool fetch_msg(int epid) {
+    bool fetch_msg(int epid) const {
         reg_t r0 = read_reg(epid, 0) & 0xFFFF;
         return r0 - _unack[epid] > 0;
     }
@@ -227,7 +227,7 @@ public:
         do_ack(ep);
     }
 
-    bool wait() {
+    bool wait() const {
         // wait until the DTU wakes us up
         // note that we have a race-condition here. if a message arrives between the check and the
         // hlt, we miss it. this case is handled by a pin at the CPU, which indicates whether
@@ -237,13 +237,13 @@ public:
             asm volatile ("hlt");
         return true;
     }
-    void wait_until_ready(int) {
+    void wait_until_ready(int) const {
         // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)
         // compilers are the worst. let's get rid of them and just write assembly code again ;)
         while((read_reg(CmdRegs::COMMAND) & 0x7) != 0)
             ;
     }
-    bool wait_for_mem_cmd() {
+    bool wait_for_mem_cmd() const {
         // we've already waited
         return true;
     }

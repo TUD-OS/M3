@@ -116,7 +116,7 @@ public:
     void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
     }
 
-    bool is_valid(int ep) {
+    bool is_valid(int ep) const {
         EPConf *cfg = conf(ep);
         return cfg->valid;
     }
@@ -151,11 +151,11 @@ public:
         }
     }
 
-    bool wait() {
+    bool wait() const {
         return true;
     }
 
-    void wait_until_ready(int) {
+    void wait_until_ready(int) const {
         int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
@@ -166,7 +166,7 @@ public:
         EVENT_TRACE_MEM_FINISH();
     }
 
-    bool wait_for_mem_cmd() {
+    bool wait_for_mem_cmd() const {
         // we've already waited
         return true;
     }
@@ -209,7 +209,7 @@ public:
         }
     }
 
-    size_t get_remaining(int) {
+    size_t get_remaining(int) const {
         int core = env()->coreid;
         volatile uint *ptr = get_base_addr(core);
         size_t *regs = get_regs(core);
@@ -225,14 +225,14 @@ private:
         return regs[core == CM_CORE ? 0 : 1];
     }
 
-    size_t recvbuf_offset(int core, int ep) {
+    size_t recvbuf_offset(int core, int ep) const {
         return core * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
 
     Errors::Code check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
-        int perms, int type);
+        int perms, int type) const;
 
-    EPConf *conf(int ep) {
+    EPConf *conf(int ep) const {
         return eps() + ep;
     }
 

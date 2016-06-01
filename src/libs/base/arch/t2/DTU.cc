@@ -136,7 +136,8 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size, int perms, int type) {
+Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
+        int perms, int type) const {
     uintptr_t srcaddr = base + off;
     if(!(perms & type) || srcaddr < base || srcaddr + size < srcaddr ||  srcaddr + size > base + len) {
         // PANIC("No permission to " << (type == KIF::Perm::R ? "read from" : "write to")
