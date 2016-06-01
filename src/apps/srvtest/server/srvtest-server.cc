@@ -50,9 +50,9 @@ private:
 };
 
 int main() {
-    for(int i = 0; run && i < 20; ++i) {
+    for(int i = 0; run && i < 10; ++i) {
         MyHandler hdl;
-        srv = new Server<MyHandler>("srvtest-server", &hdl);
+        srv = new Server<MyHandler>("srvtest-server", &hdl, nextlog2<512>::val, nextlog2<128>::val);
         if(Errors::occurred())
             break;
         env()->workloop()->run();

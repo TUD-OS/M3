@@ -24,7 +24,7 @@ using namespace m3;
 
 int main() {
     int failed = 0;
-    for(int j = 0; j < 20; ++j) {
+    for(int j = 0; j < 10; ++j) {
         Session sess("srvtest-server");
         if(Errors::occurred()) {
             cout << "Unable to create sess at srvtest-server. Retrying.\n";
