@@ -128,10 +128,14 @@ public:
 
 class SessionObject : public m3::RefCounted {
 public:
-    explicit SessionObject(Service *_srv, word_t _ident) : RefCounted(), ident(_ident), srv(_srv) {
+    explicit SessionObject(Service *_srv, word_t _ident)
+        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
     }
     ~SessionObject();
 
+    void close();
+
+    bool servowned;
     word_t ident;
     m3::Reference<Service> srv;
 };

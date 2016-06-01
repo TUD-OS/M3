@@ -34,7 +34,7 @@ MemObject::~MemObject() {
     }
 }
 
-SessionObject::~SessionObject() {
+void SessionObject::close() {
     // only send the close message, if the service has not exited yet
     if(srv->vpe().state() == VPE::RUNNING) {
         AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command, word_t>());
@@ -44,6 +44,10 @@ SessionObject::~SessionObject() {
         ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
         msg.claim();
     }
+}
+SessionObject::~SessionObject() {
+    if(!servowned)
+        close();
 }
 
 m3::Errors::Code MsgCapability::revoke() {
@@ -77,6 +81,9 @@ m3::Errors::Code MapCapability::revoke() {
 }
 
 m3::Errors::Code SessionCapability::revoke() {
+    // if the server created that, we want to close it as soon as there are no clients using it anymore
+    if(obj->servowned && obj->refcount() == 2)
+        obj->close();
     obj.unref();
     return m3::Errors::NO_ERROR;
 }
@@ -143,7 +150,8 @@ void SessionCapability::print(m3::OStream &os) const {
     os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
     os << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
-        << ", ident=#" << m3::fmt(obj->ident, "x") << "]";
+        << ", ident=#" << m3::fmt(obj->ident, "x")
+        << ", servowned=" << obj->servowned << "]";
     child()->printChilds(os);
 }
 

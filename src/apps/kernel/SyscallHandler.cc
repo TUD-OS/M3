@@ -266,8 +266,10 @@ void SyscallHandler::createsessat(GateIStream &is) {
     if(scapobj == nullptr || scapobj->inst->closing)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Service capability is invalid");
 
-    vpe->objcaps().set(sesscap, new SessionCapability(&vpe->objcaps(), sesscap,
-        const_cast<Service*>(&*scapobj->inst), ident));
+    SessionCapability *sess = new SessionCapability(&vpe->objcaps(), sesscap,
+        const_cast<Service*>(&*scapobj->inst), ident);
+    sess->obj->servowned = true;
+    vpe->objcaps().set(sesscap, sess);
 
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
