@@ -101,39 +101,63 @@ m3::Errors::Code VPECapability::revoke() {
 }
 
 void MsgCapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": mesg[refs=" << obj->refcount()
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": mesg[refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
+    child()->printChilds(os);
 }
 
 void MemCapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": mem [refs=" << obj->refcount()
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": mem [refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
+    child()->printChilds(os);
 }
 
 void MapCapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
        << ", phys=#" << m3::fmt(phys, "x")
        << ", attr=#" << m3::fmt(attr, "x") << "]";
+    child()->printChilds(os);
 }
 
 void ServiceCapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": serv[name=" << inst->name() << "]";
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": serv[name=" << inst->name() << "]";
+    child()->printChilds(os);
 }
 
 void SessionCapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": sess[refs=" << obj->refcount()
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << m3::fmt(obj->ident, "x") << "]";
+    child()->printChilds(os);
 }
 
 void VPECapability::print(m3::OStream &os) const {
-    os << m3::fmt(sel(), 2) << ": vpe [refs=" << vpe->refcount()
+    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    os << ": vpe [refs=" << vpe->refcount()
        << ", name=" << vpe->name() << "]";
+    child()->printChilds(os);
+}
+
+void Capability::printChilds(m3::OStream &os, int layer) const {
+    const Capability *n = this;
+    while(n) {
+        os << "\n";
+        os << m3::fmt("", layer * 2) << " \\-";
+        n->print(os);
+        if(n->_child)
+            n->_child->printChilds(os, layer + 1);
+        n = n->_next;
+    }
 }
 
 }

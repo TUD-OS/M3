@@ -81,6 +81,8 @@ public:
         key(sel);
     }
 
+    void printChilds(m3::OStream &os, int layer = 0) const;
+
 private:
     virtual m3::Errors::Code revoke() {
         return m3::Errors::NO_ERROR;
