@@ -39,6 +39,7 @@ EXTERN_C void isr15();
 EXTERN_C void isr16();
 // for the DTU
 EXTERN_C void isr64();
+EXTERN_C void isr65();
 // the handler for a other interrupts
 EXTERN_C void isrNull();
 
@@ -73,11 +74,15 @@ void Exceptions::handler(State *state) {
     ser << "Interruption @ " << fmt(state->rip, "p");
     if(state->intrptNo == 0xe)
         ser << " for address " << fmt(getCR2(), "p");
+    else if(state->intrptNo == 65)
+        ser << " for address " << fmt(DTU::get().get_last_pf(), "p");
     ser << "\n  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
         ser << exNames[state->intrptNo];
     else if(state->intrptNo == 64)
         ser << "DTU (" << state->intrptNo << ")";
+    else if(state->intrptNo == 65)
+        ser << "DTUPF (" << state->intrptNo << ")";
     else
         ser << "<unknown> (" << state->intrptNo << ")";
     ser << "\n";
@@ -146,12 +151,12 @@ void Exceptions::init() {
     setIDT(16,isr16,Desc::DPL_KERNEL);
 
     // all other interrupts
-    for(size_t i = 17; i < IDT_COUNT; i++) {
-        if(i == 64)
-            setIDT(i,isr64,Desc::DPL_KERNEL);
-        else
-            setIDT(i,isrNull,Desc::DPL_KERNEL);
-    }
+    for(size_t i = 17; i < 63; i++)
+        setIDT(i,isrNull,Desc::DPL_KERNEL);
+
+    // DTU interrupts
+    setIDT(64,isr64,Desc::DPL_KERNEL);
+    setIDT(65,isr65,Desc::DPL_KERNEL);
 
     // now we can use our idt
     loadIDT(&tbl);

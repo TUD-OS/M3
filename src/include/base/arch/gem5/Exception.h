@@ -189,7 +189,7 @@ class Exceptions {
         ulong ss;
     } PACKED;
 
-    static const size_t IDT_COUNT       = 65;
+    static const size_t IDT_COUNT       = 66;
 
     /* we need 5 entries: null-entry, code for kernel, data for kernel, 2 for TSS (on x86_64) */
     static const size_t GDT_ENTRY_COUNT = 5;
