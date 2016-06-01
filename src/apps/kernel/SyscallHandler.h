@@ -65,6 +65,7 @@ public:
     void pagefault(GateIStream &is);
     void createsrv(GateIStream &is);
     void createsess(GateIStream &is);
+    void createsessat(GateIStream &is);
     void creategate(GateIStream &is);
     void createvpe(GateIStream &is);
     void createmap(GateIStream &is);

@@ -48,6 +48,7 @@ public:
     Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
+    Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core, capsel_t gate, size_t ep);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);

@@ -107,6 +107,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::PAGEFAULT, &SyscallHandler::pagefault);
     add_operation(m3::KIF::Syscall::CREATESRV, &SyscallHandler::createsrv);
     add_operation(m3::KIF::Syscall::CREATESESS, &SyscallHandler::createsess);
+    add_operation(m3::KIF::Syscall::CREATESESSAT, &SyscallHandler::createsessat);
     add_operation(m3::KIF::Syscall::CREATEGATE, &SyscallHandler::creategate);
     add_operation(m3::KIF::Syscall::CREATEVPE, &SyscallHandler::createvpe);
     add_operation(m3::KIF::Syscall::CREATEMAP, &SyscallHandler::createmap);
@@ -246,6 +247,29 @@ void SyscallHandler::createsess(GateIStream &is) {
     msg.put(is);
     s->send(&vpe->service_gate(), msg.bytes(), msg.total());
     msg.claim();
+}
+
+void SyscallHandler::createsessat(GateIStream &is) {
+    EVENT_TRACER_Syscall_createsess();
+    VPE *vpe = is.gate().session<VPE>();
+    capsel_t srvcap, sesscap;
+    word_t ident;
+    is >> srvcap >> sesscap >> ident;
+    LOG_SYS(vpe, ": syscall::createsessat",
+        "(service=" << srvcap << ", session=" << sesscap << ", ident=#" << m3::fmt(ident, "0x") << ")");
+
+    if(!vpe->objcaps().unused(sesscap))
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid session selector");
+
+    ServiceCapability *scapobj = static_cast<ServiceCapability*>(
+        vpe->objcaps().get(srvcap, Capability::SERVICE));
+    if(scapobj == nullptr || scapobj->inst->closing)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Service capability is invalid");
+
+    vpe->objcaps().set(sesscap, new SessionCapability(&vpe->objcaps(), sesscap,
+        const_cast<Service*>(&*scapobj->inst), ident));
+
+    reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::creategate(GateIStream &is) {

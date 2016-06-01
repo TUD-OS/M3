@@ -47,6 +47,11 @@ Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name
     return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATESRV, gate, srv, name));
 }
 
+Errors::Code Syscalls::createsessat(capsel_t srv, capsel_t sess, word_t ident) {
+    LLOG(SYSC, "createsessat(srv=" << srv << ", sess=" << sess << ", ident=" << fmt(ident, "0x") << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATESESSAT, srv, sess, ident));
+}
+
 Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args) {
     LLOG(SYSC, "createsess(vpe=" << vpe << ", cap=" << cap << ", name=" << name
         << ", argc=" << args.total() << ")");
