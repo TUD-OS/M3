@@ -29,6 +29,7 @@ class Backtrace {
     Backtrace();
 
 public:
+    static size_t collect(uintptr_t *addr, size_t max);
     static void print(OStream &os);
 };
 
