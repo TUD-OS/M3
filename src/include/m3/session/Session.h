@@ -63,9 +63,10 @@ public:
      * Attaches this object to the given session
      *
      * @param sel the capability selector of the session
+     * @param flags whether capabilitly/selector should be kept on destruction or not
      */
-    explicit Session(capsel_t sel)
-        : ObjCap(SESSION, sel, ObjCap::KEEP_CAP | ObjCap::KEEP_SEL), _vpe(VPE::self()) {
+    explicit Session(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL)
+        : ObjCap(SESSION, sel, flags), _vpe(VPE::self()) {
     }
 
     /**
