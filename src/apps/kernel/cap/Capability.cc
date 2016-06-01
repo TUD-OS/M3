@@ -64,6 +64,12 @@ MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint 
     DTU::get().map_page(vpe, sel << PAGE_BITS, phys, attr);
 }
 
+void MapCapability::remap(uint _attr) {
+    attr = _attr;
+    VPE &vpe = PEManager::get().vpe(table()->id() - 1);
+    DTU::get().map_page(vpe, sel() << PAGE_BITS, phys, attr);
+}
+
 m3::Errors::Code MapCapability::revoke() {
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
     DTU::get().unmap_page(vpe, sel() << PAGE_BITS);

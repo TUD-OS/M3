@@ -368,8 +368,6 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     if(mcapobj == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Memory capability is invalid");
 
-    if(!tcapobj->vpe->mapcaps().range_unused(m3::CapRngDesc(m3::CapRngDesc::MAP, dst, pages)))
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Map capability range is not unused");
     if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Memory capability is not page aligned");
     if(perms & ~mcapobj->perms())
@@ -380,10 +378,16 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Region of memory capability is invalid");
 
     uintptr_t phys = m3::DTU::build_noc_addr(mcapobj->obj->core, mcapobj->addr() + PAGE_SIZE * first);
+    CapTable &mcaps = tcapobj->vpe->mapcaps();
     for(capsel_t i = 0; i < pages; ++i) {
-        MapCapability *mapcap = new MapCapability(&tcapobj->vpe->mapcaps(), dst + i, phys, perms);
-        tcapobj->vpe->mapcaps().inherit(mcapobj, mapcap);
-        tcapobj->vpe->mapcaps().set(dst + i, mapcap);
+        MapCapability *mapcap = static_cast<MapCapability*>(mcaps.get(dst + i, Capability::MAP));
+        if(mapcap == nullptr) {
+            MapCapability *mapcap = new MapCapability(&mcaps, dst + i, phys, perms);
+            mcaps.inherit(mcapobj, mapcap);
+            mcaps.set(dst + i, mapcap);
+        }
+        else
+            mapcap->remap(perms);
         phys += PAGE_SIZE;
     }
 #endif

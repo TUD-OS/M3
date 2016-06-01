@@ -196,6 +196,8 @@ class MapCapability : public Capability {
 public:
     explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr);
 
+    void remap(uint _attr);
+
     void print(m3::OStream &os) const override;
 
 private:

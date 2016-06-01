@@ -165,9 +165,8 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
     for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
         uintptr_t pteAddr = get_pte_addr(virt, level);
         m3::DTU::pte_t pte;
+        m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
         if(level > 0) {
-            m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
-
             // create the pagetable on demand
             if(pte == 0) {
                 // if we don't have a pagetable for that yet, unmapping is a noop
@@ -185,10 +184,19 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
             assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
         }
         else {
-            pte = phys | perm | m3::DTU::PTE_I;
+            m3::DTU::pte_t npte = phys | perm | m3::DTU::PTE_I;
+            if(npte == pte)
+                continue;
+
             KLOG(PTES, "PE" << vpe.core() << ": lvl 0 PTE for "
-                << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-            m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
+                << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
+            m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr);
+
+            // permissions downgraded?
+            if(((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0) {
+                do_ext_cmd(vpe,
+                    static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3));
+            }
         }
     }
 }
@@ -197,9 +205,6 @@ void DTU::unmap_page(VPE &vpe, uintptr_t virt) {
     map_page(vpe, virt, 0, 0);
 
     // TODO remove pagetables on demand
-
-    // invalidate TLB entry
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 2));
 }
 
 void DTU::invalidate_ep(VPE &vpe, int ep) {
