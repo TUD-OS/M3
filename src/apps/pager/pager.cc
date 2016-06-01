@@ -98,7 +98,7 @@ public:
         // access == PTE_GONE indicates, that the VPE that owns the memory is not available
         // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
 
-        SLOG(PAGER, sess->id << " : mem::pf(virt=" << fmt(virt, "p")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::pf(virt=" << fmt(virt, "p")
             << ", access " << fmt(access, "#x") << ")");
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
@@ -151,7 +151,7 @@ public:
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        SLOG(PAGER, sess->id << " : mem::map_anon(virt=" << fmt(virt, "p")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_anon(virt=" << fmt(virt, "p")
             << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
 
@@ -185,7 +185,7 @@ public:
         int prot, flags, id;
         args >> *virt >> len >> prot >> flags >> id >> offset;
 
-        SLOG(PAGER, sess->id << " : mem::map_ds(virt=" << fmt(*virt, "p")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
             << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
@@ -210,7 +210,7 @@ public:
         uintptr_t virt;
         is >> virt;
 
-        SLOG(PAGER, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::unmap(virt=" << fmt(virt, "p") << ")");
 
         Errors::Code res = Errors::INV_ARGS;
         DataSpace *ds = sess->dstree.find(virt);

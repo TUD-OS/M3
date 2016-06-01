@@ -36,6 +36,7 @@ public:
         SHM         = 1 << 6,
         HEAP        = 1 << 7,
         FS          = 1 << 8,
+        SERV        = 1 << 9,
     };
 
     static const int level = 0;

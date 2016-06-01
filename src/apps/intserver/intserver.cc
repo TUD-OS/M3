@@ -37,11 +37,12 @@ public:
 
 class IntEventHandler : public EventHandler {
 public:
-    virtual void handle_open(GateIStream &args) override {
+    virtual IntSessionData *handle_open(GateIStream &args) override {
         int irq;
         args >> irq;
-        EventSessionData *sess = add_session(new IntSessionData(static_cast<HWInterrupts::IRQ>(irq)));
-        reply_vmsg_on(args, Errors::NO_ERROR, sess);
+        auto *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(irq));
+        reply_vmsg_on(args, Errors::NO_ERROR, add_session(sess));
+        return sess;
     }
 };
 

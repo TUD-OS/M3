@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <base/log/Lib.h>
 #include <base/Errors.h>
 #include <base/KIF.h>
 
@@ -41,6 +42,7 @@ public:
           _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
           _ctrl_rgate(RecvGate::create(&_rcvbuf)),
           _ctrl_sgate(SendGate::create(DEF_MSGSIZE, &_ctrl_rgate)) {
+        LLOG(SERV, "create(" << name << ")");
         Syscalls::get().createsrv(_ctrl_sgate.sel(), sel(), name);
 
         using std::placeholders::_1;
@@ -54,11 +56,13 @@ public:
         _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
     }
     ~Server() {
+        LLOG(SERV, "destroy()");
         // if it fails, there are pending requests. this might happen multiple times because
         // the kernel might have them still in the send-queue.
         CapRngDesc caps(CapRngDesc::OBJ, sel());
         while(Syscalls::get().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
+            LLOG(SERV, "handling pending requests...");
             while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
                 GateIStream is(_ctrl_rgate, Errors::NO_ERROR);
                 handle_message(is, nullptr);
@@ -93,7 +97,10 @@ private:
 
     void handle_open(GateIStream &is) {
         EVENT_TRACER_Service_open();
-        _handler->handle_open(is);
+
+        word_t sessptr = reinterpret_cast<word_t>(_handler->handle_open(is));
+
+        LLOG(SERV, fmt(sessptr, "#x") << ": open()");
     }
 
     void handle_obtain(GateIStream &is) {
@@ -101,6 +108,8 @@ private:
         word_t sessptr;
         uint capcount;
         is >> sessptr >> capcount;
+
+        LLOG(SERV, fmt(sessptr, "#x") << ": obtain(caps=" << capcount << ")");
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_obtain(sess, &_rcvbuf, is, capcount);
@@ -112,6 +121,8 @@ private:
         uint capcount;
         is >> sessptr >> capcount;
 
+        LLOG(SERV, fmt(sessptr, "#x") << ": delegate(caps=" << capcount << ")");
+
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_delegate(sess, is, capcount);
     }
@@ -121,12 +132,17 @@ private:
         word_t sessptr;
         is >> sessptr;
 
+        LLOG(SERV, fmt(sessptr, "#x") << ": close()");
+
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_close(sess, is);
     }
 
     void handle_shutdown(GateIStream &is) {
         EVENT_TRACER_Service_shutdown();
+
+        LLOG(SERV, "shutdown()");
+
         _handler->handle_shutdown();
         shutdown();
         reply_vmsg_on(is, Errors::NO_ERROR);

@@ -30,14 +30,13 @@ class PipeSessionData : public m3::RequestSessionData {
 public:
     // unused
     explicit PipeSessionData()
-        : m3::RequestSessionData(), id(_nextid++), flags(), reader(), writer(), rbuf(0) {
+        : m3::RequestSessionData(), flags(), reader(), writer(), rbuf(0) {
     }
     explicit PipeSessionData(size_t _memsize)
-        : m3::RequestSessionData(), id(_nextid++), flags(), reader(), writer(), rbuf(_memsize) {
+        : m3::RequestSessionData(), flags(), reader(), writer(), rbuf(_memsize) {
     }
     virtual ~PipeSessionData();
 
-    int id;
     uint flags;
     PipeReadHandler *reader;
     PipeWriteHandler *writer;

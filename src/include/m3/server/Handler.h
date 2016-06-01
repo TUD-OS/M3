@@ -65,8 +65,10 @@ public:
     }
 
 protected:
-    virtual void handle_open(GateIStream &args) {
-        reply_vmsg_on(args, Errors::NO_ERROR, add_session(new SESS()));
+    virtual SESS *handle_open(GateIStream &args) {
+        SESS *s = add_session(new SESS());
+        reply_vmsg_on(args, Errors::NO_ERROR, s);
+        return s;
     }
     virtual void handle_obtain(SESS *, RecvBuf *, GateIStream &args, uint) {
         reply_vmsg_on(args, Errors::NOT_SUP);

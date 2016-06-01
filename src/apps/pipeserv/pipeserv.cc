@@ -40,11 +40,12 @@ public:
         return Server<PipeServiceHandler>::DEF_MSGSIZE;
     }
 
-    virtual void handle_open(GateIStream &args) override {
+    virtual PipeSessionData *handle_open(GateIStream &args) override {
         size_t size;
         args >> size;
         PipeSessionData *sess = add_session(new PipeSessionData(size));
         reply_vmsg_on(args, Errors::NO_ERROR, sess);
+        return sess;
     }
 
     virtual void handle_obtain(PipeSessionData *sess, RecvBuf *rcvbuf, GateIStream &args,

@@ -39,7 +39,7 @@ PipeSessionData::~PipeSessionData() {
 
 Errors::Code PipeReadHandler::attach(PipeSessionData *sess) {
     refs++;
-    SLOG(PIPE, "[" << sess->id << "] attach: read-refs=" << refs);
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: read-refs=" << refs);
     return Errors::NO_ERROR;
 }
 
@@ -48,20 +48,20 @@ Errors::Code PipeReadHandler::close(PipeSessionData *sess, int id) {
         return Errors::INV_ARGS;
 
     if(lastread && _lastid == id) {
-        SLOG(PIPE, "[" << sess->id << "] read-pull: " << lastread << " [" << id << "]");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read-pull: " << lastread << " [" << id << "]");
         sess->rbuf.pull(lastread);
         lastread = 0;
     }
 
     if(--refs > 0) {
-        SLOG(PIPE, "[" << sess->id << "] close: read-refs=" << refs);
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read-refs=" << refs);
         handle_pending_read(sess);
         sess->writer->handle_pending_write(sess);
         return Errors::NO_ERROR;
     }
 
     sess->flags |= READ_EOF;
-    SLOG(PIPE, "[" << sess->id << "] close: read end");
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read end");
 
     sess->writer->handle_pending_write(sess);
     return Errors::NO_ERROR;
@@ -79,7 +79,7 @@ void PipeReadHandler::read(GateIStream &is) {
             return;
         }
 
-        SLOG(PIPE, "[" << sess->id << "] read-pull: " << lastread << " [" << id << "]");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read-pull: " << lastread << " [" << id << "]");
         sess->rbuf.pull(lastread);
         lastread = 0;
 
@@ -97,7 +97,7 @@ void PipeReadHandler::read(GateIStream &is) {
     ssize_t pos = sess->rbuf.get_read_pos(&amount);
     if(pos == -1) {
         if(sess->flags & WRITE_EOF) {
-            SLOG(PIPE, "[" << sess->id << "] read: " << amount << " EOF");
+            SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " EOF");
             amount = 0;
             reply_vmsg(is.gate(), Errors::NO_ERROR, pos, amount, 0);
         }
@@ -107,14 +107,14 @@ void PipeReadHandler::read(GateIStream &is) {
     else {
         _lastid++;
         lastread = amount;
-        SLOG(PIPE, "[" << sess->id << "] read: " << amount << " @" << pos
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " @" << pos
             << " [" << _lastid << "]");
         reply_vmsg(is.gate(), Errors::NO_ERROR, pos, amount, _lastid);
     }
 }
 
 void PipeReadHandler::append_request(PipeSessionData *sess, GateIStream &is, size_t amount) {
-    SLOG(PIPE, "[" << sess->id << "] read: " << amount << " waiting");
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " waiting");
     _pending.append(new RdWrRequest(amount, &is.message()));
     is.claim();
 }
@@ -127,14 +127,14 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
         if(rpos != -1) {
             _lastid++;
             lastread = ramount;
-            SLOG(PIPE, "[" << sess->id << "] late-read: " << ramount << " @" << rpos
+            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: " << ramount << " @" << rpos
                 << " [" << _lastid << "]");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, rpos, ramount, _lastid);
             delete _pending.remove_first();
             break;
         }
         else if(sess->flags & WRITE_EOF) {
-            SLOG(PIPE, "[" << sess->id << "] late-read: EOF");
+            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: EOF");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, (size_t)0, (size_t)0, 0);
             delete _pending.remove_first();
         }
@@ -145,7 +145,7 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
 
 Errors::Code PipeWriteHandler::attach(PipeSessionData *sess) {
     refs++;
-    SLOG(PIPE, "[" << sess->id << "] attach: write-refs=" << refs);
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: write-refs=" << refs);
     return Errors::NO_ERROR;
 }
 
@@ -154,20 +154,20 @@ Errors::Code PipeWriteHandler::close(PipeSessionData *sess, int id) {
         return Errors::INV_ARGS;
 
     if(lastwrite && _lastid == id) {
-        SLOG(PIPE, "[" << sess->id << "] write-push: " << lastwrite << " [" << id << "]");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastwrite << " [" << id << "]");
         sess->rbuf.push(lastwrite);
         lastwrite = 0;
     }
 
     if(--refs > 0) {
-        SLOG(PIPE, "[" << sess->id << "] close: write-refs=" << refs);
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write-refs=" << refs);
         handle_pending_write(sess);
         sess->reader->handle_pending_read(sess);
         return Errors::NO_ERROR;
     }
 
     sess->flags |= WRITE_EOF;
-    SLOG(PIPE, "[" << sess->id << "] close: write end");
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write end");
 
     sess->reader->handle_pending_read(sess);
     return Errors::NO_ERROR;
@@ -180,7 +180,7 @@ void PipeWriteHandler::write(GateIStream &is) {
     is >> amount >> id;
 
     if(sess->flags & READ_EOF) {
-        SLOG(PIPE, "[" << sess->id << "] write: " << amount << " EOF");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " EOF");
         reply_vmsg(is.gate(), Errors::END_OF_FILE);
         return;
     }
@@ -191,7 +191,7 @@ void PipeWriteHandler::write(GateIStream &is) {
             return;
         }
 
-        SLOG(PIPE, "[" << sess->id << "] write-push: " << lastwrite << " [" << id << "]");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastwrite << " [" << id << "]");
         sess->rbuf.push(lastwrite);
         lastwrite = 0;
 
@@ -210,20 +210,21 @@ void PipeWriteHandler::write(GateIStream &is) {
     else {
         lastwrite = amount;
         _lastid++;
-        SLOG(PIPE, "[" << sess->id << "] write: " << amount << " @" << pos << " [" << _lastid << "]");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount
+            << " @" << pos << " [" << _lastid << "]");
         reply_vmsg(is.gate(), Errors::NO_ERROR, pos, _lastid);
     }
 }
 
 void PipeWriteHandler::append_request(PipeSessionData *sess, GateIStream &is, size_t amount) {
-    SLOG(PIPE, "[" << sess->id << "] write: " << amount << " waiting");
+    SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " waiting");
     _pending.append(new RdWrRequest(amount, &is.message()));
     is.claim();
 }
 
 void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
     if(sess->flags & READ_EOF) {
-        SLOG(PIPE, "[" << sess->id << "] late-write: EOF");
+        SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
         while(_pending.length() > 0) {
             RdWrRequest *req = _pending.remove_first();
             reply_vmsg_late(_rgate, req->lastmsg, Errors::END_OF_FILE);
@@ -236,8 +237,8 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
         if(wpos != -1) {
             lastwrite = req->amount;
             _lastid++;
-            SLOG(PIPE, "[" << sess->id << "] late-write: " << req->amount << " @" << wpos
-                << " [" << _lastid << "]");
+            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: " << req->amount
+                << " @" << wpos << " [" << _lastid << "]");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, wpos, _lastid);
             _pending.remove_first();
             delete req;
