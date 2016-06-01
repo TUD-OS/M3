@@ -19,6 +19,7 @@
 #include <base/Config.h>
 #include <base/Heap.h>
 
+#include <m3/session/Pager.h>
 #include <m3/VPE.h>
 
 namespace m3 {
@@ -42,6 +43,11 @@ uintptr_t VPE::get_entry() {
 }
 
 void VPE::copy_sections() {
+    if(_pager) {
+        _pager->clone();
+        return;
+    }
+
     /* copy text */
     uintptr_t start_addr = Math::round_dn((uintptr_t)&_text_start, DTU_PKG_SIZE);
     uintptr_t end_addr = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);

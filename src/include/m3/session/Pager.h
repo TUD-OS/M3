@@ -23,9 +23,15 @@
 namespace m3 {
 
 class Pager : public Session {
+private:
+    explicit Pager(capsel_t sess)
+        : Session(sess, 0), _gate(SendGate::bind(obtain(1).start())) {
+    }
+
 public:
     enum Operation {
         PAGEFAULT,
+        CLONE,
         MAP_ANON,
         UNMAP,
         COUNT,
@@ -48,6 +54,8 @@ public:
         return _gate;
     }
 
+    Pager *create_clone();
+    Errors::Code clone();
     Errors::Code pagefault(uintptr_t addr, uint access);
     Errors::Code map_anon(uintptr_t *virt, size_t len, int prot, int flags);
     Errors::Code map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,

@@ -42,19 +42,6 @@ int main() {
         child.wait();
     }
 
-    {
-        VPE child("child", "", "pager");
-
-        child.mountspace(*VPE::self().mountspace());
-        child.obtain_mountspace();
-
-        const char *args[] = {"/bin/bench-syscall"};
-        Executable exec(ARRAY_SIZE(args), args);
-
-        child.exec(exec);
-        child.wait();
-    }
-
     cout << "Bye World!\n";
     return 0;
 }

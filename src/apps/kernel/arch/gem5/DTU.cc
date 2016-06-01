@@ -136,6 +136,9 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)]   = ep;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), dtuRegs, sizeof(dtuRegs));
+
+    // invalidate TLB, because we have changed the root PT
+    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
 }
 
 static uintptr_t get_pte_addr(uintptr_t virt, int level) {

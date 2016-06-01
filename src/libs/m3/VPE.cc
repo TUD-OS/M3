@@ -54,19 +54,28 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const String &core, const char *pager)
-        : ObjCap(VIRTPE, VPE::self().alloc_cap()),
-          _mem(MemGate::bind(VPE::self().alloc_cap(), 0)),
+        : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
+          _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
           _pager(), _ms(new MountSpace()), _fds(new FileTable()) {
     init();
 
-    if(pager) {
-        // create pager first, to create session and obtain gate cap
+    // create pager first, to create session and obtain gate cap
+    if(pager)
         _pager = new Pager(pager);
+    else if(VPE::self().pager())
+        _pager = VPE::self().pager()->create_clone();
+    if(Errors::last != Errors::NO_ERROR)
+        return;
+
+    if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
         Syscalls::get().createvpe(sel(), _mem.sel(), name, core, _pager->gate().sel(), alloc_ep());
-        // now delegate our VPE cap to the pager
-        _pager->delegate_obj(sel());
+        // mark the pfgate cap allocated
+        assert(!_caps->is_set(_pager->gate().sel()));
+        _caps->set(_pager->gate().sel());
+        // now delegate our VPE cap and memory cap to the pager
+        _pager->delegate(CapRngDesc(CapRngDesc::OBJ, sel(), 2));
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }

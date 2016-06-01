@@ -53,4 +53,21 @@ Errors::Code Pager::unmap(uintptr_t virt) {
     return res;
 }
 
+Pager *Pager::create_clone() {
+    CapRngDesc caps;
+    {
+        GateIStream reply = obtain(1, caps, StaticGateOStream<1>());
+        if(Errors::last != Errors::NO_ERROR)
+            return nullptr;
+    }
+    return new Pager(caps.start());
+}
+
+Errors::Code Pager::clone() {
+    GateIStream reply = send_receive_vmsg(_gate, CLONE);
+    Errors::Code res;
+    reply >> res;
+    return res;
+}
+
 }
