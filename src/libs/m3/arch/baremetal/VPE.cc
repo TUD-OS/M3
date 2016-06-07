@@ -119,7 +119,7 @@ Errors::Code VPE::exec(Executable &exec) {
 
     senv.argc = exec.argc();
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
-    senv.sp = get_sp();
+    senv.sp = STACK_TOP;
     senv.entry = entry;
     senv.lambda = 0;
     senv.exitaddr = 0;
