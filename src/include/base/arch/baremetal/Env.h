@@ -19,6 +19,7 @@
 #include <base/Common.h>
 #include <base/Config.h>
 #include <base/EnvBackend.h>
+#include <base/PE.h>
 
 namespace m3 {
 
@@ -39,12 +40,9 @@ class Env {
     friend OStream &operator<<(OStream &, const Env &senv);
 
 public:
-    static const size_t MODS_MAX    = 8;
-
     uint64_t coreid;
     uint32_t argc;
     char **argv;
-    uintptr_t mods[MODS_MAX];
 
     uintptr_t sp;
     uintptr_t entry;
@@ -60,6 +58,9 @@ public:
     uintptr_t exitaddr;
 
     BaremetalEnvBackend *backend;
+    uintptr_t kenv;
+    PE pe;
+
 #if defined(__t2__) || defined(__t3__)
     uint32_t : 32;
 #endif

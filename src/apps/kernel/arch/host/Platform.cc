@@ -14,26 +14,41 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <base/util/Profile.h>
+#include <base/Config.h>
 
-#include <m3/com/MemGate.h>
-#include <m3/stream/Standard.h>
-#include <m3/Syscalls.h>
+#include "DTU.h"
+#include "Platform.h"
 
-using namespace m3;
+namespace kernel {
 
-#define COUNT   100
+static bool initialized = false;
+static m3::KernelEnv kernenv;
 
-int main() {
-    cycles_t total = 0;
-    cout << "Starting...\n";
-    for(int i = 0; i < COUNT; ++i) {
-        cycles_t start = Profile::start(0);
-        Syscalls::get().noop();
-        cycles_t end = Profile::stop(0);
-        total += end - start;
+const m3::KernelEnv &Platform::kenv() {
+    if(!initialized) {
+        // no modules
+        kernenv.mods[0] = 0;
+
+        // init PEs
+        for(int i = 0; i < MAX_CORES; ++i)
+            kernenv.pes[i] = m3::PE(m3::PEType::COMP_IMEM, 1024 * 1024);
+        initialized = true;
     }
-    cout << "Per syscall: " << (total / COUNT) << "\n";
+    return kernenv;
+}
+
+const m3::PE &Platform::pe(size_t no) {
+    return kernenv.pes[no];
+}
+
+uintptr_t Platform::def_recvbuf(size_t) {
+    // unused
     return 0;
+}
+
+uintptr_t Platform::rw_barrier(size_t) {
+    // no rw barrier here
+    return 1;
+}
+
 }

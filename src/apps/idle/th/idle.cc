@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
+#include <base/util/Sync.h>
 #include <base/Env.h>
 
 #include "print.h"
@@ -28,16 +28,19 @@ EXTERN_C void loop() {
     volatile m3::Env *senv = m3::env();
     while(1) {
         // wait for an interrupt
-#if defined(__t2__)
-        // TODO is broken on CM core
-        if(m3::env()->coreid != CM_CORE)
-#endif
-        // TODO is broken on the FFT core
-        asm volatile ("waiti   0");
+        // TODO this is broken on the CM core on T2, on the FFT core on T3
+        // TODO and as it seems, suddenly it doesn't work at all on T2
+        // asm volatile ("waiti   0");
 
         // is there something to run?
         start_func ptr = reinterpret_cast<start_func>(senv->entry);
         if(ptr) {
+#if defined(__t2__)
+            // TODO why do we need that now????
+            for(volatile int i = 0; i < 100000; ++i)
+                ;
+#endif
+
             // remember exit location
             senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
 

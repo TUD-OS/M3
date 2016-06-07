@@ -79,6 +79,8 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
             case 'S':
                 obj->_fds[fd] = SerialFile::unserialize(um);
                 break;
+// TODO currently, m3fs gets too large when enabling that
+#if !defined(__t2__)
             case 'P':
                 obj->_fds[fd] = DirectPipeWriter::unserialize(um);
                 break;
@@ -91,6 +93,7 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
             case 'J':
                 obj->_fds[fd] = IndirectPipeWriter::unserialize(um);
                 break;
+#endif
         }
     }
     return obj;

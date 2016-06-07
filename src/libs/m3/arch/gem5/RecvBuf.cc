@@ -24,13 +24,28 @@
 namespace m3 {
 
 uint8_t *RecvBuf::allocate(size_t size) {
+    // TODO this assumes that we don't VPE::run between SPM and non-SPM PEs
+    static uintptr_t nextbuf = 0;
+    static size_t total = 0;
+    static uintptr_t begin = 0;
+    if(nextbuf == 0) {
+        if(env()->pe.has_virtmem()) {
+            begin = nextbuf = RECVBUF_SPACE;
+            total = RECVBUF_SIZE;
+        }
+        else {
+            begin = nextbuf = env()->pe.mem_size() - RECVBUF_SIZE_SPM;
+            total = RECVBUF_SIZE_SPM;
+        }
+    }
+
     // TODO atm, the kernel allocates the complete receive buffer space
-    size_t left = RECVBUF_SIZE - (_nextbuf - RECVBUF_SPACE);
+    size_t left = total - (nextbuf - begin);
     if(size > left)
         PANIC("Not enough receive buffer space for " << size << "b (" << left << "b left)");
 
-    uint8_t *res = reinterpret_cast<uint8_t*>(_nextbuf);
-    _nextbuf += size;
+    uint8_t *res = reinterpret_cast<uint8_t*>(nextbuf);
+    nextbuf += size;
     return res;
 }
 

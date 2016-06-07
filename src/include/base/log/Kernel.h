@@ -28,7 +28,7 @@ class KernelLog {
 public:
     enum Level {
         INFO        = 1 << 0,
-        MODS        = 1 << 1,
+        KENV        = 1 << 1,
         ERR         = 1 << 2,
         MEM         = 1 << 3,
         SYSC        = 1 << 4,

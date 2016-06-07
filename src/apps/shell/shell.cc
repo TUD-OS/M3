@@ -18,8 +18,9 @@
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
-#include <m3/vfs/VFS.h>
 #include <m3/vfs/Dir.h>
+#include <m3/vfs/Executable.h>
+#include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
 #include "Args.h"
@@ -27,14 +28,46 @@
 
 using namespace m3;
 
+static struct {
+    const char *name;
+    PE pe;
+} petypes[] = {
+    /* COMP_IMEM */ {"imem", PE(PEType::COMP_IMEM)},
+    /* COMP_EMEM */ {"emem", PE(PEType::COMP_EMEM)},
+    /* MEM       */ {"mem",  PE(PEType::MEM)},
+};
+
+static PE get_pe_type(const char *name) {
+    for(size_t i = 0; i < ARRAY_SIZE(petypes); ++i) {
+        if(strcmp(name, petypes[i].name) == 0)
+            return petypes[i].pe;
+    }
+    return VPE::self().pe();
+}
+
 static bool execute(CmdList *list) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
+    Executable *exec[MAX_CMDS] = {nullptr};
 
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
-        vpes[i] = new VPE(cmd->args->args[0]);
 
+        PE pe = VPE::self().pe();
+        for(size_t i = 0; i < cmd->vars->count; ++i) {
+            if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
+                pe = get_pe_type(cmd->vars->vars[i].value);
+                break;
+            }
+        }
+
+        vpes[i] = new VPE(cmd->args->args[0], pe);
+        if(Errors::last != Errors::NO_ERROR) {
+            errmsg("Unable to create VPE for " << cmd->args->args[0]);
+            break;
+        }
+
+        // TODO support I/O redirection
         if(i > 0)
             vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[i - 1]->reader_fd()));
         else
@@ -54,7 +87,8 @@ static bool execute(CmdList *list) {
         vpes[i]->obtain_mountspace();
 
         Errors::Code err;
-        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NO_ERROR) {
+        exec[i] = new Executable(cmd->args->count, cmd->args->args);
+        if((err = vpes[i]->exec(*exec[i])) != Errors::NO_ERROR) {
             errmsg("Unable to execute '" << cmd->args->args[0] << "'");
             break;
         }
@@ -71,6 +105,7 @@ static bool execute(CmdList *list) {
             if(res != 0)
                 cerr << "Program terminated with exit code " << res << "\n";
             delete vpes[i];
+            delete exec[i];
         }
     }
     for(size_t i = 0; i < list->count; ++i)

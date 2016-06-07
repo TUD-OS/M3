@@ -14,34 +14,38 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/session/M3FS.h>
-#include <m3/stream/Standard.h>
-#include <m3/vfs/VFS.h>
-#include <m3/vfs/Executable.h>
-#include <m3/Syscalls.h>
-#include <m3/VPE.h>
+#include "DTU.h"
+#include "Platform.h"
 
-using namespace m3;
+namespace kernel {
 
-int main() {
-    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
-        if(Errors::last != Errors::EXISTS)
-            exitmsg("Mounting root-fs failed");
+static bool initialized = false;
+static m3::KernelEnv kernenv;
+
+const m3::KernelEnv &Platform::kenv() {
+    if(!initialized) {
+        // no modules
+        kernenv.mods[0] = 0;
+
+        // init PEs
+        for(int i = 0; i < MAX_CORES; ++i)
+            kernenv.pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024);
+        initialized = true;
     }
+    return kernenv;
+}
 
-    {
-        VPE child("child", "", "pager");
+const m3::PE &Platform::pe(size_t no) {
+    return kenv().pes[no];
+}
 
-        child.mountspace(*VPE::self().mountspace());
-        child.obtain_mountspace();
+uintptr_t Platform::def_recvbuf(size_t) {
+    return DEF_RCVBUF;
+}
 
-        const char *args[] = {"/bin/pgchild"};
-        Executable exec(ARRAY_SIZE(args), args);
+uintptr_t Platform::rw_barrier(size_t) {
+    // no rw barrier here
+    return 1;
+}
 
-        child.exec(exec);
-        child.wait();
-    }
-
-    cout << "Bye World!\n";
-    return 0;
 }

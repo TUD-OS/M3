@@ -20,6 +20,7 @@
 #include "com/RecvBufs.h"
 #include "pes/VPE.h"
 #include "pes/PEManager.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -31,7 +32,7 @@ VPE::VPEId::~VPEId() {
     DTU::get().unset_vpeid(core, id);
 }
 
-VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t pfgate)
+VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate)
     : _id(id, id + APP_CORES), _flags(bootmod ? BOOTMOD : 0),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
@@ -39,7 +40,7 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, bool as, int ep, capsel_t p
       _eps(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(SyscallHandler::get().srvepid(), nullptr),
-      _as(as ? new AddrSpace(ep, pfgate) : nullptr),
+      _as(Platform::pe(core()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));

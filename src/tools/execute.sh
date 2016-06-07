@@ -142,11 +142,14 @@ build_params_gem5() {
         done
     )`
 
+    M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
+    export M3_GEM5_PES=$maxcores
+    export M3_GEM5_FS=$build/$M3_FS
+
     params=`mktemp`
     echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
-    echo -n " hw/gem5/configs/example/dtu-fs.py --cpu-type $M3_GEM5_CPU --num-pes=$maxcores" >> $params
-    echo -n " --cpu-clock=1GHz --sys-clock=1GHz --caches" >> $params
-    echo -n " --cmd \"$cmd\" --init_mem $build/$M3_FS" >> $params
+    echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --cmd \"$cmd\"" >> $params
+    echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
     if [ "$M3_PAUSE_PE" != "" ]; then
         echo -n " --pausepe=$M3_PAUSE_PE" >> $params
     fi

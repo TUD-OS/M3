@@ -20,6 +20,7 @@
 
 #define MAX_CMDS    4
 #define MAX_ARGS   32
+#define MAX_VARS    4
 
 typedef struct {
     unsigned count;
@@ -31,6 +32,17 @@ typedef struct {
 } RedirList;
 
 typedef struct {
+    const char *name;
+    const char *value;
+} Var;
+
+typedef struct {
+    unsigned count;
+    Var vars[MAX_VARS];
+} VarList;
+
+typedef struct {
+    VarList *vars;
     ArgList *args;
     RedirList *redirs;
 } Command;
@@ -40,7 +52,7 @@ typedef struct {
     Command *cmds[MAX_CMDS];
 } CmdList;
 
-EXTERN_C Command *ast_cmd_create(ArgList *args, RedirList *redirs);
+EXTERN_C Command *ast_cmd_create(VarList *vars, ArgList *args, RedirList *redirs);
 EXTERN_C void ast_cmd_destroy(Command *cmd);
 
 EXTERN_C RedirList *ast_redirs_create(void);
@@ -54,6 +66,10 @@ EXTERN_C void ast_cmds_destroy(CmdList *list);
 EXTERN_C ArgList *ast_args_create(void);
 EXTERN_C void ast_args_append(ArgList *list, const char *arg);
 EXTERN_C void ast_args_destroy(ArgList *list);
+
+EXTERN_C VarList *ast_vars_create(void);
+EXTERN_C void ast_vars_set(VarList *list, const char *name, const char *value);
+EXTERN_C void ast_vars_destroy(VarList *list);
 
 #if defined(__cplusplus)
 #   include <base/stream/IStream.h>

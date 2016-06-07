@@ -47,6 +47,8 @@ public:
     void suspend(VPE &vpe);
     void injectIRQ(VPE &vpe);
 
+    void set_rw_barrier(VPE &vpe, uintptr_t addr);
+
     void config_pf_remote(VPE &vpe, int ep);
     void map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
     void unmap_page(VPE &vpe, uintptr_t virt);

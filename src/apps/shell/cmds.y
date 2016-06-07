@@ -11,6 +11,7 @@
 
 %union {
     ArgList *arglist;
+    VarList *varlist;
     CmdList *cmdlist;
     RedirList *redirlist;
     Command *cmd;
@@ -22,6 +23,7 @@
 
 %type <str> T_STRING arg
 %type <arglist> args
+%type <varlist> vars
 %type <cmd> cmd
 %type <cmdlist> cmds start
 %type <redirlist> redirs
@@ -30,6 +32,7 @@
 %destructor { free((void*)$$); } <str>
 %destructor { ast_cmds_destroy($$); } <cmdlist>
 %destructor { ast_args_destroy($$); } <arglist>
+%destructor { ast_vars_destroy($$); } <vars>
 %destructor { ast_redirs_destroy($$); } <redirlist>
 %destructor { ast_cmd_destroy($$); } <cmd>
 
@@ -52,7 +55,12 @@ cmds:       /* empty */                             { $$ = ast_cmds_create(); }
                                                     }
 ;
 
-cmd:        args redirs                             { $$ = ast_cmd_create($1, $2); }
+cmd:        vars args redirs                        { $$ = ast_cmd_create($1, $2, $3); }
+;
+
+vars:
+            /* empty */                             { $$ = ast_vars_create(); }
+            | vars T_STRING '=' T_STRING            { $$ = $1; ast_vars_set($1, $2, $4); }
 ;
 
 redirs:

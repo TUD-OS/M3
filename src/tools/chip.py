@@ -37,7 +37,6 @@ class Env(Structure):
         ('coreid', c_uint64),
         ('argc', c_uint32),
         ('argv', c_uint32),
-        ('mods', c_uint32 * 8),
 
         ('sp', c_uint32),
         ('entry', c_uint32),
@@ -53,6 +52,8 @@ class Env(Structure):
         ('exit', c_uint32),
 
         ('backend', c_uint32),
+        ('kenv', c_uint32),
+        ('pe', c_uint32),
         ('_', c_uint32),
     ]
     def send(self):

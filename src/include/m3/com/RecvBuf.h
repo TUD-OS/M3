@@ -144,7 +144,6 @@ private:
     size_t _epid;
     unsigned _flags;
     RecvBufWorkItem *_workitem;
-    static uintptr_t _nextbuf;
     static RecvBuf _default;
 };
 

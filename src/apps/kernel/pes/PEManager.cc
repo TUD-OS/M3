@@ -21,22 +21,18 @@
 #include <string.h>
 
 #include "pes/PEManager.h"
+#include "Platform.h"
 
 namespace kernel {
 
 bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
 
-PEManager::PEManager() : _petype(), _vpes(), _count(), _daemons() {
+PEManager::PEManager() : _vpes(), _count(), _daemons(), _pending() {
     deprivilege_pes();
 }
 
 void PEManager::load(int argc, char **argv) {
-    bool as = false;
-#if defined(__gem5__)
-    as = true;
-#endif
-
     size_t no = 0;
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
@@ -51,7 +47,7 @@ void PEManager::load(int argc, char **argv) {
             // allow multiple applications with the same name
             m3::OStringStream name;
             name << path_to_name(m3::String(argv[i]), nullptr).c_str() << "-" << no;
-            _vpes[no] = new VPE(m3::String(name.str()), no, true, as);
+            _vpes[no] = new VPE(m3::String(name.str()), no, true);
             _count++;
         }
 
@@ -60,11 +56,7 @@ void PEManager::load(int argc, char **argv) {
         bool karg = false;
         int j = i + 1, end = i + 1;
         for(; j < argc; ++j) {
-            if(strncmp(argv[j], "core=", 5) == 0) {
-                _petype[no] = argv[j] + 5;
-                karg = true;
-            }
-            else if(strcmp(argv[j], "daemon") == 0) {
+            if(strcmp(argv[j], "daemon") == 0) {
                 daemon = true;
                 _vpes[no]->make_daemon();
                 karg = true;
@@ -153,27 +145,23 @@ m3::String PEManager::path_to_name(const m3::String &path, const char *suffix) {
     return os.str();
 }
 
-bool PEManager::core_matches(size_t i, const char *core) const {
-    if(core == nullptr)
-        return _petype[i] == nullptr;
-    if(_petype[i])
-        return strcmp(_petype[i], core) == 0;
-    return strcmp(core, "default") == 0;
-}
-
-VPE *PEManager::create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate) {
+VPE *PEManager::create(m3::String &&name, const m3::PE &pe, int ep, capsel_t pfgate) {
     if(_count == AVAIL_PES)
         return nullptr;
 
     size_t i;
     for(i = 0; i < AVAIL_PES; ++i) {
-        if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && core_matches(i, core))
+        if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && Platform::pe(i).type() == pe.type())
             break;
     }
     if(i == AVAIL_PES)
         return nullptr;
 
-    _vpes[i] = new VPE(std::move(name), i, false, as, ep, pfgate);
+    // a pager without virtual memory support, doesn't work
+    if(!Platform::pe(APP_CORES + i).has_virtmem() && pfgate != m3::KIF::INV_SEL)
+        return nullptr;
+
+    _vpes[i] = new VPE(std::move(name), i, false, ep, pfgate);
     _count++;
     return _vpes[i];
 }

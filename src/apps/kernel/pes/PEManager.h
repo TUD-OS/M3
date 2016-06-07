@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/stream/OStringStream.h>
+#include <base/PE.h>
 
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"
@@ -62,12 +63,9 @@ private:
 public:
     void load(int argc, char **argv);
 
-    VPE *create(m3::String &&name, const char *core, bool as, int ep, capsel_t pfgate);
+    VPE *create(m3::String &&name, const m3::PE &pe, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
-    const char *type(int id) const {
-        return _petype[id];
-    }
     size_t used() const {
         return _count;
     }
@@ -92,11 +90,9 @@ private:
         }
     }
 
-    bool core_matches(size_t i, const char *core) const;
     static m3::String path_to_name(const m3::String &path, const char *suffix);
     static m3::String fork_name(const m3::String &name);
 
-    const char *_petype[AVAIL_PES];
     VPE *_vpes[AVAIL_PES];
     size_t _count;
     size_t _daemons;

@@ -16,6 +16,20 @@
 
 #pragma once
 
+#include <base/PE.h>
+
+namespace m3 {
+
+struct KernelEnv {
+    static const size_t MAX_MODS        = 8;
+    static const size_t MAX_PES         = 64;
+
+    uintptr_t mods[MAX_MODS];
+    PE pes[MAX_PES];
+} PACKED;
+
+}
+
 #if defined(__host__)
 #   include <base/arch/host/Env.h>
 #else

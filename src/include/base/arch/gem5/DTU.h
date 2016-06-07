@@ -50,10 +50,10 @@ private:
 
     enum class DtuRegs {
         STATUS              = 0,
-        RW_BARRIER          = 1,
-        ROOT_PT             = 2,
-        PF_EP               = 3,
-        LAST_PF             = 4,
+        ROOT_PT             = 1,
+        PF_EP               = 2,
+        LAST_PF             = 3,
+        RW_BARRIER          = 4,
         VPE_ID              = 5,
         MSGCNT              = 6,
         EXT_CMD             = 7,

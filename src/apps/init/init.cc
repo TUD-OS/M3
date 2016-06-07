@@ -14,26 +14,33 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <base/util/Profile.h>
-
-#include <m3/com/MemGate.h>
+#include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
+#include <m3/vfs/VFS.h>
+#include <m3/vfs/Executable.h>
 #include <m3/Syscalls.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 
-#define COUNT   100
+int main(int argc, const char **argv) {
+    if(argc < 2)
+        exitmsg("Usage: " << argv[0] << " <program> [<arg>...]");
 
-int main() {
-    cycles_t total = 0;
-    cout << "Starting...\n";
-    for(int i = 0; i < COUNT; ++i) {
-        cycles_t start = Profile::start(0);
-        Syscalls::get().noop();
-        cycles_t end = Profile::stop(0);
-        total += end - start;
+    if(VFS::mount("/", new M3FS("m3fs")) < 0) {
+        if(Errors::last != Errors::EXISTS)
+            exitmsg("Mounting root-fs failed");
     }
-    cout << "Per syscall: " << (total / COUNT) << "\n";
+
+    VPE sh(argv[1], VPE::self().pe(), "pager");
+
+    sh.mountspace(*VPE::self().mountspace());
+    sh.obtain_mountspace();
+
+    Executable exec(argc - 1, argv + 1);
+    sh.exec(exec);
+
+    sh.wait();
     return 0;
 }
+

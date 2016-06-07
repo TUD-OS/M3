@@ -21,6 +21,7 @@
 #include <base/util/String.h>
 #include <base/ELF.h>
 #include <base/Errors.h>
+#include <base/PE.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/ObjCap.h>
@@ -81,11 +82,18 @@ public:
      * Creates a new VPE and assigns the given name to it.
      *
      * @param name the VPE name
-     * @param core the core type that is required (empty = default core)
+     * @param pe the desired PE type (default: same as the current PE)
      * @param pager the pager (optional)
      */
-    explicit VPE(const String &name, const String &core = String(), const char *pager = nullptr);
+    explicit VPE(const String &name, const PE &pe = VPE::self().pe(), const char *pager = nullptr);
     ~VPE();
+
+    /**
+     * @return the information about the PE this VPE has been assigned to
+     */
+    const PE &pe() const {
+        return _pe;
+    }
 
     /**
      * @return the pager of this VPE (or nullptr)
@@ -282,6 +290,7 @@ private:
     static bool skip_section(ElfPh *ph);
     void copy_sections();
 
+    PE _pe;
     MemGate _mem;
     BitField<SEL_TOTAL> *_caps;
     BitField<EP_COUNT> *_eps;

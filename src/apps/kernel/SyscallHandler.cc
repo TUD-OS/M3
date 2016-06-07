@@ -23,6 +23,7 @@
 #include "pes/PEManager.h"
 #include "com/Services.h"
 #include "com/RecvBufs.h"
+#include "Platform.h"
 #include "SyscallHandler.h"
 
 // #define SIMPLE_SYSC_LOG
@@ -309,10 +310,12 @@ void SyscallHandler::createvpe(GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
     VPE *vpe = is.gate().session<VPE>();
     capsel_t tcap, mcap, gcap;
-    m3::String name, core;
+    m3::PE::value_t pe;
+    m3::String name;
     size_t ep;
-    is >> tcap >> mcap >> name >> core >> gcap >> ep;
-    LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name << ", core=" << core
+    is >> tcap >> mcap >> name >> pe >> gcap >> ep;
+    LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name
+        << ", pe=" << static_cast<int>(m3::PE(pe).type())
         << ", tcap=" << tcap << ", mcap=" << mcap << ", pfgate=" << gcap
         << ", pfep=" << ep << ")");
 
@@ -328,11 +331,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     }
 
     // create VPE
-    const char *corename = core.c_str()[0] == '\0'
-        ? PEManager::get().type(vpe->core() - APP_CORES)
-        : core.c_str();
-    VPE *nvpe = PEManager::get().create(std::move(name), corename,
-        gcap != m3::KIF::INV_SEL, ep, gcap);
+    VPE *nvpe = PEManager::get().create(std::move(name), m3::PE(pe), ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 
@@ -348,7 +347,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
         DTU::get().config_pf_remote(*nvpe, ep);
     }
 
-    reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
+    reply_vmsg(is.gate(), m3::Errors::NO_ERROR, Platform::pe(nvpe->core()).value());
 }
 
 void SyscallHandler::createmap(UNUSED GateIStream &is) {
@@ -414,7 +413,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE capability is invalid");
 
-    if(addr < RECVBUF_SPACE || (order > 20) || (msgorder > order))
+    if(addr < Platform::rw_barrier(tcapobj->vpe->core()) || (order > 20) || (msgorder > order))
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Not in receive buffer space");
 
     m3::Errors::Code res = RecvBufs::attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);

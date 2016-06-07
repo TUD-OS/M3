@@ -86,6 +86,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.pager_sess = 0;
 
     senv.backend = env()->backend;
+    senv.pe = _pe;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
@@ -98,11 +99,6 @@ Errors::Code VPE::run(void *lambda) {
 
     /* go! */
     return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
-}
-
-Errors::Code VPE::exec(int argc, const char **argv) {
-    Executable e(argc, argv);
-    return exec(e);
 }
 
 Errors::Code VPE::exec(Executable &exec) {
@@ -159,6 +155,7 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.pager_gate = _pager ? _pager->gate().sel() : 0;
 
     senv.backend = nullptr;
+    senv.pe = _pe;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);

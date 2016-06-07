@@ -10,6 +10,7 @@
 #define YYSTYPE_IS_DECLARED 1
 typedef union {
     ArgList *arglist;
+    VarList *varlist;
     CmdList *cmdlist;
     RedirList *redirlist;
     Command *cmd;

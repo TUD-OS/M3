@@ -20,6 +20,7 @@
 #include <base/util/CapRngDesc.h>
 #include <base/Env.h>
 #include <base/KIF.h>
+#include <base/PE.h>
 
 #include <m3/com/SendGate.h>
 #include <m3/com/GateStream.h>
@@ -50,7 +51,7 @@ public:
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
-    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core, capsel_t gate, size_t ep);
+    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PE &pe, capsel_t gate, size_t ep);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
     Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
     Errors::Code detachrb(capsel_t vpe, size_t ep);

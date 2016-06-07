@@ -16,10 +16,10 @@
 
 #pragma once
 
-#define MEMORY_CORE         8
+#define MEMORY_CORE         16
 #define KERNEL_CORE         0
 #define APP_CORES           1
-#define MAX_CORES           8
+#define MAX_CORES           16
 #define AVAIL_PES           (MAX_CORES - 1)
 #define PE_MASK             0xFFFFFFFF
 #define CAP_TOTAL           512
@@ -37,7 +37,7 @@
 #define HEAP_SIZE           0x10000
 #define EP_COUNT            7
 
-#define RT_START            0x1000
+#define RT_START            0x3000
 #define RT_SIZE             0x2000
 #define RT_END              (RT_START + RT_SIZE)
 
@@ -47,6 +47,7 @@
 
 #define RECVBUF_SPACE       0xE0000000
 #define RECVBUF_SIZE        (4 * PAGE_SIZE)
+#define RECVBUF_SIZE_SPM    16384
 
 #define DEF_RCVBUF_ORDER    8
 #define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)

@@ -24,6 +24,7 @@
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"
 #include "DTU.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -34,25 +35,32 @@ struct BootModule {
 } PACKED;
 
 static size_t count = 0;
-static BootModule mods[m3::Env::MODS_MAX];
+static BootModule mods[m3::KernelEnv::MAX_MODS];
 static uint32_t loaded = 0;
 static BootModule *idles[MAX_CORES];
 static char buffer[4096];
 
 static BootModule *get_mod(const char *name, bool *first) {
-    static_assert(sizeof(loaded) * 8 >= m3::Env::MODS_MAX, "Too few bits for modules");
+    static_assert(sizeof(loaded) * 8 >= m3::KernelEnv::MAX_MODS, "Too few bits for modules");
 
     if(count == 0) {
-        uintptr_t *marray = m3::env()->mods;
-        for(size_t i = 0; i < m3::Env::MODS_MAX && marray[i]; ++i) {
-            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(marray[i]));
+        const m3::KernelEnv &kenv = Platform::kenv();
+        for(size_t i = 0; i < m3::KernelEnv::MAX_MODS && kenv.mods[i]; ++i) {
+            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(kenv.mods[i]));
             DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
-            KLOG(MODS, "Module '" << mods[i].name << "':");
-            KLOG(MODS, "  addr: " << m3::fmt(mods[i].addr, "p"));
-            KLOG(MODS, "  size: " << m3::fmt(mods[i].size, "p"));
+            KLOG(KENV, "Module '" << mods[i].name << "':");
+            KLOG(KENV, "  addr: " << m3::fmt(mods[i].addr, "p"));
+            KLOG(KENV, "  size: " << m3::fmt(mods[i].size, "p"));
 
             count++;
+        }
+
+        static const char *types[] = {"imem", "emem", "mem"};
+        for(size_t i = 0; i < MAX_CORES + 1; ++i) {
+            KLOG(KENV, "PE" << m3::fmt(i, 2) << ": "
+                << types[static_cast<size_t>(kenv.pes[i].type())] << " "
+                << (kenv.pes[i].mem_size() / 1024) << " KiB memory");
         }
     }
 
@@ -76,16 +84,6 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     DTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
 }
 
-static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
-    capsel_t dst = virt >> PAGE_BITS;
-    size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
-    for(capsel_t i = 0; i < pages; ++i) {
-        MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst + i, phys, perms);
-        vpe.mapcaps().set(dst + i, mapcap);
-        phys += PAGE_SIZE;
-    }
-}
-
 static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
     if(clear)
         memset(buffer, 0, sizeof(buffer));
@@ -101,6 +99,20 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
         dst += amount;
         rem -= amount;
     }
+}
+
+static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
+    if(Platform::pe(vpe.core()).has_virtmem()) {
+        capsel_t dst = virt >> PAGE_BITS;
+        size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
+        for(capsel_t i = 0; i < pages; ++i) {
+            MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst + i, phys, perms);
+            vpe.mapcaps().set(dst + i, mapcap);
+            phys += PAGE_SIZE;
+        }
+    }
+    else
+        copy_clear(vpe.core(), vpe.id(), virt, phys, size, false);
 }
 
 static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
@@ -197,21 +209,25 @@ void VPE::init_memory(const char *name) {
         return;
     _flags |= MEMINIT;
 
+    bool vm = Platform::pe(core()).has_virtmem();
+
     if(_flags & BOOTMOD) {
         bool appFirst;
         BootModule *mod = get_mod(name, &appFirst);
         if(!mod)
             PANIC("Unable to find boot module '" << name << "'");
 
-        KLOG(MODS, "Loading mod '" << mod->name << "':");
+        KLOG(KENV, "Loading mod '" << mod->name << "':");
 
-        DTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
+        if(vm) {
+            DTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
 
-        // map runtime space
-        uintptr_t virt = RT_START;
-        uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
-            MainMemory::get().map().allocate(STACK_TOP - virt));
-        map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
+            // map runtime space
+            uintptr_t virt = RT_START;
+            uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
+                MainMemory::get().map().allocate(STACK_TOP - virt));
+            map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
+        }
 
         // load app
         uint64_t entry = load_mod(*this, mod, !appFirst, true);
@@ -252,16 +268,20 @@ void VPE::init_memory(const char *name) {
         senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
         senv.sp = STACK_TOP - sizeof(word_t);
         senv.entry = entry;
+        senv.pe = Platform::pe(core());
 
         DTU::get().write_mem(*this, RT_START, &senv, sizeof(senv));
     }
 
     map_idle(*this);
 
-    // map receive buffer
-    uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
-        MainMemory::get().map().allocate(RECVBUF_SIZE));
-    map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
+    if(vm) {
+        // map receive buffer
+        uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
+            MainMemory::get().map().allocate(RECVBUF_SIZE));
+        map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
+    }
+    DTU::get().set_rw_barrier(*this, Platform::rw_barrier(core()));
 }
 
 }

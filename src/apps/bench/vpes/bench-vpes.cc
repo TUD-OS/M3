@@ -20,8 +20,9 @@
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/VFS.h>
+#include <m3/vfs/Executable.h>
 #include <m3/vfs/File.h>
+#include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -47,15 +48,15 @@ int main() {
     exec_time = 0;
 
     {
-        VPE vpe("hello");
         for(int i = 0; i < COUNT; ++i) {
+            VPE vpe("hello");
             cycles_t start2 = Profile::start(1);
             Errors::Code res = vpe.run([start2]() {
                 cycles_t end = Profile::stop(1);
                 return end - start2;
             });
             if(res != Errors::NO_ERROR)
-                exitmsg("Unable to load /bin/init");
+                exitmsg("VPE::run failed");
 
             int time = vpe.wait();
             exec_time += time;
@@ -67,14 +68,14 @@ int main() {
     exec_time = 0;
 
     {
-        VPE vpe("hello");
         for(int i = 0; i < COUNT; ++i) {
+            VPE vpe("hello");
             cycles_t start = Profile::start(2);
             Errors::Code res = vpe.run([]() {
                 return 0;
             });
             if(res != Errors::NO_ERROR)
-                exitmsg("Unable to load /bin/init");
+                exitmsg("VPE::run failed");
 
             vpe.wait();
             cycles_t end = Profile::stop(2);
@@ -87,11 +88,12 @@ int main() {
     exec_time = 0;
 
     {
-        VPE vpe("hello");
         for(int i = 0; i < COUNT; ++i) {
+            VPE vpe("hello");
             cycles_t start = Profile::start(3);
             const char *args[] = {"/bin/noop"};
-            Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
+            Executable exec(ARRAY_SIZE(args), args);
+            Errors::Code res = vpe.exec(exec);
             if(res != Errors::NO_ERROR)
                 exitmsg("Unable to load " << args[0]);
 
