@@ -1,6 +1,15 @@
 #!/usr/bin/env python2
 
-import tomahawk as th
+newth = True
+
+if newth:
+    import tomahawk.arch
+    import tomahawk.memory
+    import tomahawk.tools
+    th = tomahawk.arch.Tomahawk2()
+else:
+    import tomahawk as th
+
 import sys
 import select
 import time
@@ -267,7 +276,16 @@ th.ddr_ram.on()
 
 # copy fs-image to global memory
 if sys.argv[1] != "-":
-    th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
+    if newth:
+        fslen = 0
+        for slic in tomahawk.memory.memfilestream(sys.argv[1]):
+            fslen += len(slic)
+        proc = tomahawk.tools.Progress("Storing FS image in DRAM", fslen)
+        th.ddr_ram.writes(tomahawk.memory.memfilestream(sys.argv[1]), prgss=lambda x: proc.advance(x))
+        proc.clear()
+    else:
+        th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
+
 th.ddr_ram.mem[DRAM_CCOUNT] = 0
 th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 
@@ -398,11 +416,12 @@ while run:
 getTraceFile()
 
 # now, read the fs image back from DRAM into a file
-if sys.argv[1] != "-":
-    print "Reading filesystem image from DRAM..."
-    with open(sys.argv[1] + '.out', 'wb') as f:
-        for addr, data in th.memfilestream(sys.argv[1]):
-            for i, w in enumerate(th.ddr_ram.mem.__getslice__(addr, addr + len(data) * 8)):
-                for b in strToBytes(w):
-                    f.write("%c" % b)
+if not newth:
+    if sys.argv[1] != "-":
+        print "Reading filesystem image from DRAM..."
+        with open(sys.argv[1] + '.out', 'wb') as f:
+            for addr, data in th.memfilestream(sys.argv[1]):
+                for i, w in enumerate(th.ddr_ram.mem.__getslice__(addr, addr + len(data) * 8)):
+                    for b in strToBytes(w):
+                        f.write("%c" % b)
 print "Done. Bye!"
