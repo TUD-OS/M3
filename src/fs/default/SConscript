@@ -28,6 +28,7 @@ if env['ARCH'] == 't2':
     env.M3Strip('$FSDIR/default/bin/sendfile', '$BINARYDIR/sendfile')
 env.M3Strip('$FSDIR/default/bin/shell', '$BINARYDIR/shell')
 env.M3Strip('$FSDIR/default/bin/stat', '$BINARYDIR/stat')
+env.M3Strip('$FSDIR/default/bin/time', '$BINARYDIR/time')
 env.M3Strip('$FSDIR/default/bin/tr', '$BINARYDIR/tr')
 env.M3Strip('$FSDIR/default/bin/unittests', '$BINARYDIR/unittests')
 if env['ARCH'] == 'host':
