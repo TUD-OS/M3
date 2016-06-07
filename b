@@ -164,7 +164,7 @@ run_on_host() {
 
 kill_m3_procs() {
     # kill all processes that are using the m3 sockets
-    lsof -u $USER | grep '@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill 2>/dev/null || true
+    lsof -a -U -u $USER | grep '^@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill 2>/dev/null || true
 }
 
 # run the specified command, if any
