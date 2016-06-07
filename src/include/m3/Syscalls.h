@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr,DTU::SYSC_EP) {
+    explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr, DTU::SYSC_EP) {
     }
 
 public:
