@@ -20,6 +20,7 @@
 #include <base/DTU.h>
 #include <base/WorkLoop.h>
 
+#include "com/RecvBufs.h"
 #include "pes/PEManager.h"
 #include "SyscallHandler.h"
 
@@ -33,6 +34,7 @@ int main(int argc, char *argv[]) {
 
     EVENT_TRACE_INIT_KERNEL();
 
+    RecvBufs::init();
     PEManager::create();
     PEManager::get().load(argc - 1, argv + 1);
 

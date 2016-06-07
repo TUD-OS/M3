@@ -14,25 +14,18 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Init.h>
+
 #include "DTU.h"
 #include "Platform.h"
 
 namespace kernel {
 
-static bool initialized = false;
-static m3::KernelEnv kernenv;
+INIT_PRIO_USER(2) Platform::KEnv Platform::_kenv;
 
-const m3::KernelEnv &Platform::kenv() {
-    if(!initialized) {
-        uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(m3::env()->kenv));
-        DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &kernenv, sizeof(kernenv));
-        initialized = true;
-    }
-    return kernenv;
-}
-
-const m3::PE &Platform::pe(size_t no) {
-    return kenv().pes[no];
+Platform::KEnv::KEnv() {
+    uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(m3::env()->kenv));
+    DTU::get().read_mem_at(MEMORY_CORE, 0, addr, this, sizeof(*this));
 }
 
 uintptr_t Platform::def_recvbuf(size_t no) {

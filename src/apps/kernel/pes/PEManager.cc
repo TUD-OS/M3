@@ -28,7 +28,7 @@ namespace kernel {
 bool PEManager::_shutdown = false;
 PEManager *PEManager::_inst;
 
-PEManager::PEManager() : _vpes(), _count(), _daemons(), _pending() {
+PEManager::PEManager() : _vpes(new VPE*[Platform::pe_count()]()), _count(), _daemons(), _pending() {
     deprivilege_pes();
 }
 
@@ -146,15 +146,15 @@ m3::String PEManager::path_to_name(const m3::String &path, const char *suffix) {
 }
 
 VPE *PEManager::create(m3::String &&name, const m3::PE &pe, int ep, capsel_t pfgate) {
-    if(_count == AVAIL_PES)
+    if(_count == Platform::pe_count())
         return nullptr;
 
     size_t i;
-    for(i = 0; i < AVAIL_PES; ++i) {
+    for(i = 0; i < Platform::pe_count(); ++i) {
         if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && Platform::pe(i).type() == pe.type())
             break;
     }
-    if(i == AVAIL_PES)
+    if(i == Platform::pe_count())
         return nullptr;
 
     // a pager without virtual memory support, doesn't work

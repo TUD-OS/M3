@@ -17,11 +17,12 @@
 #include <base/util/Sync.h>
 
 #include "pes/PEManager.h"
+#include "Platform.h"
 
 namespace kernel {
 
 PEManager::~PEManager() {
-    for(size_t i = 0; i < AVAIL_PES; ++i) {
+    for(size_t i = 0; i < Platform::pe_count(); ++i) {
         if(_vpes[i])
             _vpes[i]->unref();
     }

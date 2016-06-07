@@ -120,11 +120,7 @@ build_params_gem5() {
         fi
     fi
 
-    if [ ! -z $M3_CORES ]; then
-        maxcores=$M3_CORES
-    else
-        maxcores=`grep '#define MAX_CORES' src/include/base/arch/gem5/Config.h | awk '{print $3 }'`
-    fi
+    M3_CORES=${M3_CORES:-16}
 
     c=0
     cmd=`generate_lines $1 | ( while read line; do
@@ -136,14 +132,14 @@ build_params_gem5() {
             c=$((c + 1))
         done
 
-        while [ $c -lt $maxcores ]; do
+        while [ $c -lt $M3_CORES ]; do
             echo -n $bindir/idle,
             c=$((c + 1))
         done
     )`
 
     M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
-    export M3_GEM5_PES=$maxcores
+    export M3_GEM5_PES=$M3_CORES
     export M3_GEM5_FS=$build/$M3_FS
 
     params=`mktemp`

@@ -21,8 +21,9 @@
 
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"
-#include "SyscallHandler.h"
 #include "DTU.h"
+#include "Platform.h"
+#include "SyscallHandler.h"
 
 namespace kernel {
 
@@ -73,7 +74,7 @@ public:
         return _daemons;
     }
     bool exists(int id) {
-        return id < (int)AVAIL_PES && _vpes[id];
+        return id < (int)Platform::pe_count() && _vpes[id];
     }
     VPE &vpe(int id) {
         assert(_vpes[id]);
@@ -84,16 +85,16 @@ public:
 
 private:
     void deprivilege_pes() {
-        for(int i = 0; i < AVAIL_PES; ++i) {
+        for(size_t i = 0; i < Platform::pe_count(); ++i) {
             if(PE_MASK & (1 << i))
-                DTU::get().deprivilege(APP_CORES + i);
+                DTU::get().deprivilege(/*APP_CORES + */i);
         }
     }
 
     static m3::String path_to_name(const m3::String &path, const char *suffix);
     static m3::String fork_name(const m3::String &name);
 
-    VPE *_vpes[AVAIL_PES];
+    VPE **_vpes;
     size_t _count;
     size_t _daemons;
     m3::SList<Pending> _pending;

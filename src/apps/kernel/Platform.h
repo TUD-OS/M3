@@ -14,16 +14,40 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Env.h>
+#pragma once
+
+#include <base/PE.h>
 
 namespace kernel {
 
 class Platform {
 public:
-    static const m3::KernelEnv &kenv();
-    static const m3::PE &pe(size_t no);
+    static const size_t MAX_MODS        = 8;
+    static const size_t MAX_PES         = 64;
+
+    struct KEnv {
+        explicit KEnv();
+
+        uintptr_t mods[MAX_MODS];
+        size_t pe_count;
+        m3::PE::value_t pes[MAX_PES];
+    } PACKED;
+
+    static uintptr_t mod(size_t i) {
+        return _kenv.mods[i];
+    }
+    static size_t pe_count() {
+        return _kenv.pe_count;
+    }
+    static m3::PE pe(size_t no) {
+        return m3::PE(_kenv.pes[no]);
+    }
+
     static uintptr_t def_recvbuf(size_t no);
     static uintptr_t rw_barrier(size_t no);
+
+private:
+    static KEnv _kenv;
 };
 
 }

@@ -34,7 +34,7 @@ extern int int_target;
 
 namespace kernel {
 
-INIT_PRIO_USER(2) SyscallHandler SyscallHandler::_inst;
+INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 
 #if defined(SIMPLE_SYSC_LOG)
 #   define LOG_SYS(vpe, sysname, expr) \
@@ -90,7 +90,7 @@ static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcap
 SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 #if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
-    int buford = m3::nextlog2<AVAIL_PES>::val + VPE::SYSC_CREDIT_ORD;
+    int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_CREDIT_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
     DTU::get().config_recv_local(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_CREDIT_ORD, 0);

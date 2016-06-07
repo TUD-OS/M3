@@ -35,18 +35,17 @@ struct BootModule {
 } PACKED;
 
 static size_t count = 0;
-static BootModule mods[m3::KernelEnv::MAX_MODS];
+static BootModule mods[Platform::MAX_MODS];
 static uint32_t loaded = 0;
-static BootModule *idles[MAX_CORES];
+static BootModule *idles[Platform::MAX_PES];
 static char buffer[4096];
 
 static BootModule *get_mod(const char *name, bool *first) {
-    static_assert(sizeof(loaded) * 8 >= m3::KernelEnv::MAX_MODS, "Too few bits for modules");
+    static_assert(sizeof(loaded) * 8 >= Platform::MAX_MODS, "Too few bits for modules");
 
     if(count == 0) {
-        const m3::KernelEnv &kenv = Platform::kenv();
-        for(size_t i = 0; i < m3::KernelEnv::MAX_MODS && kenv.mods[i]; ++i) {
-            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(kenv.mods[i]));
+        for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
+            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
             DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
@@ -57,10 +56,10 @@ static BootModule *get_mod(const char *name, bool *first) {
         }
 
         static const char *types[] = {"imem", "emem", "mem"};
-        for(size_t i = 0; i < MAX_CORES + 1; ++i) {
+        for(size_t i = 0; i < Platform::pe_count(); ++i) {
             KLOG(KENV, "PE" << m3::fmt(i, 2) << ": "
-                << types[static_cast<size_t>(kenv.pes[i].type())] << " "
-                << (kenv.pes[i].mem_size() / 1024) << " KiB memory");
+                << types[static_cast<size_t>(Platform::pe(i).type())] << " "
+                << (Platform::pe(i).mem_size() / 1024) << " KiB memory");
         }
     }
 

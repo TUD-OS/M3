@@ -30,6 +30,7 @@
 #include <dirent.h>
 #include <unistd.h>
 
+#include "com/RecvBufs.h"
 #include "pes/PEManager.h"
 #include "pes/VPE.h"
 #include "dev/TimerDevice.h"
@@ -112,6 +113,7 @@ int main(int argc, char *argv[]) {
 
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
+    RecvBufs::init();
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
 

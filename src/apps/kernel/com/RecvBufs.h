@@ -25,6 +25,7 @@
 
 #include "pes/VPE.h"
 #include "DTU.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -44,6 +45,10 @@ class RecvBufs {
     };
 
 public:
+    static void init() {
+        _rbufs = new RBuf[Platform::pe_count() * EP_COUNT];
+    }
+
     static bool is_attached(size_t core, size_t epid) {
         RBuf &rbuf = get(core, epid);
         return rbuf.flags & F_ATTACHED;
@@ -106,7 +111,7 @@ private:
         return _rbufs[(coreid - APP_CORES) * EP_COUNT + epid];
     }
 
-    static RBuf _rbufs[AVAIL_PES * EP_COUNT];
+    static RBuf *_rbufs;
 };
 
 }

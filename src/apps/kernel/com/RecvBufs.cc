@@ -18,6 +18,6 @@
 
 namespace kernel {
 
-RecvBufs::RBuf RecvBufs::_rbufs[AVAIL_PES * EP_COUNT];
+RecvBufs::RBuf *RecvBufs::_rbufs;
 
 }
