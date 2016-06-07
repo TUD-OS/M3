@@ -3,7 +3,10 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/default', '.', scan=1)
 
+env.M3Strip('$FSDIR/default/bin/bench-activate', '$BINARYDIR/bench-activate')
+env.M3Strip('$FSDIR/default/bin/bench-pipe', '$BINARYDIR/bench-pipe')
 env.M3Strip('$FSDIR/default/bin/bench-syscall', '$BINARYDIR/bench-syscall')
+env.M3Strip('$FSDIR/default/bin/bench-vpes', '$BINARYDIR/bench-vpes')
 env.M3Strip('$FSDIR/default/bin/cat', '$BINARYDIR/cat')
 env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
 env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
