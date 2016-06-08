@@ -134,6 +134,8 @@
 /// dump trace to stdout (kernel only)
 #define EVENT_TRACE_DUMP()                      Tracing::get().trace_dump();
 
+#define FIRST_PE_ID                             4
+
 namespace m3 {
 
 class Tracing {

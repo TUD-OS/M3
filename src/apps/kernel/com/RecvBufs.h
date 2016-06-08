@@ -46,7 +46,7 @@ class RecvBufs {
 
 public:
     static void init() {
-        _rbufs = new RBuf[Platform::pe_count() * EP_COUNT];
+        _rbufs = new RBuf[Platform::pe_count() * EP_COUNT]();
     }
 
     static bool is_attached(size_t core, size_t epid) {
@@ -108,7 +108,7 @@ private:
         }
     }
     static RBuf &get(size_t coreid, size_t epid) {
-        return _rbufs[(coreid - APP_CORES) * EP_COUNT + epid];
+        return _rbufs[coreid * EP_COUNT + epid];
     }
 
     static RBuf *_rbufs;

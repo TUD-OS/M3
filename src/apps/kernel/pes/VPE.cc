@@ -33,7 +33,7 @@ VPE::VPEId::~VPEId() {
 }
 
 VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate)
-    : _id(id, id + APP_CORES), _flags(bootmod ? BOOTMOD : 0),
+    : _id(id, id), _flags(bootmod ? BOOTMOD : 0),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),

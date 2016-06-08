@@ -30,8 +30,11 @@ public:
 
         uintptr_t mods[MAX_MODS];
         size_t pe_count;
-        m3::PE::value_t pes[MAX_PES];
+        m3::PE pes[MAX_PES];
     } PACKED;
+
+    static size_t first_pe();
+    static size_t last_pe();
 
     static uintptr_t mod(size_t i) {
         return _kenv.mods[i];
@@ -40,7 +43,7 @@ public:
         return _kenv.pe_count;
     }
     static m3::PE pe(size_t no) {
-        return m3::PE(_kenv.pes[no]);
+        return _kenv.pes[no];
     }
 
     static uintptr_t def_recvbuf(size_t no);

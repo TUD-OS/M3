@@ -1,11 +1,7 @@
 #pragma once
 
 #define FGPA_INTERFACE_MODULE_ID                0
-#define FIRST_PE_ID                             4
 #define CM_CORE                                 1
-#define MEMORY_CORE                             2
-#define KERNEL_CORE                             FIRST_PE_ID
-#define APP_CORES                               0
 
 #define DRAM_VOFFSET                            0
 

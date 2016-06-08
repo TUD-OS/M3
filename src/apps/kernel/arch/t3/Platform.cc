@@ -28,9 +28,17 @@ Platform::KEnv::KEnv() {
     mods[0] = 0;
 
     // init PEs
-    pe_count = MAX_CORES;
+    pe_count = MAX_CORES + 1;
     for(int i = 0; i < MAX_CORES; ++i)
-        pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024).value();
+        pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024);
+    pes[MAX_CORES] = m3::PE(m3::PEType::MEM, DRAM_SIZE);
+}
+
+size_t Platform::first_pe() {
+    return 1;
+}
+size_t Platform::last_pe() {
+    return _kenv.pe_count - 2;
 }
 
 uintptr_t Platform::def_recvbuf(size_t) {

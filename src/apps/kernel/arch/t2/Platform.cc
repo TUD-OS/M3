@@ -28,10 +28,18 @@ Platform::KEnv::KEnv() {
     mods[0] = 0;
 
     // init PEs
-    pe_count = MAX_CORES;
-    pes[CM_CORE] = m3::PE(m3::PEType::COMP_IMEM, 128 * 1024).value();
+    pe_count = 10;
     for(int i = 0; i < 8; ++i)
-        pes[FIRST_PE_ID + i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024).value();
+        pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024);
+    pes[8] = m3::PE(m3::PEType::COMP_IMEM, 128 * 1024);
+    pes[9] = m3::PE(m3::PEType::MEM, 512 * 1024 * 1024);
+}
+
+size_t Platform::first_pe() {
+    return 1;
+}
+size_t Platform::last_pe() {
+    return _kenv.pe_count - 2;
 }
 
 uintptr_t Platform::def_recvbuf(size_t) {

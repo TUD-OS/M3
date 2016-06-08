@@ -33,14 +33,10 @@ PEManager::PEManager() : _vpes(new VPE*[Platform::pe_count()]()), _count(), _dae
 }
 
 void PEManager::load(int argc, char **argv) {
-    size_t no = 0;
+    size_t no = Platform::first_pe();
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
-
-        // find next usable PE
-        while((PE_MASK & (1 << no)) == 0)
-            no++;
 
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle") != 0) {
@@ -79,9 +75,9 @@ void PEManager::load(int argc, char **argv) {
                 _vpes[no]->start(end - i, argv + i, 0);
             else
                 _pending.append(new Pending(_vpes[no], end - i, argv + i));
+            no++;
         }
 
-        no++;
         i = j;
         if(daemon)
             _daemons++;
@@ -146,19 +142,16 @@ m3::String PEManager::path_to_name(const m3::String &path, const char *suffix) {
 }
 
 VPE *PEManager::create(m3::String &&name, const m3::PE &pe, int ep, capsel_t pfgate) {
-    if(_count == Platform::pe_count())
-        return nullptr;
-
     size_t i;
-    for(i = 0; i < Platform::pe_count(); ++i) {
-        if((PE_MASK & (1 << i)) && _vpes[i] == nullptr && Platform::pe(i).type() == pe.type())
+    for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        if(_vpes[i] == nullptr && Platform::pe(i).type() == pe.type())
             break;
     }
-    if(i == Platform::pe_count())
+    if(i > Platform::last_pe())
         return nullptr;
 
     // a pager without virtual memory support, doesn't work
-    if(!Platform::pe(APP_CORES + i).has_virtmem() && pfgate != m3::KIF::INV_SEL)
+    if(!Platform::pe(i).has_virtmem() && pfgate != m3::KIF::INV_SEL)
         return nullptr;
 
     _vpes[i] = new VPE(std::move(name), i, false, ep, pfgate);

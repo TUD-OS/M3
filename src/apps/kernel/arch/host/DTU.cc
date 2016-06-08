@@ -25,6 +25,10 @@ void DTU::init() {
     // nothing to do
 }
 
+int DTU::log_to_phys(int pe) {
+    return pe;
+}
+
 void DTU::set_vpeid(int, int) {
     // unsupported
 }

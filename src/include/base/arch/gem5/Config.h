@@ -16,10 +16,9 @@
 
 #pragma once
 
-#define MEMORY_CORE         16
 #define KERNEL_CORE         0
-#define APP_CORES           1
-#define PE_MASK             0xFFFFFFFF
+#define MEMORY_CORE         16
+
 #define CAP_TOTAL           512
 #define FS_IMG_OFFSET       0x0
 

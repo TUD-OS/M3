@@ -85,10 +85,8 @@ public:
 
 private:
     void deprivilege_pes() {
-        for(size_t i = 0; i < Platform::pe_count(); ++i) {
-            if(PE_MASK & (1 << i))
-                DTU::get().deprivilege(/*APP_CORES + */i);
-        }
+        for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i)
+            DTU::get().deprivilege(i);
     }
 
     static m3::String path_to_name(const m3::String &path, const char *suffix);

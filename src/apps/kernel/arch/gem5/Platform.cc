@@ -28,6 +28,13 @@ Platform::KEnv::KEnv() {
     DTU::get().read_mem_at(MEMORY_CORE, 0, addr, this, sizeof(*this));
 }
 
+size_t Platform::first_pe() {
+    return 1;
+}
+size_t Platform::last_pe() {
+    return _kenv.pe_count - 2;
+}
+
 uintptr_t Platform::def_recvbuf(size_t no) {
     return rw_barrier(no);
 }

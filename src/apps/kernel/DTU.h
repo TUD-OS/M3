@@ -39,6 +39,8 @@ public:
 
     void init();
 
+    int log_to_phys(int pe);
+
     void set_vpeid(int core, int vpe);
     void unset_vpeid(int core, int vpe);
     void deprivilege(int core);

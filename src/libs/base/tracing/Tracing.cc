@@ -87,11 +87,6 @@ OStream & operator<<(OStream &os, const Event &event) {
 Tracing::Tracing() {
     trace_enabled = false;
 
-#if !defined(__t2__)
-    for(int i = 0; i < ARRAY_SIZE(trace_core); ++i)
-        trace_core[i] = !!((1 << i) & PE_MASK);
-#endif
-
     if(env()->coreid != KERNEL_CORE)
         reinit();
     else

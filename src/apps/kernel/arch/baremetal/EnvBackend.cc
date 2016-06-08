@@ -19,6 +19,7 @@
 #include <base/Backtrace.h>
 #include <base/Env.h>
 
+#include "DTU.h"
 #include "WorkLoop.h"
 
 namespace kernel {
@@ -30,9 +31,9 @@ public:
     }
 
     virtual void init() override {
-        m3::env()->coreid = KERNEL_CORE;
+        m3::env()->coreid = DTU::get().log_to_phys(KERNEL_CORE);
 
-        m3::Serial::init("kernel", KERNEL_CORE);
+        m3::Serial::init("kernel", DTU::get().log_to_phys(KERNEL_CORE));
     }
 
     virtual void reinit() override {

@@ -1,10 +1,6 @@
 #ifndef _PLATFORM_ADDRESSES_H_
 #define _PLATFORM_ADDRESSES_H_
 
-#define FIRST_PE_ID                         1
-#define KERNEL_CORE                         FIRST_PE_ID
-#define APP_CORES                           (FIRST_PE_ID + 1)
-
 #define DRAM_VOFFSET                        0//x60008000
 
 //#define ASPLOS    //32kByte memory

@@ -27,6 +27,22 @@ void DTU::init() {
     // nothing to do
 }
 
+int DTU::log_to_phys(int pe) {
+    static int peids[] = {
+        /* 0 */ 4,      // PE 0
+        /* 1 */ 5,
+        /* 2 */ 6,
+        /* 3 */ 7,
+        /* 4 */ 8,
+        /* 5 */ 9,
+        /* 6 */ 10,
+        /* 7 */ 11,     // PE 7
+        /* 8 */ 1,      // CM
+        /* 9 */ 2,      // DRAM
+    };
+    return peids[pe];
+}
+
 void DTU::deprivilege(int) {
     // unsupported
 }
@@ -44,7 +60,7 @@ void DTU::wakeup(VPE &vpe) {
     invalidate_eps(vpe);
 
     // write the core id to the PE
-    uint64_t id = vpe.core();
+    uint64_t id = log_to_phys(vpe.core());
     m3::Sync::compiler_barrier();
     write_mem(vpe, RT_START, &id, sizeof(id));
 
@@ -106,7 +122,7 @@ void DTU::config_recv_remote(VPE &, int, uintptr_t, uint, uint, int, bool) {
 void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
     m3::EPConf *ep = reinterpret_cast<m3::EPConf*>(e);
     ep->valid = 1;
-    ep->dstcore = dstcore;
+    ep->dstcore = log_to_phys(dstcore);
     ep->dstep = dstep;
     ep->label = label;
     ep->credits = credits;
@@ -129,7 +145,7 @@ void DTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int d
 void DTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int perm) {
     m3::EPConf *ep = reinterpret_cast<m3::EPConf*>(e);
     ep->valid = 1;
-    ep->dstcore = dstcore;
+    ep->dstcore = log_to_phys(dstcore);
     ep->dstep = 0;
     ep->label = addr | perm;
     ep->credits = size;
@@ -159,7 +175,7 @@ void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg
 }
 
 void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
-    m3::DTU::get().set_target(SLOT_NO, vpe.core(), addr);
+    m3::DTU::get().set_target(SLOT_NO, log_to_phys(vpe.core()), addr);
     m3::DTU::get().fire(SLOT_NO, m3::DTU::WRITE, data, size);
 }
 

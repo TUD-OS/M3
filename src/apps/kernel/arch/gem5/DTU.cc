@@ -67,6 +67,10 @@ void DTU::init() {
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
+int DTU::log_to_phys(int pe) {
+    return pe;
+}
+
 void DTU::deprivilege(int core) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;

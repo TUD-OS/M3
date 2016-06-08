@@ -20,8 +20,9 @@
 #   include <base/arch/t2/Addr.h>
 #endif
 
+#define KERNEL_CORE         0
+#define MEMORY_CORE         9
 #define MAX_CORES           12
-#define PE_MASK             0xFE2       // CM, PE1, ..., PE7
 
 #define SLOT_NO             4
 #define EP_COUNT            8
