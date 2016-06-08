@@ -25,6 +25,7 @@ namespace kernel {
 
 INIT_PRIO_USER(2) Platform::KEnv Platform::_kenv;
 
+// note that we currently assume here, that memory PEs are first, followed by all compute PEs
 static size_t last_pe_id;
 
 Platform::KEnv::KEnv() {
@@ -52,8 +53,12 @@ Platform::KEnv::KEnv() {
     }
 }
 
+size_t Platform::kernel_pe() {
+    // gem5 initializes the coreid for us
+    return m3::env()->coreid;
+}
 size_t Platform::first_pe() {
-    return 2;
+    return m3::env()->coreid + 1;
 }
 size_t Platform::last_pe() {
     return last_pe_id;

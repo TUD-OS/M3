@@ -49,6 +49,9 @@ Platform::KEnv::KEnv() {
     mem.add(new MemoryModule(true, 0, base + FS_MAX_SIZE, TOTAL_MEM - FS_MAX_SIZE));
 }
 
+size_t Platform::kernel_pe() {
+    return 0;
+}
 size_t Platform::first_pe() {
     return 1;
 }

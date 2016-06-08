@@ -22,6 +22,7 @@
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"
 #include "DTU.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -49,7 +50,7 @@ void DTU::clear_pt(uintptr_t pt) {
 }
 
 void DTU::init() {
-    do_set_vpeid(KERNEL_CORE, VPE::INVALID_ID, KERNEL_CORE);
+    do_set_vpeid(Platform::kernel_pe(), VPE::INVALID_ID, Platform::kernel_pe());
 
     // Enable async sends for the kernel. This is required to resolve a potential deadlock:
     // if an application performs the clone operation at the pager, which revokes write-access to
@@ -64,7 +65,7 @@ void DTU::init() {
     // VPEs. The kernel moves VPEs, so that it knows that beforehand.
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = m3::DTU::PRIV | m3::DTU::ASYNC_SEND;
     m3::Sync::compiler_barrier();
-    write_mem_at(KERNEL_CORE, 0,
+    write_mem_at(Platform::kernel_pe(), 0,
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 

@@ -16,7 +16,6 @@
 
 #pragma once
 
-#define KERNEL_CORE         0
 #define MAX_CORES           18
 #define CAP_TOTAL           128
 

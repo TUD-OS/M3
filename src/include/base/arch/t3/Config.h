@@ -20,7 +20,6 @@
 #   include <base/arch/t3/Addr.h>
 #endif
 
-#define KERNEL_CORE         0
 #define MAX_CORES           18
 
 #define EP_COUNT            7

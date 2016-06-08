@@ -20,6 +20,7 @@
 #include <base/Env.h>
 
 #include "DTU.h"
+#include "Platform.h"
 #include "WorkLoop.h"
 
 namespace kernel {
@@ -31,9 +32,12 @@ public:
     }
 
     virtual void init() override {
-        m3::env()->coreid = DTU::get().log_to_phys(KERNEL_CORE);
+        // don't do that on gem5 because the kernel coreid is already set by gem5
+#if !defined(__gem5__)
+        m3::env()->coreid = DTU::get().log_to_phys(Platform::kernel_pe());
+#endif
 
-        m3::Serial::init("kernel", DTU::get().log_to_phys(KERNEL_CORE));
+        m3::Serial::init("kernel", m3::env()->coreid);
     }
 
     virtual void reinit() override {

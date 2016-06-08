@@ -33,8 +33,10 @@ void VPE::init() {
     assert(res == m3::Errors::NO_ERROR);
 
     // configure syscall endpoint
-    DTU::get().config_send_remote(*this, m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
-        KERNEL_CORE, KERNEL_CORE, m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
+    DTU::get().config_send_remote(
+        *this, m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
+        Platform::kernel_pe(), Platform::kernel_pe(),
+        m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
 }
 
 void VPE::activate_sysc_ep() {

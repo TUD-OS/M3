@@ -41,6 +41,9 @@ Platform::KEnv::KEnv() {
     mem.add(new MemoryModule(true, MAX_CORES, USABLE_MEM, pes[MAX_CORES].mem_size() - USABLE_MEM));
 }
 
+size_t Platform::kernel_pe() {
+    return 0;
+}
 size_t Platform::first_pe() {
     return 1;
 }

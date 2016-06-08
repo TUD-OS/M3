@@ -20,6 +20,7 @@
 
 #include "pes/VPE.h"
 #include "DTU.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -66,7 +67,7 @@ void DTU::wakeup(VPE &vpe) {
 
     // configure syscall endpoint again
     config_send_remote(vpe, m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&vpe.syscall_gate()),
-        KERNEL_CORE, KERNEL_CORE, m3::DTU::SYSC_EP,
+        Platform::kernel_pe(), Platform::kernel_pe(), m3::DTU::SYSC_EP,
         1 << VPE::SYSC_CREDIT_ORD, 1 << VPE::SYSC_CREDIT_ORD);
 
     injectIRQ(vpe);

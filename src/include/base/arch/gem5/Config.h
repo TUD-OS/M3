@@ -16,8 +16,6 @@
 
 #pragma once
 
-#define KERNEL_CORE         1
-
 #define CAP_TOTAL           512
 #define FS_IMG_OFFSET       0x0
 

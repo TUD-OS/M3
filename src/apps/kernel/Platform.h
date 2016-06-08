@@ -33,6 +33,7 @@ public:
         m3::PE pes[MAX_PES];
     } PACKED;
 
+    static size_t kernel_pe();
     static size_t first_pe();
     static size_t last_pe();
 

@@ -20,7 +20,6 @@
 #   include <base/arch/t2/Addr.h>
 #endif
 
-#define KERNEL_CORE         0
 #define MAX_CORES           12
 
 #define SLOT_NO             4
