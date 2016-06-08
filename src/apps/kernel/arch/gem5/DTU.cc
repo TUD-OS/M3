@@ -48,7 +48,7 @@ void DTU::clear_pt(uintptr_t pt) {
 }
 
 void DTU::init() {
-    do_set_vpeid(KERNEL_CORE, VPE::INVALID_ID, 0);
+    do_set_vpeid(KERNEL_CORE, VPE::INVALID_ID, KERNEL_CORE);
 
     // Enable async sends for the kernel. This is required to resolve a potential deadlock:
     // if an application performs the clone operation at the pager, which revokes write-access to
