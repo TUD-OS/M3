@@ -67,7 +67,7 @@ public:
      * @param areas will be set to the number of areas in the map
      * @return the free bytes
      */
-    size_t get_size(size_t *areas) const;
+    size_t get_size(size_t *areas = nullptr) const;
 
     friend m3::OStream &operator<<(m3::OStream &os, const MemoryMap &map) {
         size_t areas;

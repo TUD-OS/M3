@@ -18,6 +18,8 @@
 
 #include <base/Common.h>
 
+#include "mem/MainMemory.h"
+
 namespace kernel {
 
 class AddrSpace {
@@ -31,13 +33,13 @@ public:
     capsel_t gate() const {
         return _gate;
     }
-    uintptr_t root_pt() const {
-        return _rootpt;
+    uint64_t root_pt() const {
+        return m3::DTU::build_noc_addr(_rootpt.pe(), _rootpt.addr);
     }
 
     int _ep;
     capsel_t _gate;
-    uintptr_t _rootpt;
+    MainMemory::Allocation _rootpt;
 };
 
 }

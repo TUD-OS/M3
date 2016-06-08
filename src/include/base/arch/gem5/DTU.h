@@ -166,6 +166,9 @@ public:
         return inst;
     }
 
+    static size_t noc_to_pe(uint64_t noc) {
+        return (noc >> 52) - 0x80;
+    }
     static uintptr_t noc_to_virt(uint64_t noc) {
         return noc & ((static_cast<uint64_t>(1) << 52) - 1);
     }

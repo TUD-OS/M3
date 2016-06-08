@@ -28,9 +28,10 @@ m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
 }
 
 MemObject::~MemObject() {
-    if(core == MEMORY_CORE && !derived) {
+    // if it's not derived, it's always memory from mem-PEs
+    if(!derived) {
         uintptr_t addr = label & ~m3::KIF::Perm::RWX;
-        MainMemory::get().map().free(addr, credits);
+        MainMemory::get().free(core, addr, credits);
     }
 }
 

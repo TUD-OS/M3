@@ -16,6 +16,8 @@
 
 #include <base/Init.h>
 
+#include "mem/MainMemory.h"
+#include "mem/MemoryModule.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -23,16 +25,38 @@ namespace kernel {
 
 INIT_PRIO_USER(2) Platform::KEnv Platform::_kenv;
 
+static size_t last_pe_id;
+
 Platform::KEnv::KEnv() {
+    // the KernelEnv is stored in the first PE (memory PE)
     uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(m3::env()->kenv));
-    DTU::get().read_mem_at(MEMORY_CORE, 0, addr, this, sizeof(*this));
+    DTU::get().read_mem_at(0, 0, addr, this, sizeof(*this));
+
+    // register memory modules
+    int count = 0;
+    const size_t USABLE_MEM  = 256 * 1024 * 1024;
+    MainMemory &mem = MainMemory::get();
+    for(size_t i = 0; i < pe_count; ++i) {
+        if(pes[i].type() == m3::PEType::MEM) {
+            // the first memory module hosts the FS image and other stuff
+            if(count == 0) {
+                mem.add(new MemoryModule(false, i, 0, USABLE_MEM));
+                mem.add(new MemoryModule(true, i, USABLE_MEM, pes[i].mem_size() - USABLE_MEM));
+            }
+            else
+                mem.add(new MemoryModule(true, i, 0, pes[i].mem_size()));
+            count++;
+        }
+        else
+            last_pe_id = i;
+    }
 }
 
 size_t Platform::first_pe() {
-    return 1;
+    return 2;
 }
 size_t Platform::last_pe() {
-    return _kenv.pe_count - 2;
+    return last_pe_id;
 }
 
 uintptr_t Platform::def_recvbuf(size_t no) {

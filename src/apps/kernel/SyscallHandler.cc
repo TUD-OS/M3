@@ -517,20 +517,14 @@ void SyscallHandler::reqmem(GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Size or permissions invalid");
 
     MainMemory &mem = MainMemory::get();
-    if(addr != (uintptr_t)-1 && m3::Math::overlap(addr, size, mem.addr(), mem.size()))
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Addr+size overlap with allocatable memory");
-
-    if(addr == (uintptr_t)-1) {
-        addr = mem.map().allocate(size);
-        if(addr == (uintptr_t)-1)
-            SYS_ERROR(vpe, is.gate(), m3::Errors::OUT_OF_MEM, "Not enough memory");
-    }
-    else
-        addr += mem.base();
+    MainMemory::Allocation alloc =
+        addr == (uintptr_t)-1 ? mem.allocate(size) : mem.allocate_at(addr, size);
+    if(!alloc)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::OUT_OF_MEM, "Not enough memory");
 
     // TODO if addr was 0, we don't want to free it on revoke
-    vpe->objcaps().set(cap,
-        new MemCapability(&vpe->objcaps(), cap, addr, size, perms, MEMORY_CORE, 0, mem.epid()));
+    vpe->objcaps().set(cap, new MemCapability(&vpe->objcaps(), cap,
+        alloc.addr, alloc.size, perms, alloc.pe(), 0, 0));
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
 

@@ -101,10 +101,12 @@ void MemoryMap::free(uintptr_t addr, size_t size) {
 
 size_t MemoryMap::get_size(size_t *areas) const {
     size_t total = 0;
-    *areas = 0;
+    if(areas)
+        *areas = 0;
     for(Area *a = list; a != nullptr; a = a->next) {
         total += a->size;
-        (*areas)++;
+        if(areas)
+            (*areas)++;
     }
     return total;
 }

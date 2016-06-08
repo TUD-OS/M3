@@ -42,9 +42,10 @@ void DTU::clear_pt(uintptr_t pt) {
     // clear the pagetable
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
+    size_t pe = m3::DTU::noc_to_pe(pt);
     uintptr_t addr = m3::DTU::noc_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
-        write_mem_at(MEMORY_CORE, 0, addr + i * sizeof(buffer), buffer, sizeof(buffer));
+        write_mem_at(pe, 0, addr + i * sizeof(buffer), buffer, sizeof(buffer));
 }
 
 void DTU::init() {
@@ -135,7 +136,8 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
         // insert recursive entry
         uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
         m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
-        write_mem_at(MEMORY_CORE, 0, addr + PAGE_SIZE - sizeof(pte), &pte, sizeof(pte));
+        write_mem_at(m3::DTU::noc_to_pe(rootpt), 0,
+            addr + PAGE_SIZE - sizeof(pte), &pte, sizeof(pte));
     }
 
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
@@ -185,8 +187,10 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
                     return;
 
                 // TODO this is prelimilary
-                uintptr_t addr = MainMemory::get().map().allocate(PAGE_SIZE);
-                pte = m3::DTU::build_noc_addr(MEMORY_CORE, addr) | m3::DTU::PTE_RWX;
+                MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE);
+                assert(alloc);
+
+                pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
                 KLOG(PTES, "PE" << vpe.core() << ": lvl 1 PTE for "
                     << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
                 m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);

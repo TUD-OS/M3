@@ -16,6 +16,7 @@
 
 #include <base/Init.h>
 
+#include "mem/MainMemory.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -31,7 +32,13 @@ Platform::KEnv::KEnv() {
     pe_count = MAX_CORES + 1;
     for(int i = 0; i < MAX_CORES; ++i)
         pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024);
-    pes[MAX_CORES] = m3::PE(m3::PEType::MEM, DRAM_SIZE);
+    pes[MAX_CORES] = m3::PE(m3::PEType::MEM, 512 * 1024 * 1024);
+
+    // register memory modules
+    MainMemory &mem = MainMemory::get();
+    const size_t USABLE_MEM  = 64 * 1024 * 1024;
+    mem.add(new MemoryModule(false, MAX_CORES, 0, USABLE_MEM));
+    mem.add(new MemoryModule(true, MAX_CORES, USABLE_MEM, pes[MAX_CORES].mem_size() - USABLE_MEM));
 }
 
 size_t Platform::first_pe() {

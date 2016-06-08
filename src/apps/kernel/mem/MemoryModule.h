@@ -16,46 +16,38 @@
 
 #pragma once
 
-#include <base/Common.h>
-
-#include <sys/mman.h>
-
 #include "mem/MemoryMap.h"
-#include "DTU.h"
-#include "Gate.h"
 
 namespace kernel {
 
-class MainMemory {
-    explicit MainMemory();
-
+class MemoryModule {
 public:
-    static MainMemory &get() {
-        return _inst;
+    explicit MemoryModule(bool avail, size_t pe, uintptr_t addr, size_t size)
+        : _avail(avail), _pe(pe), _addr(addr), _size(size), _map(addr, size) {
     }
 
-    uintptr_t base() const {
-        return addr();
+    bool available() const {
+        return _avail;
+    }
+    size_t pe() const {
+        return _pe;
     }
     uintptr_t addr() const {
-        return reinterpret_cast<uintptr_t>(_addr);
+        return _addr;
     }
     size_t size() const {
         return _size;
-    }
-    size_t epid() const {
-        return _epid;
     }
     MemoryMap &map() {
         return _map;
     }
 
 private:
-    void *_addr;
+    bool _avail;
+    size_t _pe;
+    uintptr_t _addr;
     size_t _size;
     MemoryMap _map;
-    int _epid;
-    static MainMemory _inst;
 };
 
 }

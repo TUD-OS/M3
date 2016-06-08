@@ -21,6 +21,7 @@
 #include <base/WorkLoop.h>
 
 #include "com/RecvBufs.h"
+#include "mem/MainMemory.h"
 #include "pes/PEManager.h"
 #include "SyscallHandler.h"
 
@@ -33,6 +34,8 @@ int main(int argc, char *argv[]) {
     }
 
     EVENT_TRACE_INIT_KERNEL();
+
+    KLOG(MEM, MainMemory::get());
 
     RecvBufs::init();
     PEManager::create();

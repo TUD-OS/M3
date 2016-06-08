@@ -46,7 +46,8 @@ static BootModule *get_mod(const char *name, bool *first) {
     if(count == 0) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
-            DTU::get().read_mem_at(MEMORY_CORE, 0, addr, &mods[i], sizeof(mods[i]));
+            size_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
+            DTU::get().read_mem_at(pe, 0, addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
             KLOG(KENV, "  addr: " << m3::fmt(mods[i].addr, "p"));
@@ -76,11 +77,20 @@ static BootModule *get_mod(const char *name, bool *first) {
     return nullptr;
 }
 
+static uint64_t alloc_mem(size_t size) {
+    MainMemory::Allocation alloc = MainMemory::get().allocate(size);
+    if(!alloc)
+        PANIC("Not enough memory");
+    return m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
+}
+
 static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offset) {
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file");
 
-    DTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(mod->addr + offset), data, size);
+    uintptr_t addr = m3::DTU::noc_to_virt(mod->addr + offset);
+    size_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
+    DTU::get().read_mem_at(pe, 0, addr, data, size);
 }
 
 static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
@@ -91,8 +101,10 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
     while(rem > 0) {
         size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
-        if(!clear)
-            DTU::get().read_mem_at(MEMORY_CORE, 0, m3::DTU::noc_to_virt(src), buffer, amount);
+        if(!clear) {
+            DTU::get().read_mem_at(m3::DTU::noc_to_pe(src), 0,
+                m3::DTU::noc_to_virt(src), buffer, amount);
+        }
         DTU::get().write_mem_at(core, vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
         src += amount;
         dst += amount;
@@ -150,8 +162,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
         if((copy && (perms & m3::DTU::PTE_W)) || pheader.p_filesz == 0) {
             // allocate memory
             size_t size = m3::Math::round_up((pheader.p_vaddr & PAGE_BITS) + pheader.p_memsz, PAGE_SIZE);
-            uintptr_t phys = m3::DTU::build_noc_addr(
-                MEMORY_CORE, MainMemory::get().map().allocate(size));
+            uintptr_t phys = alloc_mem(size);
 
             // map it
             map_segment(vpe, phys, virt, size, perms);
@@ -169,8 +180,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
 
     if(needs_heap) {
         // create initial heap
-        uintptr_t phys = m3::DTU::build_noc_addr(
-            MEMORY_CORE, MainMemory::get().map().allocate(INIT_HEAP_SIZE));
+        uintptr_t phys = alloc_mem(INIT_HEAP_SIZE);
         map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), INIT_HEAP_SIZE, m3::DTU::PTE_RW);
     }
 
@@ -186,9 +196,8 @@ static void map_idle(VPE &vpe) {
 
         // copy the ELF file
         size_t size = m3::Math::round_up(tmp->size, PAGE_SIZE);
-        uintptr_t phys = m3::DTU::build_noc_addr(
-            MEMORY_CORE, MainMemory::get().map().allocate(size));
-        copy_clear(MEMORY_CORE, 0, phys, tmp->addr, tmp->size, false);
+        uintptr_t phys = alloc_mem(size);
+        copy_clear(m3::DTU::noc_to_pe(phys), 0, phys, tmp->addr, tmp->size, false);
 
         // remember the copy
         strcpy(idle->name, "idle");
@@ -223,8 +232,7 @@ void VPE::init_memory(const char *name) {
 
             // map runtime space
             uintptr_t virt = RT_START;
-            uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
-                MainMemory::get().map().allocate(STACK_TOP - virt));
+            uintptr_t phys = alloc_mem(STACK_TOP - virt);
             map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
         }
 
@@ -276,8 +284,7 @@ void VPE::init_memory(const char *name) {
 
     if(vm) {
         // map receive buffer
-        uintptr_t phys = m3::DTU::build_noc_addr(MEMORY_CORE,
-            MainMemory::get().map().allocate(RECVBUF_SIZE));
+        uintptr_t phys = alloc_mem(RECVBUF_SIZE);
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
     DTU::get().set_rw_barrier(*this, Platform::rw_barrier(core()));

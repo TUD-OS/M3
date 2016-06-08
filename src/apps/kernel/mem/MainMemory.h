@@ -16,8 +16,67 @@
 
 #pragma once
 
-#if defined(__host__)
-#   include "arch/host/MainMemory.h"
-#else
-#   include "arch/baremetal/MainMemory.h"
-#endif
+#include <base/Common.h>
+#include <base/util/Math.h>
+#include <base/Config.h>
+#include <base/Panic.h>
+
+#include "mem/MemoryModule.h"
+
+namespace m3 {
+    class OStream;
+}
+
+namespace kernel {
+
+class MainMemory {
+    explicit MainMemory();
+
+    static const size_t MAX_MODS    = 4;
+
+public:
+    struct Allocation {
+        explicit Allocation() : mod(), addr(), size() {
+        }
+        explicit Allocation(size_t _mod, uintptr_t _addr, size_t _size)
+            : mod(_mod), addr(_addr), size(_size) {
+        }
+
+        operator bool() const {
+            return size > 0;
+        }
+        size_t pe() const {
+            return MainMemory::get().module(mod).pe();
+        }
+
+        size_t mod;
+        uintptr_t addr;
+        size_t size;
+    };
+
+    static MainMemory &get() {
+        return _inst;
+    }
+
+    void add(MemoryModule *mod);
+
+    const MemoryModule &module(size_t id) const;
+
+    Allocation allocate(size_t size);
+    Allocation allocate_at(uintptr_t offset, size_t size);
+
+    void free(size_t pe, uintptr_t addr, size_t size);
+    void free(const Allocation &alloc);
+
+    size_t size() const;
+    size_t available() const;
+
+    friend m3::OStream &operator<<(m3::OStream &os, const MainMemory &mem);
+
+private:
+    size_t _count;
+    MemoryModule *_mods[MAX_MODS];
+    static MainMemory _inst;
+};
+
+}

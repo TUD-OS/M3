@@ -65,13 +65,11 @@ static void copyfromfs(MainMemory &mem, const char *file) {
     if(fd < 0)
         PANIC("Opening '" << file << "' for reading failed");
 
-    ssize_t res = read(fd, (void*)mem.addr(), mem.size());
+    MainMemory::Allocation alloc = mem.allocate_at(FS_IMG_OFFSET, FS_MAX_SIZE);
+    ssize_t res = read(fd, (void*)alloc.addr, alloc.size);
     if(res == -1)
         PANIC("Reading from '" << file << "' failed");
     close(fd);
-
-    // remove that from the available memory
-    mem.map().allocate(res);
 
     fssize = res;
     KLOG(MEM, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
@@ -83,7 +81,9 @@ static void copytofs(MainMemory &mem, const char *file) {
     int fd = open(name, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0)
         PANIC("Opening '" << name << "' for writing failed");
-    write(fd, (void*)mem.addr(), fssize);
+
+    MainMemory::Allocation alloc = mem.allocate_at(FS_IMG_OFFSET, FS_MAX_SIZE);
+    write(fd, (void*)alloc.addr, fssize);
     close(fd);
 
     KLOG(MEM, "Copied fs-image from memory back to '" << name << "'");
@@ -110,6 +110,8 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+
+    KLOG(MEM, MainMemory::get());
 
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);

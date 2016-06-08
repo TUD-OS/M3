@@ -21,7 +21,6 @@
 #endif
 
 #define KERNEL_CORE         0
-#define MEMORY_CORE         (MAX_CORES - 1)
 #define MAX_CORES           18
 
 #define EP_COUNT            7
@@ -37,10 +36,6 @@
 #define PAGE_BITS           0
 #define PAGE_SIZE           0
 #define PAGE_MASK           0
-
-// leave the first 64 MiB for the filesystem
-#define DRAM_OFFSET         (64 * 1024 * 1024)
-#define DRAM_SIZE           (64 * 1024 * 1024)
 
 #define STACK_TOP           0x60800000              // used for stack-copying
 #define STACK_SIZE          0x1000

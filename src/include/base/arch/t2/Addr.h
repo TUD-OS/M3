@@ -2,6 +2,7 @@
 
 #define FGPA_INTERFACE_MODULE_ID                0
 #define CM_CORE                                 1
+#define MEMORY_CORE                             2
 
 #define DRAM_VOFFSET                            0
 

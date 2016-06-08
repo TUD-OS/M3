@@ -16,6 +16,7 @@
 
 #include <base/Init.h>
 
+#include "mem/MainMemory.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -33,6 +34,12 @@ Platform::KEnv::KEnv() {
         pes[i] = m3::PE(m3::PEType::COMP_IMEM, 64 * 1024);
     pes[8] = m3::PE(m3::PEType::COMP_IMEM, 128 * 1024);
     pes[9] = m3::PE(m3::PEType::MEM, 512 * 1024 * 1024);
+
+    // register memory modules
+    MainMemory &mem = MainMemory::get();
+    const size_t USABLE_MEM  = 64 * 1024 * 1024;
+    mem.add(new MemoryModule(false, 9, 0, USABLE_MEM));
+    mem.add(new MemoryModule(true, 9, USABLE_MEM, pes[9].mem_size() - USABLE_MEM));
 }
 
 size_t Platform::first_pe() {

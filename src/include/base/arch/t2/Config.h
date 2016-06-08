@@ -21,7 +21,6 @@
 #endif
 
 #define KERNEL_CORE         0
-#define MEMORY_CORE         9
 #define MAX_CORES           12
 
 #define SLOT_NO             4
@@ -36,10 +35,6 @@
 
 #define IRQ_ADDR_EXTERN     0x20020
 #define IRQ_ADDR_INTERN     CM_SO_PE_CLEAR_IRQ
-
-// leave the first 64 MiB for the filesystem
-#define DRAM_OFFSET         (64 * 1024 * 1024)
-#define DRAM_SIZE           (64 * 1024 * 1024)
 
 #define DRAM_FILE_AREA      0x0FFF00
 #define DRAM_FILE_AREA_LEN  0x100
