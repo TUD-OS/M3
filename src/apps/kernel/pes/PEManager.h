@@ -19,7 +19,6 @@
 #include <base/stream/OStringStream.h>
 #include <base/PE.h>
 
-#include "mem/MainMemory.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
