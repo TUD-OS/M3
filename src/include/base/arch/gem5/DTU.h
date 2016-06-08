@@ -76,7 +76,6 @@ private:
     enum StatusFlags : reg_t {
         PRIV                = 1 << 0,
         PAGEFAULTS          = 1 << 1,
-        ASYNC_SEND          = 1 << 2,
     };
 
     enum class EpType {
