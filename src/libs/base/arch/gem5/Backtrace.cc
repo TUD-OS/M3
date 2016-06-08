@@ -14,10 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Math.h>
 #include <base/Backtrace.h>
 #include <base/Config.h>
-#include <base/stream/OStream.h>
-#include <base/util/Math.h>
 
 namespace m3 {
 
@@ -41,15 +40,6 @@ size_t Backtrace::collect(uintptr_t *addr, size_t max) {
         bp = *reinterpret_cast<uintptr_t*>(bp);
     }
     return i;
-}
-
-void Backtrace::print(OStream &os) {
-    uintptr_t addr[MAX_DEPTH];
-    size_t cnt = collect(addr, MAX_DEPTH);
-
-    os << "Backtrace:\n";
-    for(size_t i = 0; i < cnt; ++i)
-        os << "  " << fmt(addr[i], "p") << "\n";
 }
 
 }

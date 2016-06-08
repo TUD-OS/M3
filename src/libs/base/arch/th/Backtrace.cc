@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/OStream.h>
 #include <base/Backtrace.h>
 #include <base/Config.h>
 #include <xtensa/hal.h>
@@ -43,7 +42,7 @@ static void get_regs(word_t *a0, word_t *a1) {
     *a1 = a3;
 }
 
-void Backtrace::print(OStream &os) {
+size_t Backtrace::collect(uintptr_t *addr, size_t max) {
     uintptr_t pc = reinterpret_cast<uintptr_t>(&Backtrace::print);
     word_t *psp;
     word_t sp_start, sp_end;
@@ -56,16 +55,14 @@ void Backtrace::print(OStream &os) {
     /* Spill the register window to the stack first. */
     xthal_window_spill();
 
-    os << "Backtrace:\n";
-
     /* Read the stack frames one by one and create the PC
      * from the a0 and a1 registers saved there.
      */
-    int depth = MAX_DEPTH;
-    while(a1 > sp_start && a1 < sp_end && depth--) {
+    size_t i = 0;
+    for(; i < max && a1 > sp_start && a1 < sp_end; ++i) {
         pc = addr_from_ra(a0, pc);
 
-        os << "  " << fmt(pc - CALL_INSTR_SIZE, "p") << "\n";
+        addr[i] = pc - CALL_INSTR_SIZE;
 
         psp = (word_t*)a1;
         a0 = *(psp - 4);
@@ -73,6 +70,7 @@ void Backtrace::print(OStream &os) {
         if(!a0 || a1 <= (word_t)psp)
             break;
     }
+    return i;
 }
 
 }

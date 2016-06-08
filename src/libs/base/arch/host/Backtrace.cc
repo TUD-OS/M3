@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/OStream.h>
 #include <base/util/Math.h>
 #include <base/Backtrace.h>
 #include <base/Config.h>
@@ -23,25 +22,24 @@ namespace m3 {
 
 const size_t Backtrace::CALL_INSTR_SIZE = 5;
 
-void Backtrace::print(OStream &os) {
+size_t Backtrace::collect(uintptr_t *addr, size_t max) {
     uintptr_t bp;
     asm volatile ("mov %%rbp,%0" : "=a" (bp));
-
-    os << "Backtrace:\n";
 
     uintptr_t stack = Math::round_dn<uintptr_t>(bp, STACK_SIZE);
     uintptr_t end = Math::round_up<uintptr_t>(bp, STACK_SIZE);
     uintptr_t start = end - STACK_SIZE;
-    int depth = MAX_DEPTH;
-    while(depth-- > 0) {
+    size_t i = 0;
+    for(; i < max; ++i) {
         // prevent page-fault
         if(bp < start || bp >= end)
             break;
 
         bp = stack + (bp & (STACK_SIZE - 1));
-        os << "  " << fmt(*(reinterpret_cast<uintptr_t*>(bp) + 1) - CALL_INSTR_SIZE, "p") << "\n";
+        addr[i] = *(reinterpret_cast<uintptr_t*>(bp) + 1) - CALL_INSTR_SIZE;
         bp = *reinterpret_cast<uintptr_t*>(bp);
     }
+    return i;
 }
 
 }
