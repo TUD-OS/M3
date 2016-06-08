@@ -214,7 +214,7 @@ def fetchPrint(core, id):
         sys.stdout.flush()
 
         write64bit(core, SERIAL_ACK, 0)
-        if "kernel" in line and "Shutting down..." in line:
+        if "kernel" in line and "Shutting down" in line:
             return 2
         return 1
     elif length != 0:
