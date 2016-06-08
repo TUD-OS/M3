@@ -122,7 +122,7 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
         uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
         m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
         write_mem_at(m3::DTU::noc_to_pe(rootpt), 0,
-            addr + PAGE_SIZE - sizeof(pte), &pte, sizeof(pte));
+            addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
     }
 
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
