@@ -20,39 +20,75 @@
 
 namespace m3 {
 
+/**
+ * The different types of PEs
+ */
 enum class PEType {
+    // Compute PE with internal memory
     COMP_IMEM   = 0,
+    // Compute PE with external memory, i.e., with cache
     COMP_EMEM   = 1,
+    // memory PE
     MEM         = 2,
 };
 
-struct PE {
+/**
+ * Describes a PE
+ */
+struct PEDesc {
     typedef uint32_t value_t;
 
-    explicit PE() : _value() {
+    /**
+     * Default constructor
+     */
+    explicit PEDesc() : _value() {
     }
-    explicit PE(value_t value) : _value(value) {
+    /**
+     * Creates a PE description from the given descriptor word
+     */
+    explicit PEDesc(value_t value) : _value(value) {
     }
-    explicit PE(PEType type, size_t memsize = 0)
+    /**
+     * Creates a PE description of given type and with given memory size
+     */
+    explicit PEDesc(PEType type, size_t memsize = 0)
         : _value(static_cast<value_t>(type) | memsize) {
     }
 
+    /**
+     * @return the raw descriptor word
+     */
     value_t value() const {
         return _value;
     }
 
+    /**
+     * @return the type of PE
+     */
     PEType type() const {
         return static_cast<PEType>(_value & 0x7);
     }
+    /**
+     * @return the memory size (for type() == COMP_IMEM | MEM)
+     */
     size_t mem_size() const {
         return _value & ~0x7;
     }
+    /**
+     * @return true if the PE has internal memory
+     */
     bool has_memory() const {
         return type() != PEType::COMP_EMEM;
     }
+    /**
+     * @return true if the PE has a cache, i.e., external memory
+     */
     bool has_cache() const {
         return type() == PEType::COMP_EMEM;
     }
+    /**
+     * @return true if the PE has virtual memory support
+     */
     bool has_virtmem() const {
         return type() == PEType::COMP_EMEM;
     }

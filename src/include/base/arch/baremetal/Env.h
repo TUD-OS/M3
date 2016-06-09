@@ -19,7 +19,7 @@
 #include <base/Common.h>
 #include <base/Config.h>
 #include <base/EnvBackend.h>
-#include <base/PE.h>
+#include <base/PEDesc.h>
 
 namespace m3 {
 
@@ -59,7 +59,7 @@ public:
 
     BaremetalEnvBackend *backend;
     uintptr_t kenv;
-    PE pe;
+    PEDesc pe;
 
 #if defined(__t2__) || defined(__t3__)
     uint32_t : 32;

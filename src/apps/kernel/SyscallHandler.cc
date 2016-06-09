@@ -310,12 +310,12 @@ void SyscallHandler::createvpe(GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
     VPE *vpe = is.gate().session<VPE>();
     capsel_t tcap, mcap, gcap;
-    m3::PE::value_t pe;
+    m3::PEDesc::value_t pe;
     m3::String name;
     size_t ep;
     is >> tcap >> mcap >> name >> pe >> gcap >> ep;
     LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name
-        << ", pe=" << static_cast<int>(m3::PE(pe).type())
+        << ", pe=" << static_cast<int>(m3::PEDesc(pe).type())
         << ", tcap=" << tcap << ", mcap=" << mcap << ", pfgate=" << gcap
         << ", pfep=" << ep << ")");
 
@@ -331,7 +331,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     }
 
     // create VPE
-    VPE *nvpe = PEManager::get().create(std::move(name), m3::PE(pe), ep, gcap);
+    VPE *nvpe = PEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 

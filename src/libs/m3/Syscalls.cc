@@ -74,7 +74,7 @@ Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, cap
     return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATEMAP, vpe, mem, first, pages, dst, perms));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, PE &pe, capsel_t gate, size_t ep) {
+Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep) {
     LLOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
         << ", type=" << static_cast<int>(pe.type()) << ", pfgate=" << gate << ", pfep=" << ep << ")");
     GateIStream reply = send_receive_vmsg(_gate, KIF::Syscall::CREATEVPE,
@@ -83,9 +83,9 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
         return reply.error();
     reply >> Errors::last;
     if(Errors::last == Errors::NO_ERROR) {
-        PE::value_t peval;
+        PEDesc::value_t peval;
         reply >> peval;
-        pe = PE(peval);
+        pe = PEDesc(peval);
     }
     return Errors::last;
 }

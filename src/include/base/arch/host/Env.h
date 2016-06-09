@@ -19,7 +19,7 @@
 #include <base/util/String.h>
 #include <base/util/BitField.h>
 #include <base/EnvBackend.h>
-#include <base/PE.h>
+#include <base/PEDesc.h>
 
 #include <m3/com/RecvBuf.h>
 
@@ -102,7 +102,7 @@ public:
     void set_params(int core, const std::string &shmprefix, label_t sysc_label,
                     size_t sysc_epid, word_t sysc_credits) {
         coreid = core;
-        pe = PE(PEType::COMP_IMEM, 1024 * 1024);
+        pe = PEDesc(PEType::COMP_IMEM, 1024 * 1024);
         _shm_prefix = shmprefix.c_str();
         _sysc_label = sysc_label;
         _sysc_epid = sysc_epid;
@@ -126,7 +126,7 @@ private:
 public:
     int coreid;
     EnvBackend *backend;
-    PE pe;
+    PEDesc pe;
 
 private:
     int _logfd;

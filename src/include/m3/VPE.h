@@ -21,7 +21,7 @@
 #include <base/util/String.h>
 #include <base/ELF.h>
 #include <base/Errors.h>
-#include <base/PE.h>
+#include <base/PEDesc.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/ObjCap.h>
@@ -85,13 +85,13 @@ public:
      * @param pe the desired PE type (default: same as the current PE)
      * @param pager the pager (optional)
      */
-    explicit VPE(const String &name, const PE &pe = VPE::self().pe(), const char *pager = nullptr);
+    explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(), const char *pager = nullptr);
     ~VPE();
 
     /**
-     * @return the information about the PE this VPE has been assigned to
+     * @return the PE description this VPE has been assigned to
      */
-    const PE &pe() const {
+    const PEDesc &pe() const {
         return _pe;
     }
 
@@ -290,7 +290,7 @@ private:
     static bool skip_section(ElfPh *ph);
     void copy_sections();
 
-    PE _pe;
+    PEDesc _pe;
     MemGate _mem;
     BitField<SEL_TOTAL> *_caps;
     BitField<EP_COUNT> *_eps;

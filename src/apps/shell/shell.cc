@@ -30,14 +30,14 @@ using namespace m3;
 
 static struct {
     const char *name;
-    PE pe;
+    PEDesc pe;
 } petypes[] = {
-    /* COMP_IMEM */ {"imem", PE(PEType::COMP_IMEM)},
-    /* COMP_EMEM */ {"emem", PE(PEType::COMP_EMEM)},
-    /* MEM       */ {"mem",  PE(PEType::MEM)},
+    /* COMP_IMEM */ {"imem", PEDesc(PEType::COMP_IMEM)},
+    /* COMP_EMEM */ {"emem", PEDesc(PEType::COMP_EMEM)},
+    /* MEM       */ {"mem",  PEDesc(PEType::MEM)},
 };
 
-static PE get_pe_type(const char *name) {
+static PEDesc get_pe_type(const char *name) {
     for(size_t i = 0; i < ARRAY_SIZE(petypes); ++i) {
         if(strcmp(name, petypes[i].name) == 0)
             return petypes[i].pe;
@@ -53,7 +53,7 @@ static bool execute(CmdList *list) {
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
-        PE pe = VPE::self().pe();
+        PEDesc pe = VPE::self().pe();
         for(size_t i = 0; i < cmd->vars->count; ++i) {
             if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
                 pe = get_pe_type(cmd->vars->vars[i].value);

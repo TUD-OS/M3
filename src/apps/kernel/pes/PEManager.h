@@ -17,7 +17,7 @@
 #pragma once
 
 #include <base/stream/OStringStream.h>
-#include <base/PE.h>
+#include <base/PEDesc.h>
 
 #include "pes/VPE.h"
 #include "DTU.h"
@@ -63,7 +63,7 @@ private:
 public:
     void load(int argc, char **argv);
 
-    VPE *create(m3::String &&name, const m3::PE &pe, int ep, capsel_t pfgate);
+    VPE *create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t pfgate);
     void remove(int id, bool daemon);
 
     size_t used() const {

@@ -34,7 +34,7 @@ Platform::KEnv::KEnv() {
     // init PEs
     pe_count = MAX_CORES;
     for(int i = 0; i < MAX_CORES; ++i)
-        pes[i] = m3::PE(m3::PEType::COMP_IMEM, 1024 * 1024);
+        pes[i] = m3::PEDesc(m3::PEType::COMP_IMEM, 1024 * 1024);
 
     const size_t TOTAL_MEM   = 512 * 1024 * 1024;
 

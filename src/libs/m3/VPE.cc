@@ -54,7 +54,7 @@ VPE::VPE()
         _fds->set(STDERR_FD, new SerialFile());
 }
 
-VPE::VPE(const String &name, const PE &pe, const char *pager)
+VPE::VPE(const String &name, const PEDesc &pe, const char *pager)
         : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),

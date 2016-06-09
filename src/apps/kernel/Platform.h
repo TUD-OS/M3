@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <base/PE.h>
+#include <base/PEDesc.h>
 
 namespace kernel {
 
@@ -30,7 +30,7 @@ public:
 
         uintptr_t mods[MAX_MODS];
         size_t pe_count;
-        m3::PE pes[MAX_PES];
+        m3::PEDesc pes[MAX_PES];
     } PACKED;
 
     static size_t kernel_pe();
@@ -43,7 +43,7 @@ public:
     static size_t pe_count() {
         return _kenv.pe_count;
     }
-    static m3::PE pe(size_t no) {
+    static m3::PEDesc pe(size_t no) {
         return _kenv.pes[no];
     }
 
