@@ -18,6 +18,7 @@
 
 #include "mem/MainMemory.h"
 #include "mem/MemoryModule.h"
+#include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -31,7 +32,7 @@ static size_t last_pe_id;
 Platform::KEnv::KEnv() {
     // the KernelEnv is stored in the first PE (memory PE)
     uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(m3::env()->kenv));
-    DTU::get().read_mem_at(0, 0, addr, this, sizeof(*this));
+    DTU::get().read_mem(VPEDesc(0, 0), addr, this, sizeof(*this));
 
     // register memory modules
     int count = 0;

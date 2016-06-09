@@ -96,7 +96,7 @@ public:
 
 private:
     static void configure(VPE &vpe, size_t epid, RBuf &rbuf) {
-        DTU::get().config_recv_remote(vpe, epid,
+        DTU::get().config_recv_remote(vpe.desc(), epid,
             rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
     }
 

@@ -57,7 +57,7 @@ m3::Errors::Code MsgCapability::revoke() {
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated
         if(vpe.state() != VPE::DEAD)
-            DTU::get().wakeup(vpe);
+            DTU::get().wakeup(vpe.desc());
     }
     obj.unref();
     return m3::Errors::NO_ERROR;
@@ -66,18 +66,18 @@ m3::Errors::Code MsgCapability::revoke() {
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
     : Capability(tbl, sel, MAP), phys(_phys), attr(_attr) {
     VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
-    DTU::get().map_page(vpe, sel << PAGE_BITS, phys, attr);
+    DTU::get().map_page(vpe.desc(), sel << PAGE_BITS, phys, attr);
 }
 
 void MapCapability::remap(uint _attr) {
     attr = _attr;
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().map_page(vpe, sel() << PAGE_BITS, phys, attr);
+    DTU::get().map_page(vpe.desc(), sel() << PAGE_BITS, phys, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().unmap_page(vpe, sel() << PAGE_BITS);
+    DTU::get().unmap_page(vpe.desc(), sel() << PAGE_BITS);
     return m3::Errors::NO_ERROR;
 }
 

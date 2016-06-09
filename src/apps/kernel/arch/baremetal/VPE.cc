@@ -34,7 +34,7 @@ void VPE::init() {
 
     // configure syscall endpoint
     DTU::get().config_send_remote(
-        *this, m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
+        desc(), m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         Platform::kernel_pe(), Platform::kernel_pe(),
         m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
 }
@@ -50,7 +50,7 @@ void VPE::start(int, UNUSED char **argv, int) {
     init_memory(argv ? argv[0] : "");
 #endif
 
-    DTU::get().wakeup(*this);
+    DTU::get().wakeup(desc());
 
     _state = RUNNING;
     KLOG(VPES, "Started VPE '" << _name << "' [id=" << id() << "]");
@@ -63,7 +63,7 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
         if(n->type & Capability::MEM) {
             uintptr_t addr = n->obj->label & ~m3::KIF::Perm::RWX;
             int perm = n->obj->label & m3::KIF::Perm::RWX;
-            DTU::get().config_mem_remote(*this, epid,
+            DTU::get().config_mem_remote(desc(), epid,
                 n->obj->core, n->obj->vpe, addr, n->obj->credits, perm);
         }
         else {
@@ -71,25 +71,25 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
             // TODO but we still need to make sure that one can't just activate the cap again to
             // immediately regain the credits
             // TODO we need the max-msg size here
-            DTU::get().config_send_remote(*this, epid,
+            DTU::get().config_send_remote(desc(), epid,
                 n->obj->label, n->obj->core, n->obj->vpe, n->obj->epid,
                 n->obj->credits, n->obj->credits);
         }
     }
     else
-        DTU::get().invalidate_ep(*this, epid);
+        DTU::get().invalidate_ep(desc(), epid);
     return m3::Errors::NO_ERROR;
 }
 
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    DTU::get().invalidate_eps(*this);
+    DTU::get().invalidate_eps(desc());
     detach_rbufs();
     free_reqs();
     _objcaps.revoke_all();
     _mapcaps.revoke_all();
     if(_as) {
-        DTU::get().suspend(*this);
+        DTU::get().suspend(desc());
         delete _as;
     }
 }

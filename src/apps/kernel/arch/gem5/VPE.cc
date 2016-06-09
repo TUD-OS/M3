@@ -47,7 +47,7 @@ static BootModule *get_mod(const char *name, bool *first) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
             size_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
-            DTU::get().read_mem_at(pe, 0, addr, &mods[i], sizeof(mods[i]));
+            DTU::get().read_mem(VPEDesc(pe, 0), addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
             KLOG(KENV, "  addr: " << m3::fmt(mods[i].addr, "p"));
@@ -90,10 +90,10 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
 
     uintptr_t addr = m3::DTU::noc_to_virt(mod->addr + offset);
     size_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
-    DTU::get().read_mem_at(pe, 0, addr, data, size);
+    DTU::get().read_mem(VPEDesc(pe, 0), addr, data, size);
 }
 
-static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
+static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
     if(clear)
         memset(buffer, 0, sizeof(buffer));
 
@@ -102,10 +102,10 @@ static void copy_clear(int core, int vpe, uintptr_t dst, uintptr_t src, size_t s
         size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
         if(!clear) {
-            DTU::get().read_mem_at(m3::DTU::noc_to_pe(src), 0,
+            DTU::get().read_mem(VPEDesc(m3::DTU::noc_to_pe(src), 0),
                 m3::DTU::noc_to_virt(src), buffer, amount);
         }
-        DTU::get().write_mem_at(core, vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
+        DTU::get().write_mem(vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
         src += amount;
         dst += amount;
         rem -= amount;
@@ -123,7 +123,7 @@ static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, ui
         }
     }
     else
-        copy_clear(vpe.core(), vpe.id(), virt, phys, size, false);
+        copy_clear(vpe.desc(), virt, phys, size, false);
 }
 
 static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
@@ -168,7 +168,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
             map_segment(vpe, phys, virt, size, perms);
             end = virt + size;
 
-            copy_clear(vpe.core(), vpe.id(), virt, mod->addr + offset, size, pheader.p_filesz == 0);
+            copy_clear(vpe.desc(), virt, mod->addr + offset, size, pheader.p_filesz == 0);
         }
         else {
             assert(pheader.p_memsz == pheader.p_filesz);
@@ -197,7 +197,7 @@ static void map_idle(VPE &vpe) {
         // copy the ELF file
         size_t size = m3::Math::round_up(tmp->size, PAGE_SIZE);
         uintptr_t phys = alloc_mem(size);
-        copy_clear(m3::DTU::noc_to_pe(phys), 0, phys, tmp->addr, tmp->size, false);
+        copy_clear(VPEDesc(m3::DTU::noc_to_pe(phys), 0), phys, tmp->addr, tmp->size, false);
 
         // remember the copy
         strcpy(idle->name, "idle");
@@ -228,7 +228,7 @@ void VPE::init_memory(const char *name) {
         KLOG(KENV, "Loading mod '" << mod->name << "':");
 
         if(vm) {
-            DTU::get().config_pf_remote(*this, m3::DTU::SYSC_EP);
+            DTU::get().config_pf_remote(desc(), address_space()->root_pt(), m3::DTU::SYSC_EP);
 
             // map runtime space
             uintptr_t virt = RT_START;
@@ -265,7 +265,7 @@ void VPE::init_memory(const char *name) {
 
         // write buffer to the target PE
         size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
-        DTU::get().write_mem(*this, RT_SPACE_START, buffer, argssize);
+        DTU::get().write_mem(desc(), RT_SPACE_START, buffer, argssize);
 
         // write env to targetPE
         m3::Env senv;
@@ -277,7 +277,7 @@ void VPE::init_memory(const char *name) {
         senv.entry = entry;
         senv.pe = Platform::pe(core());
 
-        DTU::get().write_mem(*this, RT_START, &senv, sizeof(senv));
+        DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
     }
 
     map_idle(*this);
@@ -287,7 +287,7 @@ void VPE::init_memory(const char *name) {
         uintptr_t phys = alloc_mem(RECVBUF_SIZE);
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
-    DTU::get().set_rw_barrier(*this, Platform::rw_barrier(core()));
+    DTU::get().set_rw_barrier(desc(), Platform::rw_barrier(core()));
 }
 
 }

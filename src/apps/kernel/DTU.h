@@ -21,7 +21,7 @@
 
 namespace kernel {
 
-class VPE;
+struct VPEDesc;
 
 class DTU {
     explicit DTU() : _next_ep(m3::DTU::FIRST_FREE_EP), _ep(alloc_ep()) {
@@ -41,53 +41,58 @@ public:
 
     int log_to_phys(int pe);
 
-    void set_vpeid(int core, int vpe);
-    void unset_vpeid(int core, int vpe);
     void deprivilege(int core);
 
-    void wakeup(VPE &vpe);
-    void suspend(VPE &vpe);
-    void injectIRQ(VPE &vpe);
+    void set_vpeid(const VPEDesc &vpe);
+    void unset_vpeid(const VPEDesc &vpe);
 
-    void set_rw_barrier(VPE &vpe, uintptr_t addr);
+    void wakeup(const VPEDesc &vpe);
+    void suspend(const VPEDesc &vpe);
+    void injectIRQ(const VPEDesc &vpe);
 
-    void config_pf_remote(VPE &vpe, int ep);
-    void map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm);
-    void unmap_page(VPE &vpe, uintptr_t virt);
+    void set_rw_barrier(const VPEDesc &vpe, uintptr_t addr);
 
-    void invalidate_ep(VPE &vpe, int ep);
-    void invalidate_eps(VPE &vpe, int first = 0);
+    void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep);
+    void map_page(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, int perm);
+    void unmap_page(const VPEDesc &vpe, uintptr_t virt);
+
+    void invalidate_ep(const VPEDesc &vpe, int ep);
+    void invalidate_eps(const VPEDesc &vpe, int first = 0);
 
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
+    void config_recv_remote(const VPEDesc &vpe, int ep, uintptr_t buf, uint order, uint msgorder,
+        int flags, bool valid);
 
-    void config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
-    void config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
+    void config_send_local(int ep, label_t label, int dstcore, int dstvpe,
+        int dstep, size_t msgsize, word_t credits);
+    void config_send_remote(const VPEDesc &vpe, int ep, label_t label, int dstcore, int dstvpe,
+        int dstep, size_t msgsize, word_t credits);
 
     void config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size);
-    void config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
+    void config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe,
+        uintptr_t addr, size_t size, int perm);
 
-    void send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep);
-    void reply_to(VPE &vpe, int ep, int crdep, word_t credits, label_t label, const void *msg, size_t size);
+    void send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size,
+        label_t replylbl, int replyep);
+    void reply_to(const VPEDesc &vpe, int ep, int crdep, word_t credits, label_t label,
+        const void *msg, size_t size);
 
-    void write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size);
-    void write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size);
-#if defined(__gem5__)
-    void read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size);
-#endif
+    void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
+    void read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);
 
-    void cmpxchg_mem(VPE &vpe, uintptr_t addr, const void *data, size_t datasize, size_t off, size_t size);
+    void cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
+        size_t off, size_t size);
 
 private:
 #if defined(__gem5__)
-    void do_set_vpeid(size_t core, int oldVPE, int newVPE);
-    void do_ext_cmd(VPE &vpe, m3::DTU::reg_t cmd);
+    void do_set_vpeid(const VPEDesc &vpe, int newVPE);
+    void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
-    void disable_pfs(VPE &vpe);
 #endif
 
     void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize, word_t credits);
+    void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep,
+        size_t msgsize, word_t credits);
     void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
     int _next_ep;

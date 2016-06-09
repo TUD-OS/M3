@@ -26,14 +26,13 @@
 
 namespace kernel {
 
-void DTU::do_set_vpeid(size_t core, int oldVPE, int newVPE) {
+void DTU::do_set_vpeid(const VPEDesc &vpe, int newVPE) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = newVPE;
     m3::Sync::compiler_barrier();
-    write_mem_at(core, oldVPE,
-        m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
 
-void DTU::do_ext_cmd(VPE &vpe, m3::DTU::reg_t cmd) {
+void DTU::do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = cmd;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
@@ -46,11 +45,11 @@ void DTU::clear_pt(uintptr_t pt) {
     size_t pe = m3::DTU::noc_to_pe(pt);
     uintptr_t addr = m3::DTU::noc_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
-        write_mem_at(pe, 0, addr + i * sizeof(buffer), buffer, sizeof(buffer));
+        write_mem(VPEDesc(pe, 0), addr + i * sizeof(buffer), buffer, sizeof(buffer));
 }
 
 void DTU::init() {
-    do_set_vpeid(Platform::kernel_pe(), VPE::INVALID_ID, Platform::kernel_pe());
+    do_set_vpeid(VPEDesc(Platform::kernel_pe(), VPE::INVALID_ID), Platform::kernel_pe());
 }
 
 int DTU::log_to_phys(int pe) {
@@ -61,29 +60,29 @@ void DTU::deprivilege(int core) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
     m3::Sync::compiler_barrier();
-    write_mem_at(core, VPE::INVALID_ID,
+    write_mem(VPEDesc(core, VPE::INVALID_ID),
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
-void DTU::set_vpeid(int core, int vpe) {
+void DTU::set_vpeid(const VPEDesc &vpe) {
     // currently, the invalid ID is still set, so specify that
-    do_set_vpeid(core, VPE::INVALID_ID, vpe);
+    do_set_vpeid(VPEDesc(vpe.core, VPE::INVALID_ID), vpe.id);
 }
 
-void DTU::unset_vpeid(int core, int vpe) {
-    do_set_vpeid(core, vpe, VPE::INVALID_ID);
+void DTU::unset_vpeid(const VPEDesc &vpe) {
+    do_set_vpeid(vpe, VPE::INVALID_ID);
 }
 
-void DTU::wakeup(VPE &vpe) {
+void DTU::wakeup(const VPEDesc &vpe) {
     // write the core id to the PE
-    uint64_t id = vpe.core();
+    uint64_t id = vpe.core;
     m3::Sync::compiler_barrier();
     write_mem(vpe, RT_START, &id, sizeof(id));
 
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE));
 }
 
-void DTU::suspend(VPE &vpe) {
+void DTU::suspend(const VPEDesc &vpe) {
     // invalidate TLB and cache
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_CACHE));
@@ -94,26 +93,25 @@ void DTU::suspend(VPE &vpe) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
-void DTU::injectIRQ(VPE &vpe) {
+void DTU::injectIRQ(const VPEDesc &vpe) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 3));
 }
 
-void DTU::set_rw_barrier(VPE &vpe, uintptr_t addr) {
+void DTU::set_rw_barrier(const VPEDesc &vpe, uintptr_t addr) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t barrier = addr;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
 }
 
-void DTU::config_pf_remote(VPE &vpe, int ep) {
+void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
 
-    uint64_t rootpt = vpe.address_space()->root_pt();
     if(!rootpt) {
         // TODO read the root pt from the core; the HW sets it atm for apps that are started at boot
         uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::ROOT_PT);
-        read_mem_at(vpe.core(), vpe.id(), addr, &rootpt, sizeof(rootpt));
+        read_mem(vpe, addr, &rootpt, sizeof(rootpt));
     }
     else {
         clear_pt(rootpt);
@@ -121,7 +119,7 @@ void DTU::config_pf_remote(VPE &vpe, int ep) {
         // insert recursive entry
         uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
         m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
-        write_mem_at(m3::DTU::noc_to_pe(rootpt), 0,
+        write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), 0),
             addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
     }
 
@@ -157,9 +155,9 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
+void DTU::map_page(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, int perm) {
     // configure the memory EP once and use it for all accesses
-    config_mem_local(_ep, vpe.core(), vpe.id(), 0, 0xFFFFFFFFFFFFFFFF);
+    config_mem_local(_ep, vpe.core, vpe.id, 0, 0xFFFFFFFFFFFFFFFF);
     for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
         uintptr_t pteAddr = get_pte_addr(virt, level);
         m3::DTU::pte_t pte;
@@ -176,7 +174,7 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
                 assert(alloc);
 
                 pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
-                KLOG(PTES, "PE" << vpe.core() << ": lvl 1 PTE for "
+                KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
                     << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
                 m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
             }
@@ -188,7 +186,7 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
             if(npte == pte)
                 continue;
 
-            KLOG(PTES, "PE" << vpe.core() << ": lvl 0 PTE for "
+            KLOG(PTES, "PE" << vpe.core << ": lvl 0 PTE for "
                 << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
             m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr);
 
@@ -201,20 +199,20 @@ void DTU::map_page(VPE &vpe, uintptr_t virt, uintptr_t phys, int perm) {
     }
 }
 
-void DTU::unmap_page(VPE &vpe, uintptr_t virt) {
+void DTU::unmap_page(const VPEDesc &vpe, uintptr_t virt) {
     map_page(vpe, virt, 0, 0);
 
     // TODO remove pagetables on demand
 }
 
-void DTU::invalidate_ep(VPE &vpe, int ep) {
+void DTU::invalidate_ep(const VPEDesc &vpe, int ep) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
-void DTU::invalidate_eps(VPE &vpe, int first) {
+void DTU::invalidate_eps(const VPEDesc &vpe, int first) {
     m3::DTU::reg_t *eps = new m3::DTU::reg_t[m3::DTU::EP_REGS * (EP_COUNT - first)];
     size_t total = sizeof(*eps) * m3::DTU::EP_REGS * (EP_COUNT - first);
     memset(eps, 0, total);
@@ -238,8 +236,8 @@ void DTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, in
         buf, order, msgorder, flags);
 }
 
-void DTU::config_recv_remote(VPE &vpe, int ep, uintptr_t buf, uint order, uint msgorder, int flags,
-        bool valid) {
+void DTU::config_recv_remote(const VPEDesc &vpe, int ep, uintptr_t buf, uint order, uint msgorder,
+        int flags, bool valid) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
 
@@ -267,8 +265,8 @@ void DTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int 
         label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void DTU::config_send_remote(VPE &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
-        size_t msgsize, word_t credits) {
+void DTU::config_send_remote(const VPEDesc &vpe, int ep, label_t label, int dstcore, int dstvpe,
+        int dstep, size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
     config_send(&e, label, dstcore, dstvpe, dstep, msgsize, credits);
@@ -290,7 +288,8 @@ void DTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size
         dstcore, dstvpe, addr, size, m3::DTU::R | m3::DTU::W);
 }
 
-void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void DTU::config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr,
+        size_t size, int perm) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t e[m3::DTU::EP_REGS];
     memset(&e, 0, sizeof(e));
     config_mem(&e, dstcore, dstvpe, addr, size, perm);
@@ -300,29 +299,27 @@ void DTU::config_mem_remote(VPE &vpe, int ep, int dstcore, int dstvpe, uintptr_t
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), &e, sizeof(e));
 }
 
-void DTU::send_to(VPE &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
-    config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
+void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size,
+        label_t replylbl, int replyep) {
+    config_send_local(_ep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
 }
 
-void DTU::reply_to(VPE &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
-    config_send_local(_ep, label, vpe.core(), vpe.id(), ep, size + m3::DTU::HEADER_SIZE,
+void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label, const void *msg,
+        size_t size) {
+    config_send_local(_ep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, 0, 0);
 }
 
-void DTU::write_mem(VPE &vpe, uintptr_t addr, const void *data, size_t size) {
-    write_mem_at(vpe.core(), vpe.id(), addr, data, size);
-}
-
-void DTU::write_mem_at(int core, int vpe, uintptr_t addr, const void *data, size_t size) {
-    config_mem_local(_ep, core, vpe, addr, size);
+void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+    config_mem_local(_ep, vpe.core, vpe.id, addr, size);
     m3::DTU::get().write(_ep, data, size, 0);
 }
 
-void DTU::read_mem_at(int core, int vpe, uintptr_t addr, void *data, size_t size) {
-    config_mem_local(_ep, core, vpe, addr, size);
+void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+    config_mem_local(_ep, vpe.core, vpe.id, addr, size);
     m3::DTU::get().read(_ep, data, size, 0);
 }
 

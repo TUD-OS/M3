@@ -80,11 +80,7 @@ public:
         : _vpe(vpe), _ep(ep), _label(label) {
     }
 
-    m3::Errors::Code send(const void *data, size_t len, RecvGate *rgate) {
-        DTU::get().send_to(_vpe, _ep, _label, data, len,
-            reinterpret_cast<uintptr_t>(rgate), rgate->epid());
-        return m3::Errors::NO_ERROR;
-    }
+    m3::Errors::Code send(const void *data, size_t len, RecvGate *rgate);
 
 private:
     VPE &_vpe;

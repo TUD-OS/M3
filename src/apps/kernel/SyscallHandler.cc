@@ -63,7 +63,7 @@ struct ReplyInfo {
 };
 
 static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    DTU::get().reply_to(vpe, info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+    DTU::get().reply_to(vpe.desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
 static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
@@ -344,7 +344,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
         // delegate pf gate to the new VPE
         nvpe->objcaps().obtain(gcap, msg);
 
-        DTU::get().config_pf_remote(*nvpe, ep);
+        DTU::get().config_pf_remote(nvpe->desc(), nvpe->address_space()->root_pt(), ep);
     }
 
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR, Platform::pe(nvpe->core()).value());

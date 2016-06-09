@@ -27,14 +27,21 @@
 
 namespace kernel {
 
+struct VPEDesc {
+    explicit VPEDesc(int _core, int _id) : core(_core), id(_id) {
+    }
+
+    int core;
+    int id;
+};
+
 class VPE {
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
         VPEId(int _id, int _core);
         ~VPEId();
 
-        int id;
-        int core;
+        VPEDesc desc;
     };
 
 public:
@@ -80,14 +87,17 @@ public:
     void activate_sysc_ep(void *addr);
     m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
+    const VPEDesc &desc() const {
+        return _id.desc;
+    }
     int id() const {
-        return _id.id;
+        return desc().id;
     }
     int pid() const {
         return _pid;
     }
     int core() const {
-        return _id.core;
+        return desc().core;
     }
     uint flags() const {
         return _flags;

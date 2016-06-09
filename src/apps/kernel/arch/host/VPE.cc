@@ -101,20 +101,20 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabili
 
     if(newcapobj) {
         // now do the compare-exchange
-        DTU::get().cmpxchg_mem(*this, reinterpret_cast<uintptr_t>(_eps), regs, sizeof(regs),
+        DTU::get().cmpxchg_mem(desc(), reinterpret_cast<uintptr_t>(_eps), regs, sizeof(regs),
             epid * m3::DTU::EPS_RCNT * sizeof(word_t), sizeof(regs) / 2);
         return m3::Errors::NO_ERROR;
     }
 
     // if we should just invalidate it, we don't have to do a cmpxchg
     uintptr_t addr = reinterpret_cast<uintptr_t>(_eps) + epid * m3::DTU::EPS_RCNT * sizeof(word_t);
-    DTU::get().write_mem(*this, addr, regs + m3::DTU::EPS_RCNT, sizeof(regs) / 2);
+    DTU::get().write_mem(desc(), addr, regs + m3::DTU::EPS_RCNT, sizeof(regs) / 2);
     return m3::Errors::NO_ERROR;
 }
 
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    DTU::get().invalidate_eps(*this);
+    DTU::get().invalidate_eps(desc());
     detach_rbufs();
     free_reqs();
 
