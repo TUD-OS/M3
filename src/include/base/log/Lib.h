@@ -18,9 +18,9 @@
 
 #include <base/log/Log.h>
 
-namespace m3 {
-
 #define LLOG(lvl, msg)  LOG(LibLog, lvl, msg)
+
+namespace m3 {
 
 class LibLog {
     LibLog() = delete;
