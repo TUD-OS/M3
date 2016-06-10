@@ -128,6 +128,10 @@ public:
                 reg->size(Math::min(reg->offset() + MAX_PAGES * PAGE_SIZE, end - reg->offset()));
             }
 
+            SLOG(PAGER, "Allocating anonymous memory for "
+                << fmt(addr() + reg->offset(), "p") << ".."
+                << fmt(addr() + reg->offset() + reg->size() - 1, "p"));
+
             reg->mem(new PhysMem(_virt, addr(), reg->size(), MemGate::RWX));
             // zero the memory
             reg->clear();
@@ -211,6 +215,10 @@ public:
             if(sz < reg->size())
                 reg->size(sz);
             reg->mem_offset(off);
+
+            SLOG(PAGER, "Obtained memory for "
+                << fmt(addr() + reg->offset(), "p") << ".."
+                << fmt(addr() + reg->offset() + reg->size() - 1, "p"));
         }
         // handle copy on write
         else if(reg->flags() & Region::COW) {

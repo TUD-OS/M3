@@ -121,6 +121,10 @@ public:
     void copy(MemGate *mem, uintptr_t virt) {
         // if we are the last one, we can just take the memory
         if(_mem->is_last()) {
+            SLOG(PAGER, "Keeping memory "
+                << fmt(virt + offset(), "p") << ".."
+                << fmt(virt + offset() + size() - 1, "p"));
+
             // we are the owner now
             _mem->owner_mem = mem;
             _mem->owner_virt = virt;
@@ -131,6 +135,12 @@ public:
         MemGate *ogate = _mem->owner_mem ? _mem->owner_mem : _mem->gate;
         uintptr_t off = _mem->owner_mem ? _mem->owner_virt : _memoff;
         MemGate *ngate = new MemGate(MemGate::create_global(size(), MemGate::RWX));
+
+        SLOG(PAGER, "Copying memory "
+            << fmt(virt + offset(), "p") << ".."
+            << fmt(virt + offset() + size() - 1, "p")
+            << " from " << (_mem->owner_mem ? "owner" : "origin"));
+
         copy_block(ogate, ngate, off + _offset, size());
 
         // are we the owner?
