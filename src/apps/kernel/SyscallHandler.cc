@@ -169,15 +169,21 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
     LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << m3::fmt(virt, "p")
         << ", access " << m3::fmt(access, "#x") << ")");
 
-    // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-
     if(!vpe->address_space())
         SYS_ERROR(vpe, is.gate(), m3::Errors::NOT_SUP, "No address space / PF handler");
 
+    // if we don't have a pager, it was probably because of speculative execution. just return an
+    // error in this case and don't print anything
     capsel_t gcap = vpe->address_space()->gate();
     MsgCapability *msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
-    if(msg == nullptr || msg->localepid != -1)
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap(s)");
+    if(msg == nullptr) {
+        reply_vmsg(is.gate(), m3::Errors::INV_ARGS);
+        return;
+    }
+
+    // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
+    if(msg->localepid != -1)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "EP already configured");
 
     m3::Errors::Code res = do_activate(vpe, vpe->address_space()->ep(), nullptr, msg);
     if(res != m3::Errors::NO_ERROR)
