@@ -31,7 +31,7 @@ for i in range(0, num_pes):
                       cmdline=cmd_list[i],
                       memPE=mem_pe,
                       l1size='64kB',
-                      l2size='0')
+                      l2size=None)
     pes.append(pe)
 
 runSimulation(options, pes)
