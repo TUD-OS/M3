@@ -61,8 +61,8 @@ public:
             // remove the writable bit if it was writable
             if(reg->has_mem() && (_flags & DTU::PTE_W)) {
                 Syscalls::get().createmap(srcvpe, reg->mem()->gate->sel(),
-                    reg->mem_offset() >> PAGE_BITS, reg->size() >> PAGE_BITS, addr() >> PAGE_BITS,
-                    _flags & ~DTU::PTE_W);
+                    reg->mem_offset() >> PAGE_BITS, reg->size() >> PAGE_BITS,
+                    (addr() + reg->offset()) >> PAGE_BITS, _flags & ~DTU::PTE_W);
             }
 
             Region *nreg = new Region(*reg);
