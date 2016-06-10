@@ -42,7 +42,7 @@ Heap::Area *Heap::_end;
 void *Heap::alloc(size_t size) {
     void *res = try_alloc(size);
     if(!res)
-        PANIC("Unable to alloc " << size << " bytes on the heap");
+        PANIC("Unable to alloc " << size << " bytes on the heap (free=" << free_memory() << ")");
     return res;
 }
 
@@ -156,7 +156,7 @@ void Heap::print(OStream &os) {
     Area *a = _begin;
     os << "Heap[free=" << free_memory() << "]\n";
     while(a < _end) {
-        os << "  " << (is_used(a) ? "u" : "-");
+        os << "  @ " << fmt((void*)a, "p") << " " << (is_used(a) ? "u" : "-");
         os << " next=" << (a->next & ~USED_BIT);
         os << " prev=" << a->prev << "\n";
         a = forward(a, a->next & ~USED_BIT);
