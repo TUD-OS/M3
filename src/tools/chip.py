@@ -59,11 +59,11 @@ class Env(Structure):
         ('eps', c_uint32),
         ('caps', c_uint32),
         ('exit', c_uint32),
+        ('heapsize', c_uint32),
 
         ('backend', c_uint32),
         ('kenv', c_uint32),
         ('pe', c_uint32),
-        ('_', c_uint32),
     ]
     def send(self):
         return buffer(self)[:]
@@ -173,6 +173,7 @@ def initState(core, argv):
     senv.mounts = 0
     senv.fdslen = 0
     senv.fds = 0
+    senv.heapsize = 0
 
     # write Env to core
     off = RT_START

@@ -18,6 +18,7 @@
 #include <base/util/Math.h>
 #include <base/Config.h>
 #include <base/Heap.h>
+#include <base/Env.h>
 
 extern void *_bss_end;
 
@@ -26,13 +27,23 @@ namespace m3 {
 void Heap::init() {
     uintptr_t begin = reinterpret_cast<uintptr_t>(&_bss_end);
     _begin = reinterpret_cast<Area*>(Math::round_up<size_t>(begin, sizeof(Area)));
-    // TODO temporary
+
+    uintptr_t end;
+    if(env()->heapsize == 0) {
 #if defined(__gem5__)
-    uintptr_t end = Math::round_up(begin, PAGE_SIZE) + INIT_HEAP_SIZE;
-    _end = reinterpret_cast<Area*>(end) - 1;
+        if(env()->pe.has_memory())
+            end = env()->pe.mem_size() - RECVBUF_SIZE_SPM;
+        // this does only exist so that we can still run scenarios on cache-PEs without pager
+        else
+            end = Math::round_up(begin, PAGE_SIZE) + MOD_HEAP_SIZE;
 #else
-    _end = reinterpret_cast<Area*>(Math::round_dn<size_t>(RT_START, sizeof(Area))) - 1;
+        end = Math::round_dn<size_t>(RT_START, sizeof(Area));
 #endif
+    }
+    else
+        end = Math::round_up<size_t>(begin, PAGE_SIZE) + env()->heapsize;
+    _end = reinterpret_cast<Area*>(end) - 1;
+
     _end->next = 0;
     _end->prev = (_end - _begin) * sizeof(Area);
     Area *a = _begin;

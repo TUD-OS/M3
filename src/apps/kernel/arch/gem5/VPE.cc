@@ -180,8 +180,8 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
 
     if(needs_heap) {
         // create initial heap
-        uintptr_t phys = alloc_mem(INIT_HEAP_SIZE);
-        map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), INIT_HEAP_SIZE, m3::DTU::PTE_RW);
+        uintptr_t phys = alloc_mem(MOD_HEAP_SIZE);
+        map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), MOD_HEAP_SIZE, m3::DTU::PTE_RW);
     }
 
     return header.e_entry;
@@ -276,6 +276,7 @@ void VPE::init_memory(const char *name) {
         senv.sp = STACK_TOP - sizeof(word_t);
         senv.entry = entry;
         senv.pe = Platform::pe(core());
+        senv.heapsize = MOD_HEAP_SIZE;
 
         DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
     }

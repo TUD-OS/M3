@@ -32,6 +32,9 @@ public:
     virtual ~EnvBackend() {
     }
 
+    virtual bool extend_heap(size_t) {
+        return false;
+    }
     virtual void exit(int code) = 0;
 
 protected:

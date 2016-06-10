@@ -88,6 +88,8 @@ Errors::Code VPE::run(void *lambda) {
     senv.backend = env()->backend;
     senv.pe = _pe;
 
+    senv.heapsize = env()->heapsize;
+
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
@@ -156,6 +158,8 @@ Errors::Code VPE::exec(Executable &exec) {
 
     senv.backend = nullptr;
     senv.pe = _pe;
+
+    senv.heapsize = _pager ? APP_HEAP_SIZE : 0;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
@@ -256,7 +260,7 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
 
         // create heap
         virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
-        err = _pager->map_anon(&virt, INIT_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
+        err = _pager->map_anon(&virt, APP_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
             return err;
     }

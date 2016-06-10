@@ -62,7 +62,7 @@
 // give the stack 4K
 #define DMEM_VEND           0x6000F000
 
-#define INIT_HEAP_SIZE      0                       // not used
+#define APP_HEAP_SIZE       0                       // not used
 #define HEAP_SIZE           0x7000                  // not the actual size, but the maximum
 
 #define RECV_BUF_MSGSIZE    64

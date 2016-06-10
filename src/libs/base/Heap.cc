@@ -59,17 +59,24 @@ USED void *Heap::try_alloc(size_t size) {
     size = (size + sizeof(Area) + ALIGN - 1) & ~(ALIGN - 1);
 
     // find free area with enough space; start at the end, i.e. the large chunk of free memory
-    Area *a = backwards(_end, _end->prev);
-    do {
+    Area *a = nullptr;
+    while(1) {
+        a = backwards(_end, _end->prev);
+        do {
+            if(!is_used(a) && a->next >= size)
+                break;
+            a = backwards(a, a->prev);
+        }
+        while(a->prev > 0);
+
+        // have we found a suitable area?
         if(!is_used(a) && a->next >= size)
             break;
-        a = backwards(a, a->prev);
+
+        // ok, try to extend the heap
+        if(!env()->backend->extend_heap(size))
+            return nullptr;
     }
-    while(a->prev > 0);
-    // for simplicity of error-handling we assume that every failed memory allocation is a
-    // show stopper. thus, we terminate the program.
-    if(is_used(a) || a->next < size)
-        return nullptr;
 
     // is there space left? (take care that we need space for an area behind it and that it actually
     // makes sense to have this free, i.e. that it's >= the minimum size)

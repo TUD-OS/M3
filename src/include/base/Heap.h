@@ -18,6 +18,10 @@
 
 #include <base/Common.h>
 
+namespace kernel {
+class BaremetalKEnvBackend;
+}
+
 namespace m3 {
 
 class OStream;
@@ -44,6 +48,8 @@ class OStream;
  * It is also possible to use the C interface (malloc, ...), but this class should be preferred.
  */
 class Heap {
+    friend class kernel::BaremetalKEnvBackend;
+
     struct Area {
         word_t next;    /* MSB set = used */
         word_t prev;
@@ -124,6 +130,19 @@ public:
      * @return the end of the heap that is used.
      */
     static uintptr_t end();
+
+    /**
+     * @return the address of the end area
+     */
+    static uintptr_t end_area() {
+        return reinterpret_cast<uintptr_t>(_end);
+    }
+    /**
+     * @return the size of the end area
+     */
+    static size_t end_area_size() {
+        return sizeof(Area);
+    }
 
     /**
      * Prints the areas of the heap

@@ -56,14 +56,11 @@ public:
     uintptr_t eps;
     uintptr_t caps;
     uintptr_t exitaddr;
+    size_t heapsize;
 
     BaremetalEnvBackend *backend;
     uintptr_t kenv;
     PEDesc pe;
-
-#if defined(__t2__) || defined(__t3__)
-    uint32_t : 32;
-#endif
 
     WorkLoop *workloop() {
         return backend->_workloop;

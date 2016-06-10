@@ -18,7 +18,10 @@
 #include <base/stream/Serial.h>
 #include <base/Backtrace.h>
 #include <base/Env.h>
+#include <base/Heap.h>
 
+#include "mem/MainMemory.h"
+#include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
 #include "WorkLoop.h"
@@ -42,6 +45,44 @@ public:
 
     virtual void reinit() override {
         // not used
+    }
+
+    virtual bool extend_heap(size_t size) {
+        if(!Platform::pe(Platform::kernel_pe()).has_virtmem())
+            return false;
+
+        uint pages = m3::Math::max((size_t)8,
+            m3::Math::round_up<size_t>(size, PAGE_SIZE) >> PAGE_BITS);
+
+        // allocate memory
+        MainMemory::Allocation alloc = MainMemory::get().allocate(pages * PAGE_SIZE);
+        if(!alloc)
+            return false;
+
+        // map the memory
+        uintptr_t virt = m3::Math::round_up<uintptr_t>(
+            reinterpret_cast<uintptr_t>(m3::Heap::_end), PAGE_SIZE);
+        uint64_t phys = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
+        VPEDesc vpe(Platform::kernel_pe(), Platform::kernel_pe());
+        for(uint i = 0; i < pages; ++i)
+            DTU::get().map_page(vpe, virt + i * PAGE_SIZE, phys + i * PAGE_SIZE, m3::KIF::Perm::RW);
+
+        // build new end Area and connect it
+        m3::Heap::Area *end = reinterpret_cast<m3::Heap::Area*>(virt + pages * PAGE_SIZE) - 1;
+        end->next = 0;
+        m3::Heap::Area *prev = m3::Heap::backwards(m3::Heap::_end, m3::Heap::_end->prev);
+        // if the last area is used, we have to keep _end and put us behind there
+        if(m3::Heap::is_used(prev)) {
+            end->prev = (end - m3::Heap::_end) * sizeof(m3::Heap::Area);
+            m3::Heap::_end->next = end->prev;
+        }
+        // otherwise, merge it into the last area
+        else {
+            end->prev = m3::Heap::_end->prev + pages * PAGE_SIZE;
+            prev->next += pages * PAGE_SIZE;
+        }
+        m3::Heap::_end = end;
+        return true;
     }
 
     virtual void exit(int) override {

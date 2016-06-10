@@ -41,7 +41,7 @@
 // give the stack 4K and a bit of space for idle
 #define DMEM_VEND           0x607FD000
 
-#define INIT_HEAP_SIZE      0                       // not used
+#define APP_HEAP_SIZE       0                       // not used
 #define HEAP_SIZE           0x200000                // not the actual size, but the maximum
 
 #define RT_SIZE             0x400
