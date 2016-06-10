@@ -64,8 +64,8 @@ public:
         WRITE_EOF   = 2,
     };
 
-    static const size_t BUFSIZE     = 1024;
-    static const size_t MSGSIZE     = 128;
+    static const size_t BUFSIZE     = 512;
+    static const size_t MSGSIZE     = 64;
 
     explicit PipeHandler(PipeSessionData *sess)
         : refs(1),

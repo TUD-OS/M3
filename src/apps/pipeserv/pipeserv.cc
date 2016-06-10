@@ -37,7 +37,7 @@ public:
     }
 
     virtual size_t credits() override {
-        return Server<PipeServiceHandler>::DEF_MSGSIZE;
+        return 64;
     }
 
     virtual PipeSessionData *handle_open(GateIStream &args) override {
