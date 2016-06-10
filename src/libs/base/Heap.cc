@@ -93,8 +93,15 @@ USED void *Heap::try_alloc(size_t size) {
     // mark used
     a->next |= USED_BIT;
 
-    if(Serial::ready())
-        LLOG(HEAP, "Allocated " << size << "b @ " << (void*)(a + 1));
+    if((LibLog::level & LibLog::HEAP) && Serial::ready()) {
+        uintptr_t addr[6] = {0};
+        Backtrace::collect(addr, ARRAY_SIZE(addr));
+        LLOG(HEAP, "Allocated " << size << "b @ " << (void*)(a + 1) << ":"
+            << " " << fmt(addr[2], "0x")
+            << " " << fmt(addr[3], "0x")
+            << " " << fmt(addr[4], "0x")
+            << " " << fmt(addr[5], "0x"));
+    }
     return a + 1;
 }
 
@@ -122,8 +129,15 @@ USED void Heap::free(void *p) {
     if(p == nullptr)
         return;
 
-    if(Serial::ready())
-        LLOG(HEAP, "Freeing " << p);
+    if((LibLog::level & LibLog::HEAP) && Serial::ready()) {
+        uintptr_t addr[6] = {0};
+        Backtrace::collect(addr, ARRAY_SIZE(addr));
+        LLOG(HEAP, "Freeing " << p << ":"
+            << " " << fmt(addr[2], "0x")
+            << " " << fmt(addr[3], "0x")
+            << " " << fmt(addr[4], "0x")
+            << " " << fmt(addr[5], "0x"));
+    }
 
     /* get area and the one behind */
     Area *a = backwards(reinterpret_cast<Area*>(p), sizeof(Area));
