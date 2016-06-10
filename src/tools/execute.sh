@@ -149,7 +149,6 @@ build_params_gem5() {
     if [ "$M3_PAUSE_PE" != "" ]; then
         echo -n " --pausepe=$M3_PAUSE_PE" >> $params
     fi
-    #echo -n " --watch-pe=0 --watch-start=0x111500 --watch-end=0x111600" >> $params
 
     export M5_PATH=$build
     if [ "$DBG_GEM5" != "" ]; then

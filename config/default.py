@@ -43,4 +43,7 @@ for i in range(num_pes - num_spm, num_pes):
                       spmsize='8MB')
     pes.append(pe)
 
+# pes[1].dtu.watch_range_start  = 0x43d2ff0
+# pes[1].dtu.watch_range_end    = 0x43d2fff
+
 runSimulation(options, pes)
