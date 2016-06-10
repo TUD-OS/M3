@@ -20,7 +20,7 @@ for i in range(0, num_mem):
     pes.append(createMemPE(root=root,
                            options=options,
                            no=i,
-                           size='512MB',
+                           size='1024MB',
                            content=fsimg if i == 0 else None))
 
 # create the core PEs
