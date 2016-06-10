@@ -197,20 +197,11 @@ def readFile(mod, addr, len, filename):
     f.close()
     return 0
 
-lastnl = True
 def fetchPrint(core, id):
     length = read64bit(core, SERIAL_ACK) & 0xFFFFFFFF
     if length != 0 and length <= SERIAL_BUFSIZE:
-        t1 = time.time()
-
-        global lastnl
         line = readStr(core, SERIAL_BUF, length)
-        for s in line:
-            if lastnl:
-                sys.stdout.write("%08.4f> " % (t1 - t0))
-            sys.stdout.write(s)
-            log.write(s)
-            lastnl = s == '\n'
+        sys.stdout.write(line)
         sys.stdout.write('\033[0m')
         sys.stdout.flush()
 
