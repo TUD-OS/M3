@@ -82,7 +82,9 @@ int main(int argc, char **argv) {
 
     VPE t1("sender");
     t1.fds(*VPE::self().fds());
-    t1.delegate(VPE::all_caps());
+    t1.delegate_obj(mem.sel());
+    t1.delegate_obj(resmem.sel());
+    t1.delegate_obj(gate.sel());
     t1.run([buffer, &mem, &gate, &resmem, memSize] {
         uint *result = new uint[BUF_SIZE / sizeof(uint)];
         size_t c = 0;
