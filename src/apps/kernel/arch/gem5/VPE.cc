@@ -36,7 +36,7 @@ struct BootModule {
 
 static size_t count = 0;
 static BootModule mods[Platform::MAX_MODS];
-static uint32_t loaded = 0;
+static uint64_t loaded = 0;
 static BootModule *idles[Platform::MAX_PES];
 static char buffer[4096];
 

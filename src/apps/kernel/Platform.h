@@ -22,7 +22,7 @@ namespace kernel {
 
 class Platform {
 public:
-    static const size_t MAX_MODS        = 8;
+    static const size_t MAX_MODS        = 64;
     static const size_t MAX_PES         = 64;
 
     struct KEnv {
