@@ -25,12 +25,10 @@
 
 #include <m3/com/MemGate.h>
 
-namespace m3 {
-
 static char zeros[4096];
 static char tmpbuf[4096];
 
-static void copy_block(MemGate *src, MemGate *dst, size_t srcoff, size_t size) {
+static void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size) {
     size_t pages = size >> PAGE_BITS;
     for(size_t i = 0; i < pages; ++i) {
         src->read_sync (tmpbuf, sizeof(tmpbuf), srcoff + i * PAGE_SIZE);
@@ -45,20 +43,20 @@ class Region;
  * the memory, which is the one that might have dirty data it his cache. If there is, we want to
  * copy from there instead of from the actual memory.
  */
-class PhysMem : public RefCounted {
+class PhysMem : public m3::RefCounted {
     friend class Region;
 
-    explicit PhysMem(MemGate *mem, MemGate *gate, uintptr_t virt)
+    explicit PhysMem(m3::MemGate *mem, m3::MemGate *gate, uintptr_t virt)
         : RefCounted(), gate(gate), owner_mem(mem), owner_virt(virt) {
     }
 
 public:
-    explicit PhysMem(MemGate *mem, uintptr_t virt, size_t size, uint perm)
-        : RefCounted(), gate(new MemGate(MemGate::create_global(size, perm))),
+    explicit PhysMem(m3::MemGate *mem, uintptr_t virt, size_t size, uint perm)
+        : RefCounted(), gate(new m3::MemGate(m3::MemGate::create_global(size, perm))),
           owner_mem(mem), owner_virt(virt) {
     }
-    explicit PhysMem(MemGate *mem, uintptr_t virt, capsel_t sel)
-        : RefCounted(), gate(new MemGate(MemGate::bind(sel))),
+    explicit PhysMem(m3::MemGate *mem, uintptr_t virt, capsel_t sel)
+        : RefCounted(), gate(new m3::MemGate(m3::MemGate::bind(sel))),
           owner_mem(mem), owner_virt(virt) {
     }
     ~PhysMem() {
@@ -69,13 +67,13 @@ public:
         return refcount() == 1;
     }
 
-    void print(OStream &os) const {
-        os << "id: " << fmt(gate->sel(), 3) << " refs: " << refcount();
-        os << " [owner=" << owner_mem << " @ " << fmt(owner_virt, "p") << "]";
+    void print(m3::OStream &os) const {
+        os << "id: " << m3::fmt(gate->sel(), 3) << " refs: " << refcount();
+        os << " [owner=" << owner_mem << " @ " << m3::fmt(owner_virt, "p") << "]";
     }
 
-    MemGate *gate;
-    MemGate *owner_mem;
+    m3::MemGate *gate;
+    m3::MemGate *owner_mem;
     uintptr_t owner_virt;
 };
 
@@ -83,7 +81,7 @@ public:
  * A region is a part of a dataspace, that allows us to allocate, copy, etc. smaller parts of the
  * dataspace.
  */
-class Region : public SListItem {
+class Region : public m3::SListItem {
 public:
     enum Flags {
         COW     = 1 << 0,
@@ -108,7 +106,7 @@ public:
         return has_mem() ? &*_mem : nullptr;
     }
     void mem(PhysMem *mem) {
-        _mem = Reference<PhysMem>(mem);
+        _mem = m3::Reference<PhysMem>(mem);
     }
 
     uint flags() const {
@@ -118,12 +116,12 @@ public:
         _flags = flags;
     }
 
-    void copy(MemGate *mem, uintptr_t virt) {
+    void copy(m3::MemGate *mem, uintptr_t virt) {
         // if we are the last one, we can just take the memory
         if(_mem->is_last()) {
             SLOG(PAGER, "Keeping memory "
-                << fmt(_base + _offset, "p") << ".."
-                << fmt(_base + _offset + size() - 1, "p"));
+                << m3::fmt(_base + _offset, "p") << ".."
+                << m3::fmt(_base + _offset + size() - 1, "p"));
 
             // we are the owner now
             _mem->owner_mem = mem;
@@ -132,13 +130,13 @@ public:
         }
 
         // make a copy; either from owner memory or the physical memory
-        MemGate *ogate = _mem->owner_mem ? _mem->owner_mem : _mem->gate;
+        m3::MemGate *ogate = _mem->owner_mem ? _mem->owner_mem : _mem->gate;
         uintptr_t off = _mem->owner_mem ? _mem->owner_virt : _memoff;
-        MemGate *ngate = new MemGate(MemGate::create_global(size(), MemGate::RWX));
+        m3::MemGate *ngate = new m3::MemGate(m3::MemGate::create_global(size(), m3::MemGate::RWX));
 
         SLOG(PAGER, "Copying memory "
-            << fmt(_base + _offset, "p") << ".."
-            << fmt(_base + _offset + size() - 1, "p")
+            << m3::fmt(_base + _offset, "p") << ".."
+            << m3::fmt(_base + _offset + size() - 1, "p")
             << " from " << (_mem->owner_mem ? "owner" : "origin"));
 
         copy_block(ogate, ngate, off + _offset, size());
@@ -146,12 +144,12 @@ public:
         // are we the owner?
         if(mem == _mem->owner_mem) {
             // give the others the new memory gate
-            MemGate *old = _mem->gate;
+            m3::MemGate *old = _mem->gate;
             _mem->gate = ngate;
             // there is no owner anymore
             _mem->owner_mem = nullptr;
             // give us the old memory with a new PhysMem object
-            _mem = Reference<PhysMem>(new PhysMem(mem, old, _mem->owner_virt));
+            _mem = m3::Reference<PhysMem>(new PhysMem(mem, old, _mem->owner_virt));
         }
         else
             _mem->gate = ngate;
@@ -195,7 +193,7 @@ public:
     }
 
 private:
-    Reference<PhysMem> _mem;
+    m3::Reference<PhysMem> _mem;
     uintptr_t _base;
     size_t _offset;
     size_t _memoff;
@@ -205,7 +203,7 @@ private:
 
 class RegionList {
 public:
-    typedef SList<Region>::iterator iterator;
+    typedef m3::SList<Region>::iterator iterator;
 
     explicit RegionList(uintptr_t virt, size_t total) : _virt(virt), _total(total), _regs() {
     }
@@ -252,10 +250,10 @@ public:
         return n;
     }
 
-    void print(OStream &os) const {
+    void print(m3::OStream &os) const {
         for(auto reg = _regs.begin(); reg != _regs.end(); ++reg) {
-            os << "    " << fmt(_virt + reg->offset(), "p");
-            os << " .. " << fmt(_virt + reg->offset() + reg->size() - 1, "p");
+            os << "    " << m3::fmt(_virt + reg->offset(), "p");
+            os << " .. " << m3::fmt(_virt + reg->offset() + reg->size() - 1, "p");
             os << " COW=" << ((reg->flags() & Region::COW) ? "1" : "0");
             os << " -> ";
             reg->mem()->print(os);
@@ -266,7 +264,5 @@ public:
 private:
     uintptr_t _virt;
     size_t _total;
-    SList<Region> _regs;
+    m3::SList<Region> _regs;
 };
-
-}
