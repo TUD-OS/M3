@@ -156,7 +156,7 @@ private:
             delete &*old;
         }
     }
-    void detach_rbufs();
+    void detach_rbufs(bool all);
 
     VPEId _id;
     uint _flags;

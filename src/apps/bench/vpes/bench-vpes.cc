@@ -88,9 +88,29 @@ int main() {
     exec_time = 0;
 
     {
+        VPE vpe("hello");
+        for(int i = 0; i < COUNT; ++i) {
+            cycles_t start = Profile::start(3);
+            Errors::Code res = vpe.run([]() {
+                return 0;
+            });
+            if(res != Errors::NO_ERROR)
+                exitmsg("VPE::run failed");
+
+            vpe.wait();
+            cycles_t end = Profile::stop(3);
+            exec_time += end - start;
+        }
+    }
+
+    cout << "Time for multi-run+wait: " << (exec_time / COUNT) << " cycles\n";
+
+    exec_time = 0;
+
+    {
         for(int i = 0; i < COUNT; ++i) {
             VPE vpe("hello");
-            cycles_t start = Profile::start(3);
+            cycles_t start = Profile::start(4);
             const char *args[] = {"/bin/noop"};
             Executable exec(ARRAY_SIZE(args), args);
             Errors::Code res = vpe.exec(exec);
@@ -98,7 +118,7 @@ int main() {
                 exitmsg("Unable to load " << args[0]);
 
             vpe.wait();
-            cycles_t end = Profile::stop(3);
+            cycles_t end = Profile::stop(4);
             exec_time += end - start;
         }
     }

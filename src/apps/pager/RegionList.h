@@ -29,16 +29,18 @@ public:
     RegionList(const RegionList &) = delete;
     RegionList &operator=(const RegionList &) = delete;
     ~RegionList() {
-        while(_regs.length() > 0) {
-            Region *r = _regs.remove_first();
-            delete r;
-        }
+        clear();
     }
+
+    void clear();
 
     void append(Region *r) {
         _regs.append(r);
     }
 
+    size_t count() const {
+        return _regs.length();
+    }
     iterator begin() {
         return _regs.begin();
     }

@@ -182,9 +182,6 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
     }
 
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-    if(msg->localepid != -1)
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "EP already configured");
-
     m3::Errors::Code res = do_activate(vpe, vpe->address_space()->ep(), nullptr, msg);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Activate failed");

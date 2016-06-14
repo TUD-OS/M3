@@ -21,30 +21,40 @@ int AddrSpace::nextId = 1;
 void AddrSpace::add(DataSpace *ds) {
     dslist.append(ds);
     dstree.insert(ds);
-
-    // if we manipulate the address space, cloning is no longer possible
-    parent = nullptr;
 }
 
 void AddrSpace::remove(DataSpace *ds) {
     dslist.remove(ds);
     dstree.remove(ds);
-    parent = nullptr;
 }
 
 m3::Errors::Code AddrSpace::clone() {
     if(!parent)
         return m3::Errors::NOT_SUP;
 
-    // TODO handle the case where we already have mappings
     for(auto ds = parent->dslist.begin(); ds != parent->dslist.end(); ++ds) {
-        DataSpace *dscopy = const_cast<DataSpace*>(&*ds)->clone(this);
-        dslist.append(dscopy);
-        dstree.insert(dscopy);
+        DataSpace *cur = dstree.find(ds->addr());
+        DataSpace *dscopy;
+
+        // if the same dataspace does already exist, keep it and inherit it again
+        if(cur && cur->id() == ds->id())
+            dscopy = cur;
+        else {
+            // otherwise, if it existed, remove it
+            if(cur) {
+                remove(cur);
+                delete cur;
+            }
+            // create a copy
+            dscopy = const_cast<DataSpace*>(&*ds)->clone(this);
+            dslist.append(dscopy);
+            dstree.insert(dscopy);
+        }
+
+        // now do the inheritance, i.e. copy-on-write the regions
+        dscopy->inherit(&*ds);
     }
 
-    // this can be done just once
-    parent = nullptr;
     return m3::Errors::NO_ERROR;
 }
 

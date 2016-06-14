@@ -31,7 +31,7 @@ class AddrSpace;
 class DataSpace : public m3::TreapNode<uintptr_t>, public m3::SListItem {
 public:
     explicit DataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
-        : TreapNode<uintptr_t>(addr), SListItem(), _as(as), _flags(flags),
+        : TreapNode<uintptr_t>(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
           _regs(this), _size(size) {
     }
 
@@ -39,6 +39,9 @@ public:
         return k >= addr() && k < addr() + _size;
     }
 
+    ulong id() const {
+        return _id;
+    }
     AddrSpace *addrspace() {
         return _as;
     }
@@ -54,18 +57,19 @@ public:
 
     virtual const char *type() const = 0;
     virtual m3::Errors::Code handle_pf(uintptr_t virt) = 0;
+    virtual DataSpace *clone(AddrSpace *as) = 0;
 
-    DataSpace *clone(AddrSpace *as);
+    void inherit(DataSpace *ds);
 
     void print(m3::OStream &os) const override;
 
 protected:
-    virtual DataSpace *do_clone(AddrSpace *as) = 0;
-
     AddrSpace *_as;
+    ulong _id;
     uint _flags;
     RegionList _regs;
     size_t _size;
+    static ulong _next_id;
 };
 
 class AnonDataSpace : public DataSpace {
@@ -79,7 +83,7 @@ public:
     const char *type() const override {
         return "Anon";
     }
-    DataSpace *do_clone(AddrSpace *as) override {
+    DataSpace *clone(AddrSpace *as) override {
         return new AnonDataSpace(as, addr(), size(), _flags);
     }
 
@@ -101,7 +105,7 @@ public:
     const char *type() const override {
         return "External";
     }
-    DataSpace *do_clone(AddrSpace *as) override {
+    DataSpace *clone(AddrSpace *as) override {
         return new ExternalDataSpace(as, addr(), size(), _flags, id, offset, sess.sel());
     }
 

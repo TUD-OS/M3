@@ -61,7 +61,7 @@ void VPE::unref() {
 
 void VPE::exit(int exitcode) {
     DTU::get().invalidate_eps(desc(), m3::DTU::FIRST_FREE_EP);
-    detach_rbufs();
+    detach_rbufs(false);
     _state = DEAD;
     _exitcode = exitcode;
     for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
@@ -71,9 +71,12 @@ void VPE::exit(int exitcode) {
     }
 }
 
-  void VPE::detach_rbufs() {
-      for(size_t c = 0; c < EP_COUNT; ++c)
-          RecvBufs::detach(*this, c);
-  }
+void VPE::detach_rbufs(bool all) {
+    for(size_t c = 0; c < EP_COUNT; ++c) {
+        if(!all && c == m3::DTU::DEF_RECVEP)
+            continue;
+        RecvBufs::detach(*this, c);
+    }
+}
 
 }

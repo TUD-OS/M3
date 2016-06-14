@@ -84,7 +84,7 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     DTU::get().invalidate_eps(desc());
-    detach_rbufs();
+    detach_rbufs(true);
     free_reqs();
     _objcaps.revoke_all();
     _mapcaps.revoke_all();

@@ -115,7 +115,7 @@ m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapabili
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
     DTU::get().invalidate_eps(desc());
-    detach_rbufs();
+    detach_rbufs(true);
     free_reqs();
 
     // revoke all caps first because we might need the sepsgate for that

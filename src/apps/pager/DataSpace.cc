@@ -22,25 +22,41 @@
 #include "AddrSpace.h"
 #include "DataSpace.h"
 
-DataSpace *DataSpace::clone(AddrSpace *as) {
-    DataSpace *ds = do_clone(as);
+ulong DataSpace::_next_id = 0;
+
+void DataSpace::inherit(DataSpace *ds) {
+    _id = ds->_id;
+
+    // if it's not writable, but we have already regions, we can simply keep them
+    if(!(ds->_flags & m3::DTU::PTE_W) && _regs.count() > 0)
+        return;
+
+    // for the case that we already have regions and the DS is writable, just remove them. because
+    // there is no point in trying to keep them:
+    // 1. we have already our own copy
+    //    -> then we need to revoke that and create a new one anyway
+    // 2. COW is still set
+    //    -> then we would save the object copying, but this is not that expensive
+    // in general, if we try to keep them, we need to match the region lists against each other,
+    // which is probably more expensive than just destructing and creating a few objects
+    _regs.clear();
 
     // clone regions
-    for(auto reg = _regs.begin(); reg != _regs.end(); ++reg) {
-        if(_flags & m3::DTU::PTE_W)
-            reg->map(_flags & ~m3::DTU::PTE_W);
+    for(auto reg = ds->_regs.begin(); reg != ds->_regs.end(); ++reg) {
+        // make it readonly, if it's writable and we have not done that yet
+        if(!(reg->flags() & Region::COW) && ds->_flags & m3::DTU::PTE_W)
+            reg->map(ds->_flags & ~m3::DTU::PTE_W);
 
         Region *nreg = new Region(*reg);
-        nreg->ds(ds);
-        ds->_regs.append(nreg);
+        nreg->ds(this);
+        _regs.append(nreg);
 
         // adjust flags
-        if(_flags & m3::DTU::PTE_W)
+        if(ds->_flags & m3::DTU::PTE_W)
             reg->flags(reg->flags() | Region::COW);
         // for the clone, even readonly regions are mapped on demand
         nreg->flags(nreg->flags() | Region::COW);
     }
-    return ds;
 }
 
 void DataSpace::print(m3::OStream &os) const {

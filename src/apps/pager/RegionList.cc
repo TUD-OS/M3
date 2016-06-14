@@ -17,6 +17,13 @@
 #include "DataSpace.h"
 #include "RegionList.h"
 
+void RegionList::clear() {
+    while(_regs.length() > 0) {
+        Region *r = _regs.remove_first();
+        delete r;
+    }
+}
+
 Region *RegionList::pagefault(uintptr_t offset) {
     Region *last = nullptr;
     auto r = _regs.begin();
