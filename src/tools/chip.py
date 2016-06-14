@@ -5,7 +5,7 @@ newth = True
 if newth:
     import tomahawk.arch
     import tomahawk.memory
-    import tomahawk.tools
+    import thdk_tools
     th = tomahawk.arch.Tomahawk2()
 else:
     import tomahawk as th
@@ -83,6 +83,12 @@ def strToBytes(str):
         i2 = charToInt(ord(str[i + 1]))
         bytes += [(i1 << 4) | i2]
     return reversed(bytes)
+
+def int64ToBytes(val):
+    bytes = []
+    for i in range(0, 8):
+        bytes.append((val >> (8 * i)) & 0xFF)
+    return bytes
 
 def beginToInt64(str):
     res = 0
@@ -272,7 +278,7 @@ if sys.argv[1] != "-":
         fslen = 0
         for slic in tomahawk.memory.memfilestream(sys.argv[1]):
             fslen += len(slic)
-        proc = tomahawk.tools.Progress("Storing FS image in DRAM", fslen)
+        proc = thdk_tools.Progress("Storing FS image in DRAM", fslen)
         th.ddr_ram.writes(tomahawk.memory.memfilestream(sys.argv[1]), prgss=lambda x: proc.advance(x))
         proc.clear()
     else:
@@ -339,7 +345,7 @@ for duo_pe in th.duo_pes[len(progs):]:
 # init and start CM
 print "Powering on CM"
 th.cm_core.on()
-th.cm_core.set_ptable_val(10)   # 400 MHz
+#th.cm_core.set_ptable_val(10)   # 400 MHz
 print BOLD_START + "Initializing memory of CM with " + cmprog + BOLD_END
 th.cm_core.initMem(cmprog)
 
@@ -357,7 +363,7 @@ for duo_pe in th.duo_pes:
 
 if sys.argv[3] != "-":
     print "Starting App-Core"
-    th.app_core.set_ptable_val(10)  # 400 MHz
+    #th.app_core.set_ptable_val(10)  # 400 MHz
     th.app_core.on()
 
 t0 = time.time()
@@ -406,14 +412,3 @@ while run:
         time.sleep(0.01)
 
 getTraceFile()
-
-# now, read the fs image back from DRAM into a file
-if not newth:
-    if sys.argv[1] != "-":
-        print "Reading filesystem image from DRAM..."
-        with open(sys.argv[1] + '.out', 'wb') as f:
-            for addr, data in th.memfilestream(sys.argv[1]):
-                for i, w in enumerate(th.ddr_ram.mem.__getslice__(addr, addr + len(data) * 8)):
-                    for b in strToBytes(w):
-                        f.write("%c" % b)
-print "Done. Bye!"
