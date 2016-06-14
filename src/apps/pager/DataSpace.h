@@ -37,7 +37,7 @@ class DataSpace : public TreapNode<uintptr_t>, public SListItem {
 public:
     explicit DataSpace(MemGate *virt, uintptr_t addr, size_t size, uint flags)
         : TreapNode<uintptr_t>(addr), SListItem(), _flags(flags), _virt(virt),
-          _regs(size), _size(size) {
+          _regs(addr, size), _size(size) {
     }
 
     bool matches(uintptr_t k) override {
@@ -63,7 +63,7 @@ public:
             if(reg->has_mem() && (_flags & DTU::PTE_W)) {
                 Syscalls::get().createmap(srcvpe, reg->mem()->gate->sel(),
                     reg->mem_offset() >> PAGE_BITS, reg->size() >> PAGE_BITS,
-                    (addr() + reg->offset()) >> PAGE_BITS, _flags & ~DTU::PTE_W);
+                    reg->virt() >> PAGE_BITS, _flags & ~DTU::PTE_W);
             }
 
             Region *nreg = new Region(*reg);
@@ -86,7 +86,7 @@ public:
            << "addr=" << fmt(addr(), "p")
            << ", size=" << fmt(size(), "#x")
            << ", flags=" << fmt(_flags, "#x") << "]:\n";
-        _regs.print(os, addr());
+        _regs.print(os);
     }
 
 protected:
@@ -130,8 +130,8 @@ public:
             }
 
             SLOG(PAGER, "Allocating anonymous memory for "
-                << fmt(addr() + reg->offset(), "p") << ".."
-                << fmt(addr() + reg->offset() + reg->size() - 1, "p"));
+                << fmt(reg->virt(), "p") << ".."
+                << fmt(reg->virt() + reg->size() - 1, "p"));
 
             reg->mem(new PhysMem(_virt, addr(), reg->size(), MemGate::RWX));
             // zero the memory
@@ -153,7 +153,7 @@ public:
         // we want to map the entire region
         *pageNo = 0;
         *pages = reg->size() >> PAGE_BITS;
-        *vaddr = addr() + reg->offset();
+        *vaddr = reg->virt();
         *sel = reg->mem()->gate->sel();
         return Errors::NO_ERROR;
     }
@@ -218,8 +218,8 @@ public:
             reg->mem_offset(off);
 
             SLOG(PAGER, "Obtained memory for "
-                << fmt(addr() + reg->offset(), "p") << ".."
-                << fmt(addr() + reg->offset() + reg->size() - 1, "p"));
+                << fmt(reg->virt(), "p") << ".."
+                << fmt(reg->virt() + reg->size() - 1, "p"));
         }
         // handle copy on write
         else if(reg->flags() & Region::COW) {
@@ -237,7 +237,7 @@ public:
         // that's what we want to map
         *pageNo = off >> PAGE_BITS;
         *pages = reg->size() >> PAGE_BITS;
-        *vaddr = addr() + reg->offset();
+        *vaddr = reg->virt();
         *sel = reg->mem()->gate->sel();
         return Errors::NO_ERROR;
     }

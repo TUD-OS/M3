@@ -89,11 +89,11 @@ public:
         COW     = 1 << 0,
     };
 
-    explicit Region(uintptr_t offset, size_t size)
-        : SListItem(), _mem(), _offset(offset), _memoff(), _size(size), _flags() {
+    explicit Region(uintptr_t base, size_t offset, size_t size)
+        : SListItem(), _mem(), _base(base), _offset(offset), _memoff(), _size(size), _flags() {
     }
     Region(const Region &r)
-        : SListItem(r), _mem(r._mem), _offset(r._offset), _memoff(r._memoff),
+        : SListItem(r), _mem(r._mem), _base(r._base), _offset(r._offset), _memoff(r._memoff),
           _size(r._size), _flags(r._flags) {
     }
     Region &operator=(const Region &r) = delete;
@@ -122,8 +122,8 @@ public:
         // if we are the last one, we can just take the memory
         if(_mem->is_last()) {
             SLOG(PAGER, "Keeping memory "
-                << fmt(virt + offset(), "p") << ".."
-                << fmt(virt + offset() + size() - 1, "p"));
+                << fmt(_base + _offset, "p") << ".."
+                << fmt(_base + _offset + size() - 1, "p"));
 
             // we are the owner now
             _mem->owner_mem = mem;
@@ -137,8 +137,8 @@ public:
         MemGate *ngate = new MemGate(MemGate::create_global(size(), MemGate::RWX));
 
         SLOG(PAGER, "Copying memory "
-            << fmt(virt + offset(), "p") << ".."
-            << fmt(virt + offset() + size() - 1, "p")
+            << fmt(_base + _offset, "p") << ".."
+            << fmt(_base + _offset + size() - 1, "p")
             << " from " << (_mem->owner_mem ? "owner" : "origin"));
 
         copy_block(ogate, ngate, off + _offset, size());
@@ -163,10 +163,14 @@ public:
             _mem->gate->write_sync(zeros, sizeof(zeros), i * PAGE_SIZE);
     }
 
-    uintptr_t offset() const {
+    uintptr_t virt() const {
+        return _base + _offset;
+    }
+
+    size_t offset() const {
         return _offset;
     }
-    void offset(uintptr_t offset) {
+    void offset(size_t offset) {
         // the offset can only be increased, but not decreased
         assert(offset >= _offset);
         assert(_size > offset - _offset);
@@ -192,7 +196,8 @@ public:
 
 private:
     Reference<PhysMem> _mem;
-    uintptr_t _offset;
+    uintptr_t _base;
+    size_t _offset;
     size_t _memoff;
     size_t _size;
     uint _flags;
@@ -202,7 +207,7 @@ class RegionList {
 public:
     typedef SList<Region>::iterator iterator;
 
-    explicit RegionList(size_t total) : _total(total), _regs() {
+    explicit RegionList(uintptr_t virt, size_t total) : _virt(virt), _total(total), _regs() {
     }
     RegionList(const RegionList &) = delete;
     RegionList &operator=(const RegionList &) = delete;
@@ -242,15 +247,15 @@ public:
         // ok, build a new region that spans from the previous one to the next one
         uintptr_t end = r == _regs.end() ? _total : r->offset();
         uintptr_t start = last ? last->offset() + last->size() : 0;
-        Region *n = new Region(start, end - start);
+        Region *n = new Region(_virt, start, end - start);
         _regs.insert(last, n);
         return n;
     }
 
-    void print(OStream &os, uintptr_t virt) const {
+    void print(OStream &os) const {
         for(auto reg = _regs.begin(); reg != _regs.end(); ++reg) {
-            os << "    " << fmt(virt + reg->offset(), "p");
-            os << " .. " << fmt(virt + reg->offset() + reg->size() - 1, "p");
+            os << "    " << fmt(_virt + reg->offset(), "p");
+            os << " .. " << fmt(_virt + reg->offset() + reg->size() - 1, "p");
             os << " COW=" << ((reg->flags() & Region::COW) ? "1" : "0");
             os << " -> ";
             reg->mem()->print(os);
@@ -259,6 +264,7 @@ public:
     }
 
 private:
+    uintptr_t _virt;
     size_t _total;
     SList<Region> _regs;
 };
