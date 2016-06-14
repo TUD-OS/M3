@@ -41,50 +41,16 @@ public:
         delete mem;
     }
 
-    void add(DataSpace *ds) {
-        dslist.append(ds);
-        dstree.insert(ds);
-
-        // if we manipulate the address space, cloning is no longer possible
-        parent = nullptr;
-    }
-
-    void remove(DataSpace *ds) {
-        dslist.remove(ds);
-        dstree.remove(ds);
-        parent = nullptr;
-    }
-
-    m3::Errors::Code clone() {
-        if(!parent)
-            return m3::Errors::NOT_SUP;
-
-        // TODO handle the case where we already have mappings
-        for(auto ds = parent->dslist.begin(); ds != parent->dslist.end(); ++ds) {
-            DataSpace *dscopy = const_cast<DataSpace*>(&*ds)->clone(mem, parent->vpe.sel());
-            dslist.append(dscopy);
-            dstree.insert(dscopy);
-        }
-
-        // this can be done just once
-        parent = nullptr;
-        return m3::Errors::NO_ERROR;
-    }
-
     const DataSpace *find(uintptr_t virt) const {
         return dstree.find(virt);
     }
 
-    capsel_t init(capsel_t caps) {
-        vpe = m3::ObjCap(m3::ObjCap::VIRTPE, caps + 0);
-        mem = new m3::MemGate(m3::MemGate::bind(caps + 1));
-        return vpe.sel();
-    }
+    capsel_t init(capsel_t caps);
+    void add(DataSpace *ds);
+    void remove(DataSpace *ds);
+    m3::Errors::Code clone();
 
-    void print(m3::OStream &os) const {
-        for(auto ds = dslist.begin(); ds != dslist.end(); ++ds)
-            ds->print(os);
-    }
+    void print(m3::OStream &os) const;
 
     m3::ObjCap vpe;
     m3::ObjCap sess;

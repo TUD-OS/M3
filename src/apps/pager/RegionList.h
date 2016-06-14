@@ -24,7 +24,7 @@ class RegionList {
 public:
     typedef m3::SList<Region>::iterator iterator;
 
-    explicit RegionList(uintptr_t virt, size_t total) : _virt(virt), _total(total), _regs() {
+    explicit RegionList(DataSpace *ds) : _ds(ds), _regs() {
     }
     RegionList(const RegionList &) = delete;
     RegionList &operator=(const RegionList &) = delete;
@@ -46,42 +46,11 @@ public:
         return _regs.end();
     }
 
-    Region *pagefault(uintptr_t offset) {
-        Region *last = nullptr;
-        auto r = _regs.begin();
-        // search for the region that contains <offset> or is behind <offset>
-        if(_regs.length() > 0) {
-            while(r != _regs.end() && r->offset() + r->size() <= offset) {
-                last = &*r;
-                r++;
-            }
-        }
+    Region *pagefault(uintptr_t offset);
 
-        // does it contain <offset>?
-        if(r != _regs.end() && offset >= r->offset() && offset < r->offset() + r->size())
-            return &*r;
-
-        // ok, build a new region that spans from the previous one to the next one
-        uintptr_t end = r == _regs.end() ? _total : r->offset();
-        uintptr_t start = last ? last->offset() + last->size() : 0;
-        Region *n = new Region(_virt, start, end - start);
-        _regs.insert(last, n);
-        return n;
-    }
-
-    void print(m3::OStream &os) const {
-        for(auto reg = _regs.begin(); reg != _regs.end(); ++reg) {
-            os << "    " << m3::fmt(_virt + reg->offset(), "p");
-            os << " .. " << m3::fmt(_virt + reg->offset() + reg->size() - 1, "p");
-            os << " COW=" << ((reg->flags() & Region::COW) ? "1" : "0");
-            os << " -> ";
-            reg->mem()->print(os);
-            os << "\n";
-        }
-    }
+    void print(m3::OStream &os) const;
 
 private:
-    uintptr_t _virt;
-    size_t _total;
+    DataSpace *_ds;
     m3::SList<Region> _regs;
 };

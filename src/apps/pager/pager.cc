@@ -114,25 +114,11 @@ public:
         }
 
         // ask the dataspace what to do
-        int first;
-        size_t pages;
-        capsel_t mem;
-        Errors::Code res = ds->get_page(&virt, &first, &pages, &mem);
+        Errors::Code res = ds->handle_pf(virt);
         if(res != Errors::NO_ERROR) {
-            SLOG(PAGER, "Getting page failed: " << Errors::to_string(res));
+            SLOG(PAGER, "Unable to handle pagefault: " << Errors::to_string(res));
             reply_vmsg(is.gate(), res);
             return;
-        }
-
-        // map the memory, if necessary
-        if(pages > 0) {
-            res = Syscalls::get().createmap(sess->vpe.sel(), mem, first,
-                pages, virt >> PAGE_BITS, ds->flags());
-            if(res != Errors::NO_ERROR) {
-                SLOG(PAGER, "Unable to create PTEs: " << Errors::to_string(res));
-                reply_vmsg(is.gate(), res);
-                return;
-            }
         }
 
         reply_vmsg(is.gate(), Errors::NO_ERROR);
@@ -181,7 +167,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        AnonDataSpace *ds = new AnonDataSpace(sess->mem, virt, len, prot | flags);
+        AnonDataSpace *ds = new AnonDataSpace(sess, virt, len, prot | flags);
         sess->add(ds);
 
         reply_vmsg(is.gate(), Errors::NO_ERROR, virt);
@@ -206,7 +192,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        ExternalDataSpace *ds = new ExternalDataSpace(sess->mem, *virt, len, prot | flags, id, offset);
+        ExternalDataSpace *ds = new ExternalDataSpace(sess, *virt, len, prot | flags, id, offset);
         sess->add(ds);
 
         return ds->sess.sel();

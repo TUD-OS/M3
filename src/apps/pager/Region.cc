@@ -14,6 +14,10 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/Syscalls.h>
+
+#include "AddrSpace.h"
+#include "DataSpace.h"
 #include "Region.h"
 
 static char zeros[4096];
@@ -27,12 +31,25 @@ void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size) 
     }
 }
 
+uintptr_t Region::virt() const {
+    return _ds->addr() + _offset;
+}
+
+m3::Errors::Code Region::map(uint flags) {
+    if(has_mem()) {
+        return m3::Syscalls::get().createmap(_ds->addrspace()->vpe.sel(), mem()->gate->sel(),
+            mem_offset() >> PAGE_BITS, size() >> PAGE_BITS,
+            virt() >> PAGE_BITS, flags);
+    }
+    return m3::Errors::NO_ERROR;
+}
+
 void Region::copy(m3::MemGate *mem, uintptr_t virt) {
     // if we are the last one, we can just take the memory
     if(_mem->is_last()) {
         SLOG(PAGER, "Keeping memory "
-            << m3::fmt(_base + _offset, "p") << ".."
-            << m3::fmt(_base + _offset + size() - 1, "p"));
+            << m3::fmt(_ds->addr() + _offset, "p") << ".."
+            << m3::fmt(_ds->addr() + _offset + size() - 1, "p"));
 
         // we are the owner now
         _mem->owner_mem = mem;
@@ -46,8 +63,8 @@ void Region::copy(m3::MemGate *mem, uintptr_t virt) {
     m3::MemGate *ngate = new m3::MemGate(m3::MemGate::create_global(size(), m3::MemGate::RWX));
 
     SLOG(PAGER, "Copying memory "
-        << m3::fmt(_base + _offset, "p") << ".."
-        << m3::fmt(_base + _offset + size() - 1, "p")
+        << m3::fmt(_ds->addr() + _offset, "p") << ".."
+        << m3::fmt(_ds->addr() + _offset + size() - 1, "p")
         << " from " << (_mem->owner_mem ? "owner" : "origin"));
 
     copy_block(ogate, ngate, off + _offset, size());

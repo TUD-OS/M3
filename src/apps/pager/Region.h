@@ -29,6 +29,8 @@
 
 void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size);
 
+class DataSpace;
+
 /**
  * A region is a part of a dataspace, that allows us to allocate, copy, etc. smaller parts of the
  * dataspace.
@@ -39,14 +41,18 @@ public:
         COW     = 1 << 0,
     };
 
-    explicit Region(uintptr_t base, size_t offset, size_t size)
-        : SListItem(), _mem(), _base(base), _offset(offset), _memoff(), _size(size), _flags() {
+    explicit Region(DataSpace *ds, size_t offset, size_t size)
+        : SListItem(), _mem(), _ds(ds), _offset(offset), _memoff(), _size(size), _flags() {
     }
     Region(const Region &r)
-        : SListItem(r), _mem(r._mem), _base(r._base), _offset(r._offset), _memoff(r._memoff),
+        : SListItem(r), _mem(r._mem), _ds(r._ds), _offset(r._offset), _memoff(r._memoff),
           _size(r._size), _flags(r._flags) {
     }
     Region &operator=(const Region &r) = delete;
+
+    void ds(DataSpace *ds) {
+        _ds = ds;
+    }
 
     bool has_mem() const {
         return _mem.valid();
@@ -68,12 +74,10 @@ public:
         _flags = flags;
     }
 
+    uintptr_t virt() const;
+    m3::Errors::Code map(uint flags);
     void copy(m3::MemGate *mem, uintptr_t virt);
     void clear();
-
-    uintptr_t virt() const {
-        return _base + _offset;
-    }
 
     size_t offset() const {
         return _offset;
@@ -104,7 +108,7 @@ public:
 
 private:
     m3::Reference<PhysMem> _mem;
-    uintptr_t _base;
+    DataSpace *_ds;
     size_t _offset;
     size_t _memoff;
     size_t _size;
