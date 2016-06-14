@@ -180,6 +180,10 @@ Errors::Code VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
     return Syscalls::get().exchange(sel(), CapRngDesc(CapRngDesc::OBJ, dest, crd.count()), crd, true);
 }
 
+Errors::Code VPE::revoke(const CapRngDesc &crd, bool delonly) {
+    return Syscalls::get().revoke(sel(), crd, !delonly);
+}
+
 Errors::Code VPE::exec(int argc, const char **argv) {
     Executable e(argc, argv);
     return exec(e);

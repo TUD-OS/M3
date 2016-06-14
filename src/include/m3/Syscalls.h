@@ -67,7 +67,7 @@ public:
     }
     Errors::Code reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms);
     Errors::Code derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms);
-    Errors::Code revoke(const CapRngDesc &crd, bool own = true);
+    Errors::Code revoke(capsel_t vpe, const CapRngDesc &crd, bool own = true);
     void exit(int exitcode);
     void noop();
 

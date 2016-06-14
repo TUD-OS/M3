@@ -245,6 +245,15 @@ public:
     Errors::Code obtain(const CapRngDesc &crd, capsel_t dest);
 
     /**
+     * Revokes the given range of capabilities from this VPE.
+     *
+     * @param crd the capabilities to revoke
+     * @param delonly whether to revoke delegations only
+     * @return the error code
+     */
+    Errors::Code revoke(const CapRngDesc &crd, bool delonly = false);
+
+    /**
      * Waits until the currently executing program on this VPE is finished
      *
      * @return the exitcode

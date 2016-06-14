@@ -60,7 +60,7 @@ public:
         // if it fails, there are pending requests. this might happen multiple times because
         // the kernel might have them still in the send-queue.
         CapRngDesc caps(CapRngDesc::OBJ, sel());
-        while(Syscalls::get().revoke(caps) == Errors::MSGS_WAITING) {
+        while(VPE::self().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
             LLOG(SERV, "handling pending requests...");
             while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {

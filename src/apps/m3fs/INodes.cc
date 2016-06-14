@@ -120,7 +120,7 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
             h.mem().sel(), crd.start() + _locs.count(), ch->start * h.sb().blocksize, bytes, perms);
         if(res != Errors::NO_ERROR) {
             VPE::self().free_caps(crd.start(), crd.count());
-            Syscalls::get().revoke(crd);
+            VPE::self().revoke(crd);
             return nullptr;
         }
 

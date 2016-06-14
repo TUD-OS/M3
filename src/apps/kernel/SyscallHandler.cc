@@ -733,15 +733,22 @@ void SyscallHandler::activate(GateIStream &is) {
 void SyscallHandler::revoke(GateIStream &is) {
     EVENT_TRACER_Syscall_revoke();
     VPE *vpe = is.gate().session<VPE>();
+    capsel_t vcap;
     m3::CapRngDesc crd;
     bool own;
-    is >> crd >> own;
-    LOG_SYS(vpe, ": syscall::revoke", "(" << crd << ", own=" << own << ")");
+    is >> vcap >> crd >> own;
+    LOG_SYS(vpe, ": syscall::revoke", "(vpe=" << vcap << ", crd=" << crd << ", own=" << own << ")");
+
+    VPECapability *vpecap = static_cast<VPECapability*>(vpe->objcaps().get(vcap, Capability::VIRTPE));
+    if(vpecap == nullptr)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap");
 
     if(crd.type() == m3::CapRngDesc::OBJ && crd.start() < 2)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
-    CapTable &table = crd.type() == m3::CapRngDesc::OBJ ? vpe->objcaps() : vpe->mapcaps();
+    CapTable &table = crd.type() == m3::CapRngDesc::OBJ
+        ? vpecap->vpe->objcaps()
+        : vpecap->vpe->mapcaps();
     m3::Errors::Code res = table.revoke(crd, own);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Revoke failed");
