@@ -116,11 +116,8 @@ static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, ui
     if(Platform::pe(vpe.core()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
         size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
-        for(capsel_t i = 0; i < pages; ++i) {
-            MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst + i, phys, perms);
-            vpe.mapcaps().set(dst + i, mapcap);
-            phys += PAGE_SIZE;
-        }
+        MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst, phys, pages, perms);
+        vpe.mapcaps().set(dst, mapcap);
     }
     else
         copy_clear(vpe.desc(), virt, phys, size, false);

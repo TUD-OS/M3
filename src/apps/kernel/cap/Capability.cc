@@ -63,21 +63,24 @@ m3::Errors::Code MsgCapability::revoke() {
     return m3::Errors::NO_ERROR;
 }
 
-MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr)
-    : Capability(tbl, sel, MAP), phys(_phys), attr(_attr) {
+MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _pages, uint _attr)
+    : Capability(tbl, sel, MAP), phys(_phys), pages(_pages), attr(_attr) {
     VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
-    DTU::get().map_page(vpe.desc(), sel << PAGE_BITS, phys, attr);
+    for(uint i = 0; i < pages; ++i)
+        DTU::get().map_page(vpe.desc(), (sel + i) << PAGE_BITS, phys + i * PAGE_SIZE, attr);
 }
 
 void MapCapability::remap(uint _attr) {
     attr = _attr;
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().map_page(vpe.desc(), sel() << PAGE_BITS, phys, attr);
+    for(uint i = 0; i < pages; ++i)
+        DTU::get().map_page(vpe.desc(), (sel() + i) << PAGE_BITS, phys + i * PAGE_SIZE, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().unmap_page(vpe.desc(), sel() << PAGE_BITS);
+    for(uint i = 0; i < pages; ++i)
+        DTU::get().unmap_page(vpe.desc(), (sel() + i) << PAGE_BITS);
     return m3::Errors::NO_ERROR;
 }
 
@@ -137,6 +140,7 @@ void MapCapability::print(m3::OStream &os) const {
     os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
     os << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
        << ", phys=#" << m3::fmt(phys, "x")
+       << ", pages=" << pages
        << ", attr=#" << m3::fmt(attr, "x") << "]";
     child()->printChilds(os);
 }

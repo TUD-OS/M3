@@ -383,16 +383,19 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
 
     uintptr_t phys = m3::DTU::build_noc_addr(mcapobj->obj->core, mcapobj->addr() + PAGE_SIZE * first);
     CapTable &mcaps = tcapobj->vpe->mapcaps();
-    for(capsel_t i = 0; i < pages; ++i) {
-        MapCapability *mapcap = static_cast<MapCapability*>(mcaps.get(dst + i, Capability::MAP));
-        if(mapcap == nullptr) {
-            MapCapability *mapcap = new MapCapability(&mcaps, dst + i, phys, perms);
-            mcaps.inherit(mcapobj, mapcap);
-            mcaps.set(dst + i, mapcap);
+
+    MapCapability *mapcap = static_cast<MapCapability*>(mcaps.get(dst, Capability::MAP));
+    if(mapcap == nullptr) {
+        MapCapability *mapcap = new MapCapability(&mcaps, dst, phys, pages, perms);
+        mcaps.inherit(mcapobj, mapcap);
+        mcaps.set(dst, mapcap);
+    }
+    else {
+        if(mapcap->pages != pages || mapcap->phys != phys) {
+            SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS,
+                "Map capability exists with different attributes");
         }
-        else
-            mapcap->remap(perms);
-        phys += PAGE_SIZE;
+        mapcap->remap(perms);
     }
 #endif
 

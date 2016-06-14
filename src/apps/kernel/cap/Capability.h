@@ -198,7 +198,11 @@ private:
 
 class MapCapability : public Capability {
 public:
-    explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _attr);
+    explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint pages, uint _attr);
+
+    virtual bool matches(key_t key) override {
+        return key >= sel() && key < sel() + pages;
+    }
 
     void remap(uint _attr);
 
@@ -207,11 +211,12 @@ public:
 private:
     virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        return new MapCapability(tbl, sel, phys, attr);
+        return new MapCapability(tbl, sel, phys, pages, attr);
     }
 
 public:
     uintptr_t phys;
+    uint pages;
     uint attr;
 };
 
