@@ -66,21 +66,18 @@ m3::Errors::Code MsgCapability::revoke() {
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _pages, uint _attr)
     : Capability(tbl, sel, MAP), phys(_phys), pages(_pages), attr(_attr) {
     VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
-    for(uint i = 0; i < pages; ++i)
-        DTU::get().map_page(vpe.desc(), (sel + i) << PAGE_BITS, phys + i * PAGE_SIZE, attr);
+    DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, pages, attr);
 }
 
 void MapCapability::remap(uint _attr) {
     attr = _attr;
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    for(uint i = 0; i < pages; ++i)
-        DTU::get().map_page(vpe.desc(), (sel() + i) << PAGE_BITS, phys + i * PAGE_SIZE, attr);
+    DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, pages, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    for(uint i = 0; i < pages; ++i)
-        DTU::get().unmap_page(vpe.desc(), (sel() + i) << PAGE_BITS);
+    DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, pages);
     return m3::Errors::NO_ERROR;
 }
 

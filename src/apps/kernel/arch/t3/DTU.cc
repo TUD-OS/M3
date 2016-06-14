@@ -69,10 +69,12 @@ void DTU::set_rw_barrier(const VPEDesc &, uintptr_t) {
 void DTU::config_pf_remote(const VPEDesc &, uint64_t, int) {
 }
 
-void DTU::map_page(const VPEDesc &, uintptr_t, uintptr_t, int) {
+void DTU::map_pages(const VPEDesc &, uintptr_t, uintptr_t, uint, int) {
+    // unsupported
 }
 
-void DTU::unmap_page(const VPEDesc &, uintptr_t) {
+void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
+    // unsupported
 }
 
 void DTU::invalidate_ep(const VPEDesc &vpe, int ep) {

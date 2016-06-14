@@ -47,7 +47,7 @@ public:
         // not used
     }
 
-    virtual bool extend_heap(size_t size) {
+    virtual bool extend_heap(size_t size) override {
         if(!Platform::pe(Platform::kernel_pe()).has_virtmem())
             return false;
 
@@ -64,8 +64,7 @@ public:
             reinterpret_cast<uintptr_t>(m3::Heap::_end), PAGE_SIZE);
         uint64_t phys = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
         VPEDesc vpe(Platform::kernel_pe(), Platform::kernel_pe());
-        for(uint i = 0; i < pages; ++i)
-            DTU::get().map_page(vpe, virt + i * PAGE_SIZE, phys + i * PAGE_SIZE, m3::KIF::Perm::RW);
+        DTU::get().map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
 
         // build new end Area and connect it
         m3::Heap::Area *end = reinterpret_cast<m3::Heap::Area*>(virt + pages * PAGE_SIZE) - 1;

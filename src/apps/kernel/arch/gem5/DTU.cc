@@ -134,6 +134,72 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
 }
 
+bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
+        m3::DTU::pte_t pte, int perm) {
+    // create the pagetable on demand
+    if(pte == 0) {
+        // if we don't have a pagetable for that yet, unmapping is a noop
+        if(perm == 0)
+            return true;
+
+        // TODO this is prelimilary
+        MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE);
+        assert(alloc);
+
+        pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
+        KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
+            << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
+        m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
+    }
+
+    assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
+    return false;
+}
+
+bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
+        uintptr_t &phys, uint &pages, int perm) {
+    // note that we can assume here that map_pages is always called for the same set of
+    // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
+    // only page 1. this is because we call map_pages with MapCapability, which can't
+    // be resized. thus, we know that a downgrade for the first, is a downgrade for all
+    // and that an existing mapping for the first is an existing mapping for all.
+
+    m3::DTU::pte_t npte = phys | perm | m3::DTU::PTE_I;
+    if(npte == pte)
+        return true;
+
+    bool downgrade = ((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0;
+    uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
+        m3::Math::round_up(pteAddr + sizeof(npte), PAGE_SIZE));
+
+    uint count = (endpte - pteAddr) / sizeof(npte);
+    assert(count > 0);
+    pages -= count;
+    phys += count << PAGE_BITS;
+
+    while(pteAddr < endpte) {
+        KLOG(PTES, "PE" << vpe.core << ": lvl 0 PTE for "
+            << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
+        m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr);
+
+        // permissions downgraded?
+        if(downgrade) {
+            // do that manually instead of with do_ext_cmd, because we don't want to reconfigure
+            // the endpoint
+            alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
+                static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3);
+            m3::Sync::compiler_barrier();
+            m3::DTU::get().write(_ep, &reg, sizeof(reg),
+                m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD));
+        }
+
+        pteAddr += sizeof(npte);
+        virt += PAGE_SIZE;
+        npte += PAGE_SIZE;
+    }
+    return false;
+}
+
 static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     static uintptr_t recMask =
         (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
@@ -155,52 +221,29 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-void DTU::map_page(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, int perm) {
+void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
     // configure the memory EP once and use it for all accesses
     config_mem_local(_ep, vpe.core, vpe.id, 0, 0xFFFFFFFFFFFFFFFF);
-    for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
-        uintptr_t pteAddr = get_pte_addr(virt, level);
-        m3::DTU::pte_t pte;
-        m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
-        if(level > 0) {
-            // create the pagetable on demand
-            if(pte == 0) {
-                // if we don't have a pagetable for that yet, unmapping is a noop
-                if(perm == 0)
+    while(pages > 0) {
+        for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
+            uintptr_t pteAddr = get_pte_addr(virt, level);
+
+            m3::DTU::pte_t pte;
+            m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
+            if(level > 0) {
+                if(create_pt(vpe, virt, pteAddr, pte, perm))
                     return;
-
-                // TODO this is prelimilary
-                MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE);
-                assert(alloc);
-
-                pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
-                KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
-                    << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-                m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
             }
-
-            assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
-        }
-        else {
-            m3::DTU::pte_t npte = phys | perm | m3::DTU::PTE_I;
-            if(npte == pte)
-                continue;
-
-            KLOG(PTES, "PE" << vpe.core << ": lvl 0 PTE for "
-                << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
-            m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr);
-
-            // permissions downgraded?
-            if(((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0) {
-                do_ext_cmd(vpe,
-                    static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3));
+            else {
+                if(create_ptes(vpe, virt, pteAddr, pte, phys, pages, perm))
+                    return;
             }
         }
     }
 }
 
-void DTU::unmap_page(const VPEDesc &vpe, uintptr_t virt) {
-    map_page(vpe, virt, 0, 0);
+void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
+    map_pages(vpe, virt, 0, pages, 0);
 
     // TODO remove pagetables on demand
 }

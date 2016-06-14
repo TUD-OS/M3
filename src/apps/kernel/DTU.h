@@ -53,8 +53,8 @@ public:
     void set_rw_barrier(const VPEDesc &vpe, uintptr_t addr);
 
     void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep);
-    void map_page(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, int perm);
-    void unmap_page(const VPEDesc &vpe, uintptr_t virt);
+    void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
+    void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
     void invalidate_ep(const VPEDesc &vpe, int ep);
     void invalidate_eps(const VPEDesc &vpe, int first = 0);
@@ -85,6 +85,10 @@ public:
 
 private:
 #if defined(__gem5__)
+    bool create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
+        m3::DTU::pte_t pte, int perm);
+    bool create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
+        uintptr_t &phys, uint &pages, int perm);
     void do_set_vpeid(const VPEDesc &vpe, int newVPE);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
