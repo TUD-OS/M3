@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     const size_t SUBMEM_SIZE = MEM_SIZE / vpes;
 
     RecvBuf rbuf = RecvBuf::create(VPE::self().alloc_ep(),
-        getnextlog2(vpes * (DTU_PKG_SIZE + DTU::HEADER_SIZE)), 0);
+        getnextlog2(vpes * 64), nextlog2<64>::val, 0);
     RecvGate rgate = RecvGate::create(&rbuf);
 
     MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
