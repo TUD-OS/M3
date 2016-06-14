@@ -49,6 +49,7 @@ public:
           _size(r._size), _flags(r._flags) {
     }
     Region &operator=(const Region &r) = delete;
+    ~Region();
 
     void ds(DataSpace *ds) {
         _ds = ds;
