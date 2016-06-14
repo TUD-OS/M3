@@ -161,20 +161,23 @@ void VPE::obtain_fds() {
     _fds->delegate(*this);
 }
 
-void VPE::delegate(const CapRngDesc &crd) {
-    Syscalls::get().exchange(sel(), crd, crd, false);
-    for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel) {
-        if(!VPE::self().is_cap_free(sel))
-            _caps->set(sel);
+Errors::Code VPE::delegate(const CapRngDesc &crd) {
+    Errors::Code res = Syscalls::get().exchange(sel(), crd, crd, false);
+    if(res == Errors::NO_ERROR) {
+        for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel) {
+            if(!VPE::self().is_cap_free(sel))
+                _caps->set(sel);
+        }
     }
+    return res;
 }
 
-void VPE::obtain(const CapRngDesc &crd) {
-    obtain(crd, VPE::self().alloc_caps(crd.count()));
+Errors::Code VPE::obtain(const CapRngDesc &crd) {
+    return obtain(crd, VPE::self().alloc_caps(crd.count()));
 }
 
-void VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
-    Syscalls::get().exchange(sel(), CapRngDesc(CapRngDesc::OBJ, dest, crd.count()), crd, true);
+Errors::Code VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
+    return Syscalls::get().exchange(sel(), CapRngDesc(CapRngDesc::OBJ, dest, crd.count()), crd, true);
 }
 
 Errors::Code VPE::exec(int argc, const char **argv) {

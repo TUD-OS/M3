@@ -212,33 +212,37 @@ public:
      * Delegates the given object capability to this VPE.
      *
      * @param sel the selector
+     * @return the error code
      */
-    void delegate_obj(capsel_t sel) {
-        delegate(CapRngDesc(CapRngDesc::OBJ, sel));
+    Errors::Code delegate_obj(capsel_t sel) {
+        return delegate(CapRngDesc(CapRngDesc::OBJ, sel));
     }
 
     /**
      * Delegates the given range of capabilities to this VPE. They are put at the same selectors.
      *
      * @param crd the capabilities of your to VPE to delegate to this VPE
+     * @return the error code
      */
-    void delegate(const CapRngDesc &crd);
+    Errors::Code delegate(const CapRngDesc &crd);
 
     /**
      * Obtains the given range of capabilities from this VPE to your VPE. The selectors are
      * automatically chosen.
      *
      * @param crd the capabilities of this VPE to delegate to your VPE
+     * @return the error code
      */
-    void obtain(const CapRngDesc &crd);
+    Errors::Code obtain(const CapRngDesc &crd);
 
     /**
      * Obtains the given range of capabilities from this VPE to your VPE at position <dest>.
      *
      * @param crd the capabilities of this VPE to delegate to your VPE
      * @param dest the destination in your VPE
+     * @return the error code
      */
-    void obtain(const CapRngDesc &crd, capsel_t dest);
+    Errors::Code obtain(const CapRngDesc &crd, capsel_t dest);
 
     /**
      * Waits until the currently executing program on this VPE is finished
