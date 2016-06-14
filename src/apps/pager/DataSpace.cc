@@ -77,10 +77,10 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
         if(reg->size() > MAX_PAGES * PAGE_SIZE) {
             uintptr_t end = reg->offset() + reg->size();
             if(offset > (MAX_PAGES / 2) * PAGE_SIZE)
-                reg->offset(offset - (MAX_PAGES / 2) * PAGE_SIZE);
+                reg->offset(m3::Math::max(reg->offset(), offset - (MAX_PAGES / 2) * PAGE_SIZE));
             else
                 reg->offset(0);
-            reg->size(m3::Math::min(reg->offset() + MAX_PAGES * PAGE_SIZE, end - reg->offset()));
+            reg->size(m3::Math::min(MAX_PAGES * PAGE_SIZE, end - reg->offset()));
         }
 
         SLOG(PAGER, "Allocating anonymous memory for "
