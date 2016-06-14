@@ -144,7 +144,7 @@ public:
         is >> virt >> len >> prot >> flags;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_anon(virt=" << fmt(virt, "p")
-            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
 
         virt = Math::round_dn(virt, PAGE_SIZE);
@@ -179,7 +179,7 @@ public:
         args >> *virt >> len >> prot >> flags >> id >> offset;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
-            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
 
