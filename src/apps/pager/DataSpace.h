@@ -105,7 +105,7 @@ public:
         : DataSpace(virt, addr, size, flags) {
     }
 
-    const char *type() const {
+    const char *type() const override {
         return "Anon";
     }
     DataSpace *do_clone(MemGate *virt) override {
@@ -169,7 +169,7 @@ public:
         : DataSpace(virt, addr, size, flags), sess(VPE::self().alloc_cap()), id(_id), offset(_offset) {
     }
 
-    const char *type() const {
+    const char *type() const override {
         return "External";
     }
     DataSpace *do_clone(MemGate *virt) override {
