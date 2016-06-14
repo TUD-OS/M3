@@ -225,7 +225,7 @@ void VPE::init_memory(const char *name) {
         KLOG(KENV, "Loading mod '" << mod->name << "':");
 
         if(vm) {
-            DTU::get().config_pf_remote(desc(), address_space()->root_pt(), m3::DTU::SYSC_EP);
+            DTU::get().config_pf_remote(desc(), address_space()->root_pt(), EP_COUNT);
 
             // map runtime space
             uintptr_t virt = RT_START;

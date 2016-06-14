@@ -124,7 +124,8 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
     }
 
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
-    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = m3::DTU::StatusFlags::PAGEFAULTS;
+    uint flags = ep != EP_COUNT ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
+    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = flags;
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)]   = ep;
     m3::Sync::compiler_barrier();
