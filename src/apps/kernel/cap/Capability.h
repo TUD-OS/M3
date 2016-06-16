@@ -204,7 +204,7 @@ public:
         return key >= sel() && key < sel() + pages;
     }
 
-    void remap(uint _attr);
+    void remap(uintptr_t _phys, uint _attr);
 
     void print(m3::OStream &os) const override;
 

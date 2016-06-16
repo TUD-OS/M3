@@ -391,11 +391,12 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
         mcaps.set(dst, mapcap);
     }
     else {
-        if(mapcap->pages != pages || mapcap->phys != phys) {
+        if(mapcap->pages != pages) {
             SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS,
-                "Map capability exists with different attributes");
+                "Map capability exists with different number of pages ("
+                    << mapcap->pages << " vs. " << pages << ")");
         }
-        mapcap->remap(perms);
+        mapcap->remap(phys, perms);
     }
 #endif
 

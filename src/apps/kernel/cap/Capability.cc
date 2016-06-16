@@ -69,7 +69,8 @@ MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint 
     DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, pages, attr);
 }
 
-void MapCapability::remap(uint _attr) {
+void MapCapability::remap(uintptr_t _phys, uint _attr) {
+    phys = _phys;
     attr = _attr;
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
     DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, pages, attr);

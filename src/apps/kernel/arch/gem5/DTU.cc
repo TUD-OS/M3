@@ -170,6 +170,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
         return true;
 
     bool downgrade = ((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0;
+    downgrade |= (pte & ~m3::DTU::PTE_IRWX) != phys;
     uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
         m3::Math::round_up(pteAddr + sizeof(npte), PAGE_SIZE));
 
