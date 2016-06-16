@@ -28,6 +28,7 @@ struct Errors {
         MISS_CREDITS,
         NO_RING_SPACE,
         VPE_GONE,
+        NO_MAPPING,
         // SW errors
         INV_ARGS,
         OUT_OF_MEM,

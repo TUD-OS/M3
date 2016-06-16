@@ -93,6 +93,13 @@ public:
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::pf(virt=" << fmt(virt, "p")
             << ", access " << fmt(access, "#x") << ")");
 
+        // we never map page 0 and thus we tell the DTU to remember that there is no mapping
+        if((virt & ~PAGE_MASK) == 0) {
+            SLOG(PAGER, "No mapping at page 0");
+            reply_vmsg(is.gate(), Errors::NO_MAPPING);
+            return;
+        }
+
         if(sess->vpe.sel() == ObjCap::INVALID) {
             SLOG(PAGER, "Invalid session");
             reply_vmsg(is.gate(), Errors::INV_ARGS);
