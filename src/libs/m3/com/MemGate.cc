@@ -48,7 +48,7 @@ MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) con
 
 Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_read_sync();
-    Errors::Code res = async_cmd(READ, data, len, offset, 0, 0);
+    Errors::Code res = async_cmd(READ, data, len, offset, _cmdflags, 0);
     wait_until_sent();
     DTU::get().wait_for_mem_cmd();
     return res;
@@ -56,7 +56,7 @@ Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
 
 Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
     EVENT_TRACER_write_sync();
-    Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
+    Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, _cmdflags);
     wait_until_sent();
     return res;
 }

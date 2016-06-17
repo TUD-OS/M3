@@ -61,6 +61,10 @@ m3::Errors::Code AddrSpace::clone() {
 capsel_t AddrSpace::init(capsel_t caps) {
     vpe = m3::ObjCap(m3::ObjCap::VIRTPE, caps + 0);
     mem = new m3::MemGate(m3::MemGate::bind(caps + 1));
+    // we don't want to cause pagefault with this, because we are the one that handles them.
+    // we will make sure that this doesn't happen by only accessing memory where we are sure that
+    // we have mapped it.
+    mem->cmdflags(m3::MemGate::CMD_NOPF);
     return vpe.sel();
 }
 

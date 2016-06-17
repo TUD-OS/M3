@@ -35,10 +35,10 @@ retry:
             res = DTU::get().send(_epid, data, datalen, reply_lbl, reply_ep);
             break;
         case READ:
-            res = DTU::get().read(_epid, data, datalen, off);
+            res = DTU::get().read(_epid, data, datalen, off, size);
             break;
         case WRITE:
-            res = DTU::get().write(_epid, data, datalen, off);
+            res = DTU::get().write(_epid, data, datalen, off, size);
             break;
         case CMPXCHG:
             res = DTU::get().cmpxchg(_epid, data, datalen, off, size);

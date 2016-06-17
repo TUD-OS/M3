@@ -149,7 +149,7 @@ Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;
@@ -184,7 +184,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;

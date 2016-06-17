@@ -178,12 +178,12 @@ void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label,
 
 void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     config_mem_local(_ep, vpe.core, vpe.id, addr, size);
-    m3::DTU::get().write(_ep, data, size, 0);
+    m3::DTU::get().write(_ep, data, size, 0, 0);
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     config_mem_local(_ep, vpe.core, vpe.id, addr, size);
-    m3::DTU::get().read(_ep, data, size, 0);
+    m3::DTU::get().read(_ep, data, size, 0, 0);
 }
 
 }

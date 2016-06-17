@@ -150,7 +150,7 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
         KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-        m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr);
+        m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
     }
 
     assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
@@ -182,7 +182,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
     while(pteAddr < endpte) {
         KLOG(PTES, "PE" << vpe.core << ": lvl 0 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
-        m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr);
+        m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr, m3::DTU::CmdFlags::NOPF);
 
         // permissions downgraded?
         if(downgrade) {
@@ -192,7 +192,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
                 static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3);
             m3::Sync::compiler_barrier();
             m3::DTU::get().write(_ep, &reg, sizeof(reg),
-                m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD));
+                m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), m3::DTU::CmdFlags::NOPF);
         }
 
         pteAddr += sizeof(npte);
@@ -231,7 +231,7 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pag
             uintptr_t pteAddr = get_pte_addr(virt, level);
 
             m3::DTU::pte_t pte;
-            m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr);
+            m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
             if(level > 0) {
                 if(create_pt(vpe, virt, pteAddr, pte, perm))
                     return;
@@ -360,12 +360,13 @@ void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label, const
 
 void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     config_mem_local(_ep, vpe.core, vpe.id, addr, size);
-    m3::DTU::get().write(_ep, data, size, 0);
+    // the kernel can never cause pagefaults with reads/writes
+    m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     config_mem_local(_ep, vpe.core, vpe.id, addr, size);
-    m3::DTU::get().read(_ep, data, size, 0);
+    m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
 }
 
 }

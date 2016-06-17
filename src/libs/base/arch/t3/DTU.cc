@@ -105,7 +105,7 @@ void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
     store_to(ptr + 0, credits);
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
     LLOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
 
     // temporary hack: read current external address, add offset, store it and restore it later
@@ -128,7 +128,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint) {
     LLOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
 
     // set address + offset

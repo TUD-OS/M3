@@ -50,24 +50,24 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t) {
     return get_error();
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
+Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint flags) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
     Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ));
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ, flags));
 
     wait_until_ready(ep);
 
     return get_error();
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint flags) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
     Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE));
+    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE, flags));
 
     wait_until_ready(ep);
 

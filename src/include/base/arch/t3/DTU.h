@@ -75,6 +75,10 @@ public:
     static const int DEF_RECVEP             = 1;
     static const int FIRST_FREE_EP          = 2;
 
+    enum CmdFlags {
+        NOPF    = 1,
+    };
+
     enum Operation {
         WRITE   = 0x2,      // write from local to remote
         READ    = 0x4,      // read from remote to local
@@ -107,8 +111,8 @@ public:
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_ep = 0);
     Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
-    Errors::Code read(int ep, void *msg, size_t size, size_t off);
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
     Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
         return Errors::NO_ERROR;
     }

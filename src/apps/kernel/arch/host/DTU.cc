@@ -138,14 +138,14 @@ void DTU::reply_to(const VPEDesc &vpe, int ep, int crdep, word_t credits, label_
 void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     m3::DTU::get().wait_until_ready(_ep);
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.core, 0, size);
-    m3::DTU::get().write(_ep, data, size, 0);
+    m3::DTU::get().write(_ep, data, size, 0, 0);
     m3::DTU::get().wait_until_ready(_ep);
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     m3::DTU::get().wait_until_ready(_ep);
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.core, 0, size);
-    m3::DTU::get().read(_ep, data, size, 0);
+    m3::DTU::get().read(_ep, data, size, 0, 0);
     m3::DTU::get().wait_until_ready(_ep);
 }
 

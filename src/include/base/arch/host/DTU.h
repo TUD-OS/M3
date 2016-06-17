@@ -139,6 +139,10 @@ public:
     // register counts (cont.)
     static constexpr size_t EPS_RCNT            = 1 + EP_CREDITS;
 
+    enum CmdFlags {
+        NOPF    = 1,
+    };
+
     enum Op {
         READ    = 0,
         WRITE   = 1,
@@ -207,10 +211,10 @@ public:
     Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx) {
         return fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
     }
-    Errors::Code read(int ep, void *msg, size_t size, size_t off) {
+    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint) {
         return fire(ep, READ, msg, size, off, size, label_t(), 0);
     }
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off) {
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
     }
     Errors::Code cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {

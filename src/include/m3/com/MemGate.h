@@ -32,7 +32,7 @@ namespace m3 {
  * has been send. That is, it might not have been received by the memory yet.
  */
 class MemGate : public Gate {
-    explicit MemGate(uint flags, capsel_t cap) : Gate(MEM_GATE, cap, flags) {
+    explicit MemGate(uint flags, capsel_t cap) : Gate(MEM_GATE, cap, flags), _cmdflags() {
     }
 
 public:
@@ -42,6 +42,13 @@ public:
     static const int RW = R | W;
     static const int RWX = R | W | X;
     static const int PERM_BITS = 3;
+
+    enum CmdFlags {
+        /**
+         * Pagefaults result in an abort
+         */
+        CMD_NOPF = DTU::CmdFlags::NOPF,
+    };
 
     /**
      * Creates a new memory-gate for global memory. That is, it requests <size> bytes of global
@@ -76,6 +83,19 @@ public:
      */
     static MemGate bind(capsel_t cap, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
         return MemGate(flags, cap);
+    }
+
+    /**
+     * @return the command flags
+     */
+    uint cmdflags() const {
+        return _cmdflags;
+    }
+    /**
+     * Sets the given command flags
+     */
+    void cmdflags(uint flags) {
+        _cmdflags = flags;
     }
 
     /**
@@ -136,6 +156,9 @@ public:
      */
     Errors::Code cmpxchg_sync(void *data, size_t len, size_t offset);
 #endif
+
+private:
+    uint _cmdflags;
 };
 
 }

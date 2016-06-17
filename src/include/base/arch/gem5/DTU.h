@@ -106,6 +106,10 @@ private:
 public:
     typedef uint64_t pte_t;
 
+    enum CmdFlags {
+        NOPF                = 1,
+    };
+
     enum {
         PTE_BITS            = 3,
         PTE_SIZE            = 1 << PTE_BITS,
@@ -181,8 +185,8 @@ public:
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
     Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
-    Errors::Code read(int ep, void *msg, size_t size, size_t off);
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off);
+    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
+    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
     Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
         // TODO unsupported
         return Errors::NO_ERROR;
@@ -272,7 +276,7 @@ private:
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
             if(static_cast<CmdOpCode>(cmd & 0x7) == CmdOpCode::IDLE)
-                return static_cast<Errors::Code>(cmd >> 11);
+                return static_cast<Errors::Code>(cmd >> 36);
         }
         UNREACHED;
     }
@@ -319,8 +323,10 @@ private:
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
-    static reg_t buildCommand(int ep, CmdOpCode c) {
-        return static_cast<uint>(c) | (ep << 3);
+    static reg_t buildCommand(uint arg, CmdOpCode c, uint flags = 0) {
+        return static_cast<reg_t>(c) |
+                (static_cast<reg_t>(arg) << 3) |
+                (static_cast<reg_t>(flags) << 35);
     }
 
     int _unack[EP_COUNT];
