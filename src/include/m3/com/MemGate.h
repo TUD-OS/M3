@@ -109,12 +109,7 @@ public:
      * @param offset the start-offset
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code write_sync(const void *data, size_t len, size_t offset) {
-        EVENT_TRACER_write_sync();
-        Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
-        wait_until_sent();
-        return res;
-    }
+    Errors::Code write_sync(const void *data, size_t len, size_t offset);
 
     /**
      * Performs the read-operation to read <len> bytes from <offset> into <data>.

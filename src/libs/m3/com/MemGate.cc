@@ -54,6 +54,13 @@ Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
     return res;
 }
 
+Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
+    EVENT_TRACER_write_sync();
+    Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, 0);
+    wait_until_sent();
+    return res;
+}
+
 #if defined(__host__)
 Errors::Code MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_cmpxchg_sync();
