@@ -38,7 +38,8 @@ int main(int argc, const char **argv) {
     sh.obtain_mountspace();
 
     Executable exec(argc - 1, argv + 1);
-    sh.exec(exec);
+    if(sh.exec(exec) != Errors::NO_ERROR)
+        exitmsg("Unable to exec " << argv[1]);
 
     sh.wait();
     return 0;
