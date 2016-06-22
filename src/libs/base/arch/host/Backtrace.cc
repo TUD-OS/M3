@@ -23,6 +23,7 @@ namespace m3 {
 const size_t Backtrace::CALL_INSTR_SIZE = 5;
 
 size_t Backtrace::collect(uintptr_t *addr, size_t max) {
+#if defined(__x86_64__)
     uintptr_t bp;
     asm volatile ("mov %%rbp,%0" : "=a" (bp));
 
@@ -40,6 +41,10 @@ size_t Backtrace::collect(uintptr_t *addr, size_t max) {
         bp = *reinterpret_cast<uintptr_t*>(bp);
     }
     return i;
+#else
+#   warning "Backtrace not supported on your platform"
+    return 0;
+#endif
 }
 
 }
