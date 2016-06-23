@@ -26,13 +26,14 @@ namespace kernel {
 
 INIT_PRIO_USER(2) Platform::KEnv Platform::_kenv;
 
-// note that we currently assume here, that memory PEs are first, followed by all compute PEs
+// note that we currently assume here, that compute PEs and memory PEs are not mixed
 static size_t last_pe_id;
 
 Platform::KEnv::KEnv() {
-    // the KernelEnv is stored in the first PE (memory PE)
-    uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(m3::env()->kenv));
-    DTU::get().read_mem(VPEDesc(0, 0), addr, this, sizeof(*this));
+    // read kernel env
+    int pe = m3::DTU::noc_to_pe(m3::env()->kenv);
+    uintptr_t addr = m3::DTU::noc_to_virt(m3::env()->kenv);
+    DTU::get().read_mem(VPEDesc(pe, 0), addr, this, sizeof(*this));
 
     // register memory modules
     int count = 0;

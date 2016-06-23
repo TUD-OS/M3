@@ -255,13 +255,12 @@ case "$cmd" in
                 sleep 1
             done
 
-            # TODO 7000 - 1 assumes that we have one memory PE in front of the compute PEs
             if [ "$M3_PAUSE_PE" != "" ]; then
-                port=$(($M3_PAUSE_PE + 7000 - 1))
+                port=$(($M3_PAUSE_PE + 7000))
             else
                 echo "Warning: M3_PAUSE_PE not specified; gem5 won't wait for GDB."
                 pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
-                port=$((${pe#PE} + 7000 - 1))
+                port=$((${pe#PE} + 7000))
             fi
 
             gdbcmd=`mktemp`

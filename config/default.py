@@ -12,23 +12,15 @@ num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
 num_spm = 4
-mem_pe = 0
+mem_pe = num_pes
 
 pes = []
-
-# create the memory PEs (have to come first)
-for i in range(0, num_mem):
-    pes.append(createMemPE(root=root,
-                           options=options,
-                           no=i,
-                           size='1024MB',
-                           content=fsimg if i == 0 else None))
 
 # create the core PEs
 for i in range(0, num_pes - num_spm):
     pe = createCorePE(root=root,
                       options=options,
-                      no=i + num_mem,
+                      no=i,
                       cmdline=cmd_list[i],
                       memPE=mem_pe,
                       l1size='64kB',
@@ -37,10 +29,19 @@ for i in range(0, num_pes - num_spm):
 for i in range(num_pes - num_spm, num_pes):
     pe = createCorePE(root=root,
                       options=options,
-                      no=i + num_mem,
+                      no=i,
                       cmdline=cmd_list[i],
                       memPE=mem_pe,
                       spmsize='8MB')
+    pes.append(pe)
+
+# create the memory PEs
+for i in range(0, num_mem):
+    pe = createMemPE(root=root,
+                     options=options,
+                     no=num_pes + i,
+                     size='1024MB',
+                     content=fsimg if i == 0 else None)
     pes.append(pe)
 
 # pes[1].dtu.watch_range_start  = 0x43d2ff0
