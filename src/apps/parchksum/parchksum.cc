@@ -35,6 +35,7 @@ struct Worker {
               sgate(SendGate::create(DTU_PKG_SIZE + DTU::HEADER_SIZE, &rgate)), vpe("worker") {
         vpe.delegate_obj(submem.sel());
         vpe.fds(*VPE::self().fds());
+        vpe.obtain_fds();
     }
 };
 

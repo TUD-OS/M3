@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
     t2.fds(*VPE::self().fds());
+    t2.obtain_fds();
     t2.run([rep] {
         RecvBuf rbuf = RecvBuf::create(rep, nextlog2<512>::val, nextlog2<64>::val, 0);
         RecvGate rcvgate = RecvGate::create(&rbuf);
@@ -82,6 +83,7 @@ int main(int argc, char **argv) {
 
     VPE t1("sender");
     t1.fds(*VPE::self().fds());
+    t1.obtain_fds();
     t1.delegate_obj(mem.sel());
     t1.delegate_obj(resmem.sel());
     t1.delegate_obj(gate.sel());
