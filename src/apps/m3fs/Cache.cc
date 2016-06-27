@@ -27,12 +27,11 @@ Cache::Cache(m3::MemGate &mem, size_t blocksize)
 
 void *Cache::get_block(m3::blockno_t bno, bool write) {
     _timestamp++;
-    for(size_t i = 0; i < BLOCK_COUNT; ++i) {
-        if(_blocks[i].bno == bno) {
-            _blocks[i].timestamp = _timestamp;
-            _blocks[i].dirty |= write;
-            return _data + i * _blocksize;
-        }
+    BlockInfo *b = get(bno);
+    if(b) {
+        b->timestamp = _timestamp;
+        b->dirty |= write;
+        return _data + (b - _blocks) * _blocksize;
     }
 
     // find the least recently used block
@@ -64,21 +63,15 @@ void *Cache::get_block(m3::blockno_t bno, bool write) {
 }
 
 void Cache::mark_dirty(m3::blockno_t bno) {
-    for(size_t i = 0; i < BLOCK_COUNT; ++i) {
-        if(_blocks[i].bno == bno) {
-            _blocks[i].dirty = true;
-            break;
-        }
-    }
+    BlockInfo *b = get(bno);
+    if(b)
+        b->dirty = true;
 }
 
 void Cache::write_back(m3::blockno_t bno) {
-    for(size_t i = 0; i < BLOCK_COUNT; ++i) {
-        if(_blocks[i].bno == bno && _blocks[i].dirty) {
-            flush_block(i);
-            break;
-        }
-    }
+    BlockInfo *b = get(bno);
+    if(b && b->dirty)
+        flush_block(b - _blocks);
 }
 
 void Cache::flush() {
@@ -86,6 +79,14 @@ void Cache::flush() {
         if(_blocks[i].dirty)
             flush_block(i);
     }
+}
+
+Cache::BlockInfo *Cache::get(m3::blockno_t bno) {
+    for(size_t i = 0; i < BLOCK_COUNT; ++i) {
+        if(_blocks[i].bno == bno)
+            return _blocks + i;
+    }
+    return nullptr;
 }
 
 void Cache::flush_block(size_t i) {

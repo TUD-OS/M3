@@ -39,6 +39,7 @@ public:
     void flush();
 
 private:
+    BlockInfo *get(m3::blockno_t bno);
     void flush_block(size_t i);
 
     m3::MemGate &_mem;
