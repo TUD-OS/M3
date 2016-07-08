@@ -141,9 +141,7 @@ public:
     void *eps() {
         return _eps;
     }
-    void make_daemon() {
-        _flags |= DAEMON;
-    }
+    void make_daemon();
 
 private:
     void init_memory(const char *name);

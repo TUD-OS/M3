@@ -53,6 +53,11 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate)
         KLOG(VPES, "  requires: '" << r.name << "'");
 }
 
+void VPE::make_daemon() {
+  _flags |= DAEMON;
+  PEManager::get()._daemons++;
+}
+
 void VPE::unref() {
     // 1 because we always have a VPE-cap for ourself (not revokeable)
     if(--_refs == 1)

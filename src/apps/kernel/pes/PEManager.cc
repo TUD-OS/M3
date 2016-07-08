@@ -48,12 +48,10 @@ void PEManager::load(int argc, char **argv) {
         }
 
         // find end of arguments
-        bool daemon = false;
         bool karg = false;
         int j = i + 1, end = i + 1;
         for(; j < argc; ++j) {
             if(strcmp(argv[j], "daemon") == 0) {
-                daemon = true;
                 _vpes[no]->make_daemon();
                 karg = true;
             }
@@ -79,8 +77,6 @@ void PEManager::load(int argc, char **argv) {
         }
 
         i = j;
-        if(daemon)
-            _daemons++;
     }
 }
 

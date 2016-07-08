@@ -338,6 +338,10 @@ void SyscallHandler::createvpe(GateIStream &is) {
     if(nvpe == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 
+    // childs of daemons are daemons
+    if(vpe->flags() & VPE::DAEMON)
+        nvpe->make_daemon();
+
     // inherit VPE and mem caps to the parent
     vpe->objcaps().obtain(tcap, nvpe->objcaps().get(0));
     vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
