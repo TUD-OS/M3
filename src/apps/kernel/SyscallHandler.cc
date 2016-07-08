@@ -535,7 +535,7 @@ void SyscallHandler::reqmem(GateIStream &is) {
 
     // TODO if addr was 0, we don't want to free it on revoke
     vpe->objcaps().set(cap, new MemCapability(&vpe->objcaps(), cap,
-        alloc.addr, alloc.size, perms, alloc.pe(), 0, 0));
+        alloc.addr, alloc.size, perms, alloc.pe(), VPE::INVALID_ID, 0));
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
 

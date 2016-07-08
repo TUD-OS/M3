@@ -47,7 +47,7 @@ static BootModule *get_mod(const char *name, bool *first) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
             size_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
-            DTU::get().read_mem(VPEDesc(pe, 0), addr, &mods[i], sizeof(mods[i]));
+            DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
             KLOG(KENV, "  addr: " << m3::fmt(mods[i].addr, "p"));
@@ -90,7 +90,7 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
 
     uintptr_t addr = m3::DTU::noc_to_virt(mod->addr + offset);
     size_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
-    DTU::get().read_mem(VPEDesc(pe, 0), addr, data, size);
+    DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, data, size);
 }
 
 static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
@@ -102,7 +102,7 @@ static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t 
         size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
         if(!clear) {
-            DTU::get().read_mem(VPEDesc(m3::DTU::noc_to_pe(src), 0),
+            DTU::get().read_mem(VPEDesc(m3::DTU::noc_to_pe(src), VPE::INVALID_ID),
                 m3::DTU::noc_to_virt(src), buffer, amount);
         }
         DTU::get().write_mem(vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
@@ -194,7 +194,7 @@ static void map_idle(VPE &vpe) {
         // copy the ELF file
         size_t size = m3::Math::round_up(tmp->size, PAGE_SIZE);
         uintptr_t phys = alloc_mem(size);
-        copy_clear(VPEDesc(m3::DTU::noc_to_pe(phys), 0), phys, tmp->addr, tmp->size, false);
+        copy_clear(VPEDesc(m3::DTU::noc_to_pe(phys), VPE::INVALID_ID), phys, tmp->addr, tmp->size, false);
 
         // remember the copy
         strcpy(idle->name, "idle");

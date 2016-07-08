@@ -33,7 +33,7 @@ Platform::KEnv::KEnv() {
     // read kernel env
     int pe = m3::DTU::noc_to_pe(m3::env()->kenv);
     uintptr_t addr = m3::DTU::noc_to_virt(m3::env()->kenv);
-    DTU::get().read_mem(VPEDesc(pe, 0), addr, this, sizeof(*this));
+    DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, this, sizeof(*this));
 
     // register memory modules
     int count = 0;

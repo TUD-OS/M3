@@ -45,7 +45,7 @@ void DTU::clear_pt(uintptr_t pt) {
     size_t pe = m3::DTU::noc_to_pe(pt);
     uintptr_t addr = m3::DTU::noc_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
-        write_mem(VPEDesc(pe, 0), addr + i * sizeof(buffer), buffer, sizeof(buffer));
+        write_mem(VPEDesc(pe, VPE::INVALID_ID), addr + i * sizeof(buffer), buffer, sizeof(buffer));
 }
 
 void DTU::init() {
@@ -119,7 +119,7 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
         // insert recursive entry
         uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
         m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
-        write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), 0),
+        write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), VPE::INVALID_ID),
             addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
     }
 
