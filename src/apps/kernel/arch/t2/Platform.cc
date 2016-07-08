@@ -31,9 +31,9 @@ Platform::KEnv::KEnv() {
     // init PEs
     pe_count = 10;
     for(int i = 0; i < 8; ++i)
-        pes[i] = m3::PEDesc(m3::PEType::COMP_IMEM, 64 * 1024);
-    pes[8] = m3::PEDesc(m3::PEType::COMP_IMEM, 128 * 1024);
-    pes[9] = m3::PEDesc(m3::PEType::MEM, 512 * 1024 * 1024);
+        pes[i] = m3::PEDesc(m3::PEType::COMP_IMEM, m3::PEISA::XTENSA, 64 * 1024);
+    pes[8] = m3::PEDesc(m3::PEType::COMP_IMEM, m3::PEISA::XTENSA, 128 * 1024);
+    pes[9] = m3::PEDesc(m3::PEType::MEM, m3::PEISA::NONE, 512 * 1024 * 1024);
 
     // register memory modules
     MainMemory &mem = MainMemory::get();

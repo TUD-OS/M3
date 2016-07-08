@@ -181,6 +181,12 @@ def initState(core, argv):
     senv.fds = 0
     senv.heapsize = 0
 
+    senv.kenv = 0
+    if core == th.cm_core:
+        senv.pe = (128 * 1024) | (2 << 3);
+    else:
+        senv.pe = (64 * 1024) | (2 << 3);
+
     # write Env to core
     off = RT_START
     for a in stringToInt64s(senv.send()):

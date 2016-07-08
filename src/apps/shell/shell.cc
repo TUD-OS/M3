@@ -32,9 +32,9 @@ static struct {
     const char *name;
     PEDesc pe;
 } petypes[] = {
-    /* COMP_IMEM */ {"imem", PEDesc(PEType::COMP_IMEM)},
-    /* COMP_EMEM */ {"emem", PEDesc(PEType::COMP_EMEM)},
-    /* MEM       */ {"mem",  PEDesc(PEType::MEM)},
+    /* COMP_IMEM */ {"imem", PEDesc(PEType::COMP_IMEM, PEISA::NONE)},
+    /* COMP_EMEM */ {"emem", PEDesc(PEType::COMP_EMEM, PEISA::NONE)},
+    /* MEM       */ {"mem",  PEDesc(PEType::MEM, PEISA::NONE)},
 };
 
 static PEDesc get_pe_type(const char *name) {
@@ -57,6 +57,10 @@ static bool execute(CmdList *list) {
         for(size_t i = 0; i < cmd->vars->count; ++i) {
             if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
                 pe = get_pe_type(cmd->vars->vars[i].value);
+                // use the current ISA for comp-PEs
+                // TODO we could let the user specify the ISA
+                if(pe.type() != PEType::MEM)
+                    pe = PEDesc(pe.type(), VPE::self().pe().isa(), pe.mem_size());
                 break;
             }
         }

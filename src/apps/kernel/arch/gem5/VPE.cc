@@ -56,10 +56,12 @@ static BootModule *get_mod(const char *name, bool *first) {
             count++;
         }
 
-        static const char *types[] = {"imem", "emem", "mem"};
+        static const char *types[] = {"imem", "emem", " mem"};
+        static const char *isas[] = {"non", "x86", "xte", "acc"};
         for(size_t i = 0; i < Platform::pe_count(); ++i) {
             KLOG(KENV, "PE" << m3::fmt(i, 2) << ": "
                 << types[static_cast<size_t>(Platform::pe(i).type())] << " "
+                << isas[static_cast<size_t>(Platform::pe(i).isa())] << " "
                 << (Platform::pe(i).mem_size() / 1024) << " KiB memory");
         }
     }

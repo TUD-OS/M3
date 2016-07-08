@@ -33,6 +33,16 @@ enum class PEType {
 };
 
 /**
+ * The different ISAs
+ */
+enum class PEISA {
+    NONE        = 0,
+    X86         = 1,
+    XTENSA      = 2,
+    ACCEL_HASH  = 3,
+};
+
+/**
  * Describes a PE
  */
 struct PEDesc {
@@ -49,10 +59,10 @@ struct PEDesc {
     explicit PEDesc(value_t value) : _value(value) {
     }
     /**
-     * Creates a PE description of given type and with given memory size
+     * Creates a PE description of given type, ISA and memory size
      */
-    explicit PEDesc(PEType type, size_t memsize = 0)
-        : _value(static_cast<value_t>(type) | memsize) {
+    explicit PEDesc(PEType type, PEISA isa, size_t memsize = 0)
+        : _value(static_cast<value_t>(type) | (static_cast<value_t>(isa) << 3) | memsize) {
     }
 
     /**
@@ -69,10 +79,16 @@ struct PEDesc {
         return static_cast<PEType>(_value & 0x7);
     }
     /**
+     * @return the isa of the PE
+     */
+    PEISA isa() const {
+        return static_cast<PEISA>((_value >> 3) & 0x3);
+    }
+    /**
      * @return the memory size (for type() == COMP_IMEM | MEM)
      */
     size_t mem_size() const {
-        return _value & ~0x7;
+        return _value & ~0xFFF;
     }
     /**
      * @return true if the PE has internal memory

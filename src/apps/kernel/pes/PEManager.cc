@@ -140,7 +140,8 @@ m3::String PEManager::path_to_name(const m3::String &path, const char *suffix) {
 VPE *PEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t pfgate) {
     size_t i;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(_vpes[i] == nullptr && Platform::pe(i).type() == pe.type())
+        if(_vpes[i] == nullptr &&
+            Platform::pe(i).isa() == pe.isa() && Platform::pe(i).type() == pe.type())
             break;
     }
     if(i > Platform::last_pe())

@@ -18,7 +18,7 @@ elif env['ARCH'] == 'host':
         'queue', 'stream', 'timer', 'vga'
     ]
 elif env['ARCH'] == 'gem5':
-    dirs += ['idle', 'pager', 'init', 'pgchild']
+    dirs += ['idle', 'pager', 'init', 'pgchild', 'hashserv', 'hashtest']
 
 for d in dirs:
     env.SConscript(env.Glob(d + '/SConscript'), exports = ['env', 'hostenv'])

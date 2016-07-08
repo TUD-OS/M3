@@ -102,7 +102,7 @@ public:
     void set_params(int core, const std::string &shmprefix, label_t sysc_label,
                     size_t sysc_epid, word_t sysc_credits) {
         coreid = core;
-        pe = PEDesc(PEType::COMP_IMEM, 1024 * 1024);
+        pe = PEDesc(PEType::COMP_IMEM, m3::PEISA::X86, 1024 * 1024);
         _shm_prefix = shmprefix.c_str();
         _sysc_label = sysc_label;
         _sysc_epid = sysc_epid;
