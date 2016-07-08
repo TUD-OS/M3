@@ -48,7 +48,7 @@ for($i = 2; $i < $argc; $i++) {
     if(!$f)
         die("Unable to open " . $argv[$i]);
     while(($line = fgets($f)) !== false) {
-        if(preg_match('/^([a-f0-9]+) ([a-f0-9]+) (t|T) ([A-Za-z0-9_:\. ]+)/', $line, $match))
+        if(preg_match('/^([a-f0-9]+) ([a-f0-9]+) (t|T) ([A-Za-z0-9_:\.\~ ]+)/', $line, $match))
             $funcs[] = array(bchexdec($match[1]), bchexdec($match[2]), $match[4], $argv[$i]);
     }
     pclose($f);
