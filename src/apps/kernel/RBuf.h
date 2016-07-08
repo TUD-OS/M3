@@ -14,10 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#include "RecvBufs.h"
+#pragma once
+
+#include <m3/Common.h>
+#include <m3/Subscriber.h>
 
 namespace m3 {
 
-RBuf RecvBufs::_rbufs[AVAIL_PES * EP_COUNT];
+struct RBuf {
+    uintptr_t addr;
+    int order;
+    int msgorder;
+    int flags;
+    Subscriptions<bool> waitlist;
+};
 
 }

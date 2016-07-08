@@ -72,10 +72,11 @@ public:
         return _core;
     }
 
-private:
     void switch_to(KVPE *to);
-    void send_flags(KVPE &vpe, const uint64_t *flags);
-    void recv_flags(KVPE &vpe, uint64_t *flags);
+ 
+private:
+    void send_flags(int core, int vpeid, const uint64_t *flags);
+    void recv_flags(int core, int vpeid, uint64_t *flags);
     void store_dtu_state(KVPE *vpe);
     void attach_storage(KVPE *curr_vpe, KVPE *next_vpe);
     void restore_dtu_state(KVPE *vpe);

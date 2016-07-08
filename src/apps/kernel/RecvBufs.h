@@ -25,6 +25,7 @@
 
 #include "KDTU.h"
 #include "KVPE.h"
+#include "RBuf.h"
 
 namespace m3 {
 
@@ -33,14 +34,6 @@ class RecvBufs {
 
     enum Flags {
         F_ATTACHED  = 1 << (sizeof(int) * 8 - 1),
-    };
-
-    struct RBuf {
-        uintptr_t addr;
-        int order;
-        int msgorder;
-        int flags;
-        Subscriptions<bool> waitlist;
     };
 
 public:
@@ -87,6 +80,19 @@ public:
             configure(vpe, epid, rbuf);
         }
         notify(rbuf, false);
+    }
+
+    static void get_vpe_rbufs(KVPE &vpe, RBuf (&bufs)[EP_COUNT]) {
+        memcpy(&_rbufs[(vpe.core() - APP_CORES) * EP_COUNT], &bufs, EP_COUNT * sizeof(RBuf));
+    }
+
+    static void set_vpe_rbufs(KVPE &vpe, RBuf (&bufs)[EP_COUNT]) {
+        memcpy(&bufs, &_rbufs[(vpe.core() - APP_CORES) * EP_COUNT], EP_COUNT * sizeof(RBuf));
+        for(size_t i = 0; i < EP_COUNT; ++i) {
+            RBuf &rbuf = get(vpe.core(), i);
+            configure(vpe, i, rbuf);
+            notify(rbuf, true);
+        }
     }
 
 private:

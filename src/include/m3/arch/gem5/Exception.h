@@ -24,6 +24,7 @@ namespace m3 {
 class Exceptions {
     Exceptions() = delete;
 
+public:
     /* the descriptor table */
     struct DescTable {
         uint16_t size;      /* the size of the table -1 (size=0 is not allowed) */
@@ -203,6 +204,9 @@ private:
     static void loadIDT(DescTable *tbl) {
         asm volatile ("lidt %0" : : "m"(*tbl));
     }
+    static void getIDT(DescTable *tbl) {
+        asm volatile ("sidt %0" : : "m"(*tbl));
+    }
     static void loadTSS(size_t gdtOffset) {
         asm volatile ("ltr %0" : : "m"(gdtOffset));
     }
@@ -226,6 +230,7 @@ private:
     static Desc gdt[GDT_ENTRY_COUNT];
     static Desc64 idt[IDT_COUNT];
     static TSS tss;
+    static Desc64 *idt_p;
 };
 
 }

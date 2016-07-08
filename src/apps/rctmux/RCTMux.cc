@@ -43,13 +43,12 @@ static void notify_kernel() {
 }
 
 EXTERN_C void _loop() {
-    setup();
-
     volatile m3::Env *senv = m3::env();
     while(1) {
         // is there something to run?
         uintptr_t ptr = senv->entry;
         if(ptr) {
+            setup();
             // remember exit location
             senv->exit = reinterpret_cast<uintptr_t>(&_start);
             jump_to_app(ptr, senv->sp);
@@ -60,6 +59,8 @@ EXTERN_C void _loop() {
 }
 
 EXTERN_C void _interrupt_handler(int) {
+
+    bool idle_mode = false;
 
     init();
 
@@ -75,17 +76,19 @@ EXTERN_C void _interrupt_handler(int) {
         if (flag_is_set(RESTORE)) {
             restore();
         } else {
-            set_idle_mode();
+            idle_mode = true;
         }
 
-        notify_kernel();
-
         if (flag_is_set(ERROR)) {
-            set_idle_mode();
+            idle_mode = true;
         }
     }
 
     finish();
+
+    if(idle_mode) {
+        set_idle_mode(); // never returns
+    }
 }
 
 } /* namespace RCTMux */

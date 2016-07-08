@@ -16,10 +16,19 @@
 
 #pragma once
 
+static unsigned _RCTMUX_FLAGS;
+
 namespace RCTMux {
 
 inline void cpu_wait_for_interrupt() {
     asm volatile ("hlt");
+}
+
+inline void jump_to_start(const uintptr_t ptr) {
+    asm volatile (
+        "jmp *%0"
+        : : "r"(ptr)
+    );
 }
 
 inline void jump_to_app(const uintptr_t ptr, const word_t sp) {
@@ -32,19 +41,19 @@ inline void jump_to_app(const uintptr_t ptr, const word_t sp) {
 }
 
 inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
-    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) |= flag;
+    _RCTMUX_FLAGS |= flag;
 }
 
 inline void flag_unset(const m3::RCTMUXCtrlFlag flag) {
-    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) ^= flag;
+    _RCTMUX_FLAGS ^= flag;
 }
 
 inline void flags_reset() {
-    *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) = 0;
+    _RCTMUX_FLAGS = 0;
 }
 
 inline bool flag_is_set(const m3::RCTMUXCtrlFlag flag) {
-    return (*((volatile unsigned *)RCTMUX_FLAGS_LOCAL) & flag);
+    return (_RCTMUX_FLAGS & flag);
 }
 
 } /* namespace RCTMux */

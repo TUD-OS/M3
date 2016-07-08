@@ -29,6 +29,7 @@ using namespace m3;
 #define RCTMUX_MAGIC       0x42C0FFEE
 
 EXTERN_C void _start();
+EXTERN_C void isr64();
 
 volatile static struct alignas(DTU_PKG_SIZE) {
     word_t magic;
@@ -38,7 +39,9 @@ namespace RCTMux {
 
 void setup() {
     _state.magic = RCTMUX_MAGIC;
-    flags_reset();
+    //flags_reset();
+
+    m3::env()->isr64_handler = reinterpret_cast<uintptr_t>(&isr64);
 }
 
 void init() {
@@ -66,6 +69,8 @@ void store() {
 
     // success
     flag_unset(STORE);
+
+    // on gem5 store is handled via libm3
 }
 
 void restore() {
@@ -102,6 +107,7 @@ void set_idle_mode() {
     // set epc (exception program counter) to jump into idle mode
     // when returning from exception
     //_state.cpu_regs[EPC_REG] = (word_t*)&_start;
+    jump_to_start((uintptr_t)&_start);
 }
 
 } /* namespace RCTMux */

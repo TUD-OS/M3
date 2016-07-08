@@ -15,13 +15,16 @@
 #
 
 .global _start
+.global _rctmux_stack
 .extern _loop
 
 .text
 
 _start:
+    # enable interrupts
+    sti
     # use a small stack
-    mov     $stack, %rsp
+    mov     $_rctmux_stack, %rsp
     mov     %rsp, %rbp
 
     # check if there is something to run
@@ -34,5 +37,5 @@ _start:
 .data
 
     .align 16
-    .space 64, 0
-stack:
+    .space 512, 0
+_rctmux_stack:

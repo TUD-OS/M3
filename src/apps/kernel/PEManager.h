@@ -84,7 +84,7 @@ public:
         return *_vpes[id];
     }
 
-#if defined(__t3__)
+#if defined(__t3__) || defined(__gem5__)
     ContextSwitcher *ctxswitcher() {
         return _ctxswitcher;
     }
@@ -107,7 +107,7 @@ private:
     const char *_petype[AVAIL_PES];
     KVPE *_vpes[AVAIL_PES];
     size_t _count;
- #if defined(__t3__)
+#if defined(__t3__) || defined(__gem5__)
     ContextSwitcher *_ctxswitcher;
 #endif
     size_t _daemons;

@@ -32,9 +32,13 @@ void KDTU::do_set_vpeid(size_t core, int oldVPE, int newVPE) {
 }
 
 void KDTU::do_ext_cmd(KVPE &vpe, DTU::reg_t cmd) {
+    do_ext_cmd_at(vpe.core(), vpe.id(), cmd);
+}
+
+void KDTU::do_ext_cmd_at(int core, int vpeid, DTU::reg_t cmd) {
     alignas(DTU_PKG_SIZE) DTU::reg_t reg = cmd;
     Sync::compiler_barrier();
-    write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
+    write_mem_at(core, vpeid, DTU::dtu_reg_addr(DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
 void KDTU::clear_pt(uintptr_t pt) {
@@ -67,6 +71,19 @@ void KDTU::unset_vpeid(int core, int vpe) {
     do_set_vpeid(core, vpe, KVPE::INVALID_ID);
 }
 
+void KDTU::get_regs_state(int core, DTU::reg_state_t *state) {
+    read_mem_at(core, KVPE::INVALID_ID, DTU::BASE_ADDR, state, sizeof(*state));
+}
+
+void KDTU::set_regs_state(int core, int vpe, DTU::reg_state_t *state) {
+    // FIXME
+    DTU::reg_t *regs = reinterpret_cast<DTU::reg_t*>(state);
+    regs[(int)DTU::DtuRegs::EXT_CMD] = 0;
+    regs[(int)DTU::DtuRegs::VPE_ID] = vpe;
+    Sync::compiler_barrier();
+    write_mem_at(core, KVPE::INVALID_ID, DTU::BASE_ADDR, state, sizeof(*state));
+}
+
 void KDTU::wakeup(KVPE &vpe) {
     // write the core id to the PE
     uint64_t id = vpe.core();
@@ -87,8 +104,8 @@ void KDTU::suspend(KVPE &vpe) {
     write_mem(vpe, DTU::dtu_reg_addr(DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
-void KDTU::injectIRQ(KVPE &vpe) {
-    do_ext_cmd(vpe, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 2));
+void KDTU::injectIRQ(int core, int vpeid) {
+    do_ext_cmd_at(core, vpeid, static_cast<DTU::reg_t>(DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 3));
 }
 
 void KDTU::config_pf_remote(KVPE &vpe, int ep) {

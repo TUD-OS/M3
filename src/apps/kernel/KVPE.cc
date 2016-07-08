@@ -41,7 +41,8 @@ KVPE::KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int e
       _srvgate(RecvGate::create(SyscallHandler::get().srvrcvbuf())),
       _as(as ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
-      _exitsubscr() {
+      _exitsubscr(),
+      _resumesubscr() {
 
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, (size_t)-1, MemGate::RWX, core(), id, 0));
@@ -50,7 +51,7 @@ KVPE::KVPE(String &&prog, size_t id, size_t coreid, bool bootmod, bool as, int e
 
 #if defined(__t3__)
     if (tmuxable) {
-        // FIXME: how to get the size of a VPE's scratchpad?
+        // FIXME
         static constexpr size_t STORAGE_SIZE = 1024*16;
         // allocate memory for time-multiplexing
         MainMemory &mem = MainMemory::get();
@@ -87,9 +88,17 @@ void KVPE::exit(int exitcode) {
     }
 }
 
-  void KVPE::detach_rbufs() {
-      for(size_t c = 0; c < EP_COUNT; ++c)
-          RecvBufs::detach(*this, c);
-  }
+void KVPE::save_rbufs() {
+    RecvBufs::get_vpe_rbufs(*this, _saved_rbufs);
+}
+
+void KVPE::restore_rbufs() {
+    RecvBufs::set_vpe_rbufs(*this, _saved_rbufs);
+}
+
+void KVPE::detach_rbufs() {
+    for(size_t c = 0; c < EP_COUNT; ++c)
+        RecvBufs::detach(*this, c);
+}
 
 }

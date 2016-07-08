@@ -63,13 +63,13 @@ int main(int argc, char **argv)
     const char *args2[] = { "/bin/unittests-misc"};
 
     // start the first vpe
-    VPE s1(args1[0], "", nullptr, true);
+    VPE s1(args1[0], "", "pager", true);
     s1.delegate_mounts();
     START(s1, args1);
 
     // start the second VPE
-    VPE s2(args2[0], "", nullptr, true);
-    Syscalls::get().tmuxswitch();
+    VPE s2(args2[0], "", "pager", true);
+    s2.delegate_mounts();
     START(s2, args2);
 
     // now do some switches

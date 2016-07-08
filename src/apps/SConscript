@@ -11,14 +11,14 @@ dirs = [
 if env['ARCH'] == 't2':
     dirs += ['profiler', 'profiler_cm', 'idle', 'sendfile']
 elif env['ARCH'] == 't3':
-    dirs += ['idle', 'rctmux']
+    dirs += ['rctmux']
 elif env['ARCH'] == 'host':
     dirs += [
         'asciiplay', 'intserver', 'keyb', 'plasma',
         'queue', 'stream', 'timer', 'vga'
     ]
 elif env['ARCH'] == 'gem5':
-    dirs += ['idle', 'pager', 'pgtester', 'pgchild', 'rctmux']
+    dirs += ['rctmux', 'pager', 'pgtester', 'pgchild']
 
 for d in dirs:
     env.SConscript(env.Glob(d + '/SConscript'), exports = ['env', 'hostenv'])

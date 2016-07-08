@@ -18,6 +18,7 @@
 #include <m3/Backtrace.h>
 #include <m3/arch/gem5/Exception.h>
 #include <m3/stream/Serial.h>
+#include <m3/Env.h>
 
 // Our ISRs
 EXTERN_C void isr0();
@@ -37,8 +38,6 @@ EXTERN_C void isr13();
 EXTERN_C void isr14();
 EXTERN_C void isr15();
 EXTERN_C void isr16();
-// for the DTU
-EXTERN_C void isr64();
 // the handler for a other interrupts
 EXTERN_C void isrNull();
 
@@ -75,8 +74,6 @@ void Exceptions::handler(State *state) {
     Serial::get() << "\n  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
         Serial::get() << exNames[state->intrptNo];
-    else if(state->intrptNo == 64)
-        Serial::get() << "DTU (" << state->intrptNo << ")";
     else
         Serial::get() << "<unknown> (" << state->intrptNo << ")";
     Serial::get() << "\n";
@@ -126,30 +123,30 @@ void Exceptions::init() {
     tbl.size = sizeof(idt) - 1;
 
     // setup the idt
-    setIDT(0,isr0,Desc::DPL_KERNEL);
-    setIDT(1,isr1,Desc::DPL_KERNEL);
-    setIDT(2,isr2,Desc::DPL_KERNEL);
-    setIDT(3,isr3,Desc::DPL_KERNEL);
-    setIDT(4,isr4,Desc::DPL_KERNEL);
-    setIDT(5,isr5,Desc::DPL_KERNEL);
-    setIDT(6,isr6,Desc::DPL_KERNEL);
-    setIDT(7,isr7,Desc::DPL_KERNEL);
-    setIDT(8,isr8,Desc::DPL_KERNEL);
-    setIDT(9,isr9,Desc::DPL_KERNEL);
-    setIDT(10,isr10,Desc::DPL_KERNEL);
-    setIDT(11,isr11,Desc::DPL_KERNEL);
-    setIDT(12,isr12,Desc::DPL_KERNEL);
-    setIDT(13,isr13,Desc::DPL_KERNEL);
-    setIDT(14,isr14,Desc::DPL_KERNEL);
-    setIDT(15,isr15,Desc::DPL_KERNEL);
-    setIDT(16,isr16,Desc::DPL_KERNEL);
+    setIDT(0, isr0, Desc::DPL_KERNEL);
+    setIDT(1, isr1, Desc::DPL_KERNEL);
+    setIDT(2, isr2, Desc::DPL_KERNEL);
+    setIDT(3, isr3, Desc::DPL_KERNEL);
+    setIDT(4, isr4, Desc::DPL_KERNEL);
+    setIDT(5, isr5, Desc::DPL_KERNEL);
+    setIDT(6, isr6, Desc::DPL_KERNEL);
+    setIDT(7, isr7, Desc::DPL_KERNEL);
+    setIDT(8, isr8, Desc::DPL_KERNEL);
+    setIDT(9, isr9, Desc::DPL_KERNEL);
+    setIDT(10, isr10, Desc::DPL_KERNEL);
+    setIDT(11, isr11, Desc::DPL_KERNEL);
+    setIDT(12, isr12, Desc::DPL_KERNEL);
+    setIDT(13, isr13, Desc::DPL_KERNEL);
+    setIDT(14, isr14, Desc::DPL_KERNEL);
+    setIDT(15, isr15, Desc::DPL_KERNEL);
+    setIDT(16, isr16, Desc::DPL_KERNEL);
 
     // all other interrupts
     for(size_t i = 17; i < 256; i++) {
         if(i == 64)
-            setIDT(i,isr64,Desc::DPL_KERNEL);
+            setIDT(i, reinterpret_cast<isr_func>(m3::env()->isr64_handler), Desc::DPL_KERNEL);
         else
-            setIDT(i,isrNull,Desc::DPL_KERNEL);
+            setIDT(i, isrNull, Desc::DPL_KERNEL);
     }
 
     // now we can use our idt

@@ -114,10 +114,8 @@ SyscallHandler::SyscallHandler()
     add_operation(Syscalls::REVOKE, &SyscallHandler::revoke);
     add_operation(Syscalls::EXIT, &SyscallHandler::exit);
     add_operation(Syscalls::NOOP, &SyscallHandler::noop);
-#if defined(__t3__)
     add_operation(Syscalls::TMUXSWITCH, &SyscallHandler::tmuxswitch);
     add_operation(Syscalls::TMUXRESUME, &SyscallHandler::tmuxresume);
-#endif
 #if defined(__host__)
     add_operation(Syscalls::INIT, &SyscallHandler::init);
 #endif
@@ -736,11 +734,10 @@ void SyscallHandler::noop(RecvGate &gate, GateIStream &) {
     reply_vmsg(gate, 0);
 }
 
-#if defined(__t3__)
 void SyscallHandler::tmuxswitch(RecvGate &gate, GateIStream &is) {
 
     KVPE *vpe = gate.session<KVPE>();
-    LOG(KSYSC, vpe->name() << " syscall::tmuxswitch()");
+    LOG_SYS(vpe, "syscall::tmuxswitch()", "(" << vpe->name() << ")");
 
     ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
     if (ctxswitcher) {
@@ -763,7 +760,7 @@ void SyscallHandler::tmuxswitch(RecvGate &gate, GateIStream &is) {
 void SyscallHandler::tmuxresume(RecvGate &gate, GateIStream&) {
 
     KVPE *vpe = gate.session<KVPE>();
-    LOG(KSYSC, vpe->name() << ": syscall::tmuxresume()");
+    LOG_SYS(vpe, "syscall::tmuxresume", "(" << vpe->name() << ")");
 
     ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
     if (ctxswitcher)
@@ -773,7 +770,6 @@ void SyscallHandler::tmuxresume(RecvGate &gate, GateIStream&) {
 
     // this syscall is non blocking (no reply is sent)
 }
-#endif
 
 #if defined(__host__)
 void SyscallHandler::init(RecvGate &gate,GateIStream &is) {

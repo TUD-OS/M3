@@ -18,6 +18,8 @@
 
 #if defined(__host__)
 #   include <m3/arch/host/Env.h>
+#elif defined(__gem5__)
+#   include <m3/arch/gem5/Env.h>
 #else
 #   include <m3/arch/baremetal/Env.h>
 #endif

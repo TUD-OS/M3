@@ -33,22 +33,27 @@ ContextSwitcher::ContextSwitcher(size_t core)
 }
 
 void ContextSwitcher::finalize_switch() {
-    restore_dtu_state(_currtmuxvpe);
-    _currtmuxvpe->resume();
+    if (_currtmuxvpe) {
+        restore_dtu_state(_currtmuxvpe);
+        _currtmuxvpe->resume();
+    }
 
     alignas(DTU_PKG_SIZE) uint64_t flags = 0;
-    send_flags(*_currtmuxvpe, &flags);
+    int vpeid = (_currtmuxvpe) ? _currtmuxvpe->id() : KVPE::INVALID_ID;
+    send_flags(_core, vpeid, &flags);
 }
 
-void ContextSwitcher::send_flags(KVPE &vpe, const uint64_t *flags) {
-    KDTU::get().write_mem(vpe, RCTMUX_FLAGS_GLOBAL, flags, sizeof(*flags));
+void ContextSwitcher::send_flags(int core, int vpeid, const uint64_t *flags) {
+    KDTU::get().write_mem_at(core, vpeid, RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 
-void ContextSwitcher::recv_flags(KVPE &vpe, uint64_t *flags) {
-    KDTU::get().read_mem(vpe, RCTMUX_FLAGS_GLOBAL, flags, sizeof(*flags));
+void ContextSwitcher::recv_flags(int core, int vpeid, uint64_t *flags) {
+    KDTU::get().read_mem_at(core, vpeid, RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 
 void ContextSwitcher::switch_to(KVPE *to) {
+
+    LOG(VPES, "TMux: Switching from " << _currtmuxvpe << " to " << to);
 
     if (_currtmuxvpe == to) {
         // nothing to be done
@@ -59,30 +64,36 @@ void ContextSwitcher::switch_to(KVPE *to) {
     if (_currtmuxvpe != nullptr) {
 
         // there is already a suspendable running, so we have to switch
-        LOG(VPES, "TMux: Switching from " << _currtmuxvpe << " to " << to);
 
         // -- Initialization --
 
+        int core  = _currtmuxvpe->core();
+        int vpeid = KVPE::INVALID_ID;
+
+        _currtmuxvpe->suspend();
+        KDTU::get().unset_vpeid(core, _currtmuxvpe->id());
+
         alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::STORE;
+        recv_flags(core, vpeid, &ctrl);
+        ctrl = RCTMUXCtrlFlag::STORE;
         if (to && to->state() == KVPE::SUSPENDED)
             ctrl |= RCTMUXCtrlFlag::RESTORE;
-        send_flags(*to, &ctrl);
+        send_flags(core, vpeid, &ctrl);
 
         // -- Storage --
 
-        LOG(VPES, "TMux: Waking up rctmux at core " << _core);
-        _currtmuxvpe->wakeup();
+        KDTU::get().injectIRQ(core, vpeid);
 
         // wait for rctmux to be initialized - this should only take a few
         // cycles so we can busy wait here; we limit the maximal amount
         // of cycles, though
         uint8_t timeout_counter = 1 << 7;
         while (--timeout_counter && !(ctrl & RCTMUX_FLAG_SIGNAL)) {
-            recv_flags(*to, &ctrl);
+            recv_flags(core, vpeid, &ctrl);
         }
 
         if (!timeout_counter) {
-            LOG(VPES, "TMux: rctmux at core " << to->core() << " timed out");
+            LOG(VPES, "TMux: rctmux at core " << _currtmuxvpe->core() << " timed out");
             // FIXME: how to handle this best? disable time multiplexing?
             return;
         }
@@ -93,13 +104,20 @@ void ContextSwitcher::switch_to(KVPE *to) {
         store_dtu_state(_currtmuxvpe);
         attach_storage(_currtmuxvpe, to);
 
-        // (re)activate the sysc chan for the
-        // 'finished' notification of RCTMux
-        if (to)
-            to->activate_sysc_ep();
+        LOG(VPES, "FOOO: " << (uint64_t)_currtmuxvpe->address_space()->root_pt());
 
-        ctrl ^= RCTMUXCtrlFlag::SIGNAL;
-        send_flags(*to, &ctrl);
+        if(to) {
+            LOG(VPES, "FOO2: " << (uint64_t)to->address_space()->root_pt());
+            restore_dtu_state(to);
+            //KDTU::get().set_vpeid(core, to->id());
+            //KDTU::get().config_pf_remote(*to, DTU::SYSC_EP);
+            vpeid = to->id();
+            //to->wakeup();
+        }
+
+        // 'finished' notification of RCTMux
+        ctrl = (ctrl | RCTMUXCtrlFlag::SIGNAL) ^ RCTMUXCtrlFlag::SIGNAL;
+        send_flags(core, vpeid, &ctrl);
     }
 
     _currtmuxvpe = to;

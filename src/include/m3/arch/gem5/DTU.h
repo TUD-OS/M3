@@ -98,6 +98,9 @@ private:
     };
 
 public:
+    typedef reg_t reg_state_t[DTU_REGS + CMD_REGS + EP_REGS];
+
+public:
     typedef uint64_t pte_t;
 
     enum {

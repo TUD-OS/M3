@@ -17,9 +17,18 @@
 #pragma once
 
 #ifndef NDEBUG
+
+#if defined(__t3__)
 EXTERN_C void __assert(const char *failedexpr, const char *file,
     unsigned int line, const char *func)
 {
     // nothing yet
 }
+#else
+EXTERN_C void __assert(const char *assertion, const char *file, int line)
+{
+    // nothing yet
+}
+#endif /* defined(__t3__) */
+
 #endif /* !NDEBUG */

@@ -24,14 +24,17 @@
 
 #include "CapTable.h"
 #include "AddrSpace.h"
+#include "RBuf.h"
 
 namespace m3 {
 
 class ContextSwitcher;
+class RecvBufs;
 
 class KVPE : public RequestSessionData {
 
     friend class ContextSwitcher;
+    friend class RecvBufs;
 
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
@@ -44,6 +47,9 @@ class KVPE : public RequestSessionData {
 
 public:
     static const uint16_t INVALID_ID = 0xFFFF;
+
+    // FIXME test
+    alignas(DTU_PKG_SIZE) DTU::reg_state_t dtu_state;
 
     enum State {
         RUNNING,
@@ -82,9 +88,15 @@ public:
 
     void suspend() {
         _state = SUSPENDED;
+        save_rbufs();
+        detach_rbufs();
     }
 
     void resume() {
+        if (_state == SUSPENDED) {
+            restore_rbufs();
+        }
+
         _state = RUNNING;
 
         // notify subscribers
@@ -171,6 +183,8 @@ private:
         }
     }
     void detach_rbufs();
+    void save_rbufs();
+    void restore_rbufs();
 
     VPEId _id;
     bool _daemon;
@@ -186,6 +200,7 @@ private:
     MemGate _sepsgate;
     RecvGate _syscgate;
     RecvGate _srvgate;
+    RBuf _saved_rbufs[EP_COUNT];
     AddrSpace *_as;
     SList<ServName> _requires;
     Subscriptions<int> _exitsubscr;

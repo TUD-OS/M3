@@ -26,7 +26,7 @@ PEManager *PEManager::_inst;
 
 PEManager::PEManager()
         : _petype(), _vpes(), _count(),
-#if defined(__t3__)
+#if defined(__t3__) || defined(__gem5__)
           _ctxswitcher(nullptr),
 #endif
           _daemons() {
@@ -49,7 +49,7 @@ void PEManager::load(int argc, char **argv) {
             no++;
 
         // for idle, don't create a VPE
-        if(strcmp(argv[i], "idle") != 0) {
+        if(strcmp(argv[i], "idle")) {
             // allow multiple applications with the same name
             OStringStream name;
             name << path_to_name(String(argv[i]), nullptr).c_str() << "-" << no;
@@ -57,14 +57,10 @@ void PEManager::load(int argc, char **argv) {
             _count++;
 
 #if defined(__t3__)
-            // VPEs started here are already running, so suspend them
-            // to prevent sending an interrupt
+            // VPEs started in t3 simulator are already running when loaded
+            // via commandline, thus suspend them temporarily
             // FIXME: this feels like a dirty hack to me
             _vpes[no]->resume();
-
-            if (!_ctxswitcher && strcmp(argv[i], "rctmux") == 0) {
-                _ctxswitcher = new ContextSwitcher(_vpes[no]->core());
-            }
 #endif
         }
 
@@ -175,26 +171,35 @@ KVPE *PEManager::create(String &&name, const char *core, bool as, int ep, capsel
     }
     coreid = i + APP_CORES;
 
-#if defined(__t3__)
+#if defined(__t3__) || defined(__gem5__)
     if(tmuxable) {
-        if(!_ctxswitcher) {
+        if (!as)
+        {
+            LOG(VPES, "Cannot create tmuxable VPE without per-VPE address space");
+            LOG(VPES, "Turning tmuxable flag off");
             tmuxable = false;
-            LOG(VPES, "No rctmux available: ignoring request for tmuxability");
         } else {
-            coreid = _ctxswitcher->core();
             LOG(VPES, "Creating tmuxable VPE at core " << i);
+            if(!_ctxswitcher) {
+                _ctxswitcher = new ContextSwitcher(coreid);
+            } else {
+                coreid = _ctxswitcher->core();
+                _ctxswitcher->switch_to(nullptr);
+            }
         }
     }
 #endif
 
-    if(i == AVAIL_PES)
+    if(i == AVAIL_PES) {
+        LOG(VPES, "Cannot create VPE, no id available");
         return nullptr;
+    }
 
     _vpes[i] = new KVPE(std::move(name), i, coreid, false, as, ep, pfgate, tmuxable);
 
-#if defined(__t3__)
+#if defined(__t3__) || defined(__gem5__)
     if (tmuxable) {
-        _ctxswitcher->assign(_vpes[i]);
+        _ctxswitcher->assign(_vpes[i], true);
     }
 #endif
 

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013, Nils Asmussen <nils@os.inf.tu-dresden.de>
+# Copyright (C) 2016, René Küttner <rene.kuettner@tu-dresden.de>
 # Economic rights: Technische Universitaet Dresden (Germany)
 #
 # This file is part of M3 (Microkernel for Minimalist Manycores).
@@ -14,51 +14,14 @@
 # General Public License version 2 for more details.
 #
 
-// macro to build a default-isr-handler
-.macro BUILD_DEF_ISR no
-    .global isr\no
-    isr\no:
-    // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
+.extern _interrupt_handler
+.global _rctmux_stack
+
+.global isr64
+isr64:
     push    $0                      // error-code (no error here)
-    push    $\no                    // the interrupt-number
-    jmp     isrCommon
-.endm
+    push    $64                     // the interrupt-number
 
-// macro to build an error-isr-handler
-.macro BUILD_ERR_ISR no
-    .global isr\no
-    isr\no:
-    // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
-    // the error-code has already been pushed
-    push    $\no                    // the interrupt-number
-    jmp     isrCommon
-.endm
-
-// our ISRs
-BUILD_DEF_ISR 0
-BUILD_DEF_ISR 1
-BUILD_DEF_ISR 2
-BUILD_DEF_ISR 3
-BUILD_DEF_ISR 4
-BUILD_DEF_ISR 5
-BUILD_DEF_ISR 6
-BUILD_DEF_ISR 7
-BUILD_ERR_ISR 8
-BUILD_DEF_ISR 9
-BUILD_ERR_ISR 10
-BUILD_ERR_ISR 11
-BUILD_ERR_ISR 12
-BUILD_ERR_ISR 13
-BUILD_ERR_ISR 14
-BUILD_DEF_ISR 15
-BUILD_DEF_ISR 16
-
-.global isrNull
-isrNull:
-    push    $0                      // error-code (no error here)
-    push    $32                     // the interrupt-number
-
-isrCommon:
     push    %rax
     push    %rbx
     push    %rcx
@@ -75,9 +38,17 @@ isrCommon:
     push    %r14
     push    %r15
 
-    // call c-routine
-    mov     %rsp,%rdi               // pointer to stack-frame
-    call    intrpt_handler
+    // switch to rctmux' stack, store current stack pointer and
+    // call C routine; read stack pointer from rctmux' stack back
+    // after returning from C
+    mov     %rsp, %rax
+    mov     $_rctmux_stack, %rsp
+    push    %rax
+    pushf
+    cld
+    call    _interrupt_handler
+    popf
+    pop     %rsp
 
     pop     %r15
     pop     %r14
