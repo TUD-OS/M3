@@ -3,5 +3,5 @@ Import('env', 'hostenv')
 for d in ['libs', 'apps', 'fs']:
     env.SConscript(d + '/SConscript', exports = ['env', 'hostenv'])
 if env['ARCH'] == 'host':
-    env.SConscript('tests/SConscript', exports = 'env')
+    env.SConscript('tests/SConscript', exports = 'hostenv')
 hostenv.SConscript('tools/SConscript', exports = 'hostenv')

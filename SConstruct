@@ -174,6 +174,9 @@ env.Append(
     MEMDIR = Dir(builddir + '/mem'),
     FSDIR = Dir(builddir + '/fsdata')
 )
+hostenv.Append(
+    BINARYDIR = env['BINARYDIR']
+)
 
 def M3MemDump(env, target, source):
     dump = env.Command(
