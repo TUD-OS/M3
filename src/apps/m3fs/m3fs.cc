@@ -266,6 +266,8 @@ public:
             INodes::write_back(_handle, inode);
 
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);
+        SLOG(FS, fmt((word_t)sess, "#x") << ": -> fd=" << fd << ", inode=" << inode->inode
+            << ", size=" << inode->size << ", extent=" << extent << ", extoff=" << off);
         reply_vmsg(is.gate(), Errors::NO_ERROR, fd);
     }
 
