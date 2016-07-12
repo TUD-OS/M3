@@ -50,6 +50,8 @@ static bool execute(CmdList *list) {
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     Executable *exec[MAX_CMDS] = {nullptr};
 
+    fd_t infd = STDIN_FD;
+    fd_t outfd = STDOUT_FD;
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
@@ -71,18 +73,40 @@ static bool execute(CmdList *list) {
             break;
         }
 
-        // TODO support I/O redirection
-        if(i > 0)
-            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[i - 1]->reader_fd()));
-        else
-            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
+        // I/O redirection is only supported at the beginning and end
+        if((i + 1 < list->count && cmd->redirs->fds[STDOUT_FD]) ||
+            (i > 0 && cmd->redirs->fds[STDIN_FD])) {
+            errmsg("Invalid I/O redirection");
+            break;
+        }
 
-        if(i + 1 < list->count) {
+        if(i == 0) {
+            if(cmd->redirs->fds[STDIN_FD]) {
+                infd = VFS::open(cmd->redirs->fds[STDIN_FD], FILE_R);
+                if(infd == FileTable::INVALID) {
+                    errmsg("Unable to open " << cmd->redirs->fds[STDIN_FD]);
+                    break;
+                }
+            }
+            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(infd));
+        }
+        else
+            vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[i - 1]->reader_fd()));
+
+        if(i + 1 == list->count) {
+            if(cmd->redirs->fds[STDOUT_FD]) {
+                outfd = VFS::open(cmd->redirs->fds[STDOUT_FD], FILE_W | FILE_CREATE | FILE_TRUNC);
+                if(outfd == FileTable::INVALID) {
+                    errmsg("Unable to open " << cmd->redirs->fds[STDOUT_FD]);
+                    break;
+                }
+            }
+            vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
+        }
+        else {
             pipes[i] = new IndirectPipe(64 * 1024);
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
-        else
-            vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
 
         vpes[i]->fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
         vpes[i]->obtain_fds();
@@ -114,6 +138,10 @@ static bool execute(CmdList *list) {
     }
     for(size_t i = 0; i < list->count; ++i)
         delete pipes[i];
+    if(infd != STDIN_FD)
+        VFS::close(infd);
+    if(outfd != STDOUT_FD)
+        VFS::close(outfd);
     return true;
 }
 
