@@ -88,17 +88,14 @@ m3::Errors::Code CapTable::revoke(Capability *c, bool revnext) {
 }
 
 m3::Errors::Code CapTable::revoke(const m3::CapRngDesc &crd, bool own) {
-    for(capsel_t i = 0; i < crd.count(); ++i) {
+    for(capsel_t i = crd.start(), end = crd.start() + crd.count(); i < end; ) {
         m3::Errors::Code res;
+        Capability *c = get(i);
+        i = c ? c->sel() + c->length : i + 1;
         if(own)
-            res = revoke(get(i + crd.start()), false);
-        else {
-            Capability *c = get(i + crd.start());
-            if(c)
-                res = revoke(c->_child, true);
-            else
-                res = m3::Errors::NO_ERROR;
-        }
+            res = revoke(c, false);
+        else
+            res = c ? revoke(c->_child, true) : m3::Errors::NO_ERROR;
         if(res != m3::Errors::NO_ERROR)
             return res;
     }
