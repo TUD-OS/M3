@@ -28,14 +28,16 @@
 
 class AddrSpace;
 
-class DataSpace : public m3::TreapNode<uintptr_t>, public m3::SListItem {
+class DataSpace : public m3::TreapNode<DataSpace, uintptr_t>, public m3::SListItem {
 public:
     explicit DataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
-        : TreapNode<uintptr_t>(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
+        : TreapNode(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
           _regs(this), _size(size) {
     }
+    virtual ~DataSpace() {
+    }
 
-    bool matches(uintptr_t k) override {
+    bool matches(uintptr_t k) {
         return k >= addr() && k < addr() + _size;
     }
 
@@ -61,7 +63,7 @@ public:
 
     void inherit(DataSpace *ds);
 
-    void print(m3::OStream &os) const override;
+    void print(m3::OStream &os) const;
 
 protected:
     AddrSpace *_as;

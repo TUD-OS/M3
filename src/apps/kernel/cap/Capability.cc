@@ -64,21 +64,21 @@ m3::Errors::Code MsgCapability::revoke() {
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _pages, uint _attr)
-    : Capability(tbl, sel, MAP), phys(_phys), pages(_pages), attr(_attr) {
+    : Capability(tbl, sel, MAP, _pages), phys(_phys), attr(_attr) {
     VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
-    DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, pages, attr);
+    DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
 }
 
 void MapCapability::remap(uintptr_t _phys, uint _attr) {
     phys = _phys;
     attr = _attr;
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, pages, attr);
+    DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, length, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
     VPE &vpe = PEManager::get().vpe(table()->id() - 1);
-    DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, pages);
+    DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
     return m3::Errors::NO_ERROR;
 }
 
@@ -115,54 +115,48 @@ m3::Errors::Code VPECapability::revoke() {
     return m3::Errors::NO_ERROR;
 }
 
-void MsgCapability::print(m3::OStream &os) const {
+void Capability::print(m3::OStream &os) const {
     os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+    printInfo(os);
+    child()->printChilds(os);
+}
+
+void MsgCapability::printInfo(m3::OStream &os) const {
     os << ": mesg[refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
-    child()->printChilds(os);
 }
 
-void MemCapability::print(m3::OStream &os) const {
-    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+void MemCapability::printInfo(m3::OStream &os) const {
     os << ": mem [refs=" << obj->refcount()
        << ", curep=" << localepid
        << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
-    child()->printChilds(os);
 }
 
-void MapCapability::print(m3::OStream &os) const {
-    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+void MapCapability::printInfo(m3::OStream &os) const {
     os << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
        << ", phys=#" << m3::fmt(phys, "x")
-       << ", pages=" << pages
+       << ", pages=" << length
        << ", attr=#" << m3::fmt(attr, "x") << "]";
-    child()->printChilds(os);
 }
 
-void ServiceCapability::print(m3::OStream &os) const {
-    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+void ServiceCapability::printInfo(m3::OStream &os) const {
     os << ": serv[name=" << inst->name() << "]";
-    child()->printChilds(os);
 }
 
-void SessionCapability::print(m3::OStream &os) const {
-    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+void SessionCapability::printInfo(m3::OStream &os) const {
     os << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << m3::fmt(obj->ident, "x")
         << ", servowned=" << obj->servowned << "]";
-    child()->printChilds(os);
 }
 
-void VPECapability::print(m3::OStream &os) const {
-    os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
+void VPECapability::printInfo(m3::OStream &os) const {
     os << ": vpe [refs=" << vpe->refcount()
        << ", name=" << vpe->name() << "]";
-    child()->printChilds(os);
 }
 
 void Capability::printChilds(m3::OStream &os, int layer) const {

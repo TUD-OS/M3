@@ -25,7 +25,7 @@ namespace m3 {
 /**
  * A node in the treap. You may create a subclass of this to add data to your nodes.
  */
-template<typename KEY>
+template<typename N, typename KEY>
 class TreapNode {
     template<class T>
     friend class Treap;
@@ -39,13 +39,11 @@ public:
      */
     explicit TreapNode(key_t key) : _key(key), _prio(), _left(), _right() {
     }
-    virtual ~TreapNode() {
-    }
 
     /**
      * @return true if the given key matches this one
      */
-    virtual bool matches(key_t key) {
+    bool matches(key_t key) {
         return _key == key;
     }
 
@@ -70,13 +68,15 @@ public:
      *
      * @param os the ostream
      */
-    virtual void print(OStream &os) const = 0;
+    void print(OStream &os) const {
+        os << _key;
+    }
 
 private:
     key_t _key;
     int _prio;
-    TreapNode *_left;
-    TreapNode *_right;
+    N *_left;
+    N *_right;
 };
 
 /**
@@ -92,8 +92,6 @@ private:
 template<class T>
 class Treap {
 public:
-    typedef TreapNode<typename T::key_t> node_t;
-
     /**
      * Creates an empty treap
      */
@@ -122,10 +120,10 @@ public:
      * @return the node or nullptr if not found
      */
     T *find(typename T::key_t key) const {
-        for(node_t *p = _root; p != nullptr; ) {
+        for(T *p = _root; p != nullptr; ) {
             if(p->matches(key))
                 return static_cast<T*>(p);
-            if(key < p->_key)
+            if(key < p->key())
                 p = p->_left;
             else
                 p = p->_right;
@@ -139,11 +137,11 @@ public:
      *
      * @param node the node to insert
      */
-    void insert(node_t *node) {
+    void insert(T *node) {
         // we want to insert it by priority, so find the first node that has <= priority
-        node_t **q, *p;
+        T **q, *p;
         for(p = _root, q = &_root; p && p->_prio < _prio; p = *q) {
-            if(node->_key < p->_key)
+            if(node->key() < p->key())
                 q = &p->_left;
             else
                 q = &p->_right;
@@ -157,9 +155,9 @@ public:
         // At this point we want to split the binary search tree p into two parts based on the
         // given key, forming the left and right subtrees of the new node q. The effect will be
         // as if key had been inserted before all of p’s nodes.
-        node_t **l = &(*q)->_left, **r = &(*q)->_right;
+        T **l = &(*q)->_left, **r = &(*q)->_right;
         while(p) {
-            if(node->_key < p->_key) {
+            if(node->key() < p->key()) {
                 *r = p;
                 r = &p->_left;
                 p = *r;
@@ -178,11 +176,11 @@ public:
      *
      * @param node the node to remove (DOES have to be a valid pointer)
      */
-    void remove(node_t *node) {
-        node_t **p;
+    void remove(T *node) {
+        T **p;
         // find the position where reg is stored
         for(p = &_root; *p && *p != node; ) {
-            if(node->_key < (*p)->_key)
+            if(node->key() < (*p)->key())
                 p = &(*p)->_left;
             else
                 p = &(*p)->_right;
@@ -196,8 +194,8 @@ public:
      *
      * @return the root node
      */
-    node_t *remove_root() {
-        node_t *res = _root;
+    T *remove_root() {
+        T *res = _root;
         if(res)
             remove(res);
         return res;
@@ -218,12 +216,12 @@ private:
     Treap(const Treap&);
     Treap& operator=(const Treap&);
 
-    void remove_from(node_t **p, node_t *node) {
+    void remove_from(T **p, T *node) {
         // two childs
         if(node->_left && node->_right) {
             // rotate with left
             if(node->_left->_prio < node->_right->_prio) {
-                node_t *t = node->_left;
+                T *t = node->_left;
                 node->_left = t->_right;
                 t->_right = node;
                 *p = t;
@@ -231,7 +229,7 @@ private:
             }
             // rotate with right
             else {
-                node_t *t = node->_right;
+                T *t = node->_right;
                 node->_right = t->_left;
                 t->_left = node;
                 *p = t;
@@ -248,7 +246,7 @@ private:
             *p = nullptr;
     }
 
-    void printRec(OStream &os, node_t *n, int layer, bool tree) const {
+    void printRec(OStream &os, T *n, int layer, bool tree) const {
         n->print(os);
         os << "\n";
         if(n->_left) {
@@ -264,7 +262,7 @@ private:
     }
 
     int _prio;
-    node_t *_root;
+    T *_root;
 };
 
 }

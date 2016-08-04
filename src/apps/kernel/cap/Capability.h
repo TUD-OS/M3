@@ -34,7 +34,7 @@ class Capability;
 
 m3::OStream &operator<<(m3::OStream &os, const Capability &cc);
 
-class Capability : public m3::TreapNode<capsel_t> {
+class Capability : public m3::TreapNode<Capability, capsel_t> {
     friend class CapTable;
 
 public:
@@ -49,10 +49,14 @@ public:
         VIRTPE  = 0x20,
     };
 
-    explicit Capability(CapTable *tbl, capsel_t sel, unsigned type)
-        : TreapNode<capsel_t>(sel), type(type), _tbl(tbl), _child(), _parent(), _next(), _prev() {
+    explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
+        : TreapNode(sel), type(type), length(len), _tbl(tbl), _child(), _parent(), _next(), _prev() {
     }
     virtual ~Capability() {
+    }
+
+    bool matches(key_t key) {
+        return key >= sel() && key < sel() + length;
     }
 
     capsel_t sel() const {
@@ -81,6 +85,8 @@ public:
         key(sel);
     }
 
+    void print(m3::OStream &os) const;
+    virtual void printInfo(m3::OStream &os) const = 0;
     void printChilds(m3::OStream &os, int layer = 0) const;
 
 private:
@@ -90,7 +96,8 @@ private:
     virtual Capability *clone(CapTable *tbl, capsel_t sel) = 0;
 
 public:
-    unsigned type;
+    uint type;
+    uint length;
 
 private:
     CapTable *_tbl;
@@ -152,7 +159,7 @@ public:
         : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, vpe, epid, credits)) {
     }
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
 protected:
     virtual m3::Errors::Code revoke() override;
@@ -175,7 +182,7 @@ public:
         : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, vpe, epid)) {
     }
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
     uintptr_t addr() const {
         return obj->label & ~m3::KIF::Perm::RWX;
@@ -200,23 +207,18 @@ class MapCapability : public Capability {
 public:
     explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint pages, uint _attr);
 
-    virtual bool matches(key_t key) override {
-        return key >= sel() && key < sel() + pages;
-    }
-
     void remap(uintptr_t _phys, uint _attr);
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
 private:
     virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        return new MapCapability(tbl, sel, phys, pages, attr);
+        return new MapCapability(tbl, sel, phys, length, attr);
     }
 
 public:
     uintptr_t phys;
-    uint pages;
     uint attr;
 };
 
@@ -226,7 +228,7 @@ public:
         : Capability(tbl, sel, SERVICE), inst(_inst) {
     }
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
 private:
     virtual m3::Errors::Code revoke() override;
@@ -245,7 +247,7 @@ public:
         : Capability(tbl, sel, SESSION), obj(new SessionObject(srv, ident)) {
     }
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
 private:
     virtual m3::Errors::Code revoke() override;
@@ -264,7 +266,7 @@ public:
     explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p);
     VPECapability(const VPECapability &t);
 
-    void print(m3::OStream &os) const override;
+    void printInfo(m3::OStream &os) const override;
 
 private:
     virtual m3::Errors::Code revoke() override;
