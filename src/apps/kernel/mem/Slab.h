@@ -16,30 +16,39 @@
 
 #pragma once
 
-#include <base/log/Log.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+#include <base/col/DList.h>
+#include <base/util/Util.h>
 
-#define KLOG(lvl, msg)  LOG(KernelLog, lvl, msg)
+namespace kernel {
 
-namespace m3 {
+class Slab : public m3::SListItem {
+    struct Pool : public m3::DListItem {
+        explicit Pool(size_t objsize, size_t count);
+        ~Pool();
 
-class KernelLog {
-    KernelLog() = delete;
-
-public:
-    enum Level {
-        INFO        = 1 << 0,
-        KENV        = 1 << 1,
-        ERR         = 1 << 2,
-        MEM         = 1 << 3,
-        SYSC        = 1 << 4,
-        PTES        = 1 << 5,
-        VPES        = 1 << 6,
-        EPS         = 1 << 7,
-        SERV        = 1 << 8,
-        SLAB        = 1 << 9,
+        size_t total;
+        size_t free;
+        void *mem;
     };
 
-    static const int level = INFO | ERR;
+public:
+    static const size_t STEP_SIZE   = 64;
+
+    static Slab *get(size_t objsize);
+
+    explicit Slab(size_t objsize) : _freelist(), _objsize(objsize) {
+    }
+
+    void *alloc();
+    void free(void *ptr);
+
+private:
+    void **_freelist;
+    size_t _objsize;
+    m3::DList<Pool> _pools;
+    static m3::SList<Slab> _slabs;
 };
 
 }

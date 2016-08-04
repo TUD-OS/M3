@@ -21,6 +21,7 @@
 #include <base/util/String.h>
 #include <base/util/Reference.h>
 
+#include "mem/SlabCache.h"
 #include "SendQueue.h"
 #include "Gate.h"
 
@@ -28,7 +29,7 @@ namespace kernel {
 
 class VPE;
 
-class Service : public m3::SListItem, public m3::RefCounted {
+class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
     explicit Service(VPE &vpe, int sel, const m3::String &name, int ep, label_t label, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),

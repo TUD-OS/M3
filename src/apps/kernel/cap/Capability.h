@@ -22,6 +22,7 @@
 #include <base/KIF.h>
 
 #include "com/Services.h"
+#include "mem/SlabCache.h"
 
 namespace m3 {
 class OStream;
@@ -107,7 +108,7 @@ private:
     Capability *_prev;
 };
 
-class MsgObject : public m3::RefCounted {
+class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
     explicit MsgObject(label_t _label, int _core, int _vpe, int _epid, word_t _credits)
         : RefCounted(), label(_label), core(_core), vpe(_vpe), epid(_epid), credits(_credits),
@@ -133,7 +134,7 @@ public:
     virtual ~MemObject();
 };
 
-class SessionObject : public m3::RefCounted {
+class SessionObject : public SlabObject<SessionObject>, public m3::RefCounted {
 public:
     explicit SessionObject(Service *_srv, word_t _ident)
         : RefCounted(), servowned(), ident(_ident), srv(_srv) {
@@ -147,7 +148,7 @@ public:
     m3::Reference<Service> srv;
 };
 
-class MsgCapability : public Capability {
+class MsgCapability : public SlabObject<MsgCapability>, public Capability {
 protected:
     explicit MsgCapability(CapTable *tbl, capsel_t sel, unsigned type, MsgObject *_obj)
         : Capability(tbl, sel, type), localepid(-1), obj(_obj) {
@@ -203,7 +204,7 @@ private:
     }
 };
 
-class MapCapability : public Capability {
+class MapCapability : public SlabObject<MapCapability>, public Capability {
 public:
     explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint pages, uint _attr);
 
@@ -222,7 +223,7 @@ public:
     uint attr;
 };
 
-class ServiceCapability : public Capability {
+class ServiceCapability : public SlabObject<ServiceCapability>, public Capability {
 public:
     explicit ServiceCapability(CapTable *tbl, capsel_t sel, Service *_inst)
         : Capability(tbl, sel, SERVICE), inst(_inst) {
@@ -241,7 +242,7 @@ public:
     m3::Reference<Service> inst;
 };
 
-class SessionCapability : public Capability {
+class SessionCapability : public SlabObject<SessionCapability>, public Capability {
 public:
     explicit SessionCapability(CapTable *tbl, capsel_t sel, Service *srv, word_t ident)
         : Capability(tbl, sel, SESSION), obj(new SessionObject(srv, ident)) {
@@ -261,7 +262,7 @@ public:
     m3::Reference<SessionObject> obj;
 };
 
-class VPECapability : public Capability {
+class VPECapability : public SlabObject<VPECapability>, public Capability {
 public:
     explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p);
     VPECapability(const VPECapability &t);

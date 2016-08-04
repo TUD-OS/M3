@@ -21,6 +21,7 @@
 #include <base/util/Subscriber.h>
 #include <base/Errors.h>
 
+#include "mem/SlabCache.h"
 #include "DTU.h"
 
 namespace kernel {
@@ -35,7 +36,7 @@ using StaticGateOStream = m3::BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
 using AutoGateOStream = m3::BaseAutoGateOStream<RecvGate, SendGate>;
 using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
 
-class RecvGate : public m3::Subscriptions<GateIStream&> {
+class RecvGate : public SlabObject<RecvGate>, public m3::Subscriptions<GateIStream&> {
 public:
     explicit RecvGate(int ep, void *sess) : m3::Subscriptions<GateIStream&>(), _ep(ep), _sess(sess) {
     }

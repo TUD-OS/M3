@@ -24,6 +24,7 @@
 #include "cap/CapTable.h"
 #include "cap/Capability.h"
 #include "mem/AddrSpace.h"
+#include "mem/SlabCache.h"
 
 namespace kernel {
 
@@ -35,7 +36,7 @@ struct VPEDesc {
     int id;
 };
 
-class VPE {
+class VPE : public SlabObject<VPE> {
     // use an object to set the VPE id at first and unset it at last
     struct VPEId {
         VPEId(int _id, int _core);

@@ -16,30 +16,43 @@
 
 #pragma once
 
-#include <base/log/Log.h>
+#include <base/util/Profile.h>
 
-#define KLOG(lvl, msg)  LOG(KernelLog, lvl, msg)
+#include "mem/Slab.h"
 
-namespace m3 {
+namespace kernel {
 
-class KernelLog {
-    KernelLog() = delete;
-
+class SlabCache {
 public:
-    enum Level {
-        INFO        = 1 << 0,
-        KENV        = 1 << 1,
-        ERR         = 1 << 2,
-        MEM         = 1 << 3,
-        SYSC        = 1 << 4,
-        PTES        = 1 << 5,
-        VPES        = 1 << 6,
-        EPS         = 1 << 7,
-        SERV        = 1 << 8,
-        SLAB        = 1 << 9,
-    };
+    explicit SlabCache(size_t objsize) : _slab(Slab::get(objsize)) {
+    }
 
-    static const int level = INFO | ERR;
+    void *alloc() {
+        return _slab->alloc();
+    }
+    void free(void *ptr) {
+        _slab->free(ptr);
+    }
+
+private:
+    Slab *_slab;
 };
+
+template<class T>
+class SlabObject {
+public:
+    static void *operator new(size_t) {
+        return _cache.alloc();
+    }
+    static void operator delete(void *ptr) {
+        _cache.free(ptr);
+    }
+
+private:
+    static SlabCache _cache;
+};
+
+template<typename T>
+SlabCache SlabObject<T>::_cache(sizeof(T));
 
 }

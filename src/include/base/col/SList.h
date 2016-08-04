@@ -16,100 +16,10 @@
 
 #pragma once
 
-#include <base/Common.h>
+#include <base/col/List.h>
 #include <assert.h>
 
 namespace m3 {
-
-template<class T>
-class SList;
-template<class T, class It>
-class SListIteratorBase;
-
-/**
- * A listitem for the singly linked list. It is intended that you inherit from this class to add
- * data to the item.
- */
-class SListItem {
-    template<class T>
-    friend class SList;
-    template<class T, class It>
-    friend class SListIteratorBase;
-
-public:
-    /**
-     * Constructor
-     */
-    explicit SListItem() : _next() {
-    }
-
-private:
-    SListItem *next() {
-        return _next;
-    }
-    void next(SListItem *i) {
-        _next = i;
-    }
-
-    SListItem *_next;
-};
-
-/**
- * Generic iterator for a singly linked list. Expects the list node class to have a next() method.
- */
-template<class T, class It>
-class SListIteratorBase {
-public:
-    explicit SListIteratorBase(T *n = nullptr) : _n(n) {
-    }
-
-    It& operator++() {
-        _n = static_cast<T*>(_n->next());
-        return static_cast<It&>(*this);
-    }
-    It operator++(int) {
-        It tmp(static_cast<It&>(*this));
-        operator++();
-        return tmp;
-    }
-    bool operator==(const It& rhs) const {
-        return _n == rhs._n;
-    }
-    bool operator!=(const It& rhs) const {
-        return _n != rhs._n;
-    }
-
-protected:
-    T *_n;
-};
-
-template<class T>
-class SListIterator : public SListIteratorBase<T, SListIterator<T> > {
-public:
-    explicit SListIterator(T *n = nullptr) : SListIteratorBase<T, SListIterator<T> >(n) {
-    }
-
-    T & operator*() const {
-        return *this->_n;
-    }
-    T *operator->() const {
-        return &operator*();
-    }
-};
-
-template<class T>
-class SListConstIterator : public SListIteratorBase<T, SListConstIterator<T> > {
-public:
-    explicit SListConstIterator(T *n = nullptr) : SListIteratorBase<T, SListConstIterator<T> >(n) {
-    }
-
-    const T & operator*() const {
-        return *this->_n;
-    }
-    const T *operator->() const {
-        return &operator*();
-    }
-};
 
 /**
  * The singly linked list. Takes an arbitrary class as list-item and expects it to have a prev(),
@@ -119,8 +29,8 @@ public:
 template<class T>
 class SList {
 public:
-    using iterator          = SListIterator<T>;
-    using const_iterator    = SListConstIterator<T>;
+    using iterator          = ListIterator<T>;
+    using const_iterator    = ListConstIterator<T>;
 
     /**
      * Constructor. Creates an empty list
