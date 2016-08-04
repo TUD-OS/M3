@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Math.h>
 #include <base/util/Sync.h>
 #include <base/DTU.h>
 #include <base/Init.h>
@@ -50,28 +51,37 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t) {
     return get_error();
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint flags) {
-    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    write_reg(CmdRegs::DATA_SIZE, size);
-    write_reg(CmdRegs::OFFSET, off);
-    Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ, flags));
+Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
+    size_t left = size;
+    while(left > 0) {
+        size_t amount = Math::min<size_t>(left, MAX_PKT_SIZE);
+        DTU::write_reg(CmdRegs::DATA_ADDR, data);
+        write_reg(CmdRegs::DATA_SIZE, amount);
+        write_reg(CmdRegs::OFFSET, off);
+        Sync::compiler_barrier();
+        write_reg(CmdRegs::COMMAND, cmd);
 
-    wait_until_ready(ep);
+        left -= amount;
+        data += amount;
+        off += amount;
 
-    return get_error();
+        Errors::Code res = get_error();
+        if(EXPECT_FALSE(res != Errors::NO_ERROR))
+            return res;
+    }
+    return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint flags) {
-    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    write_reg(CmdRegs::DATA_SIZE, size);
-    write_reg(CmdRegs::OFFSET, off);
-    Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE, flags));
+Errors::Code DTU::read(int ep, void *data, size_t size, size_t off, uint flags) {
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags);
+    return transfer(cmd, dataaddr, size, off);
+}
 
-    wait_until_ready(ep);
-
-    return get_error();
+Errors::Code DTU::write(int ep, const void *data, size_t size, size_t off, uint flags) {
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags);
+    return transfer(cmd, dataaddr, size, off);
 }
 
 }

@@ -47,6 +47,7 @@ private:
     static const size_t EP_REGS             = 3;
 
     static const size_t CREDITS_UNLIM       = 0xFFFF;
+    static const size_t MAX_PKT_SIZE        = 1024;
 
     enum class DtuRegs {
         STATUS              = 0,
@@ -96,11 +97,12 @@ private:
     };
 
     enum class ExtCmdOpCode {
-        WAKEUP_CORE         = 0,
-        INV_PAGE            = 1,
-        INV_TLB             = 2,
-        INV_CACHE           = 3,
-        INJECT_IRQ          = 4,
+        IDLE                = 0,
+        WAKEUP_CORE         = 1,
+        INV_PAGE            = 2,
+        INV_TLB             = 3,
+        INV_CACHE           = 4,
+        INJECT_IRQ          = 5,
     };
 
 public:
@@ -264,6 +266,8 @@ public:
     }
 
 private:
+    Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, size_t off);
+
     void do_ack(int ep) {
         // ensure that we are really done with the message before acking it
         Sync::memory_barrier();
