@@ -141,6 +141,8 @@ USED void Heap::free(void *p) {
 
     /* get area and the one behind */
     Area *a = backwards(reinterpret_cast<Area*>(p), sizeof(Area));
+    if((a->next & USED_BIT) != USED_BIT)
+        PANIC("Used bits not set for " << p << "; double free?");
     a->next &= ~USED_BIT;
     Area *n = forward(a, a->next);
 

@@ -55,7 +55,7 @@ class Heap {
         word_t prev;
     } PACKED;
 
-    static const word_t USED_BIT    = 1UL << (sizeof(word_t) * 8 - 1);
+    static const word_t USED_BIT    = 0x5UL << (sizeof(word_t) * 8 - 3);
     static const size_t ALIGN       = sizeof(Area);
 
 public:
