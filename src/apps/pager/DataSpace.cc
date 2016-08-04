@@ -74,14 +74,7 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
     // if it isn't backed with memory yet, allocate memory for it
     if(!reg->has_mem()) {
         // don't allocate too much at once
-        if(reg->size() > MAX_PAGES * PAGE_SIZE) {
-            uintptr_t end = reg->offset() + reg->size();
-            if(offset > (MAX_PAGES / 2) * PAGE_SIZE)
-                reg->offset(m3::Math::max(reg->offset(), offset - (MAX_PAGES / 2) * PAGE_SIZE));
-            else
-                reg->offset(0);
-            reg->size(m3::Math::min(MAX_PAGES * PAGE_SIZE, end - reg->offset()));
-        }
+        reg->limit_to(offset, MAX_PAGES);
 
         SLOG(PAGER, "Allocating anonymous memory for "
             << m3::fmt(reg->virt(), "p") << ".."
@@ -108,7 +101,8 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
 
 m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
     // find the region
-    Region *reg = _regs.pagefault(vaddr - addr());
+    size_t pfoff = m3::Math::round_dn(vaddr - addr(), PAGE_SIZE);
+    Region *reg = _regs.pagefault(pfoff);
 
     // if we don't have memory yet, request it
     if(!reg->has_mem()) {
@@ -118,8 +112,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
         // get memory caps for the region
         {
             size_t count = 1, blocks = 0;
-            auto args = m3::create_vmsg(id, offset + reg->offset(), count,
-                blocks, m3::M3FS::BYTE_OFFSET);
+            auto args = m3::create_vmsg(id, fileoff + pfoff, count, blocks, m3::M3FS::BYTE_OFFSET);
             m3::GateIStream resp = sess.obtain(1, crd, args);
             if(m3::Errors::last != m3::Errors::NO_ERROR)
                 return m3::Errors::last;
@@ -129,23 +122,36 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
             resp >> locs >> extended >> off;
         }
 
+        // first, resize the region to not be too large
+        reg->limit_to(pfoff, MAX_PAGES);
+
+        // now, align the region with the memory capability that we got
+        size_t capbegin = fileoff + pfoff - off;
+        // if it starts before the region, just remember this offset in the region
+        if(capbegin < fileoff + reg->offset())
+            reg->mem_offset(fileoff + reg->offset() - capbegin);
+        // otherwise, let the region start at the capability
+        else {
+            size_t old = reg->offset();
+            reg->offset(capbegin - fileoff);
+            reg->size(reg->size() - (old - reg->offset()));
+        }
+
+        // ensure that we don't exceed the memcap size
+        if(reg->mem_offset() + reg->size() > locs.get(0))
+            reg->size(m3::Math::round_up(locs.get(0) - reg->mem_offset(), PAGE_SIZE));
+
         // if it's writable, create a copy
         // TODO let the mapper decide what to do (for m3fs, we get direct access to the file's
         // data, so that we have to copy that. but maybe this is not always the case)
-        size_t sz = m3::Math::round_up(locs.get(0) - off, PAGE_SIZE);
         if(_flags & m3::DTU::PTE_W) {
             m3::MemGate src(m3::MemGate::bind(crd.start(), 0));
-            reg->mem(new PhysMem(_as->mem, addr(), sz, m3::MemGate::RWX));
-            copy_block(&src, reg->mem()->gate, off, sz);
-            off = 0;
+            reg->mem(new PhysMem(_as->mem, addr(), reg->size(), m3::MemGate::RWX));
+            copy_block(&src, reg->mem()->gate, reg->mem_offset(), reg->size());
+            reg->mem_offset(0);
         }
         else
             reg->mem(new PhysMem(_as->mem, addr(), crd.start()));
-
-        // adjust size and store offset of the stuff we want to map within that mem cap
-        if(sz < reg->size())
-            reg->size(sz);
-        reg->mem_offset(off);
 
         SLOG(PAGER, "Obtained memory for "
             << m3::fmt(reg->virt(), "p") << ".."

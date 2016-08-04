@@ -76,6 +76,7 @@ public:
     }
 
     uintptr_t virt() const;
+    void limit_to(size_t pos, size_t pages);
     m3::Errors::Code map(uint flags);
     void copy(m3::MemGate *mem, uintptr_t virt);
     void clear();

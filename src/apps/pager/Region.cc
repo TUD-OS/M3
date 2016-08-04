@@ -43,6 +43,17 @@ uintptr_t Region::virt() const {
     return _ds->addr() + _offset;
 }
 
+void Region::limit_to(size_t pos, size_t pages) {
+    if(size() > pages * PAGE_SIZE) {
+        uintptr_t end = offset() + size();
+        if(pos > (pages / 2) * PAGE_SIZE)
+            offset(m3::Math::max(offset(), pos - (pages / 2) * PAGE_SIZE));
+        else
+            offset(0);
+        size(m3::Math::min(pages * PAGE_SIZE, end - offset()));
+    }
+}
+
 m3::Errors::Code Region::map(uint flags) {
     if(has_mem()) {
         return m3::Syscalls::get().createmap(_ds->addrspace()->vpe.sel(), mem()->gate->sel(),

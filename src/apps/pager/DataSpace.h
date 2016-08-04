@@ -94,26 +94,28 @@ public:
 
 class ExternalDataSpace : public DataSpace {
 public:
+    static constexpr size_t MAX_PAGES = 8;
+
     explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
-            size_t _offset, capsel_t sess)
-        : DataSpace(as, addr, size, flags), sess(sess), id(_id), offset(_offset) {
+            size_t _fileoff, capsel_t sess)
+        : DataSpace(as, addr, size, flags), sess(sess), id(_id), fileoff(_fileoff) {
     }
     explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
-            size_t _offset)
+            size_t _fileoff)
         : DataSpace(as, addr, size, flags), sess(m3::VPE::self().alloc_cap()),
-          id(_id), offset(_offset) {
+          id(_id), fileoff(_fileoff) {
     }
 
     const char *type() const override {
         return "External";
     }
     DataSpace *clone(AddrSpace *as) override {
-        return new ExternalDataSpace(as, addr(), size(), _flags, id, offset, sess.sel());
+        return new ExternalDataSpace(as, addr(), size(), _flags, id, fileoff, sess.sel());
     }
 
     m3::Errors::Code handle_pf(uintptr_t vaddr) override;
 
     m3::Session sess;
     int id;
-    size_t offset;
+    size_t fileoff;
 };
