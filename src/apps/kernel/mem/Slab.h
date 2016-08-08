@@ -34,7 +34,11 @@ class Slab : public m3::SListItem {
     };
 
 public:
+#if defined(__t2__)
+    static const size_t STEP_SIZE   = 8;
+#else
     static const size_t STEP_SIZE   = 64;
+#endif
 
     static Slab *get(size_t objsize);
 
