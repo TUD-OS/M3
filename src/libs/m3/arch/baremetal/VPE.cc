@@ -100,7 +100,7 @@ Errors::Code VPE::run(void *lambda) {
     Heap::free(buffer);
 
     /* go! */
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
+    return start();
 }
 
 Errors::Code VPE::exec(Executable &exec) {
@@ -165,7 +165,7 @@ Errors::Code VPE::exec(Executable &exec) {
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, nullptr);
+    return start();
 }
 
 void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {

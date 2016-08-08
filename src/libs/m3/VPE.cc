@@ -88,6 +88,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager)
 
 VPE::~VPE() {
     if(this != &_self) {
+        stop();
         delete _pager;
         // unarm it first. we can't do that after revoke (which would be triggered by the Gate destructor)
         EPMux::get().remove(&_mem, true);
@@ -187,6 +188,14 @@ Errors::Code VPE::revoke(const CapRngDesc &crd, bool delonly) {
 Errors::Code VPE::exec(int argc, const char **argv) {
     Executable e(argc, argv);
     return exec(e);
+}
+
+Errors::Code VPE::start() {
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, NULL);
+}
+
+Errors::Code VPE::stop() {
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, 0, NULL);
 }
 
 int VPE::wait() {

@@ -64,6 +64,13 @@ void VPE::unref() {
         PEManager::get().remove(id(), _flags & DAEMON);
 }
 
+void VPE::stop() {
+    if(_state == RUNNING) {
+        exit(1);
+        unref();
+    }
+}
+
 void VPE::exit(int exitcode) {
     DTU::get().invalidate_eps(desc(), m3::DTU::FIRST_FREE_EP);
     detach_rbufs(false);

@@ -76,6 +76,7 @@ struct KIF {
 
         enum VPECtrl {
             VCTRL_START,
+            VCTRL_STOP,
             VCTRL_WAIT,
         };
     };

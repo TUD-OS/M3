@@ -82,6 +82,7 @@ public:
     void unref();
 
     void start(int argc, char **argv, int pid);
+    void stop();
     void exit(int exitcode);
 
     void init();

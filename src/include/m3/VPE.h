@@ -254,6 +254,20 @@ public:
     Errors::Code revoke(const CapRngDesc &crd, bool delonly = false);
 
     /**
+     * Starts the VPE, i.e., prepares the PE for execution and wakes it up.
+     *
+     * @return the error if any occurred
+     */
+    Errors::Code start();
+
+    /**
+     * Stops the VPE, i.e., if it is running, the execution is stopped.
+     *
+     * @return the error if any occurred
+     */
+    Errors::Code stop();
+
+    /**
      * Waits until the currently executing program on this VPE is finished
      *
      * @return the exitcode

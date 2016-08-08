@@ -492,6 +492,11 @@ void SyscallHandler::vpectrl(GateIStream &is) {
             reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
             break;
 
+        case m3::KIF::Syscall::VCTRL_STOP:
+            vpecap->vpe->stop();
+            reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
+            break;
+
         case m3::KIF::Syscall::VCTRL_WAIT:
             if(vpecap->vpe->state() == VPE::DEAD)
                 reply_vmsg(is.gate(), m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
