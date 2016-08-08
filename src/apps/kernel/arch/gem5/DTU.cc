@@ -74,10 +74,14 @@ void DTU::unset_vpeid(const VPEDesc &vpe) {
 }
 
 void DTU::wakeup(const VPEDesc &vpe) {
-    // write the core id to the PE
-    uint64_t id = vpe.core;
-    m3::Sync::compiler_barrier();
-    write_mem(vpe, RT_START, &id, sizeof(id));
+    // only programmable cores use libm3 and thus need the core id
+    // TODO actually, libm3 should write that, not the kernel; but libm3 doesn't know the coreid atm
+    if(Platform::pe(vpe.id).is_programmable()) {
+        // write the core id to the PE
+        uint64_t id = vpe.core;
+        m3::Sync::compiler_barrier();
+        write_mem(vpe, RT_START, &id, sizeof(id));
+    }
 
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE));
 }

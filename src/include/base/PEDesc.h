@@ -85,6 +85,13 @@ struct PEDesc {
         return static_cast<PEISA>((_value >> 3) & 0x3);
     }
     /**
+     * @return if the PE has a core that is programmable
+     */
+    bool is_programmable() const {
+        return isa() == PEISA::X86 || isa() == PEISA::XTENSA;
+    }
+
+    /**
      * @return the memory size (for type() == COMP_IMEM | MEM)
      */
     size_t mem_size() const {

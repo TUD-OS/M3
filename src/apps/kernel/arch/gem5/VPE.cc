@@ -280,7 +280,8 @@ void VPE::init_memory(const char *name) {
         DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
     }
 
-    map_idle(*this);
+    if(Platform::pe(core()).is_programmable())
+        map_idle(*this);
 
     if(vm) {
         // map receive buffer
