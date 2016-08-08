@@ -265,6 +265,7 @@ public:
      *
      * @param argc the number of arguments to pass to the program
      * @param argv the arguments to pass (argv[0] is the executable)
+     * @return the error if any occurred
      */
     Errors::Code exec(int argc, const char **argv);
 
@@ -272,6 +273,7 @@ public:
      * Executes the given executable on this VPE.
      *
      * @param exec the executable to run
+     * @return the error if any occurred
      */
     Errors::Code exec(Executable &exec);
 
