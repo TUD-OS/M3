@@ -46,8 +46,9 @@ for i in range(0, num_mem):
 
 pe = createHashAccelPE(root=root,
                    options=options,
-                   no = num_pes + num_mem,
-                   spmsize='64kB')
+                   no=num_pes + num_mem,
+                   memPE=mem_pe,
+                   l1size='64kB')
 pes.append(pe)
 
 # pes[1].dtu.watch_range_start  = 0x43d2ff0
