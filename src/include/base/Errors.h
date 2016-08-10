@@ -30,6 +30,8 @@ struct Errors {
         VPE_GONE,
         PAGEFAULT,
         NO_MAPPING,
+        ABORT,
+        VPEID_INVALID,
         // SW errors
         INV_ARGS,
         OUT_OF_MEM,
