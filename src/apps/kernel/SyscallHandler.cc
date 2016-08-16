@@ -612,11 +612,10 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngD
         return m3::Errors::INV_ARGS;
     }
 
-    // TODO maybe we want to support MAP later
-    assert(c1.type() == m3::CapRngDesc::OBJ);
+    // TODO exchange map caps doesn't really work yet, because they might have a length > 1
 
-    CapTable &srctab = src.objcaps();
-    CapTable &dsttab = dst.objcaps();
+    CapTable &srctab = c1.type() == m3::CapRngDesc::OBJ ? src.objcaps() : src.mapcaps();
+    CapTable &dsttab = c1.type() == m3::CapRngDesc::OBJ ? dst.objcaps() : dst.mapcaps();
     for(uint i = 0; i < c2.count(); ++i) {
         capsel_t srccap = srcrng.start() + i;
         capsel_t dstcap = dstrng.start() + i;

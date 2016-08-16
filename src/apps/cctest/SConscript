@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'cctest', env.Glob('*.cc'))

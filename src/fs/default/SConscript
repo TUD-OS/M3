@@ -9,6 +9,8 @@ env.M3Strip('$FSDIR/default/bin/bench-syscall', '$BINARYDIR/bench-syscall')
 env.M3Strip('$FSDIR/default/bin/bench-pagefaults', '$BINARYDIR/bench-pagefaults')
 env.M3Strip('$FSDIR/default/bin/bench-vpes', '$BINARYDIR/bench-vpes')
 env.M3Strip('$FSDIR/default/bin/cat', '$BINARYDIR/cat')
+if env['ARCH'] == 'gem5':
+    env.M3Strip('$FSDIR/default/bin/cctest', '$BINARYDIR/cctest')
 env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
 env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
 env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')

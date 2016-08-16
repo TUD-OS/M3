@@ -55,7 +55,7 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
     size_t left = size;
     while(left > 0) {
         size_t amount = Math::min<size_t>(left, MAX_PKT_SIZE);
-        DTU::write_reg(CmdRegs::DATA_ADDR, data);
+        write_reg(CmdRegs::DATA_ADDR, data);
         write_reg(CmdRegs::DATA_SIZE, amount);
         write_reg(CmdRegs::OFFSET, off);
         Sync::compiler_barrier();

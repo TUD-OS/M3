@@ -43,7 +43,7 @@ public:
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
     static const size_t DTU_REGS            = 8;
-    static const size_t CMD_REGS            = 6;
+    static const size_t CMD_REGS            = 7;
     static const size_t EP_REGS             = 3;
 
     static const size_t CREDITS_UNLIM       = 0xFFFF;
@@ -62,11 +62,12 @@ private:
 
     enum class CmdRegs {
         COMMAND             = 8,
-        DATA_ADDR           = 9,
-        DATA_SIZE           = 10,
-        OFFSET              = 11,
-        REPLY_EP            = 12,
-        REPLY_LABEL         = 13,
+        ABORT               = 9,
+        DATA_ADDR           = 10,
+        DATA_SIZE           = 11,
+        OFFSET              = 12,
+        REPLY_EP            = 13,
+        REPLY_LABEL         = 14,
     };
 
     enum MemFlags : reg_t {
@@ -135,6 +136,11 @@ public:
         PTE_IRWX            = PTE_RWX | PTE_I,
     };
 
+    enum {
+        ABORT_VPE           = 1,
+        ABORT_CMD           = 2,
+    };
+
     struct Header {
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
         uint8_t senderCoreId;
@@ -195,6 +201,11 @@ public:
     Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
         // TODO unsupported
         return Errors::NO_ERROR;
+    }
+
+    void abort(uint flags) {
+        write_reg(CmdRegs::ABORT, flags);
+        wait_until_ready(0);
     }
 
     bool is_valid(int epid) const {
