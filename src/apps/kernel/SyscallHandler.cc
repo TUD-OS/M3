@@ -25,7 +25,7 @@
 #include "com/RecvBufs.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
-#include "RecvBufs.h"
+#include "com/RecvBufs.h"
 #include "ContextSwitcher.h"
 
 // #define SIMPLE_SYSC_LOG
@@ -808,32 +808,32 @@ void SyscallHandler::noop(GateIStream &is) {
     reply_vmsg(is.gate(), 0);
 }
 
-void SyscallHandler::tmuxswitch(RecvGate &gate, GateIStream &is) {
+void SyscallHandler::tmuxswitch(GateIStream &is) {
 
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, "syscall::tmuxswitch()", "(" << vpe->name() << ")");
 
     ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
     if (ctxswitcher) {
-        KVPE *newvpe = ctxswitcher->switch_next();
+        VPE *newvpe = ctxswitcher->switch_next();
 
         if (newvpe) {
             ReplyInfo rinfo(is.message());
-            newvpe->subscribe_resume([vpe, is, rinfo] (bool, Subscriber<bool> *) {
-                StaticGateOStream<ostreamsize<Errors::Code>()> os;
-                os << Errors::NO_ERROR;
+            newvpe->subscribe_resume([vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
+                StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
+                os << m3::Errors::NO_ERROR;
                 reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
                 });
             return;
         }
     }
 
-    reply_vmsg(gate, Errors::NOT_SUP);
+    reply_vmsg(is.gate(), m3::Errors::NOT_SUP);
 }
 
-void SyscallHandler::tmuxresume(RecvGate &gate, GateIStream&) {
+void SyscallHandler::tmuxresume(GateIStream &is) {
 
-    KVPE *vpe = gate.session<KVPE>();
+    VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, "syscall::tmuxresume", "(" << vpe->name() << ")");
 
     ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();

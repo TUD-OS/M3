@@ -43,6 +43,9 @@ public:
 
     void deprivilege(int core);
 
+    void get_regs_state(int core, m3::DTU::reg_state_t *state);
+    void set_regs_state(const VPEDesc &vpe, m3::DTU::reg_state_t *state);
+
     void set_vpeid(const VPEDesc &vpe);
     void unset_vpeid(const VPEDesc &vpe);
 

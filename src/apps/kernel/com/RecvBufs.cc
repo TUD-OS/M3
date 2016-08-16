@@ -15,9 +15,10 @@
  */
 
 #include "com/RecvBufs.h"
+#include "RBuf.h"
 
 namespace kernel {
 
-RecvBufs::RBuf *RecvBufs::_rbufs;
+RBuf *RecvBufs::_rbufs;
 
 }

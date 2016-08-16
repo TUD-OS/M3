@@ -54,11 +54,12 @@ VPE::VPE()
         _fds->set(STDERR_FD, new SerialFile());
 }
 
-VPE::VPE(const String &name, const PEDesc &pe, const char *pager)
+VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _pager(), _ms(new MountSpace()), _fds(new FileTable()) {
+          _pager(), _ms(new MountSpace()), _fds(new FileTable()),
+          _tmuxable(tmuxable) {
     init();
 
     // create pager first, to create session and obtain gate cap
@@ -73,7 +74,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager)
 
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, _pager->gate().sel(), alloc_ep());
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, _pager->gate().sel(), alloc_ep(), tmuxable);
         // mark the pfgate cap allocated
         assert(!_caps->is_set(_pager->gate().sel()));
         _caps->set(_pager->gate().sel());
@@ -83,7 +84,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager)
         delegate_obj(_pager->sel());
     }
     else
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, ObjCap::INVALID, 0);
+        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, ObjCap::INVALID, 0, tmuxable);
 }
 
 VPE::~VPE() {

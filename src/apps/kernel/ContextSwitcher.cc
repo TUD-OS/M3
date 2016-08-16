@@ -14,22 +14,21 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
 #include <m3/RCTMux.h>
-#include <m3/util/Sync.h>
-#include <m3/Log.h>
-#include <m3/col/Treap.h>
+#include <base/log/Kernel.h>
+#include <base/col/Treap.h>
 
-#include "KDTU.h"
+#include "DTU.h"
+#include "pes/VPE.h"
 #include "ContextSwitcher.h"
 
-namespace m3 {
+namespace kernel {
 
 ContextSwitcher::ContextSwitcher(size_t core)
     : _core(core), _currtmuxvpe(nullptr)
 {
     assert(core > 0);
-    LOG(VPES, "Initialized context switcher for core " << core);
+    KLOG(VPES, "Initialized context switcher for core " << core);
 }
 
 void ContextSwitcher::finalize_switch() {
@@ -39,25 +38,25 @@ void ContextSwitcher::finalize_switch() {
     }
 
     alignas(DTU_PKG_SIZE) uint64_t flags = 0;
-    int vpeid = (_currtmuxvpe) ? _currtmuxvpe->id() : KVPE::INVALID_ID;
+    int vpeid = (_currtmuxvpe) ? _currtmuxvpe->id() : VPE::INVALID_ID;
     send_flags(_core, vpeid, &flags);
 }
 
 void ContextSwitcher::send_flags(int core, int vpeid, const uint64_t *flags) {
-    KDTU::get().write_mem_at(core, vpeid, RCTMUX_FLAGS, flags, sizeof(*flags));
+    DTU::get().write_mem(VPEDesc(core, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 
 void ContextSwitcher::recv_flags(int core, int vpeid, uint64_t *flags) {
-    KDTU::get().read_mem_at(core, vpeid, RCTMUX_FLAGS, flags, sizeof(*flags));
+    DTU::get().read_mem(VPEDesc(core, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 
-void ContextSwitcher::switch_to(KVPE *to) {
+void ContextSwitcher::switch_to(VPE *to) {
 
-    LOG(VPES, "TMux: Switching from " << _currtmuxvpe << " to " << to);
+    KLOG(VPES, "TMux: Switching from " << _currtmuxvpe << " to " << to);
 
     if (_currtmuxvpe == to) {
         // nothing to be done
-        LOG(VPES, "TMux: Ignoring switch request with old == new VPE");
+        KLOG(VPES, "TMux: Ignoring switch request with old == new VPE");
         return;
     }
 
@@ -68,21 +67,21 @@ void ContextSwitcher::switch_to(KVPE *to) {
         // -- Initialization --
 
         int core  = _currtmuxvpe->core();
-        int vpeid = KVPE::INVALID_ID;
+        int vpeid = VPE::INVALID_ID;
 
         _currtmuxvpe->suspend();
-        KDTU::get().unset_vpeid(core, _currtmuxvpe->id());
+        DTU::get().unset_vpeid(VPEDesc(core, _currtmuxvpe->id()));
 
-        alignas(DTU_PKG_SIZE) uint64_t ctrl = RCTMUXCtrlFlag::STORE;
+        alignas(DTU_PKG_SIZE) uint64_t ctrl = m3::RCTMUXCtrlFlag::STORE;
         recv_flags(core, vpeid, &ctrl);
-        ctrl = RCTMUXCtrlFlag::STORE;
-        if (to && to->state() == KVPE::SUSPENDED)
-            ctrl |= RCTMUXCtrlFlag::RESTORE;
+        ctrl = m3::RCTMUXCtrlFlag::STORE;
+        if (to && to->state() == VPE::SUSPENDED)
+            ctrl |= m3::RCTMUXCtrlFlag::RESTORE;
         send_flags(core, vpeid, &ctrl);
 
         // -- Storage --
 
-        KDTU::get().injectIRQ(core, vpeid);
+        DTU::get().injectIRQ(VPEDesc(core, vpeid));
 
         // wait for rctmux to be initialized - this should only take a few
         // cycles so we can busy wait here; we limit the maximal amount
@@ -93,7 +92,7 @@ void ContextSwitcher::switch_to(KVPE *to) {
         }
 
         if (!timeout_counter) {
-            LOG(VPES, "TMux: rctmux at core " << _currtmuxvpe->core() << " timed out");
+            KLOG(VPES, "TMux: rctmux at core " << _currtmuxvpe->core() << " timed out");
             // FIXME: how to handle this best? disable time multiplexing?
             return;
         }
@@ -104,19 +103,19 @@ void ContextSwitcher::switch_to(KVPE *to) {
         store_dtu_state(_currtmuxvpe);
         attach_storage(_currtmuxvpe, to);
 
-        LOG(VPES, "FOOO: " << (uint64_t)_currtmuxvpe->address_space()->root_pt());
+        KLOG(VPES, "FOOO: " << (uint64_t)_currtmuxvpe->address_space()->root_pt());
 
         if(to) {
-            LOG(VPES, "FOO2: " << (uint64_t)to->address_space()->root_pt());
+            KLOG(VPES, "FOO2: " << (uint64_t)to->address_space()->root_pt());
             restore_dtu_state(to);
-            //KDTU::get().set_vpeid(core, to->id());
-            //KDTU::get().config_pf_remote(*to, DTU::SYSC_EP);
+            //DTU::get().set_vpeid(core, to->id());
+            //DTU::get().config_pf_remote(*to, DTU::SYSC_EP);
             vpeid = to->id();
             //to->wakeup();
         }
 
         // 'finished' notification of RCTMux
-        ctrl = (ctrl | RCTMUXCtrlFlag::SIGNAL) ^ RCTMUXCtrlFlag::SIGNAL;
+        ctrl = (ctrl | m3::RCTMUXCtrlFlag::SIGNAL) ^ m3::RCTMUXCtrlFlag::SIGNAL;
         send_flags(core, vpeid, &ctrl);
     }
 

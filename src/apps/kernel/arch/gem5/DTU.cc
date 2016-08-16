@@ -64,6 +64,19 @@ void DTU::deprivilege(int core) {
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
+void DTU::get_regs_state(int core, m3::DTU::reg_state_t *state) {
+    read_mem(VPEDesc(core, VPE::INVALID_ID), m3::DTU::BASE_ADDR, state, sizeof(*state));
+}
+
+void DTU::set_regs_state(const VPEDesc &vpe, m3::DTU::reg_state_t *state) {
+    // FIXME
+    m3::DTU::reg_t *regs = reinterpret_cast<m3::DTU::reg_t*>(state);
+    regs[(int)m3::DTU::DtuRegs::EXT_CMD] = 0;
+    regs[(int)m3::DTU::DtuRegs::VPE_ID] = vpe.id;
+    m3::Sync::compiler_barrier();
+    write_mem(vpe, m3::DTU::BASE_ADDR, state, sizeof(*state));
+}
+
 void DTU::set_vpeid(const VPEDesc &vpe) {
     // currently, the invalid ID is still set, so specify that
     do_set_vpeid(VPEDesc(vpe.core, VPE::INVALID_ID), vpe.id);

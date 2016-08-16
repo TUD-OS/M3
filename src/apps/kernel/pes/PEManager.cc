@@ -163,11 +163,10 @@ VPE *PEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t
     // a pager without virtual memory support, doesn't work
     if(!Platform::pe(i).has_virtmem() && pfgate != m3::KIF::INV_SEL)
         return nullptr;
-    }
 
 #if defined(__t3__) || defined(__gem5__)
     if(tmuxable) {
-        LOG(VPES, "Creating tmuxable VPE at core " << i);
+        KLOG(VPES, "Creating tmuxable VPE at core " << i);
         if(!_ctxswitcher) {
             _ctxswitcher = new ContextSwitcher(i);
         } else {
@@ -178,7 +177,7 @@ VPE *PEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t
 #endif
 
 
-    _vpes[i] = new KVPE(std::move(name), i, false, ep, pfgate, tmuxable);
+    _vpes[i] = new VPE(std::move(name), i, false, ep, pfgate, tmuxable);
 
 #if defined(__t3__) || defined(__gem5__)
     if (tmuxable) {

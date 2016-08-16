@@ -53,7 +53,7 @@ public:
     static const uint16_t INVALID_ID = 0xFFFF;
 
     // FIXME test
-    alignas(DTU_PKG_SIZE) DTU::reg_state_t dtu_state;
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_state_t dtu_state;
 
     enum State {
         RUNNING,
@@ -100,7 +100,7 @@ public:
     void suspend() {
         _state = SUSPENDED;
         save_rbufs();
-        detach_rbufs();
+        detach_rbufs(true);
     }
 
     void resume() {

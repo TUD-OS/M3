@@ -16,17 +16,17 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/Subscriber.h>
+#include <base/Common.h>
+#include <base/util/Subscriber.h>
 
-namespace m3 {
+namespace kernel {
 
 struct RBuf {
     uintptr_t addr;
     int order;
     int msgorder;
     int flags;
-    Subscriptions<bool> waitlist;
+    m3::Subscriptions<bool> waitlist;
 };
 
 }

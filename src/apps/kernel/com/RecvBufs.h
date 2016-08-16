@@ -87,12 +87,12 @@ public:
         notify(rbuf, false);
     }
 
-    static void get_vpe_rbufs(KVPE &vpe, RBuf (&bufs)[EP_COUNT]) {
-        memcpy(&_rbufs[(vpe.core() - APP_CORES) * EP_COUNT], &bufs, EP_COUNT * sizeof(RBuf));
+    static void get_vpe_rbufs(VPE &vpe, RBuf (&bufs)[EP_COUNT]) {
+        memcpy(&_rbufs[vpe.core() * EP_COUNT], &bufs, EP_COUNT * sizeof(RBuf));
     }
 
-    static void set_vpe_rbufs(KVPE &vpe, RBuf (&bufs)[EP_COUNT]) {
-        memcpy(&bufs, &_rbufs[(vpe.core() - APP_CORES) * EP_COUNT], EP_COUNT * sizeof(RBuf));
+    static void set_vpe_rbufs(VPE &vpe, RBuf (&bufs)[EP_COUNT]) {
+        memcpy(&bufs, &_rbufs[vpe.core() * EP_COUNT], EP_COUNT * sizeof(RBuf));
         for(size_t i = 0; i < EP_COUNT; ++i) {
             RBuf &rbuf = get(vpe.core(), i);
             configure(vpe, i, rbuf);

@@ -32,9 +32,9 @@ VPE::VPEId::~VPEId() {
     DTU::get().unset_vpeid(desc);
 }
 
-VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate)
+VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate, bool tmuxable)
     : _id(id, id), _flags(bootmod ? BOOTMOD : 0),
-      _refs(0), _pid(), _state(DEAD), _exitcode(), _name(std::move(prog)),
+      _refs(0), _pid(), _state(DEAD), _exitcode(), _tmuxable(tmuxable), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _eps(),
@@ -42,7 +42,8 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate)
       _srvgate(SyscallHandler::get().srvepid(), nullptr),
       _as(Platform::pe(core()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
-      _exitsubscr() {
+      _exitsubscr(),
+      _resumesubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, MEMCAP_END, m3::KIF::Perm::RWX, core(), id, 0));
 
@@ -82,6 +83,15 @@ void VPE::exit(int exitcode) {
         _exitsubscr.unsubscribe(&*cur);
     }
 }
+
+void VPE::save_rbufs() {
+    RecvBufs::get_vpe_rbufs(*this, _saved_rbufs);
+}
+
+void VPE::restore_rbufs() {
+    RecvBufs::set_vpe_rbufs(*this, _saved_rbufs);
+}
+
 
 void VPE::detach_rbufs(bool all) {
     for(size_t c = 0; c < EP_COUNT; ++c) {

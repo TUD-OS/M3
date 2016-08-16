@@ -14,29 +14,29 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
+#include <base/Config.h>
 #include <m3/RCTMux.h>
 
-#include "../../KVPE.h"
-#include "../../KDTU.h"
+#include "../../pes/VPE.h"
+#include "../../DTU.h"
 #include "../../ContextSwitcher.h"
 
-namespace m3 {
+namespace kernel {
 
-void ContextSwitcher::store_dtu_state(KVPE *vpe) {
-    KDTU::get().get_regs_state(vpe->core(), &(vpe->dtu_state));
+void ContextSwitcher::store_dtu_state(VPE *vpe) {
+    DTU::get().get_regs_state(vpe->core(), &(vpe->dtu_state));
 }
 
-void ContextSwitcher::attach_storage(KVPE *curr_vpe, KVPE *next_vpe) {
+void ContextSwitcher::attach_storage(VPE *curr_vpe, VPE *next_vpe) {
     // drop all current endpoints at remote dtu and attach
     // the storage memories
     // TODO
 }
 
-void ContextSwitcher::restore_dtu_state(KVPE *vpe) {
+void ContextSwitcher::restore_dtu_state(VPE *vpe) {
     // restore dtu state
     // TODO
-    KDTU::get().set_regs_state(vpe->core(), vpe->id(), &(vpe->dtu_state));
+    DTU::get().set_regs_state(VPEDesc(vpe->core(), vpe->id()), &(vpe->dtu_state));
 }
 
 } /* namespace m3 */

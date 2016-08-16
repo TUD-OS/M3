@@ -16,21 +16,21 @@
 
 #pragma once
 
-#include <m3/Config.h>
-#include <m3/col/SList.h>
+#include <base/Config.h>
+#include <base/col/SList.h>
 
-#include "KVPE.h"
+#include "pes/VPE.h"
 
-namespace m3 {
+namespace kernel {
 
 class ContextSwitcher {
 
-    struct TMuxVPE : public SListItem {
-        explicit TMuxVPE(KVPE *_vpe)
+    struct TMuxVPE : public m3::SListItem {
+        explicit TMuxVPE(VPE *_vpe)
             : vpe(_vpe) {
         }
 
-        KVPE *vpe;
+        VPE *vpe;
     };
 
 public:
@@ -42,7 +42,7 @@ public:
         }
     }
 
-   void assign(KVPE *tmuxvpe, bool switch_now = false) {
+   void assign(VPE *tmuxvpe, bool switch_now = false) {
         if (_tmuxvpes.length() == 0) {
             _tmuxvpes.append(new TMuxVPE(tmuxvpe));
             _tmuxvpeit = _tmuxvpes.begin();
@@ -54,7 +54,7 @@ public:
             switch_next();
     }
 
-    KVPE* switch_next() {
+    VPE* switch_next() {
         if (_tmuxvpes.length() > 0) {
             _tmuxvpeit++;
             if (_tmuxvpeit == _tmuxvpes.end())
@@ -72,20 +72,20 @@ public:
         return _core;
     }
 
-    void switch_to(KVPE *to);
+    void switch_to(VPE *to);
  
 private:
     void send_flags(int core, int vpeid, const uint64_t *flags);
     void recv_flags(int core, int vpeid, uint64_t *flags);
-    void store_dtu_state(KVPE *vpe);
-    void attach_storage(KVPE *curr_vpe, KVPE *next_vpe);
-    void restore_dtu_state(KVPE *vpe);
+    void store_dtu_state(VPE *vpe);
+    void attach_storage(VPE *curr_vpe, VPE *next_vpe);
+    void restore_dtu_state(VPE *vpe);
 
 private:
     size_t _core;
-    SList<TMuxVPE> _tmuxvpes;
-    SListIterator<TMuxVPE> _tmuxvpeit;
-    KVPE *_currtmuxvpe;
+    m3::SList<TMuxVPE> _tmuxvpes;
+    m3::SList<TMuxVPE>::iterator _tmuxvpeit;
+    VPE *_currtmuxvpe;
 };
 
 }

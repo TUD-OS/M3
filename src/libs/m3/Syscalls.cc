@@ -171,15 +171,13 @@ USED void Syscalls::exit(int exitcode) {
 }
 
 Errors::Code Syscalls::tmuxswitch() {
-    LOG(SYSC, "tmuxswitch()");
-    return finish(send_receive_vmsg(_gate, TMUXSWITCH));
+    LLOG(SYSC, "tmuxswitch()");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::TMUXSWITCH));
 }
 
 void Syscalls::tmuxresume() {
-    LOG(SYSC, "tmuxresume()");
-    send_vmsg(_gate, TMUXRESUME); // non-blocking
-}
-
+    LLOG(SYSC, "tmuxresume()");
+    send_vmsg(_gate, KIF::Syscall::TMUXRESUME); // non-blocking
 }
 
 }
