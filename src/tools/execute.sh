@@ -149,6 +149,9 @@ build_params_gem5() {
     if [ "$M3_PAUSE_PE" != "" ]; then
         echo -n " --pausepe=$M3_PAUSE_PE" >> $params
     fi
+    if [ "$M3_GEM5_CC" != "" ]; then
+        echo -n " --coherent" >> $params
+    fi
 
     export M5_PATH=$build
     if [ "$DBG_GEM5" != "" ]; then
