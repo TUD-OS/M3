@@ -14,11 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Config.h>
+#include <base/Common.h>
+#include <base/Config.h>
+
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
-#include <m3/Log.h>
+
 #include <libgen.h>
 
 using namespace m3;
@@ -26,34 +28,32 @@ using namespace m3;
 alignas(DTU_PKG_SIZE) static char buffer[DRAM_FILENAME_LEN];
 
 int main(int argc, char **argv) {
-    if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <file>...\n";
-        return 1;
-    }
+    if(argc < 2)
+        exitmsg("Usage: " << argv[0] << " <file>...");
 
     MemGate mem = MemGate::create_global_for(DRAM_FILE_AREA, DRAM_FILE_AREA_LEN, MemGate::RW);
     if(Errors::last != Errors::NO_ERROR)
-        PANIC("Unable to request DRAM_BLOCKNO memory");
+        exitmsg("Unable to request DRAM_BLOCKNO memory");
 
     for(int i = 1; i < argc; ++i) {
         if(strlen(argv[i]) + 1 > DRAM_FILENAME_LEN) {
-            Serial::get() << "Filename too long: " << argv[i] << "\n";
+            cout << "Filename too long: " << argv[i] << "\n";
             continue;
         }
 
         FileInfo info;
         if(VFS::stat(argv[i], info) != Errors::NO_ERROR) {
-            Serial::get() << "Unable to stat '" << argv[i] << "': "
+            cout << "Unable to stat '" << argv[i] << "': "
                 << Errors::to_string(Errors::last) << "\n";
             continue;
         }
 
         if(info.extents != 1) {
-            Serial::get() << info.extents << " extents are not supported.\n";
+            cout << info.extents << " extents are not supported.\n";
             continue;
         }
 
-        Serial::get() << "Sending '" << argv[i] << "' to host...\n";
+        cout << "Sending '" << argv[i] << "' to host...\n";
 
         memset(buffer, 0, sizeof(buffer));
         strcpy(buffer, basename(argv[i]));
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
         while(bno != 0)
             mem.read_sync(&bno, sizeof(bno), DRAM_BLOCKNO);
 
-        Serial::get() << "Done!\n";
+        cout << "Done!\n";
     }
     return 0;
 }

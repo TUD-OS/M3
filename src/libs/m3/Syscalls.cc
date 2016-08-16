@@ -14,15 +14,17 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/tracing/Tracing.h>
+#include <base/log/Lib.h>
+#include <base/tracing/Tracing.h>
+#include <base/Errors.h>
+#include <base/Init.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/Errors.h>
-#include <m3/Log.h>
 
 namespace m3 {
 
-Syscalls Syscalls::_inst INIT_PRIORITY(108);
+INIT_PRIO_SYSC Syscalls Syscalls::_inst;
 
 Errors::Code Syscalls::finish(GateIStream &&reply) {
     if(reply.error())
@@ -32,126 +34,140 @@ Errors::Code Syscalls::finish(GateIStream &&reply) {
 }
 
 void Syscalls::noop() {
-    send_receive_vmsg(_gate, NOOP);
+    send_receive_vmsg(_gate, KIF::Syscall::NOOP);
 }
 
 Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
-    LOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
-    return finish(send_receive_vmsg(_gate, ACTIVATE, ep, oldcap, newcap));
+    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::ACTIVATE, ep, oldcap, newcap));
 }
 
 Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name) {
-    LOG(SYSC, "createsrv(gate=" << gate << ", srv=" << srv << ", name=" << name << ")");
-    return finish(send_receive_vmsg(_gate, CREATESRV, gate, srv, name));
+    LLOG(SYSC, "createsrv(gate=" << gate << ", srv=" << srv << ", name=" << name << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATESRV, gate, srv, name));
+}
+
+Errors::Code Syscalls::createsessat(capsel_t srv, capsel_t sess, word_t ident) {
+    LLOG(SYSC, "createsessat(srv=" << srv << ", sess=" << sess << ", ident=" << fmt(ident, "0x") << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATESESSAT, srv, sess, ident));
 }
 
 Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args) {
-    LOG(SYSC, "createsess(vpe=" << vpe << ", cap=" << cap << ", name=" << name
+    LLOG(SYSC, "createsess(vpe=" << vpe << ", cap=" << cap << ", name=" << name
         << ", argc=" << args.total() << ")");
     AutoGateOStream msg(vostreamsize(
-        ostreamsize<Operation, capsel_t, capsel_t, size_t>(), name.length(), args.total()));
-    msg << CREATESESS << vpe << cap << name;
+        ostreamsize<KIF::Syscall::Operation, capsel_t, capsel_t, size_t>(), name.length(), args.total()));
+    msg << KIF::Syscall::CREATESESS << vpe << cap << name;
     msg.put(args);
     return finish(send_receive_msg(_gate, msg.bytes(), msg.total()));
 }
 
 Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits) {
-    LOG(SYSC, "creategate(vpe=" << vpe << ", dst=" << dst << ", label=" << fmt(label, "#x")
+    LLOG(SYSC, "creategate(vpe=" << vpe << ", dst=" << dst << ", label=" << fmt(label, "#x")
         << ", ep=" << ep << ", credits=" << credits << ")");
-    return finish(send_receive_vmsg(_gate, CREATEGATE, vpe, dst, label, ep, credits));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATEGATE, vpe, dst, label, ep, credits));
 }
 
 Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms) {
-    LOG(SYSC, "createmap(vpe=" << vpe << ", mem=" << mem << ", first=" << first
+    LLOG(SYSC, "createmap(vpe=" << vpe << ", mem=" << mem << ", first=" << first
         << ", pages=" << pages << ", dst=" << dst << ", perms=" << perms << ")");
-    return finish(send_receive_vmsg(_gate, CREATEMAP, vpe, mem, first, pages, dst, perms));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATEMAP, vpe, mem, first, pages, dst, perms));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core,
-        capsel_t gate, size_t ep, bool tmuxable) {
-    LOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
-        << ", core=" << core << ", pfgate=" << gate << ", pfep=" << ep
-        << ", tmuxable" << tmuxable << ")");
-    return finish(send_receive_vmsg(_gate, CREATEVPE, vpe, mem, name, core, gate, ep, tmuxable));
+Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable) {
+    LLOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
+        << ", type=" << static_cast<int>(pe.type()) << ", pfgate=" << gate <<
+        ", pfep=" << ep << ", tmuxable=" << tmuxable << ")");
+    GateIStream reply = send_receive_vmsg(_gate, KIF::Syscall::CREATEVPE,
+        vpe, mem, name, pe.value(), gate, ep, tmuxable);
+    if(reply.error())
+        return reply.error();
+    reply >> Errors::last;
+    if(Errors::last == Errors::NO_ERROR) {
+        PEDesc::value_t peval;
+        reply >> peval;
+        pe = PEDesc(peval);
+    }
+    return Errors::last;
 }
 
 Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags) {
-    LOG(SYSC, "attachrb(vpe=" << vpe << ", ep=" << ep << ", addr=" << fmt(addr, "p")
+    LLOG(SYSC, "attachrb(vpe=" << vpe << ", ep=" << ep << ", addr=" << fmt(addr, "p")
         << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x")
         << ", flags=" << fmt(flags, "x") << ")");
-    return finish(send_receive_vmsg(_gate, ATTACHRB, vpe, ep, addr, order, msgorder, flags));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::ATTACHRB, vpe, ep, addr, order, msgorder, flags));
 }
 
 Errors::Code Syscalls::detachrb(capsel_t vpe, size_t ep) {
-    LOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep << ")");
-    return finish(send_receive_vmsg(_gate, DETACHRB, vpe, ep));
+    LLOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::DETACHRB, vpe, ep));
 }
 
 Errors::Code Syscalls::exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain) {
-    LOG(SYSC, "exchange(vpe=" << vpe << ", own=" << own << ", other=" << other
+    LLOG(SYSC, "exchange(vpe=" << vpe << ", own=" << own << ", other=" << other
         << ", obtain=" << obtain << ")");
-    return finish(send_receive_vmsg(_gate, EXCHANGE, vpe, own, other, obtain));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::EXCHANGE, vpe, own, other, obtain));
 }
 
-Errors::Code Syscalls::vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode) {
-    LOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", pid=" << pid << ")");
-    GateIStream &&reply = send_receive_vmsg(_gate, VPECTRL, vpe, op, pid);
+Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPECtrl op, int pid, int *exitcode) {
+    LLOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", pid=" << pid << ")");
+    GateIStream &&reply = send_receive_vmsg(_gate, KIF::Syscall::VPECTRL, vpe, op, pid);
     reply >> Errors::last;
-    if(op == VCTRL_WAIT && Errors::last == Errors::NO_ERROR)
+    if(op == KIF::Syscall::VCTRL_WAIT && Errors::last == Errors::NO_ERROR)
         reply >> *exitcode;
     return Errors::last;
 }
 
 Errors::Code Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd) {
-    LOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, DELEGATE, vpe, sess, crd));
+    LLOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::DELEGATE, vpe, sess, crd));
 }
 
 GateIStream Syscalls::delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
-    LOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
-    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, capsel_t, CapRngDesc>(),
+    LLOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
+    AutoGateOStream msg(vostreamsize(ostreamsize<KIF::Syscall::Operation, capsel_t, capsel_t, CapRngDesc>(),
         args.total()));
-    msg << DELEGATE << vpe << sess << crd;
+    msg << KIF::Syscall::DELEGATE << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
 }
 
 Errors::Code Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd) {
-    LOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, OBTAIN, vpe, sess, crd));
+    LLOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::OBTAIN, vpe, sess, crd));
 }
 
 GateIStream Syscalls::obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args) {
-    LOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
-    AutoGateOStream msg(vostreamsize(ostreamsize<Operation, capsel_t, capsel_t, CapRngDesc>(),
+    LLOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ", argc=" << args.total() << ")");
+    AutoGateOStream msg(vostreamsize(ostreamsize<KIF::Syscall::Operation, capsel_t, capsel_t, CapRngDesc>(),
         args.total()));
-    msg << OBTAIN << vpe << sess << crd;
+    msg << KIF::Syscall::OBTAIN << vpe << sess << crd;
     msg.put(args);
     return send_receive_msg(_gate, msg.bytes(), msg.total());
 }
 
 Errors::Code Syscalls::reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms) {
-    LOG(SYSC, "reqmem(cap=" << cap << ", addr=" << addr << ", size=" << size
+    LLOG(SYSC, "reqmem(cap=" << cap << ", addr=" << addr << ", size=" << size
         << ", perms=" << perms << ")");
-    return finish(send_receive_vmsg(_gate, REQMEM, cap, addr, size, perms));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::REQMEM, cap, addr, size, perms));
 }
 
 Errors::Code Syscalls::derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms) {
-    LOG(SYSC, "derivemem(src=" << src << ", dst=" << dst << ", off=" << offset
+    LLOG(SYSC, "derivemem(src=" << src << ", dst=" << dst << ", off=" << offset
             << ", size=" << size << ", perms=" << perms << ")");
-    return finish(send_receive_vmsg(_gate, DERIVEMEM, src, dst, offset, size, perms));
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::DERIVEMEM, src, dst, offset, size, perms));
 }
 
-Errors::Code Syscalls::revoke(const CapRngDesc &crd) {
-    LOG(SYSC, "revoke(crd=" << crd << ")");
-    return finish(send_receive_vmsg(_gate, REVOKE, crd));
+Errors::Code Syscalls::revoke(capsel_t vpe, const CapRngDesc &crd, bool own) {
+    LLOG(SYSC, "revoke(vpe=" << vpe << ", crd=" << crd << ", own=" << own << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::REVOKE, vpe, crd, own));
 }
 
 // the USED seems to be necessary, because the libc calls it and LTO removes it otherwise
 USED void Syscalls::exit(int exitcode) {
-    LOG(SYSC, "exit(code=" << exitcode << ")");
+    LLOG(SYSC, "exit(code=" << exitcode << ")");
     EVENT_TRACE_FLUSH();
-    send_vmsg(_gate, EXIT, exitcode);
+    send_vmsg(_gate, KIF::Syscall::EXIT, exitcode);
 }
 
 Errors::Code Syscalls::tmuxswitch() {
@@ -164,11 +180,6 @@ void Syscalls::tmuxresume() {
     send_vmsg(_gate, TMUXRESUME); // non-blocking
 }
 
-#if defined(__host__)
-void Syscalls::init(void *sepregs) {
-    LOG(SYSC, "init(addr=" << sepregs << ")");
-    send_receive_vmsg(_gate, INIT, sepregs);
 }
-#endif
 
 }

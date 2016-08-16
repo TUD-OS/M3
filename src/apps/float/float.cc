@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
+#include <base/Common.h>
+
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
@@ -23,9 +24,9 @@ int main() {
     volatile float f = 12.43;
     f *= 3;
     f += 1;
-    Serial::get() << "f = " << f << "\n";
+    cout << "f = " << f << "\n";
     f /= 13;
-    Serial::get() << "f = " << fmt(f, 12, 5) << "\n";
-    Serial::get() << "f = " << -1.2345f << "\n";
+    cout << "f = " << fmt(f, 12, 5) << "\n";
+    cout << "f = " << -1.2345f << "\n";
     return 0;
 }

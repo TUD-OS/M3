@@ -21,8 +21,6 @@
 
 using namespace m3;
 
-char Args::argvals[MAX_ARG_COUNT][MAX_ARG_LEN];
-
 int Args::strmatch(const char *pattern, const char *str) {
     const char *lastStar;
     char *firstStar = (char*)strchr(pattern, '*');
@@ -62,9 +60,9 @@ int Args::strmatch(const char *pattern, const char *str) {
     return true;
 }
 
-void Args::glob(char **args, size_t *i) {
+void Args::glob(ArgList *list, size_t i) {
     char filepat[MAX_ARG_LEN];
-    char *pat = args[*i];
+    char *pat = const_cast<char*>(list->args[i]);
     char *slash = strrchr(pat, '/');
     char old = '\0';
     if(slash) {
@@ -85,12 +83,21 @@ void Args::glob(char **args, size_t *i) {
 
         if(strmatch(filepat, e.name)) {
             if(patlen + strlen(e.name) + 1 <= MAX_ARG_LEN) {
-                strcpy(argvals[*i], pat);
-                strcpy(argvals[*i] + patlen, e.name);
-                args[*i] = argvals[*i];
-                (*i)++;
+                if(found) {
+                    // move the following args forward
+                    for(size_t x = list->count - 1; x >= i; --x)
+                        list->args[x + 1] = list->args[x];
+                    list->count++;
+                }
+                else
+                    Heap::free((void*)list->args[i]);
+
+                list->args[i] = (char*)Heap::alloc(patlen + strlen(e.name) + 1);
+                strcpy((char*)list->args[i], pat);
+                strcpy((char*)list->args[i] + patlen, e.name);
+                i++;
                 found = true;
-                if(*i + 1 >= MAX_ARG_COUNT)
+                if(list->count >= ARRAY_SIZE(list->args))
                     break;
             }
         }
@@ -99,39 +106,29 @@ void Args::glob(char **args, size_t *i) {
     if(!found) {
         if(slash)
             slash[1] = old;
-        (*i)++;
+
+        // remove wildcard argument
+        Heap::free((void*)list->args[i]);
+        for(size_t x = i; x < list->count - 1; ++x)
+            list->args[x] = list->args[x + 1];
+        list->count--;
     }
 }
 
-char **Args::parse(const char *line, int *argc) {
-    static char *args[MAX_ARG_COUNT];
-    size_t i = 0,j = 0;
-    args[0] = argvals[0];
-    while(*line) {
-        if(Chars::isspace(*line)) {
-            if(args[j][0]) {
-                if(j + 2 >= MAX_ARG_COUNT)
-                    break;
-                args[j][i] = '\0';
-                if(strchr(args[j], '*'))
-                    glob(args, &j);
-                else
-                    j++;
-                i = 0;
-                args[j] = argvals[j];
-            }
-        }
-        else if(i < MAX_ARG_LEN)
-            args[j][i++] = *line;
-        line++;
+void Args::prefix_path(ArgList *args) {
+    if(args->args[0][0] != '/') {
+        size_t len = strlen(args->args[0]);
+        char *newstr = (char*)Heap::alloc(len + 5 + 1);
+        strcpy(newstr, "/bin/");
+        strcpy(newstr + 5, args->args[0]);
+        Heap::free((void*)args->args[0]);
+        args->args[0] = newstr;
     }
-    args[j][i] = '\0';
-    if(strchr(args[j], '*')) {
-        glob(args, &j);
-        j--;
-    }
-    args[j + 1] = NULL;
-    *argc = j + 1;
+}
 
-    return args;
+void Args::expand(ArgList *list) {
+    for(size_t i = 0; i < list->count; ++i) {
+        if(strchr(list->args[i], '*'))
+            glob(list, i);
+    }
 }

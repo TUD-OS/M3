@@ -1,7 +1,7 @@
 Import('env')
 
 myenv = env.Clone()
-myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x3FFE000')
+myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x1000')
 myenv.M3Program(
     myenv,
     target = 'idle',

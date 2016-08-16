@@ -14,23 +14,22 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Syscalls.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/service/M3FS.h>
+#include <base/stream/IStringStream.h>
+#include <base/util/Profile.h>
+
+#include <m3/session/M3FS.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
-#include <m3/util/Profile.h>
-#include <m3/Log.h>
+#include <m3/Syscalls.h>
 
 using namespace m3;
 
 alignas(DTU_PKG_SIZE) static char buffer[4096];
 
 int main(int argc, char **argv) {
-    if(argc < 3) {
-        Serial::get() << "Usage: " << argv[0] << " <filename> <size>\n";
-        return 1;
-    }
+    if(argc < 3)
+        exitmsg("Usage: " << argv[0] << " <filename> <size>");
 
     size_t size = IStringStream::read_from<size_t>(argv[2]);
     for(size_t i = 0; i < sizeof(buffer); ++i)
@@ -39,19 +38,19 @@ int main(int argc, char **argv) {
     cycles_t end1,start2,end2,start3;
     cycles_t start1 = Profile::start(0);
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+        exitmsg("Mounting root-fs failed");
 
     {
         FileRef file(argv[1], FILE_W | FILE_TRUNC | FILE_CREATE);
         if(Errors::occurred())
-            PANIC("open of " << argv[1] << " failed (" << Errors::last << ")");
+            exitmsg("open of " << argv[1] << " failed");
         end1 = Profile::stop(0);
 
         start2 = Profile::start(1);
         for(size_t total = 0; total < size; ) {
             ssize_t count = file->write(buffer, sizeof(buffer));
             if(count < 0)
-                PANIC("Writing failed: " << Errors::to_string(Errors::last));
+                exitmsg("Writing failed");
             total += count;
         }
         end2 = Profile::stop(1);
@@ -60,8 +59,8 @@ int main(int argc, char **argv) {
     }
     cycles_t end3 = Profile::stop(2);
 
-    Serial::get() << "Setup time: " << (end1 - start1) << "\n";
-    Serial::get() << "Write time: " << (end2 - start2) << "\n";
-    Serial::get() << "Shutdown time: " << (end3 - start3) << "\n";
+    cout << "Setup time: " << (end1 - start1) << "\n";
+    cout << "Write time: " << (end2 - start2) << "\n";
+    cout << "Shutdown time: " << (end3 - start3) << "\n";
     return 0;
 }

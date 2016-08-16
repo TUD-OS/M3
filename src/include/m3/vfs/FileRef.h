@@ -16,8 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
 #include <m3/vfs/File.h>
+#include <m3/vfs/FileTable.h>
 #include <m3/vfs/VFS.h>
 
 namespace m3 {
@@ -33,32 +35,37 @@ public:
      * @param path the path to open
      * @param perms the permissions (FILE_*)
      */
-    explicit FileRef(const char *path, int perms) : _file(VFS::open(path, perms)) {
+    explicit FileRef(const char *path, int perms) : _fd(VFS::open(path, perms)) {
     }
-    FileRef(FileRef &&f) : _file(f._file) {
-        f._file = nullptr;
+    FileRef(FileRef &&f) : _fd(f._fd) {
+        f._fd = FileTable::INVALID;
     }
     FileRef(const FileRef&) = delete;
     FileRef &operator=(const FileRef&) = delete;
     ~FileRef() {
-        delete _file;
+        if(_fd != FileTable::INVALID)
+            VFS::close(_fd);
+    }
+
+    File *get() {
+        return VPE::self().fds()->get(_fd);
     }
 
     File *operator->() {
-        return _file;
+        return get();
     }
     const File *operator->() const {
-        return _file;
+        return const_cast<FileRef*>(this)->get();
     }
     File &operator*() {
-        return *_file;
+        return *get();
     }
     const File &operator*() const {
-        return *_file;
+        return *const_cast<FileRef*>(this)->get();
     }
 
 private:
-    File *_file;
+    fd_t _fd;
 };
 
 }

@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
 #include <m3/Syscalls.h>
+#include <m3/VPE.h>
 
 #include "INodes.h"
 
@@ -119,7 +119,8 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         Errors::Code res = Syscalls::get().derivemem(
             h.mem().sel(), crd.start() + _locs.count(), ch->start * h.sb().blocksize, bytes, perms);
         if(res != Errors::NO_ERROR) {
-            crd.free_and_revoke();
+            VPE::self().free_caps(crd.start(), crd.count());
+            VPE::self().revoke(crd);
             return nullptr;
         }
 

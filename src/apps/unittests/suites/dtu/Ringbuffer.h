@@ -17,6 +17,7 @@
 #pragma once
 
 #include <test/TestSuite.h>
+
 #include "BaseTestCase.h"
 
 class RingbufferTestSuite : public test::TestSuite {

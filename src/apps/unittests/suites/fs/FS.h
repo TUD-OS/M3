@@ -38,22 +38,6 @@ private:
         }
         virtual void run() override;
     };
-    class WriteFileTestCase : public test::TestCase {
-    public:
-        explicit WriteFileTestCase() : test::TestCase("Writing files") {
-        }
-        virtual void run() override;
-    private:
-        void check_content(const char *filename, size_t size);
-    };
-    class MetaFileTestCase : public test::TestCase {
-    public:
-        explicit MetaFileTestCase() : test::TestCase("Meta operations") {
-        }
-        virtual void run() override;
-    private:
-        void check_content(const char *filename, size_t size);
-    };
 
 public:
     explicit FSTestSuite()
@@ -61,7 +45,5 @@ public:
         add(new DirTestCase());
         add(new FileTestCase());
         add(new BufferedFileTestCase());
-        add(new WriteFileTestCase());
-        add(new MetaFileTestCase());
     }
 };

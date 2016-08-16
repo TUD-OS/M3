@@ -14,16 +14,14 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/com/GateStream.h>
+#include <m3/com/SendQueue.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/cap/Session.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/SendQueue.h>
-#include <m3/Log.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/Session.h>
+#include <m3/stream/Standard.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -37,7 +35,7 @@ public:
     virtual void work() override {
         if(SendQueue::get().length() < 10) {
             int value = rand() % 1000;
-            LOG(DEF, "Generated val=" << value);
+            cout << "Generated val=" << value << "\n";
             for(auto &h : server->handler()) {
                 if(h.gate()) {
                     static_assert((sizeof(uint64_t) % DTU_PKG_SIZE) == 0, "Wrong alignment");
@@ -53,8 +51,8 @@ int main() {
     // now, register service
     server = new Server<EventHandler>("streamer", new EventHandler());
 
-    WorkLoop::get().add(new Sender(), true);
-    WorkLoop::get().add(&SendQueue::get(), true);
-    WorkLoop::get().run();
+    env()->workloop()->add(new Sender(), true);
+    env()->workloop()->add(&SendQueue::get(), true);
+    env()->workloop()->run();
     return 0;
 }

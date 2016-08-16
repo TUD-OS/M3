@@ -14,22 +14,17 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/Session.h>
-#include <m3/service/arch/host/Plasma.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/Log.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
+#include <base/Env.h>
 
-#include <unistd.h>
-#include <fcntl.h>
+#include <m3/com/GateStream.h>
+#include <m3/session/Session.h>
+#include <m3/session/arch/host/Plasma.h>
+#include <m3/session/arch/host/Keyboard.h>
 
 using namespace m3;
 
-static void kb_event(Plasma *plasma, RecvGate &gate, Subscriber<RecvGate&> *) {
+static void kb_event(Plasma *plasma, GateIStream &is, Subscriber<GateIStream&> *) {
     Keyboard::Event ev;
-    GateIStream is(gate);
     is >> ev;
     if(ev.isbreak)
         return;
@@ -55,6 +50,6 @@ int main() {
     Plasma plasma("plasma");
     kb.gate().subscribe(std::bind(kb_event, &plasma, std::placeholders::_1, std::placeholders::_2));
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

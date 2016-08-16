@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/util/String.h>
-#include <m3/stream/OStringStream.h>
+#include <base/Common.h>
+#include <base/stream/OStringStream.h>
+#include <base/util/String.h>
 
 namespace test {
 

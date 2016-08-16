@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <m3/DTU.h>
+#include <base/DTU.h>
+
 #include <test/TestCase.h>
 
 class BaseTestCase : public test::TestCase {

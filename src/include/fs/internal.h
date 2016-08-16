@@ -16,46 +16,48 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+#include <base/DTU.h>
+
 #include <m3/vfs/LocList.h>
-#include <m3/DTU.h>
+
 #include <string.h>
 
 namespace m3 {
 
-#define S_IFMT              0160000
-#define S_IFLNK             0120000
-#define S_IFPIP             0110000
-#define S_IFREG             0100000
-#define S_IFBLK             0060000
-#define S_IFDIR             0040000
-#define S_IFCHR             0020000
-#define S_ISUID             0004000
-#define S_ISGID             0002000
-#define S_ISSTICKY          0001000
-#define S_IRWXU             0000700
-#define S_IRUSR             0000400
-#define S_IWUSR             0000200
-#define S_IXUSR             0000100
-#define S_IRWXG             0000070
-#define S_IRGRP             0000040
-#define S_IWGRP             0000020
-#define S_IXGRP             0000010
-#define S_IRWXO             0000007
-#define S_IROTH             0000004
-#define S_IWOTH             0000002
-#define S_IXOTH             0000001
+#define M3FS_IFMT              0160000
+#define M3FS_IFLNK             0120000
+#define M3FS_IFPIP             0110000
+#define M3FS_IFREG             0100000
+#define M3FS_IFBLK             0060000
+#define M3FS_IFDIR             0040000
+#define M3FS_IFCHR             0020000
+#define M3FS_ISUID             0004000
+#define M3FS_ISGID             0002000
+#define M3FS_ISSTICKY          0001000
+#define M3FS_IRWXU             0000700
+#define M3FS_IRUSR             0000400
+#define M3FS_IWUSR             0000200
+#define M3FS_IXUSR             0000100
+#define M3FS_IRWXG             0000070
+#define M3FS_IRGRP             0000040
+#define M3FS_IWGRP             0000020
+#define M3FS_IXGRP             0000010
+#define M3FS_IRWXO             0000007
+#define M3FS_IROTH             0000004
+#define M3FS_IWOTH             0000002
+#define M3FS_IXOTH             0000001
 
-#define S_ISDIR(mode)       (((mode) & S_IFMT) == S_IFDIR)
-#define S_ISREG(mode)       (((mode) & S_IFMT) == S_IFREG)
-#define S_ISLNK(mode)       (((mode) & S_IFMT) == S_IFLNK)
-#define S_ISCHR(mode)       (((mode) & S_IFMT) == S_IFCHR)
-#define S_ISBLK(mode)       (((mode) & S_IFMT) == S_IFBLK)
-#define S_ISPIP(mode)       (((mode) & S_IFMT) == S_IFPIP)
+#define M3FS_ISDIR(mode)       (((mode) & M3FS_IFMT) == M3FS_IFDIR)
+#define M3FS_ISREG(mode)       (((mode) & M3FS_IFMT) == M3FS_IFREG)
+#define M3FS_ISLNK(mode)       (((mode) & M3FS_IFMT) == M3FS_IFLNK)
+#define M3FS_ISCHR(mode)       (((mode) & M3FS_IFMT) == M3FS_IFCHR)
+#define M3FS_ISBLK(mode)       (((mode) & M3FS_IFMT) == M3FS_IFBLK)
+#define M3FS_ISPIP(mode)       (((mode) & M3FS_IFMT) == M3FS_IFPIP)
 
-#define MODE_READ           (S_IRUSR | S_IRGRP | S_IROTH)
-#define MODE_WRITE          (S_IWUSR | S_IWGRP | S_IWOTH)
-#define MODE_EXEC           (S_IXUSR | S_IXGRP | S_IXOTH)
+#define M3FS_MODE_READ         (M3FS_IRUSR | M3FS_IRGRP | M3FS_IROTH)
+#define M3FS_MODE_WRITE        (M3FS_IWUSR | M3FS_IWGRP | M3FS_IWOTH)
+#define M3FS_MODE_EXEC         (M3FS_IXUSR | M3FS_IXGRP | M3FS_IXOTH)
 
 using dev_t     = uint8_t;
 using mode_t    = uint32_t;
@@ -72,11 +74,9 @@ enum {
 
 constexpr inodeno_t INVALID_INO = -1;
 
-#ifndef SEEK_SET
-#   define SEEK_SET 0
-#   define SEEK_CUR 1
-#   define SEEK_END 2
-#endif
+#define M3FS_SEEK_SET 0
+#define M3FS_SEEK_CUR 1
+#define M3FS_SEEK_END 2
 
 enum {
     FILE_R      = 1,

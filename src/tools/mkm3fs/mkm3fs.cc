@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/BitField.h>
+#include <base/Common.h>
+#include <base/util/BitField.h>
+
 #include <fs/internal.h>
 
 #include <sys/stat.h>
@@ -43,7 +44,7 @@
 
 enum {
     MAX_BLOCKS      = 1024 * 1024,
-    MAX_INODES      = 1024,
+    MAX_INODES      = 2048,
 };
 
 m3::SuperBlock sb;

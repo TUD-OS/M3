@@ -1,9 +1,9 @@
 Import('env')
 
 if env['ARCH'] == 'host':
-    dirs = ['m3', 'test']
+    dirs = ['base', 'm3', 'test']
 else:
-    dirs = ['c', 'm3', 'support', 'test']
+    dirs = ['c', 'base', 'm3', 'support', 'test']
 
 for d in dirs:
     env.SConscript(Glob(d + '/SConscript'), 'env')

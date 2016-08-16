@@ -16,33 +16,24 @@
 
 #pragma once
 
-#include <m3/col/SList.h>
-#include <m3/cap/Gate.h>
-#include <m3/cap/VPE.h>
+#include <base/log/Lib.h>
+#include <base/Errors.h>
+#include <base/KIF.h>
+
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/GateStream.h>
 #include <m3/Syscalls.h>
-#include <m3/Log.h>
-#include <m3/Errors.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
 template<class HDL>
 class Server : public ObjCap {
-    using handler_func = void (Server::*)(RecvGate &gate, GateIStream &is);
+    using handler_func = void (Server::*)(GateIStream &is);
 
 public:
     static constexpr size_t DEF_BUFSIZE     = 8192;
     static constexpr size_t DEF_MSGSIZE     = 256;
-
-    enum Command {
-        OPEN,
-        OBTAIN,
-        DELEGATE,
-        CLOSE,
-        SHUTDOWN
-    };
 
     explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
@@ -51,26 +42,30 @@ public:
           _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
           _ctrl_rgate(RecvGate::create(&_rcvbuf)),
           _ctrl_sgate(SendGate::create(DEF_MSGSIZE, &_ctrl_rgate)) {
+        LLOG(SERV, "create(" << name << ")");
         Syscalls::get().createsrv(_ctrl_sgate.sel(), sel(), name);
 
         using std::placeholders::_1;
         using std::placeholders::_2;
         _ctrl_rgate.subscribe(std::bind(&Server::handle_message, this, _1, _2));
 
-        _ctrl_handler[OPEN] = &Server::handle_open;
-        _ctrl_handler[OBTAIN] = &Server::handle_obtain;
-        _ctrl_handler[DELEGATE] = &Server::handle_delegate;
-        _ctrl_handler[CLOSE] = &Server::handle_close;
-        _ctrl_handler[SHUTDOWN] = &Server::handle_shutdown;
+        _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
+        _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
+        _ctrl_handler[KIF::Service::DELEGATE] = &Server::handle_delegate;
+        _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
+        _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
     }
     ~Server() {
+        LLOG(SERV, "destroy()");
         // if it fails, there are pending requests. this might happen multiple times because
         // the kernel might have them still in the send-queue.
-        while(Syscalls::get().revoke(CapRngDesc(CapRngDesc::OBJ, sel())) != Errors::NO_ERROR) {
+        CapRngDesc caps(CapRngDesc::OBJ, sel());
+        while(VPE::self().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
+            LLOG(SERV, "handling pending requests...");
             while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
-                handle_message(_ctrl_rgate, nullptr);
-                DTU::get().ack_message(_ctrl_rgate.epid());
+                GateIStream is(_ctrl_rgate, Errors::NO_ERROR);
+                handle_message(is, nullptr);
             }
         }
         // don't revoke it again
@@ -90,53 +85,64 @@ public:
     }
 
 private:
-    void handle_message(RecvGate &gate, Subscriber<RecvGate&> *) {
-        GateIStream msg(gate);
-        Command op;
+    void handle_message(GateIStream &msg, Subscriber<GateIStream&> *) {
+        KIF::Service::Command op;
         msg >> op;
         if(static_cast<size_t>(op) < ARRAY_SIZE(_ctrl_handler)) {
-            (this->*_ctrl_handler[op])(gate, msg);
+            (this->*_ctrl_handler[op])(msg);
             return;
         }
-        reply_vmsg(gate, Errors::INV_ARGS);
+        reply_vmsg(msg.gate(), Errors::INV_ARGS);
     }
 
-    void handle_open(RecvGate &, GateIStream &is) {
+    void handle_open(GateIStream &is) {
         EVENT_TRACER_Service_open();
-        _handler->handle_open(is);
+
+        word_t sessptr = reinterpret_cast<word_t>(_handler->handle_open(is));
+
+        LLOG(SERV, fmt(sessptr, "#x") << ": open()");
     }
 
-    void handle_obtain(RecvGate &, GateIStream &is) {
+    void handle_obtain(GateIStream &is) {
         EVENT_TRACER_Service_obtain();
         word_t sessptr;
         uint capcount;
         is >> sessptr >> capcount;
 
+        LLOG(SERV, fmt(sessptr, "#x") << ": obtain(caps=" << capcount << ")");
+
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_obtain(sess, &_rcvbuf, is, capcount);
     }
 
-    void handle_delegate(RecvGate &, GateIStream &is) {
+    void handle_delegate(GateIStream &is) {
         EVENT_TRACER_Service_delegate();
         word_t sessptr;
         uint capcount;
         is >> sessptr >> capcount;
 
+        LLOG(SERV, fmt(sessptr, "#x") << ": delegate(caps=" << capcount << ")");
+
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_delegate(sess, is, capcount);
     }
 
-    void handle_close(RecvGate &, GateIStream &is) {
+    void handle_close(GateIStream &is) {
         EVENT_TRACER_Service_close();
         word_t sessptr;
         is >> sessptr;
+
+        LLOG(SERV, fmt(sessptr, "#x") << ": close()");
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
         _handler->handle_close(sess, is);
     }
 
-    void handle_shutdown(RecvGate &, GateIStream &is) {
+    void handle_shutdown(GateIStream &is) {
         EVENT_TRACER_Service_shutdown();
+
+        LLOG(SERV, "shutdown()");
+
         _handler->handle_shutdown();
         shutdown();
         reply_vmsg_on(is, Errors::NO_ERROR);

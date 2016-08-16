@@ -14,15 +14,16 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/stream/Standard.h>
+
 #include <test/TestCase.h>
-#include <m3/Log.h>
 
 namespace test {
 
 void TestCase::do_assert(const Assert& a) {
     if(!a) {
-        LOG(DEF, "  \033[0;31mAssert failed\033[0m in " << a.get_file() << ", line " << a.get_line()
-                << ": " << a.get_desc());
+        m3::cout << "  \033[0;31mAssert failed\033[0m in " << a.get_file()
+                 << ", line " << a.get_line() << ": " << a.get_desc() << "\n";
         failed();
     }
     else

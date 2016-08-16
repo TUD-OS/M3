@@ -14,13 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Syscalls.h>
+#include <base/Common.h>
+#include <base/Env.h>
 #include <cstdlib>
 
-EXTERN_C NORETURN void _exit(int code);
-
 void exit(int code) {
-    m3::Syscalls::get().exit(code);
-    _exit(code);
+    m3::env()->exit(code);
 }

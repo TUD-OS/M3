@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
 #include <m3/stream/OStream.h>
 
 namespace m3 {

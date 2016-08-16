@@ -16,8 +16,10 @@
 
 #pragma once
 
-#include <m3/cap/MemGate.h>
+#include <m3/com/MemGate.h>
+
 #include <test/TestSuite.h>
+
 #include "BaseTestCase.h"
 
 class MemoryTestSuite : public test::TestSuite {

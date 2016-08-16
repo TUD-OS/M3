@@ -14,13 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
-#include <m3/cap/MemGate.h>
-#include <m3/util/Profile.h>
+#include <base/Common.h>
+#include <base/util/Profile.h>
+
+#include <m3/com/MemGate.h>
+#include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
-#include <m3/DTU.h>
-#include <m3/Log.h>
 
 using namespace m3;
 
@@ -28,12 +27,13 @@ using namespace m3;
 
 int main() {
     cycles_t total = 0;
+    cout << "Starting...\n";
     for(int i = 0; i < COUNT; ++i) {
         cycles_t start = Profile::start(0);
         Syscalls::get().noop();
         cycles_t end = Profile::stop(0);
         total += end - start;
     }
-    Serial::get() << "Per syscall: " << (total / COUNT) << "\n";
+    cout << "Per syscall: " << (total / COUNT) << "\n";
     return 0;
 }

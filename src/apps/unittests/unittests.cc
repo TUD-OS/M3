@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
+#include <base/Common.h>
+
 #include <m3/vfs/VFS.h>
-#include <m3/Log.h>
+#include <m3/stream/Standard.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 
@@ -27,28 +28,32 @@ static const char *progs[] = {
 #endif
     "/bin/unittests-stream",
     "/bin/unittests-fs",
+    "/bin/unittests-fs2",
     "/bin/unittests-misc",
 };
 
 int main() {
     if(VFS::mount("/", new M3FS("m3fs")) < 0) {
         if(Errors::last != Errors::EXISTS)
-            PANIC("Unable to mount m3fs as root-fs");
+            exitmsg("Unable to mount m3fs as root-fs");
     }
 
     int succ = 0;
     for(size_t i = 0; i < ARRAY_SIZE(progs); ++i) {
         VPE t("tests");
         const char *args[] = {progs[i]};
-        t.delegate_mounts();
+
+        t.mountspace(*VPE::self().mountspace());
+        t.obtain_mountspace();
+
         t.exec(ARRAY_SIZE(args), args);
         uint32_t res = t.wait();
         if((res >> 16) != 0)
             succ += (res & 0xFFFF) == (res >> 16);
     }
-    LOG(DEF, "---------------------------------------");
-    LOG(DEF, "\033[1mIn total: " << (succ == ARRAY_SIZE(progs) ? "\033[1;32m" : "\033[1;31m")
-            << succ << "\033[1m of " << ARRAY_SIZE(progs) << " testsuites successfull\033[0;m");
-    LOG(DEF, "---------------------------------------");
+    cout << "---------------------------------------\n";
+    cout << "\033[1mIn total: " << (succ == ARRAY_SIZE(progs) ? "\033[1;32m" : "\033[1;31m")
+            << succ << "\033[1m of " << ARRAY_SIZE(progs) << " testsuites successfull\033[0;m\n";
+    cout << "---------------------------------------\n";
     return 0;
 }

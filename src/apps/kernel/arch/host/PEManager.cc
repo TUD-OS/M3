@@ -14,18 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#include "../../PEManager.h"
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sstream>
 #include <csignal>
 #include <unistd.h>
 
-namespace m3 {
+#include "pes/PEManager.h"
+#include "Platform.h"
+
+namespace kernel {
 
 PEManager::~PEManager() {
-    for(size_t i = 0; i < AVAIL_PES; ++i) {
+    for(size_t i = 0; i < Platform::pe_count(); ++i) {
         if(_vpes[i]) {
             kill(_vpes[i]->pid(), SIGTERM);
             waitpid(_vpes[i]->pid(), nullptr, 0);
@@ -34,11 +35,11 @@ PEManager::~PEManager() {
     }
 }
 
-String PEManager::fork_name(const String &name) {
+m3::String PEManager::fork_name(const m3::String &name) {
     char buf[256];
-    OStringStream nname(buf, sizeof(buf));
+    m3::OStringStream nname(buf, sizeof(buf));
     size_t pos = strrchr(name.c_str(), '-') - name.c_str();
-    nname << fmt(name.c_str(), 1, pos) << '-' << rand();
+    nname << m3::fmt(name.c_str(), 1, pos) << '-' << rand();
     return nname.str();
 }
 

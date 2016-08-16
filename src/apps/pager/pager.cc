@@ -14,56 +14,32 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/col/Treap.h>
+#include <base/col/Treap.h>
+#include <base/log/Services.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/service/Pager.h>
+#include <m3/session/Pager.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/LocList.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
 
-#include "DataSpace.h"
+#include "AddrSpace.h"
 
 using namespace m3;
 
 static constexpr size_t MAX_VIRT_ADDR = (1UL << (DTU::LEVEL_CNT * DTU::LEVEL_BITS + PAGE_BITS)) - 1;
 
-class MemSessionData : public RequestSessionData {
-public:
-    explicit MemSessionData()
-        : RequestSessionData(), id(nextId++), vpe(ObjCap::INVALID), dstree() {
-    }
-    ~MemSessionData() {
-        DataSpace *ds;
-        while((ds = static_cast<DataSpace*>(dstree.remove_root())))
-            delete ds;
-    }
-
-    const DataSpace *find(uintptr_t virt) const {
-        return dstree.find(virt);
-    }
-
-    capsel_t init(capsel_t _vpe) {
-        vpe = ObjCap(ObjCap::VIRTPE, _vpe);
-        return vpe.sel();
-    }
-
-    int id;
-    ObjCap vpe;
-    Treap<DataSpace> dstree;
-    static int nextId;
-};
-
-int MemSessionData::nextId = 1;
-
 class MemReqHandler;
-typedef RequestHandler<MemReqHandler, Pager::Operation, Pager::COUNT, MemSessionData> base_class_t;
+typedef RequestHandler<MemReqHandler, Pager::Operation, Pager::COUNT, AddrSpace> base_class_t;
+
+static Server<MemReqHandler> *srv;
 
 class MemReqHandler : public base_class_t {
 public:
     explicit MemReqHandler() : base_class_t() {
         add_operation(Pager::PAGEFAULT, &MemReqHandler::pf);
+        add_operation(Pager::CLONE, &MemReqHandler::clone);
         add_operation(Pager::MAP_ANON, &MemReqHandler::map_anon);
         add_operation(Pager::UNMAP, &MemReqHandler::unmap);
     }
@@ -72,8 +48,8 @@ public:
         return Server<MemReqHandler>::DEF_MSGSIZE;
     }
 
-    virtual void handle_delegate(MemSessionData *sess, GateIStream &args, uint capcount) override {
-        if(capcount != 1) {
+    virtual void handle_delegate(AddrSpace *sess, GateIStream &args, uint capcount) override {
+        if(capcount != 1 && capcount != 2) {
             reply_vmsg_on(args, Errors::INV_ARGS);
             return;
         }
@@ -81,14 +57,30 @@ public:
         capsel_t sel;
         uintptr_t virt = 0;
         if(sess->vpe.sel() == ObjCap::INVALID)
-            sel = sess->init(VPE::self().alloc_cap());
+            sel = sess->init(VPE::self().alloc_caps(2));
         else
             sel = map_ds(sess, args, &virt);
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel), virt);
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel, capcount), virt);
     }
 
-    void pf(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    virtual void handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, GateIStream &args, uint capcount) override {
+        if(!sess->send_gate()) {
+            base_class_t::handle_obtain(sess, rcvbuf, args, capcount);
+            return;
+        }
+
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
+
+        // clone the current session and connect it to the current one
+        AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_cap());
+        Syscalls::get().createsessat(srv->sel(), nsess->sess.sel(), reinterpret_cast<word_t>(nsess));
+        add_session(nsess);
+
+        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, nsess->sess.sel()));
+    }
+
+    void pf(GateIStream &is) {
+        AddrSpace *sess = is.gate().session<AddrSpace>();
         uint64_t virt, access;
         is >> virt >> access;
 
@@ -98,95 +90,103 @@ public:
         // access == PTE_GONE indicates, that the VPE that owns the memory is not available
         // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
 
-        LOG(PF, sess->id << " : mem::pf(virt=" << fmt(virt, "p")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::pf(virt=" << fmt(virt, "p")
             << ", access " << fmt(access, "#x") << ")");
 
+        // we never map page 0 and thus we tell the DTU to remember that there is no mapping
+        if((virt & ~PAGE_MASK) == 0) {
+            SLOG(PAGER, "No mapping at page 0");
+            reply_vmsg(is.gate(), Errors::NO_MAPPING);
+            return;
+        }
+
         if(sess->vpe.sel() == ObjCap::INVALID) {
-            LOG(PF, "Invalid session");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            SLOG(PAGER, "Invalid session");
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         DataSpace *ds = sess->dstree.find(virt);
         if(!ds) {
-            LOG(PF, "No dataspace attached at " << fmt(virt, "p"));
-            reply_vmsg(gate, Errors::INV_ARGS);
+            SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
-        if((ds->flags & access) != access) {
-            LOG(PF, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
-                << " not allowed: " << fmt(ds->flags, "#x"));
-            reply_vmsg(gate, Errors::INV_ARGS);
+        if((ds->flags() & access) != access) {
+            SLOG(PAGER, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
+                << " not allowed: " << fmt(ds->flags(), "#x"));
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
-        int first;
-        size_t pages;
-        capsel_t mem;
-        Errors::Code res = ds->get_page(&virt, &first, &pages, &mem);
+        // ask the dataspace what to do
+        Errors::Code res = ds->handle_pf(virt);
         if(res != Errors::NO_ERROR) {
-            LOG(PF, "Getting page failed: " << Errors::to_string(res));
-            reply_vmsg(gate, res);
+            SLOG(PAGER, "Unable to handle pagefault: " << Errors::to_string(res));
+            reply_vmsg(is.gate(), res);
             return;
         }
 
-        if(pages > 0) {
-            res = Syscalls::get().createmap(sess->vpe.sel(), mem, first,
-                pages, virt >> PAGE_BITS, ds->flags);
-            if(res != Errors::NO_ERROR) {
-                LOG(PF, "Unable to create PTEs: " << Errors::to_string(res));
-                reply_vmsg(gate, res);
-                return;
-            }
-        }
-
-        reply_vmsg(gate, Errors::NO_ERROR);
+        reply_vmsg(is.gate(), Errors::NO_ERROR);
     }
 
-    void map_anon(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    void clone(GateIStream &is) {
+        AddrSpace *sess = is.gate().session<AddrSpace>();
+
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::clone()");
+
+        Errors::Code res = sess->clone();
+        if(res != Errors::NO_ERROR)
+            SLOG(PAGER, "Clone failed: " << Errors::to_string(res));
+
+        reply_vmsg(is.gate(), res);
+    }
+
+    void map_anon(GateIStream &is) {
+        AddrSpace *sess = is.gate().session<AddrSpace>();
         uintptr_t virt;
         size_t len;
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        LOG(PF, sess->id << " : mem::map_anon(virt=" << fmt(virt, "p")
-            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_anon(virt=" << fmt(virt, "p")
+            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
 
         virt = Math::round_dn(virt, PAGE_SIZE);
         len = Math::round_up(len, PAGE_SIZE);
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
-            LOG(PF, "Invalid virtual address / size");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            SLOG(PAGER, "Invalid virtual address / size");
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
         if((virt & PAGE_BITS) || (len & PAGE_BITS)) {
-            LOG(PF, "Virtual address or size not properly aligned");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            SLOG(PAGER, "Virtual address or size not properly aligned");
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
-            LOG(PF, "Invalid protection flags");
-            reply_vmsg(gate, Errors::INV_ARGS);
+            SLOG(PAGER, "Invalid protection flags");
+            reply_vmsg(is.gate(), Errors::INV_ARGS);
             return;
         }
 
         // TODO determine/validate virt+len
-        sess->dstree.insert(new AnonDataSpace(virt, len, prot | flags));
+        AnonDataSpace *ds = new AnonDataSpace(sess, virt, len, prot | flags);
+        sess->add(ds);
 
-        reply_vmsg(gate, Errors::NO_ERROR, virt);
+        reply_vmsg(is.gate(), Errors::NO_ERROR, virt);
     }
 
-    capsel_t map_ds(MemSessionData *sess, GateIStream &args, uintptr_t *virt) {
+    capsel_t map_ds(AddrSpace *sess, GateIStream &args, uintptr_t *virt) {
         size_t len, offset;
         int prot, flags, id;
         args >> *virt >> len >> prot >> flags >> id >> offset;
 
-        LOG(PF, sess->id << " : mem::map_ds(virt=" << fmt(*virt, "p")
-            << ", len " << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
+            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
 
@@ -194,40 +194,40 @@ public:
         len = Math::round_up(len, PAGE_SIZE);
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
-            LOG(PF, "Virtual address or size not properly aligned");
+            SLOG(PAGER, "Virtual address or size not properly aligned");
             return Errors::INV_ARGS;
         }
 
         // TODO determine/validate virt+len
-        ExternalDataSpace *ds = new ExternalDataSpace(*virt, len, prot | flags, id, offset);
-        sess->dstree.insert(ds);
+        ExternalDataSpace *ds = new ExternalDataSpace(sess, *virt, len, prot | flags, id, offset);
+        sess->add(ds);
 
         return ds->sess.sel();
     }
 
-    void unmap(RecvGate &gate, GateIStream &is) {
-        MemSessionData *sess = gate.session<MemSessionData>();
+    void unmap(GateIStream &is) {
+        AddrSpace *sess = is.gate().session<AddrSpace>();
         uintptr_t virt;
         is >> virt;
 
-        LOG(PF, sess->id << " : mem::unmap(virt=" << fmt(virt, "p") << ")");
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::unmap(virt=" << fmt(virt, "p") << ")");
 
         Errors::Code res = Errors::INV_ARGS;
         DataSpace *ds = sess->dstree.find(virt);
         if(ds) {
-            sess->dstree.remove(ds);
+            sess->remove(ds);
             delete ds;
             res = Errors::NO_ERROR;
         }
         else
-            LOG(PF, "No dataspace attached at " << fmt(virt, "p"));
+            SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
 
-        reply_vmsg(gate, res);
+        reply_vmsg(is.gate(), res);
     }
 };
 
 int main() {
-    Server<MemReqHandler> srv("pager", new MemReqHandler());
-    WorkLoop::get().run();
+    srv = new Server<MemReqHandler>("pager", new MemReqHandler());
+    env()->workloop()->run();
     return 0;
 }

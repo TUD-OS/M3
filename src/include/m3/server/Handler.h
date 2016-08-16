@@ -16,12 +16,13 @@
 
 #pragma once
 
-#include <m3/col/SList.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/CapRngDesc.h>
-#include <m3/GateStream.h>
-#include <m3/RecvBuf.h>
-#include <m3/Errors.h>
+#include <base/col/SList.h>
+#include <base/util/CapRngDesc.h>
+#include <base/Errors.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 
 namespace m3 {
 
@@ -64,8 +65,10 @@ public:
     }
 
 protected:
-    virtual void handle_open(GateIStream &args) {
-        reply_vmsg_on(args, Errors::NO_ERROR, add_session(new SESS()));
+    virtual SESS *handle_open(GateIStream &args) {
+        SESS *s = add_session(new SESS());
+        reply_vmsg_on(args, Errors::NO_ERROR, s);
+        return s;
     }
     virtual void handle_obtain(SESS *, RecvBuf *, GateIStream &args, uint) {
         reply_vmsg_on(args, Errors::NOT_SUP);

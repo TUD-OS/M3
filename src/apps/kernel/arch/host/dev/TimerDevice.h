@@ -18,7 +18,7 @@
 
 #include "Device.h"
 
-namespace m3 {
+namespace kernel {
 
 class TimerDevice : public Device {
 public:
@@ -26,12 +26,7 @@ public:
         start();
     }
 
-    virtual void run() override {
-        while(should_run()) {
-            usleep(20000);
-            trigger_irq(HWInterrupts::TIMER);
-        }
-    }
+    virtual void run() override;
 };
 
 }

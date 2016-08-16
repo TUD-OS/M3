@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/Heap.h>
+#include <base/Common.h>
+#include <base/Heap.h>
 #include <cstdlib>
 
 void* malloc(size_t size) {

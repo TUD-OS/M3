@@ -14,10 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Config.h>
-#include <m3/col/SList.h>
-#include <m3/DTU.h>
+#include <base/col/SList.h>
+#include <base/log/Kernel.h>
+#include <base/Config.h>
+#include <base/DTU.h>
+#include <base/Panic.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -27,38 +28,22 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <dirent.h>
+#include <unistd.h>
 
-#include "../../KWorkLoop.h"
-#include "../../Services.h"
-#include "../../PEManager.h"
-#include "../../KVPE.h"
-#include "../../SyscallHandler.h"
+#include "com/RecvBufs.h"
+#include "pes/PEManager.h"
+#include "pes/VPE.h"
 #include "dev/TimerDevice.h"
 #include "dev/VGAConsole.h"
+#include "SyscallHandler.h"
 
-using namespace m3;
+using namespace kernel;
 
-static SList<Device> devices;
+static m3::SList<Device> devices;
 static size_t fssize = 0;
 
-class KernelEPSwitcher : public EPSwitcher {
-public:
-    virtual void switch_ep(size_t victim, capsel_t, capsel_t newcap) override {
-        // we don't need to clear endpoint-registers since nobody does cmpxchg here.
-        if(newcap != ObjCap::INVALID) {
-            MsgCapability *c = static_cast<MsgCapability*>(
-                CapTable::kernel_table().get(newcap, Capability::MSG));
-            assert(c != nullptr);
-            DTU::get().configure(victim, c->obj->label, c->obj->core, c->obj->epid, c->obj->credits);
-            LOG(IPC, "Kernel programs SEP[" << victim << "] to "
-                    << "core=" << c->obj->core << ", ep=" << c->obj->epid
-                    << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2));
-        }
-    }
-};
-
 static void sigint(int) {
-    WorkLoop::get().stop();
+    m3::env()->workloop()->stop();
 }
 
 static void delete_dir(const char *dir) {
@@ -80,16 +65,14 @@ static void copyfromfs(MainMemory &mem, const char *file) {
     if(fd < 0)
         PANIC("Opening '" << file << "' for reading failed");
 
-    ssize_t res = read(fd, (void*)mem.addr(), mem.size());
+    MainMemory::Allocation alloc = mem.allocate_at(FS_IMG_OFFSET, FS_MAX_SIZE);
+    ssize_t res = read(fd, (void*)alloc.addr, alloc.size);
     if(res == -1)
         PANIC("Reading from '" << file << "' failed");
     close(fd);
 
-    // remove that from the available memory
-    mem.map().allocate(res);
-
     fssize = res;
-    LOG(DEF, "Copied fs-image '" << file << "' to 0.." << fmt(fssize, "#x"));
+    KLOG(MEM, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
 }
 
 static void copytofs(MainMemory &mem, const char *file) {
@@ -98,20 +81,17 @@ static void copytofs(MainMemory &mem, const char *file) {
     int fd = open(name, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0)
         PANIC("Opening '" << name << "' for writing failed");
-    write(fd, (void*)mem.addr(), fssize);
+
+    MainMemory::Allocation alloc = mem.allocate_at(FS_IMG_OFFSET, FS_MAX_SIZE);
+    write(fd, (void*)alloc.addr, fssize);
     close(fd);
 
-    LOG(DEF, "Copied fs-image from memory back to '" << name << "'");
+    KLOG(MEM, "Copied fs-image from memory back to '" << name << "'");
 }
-
-// overwrite weak-symbol __default_conf. this creates the Config object for the kernel
-int __default_conf = 0;
 
 int main(int argc, char *argv[]) {
     const char *fsimg = nullptr;
     mkdir("/tmp/m3", 0755);
-    KernelEPSwitcher *epsw = new KernelEPSwitcher();
-    EPMux::get().set_epswitcher(epsw);
     signal(SIGINT, sigint);
 
     for(int i = 1; i < argc; ++i) {
@@ -131,14 +111,19 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    KLOG(MEM, MainMemory::get());
+
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
-    LOG(DEF, "Initializing PEs.");
+    RecvBufs::init();
     PEManager::create();
     PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
-    KWorkLoop::run();
 
-    LOG(DEF, "Shutting down.");
+    KLOG(INFO, "Kernel is ready");
+
+    m3::env()->workloop()->run();
+
+    KLOG(INFO, "Shutting down");
     if(fsimg)
         copytofs(MainMemory::get(), fsimg);
     PEManager::destroy();
@@ -147,7 +132,6 @@ int main(int argc, char *argv[]) {
         old->stop();
         delete &*old;
     }
-    delete epsw;
     delete_dir("/tmp/m3");
     return EXIT_SUCCESS;
 }

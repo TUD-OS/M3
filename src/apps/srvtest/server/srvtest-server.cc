@@ -14,9 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
 #include <m3/server/Server.h>
-#include <m3/stream/Serial.h>
+#include <m3/stream/Standard.h>
 
 using namespace m3;
 
@@ -36,11 +37,11 @@ public:
             srv->shutdown();
     }
     virtual void handle_close(SessionData *sess, GateIStream &args) override {
-        Serial::get() << "Client closed connection.\n";
+        cout << "Client closed connection.\n";
         Handler<>::handle_close(sess, args);
     }
     virtual void handle_shutdown() override {
-        Serial::get() << "Kernel wants to shut down.\n";
+        cout << "Kernel wants to shut down.\n";
         run = false;
     }
 
@@ -49,12 +50,12 @@ private:
 };
 
 int main() {
-    for(int i = 0; run && i < 20; ++i) {
+    for(int i = 0; run && i < 10; ++i) {
         MyHandler hdl;
-        srv = new Server<MyHandler>("srvtest-server", &hdl);
+        srv = new Server<MyHandler>("srvtest-server", &hdl, nextlog2<512>::val, nextlog2<128>::val);
         if(Errors::occurred())
             break;
-        WorkLoop::get().run();
+        env()->workloop()->run();
         delete srv;
     }
     return 0;

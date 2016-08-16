@@ -1,2 +1,25 @@
 Import('env')
-env.M3Program(env, 'shell', env.Glob('*.cc'))
+
+# check for byacc
+def CheckBYACC(context):
+    context.Message('Checking for byacc...')
+    result = context.TryAction('byacc -V')[0]
+    context.Result(result)
+    return result
+
+myenv = env.Clone()
+conf = Configure(myenv, custom_tests={'CheckBYACC': CheckBYACC})
+
+if conf.CheckBYACC():
+    def GenParser(env, target, source):
+        return env.Command(target, source, Action('byacc -B -d -o $TARGET $SOURCE'))
+
+    parserc = GenParser(myenv, target = '#src/apps/shell/parser.tab.c', source = 'cmds.y')
+    parserobj = myenv.Object(source = 'parser.tab.c')
+    myenv.Depends(parserobj, parserc)
+    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), parserobj])
+else:
+    print('Cannot execute byacc, skipping regeneration of parser.tab.{c,h}...')
+    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), myenv.Glob('*.c')])
+
+conf.Finish()

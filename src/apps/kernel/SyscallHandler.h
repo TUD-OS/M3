@@ -16,81 +16,87 @@
 
 #pragma once
 
-#include <m3/server/RequestHandler.h>
-#include <m3/server/Server.h>
-#include <m3/Syscalls.h>
+#include <base/KIF.h>
 
-#include "CapTable.h"
-#include "Services.h"
-#include "KVPE.h"
+#include "cap/CapTable.h"
+#include "com/Services.h"
+#include "pes/VPE.h"
+#include "Gate.h"
 
-namespace m3 {
+namespace kernel {
 
-class SyscallHandler : public RequestHandler<SyscallHandler, Syscalls::Operation, Syscalls::COUNT> {
+class SyscallHandler {
     explicit SyscallHandler();
 
 public:
-    using server_type = Server<SyscallHandler>;
+    using handler_func = void (SyscallHandler::*)(GateIStream &is);
 
     static SyscallHandler &get() {
         return _inst;
     }
 
+    void add_operation(m3::KIF::Syscall::Operation op, handler_func func) {
+        _callbacks[op] = func;
+    }
+
+    void handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *) {
+        EVENT_TRACER_handle_message();
+        m3::KIF::Syscall::Operation op;
+        msg >> op;
+        if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
+            (this->*_callbacks[op])(msg);
+            return;
+        }
+        reply_vmsg(msg.gate(), m3::Errors::INV_ARGS);
+    }
+
     size_t epid() const {
         // we can use it here because we won't issue syscalls ourself
-        return DTU::SYSC_EP;
+        return m3::DTU::SYSC_EP;
     }
     size_t srvepid() const {
-        return _srvrcvbuf.epid();
-    }
-    RecvBuf *rcvbuf() {
-        return &_rcvbuf;
-    }
-    RecvBuf *srvrcvbuf() {
-        return &_srvrcvbuf;
+        return _serv_ep;
     }
 
-    RecvGate create_gate(KVPE *vpe) {
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-        RecvGate syscc = RecvGate::create(&_rcvbuf, vpe);
-        add_session(vpe);
-        return syscc;
+    RecvGate create_gate(VPE *vpe) {
+        return RecvGate(epid(), vpe);
     }
 
-    void pagefault(RecvGate &gate, GateIStream &is);
-    void createsrv(RecvGate &gate, GateIStream &is);
-    void createsess(RecvGate &gate, GateIStream &is);
-    void creategate(RecvGate &gate, GateIStream &is);
-    void createvpe(RecvGate &gate, GateIStream &is);
-    void createmap(RecvGate &gate, GateIStream &is);
-    void attachrb(RecvGate &gate, GateIStream &is);
-    void detachrb(RecvGate &gate, GateIStream &is);
-    void exchange(RecvGate &gate, GateIStream &is);
-    void vpectrl(RecvGate &gate, GateIStream &is);
-    void delegate(RecvGate &gate, GateIStream &is);
-    void obtain(RecvGate &gate, GateIStream &is);
-    void activate(RecvGate &gate, GateIStream &is);
-    void reqmem(RecvGate &gate, GateIStream &is);
-    void derivemem(RecvGate &gate, GateIStream &is);
-    void revoke(RecvGate &gate, GateIStream &is);
-    void exit(RecvGate &gate, GateIStream &is);
-    void noop(RecvGate &gate, GateIStream &is);
+    void pagefault(GateIStream &is);
+    void createsrv(GateIStream &is);
+    void createsess(GateIStream &is);
+    void createsessat(GateIStream &is);
+    void creategate(GateIStream &is);
+    void createvpe(GateIStream &is);
+    void createmap(GateIStream &is);
+    void attachrb(GateIStream &is);
+    void detachrb(GateIStream &is);
+    void exchange(GateIStream &is);
+    void vpectrl(GateIStream &is);
+    void delegate(GateIStream &is);
+    void obtain(GateIStream &is);
+    void activate(GateIStream &is);
+    void reqmem(GateIStream &is);
+    void derivemem(GateIStream &is);
+    void revoke(GateIStream &is);
+    void exit(GateIStream &is);
+    void noop(GateIStream &is);
 
     void tmuxswitch(m3::RecvGate &gate, m3::GateIStream &is);
     void tmuxresume(m3::RecvGate &gate, m3::GateIStream &is);
 
 #if defined(__host__)
-    void init(m3::RecvGate &gate, m3::GateIStream &is);
+    void init(GateIStream &is);
 #endif
 
 private:
-    Errors::Code do_exchange(KVPE *v1, KVPE *v2, const CapRngDesc &c1, const CapRngDesc &c2, bool obtain);
-    void exchange_over_sess(RecvGate &gate, GateIStream &is, bool obtain);
+    m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
+    void exchange_over_sess(GateIStream &is, bool obtain);
     void tryTerminate();
 
-    RecvBuf _rcvbuf;
-    RecvBuf _srvrcvbuf;
+    int _serv_ep;
+    // +1 for init on host
+    handler_func _callbacks[m3::KIF::Syscall::COUNT + 1];
     static SyscallHandler _inst;
 };
 

@@ -14,12 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/stream/IStringStream.h>
+
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <m3/stream/Standard.h>
+#include <m3/com/GateStream.h>
 
 using namespace m3;
 
@@ -37,7 +37,7 @@ public:
         return Server<ArithRequestHandler>::DEF_MSGSIZE;
     }
 
-    void calc(RecvGate &gate, GateIStream &is) {
+    void calc(GateIStream &is) {
         String str;
         is >> str;
 
@@ -62,15 +62,15 @@ public:
 
         OStringStream os;
         os << res;
-        reply_vmsg(gate, String(os.str()));
+        reply_vmsg(is.gate(), String(os.str()));
     }
 };
 
 int main() {
     Server<ArithRequestHandler> srv("arith", new ArithRequestHandler());
     if(Errors::occurred())
-        PANIC("Unable to register service 'arith'");
+        exitmsg("Unable to register service 'arith'");
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

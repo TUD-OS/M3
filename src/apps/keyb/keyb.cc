@@ -14,17 +14,17 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/cap/Session.h>
+#include <base/arch/host/SharedMemory.h>
+#include <base/util/Sync.h>
+#include <base/log/Services.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/Session.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/arch/host/SharedMemory.h>
-#include <m3/util/Sync.h>
-#include <m3/WorkLoop.h>
-#include <m3/GateStream.h>
 #include <m3/Syscalls.h>
-#include <m3/Log.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -38,7 +38,7 @@
 
 using namespace m3;
 
-static void kb_irq(Server<EventHandler> *kbserver, RecvGate &, Subscriber<RecvGate&> *) {
+static void kb_irq(Server<EventHandler> *kbserver, GateIStream &, Subscriber<GateIStream&> *) {
     static SharedMemory kbdmem("kbd", sizeof(unsigned) * 2, SharedMemory::JOIN);
     unsigned *regs = reinterpret_cast<unsigned*>(kbdmem.addr());
     if(regs[KEYBOARD_CTRL] & KEYBOARD_RDY) {
@@ -49,7 +49,7 @@ static void kb_irq(Server<EventHandler> *kbserver, RecvGate &, Subscriber<RecvGa
         Keyboard::Event ev;
         ev.scancode = data;
         if(Scancodes::get_keycode(ev.isbreak, ev.keycode, ev.scancode)) {
-            LOG(KEYB, "Got " << (unsigned)ev.keycode << ":" << (unsigned)ev.isbreak);
+            SLOG(KEYB, "Got " << (unsigned)ev.keycode << ":" << (unsigned)ev.isbreak);
             static_cast<EventHandler&>(kbserver->handler()).broadcast(ev);
         }
     }
@@ -60,6 +60,6 @@ int main() {
     Server<EventHandler> kbserver("keyb", new EventHandler());
     kbirqs.gate().subscribe(std::bind(kb_irq, &kbserver, std::placeholders::_1, std::placeholders::_2));
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

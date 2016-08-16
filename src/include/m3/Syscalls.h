@@ -16,79 +16,48 @@
 
 #pragma once
 
-#include <m3/cap/SendGate.h>
-#include <m3/util/String.h>
-#include <m3/CapRngDesc.h>
-#include <m3/Env.h>
+#include <base/util/String.h>
+#include <base/util/CapRngDesc.h>
+#include <base/Env.h>
+#include <base/KIF.h>
+#include <base/PEDesc.h>
+
+#include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
 
 namespace m3 {
 
+class Env;
 class RecvBuf;
-class GateIStream;
-class GateOStream;
 
 class Syscalls {
+    friend class Env;
+
     static constexpr size_t BUFSIZE     = 1024;
     static constexpr size_t MSGSIZE     = 256;
 
 public:
-    enum Operation {
-        PAGEFAULT = 0,  // sent by the DTU if the PF handler is not reachable
-        CREATESRV,
-        CREATESESS,
-        CREATEGATE,
-        CREATEVPE,
-        CREATEMAP,
-        ATTACHRB,
-        DETACHRB,
-        EXCHANGE,
-        VPECTRL,
-        DELEGATE,
-        OBTAIN,
-        ACTIVATE,
-        REQMEM,
-        DERIVEMEM,
-        REVOKE,
-        EXIT,
-        NOOP,
-        TMUXSWITCH,
-        TMUXRESUME,
-#if defined(__host__)
-        INIT,
-#endif
-        COUNT
-    };
-
-    enum VPECtrl {
-        VCTRL_START,
-        VCTRL_WAIT,
-    };
-
     static Syscalls &get() {
         return _inst;
     }
 
 private:
-    explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr,DTU::SYSC_EP) {
-#if defined(__host__)
-        if(!env()->is_kernel())
-            init(DTU::get().ep_regs());
-#endif
+    explicit Syscalls() : _gate(ObjCap::INVALID, 0, nullptr, DTU::SYSC_EP) {
     }
 
 public:
     Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
+    Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
-    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, const String &core,
-        capsel_t gate, size_t ep, bool tmuxable);
+    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
     Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
     Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const CapRngDesc &own, const CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
-    Errors::Code vpectrl(capsel_t vpe, VPECtrl op, int pid, int *exitcode);
+    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPECtrl op, int pid, int *exitcode);
     Errors::Code delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);
     GateIStream delegate(capsel_t vpe, capsel_t sess, const CapRngDesc &crd, const GateOStream &args);
     Errors::Code obtain(capsel_t vpe, capsel_t sess, const CapRngDesc &crd);
@@ -98,16 +67,12 @@ public:
     }
     Errors::Code reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms);
     Errors::Code derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms);
-    Errors::Code revoke(const CapRngDesc &crd);
+    Errors::Code revoke(capsel_t vpe, const CapRngDesc &crd, bool own = true);
     void exit(int exitcode);
     void noop();
 
     Errors::Code tmuxswitch();
     void tmuxresume();
-
-#if defined(__host__)
-    void init(void *sepregs);
-#endif
 
 private:
     Errors::Code finish(GateIStream &&reply);

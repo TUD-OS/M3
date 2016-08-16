@@ -14,11 +14,13 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/VPE.h>
-#include <m3/util/Math.h>
-#include <m3/Config.h>
-#include <m3/Heap.h>
+#include <base/Common.h>
+#include <base/util/Math.h>
+#include <base/Config.h>
+#include <base/Heap.h>
+
+#include <m3/session/Pager.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
@@ -41,6 +43,11 @@ uintptr_t VPE::get_entry() {
 }
 
 void VPE::copy_sections() {
+    if(_pager) {
+        _pager->clone();
+        return;
+    }
+
     /* copy text */
     uintptr_t start_addr = Math::round_dn((uintptr_t)&_text_start, DTU_PKG_SIZE);
     uintptr_t end_addr = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);
@@ -52,8 +59,8 @@ void VPE::copy_sections() {
     _mem.write_sync((void*)start_addr, end_addr - start_addr, start_addr);
 
     /* copy end-area of heap */
-    start_addr = Math::round_up((uintptr_t)&_bss_end + INIT_HEAP_SIZE, PAGE_SIZE) - DTU_PKG_SIZE;
-    _mem.write_sync((void*)start_addr, DTU_PKG_SIZE, start_addr);
+    start_addr = Heap::end_area();
+    _mem.write_sync((void*)start_addr, Heap::end_area_size(), start_addr);
 
     /* copy stack */
     start_addr = get_sp();

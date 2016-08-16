@@ -14,7 +14,7 @@
 # General Public License version 2 for more details.
 #
 
-#include <m3/arch/t2/Config.h>
+#include <base/arch/t2/Config.h>
 
     .text
     .literal_position

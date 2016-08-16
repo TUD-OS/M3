@@ -14,12 +14,104 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Profile.h>
+#include <base/log/Lib.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/vfs/RegularFile.h>
+#include <m3/vfs/MountSpace.h>
 #include <m3/vfs/VFS.h>
-#include <m3/service/M3FS.h>
-#include <m3/Log.h>
 
 namespace m3 {
+
+class RegFileBuffer : public File::Buffer {
+public:
+    explicit RegFileBuffer(size_t size) : File::Buffer(size) {
+    }
+
+    virtual bool putback(off_t off, char c) override {
+        if(!cur || off <= pos || off > (off_t)(pos + cur))
+            return false;
+        buffer[off - 1 - pos] = c;
+        return true;
+    }
+
+    virtual ssize_t read(File *file, off_t off, void *dst, size_t amount) override {
+        // something in the buffer?
+        if(cur && off >= pos && off < static_cast<off_t>(pos + cur)) {
+            size_t count = std::min<size_t>(amount, pos + cur - off);
+            memcpy(dst, buffer + (off - pos), count);
+            return count;
+        }
+
+        size_t posoff = off & (DTU_PKG_SIZE - 1);
+        pos = off - posoff;
+        // we can assume here that we are always at the position (_idx, _off), because our
+        // read-buffer is empty, which means that we've used everything that we read via _file->read
+        // last time.
+        ssize_t res = file->read(buffer, size);
+        if(res <= 0)
+            return res;
+        cur = res;
+        size_t copyamnt = std::min(std::min(static_cast<size_t>(res), size - posoff), amount);
+        memcpy(dst, buffer + posoff, copyamnt);
+        return copyamnt;
+    }
+
+    virtual ssize_t write(File *file, off_t off, const void *src, size_t amount) override {
+        if(cur == 0) {
+            size_t posoff = off & (DTU_PKG_SIZE - 1);
+            pos = off - posoff;
+            cur = posoff;
+            if(cur > 0) {
+                ssize_t res = static_cast<RegularFile*>(file)->fill(buffer, DTU_PKG_SIZE);
+                if(res <= 0)
+                    return res;
+            }
+        }
+
+        if(cur == size) {
+            ssize_t res = flush(file);
+            if(res <= 0)
+                return res;
+        }
+
+        size_t count = std::min(size - cur, amount);
+        memcpy(buffer + cur, src, count);
+        cur += count;
+        return count;
+    }
+
+    virtual int seek(off_t off, int whence, off_t &offset) override {
+        // if we seek within our read-buffer, it's enough to set the position
+        offset = whence == SEEK_CUR ? off + offset : offset;
+        if(cur) {
+            if(offset >= pos && offset <= static_cast<off_t>(pos + cur))
+                return 1;
+        }
+        return 0;
+    }
+
+    virtual ssize_t flush(File *file) override {
+        ssize_t res = 1;
+        if(cur > 0) {
+            size_t posoff = cur & (DTU_PKG_SIZE - 1);
+            // first, write the aligned part
+            if(cur - posoff > 0)
+                res = file->write(buffer, cur - posoff);
+
+            // if there is anything left, read that first and write it back
+            if(posoff != 0) {
+                alignas(DTU_PKG_SIZE) uint8_t tmpbuf[DTU_PKG_SIZE];
+                res = static_cast<RegularFile*>(file)->fill(tmpbuf, DTU_PKG_SIZE);
+                memcpy(tmpbuf, buffer + cur - posoff, posoff);
+                res = file->write(tmpbuf, DTU_PKG_SIZE);
+            }
+            cur = 0;
+        }
+        return res;
+    }
+};
 
 RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
     : File(perms), _fd(fd), _extended(), _begin(), _length(), _pos(),
@@ -35,7 +127,11 @@ RegularFile::~RegularFile() {
     _lastmem.rebind(ObjCap::INVALID);
     if(_fs.valid())
         _fs->close(_fd, _last_extent, _last_off);
-    _memcaps.free();
+    VPE::self().free_caps(_memcaps.start(), _memcaps.count());
+}
+
+File::Buffer *RegularFile::create_buf(size_t size) {
+    return new RegFileBuffer(size);
 }
 
 int RegularFile::stat(FileInfo &info) const {
@@ -78,6 +174,9 @@ off_t RegularFile::seek(off_t off, int whence) {
     }
     _pos.offset = extoff;
     adjust_written_part();
+
+    LLOG(FS, "[" << _fd << "] seek (" << fmt(off, "#0x", 6) << ", " << whence << ") -> ("
+        << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
     return pos;
 }
 
@@ -113,10 +212,15 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
         size_t memoff = pos.offset;
         size_t amount = get_amount(extlen, count, pos);
 
+        LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") -> ("
+            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "#0x", 6) << ")");
+
         // read from global memory
         // we need to round up here because the filesize might not be a multiple of DTU_PKG_SIZE
         // in which case the last extent-size is not aligned
+        Profile::start(0xaaaa);
         _lastmem.read_sync(buf, Math::round_up(amount, DTU_PKG_SIZE), memoff);
+        Profile::stop(0xaaaa);
         buf += amount;
         count -= amount;
     }
@@ -149,8 +253,13 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
             _last_extent = lastglobal;
         }
 
+        LLOG(FS, "[" << _fd << "] write(" << fmt(amount, "#0x", 6) << ") -> ("
+            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "0", 6) << ")");
+
         // write to global memory
+        Profile::start(0xaaaa);
         _lastmem.write_sync(buf, amount, memoff);
+        Profile::stop(0xaaaa);
         buf += amount;
         count -= amount;
     }
@@ -234,6 +343,34 @@ bool RegularFile::seek_to(off_t newpos) {
         }
     }
     return false;
+}
+
+size_t RegularFile::serialize_length() {
+    return ostreamsize<int, int, size_t, bool, off_t, Position, uint16_t, size_t>();
+}
+
+void RegularFile::delegate(VPE &) {
+    // nothing to do, because we let the child fetch new mem caps
+}
+
+void RegularFile::serialize(Marshaller &m) {
+    size_t mid = VPE::self().mountspace()->get_mount_id(&*_fs);
+    m << _fd << flags() << mid << _extended << _begin << _pos;
+    m << _last_extent << _last_off;
+}
+
+RegularFile *RegularFile::unserialize(Unmarshaller &um) {
+    int fd, flags;
+    size_t mid;
+    um >> fd >> flags >> mid;
+
+    Reference<M3FS> fs(static_cast<M3FS*>(VPE::self().mountspace()->get_mount(mid)));
+    RegularFile *file = new RegularFile(fd, fs, flags);
+    um >> file->_extended >> file->_begin >> file->_pos;
+    um >> file->_last_extent >> file->_last_off;
+    // we want to get new mem caps
+    file->_pos.local = MAX_LOCS;
+    return file;
 }
 
 }

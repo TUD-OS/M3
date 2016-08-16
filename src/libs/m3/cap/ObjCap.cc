@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/ObjCap.h>
-#include <m3/cap/VPE.h>
+#include <m3/ObjCap.h>
 #include <m3/Syscalls.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
@@ -25,7 +25,7 @@ void ObjCap::release() {
         if(~_flags & KEEP_SEL)
             VPE::self().free_cap(sel());
         if(~_flags & KEEP_CAP)
-            Syscalls::get().revoke(CapRngDesc(CapRngDesc::OBJ, sel()));
+            VPE::self().revoke(CapRngDesc(CapRngDesc::OBJ, sel()));
     }
 }
 

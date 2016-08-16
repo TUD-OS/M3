@@ -16,12 +16,13 @@
 
 #pragma once
 
+#include <base/tracing/Tracing.h>
+#include <base/Errors.h>
+
+#include <m3/com/GateStream.h>
+#include <m3/com/SendGate.h>
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
-#include <m3/cap/SendGate.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/GateStream.h>
-#include <m3/Errors.h>
 
 namespace m3 {
 
@@ -57,7 +58,7 @@ class RequestHandler : public Handler<SESS> {
     template<class HDL>
     friend class Server;
 
-    using handler_func = void (CLS::*)(RecvGate &gate, GateIStream &is);
+    using handler_func = void (CLS::*)(GateIStream &is);
 
 public:
     void add_operation(OP op, handler_func func) {
@@ -83,16 +84,15 @@ protected:
     }
 
 public:
-    void handle_message(RecvGate &gate, Subscriber<RecvGate&> *) {
+    void handle_message(GateIStream &msg, Subscriber<GateIStream&> *) {
         EVENT_TRACER_handle_message();
-        GateIStream msg(gate);
         OP op;
         msg >> op;
         if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
-            (static_cast<CLS*>(this)->*_callbacks[op])(gate, msg);
+            (static_cast<CLS*>(this)->*_callbacks[op])(msg);
             return;
         }
-        reply_vmsg(gate, Errors::INV_ARGS);
+        reply_vmsg(msg.gate(), Errors::INV_ARGS);
     }
 
 private:

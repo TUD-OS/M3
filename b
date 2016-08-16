@@ -97,8 +97,8 @@ help() {
     echo "    M3_FSBLKS:               The fs block count (default=16384)."
     echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
     echo "    M3_GEM5_CPU:             The CPU model (detailed by default)."
-    echo "    M3_DBG_PE:               Debug the PE with given number (only on gem5 and"
-    echo "                             with command dbg=)."
+    echo "    M3_PAUSE_PE:             Pause the PE with given number until GDB connects"
+    echo "                             (only on gem5 and with command dbg=)."
     echo "    M3_SSH_PREFIX:           The prefix for the ssh aliases used for T2."
     echo "                             These are th and thshell."
     exit 0
@@ -164,7 +164,7 @@ run_on_host() {
 
 kill_m3_procs() {
     # kill all processes that are using the m3 sockets
-    lsof -u $USER | grep '@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill 2>/dev/null || true
+    lsof -a -U -u $USER | grep '^@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill 2>/dev/null || true
 }
 
 # run the specified command, if any
@@ -227,10 +227,12 @@ case "$cmd" in
                 pid=`pgrep -x kernel`
             done
             if [ "$prog" != "kernel" ]; then
-                while [ "`ps w --ppid $pid | grep $prog`" = "" ]; do
+                line=`ps w --ppid $pid | grep "$prog\b"`
+                while [ "$line" = "" ]; do
                     sleep 1
+                    line=`ps w --ppid $pid | grep "$prog\b"`
                 done
-                pid=`ps w --ppid $pid | grep $prog | xargs | cut -d ' ' -f 1`
+                pid=`ps w --ppid $pid | grep "$prog\b" | xargs | cut -d ' ' -f 1`
             fi
 
             tmp=`mktemp`
@@ -253,9 +255,10 @@ case "$cmd" in
                 sleep 1
             done
 
-            if [ "$M3_DBG_PE" != "" ]; then
-                port=$(($M3_DBG_PE + 7000))
+            if [ "$M3_PAUSE_PE" != "" ]; then
+                port=$(($M3_PAUSE_PE + 7000))
             else
+                echo "Warning: M3_PAUSE_PE not specified; gem5 won't wait for GDB."
                 pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
                 port=$((${pe#PE} + 7000))
             fi

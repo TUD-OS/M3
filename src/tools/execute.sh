@@ -120,11 +120,7 @@ build_params_gem5() {
         fi
     fi
 
-    if [ ! -z $M3_CORES ]; then
-        maxcores=$M3_CORES
-    else
-        maxcores=`grep '#define MAX_CORES' src/include/m3/arch/gem5/Config.h | awk '{print $3 }'`
-    fi
+    M3_CORES=${M3_CORES:-16}
 
     c=0
     cmd=`generate_lines $1 | ( while read line; do
@@ -136,18 +132,23 @@ build_params_gem5() {
             c=$((c + 1))
         done
 
-        while [ $c -lt $maxcores ]; do
+        while [ $c -lt $M3_CORES ]; do
             echo -n $bindir/idle,
             c=$((c + 1))
         done
     )`
 
+    M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
+    export M3_GEM5_PES=$M3_CORES
+    export M3_GEM5_FS=$build/$M3_FS
+
     params=`mktemp`
     echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
-    echo -n " hw/gem5/configs/example/dtu-fs.py --cpu-type $M3_GEM5_CPU --num-pes=$maxcores" >> $params
-    echo -n " --cpu-clock=1GHz --sys-clock=1GHz --caches" >> $params
-    echo -n " --cmd \"$cmd\" --init_mem $build/$M3_FS --debug=$debug" >> $params
-    #echo -n " --watch-pe=0 --watch-start=0x111500 --watch-end=0x111600" >> $params
+    echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --cmd \"$cmd\"" >> $params
+    echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
+    if [ "$M3_PAUSE_PE" != "" ]; then
+        echo -n " --pausepe=$M3_PAUSE_PE" >> $params
+    fi
 
     export M5_PATH=$build
     if [ "$DBG_GEM5" != "" ]; then
@@ -217,7 +218,7 @@ build_params_t3_sim() {
         if [ ! -z $M3_CORES ]; then
             maxcores=$M3_CORES
         else
-            maxcores=`grep '#define MAX_CORES' src/include/m3/arch/t3/Config.h | awk '{print $3 }'`
+            maxcores=`grep '#define MAX_CORES' src/include/base/arch/t3/Config.h | awk '{print $3 }'`
         fi
         while [ $c -lt $maxcores ]; do
             echo -n " -pe_core.SimTargetProgram=$bindir/idle --pe_core.SimDebugSynchronized=true"
@@ -306,13 +307,7 @@ build_params_t2_chip() {
         ssh -t $t2pcip "chmod ugo+rw thtest/$M3_FS.mem.tar.gz"
         ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup-new.sh && rm -f *.txt; " \
             "echo ./chip.py $M3_FS.mem $profargs log.txt $args > run.sh && chmod +x run.sh; " \
-            "tar xfz $M3_FS.mem.tar.gz && ./run.sh && " \
-            "tar cfz $M3_FS.mem.out.tar.gz $M3_FS.mem.out"
-        if scp $t2pcip:thtest/$M3_FS.mem.out.tar.gz $build; then
-            ( cd $build && tar xfz $M3_FS.mem.out.tar.gz &&
-                mv $M3_FS.mem.out $M3_FS.out &&
-                rm $M3_FS.mem.out.tar.gz )
-        fi
+            "tar xfz $M3_FS.mem.tar.gz && ./run.sh"
     else
         ssh -t $t2pcthip "cd thtest && source ../tomahawk_shell/setup-new.sh && rm -f *.txt; " \
             "echo ./chip.py - $profargs log.txt $args > run.sh && chmod +x run.sh; " \

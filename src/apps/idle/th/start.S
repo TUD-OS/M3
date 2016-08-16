@@ -15,9 +15,9 @@
 #
 
 #if defined(__t2__)
-#   include <m3/arch/t2/Config.h>
+#   include <base/arch/t2/Config.h>
 #else
-#   include <m3/arch/t3/Config.h>
+#   include <base/arch/t3/Config.h>
 #endif
 
     .text

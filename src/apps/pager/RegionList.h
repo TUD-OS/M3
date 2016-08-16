@@ -16,95 +16,43 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/SList.h>
-#include <m3/cap/MemGate.h>
-#include <m3/CapRngDesc.h>
-#include <m3/DTU.h>
+#include <base/col/SList.h>
 
-namespace m3 {
-
-class Region : public SListItem {
-public:
-    explicit Region(uintptr_t offset, size_t size)
-        : SListItem(), _mem(), _offset(offset), _size(size) {
-    }
-    ~Region() {
-        delete _mem;
-    }
-
-    MemGate *mem() {
-        return _mem;
-    }
-    const MemGate *mem() const {
-        return _mem;
-    }
-    void mem(MemGate *gate) {
-        _mem = gate;
-    }
-
-    uintptr_t offset() const {
-        return _offset;
-    }
-    void offset(uintptr_t offset) {
-        // the size can only be increased, but not decreased
-        assert(offset >= _offset);
-        assert(_size > offset - _offset);
-        _size -= offset - _offset;
-        _offset = offset;
-    }
-
-    size_t size() const {
-        return _size;
-    }
-    void size(size_t size) {
-        // the size can only be decreased, but not increased
-        assert(size <= _size);
-        _size = size;
-    }
-
-private:
-    MemGate *_mem;
-    uintptr_t _offset;
-    size_t _size;
-};
+#include "Region.h"
 
 class RegionList {
 public:
-    explicit RegionList(size_t total) : _total(total), _regs() {
+    typedef m3::SList<Region>::iterator iterator;
+
+    explicit RegionList(DataSpace *ds) : _ds(ds), _regs() {
     }
+    RegionList(const RegionList &) = delete;
+    RegionList &operator=(const RegionList &) = delete;
     ~RegionList() {
-        while(_regs.length() > 0) {
-            Region *r = _regs.remove_first();
-            delete r;
-        }
+        clear();
     }
 
-    Region *pagefault(uintptr_t offset) {
-        uintptr_t last = 0;
-        auto r = _regs.begin();
-        // search for the region that contains <offset> or is behind <offset>
-        if(_regs.length() > 0) {
-            while(r->offset() + r->size() <= offset) {
-                last = r->offset() + r->size();
-                r++;
-            }
-        }
+    void clear();
 
-        // does it contain <offset>?
-        if(r != _regs.end() && offset >= r->offset() && offset < r->offset() + r->size())
-            return &*r;
-
-        // ok, build a new region that spans from the previous one to the next one
-        uintptr_t end = r == _regs.end() ? _total : r->offset();
-        Region *n = new Region(last, end - last);
-        _regs.append(n);
-        return n;
+    void append(Region *r) {
+        _regs.append(r);
     }
+
+    size_t count() const {
+        return _regs.length();
+    }
+    iterator begin() {
+        return _regs.begin();
+    }
+    iterator end() {
+        return _regs.end();
+    }
+
+    Region *pagefault(uintptr_t offset);
+
+    void print(m3::OStream &os) const;
 
 private:
-    size_t _total;
-    SList<Region> _regs;
+    DataSpace *_ds;
+    m3::SList<Region> _regs;
 };
-
-}

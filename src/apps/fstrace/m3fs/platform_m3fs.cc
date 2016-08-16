@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
+#include <m3/stream/Standard.h>
+
 #include <stdarg.h>
 
 #include "fsapi_m3fs.h"
@@ -55,7 +56,7 @@ void Platform::drop_caches() {
 
 
 void Platform::log(const char *msg) {
-    LOG(DEF, msg);
+    m3::cout << msg << "\n";
 }
 
 void Platform::logf(UNUSED const char *fmt, ...) {

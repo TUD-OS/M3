@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
-#include <m3/util/Sync.h>
+#include <base/Config.h>
+#include <base/util/Sync.h>
 
 static void writeback_line(uintptr_t addr) {
     asm volatile (

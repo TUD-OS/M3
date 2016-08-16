@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
 #include <fs/internal.h>
 
 namespace m3 {
@@ -35,6 +36,91 @@ protected:
     }
 
 public:
+    /**
+     * The default buffer implementation
+     */
+    struct Buffer {
+        /**
+         * Creates a buffer with <_size> bytes.
+         *
+         * @param _size the number of bytes (0 = no buffer)
+         */
+        explicit Buffer(size_t _size)
+            : buffer(_size ? new char[_size] : nullptr), size(_size), cur(), pos() {
+            assert(Math::is_aligned(buffer, DTU_PKG_SIZE) && Math::is_aligned(size, DTU_PKG_SIZE));
+        }
+        virtual ~Buffer() {
+            delete[] buffer;
+        }
+
+        /**
+         * @return true if the buffer is empty
+         */
+        bool empty() {
+            return cur == 0;
+        }
+        /**
+         * Invalidates the buffer, i.e. makes it empty
+         */
+        void invalidate() {
+            cur = 0;
+        }
+
+        /**
+         * Puts the given character back into the buffer.
+         *
+         * @param off the current offset
+         * @param c the character
+         * @return true if successful
+         */
+        virtual bool putback(off_t off, char c);
+
+        /**
+         * Reads <amount> bytes from the buffer into <dst>.
+         *
+         * @param file the file backend
+         * @param off the current offset
+         * @param dst the destination buffer
+         * @param amount the number of bytes to read
+         * @return the number of read bytes (0 = EOF, <0 = error)
+         */
+        virtual ssize_t read(File *file, off_t off, void *dst, size_t amount);
+
+        /**
+         * Writes <amount> bytes from <src> into the buffer.
+         *
+         * @param file the file backend
+         * @param off the current offset
+         * @param src the data to write
+         * @param amount the number of bytes to write
+         * @return the number of written bytes (0 = EOF, <0 =  error)
+         */
+        virtual ssize_t write(File *file, off_t off, const void *src, size_t amount);
+
+        /**
+         * Seeks to given offset.
+         *
+         * @param off the current offset
+         * @param whence the type of seek (SEEK_*)
+         * @param offset the offset to seek to
+         * @return >0 on seek, 0 on nothing done and <0 on error
+         */
+        virtual int seek(off_t off, int whence, off_t &offset);
+
+        /**
+         * Flushes the buffer.
+         *
+         * @param file the file backend
+         * @return the number of bytes on success (0 = EOF, <0 =  error)
+         */
+        virtual ssize_t flush(File *file);
+
+        char *buffer;
+        size_t size;
+        size_t cur;
+        off_t pos;
+    };
+
     File(const File &) = delete;
     File &operator=(const File &) = delete;
     virtual ~File() {
@@ -48,9 +134,12 @@ public:
     }
 
     /**
-     * @return if seeking is possible
+     * Creates a new buffer of given size
+     *
+     * @param size the size
+     * @return the buffer
      */
-    virtual bool seekable() const = 0;
+    virtual Buffer *create_buf(size_t size) = 0;
 
     /**
      * Retrieves information about this file
@@ -87,8 +176,33 @@ public:
      */
     virtual ssize_t write(const void *buffer, size_t count) = 0;
 
+    /**
+     * @return the unique character for serialization
+     */
+    virtual char type() const = 0;
+
+    /**
+     * Determines the number of bytes to serialize this object.
+     *
+     * @return the number of bytes
+     */
+    virtual size_t serialize_length() = 0;
+
+    /**
+     * Delegates all capabilities that are required for this file to the given VPE.
+     *
+     * @param vpe the VPE
+     */
+    virtual void delegate(VPE &vpe) = 0;
+
+    /**
+     * Serializes this object to the given marshaller.
+     *
+     * @param m the marshaller
+     */
+    virtual void serialize(Marshaller &m) = 0;
+
 private:
-    virtual ssize_t fill(void *buffer, size_t size) = 0;
     virtual bool seek_to(off_t offset) = 0;
 
     int _flags;

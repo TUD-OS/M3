@@ -2,8 +2,11 @@ Import('env')
 
 myenv = env.Clone()
 
+myenv.Append(CPPPATH = '.')
+
 sources = [
     myenv.Glob('*.cc'),
+    myenv.Glob('*/*.cc'),
     myenv.Glob('arch/$ARCH/*.cc'),
     myenv.Glob('arch/$ARCHTYPE/*.cc') if myenv['ARCHTYPE'] != myenv['ARCH'] else [],
     myenv.Glob('arch/$ARCH/*/*.cc')

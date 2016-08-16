@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/GateStream.h>
-#include <m3/Log.h>
+#include <m3/com/GateStream.h>
+#include <m3/stream/Standard.h>
+
 #include "Memory.h"
 
 using namespace m3;
@@ -25,7 +26,7 @@ void MemoryTestSuite::SyncTestCase::run() {
 
     MemGate gate = MemGate::bind(_mem.sel());
 
-    Serial::get() << "-- Test read sync --\n";
+    cout << "-- Test read sync --\n";
     {
         write_vmsg(gate, 0, 1, 2, 3, 4);
         gate.read_sync(data, sizeof(data), 0);
@@ -41,7 +42,7 @@ void MemoryTestSuite::DeriveTestCase::run() {
     MemGate gate = MemGate::bind(_mem.sel());
     write_vmsg(gate, 0, 1, 2, 3, 4);
 
-    Serial::get() << "-- Test derive --\n";
+    cout << "-- Test derive --\n";
     {
         gate.read_sync(test, sizeof(ulong) * 4, 0);
 
@@ -62,7 +63,7 @@ void MemoryTestSuite::DeriveTestCase::run() {
         assert_int(test[4], 5);
     }
 
-    Serial::get() << "-- Test wrong derive --\n";
+    cout << "-- Test wrong derive --\n";
     {
         MemGate sub = gate.derive(4 * sizeof(ulong), sizeof(ulong), MemGate::R);
         sub.read_sync(test, sizeof(ulong), 0);

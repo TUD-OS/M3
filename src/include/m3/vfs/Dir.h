@@ -16,7 +16,8 @@
 
 #pragma once
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
 #include <m3/stream/FStream.h>
 
 namespace m3 {
@@ -49,7 +50,7 @@ public:
      * @return 0 on success
      */
     int stat(FileInfo &info) const {
-        return _f.file().stat(info);
+        return _f.file()->stat(info);
     }
 
     /**

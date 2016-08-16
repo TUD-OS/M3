@@ -14,10 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/service/M3FS.h>
+#include <base/Common.h>
+
+#include <m3/session/M3FS.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
-#include <m3/Log.h>
+
 #include <cstring>
 
 #include "common/traceplayer.h"
@@ -44,14 +46,14 @@ int main(int argc, char **argv) {
     TracePlayer player(prefix);
 
     // print parameters for reference
-    Serial::get() << "VPFS trace_bench started ["
-        << "n=" << num_iterations << ","
-        << "keeptime=" << (keep_time   ? "yes" : "no")
-        << "]\n";
+    cout << "VPFS trace_bench started ["
+         << "n=" << num_iterations << ","
+         << "keeptime=" << (keep_time   ? "yes" : "no")
+         << "]\n";
 
     player.play(keep_time, make_ckpt);
 
-    Serial::get() << "VPFS trace_bench benchmark terminated\n";
+    cout << "VPFS trace_bench benchmark terminated\n";
 
     // done
     Platform::shutdown();

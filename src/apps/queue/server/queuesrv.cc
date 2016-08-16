@@ -14,19 +14,13 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/com/GateStream.h>
+#include <m3/com/SendQueue.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/cap/Session.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/SendQueue.h>
-#include <m3/Log.h>
-
-#include <unistd.h>
-#include <fcntl.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/Session.h>
 
 using namespace m3;
 
@@ -41,7 +35,7 @@ static char *gendata() {
     return data;
 }
 
-static void timer_irq(RecvGate &, Subscriber<RecvGate&>*) {
+static void timer_irq(GateIStream &, Subscriber<GateIStream&>*) {
     for(auto &h : server->handler()) {
         // skip clients that have a session but no gate yet
         if(h.gate()) {
@@ -58,7 +52,7 @@ int main() {
     // now, register service
     server = new Server<EventHandler>("queuetest", new EventHandler(), nextlog2<4096>::val);
 
-    WorkLoop::get().add(&SendQueue::get(), true);
-    WorkLoop::get().run();
+    env()->workloop()->add(&SendQueue::get(), true);
+    env()->workloop()->run();
     return 0;
 }

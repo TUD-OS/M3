@@ -14,14 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/col/SList.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/col/SList.h>
-#include <m3/arch/host/HWInterrupts.h>
+#include <m3/Syscalls.h>
+
 #include <sys/time.h>
 #include <cstdlib>
 
@@ -37,11 +37,12 @@ public:
 
 class IntEventHandler : public EventHandler {
 public:
-    virtual void handle_open(GateIStream &args) override {
+    virtual IntSessionData *handle_open(GateIStream &args) override {
         int irq;
         args >> irq;
-        EventSessionData *sess = add_session(new IntSessionData(static_cast<HWInterrupts::IRQ>(irq)));
-        reply_vmsg_on(args, Errors::NO_ERROR, sess);
+        auto *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(irq));
+        reply_vmsg_on(args, Errors::NO_ERROR, add_session(sess));
+        return sess;
     }
 };
 
@@ -91,7 +92,7 @@ int main() {
     evhandler = new IntEventHandler();
     Server<IntEventHandler> srv("interrupts", evhandler);
 
-    WorkLoop::get().add(&hwirqs, true);
-    WorkLoop::get().run();
+    env()->workloop()->add(&hwirqs, true);
+    env()->workloop()->run();
     return 0;
 }

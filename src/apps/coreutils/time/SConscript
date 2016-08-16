@@ -1,0 +1,3 @@
+Import('env')
+env.M3Program(env, target = 'time', source = Glob('*.cc'))
+

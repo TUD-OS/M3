@@ -16,8 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/cap/MemGate.h>
+#include <base/Common.h>
+
+#include <m3/com/MemGate.h>
+
 #include <fs/internal.h>
 
 class Cache {
@@ -37,6 +39,7 @@ public:
     void flush();
 
 private:
+    BlockInfo *get(m3::blockno_t bno);
     void flush_block(size_t i);
 
     m3::MemGate &_mem;

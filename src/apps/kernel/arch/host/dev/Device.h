@@ -16,27 +16,28 @@
 
 #pragma once
 
-#include <m3/arch/host/HWInterrupts.h>
-#include <m3/col/SList.h>
-#include <m3/util/Util.h>
-#include <m3/Log.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/col/SList.h>
+#include <base/util/Util.h>
+#include <base/Panic.h>
+
 #include <pthread.h>
 #include <csignal>
 
 extern int int_target;
 
-namespace m3 {
+namespace kernel {
 
-class Device : public SListItem {
+class Device : public m3::SListItem {
 public:
-    explicit Device() : SListItem(), _tid(), _run(true) {
+    explicit Device() : m3::SListItem(), _tid(), _run(true) {
     }
     virtual ~Device() {
     }
 
-    void trigger_irq(HWInterrupts::IRQ irq) {
+    void trigger_irq(m3::HWInterrupts::IRQ irq) {
         if(int_target != -1)
-            HWInterrupts::trigger(int_target, irq);
+            m3::HWInterrupts::trigger(int_target, irq);
     }
     void stop() {
         _run = false;

@@ -15,18 +15,18 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Log.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/cap/Session.h>
+#include <base/arch/host/HWInterrupts.h>
+#include <base/util/Profile.h>
+
+#include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
 #include <m3/server/RequestHandler.h>
-#include <m3/service/arch/host/Plasma.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/service/arch/host/VGA.h>
-#include <m3/arch/host/HWInterrupts.h>
-#include <m3/util/Profile.h>
-#include <m3/WorkLoop.h>
+#include <m3/session/arch/host/Plasma.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/arch/host/VGA.h>
+#include <m3/session/Session.h>
+#include <m3/Syscalls.h>
+
 #include <math.h>
 
 #define INTRO_TIME      200      // irqs
@@ -370,26 +370,26 @@ public:
         return Server<PlasmaRequestHandler>::DEF_MSGSIZE;
     }
 
-    void left(RecvGate &gate, GateIStream &) {
+    void left(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() - 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
-    void right(RecvGate &gate, GateIStream &) {
+    void right(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() + 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
 
-    void colup(RecvGate &gate, GateIStream &) {
+    void colup(GateIStream &is) {
         pa.set_color(pa.color() + 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
-    void coldown(RecvGate &gate, GateIStream &) {
+    void coldown(GateIStream &is) {
         pa.set_color(pa.color() - 1);
-        reply_vmsg(gate, 0);
+        reply_vmsg(is.gate(), 0);
     }
 };
 
-static void refresh_screen(VGA *vga, RecvGate &, Subscriber<RecvGate&> *) {
+static void refresh_screen(VGA *vga, GateIStream &, Subscriber<GateIStream&> *) {
     if(irqs++ < INTRO_TIME) {
         ia.render(tsc());
         vga->gate().write_sync(ia.buffer(), ia.size(), 0);
@@ -411,6 +411,6 @@ int main() {
 
     Server<PlasmaRequestHandler> srv("plasma", new PlasmaRequestHandler());
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

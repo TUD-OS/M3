@@ -14,22 +14,23 @@
  * General Public License version 2 for more details.
  */
 
+#include <m3/stream/Standard.h>
+
 #include <test/TestSuite.h>
-#include <m3/Log.h>
 
 namespace test {
 
 void TestSuite::run() {
     for(auto &t : _cases) {
-        LOG(DEF, "  Testcase \"" << t.get_name() << "\"...");
+        m3::cout << "  Testcase \"" << t.get_name() << "\"...\n";
 
         t.run();
         if(t.get_failed() == 0) {
-            LOG(DEF, "  \033[0;32mSUCCEEDED!\033[0m");
+            m3::cout << "  \033[0;32mSUCCEEDED!\033[0m\n";
             success();
         }
         else {
-            LOG(DEF, "  \033[0;31mFAILED!\033[0m");
+            m3::cout << "  \033[0;31mFAILED!\033[0m\n";
             failed();
         }
     }

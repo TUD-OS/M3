@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/cap/VPE.h>
 #include <m3/server/Handler.h>
-#include <m3/GateStream.h>
+#include <m3/com/GateStream.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
@@ -51,7 +51,7 @@ public:
     void broadcast(const Args &... args) {
         auto msg = create_vmsg(args...);
         for(auto &h : *this)
-            msg.send(*static_cast<SendGate*>(h.gate()));
+            send_msg(*static_cast<SendGate*>(h.gate()), msg.bytes(), msg.total());
     }
 
 protected:

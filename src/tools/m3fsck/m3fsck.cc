@@ -14,9 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/BitField.h>
+#include <base/Common.h>
+#include <base/util/BitField.h>
+
 #include <fs/internal.h>
+
 #include <cstdarg>
 #include <err.h>
 
@@ -45,7 +47,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
         errx(1, "Inode %u says that its inode-number is %u\n", ino, inode.inode);
 
     uint32_t block_count = (inode.size + sb.blocksize - 1) / sb.blocksize;
-    if(S_ISDIR(inode.mode)) {
+    if(M3FS_ISDIR(inode.mode)) {
         char *buffer = new char[sb.blocksize];
         for(uint32_t i = 0; i < block_count; ++i) {
             m3::blockno_t block = get_block_no(inode, i);

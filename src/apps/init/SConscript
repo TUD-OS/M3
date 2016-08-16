@@ -1,2 +1,3 @@
 Import('env')
-env.M3Program(env, target = 'init', source = Glob('*.cc'))
+env.M3Program(env, 'init', env.Glob('*.cc'))
+

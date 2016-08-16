@@ -14,7 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
+#include <base/Common.h>
+
 #include <test/TestSuiteContainer.h>
 
 #include "suites/stream/Stream.h"

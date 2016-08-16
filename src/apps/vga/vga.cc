@@ -14,12 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/arch/host/SharedMemory.h>
+
 #include <m3/server/Server.h>
-#include <m3/service/arch/host/VGA.h>
-#include <m3/arch/host/SharedMemory.h>
-#include <m3/cap/VPE.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <m3/session/arch/host/VGA.h>
+#include <m3/stream/Standard.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 
@@ -48,8 +48,8 @@ int main() {
 
     Server<VGAHandler> srv("vga", new VGAHandler(&memgate));
     if(Errors::occurred())
-        PANIC("Unable to register service 'vga'");
+        exitmsg("Unable to register service 'vga'");
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

@@ -1,11 +1,21 @@
 #!/usr/bin/env python2
 
-import tomahawk as th
+newth = True
+
+if newth:
+    import tomahawk.arch
+    import tomahawk.memory
+    import thdk_tools
+    th = tomahawk.arch.Tomahawk2()
+else:
+    import tomahawk as th
+
 import sys
 import select
 import time
 import ConfigParser
 import StringIO
+import string
 from ctypes import *
 
 # read memory layout
@@ -36,7 +46,6 @@ class Env(Structure):
         ('coreid', c_uint64),
         ('argc', c_uint32),
         ('argv', c_uint32),
-        ('mods', c_uint32 * 8),
 
         ('sp', c_uint32),
         ('entry', c_uint32),
@@ -45,12 +54,16 @@ class Env(Structure):
         ('pager_gate', c_uint32),
         ('mountlen', c_uint32),
         ('mounts', c_uint32),
+        ('fdslen', c_uint32),
+        ('fds', c_uint32),
         ('eps', c_uint32),
         ('caps', c_uint32),
         ('exit', c_uint32),
+        ('heapsize', c_uint32),
 
-        ('def_recvbuf', c_uint32),
-        ('def_recvgate', c_uint32),
+        ('backend', c_uint32),
+        ('kenv', c_uint32),
+        ('pe', c_uint32),
     ]
     def send(self):
         return buffer(self)[:]
@@ -70,6 +83,12 @@ def strToBytes(str):
         i2 = charToInt(ord(str[i + 1]))
         bytes += [(i1 << 4) | i2]
     return reversed(bytes)
+
+def int64ToBytes(val):
+    bytes = []
+    for i in range(0, 8):
+        bytes.append((val >> (8 * i)) & 0xFF)
+    return bytes
 
 def beginToInt64(str):
     res = 0
@@ -158,6 +177,15 @@ def initState(core, argv):
     senv.eps = 0
     senv.mountlen = 0
     senv.mounts = 0
+    senv.fdslen = 0
+    senv.fds = 0
+    senv.heapsize = 0
+
+    senv.kenv = 0
+    if core == th.cm_core:
+        senv.pe = (128 * 1024) | (2 << 3);
+    else:
+        senv.pe = (64 * 1024) | (2 << 3);
 
     # write Env to core
     off = RT_START
@@ -183,16 +211,14 @@ def readFile(mod, addr, len, filename):
 
 def fetchPrint(core, id):
     length = read64bit(core, SERIAL_ACK) & 0xFFFFFFFF
-    if length != 0 and length < 256:
-        line = ""
-        t1 = time.time()
-        line += "%08.4f> " % (t1 - t0)
-        line += readStr(core, SERIAL_BUF, length)
+    if length != 0 and length <= SERIAL_BUFSIZE:
+        line = readStr(core, SERIAL_BUF, length)
         sys.stdout.write(line)
+        sys.stdout.write('\033[0m')
         sys.stdout.flush()
-        log.write(line)
+
         write64bit(core, SERIAL_ACK, 0)
-        if "kernel" in line and "Shutting down..." in line:
+        if "kernel" in line and "Shutting down" in line:
             return 2
         return 1
     elif length != 0:
@@ -254,7 +280,16 @@ th.ddr_ram.on()
 
 # copy fs-image to global memory
 if sys.argv[1] != "-":
-    th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
+    if newth:
+        fslen = 0
+        for slic in tomahawk.memory.memfilestream(sys.argv[1]):
+            fslen += len(slic)
+        proc = thdk_tools.Progress("Storing FS image in DRAM", fslen)
+        th.ddr_ram.writes(tomahawk.memory.memfilestream(sys.argv[1]), prgss=lambda x: proc.advance(x))
+        proc.clear()
+    else:
+        th.ddr_ram.mem.writememdata(th.memfilestream(sys.argv[1]))
+
 th.ddr_ram.mem[DRAM_CCOUNT] = 0
 th.ddr_ram[DRAM_FILE_AREA + DRAM_BLOCKNO] = 0
 
@@ -316,7 +351,7 @@ for duo_pe in th.duo_pes[len(progs):]:
 # init and start CM
 print "Powering on CM"
 th.cm_core.on()
-th.cm_core.set_ptable_val(10)   # 400 MHz
+#th.cm_core.set_ptable_val(10)   # 400 MHz
 print BOLD_START + "Initializing memory of CM with " + cmprog + BOLD_END
 th.cm_core.initMem(cmprog)
 
@@ -334,7 +369,7 @@ for duo_pe in th.duo_pes:
 
 if sys.argv[3] != "-":
     print "Starting App-Core"
-    th.app_core.set_ptable_val(10)  # 400 MHz
+    #th.app_core.set_ptable_val(10)  # 400 MHz
     th.app_core.on()
 
 t0 = time.time()
@@ -383,13 +418,3 @@ while run:
         time.sleep(0.01)
 
 getTraceFile()
-
-# now, read the fs image back from DRAM into a file
-if sys.argv[1] != "-":
-    print "Reading filesystem image from DRAM..."
-    with open(sys.argv[1] + '.out', 'wb') as f:
-        for addr, data in th.memfilestream(sys.argv[1]):
-            for i, w in enumerate(th.ddr_ram.mem.__getslice__(addr, addr + len(data) * 8)):
-                for b in strToBytes(w):
-                    f.write("%c" % b)
-print "Done. Bye!"

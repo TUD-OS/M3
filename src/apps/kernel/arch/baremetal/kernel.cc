@@ -14,63 +14,42 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/tracing/Tracing.h>
-#include <m3/DTU.h>
-#include <m3/Log.h>
+#include <base/stream/Serial.h>
+#include <base/tracing/Tracing.h>
+#include <base/log/Kernel.h>
+#include <base/DTU.h>
+#include <base/WorkLoop.h>
 
-#include "../../CapTable.h"
-#include "../../PEManager.h"
-#include "../../SyscallHandler.h"
-#include "../../KWorkLoop.h"
+#include "com/RecvBufs.h"
+#include "mem/MainMemory.h"
+#include "pes/PEManager.h"
+#include "SyscallHandler.h"
 
-using namespace m3;
-
-class KernelEPSwitcher : public EPSwitcher {
-public:
-    virtual void switch_ep(size_t id, capsel_t, capsel_t newcap) override {
-        if(newcap != ObjCap::INVALID) {
-            MsgCapability *c = static_cast<MsgCapability*>(
-                CapTable::kernel_table().get(newcap, Capability::MSG));
-
-            // TODO we need the max msg size
-            KDTU::get().config_send_local(id,
-                c->obj->label, c->obj->core, c->obj->vpe, c->obj->epid,
-                c->obj->credits, c->obj->credits);
-
-            LOG(IPC, "Kernel programs ep[" << id << "] to "
-                << "core=" << c->obj->core << ", ep=" << c->obj->epid
-                << ", lbl=" << fmt(c->obj->label, "#0x", sizeof(label_t) * 2)
-                << ", credits=" << fmt(c->obj->credits, "#x"));
-        }
-    }
-};
+using namespace kernel;
 
 int main(int argc, char *argv[]) {
-    Serial &ser = Serial::get();
     if(argc < 2) {
-        ser << "Usage: " << argv[0] << " <program>...\n";
-        Machine::shutdown();
+        m3::Serial::get() << "Usage: " << argv[0] << " <program>...\n";
+        m3::Machine::shutdown();
     }
-
-    KernelEPSwitcher *epsw = new KernelEPSwitcher();
-    EPMux::get().set_epswitcher(epsw);
 
     EVENT_TRACE_INIT_KERNEL();
 
-    ser << "Initializing PEs...\n";
+    KLOG(MEM, MainMemory::get());
 
+    RecvBufs::init();
     PEManager::create();
     PEManager::get().load(argc - 1, argv + 1);
 
-    KWorkLoop::run();
+    KLOG(INFO, "Kernel is ready");
+
+    m3::env()->workloop()->run();
 
     EVENT_TRACE_FLUSH();
 
-    ser << "Shutting down...\n";
+    KLOG(INFO, "Shutting down");
 
     PEManager::destroy();
-    delete epsw;
 
-    Machine::shutdown();
+    m3::Machine::shutdown();
 }

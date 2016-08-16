@@ -16,8 +16,9 @@
 
 #pragma once
 
+#include <base/Heap.h>
+
 #include <test/TestSuite.h>
-#include <m3/Heap.h>
 
 class HeapTestSuite : public test::TestSuite {
 private:

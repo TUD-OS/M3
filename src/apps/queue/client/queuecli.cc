@@ -14,25 +14,23 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/Session.h>
-#include <m3/cap/VPE.h>
-#include <m3/Syscalls.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <base/Env.h>
+
+#include <m3/session/Session.h>
+#include <m3/stream/Standard.h>
+#include <m3/VPE.h>
 
 #include <unistd.h>
 #include <fcntl.h>
 
 using namespace m3;
 
-static void received_data(RecvGate &gate, Subscriber<RecvGate&> *) {
-    GateIStream is(gate);
+static void received_data(GateIStream &is, Subscriber<GateIStream&> *) {
     unsigned sum = 0;
     const unsigned char *data = is.buffer();
     for(size_t i = 0; i < is.remaining(); ++i)
         sum += data[i];
-    LOG(DEF, "Received " << fmt(sum, "x"));
+    cout << "Received " << fmt(sum, "x") << "\n";
 }
 
 int main() {
@@ -45,6 +43,6 @@ int main() {
     qtest.delegate_obj(sgate.sel());
     rgate.subscribe(received_data);
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

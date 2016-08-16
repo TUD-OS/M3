@@ -16,32 +16,40 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/col/Treap.h>
-#include <m3/cap/MemGate.h>
-#include <m3/cap/Session.h>
-#include <m3/stream/OStream.h>
-#include <m3/service/M3FS.h>
-#include <m3/CapRngDesc.h>
-#include <m3/DTU.h>
-#include <m3/Errors.h>
+#include <base/Common.h>
+#include <base/col/SList.h>
+#include <base/col/Treap.h>
+#include <base/stream/OStream.h>
+#include <base/Errors.h>
+
+#include <m3/session/Session.h>
 
 #include "RegionList.h"
 
-namespace m3 {
+class AddrSpace;
 
-static char zeros[4096];
-
-class DataSpace : public TreapNode<uintptr_t> {
+class DataSpace : public m3::TreapNode<DataSpace, uintptr_t>, public m3::SListItem {
 public:
-    explicit DataSpace(uintptr_t addr, size_t size, uint _flags)
-        : TreapNode<uintptr_t>(addr), flags(_flags), _regs(size), _size(size) {
+    explicit DataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
+        : TreapNode(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
+          _regs(this), _size(size) {
+    }
+    virtual ~DataSpace() {
     }
 
-    bool matches(uintptr_t k) override {
+    bool matches(uintptr_t k) {
         return k >= addr() && k < addr() + _size;
     }
 
+    ulong id() const {
+        return _id;
+    }
+    AddrSpace *addrspace() {
+        return _as;
+    }
+    uint flags() const {
+        return _flags;
+    }
     uintptr_t addr() const {
         return key();
     }
@@ -49,92 +57,65 @@ public:
         return _size;
     }
 
-    void print(OStream &os) const override {
-        os << "DataSpace[addr=" << fmt(addr(), "p") << ", size=" << fmt(size(), "#x")
-           << ", flags=" << flags << "]";
-    }
+    virtual const char *type() const = 0;
+    virtual m3::Errors::Code handle_pf(uintptr_t virt) = 0;
+    virtual DataSpace *clone(AddrSpace *as) = 0;
 
-    virtual Errors::Code get_page(uintptr_t *virt, int *pageNo, size_t *pages, capsel_t *sel) = 0;
+    void inherit(DataSpace *ds);
 
-    uint flags;
+    void print(m3::OStream &os) const;
+
 protected:
+    AddrSpace *_as;
+    ulong _id;
+    uint _flags;
     RegionList _regs;
     size_t _size;
+    static ulong _next_id;
 };
 
 class AnonDataSpace : public DataSpace {
 public:
-    static constexpr size_t MAX_PAGES = 16;
+    static constexpr size_t MAX_PAGES = 4;
 
-    explicit AnonDataSpace(uintptr_t addr, size_t size, uint flags)
-        : DataSpace(addr, size, flags) {
+    explicit AnonDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
+        : DataSpace(as, addr, size, flags) {
     }
 
-    Errors::Code get_page(uintptr_t *virt, int *pageNo, size_t *pages, capsel_t *sel) override {
-        Region *reg = _regs.pagefault(*virt - addr());
-        if(reg->mem() != NULL) {
-            // TODO don't assume that memory is never unmapped.
-            *pages = 0;
-            return Errors::NO_ERROR;
-        }
-
-        reg->size(Math::min(reg->size(), MAX_PAGES * PAGE_SIZE));
-        reg->mem(new MemGate(MemGate::create_global(reg->size(), flags)));
-        *pageNo = 0;
-        *pages = reg->size() >> PAGE_BITS;
-        *sel = reg->mem()->sel();
-        *virt = addr() + reg->offset();
-        // zero the memory
-        for(size_t i = 0; i < *pages; ++i)
-            reg->mem()->write_sync(zeros, sizeof(zeros), i * PAGE_SIZE);
-        return Errors::NO_ERROR;
+    const char *type() const override {
+        return "Anon";
     }
+    DataSpace *clone(AddrSpace *as) override {
+        return new AnonDataSpace(as, addr(), size(), _flags);
+    }
+
+    m3::Errors::Code handle_pf(uintptr_t vaddr) override;
 };
 
 class ExternalDataSpace : public DataSpace {
 public:
-    explicit ExternalDataSpace(uintptr_t addr, size_t size, uint flags, int _id, size_t _offset)
-        : DataSpace(addr, size, flags), sess(VPE::self().alloc_cap()), id(_id), offset(_offset) {
+    static constexpr size_t MAX_PAGES = 8;
+
+    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
+            size_t _fileoff, capsel_t sess)
+        : DataSpace(as, addr, size, flags), sess(sess), id(_id), fileoff(_fileoff) {
+    }
+    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
+            size_t _fileoff)
+        : DataSpace(as, addr, size, flags), sess(m3::VPE::self().alloc_cap()),
+          id(_id), fileoff(_fileoff) {
     }
 
-    Errors::Code get_page(uintptr_t *virt, int *pageNo, size_t *pages, capsel_t *sel) override {
-        // find the region
-        Region *reg = _regs.pagefault(*virt - addr());
-        if(reg->mem() != NULL) {
-            // TODO don't assume that memory is never unmapped.
-            *pages = 0;
-            return Errors::NO_ERROR;
-        }
-
-        // get memory caps for the region
-        size_t count = 1, blocks = 0;
-        auto args = create_vmsg(id, offset + reg->offset(), count, blocks, M3FS::BYTE_OFFSET);
-        CapRngDesc crd;
-        loclist_type locs;
-        GateIStream resp = sess.obtain(1, crd, args);
-        if(Errors::last != Errors::NO_ERROR)
-            return Errors::last;
-
-        // adjust region
-        bool extended;
-        off_t off;
-        resp >> locs >> extended >> off;
-        size_t sz = Math::round_up(locs.get(0) - off, PAGE_SIZE);
-        if(sz < reg->size())
-            reg->size(sz);
-        reg->mem(new MemGate(MemGate::bind(crd.start())));
-
-        // that's what we want to map
-        *pageNo = off >> PAGE_BITS;
-        *pages = reg->size() >> PAGE_BITS;
-        *virt = addr() + reg->offset();
-        *sel = crd.start();
-        return Errors::NO_ERROR;
+    const char *type() const override {
+        return "External";
+    }
+    DataSpace *clone(AddrSpace *as) override {
+        return new ExternalDataSpace(as, addr(), size(), _flags, id, fileoff, sess.sel());
     }
 
-    Session sess;
+    m3::Errors::Code handle_pf(uintptr_t vaddr) override;
+
+    m3::Session sess;
     int id;
-    size_t offset;
+    size_t fileoff;
 };
-
-}

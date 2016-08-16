@@ -14,16 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/MemGate.h>
-#include <m3/cap/SendGate.h>
-#include <m3/cap/RecvGate.h>
-#include <m3/cap/VPE.h>
-#include <m3/util/Random.h>
-#include <m3/stream/Serial.h>
-#include <m3/stream/IStringStream.h>
-#include <m3/GateStream.h>
+#include <base/util/Random.h>
+#include <base/stream/IStringStream.h>
 
-#include <unistd.h>
+#include <m3/com/MemGate.h>
+#include <m3/com/SendGate.h>
+#include <m3/com/RecvGate.h>
+#include <m3/com/GateStream.h>
+#include <m3/stream/Standard.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 
@@ -38,7 +37,7 @@ int main(int argc, char **argv) {
 
     MemGate mem = MemGate::create_global(memSize, MemGate::RW);
 
-    Serial::get() << "Initializing memory...\n";
+    cout << "Initializing memory...\n";
 
     // init memory with random numbers
     uint *buffer = new uint[BUF_SIZE / sizeof(uint)];
@@ -52,7 +51,7 @@ int main(int argc, char **argv) {
         rem -= BUF_SIZE;
     }
 
-    Serial::get() << "Starting filter chain...\n";
+    cout << "Starting filter chain...\n";
 
     // create receiver
     VPE t2("receiver");
@@ -63,6 +62,8 @@ int main(int argc, char **argv) {
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
+    t2.fds(*VPE::self().fds());
+    t2.obtain_fds();
     t2.run([rep] {
         RecvBuf rbuf = RecvBuf::create(rep, nextlog2<512>::val, nextlog2<64>::val, 0);
         RecvGate rcvgate = RecvGate::create(&rbuf);
@@ -71,17 +72,21 @@ int main(int argc, char **argv) {
         while(!finished) {
             GateIStream is = receive_vmsg(rcvgate, count, finished);
 
-            Serial::get() << "Got " << count << " data items\n";
+            cout << "Got " << count << " data items\n";
 
             reply_vmsg_on(is, 0);
             total += count;
         }
-        Serial::get() << "Got " << total << " items in total\n";
+        cout << "Got " << total << " items in total\n";
         return 0;
     });
 
     VPE t1("sender");
-    t1.delegate(CapRngDesc::All());
+    t1.fds(*VPE::self().fds());
+    t1.obtain_fds();
+    t1.delegate_obj(mem.sel());
+    t1.delegate_obj(resmem.sel());
+    t1.delegate_obj(gate.sel());
     t1.run([buffer, &mem, &gate, &resmem, memSize] {
         uint *result = new uint[BUF_SIZE / sizeof(uint)];
         size_t c = 0;
@@ -118,6 +123,6 @@ int main(int argc, char **argv) {
     t1.wait();
     t2.wait();
 
-    Serial::get() << "Done.\n";
+    cout << "Done.\n";
     return 0;
 }

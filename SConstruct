@@ -55,6 +55,26 @@ baseenv = Environment(
     }
 )
 
+# print executed commands?
+verbose = os.environ.get('M3_VERBOSE', 0)
+if int(verbose) == 0:
+    baseenv['INSTALLSTR']   = "[INSTALL] $TARGET"
+    baseenv['ASPPCOMSTR']   = "[AS     ] $TARGET"
+    baseenv['ASPPCOMSTR']   = "[ASPP   ] $TARGET"
+    baseenv['CCCOMSTR']     = "[CC     ] $TARGET"
+    baseenv['SHCCCOMSTR']   = "[SHCC   ] $TARGET"
+    baseenv['CXXCOMSTR']    = "[CXX    ] $TARGET"
+    baseenv['SHCXXCOMSTR']  = "[SHCXX  ] $TARGET"
+    baseenv['LINKCOMSTR']   = "[LD     ] $TARGET"
+    baseenv['SHLINKCOMSTR'] = "[SHLD   ] $TARGET"
+    baseenv['ARCOMSTR']     = "[AR     ] $TARGET"
+    baseenv['RANLIBCOMSTR'] = "[RANLIB ] $TARGET"
+    baseenv['F90COMSTR']    = "[FC     ] $TARGET"
+    baseenv['MDUMPCOMSTR']  = "[MDUMP  ] $TARGET"
+    baseenv['STRIPCOMSTR']  = "[STRIP  ] $TARGET"
+    baseenv['DUMPCOMSTR']   = "[DUMP   ] $TARGET"
+    baseenv['MKFSCOMSTR']   = "[MKFS   ] $TARGET"
+
 # for host compilation
 hostenv = baseenv.Clone()
 hostenv.Append(
@@ -64,11 +84,12 @@ hostenv.Append(
 # for target compilation
 env = baseenv.Clone()
 env.Append(
-    CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2 -fno-threadsafe-statics -fno-stack-protector',
+    CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2' \
+        ' -fno-threadsafe-statics -fno-stack-protector',
     CPPFLAGS = ' -D_FORTIFY_SOURCE=0',
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
-    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections',
+    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections -Wno-lto-type-mismatch',
 )
 
 # add target-dependent stuff to env
@@ -134,21 +155,6 @@ else:
     hostenv.Append(CFLAGS = ' -O3')
 builddir = 'build/' + target + '-' + btype
 
-# print executed commands?
-verbose = os.environ.get('M3_VERBOSE', 0)
-if int(verbose) == 0:
-    env['ASPPCOMSTR'] = "AS $TARGET"
-    env['ASPPCOMSTR'] = "ASPP $TARGET"
-    env['CCCOMSTR'] = "CC $TARGET"
-    env['SHCCCOMSTR'] = "SHCC $TARGET"
-    env['CXXCOMSTR'] = "CXX $TARGET"
-    env['SHCXXCOMSTR'] = "SHCXX $TARGET"
-    env['LINKCOMSTR'] = "LD $TARGET"
-    env['SHLINKCOMSTR'] = "SHLD $TARGET"
-    env['ARCOMSTR'] = "AR $TARGET"
-    env['RANLIBCOMSTR'] = "RANLIB $TARGET"
-    env['F90COMSTR'] = "FC $TARGET"
-
 if target == 't2' or target == 't3':
     archtype = 'th'
 else:
@@ -168,16 +174,27 @@ env.Append(
     MEMDIR = Dir(builddir + '/mem'),
     FSDIR = Dir(builddir + '/fsdata')
 )
+hostenv.Append(
+    BINARYDIR = env['BINARYDIR']
+)
 
 def M3MemDump(env, target, source):
     dump = env.Command(
-        target, source, 'xt-dumpelf --width=64 --offset=0 $SOURCE > $TARGET'
+        target, source,
+        Action(
+            'xt-dumpelf --width=64 --offset=0 $SOURCE > $TARGET',
+            '$MDUMPCOMSTR'
+        )
     )
     env.Install('$MEMDIR', dump)
 
 def M3FileDump(env, target, source, addr, args = ''):
     dump = env.Command(
-        target, source, '$BUILDDIR/src/tools/dumpfile/dumpfile $SOURCE 0x%x %s > $TARGET' % (addr, args)
+        target, source,
+        Action(
+            '$BUILDDIR/src/tools/dumpfile/dumpfile $SOURCE 0x%x %s > $TARGET' % (addr, args),
+            '$DUMPCOMSTR'
+        )
     )
     env.Depends(dump, '$BUILDDIR/src/tools/dumpfile/dumpfile')
     env.Install('$MEMDIR', dump)
@@ -185,14 +202,21 @@ def M3FileDump(env, target, source, addr, args = ''):
 def M3Mkfs(env, target, source, blocks, inodes, blks_per_ext):
     fs = env.Command(
         target, source,
-        '$BUILDDIR/src/tools/mkm3fs/mkm3fs $TARGET $SOURCE %d %d %d' % (blocks, inodes, blks_per_ext)
+        Action(
+            '$BUILDDIR/src/tools/mkm3fs/mkm3fs $TARGET $SOURCE %d %d %d' % (blocks, inodes, blks_per_ext),
+            '$MKFSCOMSTR'
+        )
     )
     env.Depends(fs, '$BUILDDIR/src/tools/mkm3fs/mkm3fs')
     env.Install('$BUILDDIR', fs)
 
 def M3Strip(env, target, source):
     return env.Command(
-        target, source, cross + '-strip -o $TARGET $SOURCE'
+        target, source,
+        Action(
+            cross + '-strip -o $TARGET $SOURCE',
+            '$STRIPCOMSTR'
+        )
     )
 
 link_addr = 0x200000
@@ -200,6 +224,9 @@ link_addr = 0x200000
 def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtcore = None,
               ldscript = None, varAddr = True):
     myenv = env.Clone()
+
+    m3libs = ['base'] if target == 'kernel' else ['base', 'm3']
+
     if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
         # set variables, depending on core
         if tgtcore is None:
@@ -215,7 +242,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
                 myenv['LIBDIR'].abspath + '/crtn.o',
                 myenv['LIBDIR'].abspath + '/Window.o'
             ]
-            libs = ['hal', 'handlers-sim', 'c', 'm3', 'c', 'gcc'] + libs
+            libs = ['hal', 'handlers-sim', 'gcc', 'c'] + m3libs + libs
         sources += source
 
         if ldscript is None:
@@ -241,7 +268,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
         myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
     elif myenv['ARCH'] == 'gem5':
         if not NoSup:
-            libs = ['c', 'm3'] + libs
+            libs = ['c'] + m3libs + libs
             source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
 
         if ldscript is None:
@@ -262,7 +289,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
     else:
         prog = myenv.Program(
             target, source,
-            LIBS = ['m3', 'pthread'] + libs,
+            LIBS = ['base', 'm3', 'pthread'] + libs,
             LIBPATH = [myenv['LIBDIR']] + libpaths
         )
 

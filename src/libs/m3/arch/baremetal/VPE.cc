@@ -14,50 +14,93 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/cap/VPE.h>
-#include <m3/Syscalls.h>
-#include <m3/service/Pager.h>
+#include <base/ELF.h>
+#include <base/Panic.h>
+
+#include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
-#include <m3/vfs/RegularFile.h>
 #include <m3/vfs/Executable.h>
-#include <m3/Log.h>
-#include <m3/ELF.h>
+#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/RegularFile.h>
+#include <m3/Syscalls.h>
+#include <m3/VPE.h>
+
 #include <stdlib.h>
 
 namespace m3 {
+
+void VPE::init_state() {
+    if(Heap::is_on_heap(_eps))
+        delete _eps;
+    if(Heap::is_on_heap(_caps))
+        delete _caps;
+
+    _caps = reinterpret_cast<BitField<CAP_TOTAL>*>(env()->caps);
+    if(_caps == nullptr)
+        _caps = new BitField<CAP_TOTAL>();
+
+    _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
+    if(_eps == nullptr)
+        _eps = new BitField<EP_COUNT>();
+}
+
+void VPE::init_fs() {
+    if(Heap::is_on_heap(_fds))
+        delete _fds;
+    if(Heap::is_on_heap(_ms))
+        delete _ms;
+
+    if(env()->pager_sess && env()->pager_gate)
+        _pager = new Pager(env()->pager_sess, env()->pager_gate);
+
+    if(env()->mounts_len)
+        _ms = MountSpace::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
+    else
+        _ms = reinterpret_cast<MountSpace*>(env()->mounts);
+
+    if(env()->fds_len)
+        _fds = FileTable::unserialize(reinterpret_cast<const void*>(env()->fds), env()->fds_len);
+    else
+        _fds = reinterpret_cast<FileTable*>(env()->fds);
+}
 
 Errors::Code VPE::run(void *lambda) {
     copy_sections();
 
     alignas(DTU_PKG_SIZE) Env senv;
     senv.coreid = 0;
-    senv.argc = 0;
-    senv.argv = 0;
+    senv.argc = env()->argc;
+    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = get_sp();
     senv.entry = get_entry();
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
-    senv.exit = 0;
+    senv.exitaddr = 0;
 
-    senv.mount_len = _mountlen;
-    senv.mounts = reinterpret_cast<uintptr_t>(_mounts);
+    senv.mounts_len = 0;
+    senv.mounts = reinterpret_cast<uintptr_t>(_ms);
+    senv.fds_len = 0;
+    senv.fds = reinterpret_cast<uintptr_t>(_fds);
     senv.caps = reinterpret_cast<uintptr_t>(_caps);
     senv.eps = reinterpret_cast<uintptr_t>(_eps);
     senv.pager_gate = 0;
     senv.pager_sess = 0;
 
-    senv.def_recvbuf = env()->def_recvbuf;
-    senv.def_recvgate = env()->def_recvgate;
+    senv.backend = env()->backend;
+    senv.pe = _pe;
+
+    senv.heapsize = env()->heapsize;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
-    /* go! */
-    return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
-}
+    /* write args */
+    char *buffer = (char*)Heap::alloc(BUF_SIZE);
+    size_t size = store_arguments(buffer, env()->argc, const_cast<const char**>(env()->argv));
+    _mem.write_sync(buffer, size, RT_SPACE_START);
+    Heap::free(buffer);
 
-Errors::Code VPE::exec(int argc, const char **argv) {
-    Executable e(argc, argv);
-    return exec(e);
+    /* go! */
+    return start();
 }
 
 Errors::Code VPE::exec(Executable &exec) {
@@ -74,24 +117,27 @@ Errors::Code VPE::exec(Executable &exec) {
 
     senv.argc = exec.argc();
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
-    senv.sp = get_sp();
+    senv.sp = STACK_TOP;
     senv.entry = entry;
     senv.lambda = 0;
-    senv.exit = 0;
+    senv.exitaddr = 0;
 
-    /* check state size */
-    if(size + _mountlen + sizeof(*_caps) + sizeof(*_eps) > RT_SPACE_SIZE)
-        PANIC("State is too large");
-
-    /* add mounts, caps and eps */
+    /* add mounts, fds, caps and eps */
     /* align it because we cannot necessarily read e.g. integers from unaligned addresses */
     size_t offset = Math::round_up(size, sizeof(word_t));
-    senv.mount_len = _mountlen;
+
     senv.mounts = RT_SPACE_START + offset;
-    if(_mountlen > 0) {
-        memcpy(buffer + offset, _mounts, _mountlen);
-        offset = Math::round_up(offset + _mountlen, sizeof(word_t));
-    }
+    senv.mounts_len = _ms->serialize(buffer + offset, RT_SPACE_SIZE - offset);
+    offset = Math::round_up(offset + senv.mounts_len, sizeof(word_t));
+
+    senv.fds = RT_SPACE_START + offset;
+    senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
+    offset = Math::round_up(offset + senv.fds_len, sizeof(word_t));
+
+    size_t eps_caps = Math::round_up(sizeof(*_caps), sizeof(word_t)) +
+        Math::round_up(sizeof(*_eps), sizeof(word_t));
+    if(RT_SPACE_SIZE - offset < eps_caps)
+        PANIC("State is too large");
 
     senv.caps = RT_SPACE_START + offset;
     memcpy(buffer + offset, _caps, sizeof(*_caps));
@@ -110,14 +156,16 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.pager_sess = _pager ? _pager->sel() : 0;
     senv.pager_gate = _pager ? _pager->gate().sel() : 0;
 
-    senv.def_recvbuf = nullptr;
-    senv.def_recvgate = nullptr;
+    senv.backend = nullptr;
+    senv.pe = _pe;
+
+    senv.heapsize = _pager ? APP_HEAP_SIZE : 0;
 
     /* write start env to PE */
     _mem.write_sync(&senv, sizeof(senv), RT_START);
 
     /* go! */
-    return Syscalls::get().vpectrl(sel(), Syscalls::VCTRL_START, 0, nullptr);
+    return start();
 }
 
 void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {
@@ -212,29 +260,30 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
 
         // create heap
         virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
-        err = _pager->map_anon(&virt, INIT_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
+        err = _pager->map_anon(&virt, APP_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NO_ERROR)
             return err;
     }
 
-    {
-        /* copy arguments and arg pointers to buffer */
-        char **argptr = (char**)buffer;
-        char *args = buffer + exec.argc() * sizeof(char*);
-        for(int i = 0; i < exec.argc(); ++i) {
-            size_t len = strlen(exec.argv()[i]);
-            if(args + len >= buffer + BUF_SIZE)
-                return Errors::INV_ARGS;
-            strcpy(args, exec.argv()[i]);
-            *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
-            args += len + 1;
-        }
-
-        *size = args - buffer;
-    }
+    *size = store_arguments(buffer, exec.argc(), exec.argv());
 
     *entry = header.e_entry;
     return Errors::NO_ERROR;
+}
+
+size_t VPE::store_arguments(char *buffer, int argc, const char **argv) {
+    /* copy arguments and arg pointers to buffer */
+    char **argptr = (char**)buffer;
+    char *args = buffer + argc * sizeof(char*);
+    for(int i = 0; i < argc; ++i) {
+        size_t len = strlen(argv[i]);
+        if(args + len >= buffer + BUF_SIZE)
+            return Errors::INV_ARGS;
+        strcpy(args, argv[i]);
+        *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
+        args += len + 1;
+    }
+    return args - buffer;
 }
 
 }

@@ -14,15 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/util/Sync.h>
+#include <base/util/Sync.h>
 
-#include "../../PEManager.h"
-#include "../../KDTU.h"
+#include "pes/PEManager.h"
+#include "Platform.h"
 
-namespace m3 {
+namespace kernel {
 
 PEManager::~PEManager() {
-    for(size_t i = 0; i < AVAIL_PES; ++i) {
+    for(size_t i = 0; i < Platform::pe_count(); ++i) {
         if(_vpes[i])
             _vpes[i]->unref();
     }

@@ -18,3 +18,5 @@ if conf.CheckOTFConfig():
     )
 else:
     print('Cannot execute otfconfig, skipping m3trace2otf...')
+
+conf.Finish()

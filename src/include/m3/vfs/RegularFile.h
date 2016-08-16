@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include <m3/Common.h>
-#include <m3/CapRngDesc.h>
-#include <m3/service/M3FS.h>
+#include <base/Common.h>
+#include <base/util/CapRngDesc.h>
+
+#include <m3/session/M3FS.h>
 #include <m3/vfs/LocList.h>
 #include <m3/vfs/FileSystem.h>
 #include <m3/vfs/File.h>
@@ -27,6 +28,7 @@ namespace m3 {
 
 class M3FS;
 class FStream;
+class RegFileBuffer;
 
 /**
  * The File implementation for regular files. Note that this is the low-level API for working with
@@ -41,6 +43,7 @@ class FStream;
 class RegularFile : public File {
     friend class FStream;
     friend class M3FS;
+    friend class RegFileBuffer;
 
     struct Position {
         explicit Position() : local(MAX_LOCS), global(), offset() {
@@ -83,9 +86,7 @@ public:
         return _fs;
     }
 
-    virtual bool seekable() const override {
-        return true;
-    }
+    virtual Buffer *create_buf(size_t size) override;
     virtual int stat(FileInfo &info) const override;
     virtual off_t seek(off_t offset, int whence) override;
     virtual ssize_t read(void *buffer, size_t count) override {
@@ -95,9 +96,17 @@ public:
         return do_write(buffer, count, _pos);
     }
 
+    virtual char type() const override {
+        return 'M';
+    }
+    virtual size_t serialize_length() override;
+    virtual void delegate(VPE &vpe) override;
+    virtual void serialize(Marshaller &m) override;
+    static RegularFile *unserialize(Unmarshaller &um);
+
 private:
-    virtual ssize_t fill(void *buffer, size_t size) override;
     virtual bool seek_to(off_t offset) override;
+    ssize_t fill(void *buffer, size_t size);
     ssize_t do_read(void *buffer, size_t count, Position &pos) const;
     ssize_t do_write(const void *buffer, size_t count, Position &pos) const;
     ssize_t get_location(Position &pos, bool writing) const;

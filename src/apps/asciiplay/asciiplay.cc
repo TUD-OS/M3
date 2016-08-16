@@ -14,16 +14,18 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Common.h>
-#include <m3/cap/SendGate.h>
-#include <m3/service/arch/host/Interrupts.h>
-#include <m3/service/arch/host/Keyboard.h>
-#include <m3/service/arch/host/VGA.h>
-#include <m3/stream/IStringStream.h>
+#include <base/Common.h>
+#include <base/stream/IStringStream.h>
+#include <base/Env.h>
+
+#include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
+#include <m3/session/arch/host/Interrupts.h>
+#include <m3/session/arch/host/Keyboard.h>
+#include <m3/session/arch/host/VGA.h>
 #include <m3/stream/FStream.h>
-#include <m3/GateStream.h>
-#include <m3/WorkLoop.h>
-#include <m3/Log.h>
+#include <m3/stream/Standard.h>
+#include <m3/vfs/VFS.h>
 
 using namespace m3;
 
@@ -57,7 +59,7 @@ static void copy_to_vga(int row, int col, const char *str, size_t len, size_t to
     }
 }
 
-static void timer_event(RecvGate &, Subscriber<RecvGate&> *) {
+static void timer_event(GateIStream &, Subscriber<GateIStream&> *) {
     static Status laststatus = PLAYING;
     if(status != laststatus || ticks == next_tick) {
         if(status == PLAYING) {
@@ -66,7 +68,7 @@ static void timer_event(RecvGate &, Subscriber<RecvGate&> *) {
             for(int i = 0; i < ROWS; ++i) {
                 ssize_t res = movie->getline(linebuf, sizeof(linebuf));
                 if(res < 0)
-                    LOG(DEF, "Unable to read from movie file");
+                    errmsg("Unable to read from movie file");
                 else
                     copy_to_vga(startrow + i, startcol, linebuf, res, COLS);
             }
@@ -90,9 +92,8 @@ static void timer_event(RecvGate &, Subscriber<RecvGate&> *) {
         ticks++;
 }
 
-static void kb_event(RecvGate &gate, Subscriber<RecvGate&> *) {
+static void kb_event(GateIStream &is, Subscriber<GateIStream&> *) {
     Keyboard::Event ev;
-    GateIStream is(gate);
     is >> ev;
     if(!ev.isbreak)
         return;
@@ -105,18 +106,17 @@ static void kb_event(RecvGate &gate, Subscriber<RecvGate&> *) {
 }
 
 int main(int argc, char **argv) {
-    if(argc < 2) {
-        LOG(DEF, "Usage: " << argv[0] << " <movie-file>");
-        return 1;
-    }
+    if(argc < 2)
+        exitmsg("Usage: " << argv[0] << " <movie-file>");
+
     moviefile = argv[1];
 
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Mounting root-fs failed");
+        exitmsg("Mounting root-fs failed");
 
     movie = new FStream(moviefile, FILE_R);
     if(!*movie)
-        PANIC("Opening " << moviefile << " failed");
+        exitmsg("Opening " << moviefile << " failed");
 
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
     timerirqs.gate().subscribe(timer_event);
@@ -124,6 +124,6 @@ int main(int argc, char **argv) {
     Keyboard kb("keyb");
     kb.gate().subscribe(kb_event);
 
-    WorkLoop::get().run();
+    env()->workloop()->run();
     return 0;
 }

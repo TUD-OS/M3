@@ -14,11 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Serial.h>
-#include <m3/pipe/PipeWriter.h>
-#include <m3/pipe/PipeReader.h>
-#include <m3/util/Profile.h>
-#include <m3/Log.h>
+#include <base/util/Profile.h>
+
+#include <m3/stream/Standard.h>
+#include <m3/pipe/DirectPipe.h>
+#include <m3/pipe/IndirectPipe.h>
 
 using namespace m3;
 
@@ -31,27 +31,58 @@ enum {
 
 alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
 
-int main() {
-    VPE writer("writer");
-    Pipe pipe(VPE::self(), writer, MEM_SIZE);
+template<class PIPE>
+static void run_bench(VPE &writer, PIPE &pipe) {
+    writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
+    writer.obtain_fds();
 
-    cycles_t start = Profile::start(0);
-
-    writer.run([&pipe] {
-        PipeWriter wr(pipe);
+    writer.run([] {
+        File *out = VPE::self().fds()->get(STDOUT_FD);
         for(size_t i = 0; i < COUNT; ++i)
-            wr.write(buffer, sizeof(buffer));
+            out->write(buffer, sizeof(buffer));
         return 0;
     });
 
-    {
-        PipeReader rd(pipe);
-        while(!rd.eof())
-            rd.read(buffer, sizeof(buffer));
-    }
-    writer.wait();
+    pipe.close_writer();
 
-    cycles_t end = Profile::stop(0);
-    Serial::get() << "Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: " << (end - start) << " cycles\n";
+    File *in = VPE::self().fds()->get(pipe.reader_fd());
+    while(in->read(buffer, sizeof(buffer)) > 0)
+        ;
+
+    pipe.close_reader();
+    writer.wait();
+}
+
+int main(int argc, char **argv) {
+    bool direct = true;
+    bool indirect = true;
+    if(argc > 1) {
+        direct = strcmp(argv[1], "direct") == 0;
+        indirect = strcmp(argv[1], "indirect") == 0;
+    }
+
+    if(direct) {
+        cycles_t start = Profile::start(0);
+
+        VPE writer("writer");
+        DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
+        run_bench(writer, pipe);
+
+        cycles_t end = Profile::stop(0);
+        cout << "[  direct] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+        cout << (end - start) << " cycles\n";
+    }
+
+    if(indirect) {
+        cycles_t start = Profile::start(0);
+
+        VPE writer("writer");
+        IndirectPipe pipe(MEM_SIZE);
+        run_bench(writer, pipe);
+
+        cycles_t end = Profile::stop(0);
+        cout << "[indirect] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+        cout << (end - start) << " cycles\n";
+    }
     return 0;
 }

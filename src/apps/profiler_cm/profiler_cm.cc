@@ -15,7 +15,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/Config.h>
+#include <base/Config.h>
 
 static inline uint32_t get_cycles() {
     uint32_t val;
