@@ -14,25 +14,19 @@
 * General Public License version 2 for more details.
 */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
-#include <m3/cap/VPE.h>
-#include <m3/Syscalls.h>
-#include <m3/DTU.h>
-
-using namespace m3;
+#include <m3/stream/Standard.h>
 
 int main(int argc, char **argv)
 {
     unsigned int counter = 0;
     char *name = argv[0];
 
-    Serial::get() << "Counter program started...\n";
+    m3::cout << "Counter program started...\n";
 
     // this program simply counts and prints a message at every step
 
     while (1) {
-        Serial::get() << "Message " << counter << " from " << name << "\n";
+        m3::cout << "Message " << counter << " from " << name << "\n";
         ++counter;
     }
 

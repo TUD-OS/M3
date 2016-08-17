@@ -15,8 +15,8 @@
  */
 
 #include <m3/RCTMux.h>
-#include <m3/DTU.h>
-#include <m3/Env.h>
+#include <base/DTU.h>
+#include <base/Env.h>
 #include <m3/Syscalls.h>
 
 #include "RCTMux.h"
@@ -29,8 +29,8 @@ EXTERN_C void _start();
 namespace RCTMux {
 
 static struct alignas(DTU_PKG_SIZE) syscall_tmuxctl {
-    Syscalls::Operation syscall_op;
-} _sc_tmuxctl = { Syscalls::TMUXRESUME };
+    KIF::Syscall::Operation syscall_op;
+} _sc_tmuxctl = { KIF::Syscall::TMUXRESUME };
 
 static void notify_kernel() {
     flag_set(SIGNAL);
@@ -50,7 +50,7 @@ EXTERN_C void _loop() {
         if(ptr) {
             setup();
             // remember exit location
-            senv->exit = reinterpret_cast<uintptr_t>(&_start);
+            senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
             jump_to_app(ptr, senv->sp);
         }
 

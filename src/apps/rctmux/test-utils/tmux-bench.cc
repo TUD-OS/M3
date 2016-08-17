@@ -14,15 +14,15 @@
 * General Public License version 2 for more details.
 */
 
-#include <m3/Common.h>
-#include <m3/stream/Serial.h>
+#include <base/Common.h>
 #include <m3/Syscalls.h>
 #include <m3/vfs/VFS.h>
-#include <m3/cap/VPE.h>
-#include <m3/Log.h>
+#include <m3/VPE.h>
+#include <m3/stream/Standard.h>
 
-#include <m3/util/Sync.h>
-#include <m3/util/Profile.h>
+#include <base/util/Sync.h>
+#include <base/util/Profile.h>
+#include <base/Panic.h>
 
 using namespace m3;
 
@@ -51,32 +51,34 @@ int main(int argc, char **argv)
     unused(argc);
     unused(argv);
 
-    Serial::get() << "Time-multiplexing context-switch benchmark started.\n";
+    cout << "Time-multiplexing context-switch benchmark started.\n";
 
-    Serial::get() << "Mounting filesystem...\n";
+    cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
-    Serial::get() << "Starting two VPEs with time-multiplexing enabled\n";
+    cout << "Starting two VPEs with time-multiplexing enabled\n";
 
     const char *args1[] = { "/bin/rctmux-util-counter"};
     const char *args2[] = { "/bin/unittests-misc"};
 
     // start the first vpe
-    VPE s1(args1[0], "", "pager", true);
-    s1.delegate_mounts();
+    VPE s1(args1[0], VPE::self().pe(), "pager", true);
+    s1.mountspace(*VPE::self().mountspace());
+    s1.obtain_mountspace();
     START(s1, args1);
 
     // start the second VPE
-    VPE s2(args2[0], "", "pager", true);
-    s2.delegate_mounts();
+    VPE s2(args2[0], VPE::self().pe(), "pager", true);
+    s2.mountspace(*VPE::self().mountspace());
+    s2.obtain_mountspace();
     START(s2, args2);
 
     // now do some switches
 #define COUNT 50
-    Serial::get() << "Starting benchmark (" << COUNT << " switches)...\n";
+    cout << "Starting benchmark (" << COUNT << " switches)...\n";
     _switchalot(COUNT);
-    Serial::get() << "Benchmark finished.\n";
+    cout << "Benchmark finished.\n";
 
     return 0;
 }

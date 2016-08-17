@@ -15,11 +15,11 @@
  */
 
 #include <m3/RCTMux.h>
-#include <m3/DTU.h>
-#include <m3/Env.h>
-#include <m3/util/Math.h>
-#include <m3/util/Sync.h>
-#include <m3/util/Profile.h>
+#include <base/DTU.h>
+#include <base/Env.h>
+#include <base/util/Math.h>
+#include <base/util/Sync.h>
+#include <base/util/Profile.h>
 #include <string.h>
 
 #include "RCTMux.h"

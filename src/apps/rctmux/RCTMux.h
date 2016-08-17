@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/Config.h>
+#include <base/Config.h>
 
 #if defined(__t3__)
 #   include "arch/t3/RCTMux.h"

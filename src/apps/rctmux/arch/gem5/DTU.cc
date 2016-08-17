@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/DTU.h>
-#include <m3/cap/MemGate.h>
-#include <m3/util/Sync.h>
+#include <base/DTU.h>
+#include <m3/com/MemGate.h>
+#include <base/util/Sync.h>
 
 // this is mostly taken from libm3 (arch/gem5/DTU.cc)
 
@@ -44,28 +44,16 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     return get_error();
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off) {
-    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    write_reg(CmdRegs::DATA_SIZE, size);
-    write_reg(CmdRegs::OFFSET, off);
-    Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ));
-
-    wait_until_ready(ep);
-
-    return get_error();
+Errors::Code DTU::read(int ep, void *data, size_t size, size_t off, uint flags) {
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags);
+    return transfer(cmd, dataaddr, size, off);
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off) {
-    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    write_reg(CmdRegs::DATA_SIZE, size);
-    write_reg(CmdRegs::OFFSET, off);
-    Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE));
-
-    wait_until_ready(ep);
-
-    return get_error();
+Errors::Code DTU::write(int ep, const void *data, size_t size, size_t off, uint flags) {
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags);
+    return transfer(cmd, dataaddr, size, off);
 }
 
 } /* namespace m3 */
