@@ -58,13 +58,13 @@ public:
     uintptr_t exitaddr;
     size_t heapsize;
 
-#if defined(__gem5__)
-    uintptr_t isr64_handler;
-#endif
-
     BaremetalEnvBackend *backend;
     uintptr_t kenv;
     PEDesc pe;
+
+#if defined(__gem5__)
+    uintptr_t isr64_handler;
+#endif
 
     WorkLoop *workloop() {
         return backend->_workloop;
