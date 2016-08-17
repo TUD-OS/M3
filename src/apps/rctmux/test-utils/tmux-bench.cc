@@ -26,9 +26,6 @@
 
 using namespace m3;
 
-template <typename T>
-void unused(T &&) {}
-
 #define START(x, y) { \
     Errors::Code c = x.exec(1, y); \
     if (c != Errors::NO_ERROR) \
@@ -46,11 +43,8 @@ void _switchalot(int count) {
     }
 }
 
-int main(int argc, char **argv)
+int main()
 {
-    unused(argc);
-    unused(argv);
-
     cout << "Time-multiplexing context-switch benchmark started.\n";
 
     cout << "Mounting filesystem...\n";
