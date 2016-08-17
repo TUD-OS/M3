@@ -27,7 +27,7 @@ void ContextSwitcher::store_dtu_state(VPE *vpe) {
     DTU::get().get_regs_state(vpe->core(), &(vpe->dtu_state));
 }
 
-void ContextSwitcher::attach_storage(VPE *curr_vpe, VPE *next_vpe) {
+void ContextSwitcher::attach_storage(VPE *, VPE *) {
     // drop all current endpoints at remote dtu and attach
     // the storage memories
     // TODO

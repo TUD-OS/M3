@@ -16,7 +16,7 @@
 
 #include <m3/stream/Standard.h>
 
-int main(int argc, char **argv)
+int main(int, char **argv)
 {
     unsigned int counter = 0;
     char *name = argv[0];

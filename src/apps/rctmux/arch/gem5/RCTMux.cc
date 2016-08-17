@@ -54,9 +54,6 @@ void finish() {
 }
 
 void store() {
-    alignas(DTU_PKG_SIZE) uint32_t addr;
-    size_t offset = 0;
-
     // wait for kernel
     while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
         ;
@@ -65,6 +62,7 @@ void store() {
         return;
 
     // store state
+    //size_t offset = 0;
     //mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     // success
@@ -74,9 +72,6 @@ void store() {
 }
 
 void restore() {
-    alignas(DTU_PKG_SIZE) uint32_t addr;
-    size_t offset = 0;
-
     while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
         ;
 
@@ -84,6 +79,7 @@ void restore() {
         return;
 
     // read state
+    //size_t offset = 0;
     //mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     if (_state.magic != RCTMUX_MAGIC) {
