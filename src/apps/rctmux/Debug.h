@@ -19,13 +19,12 @@
 #ifndef NDEBUG
 
 #if defined(__t3__)
-EXTERN_C void __assert(const char *failedexpr, const char *file,
-    unsigned int line, const char *func)
+EXTERN_C void __assert(const char *, const char *, unsigned int, const char *)
 {
     // nothing yet
 }
 #else
-EXTERN_C void __assert(const char *assertion, const char *file, int line)
+EXTERN_C void __assert(const char *, const char *, int)
 {
     // nothing yet
 }
