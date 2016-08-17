@@ -16,6 +16,11 @@
 
 #pragma once
 
+#include <base/Common.h>
+#include <base/Config.h>
+
+#include <m3/RCTMux.h>
+
 namespace RCTMux {
 
 inline void cpu_wait_for_interrupt() {

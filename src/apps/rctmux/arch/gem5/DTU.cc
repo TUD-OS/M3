@@ -15,8 +15,10 @@
  */
 
 #include <base/DTU.h>
-#include <m3/com/MemGate.h>
+#include <base/util/Math.h>
 #include <base/util/Sync.h>
+
+#include <m3/com/MemGate.h>
 
 // this is mostly taken from libm3 (arch/gem5/DTU.cc)
 

@@ -16,6 +16,10 @@
 
 #pragma once
 
+#include <base/Common.h>
+
+#include <m3/RCTMux.h>
+
 static unsigned _RCTMUX_FLAGS;
 
 namespace RCTMux {

@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <base/Common.h>
+
 #ifndef NDEBUG
 
 #if defined(__t3__)
