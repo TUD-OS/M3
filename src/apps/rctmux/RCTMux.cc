@@ -42,19 +42,15 @@ static void notify_kernel() {
         ;
 }
 
-EXTERN_C void _loop() {
-    volatile m3::Env *senv = m3::env();
-    while(1) {
-        // is there something to run?
-        uintptr_t ptr = senv->entry;
-        if(ptr) {
-            setup();
-            // remember exit location
-            senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
-            jump_to_app(ptr, senv->sp);
-        }
-
-        cpu_wait_for_interrupt();
+EXTERN_C void _try_run() {
+    m3::Env *senv = m3::env();
+    // is there something to run?
+    uintptr_t ptr = senv->entry;
+    if(ptr) {
+        setup();
+        // remember exit location
+        senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
+        jump_to_app(ptr, senv->sp);
     }
 }
 

@@ -16,7 +16,7 @@
 
 .global _start
 .global _rctmux_stack
-.extern _loop
+.extern _try_run
 
 .text
 
@@ -28,7 +28,7 @@ _start:
     mov     %rsp, %rbp
 
     # check if there is something to run
-    call    _loop
+    call    _try_run
 
     # _if we get here, there was none, so idle
     hlt

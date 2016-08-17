@@ -24,10 +24,6 @@ static unsigned _RCTMUX_FLAGS;
 
 namespace RCTMux {
 
-inline void cpu_wait_for_interrupt() {
-    asm volatile ("hlt");
-}
-
 inline void jump_to_start(const uintptr_t ptr) {
     asm volatile (
         "jmp *%0"

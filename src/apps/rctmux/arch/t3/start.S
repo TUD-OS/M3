@@ -19,7 +19,7 @@
 
     .text
 
-    .extern  _loop
+    .extern  _try_run
 
     // declare literals
     .literal_position
@@ -45,8 +45,11 @@ _start:
     movi    a3, 1
     wsr     a3, intenable
 
-    // initialize and wait until we are signaled
-    call4   _loop
+    // check if there is something to run
+    call4   _try_run
+    // we only come back if there was none
+    waiti   0
+    j       _start
 
 halt:
     // this should never be reached
