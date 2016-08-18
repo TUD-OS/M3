@@ -55,8 +55,8 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate, bo
 }
 
 void VPE::make_daemon() {
-  _flags |= DAEMON;
-  PEManager::get()._daemons++;
+    _flags |= DAEMON;
+    PEManager::get()._daemons++;
 }
 
 void VPE::unref() {
