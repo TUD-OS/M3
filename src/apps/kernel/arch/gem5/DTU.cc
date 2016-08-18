@@ -125,21 +125,16 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
 
-    if(!rootpt) {
-        // TODO read the root pt from the core; the HW sets it atm for apps that are started at boot
-        uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::ROOT_PT);
-        read_mem(vpe, addr, &rootpt, sizeof(rootpt));
-    }
-    else {
-        clear_pt(rootpt);
+    // init root PT
+    clear_pt(rootpt);
 
-        // insert recursive entry
-        uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
-        m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
-        write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), VPE::INVALID_ID),
-            addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
-    }
+    // insert recursive entry
+    uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
+    m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
+    write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), VPE::INVALID_ID),
+        addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
 
+    // init DTU registers
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
     uint flags = ep != EP_COUNT ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
     dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = flags;
