@@ -21,7 +21,7 @@
 
 #include <cstring>
 
-#include "RBuf.h"
+#include "com/RBuf.h"
 #include "cap/CapTable.h"
 #include "cap/Capability.h"
 #include "mem/AddrSpace.h"

@@ -23,10 +23,10 @@
 #include <base/DTU.h>
 #include <base/Errors.h>
 
+#include "com/RBuf.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
-#include "RBuf.h"
 
 namespace kernel {
 
