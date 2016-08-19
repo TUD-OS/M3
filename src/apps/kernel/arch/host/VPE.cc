@@ -23,7 +23,6 @@
 #include <cstring>
 #include <cerrno>
 
-#include "pes/PEManager.h"
 #include "pes/VPE.h"
 #include "SyscallHandler.h"
 

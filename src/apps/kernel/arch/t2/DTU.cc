@@ -18,7 +18,7 @@
 #include <base/util/Sync.h>
 #include <base/DTU.h>
 
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
@@ -67,7 +67,7 @@ void DTU::wakeup(const VPEDesc &vpe) {
     write_mem(vpe, RT_START, &id, sizeof(id));
 
     // configure syscall endpoint again
-    label_t label = reinterpret_cast<label_t>(&PEManager::get().vpe(vpe.id).syscall_gate());
+    label_t label = reinterpret_cast<label_t>(&VPEManager::get().vpe(vpe.id).syscall_gate());
     config_send_remote(vpe, m3::DTU::SYSC_EP, label,
         Platform::kernel_pe(), Platform::kernel_pe(), m3::DTU::SYSC_EP,
         1 << VPE::SYSC_CREDIT_ORD, 1 << VPE::SYSC_CREDIT_ORD);

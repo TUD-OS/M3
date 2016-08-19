@@ -16,7 +16,7 @@
 
 #include <base/log/Kernel.h>
 
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "cap/Capability.h"
 #include "cap/CapTable.h"
 
@@ -53,7 +53,7 @@ SessionObject::~SessionObject() {
 
 m3::Errors::Code MsgCapability::revoke() {
     if(localepid != -1) {
-        VPE &vpe = PEManager::get().vpe(table()->id() - 1);
+        VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated
         if(vpe.state() != VPE::DEAD)
@@ -65,19 +65,19 @@ m3::Errors::Code MsgCapability::revoke() {
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _pages, uint _attr)
     : Capability(tbl, sel, MAP, _pages), phys(_phys), attr(_attr) {
-    VPE &vpe = PEManager::get().vpe(tbl->id() - 1);
+    VPE &vpe = VPEManager::get().vpe(tbl->id() - 1);
     DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
 }
 
 void MapCapability::remap(uintptr_t _phys, uint _attr) {
     phys = _phys;
     attr = _attr;
-    VPE &vpe = PEManager::get().vpe(table()->id() - 1);
+    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
     DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, length, attr);
 }
 
 m3::Errors::Code MapCapability::revoke() {
-    VPE &vpe = PEManager::get().vpe(table()->id() - 1);
+    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
     DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
     return m3::Errors::NO_ERROR;
 }

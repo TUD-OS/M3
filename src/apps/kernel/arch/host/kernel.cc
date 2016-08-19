@@ -32,6 +32,7 @@
 
 #include "com/RecvBufs.h"
 #include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "dev/TimerDevice.h"
 #include "dev/VGAConsole.h"
@@ -117,7 +118,8 @@ int main(int argc, char *argv[]) {
         copyfromfs(MainMemory::get(), fsimg);
     RecvBufs::init();
     PEManager::create();
-    PEManager::get().load(argc - argstart - 1, argv + argstart + 1);
+    VPEManager::create();
+    VPEManager::get().load(argc - argstart - 1, argv + argstart + 1);
 
     KLOG(INFO, "Kernel is ready");
 
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
     KLOG(INFO, "Shutting down");
     if(fsimg)
         copytofs(MainMemory::get(), fsimg);
-    PEManager::destroy();
+    VPEManager::destroy();
     for(auto it = devices.begin(); it != devices.end(); ) {
         auto old = it++;
         old->stop();

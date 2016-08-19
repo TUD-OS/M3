@@ -20,13 +20,13 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "Platform.h"
 
 namespace kernel {
 
-PEManager::~PEManager() {
-    for(size_t i = 0; i < Platform::pe_count(); ++i) {
+VPEManager::~VPEManager() {
+    for(size_t i = 0; i < MAX_VPES; ++i) {
         if(_vpes[i]) {
             kill(_vpes[i]->pid(), SIGTERM);
             waitpid(_vpes[i]->pid(), nullptr, 0);
@@ -35,7 +35,7 @@ PEManager::~PEManager() {
     }
 }
 
-m3::String PEManager::fork_name(const m3::String &name) {
+m3::String VPEManager::fork_name(const m3::String &name) {
     char buf[256];
     m3::OStringStream nname(buf, sizeof(buf));
     size_t pos = strrchr(name.c_str(), '-') - name.c_str();

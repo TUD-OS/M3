@@ -15,7 +15,7 @@
  */
 
 #include "cap/CapTable.h"
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 
 namespace kernel {
 
@@ -48,7 +48,7 @@ void CapTable::activate_msgcaps() {
             MsgCapability *msgc = static_cast<MsgCapability*>(c);
             if (msgc->localepid != -1) {
                 LOG(VPES, "Activating EP " << msgc->localepid);
-                KVPE &vpe = PEManager::get().vpe(msgc->table()->id() - 1);
+                KVPE &vpe = VPEManager::get().vpe(msgc->table()->id() - 1);
                 vpe.xchg_ep(msgc->localepid, nullptr, msgc);
             }
         }

@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "DTU.h"
 
 namespace kernel {
@@ -62,7 +62,7 @@ void DTU::invalidate_eps(const VPEDesc &vpe, int first) {
     word_t *regs = new word_t[total];
     memset(regs, 0, total);
 
-    uintptr_t eps = reinterpret_cast<uintptr_t>(PEManager::get().vpe(vpe.id).eps());
+    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).eps());
     uintptr_t addr = eps + first * sizeof(word_t) * m3::DTU::EPS_RCNT;
     write_mem(vpe, addr, regs, total * sizeof(word_t));
     delete[] regs;
@@ -112,7 +112,7 @@ void DTU::config_recv_remote(const VPEDesc &vpe, int ep, uintptr_t buf, uint ord
     if(valid)
         config_recv(regs, buf, order, msgorder, flags);
 
-    uintptr_t eps = reinterpret_cast<uintptr_t>(PEManager::get().vpe(vpe.id).eps());
+    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).eps());
     uintptr_t addr = eps + ep * sizeof(word_t) * m3::DTU::EPS_RCNT;
     write_mem(vpe, addr, regs, sizeof(regs));
 }

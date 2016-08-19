@@ -19,12 +19,13 @@
 
 #include "com/RecvBufs.h"
 #include "pes/VPE.h"
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "Platform.h"
+#include "SyscallHandler.h"
 
 namespace kernel {
 
-VPE::VPEId::VPEId(int id, int core) : desc(core, id) {
+VPE::VPEId::VPEId(vpeid_t id, int core) : desc(core, id) {
     DTU::get().set_vpeid(desc);
 }
 
@@ -32,8 +33,8 @@ VPE::VPEId::~VPEId() {
     DTU::get().unset_vpeid(desc);
 }
 
-VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate, bool tmuxable)
-    : _id(id, id), _flags(bootmod ? BOOTMOD : 0),
+VPE::VPE(m3::String &&prog, int coreid, vpeid_t id, bool bootmod, int ep, capsel_t pfgate, bool tmuxable)
+    : _id(id, coreid), _flags(bootmod ? BOOTMOD : 0),
       _refs(0), _pid(), _state(DEAD), _exitcode(), _tmuxable(tmuxable), _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
@@ -56,13 +57,13 @@ VPE::VPE(m3::String &&prog, size_t id, bool bootmod, int ep, capsel_t pfgate, bo
 
 void VPE::make_daemon() {
     _flags |= DAEMON;
-    PEManager::get()._daemons++;
+    VPEManager::get()._daemons++;
 }
 
 void VPE::unref() {
     // 1 because we always have a VPE-cap for ourself (not revokeable)
     if(--_refs == 1)
-        PEManager::get().remove(id(), _flags & DAEMON);
+        VPEManager::get().remove(id(), _flags & DAEMON);
 }
 
 void VPE::stop() {

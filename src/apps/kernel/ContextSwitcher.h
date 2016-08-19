@@ -34,6 +34,14 @@ class ContextSwitcher {
     };
 
 public:
+    size_t count() const {
+        return _tmuxvpes.length();
+    }
+
+    void enqueue(VPE *tmuxvpe) {
+        _tmuxvpes.append(new TMuxVPE(tmuxvpe));
+    }
+
     explicit ContextSwitcher(size_t core);
 
     ~ContextSwitcher() {

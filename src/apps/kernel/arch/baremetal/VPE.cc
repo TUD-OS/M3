@@ -18,7 +18,6 @@
 #include <base/log/Kernel.h>
 
 #include "com/RecvBufs.h"
-#include "pes/PEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"

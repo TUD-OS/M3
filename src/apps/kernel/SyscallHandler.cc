@@ -21,6 +21,7 @@
 #include <base/WorkLoop.h>
 
 #include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "com/Services.h"
 #include "com/RecvBufs.h"
 #include "Platform.h"
@@ -160,7 +161,7 @@ void SyscallHandler::createsrv(GateIStream &is) {
 #endif
 
     // maybe there are VPEs that now have all requirements fullfilled
-    PEManager::get().start_pending(ServiceList::get());
+    VPEManager::get().start_pending(ServiceList::get());
 
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
@@ -340,7 +341,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     }
 
     // create VPE
-    VPE *nvpe = PEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
+    VPE *nvpe = VPEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 
@@ -794,13 +795,13 @@ void SyscallHandler::exit(GateIStream &is) {
 
 void SyscallHandler::tryTerminate() {
     // if there are no VPEs left, we can stop everything
-    if(PEManager::get().used() == 0) {
-        PEManager::destroy();
+    if(VPEManager::get().used() == 0) {
+        VPEManager::destroy();
         m3::env()->workloop()->stop();
     }
     // if there are only daemons left, start the shutdown-procedure
-    else if(PEManager::get().used() == PEManager::get().daemons())
-        PEManager::shutdown();
+    else if(VPEManager::get().used() == VPEManager::get().daemons())
+        VPEManager::shutdown();
 }
 
 void SyscallHandler::noop(GateIStream &is) {
@@ -812,20 +813,20 @@ void SyscallHandler::tmuxswitch(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, "syscall::tmuxswitch()", "(" << vpe->name() << ")");
 
-    ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
-    if (ctxswitcher) {
-        VPE *newvpe = ctxswitcher->switch_next();
+    // ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
+    // if (ctxswitcher) {
+    //     VPE *newvpe = ctxswitcher->switch_next();
 
-        if (newvpe) {
-            ReplyInfo rinfo(is.message());
-            newvpe->subscribe_resume([vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
-                StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
-                os << m3::Errors::NO_ERROR;
-                reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
-                });
-            return;
-        }
-    }
+    //     if (newvpe) {
+    //         ReplyInfo rinfo(is.message());
+    //         newvpe->subscribe_resume([vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
+    //             StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
+    //             os << m3::Errors::NO_ERROR;
+    //             reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
+    //             });
+    //         return;
+    //     }
+    // }
 
     reply_vmsg(is.gate(), m3::Errors::NOT_SUP);
 }
@@ -835,9 +836,9 @@ void SyscallHandler::tmuxresume(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, "syscall::tmuxresume", "(" << vpe->name() << ")");
 
-    ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
-    if (ctxswitcher)
-        ctxswitcher->finalize_switch();
+    // ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
+    // if (ctxswitcher)
+    //     ctxswitcher->finalize_switch();
 
     // TODO: handle errors
 

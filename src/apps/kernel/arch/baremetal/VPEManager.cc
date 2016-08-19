@@ -16,13 +16,13 @@
 
 #include <base/util/Sync.h>
 
-#include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "Platform.h"
 
 namespace kernel {
 
-PEManager::~PEManager() {
-    for(size_t i = 0; i < Platform::pe_count(); ++i) {
+VPEManager::~VPEManager() {
+    for(size_t i = 0; i < MAX_VPES; ++i) {
         if(_vpes[i])
             _vpes[i]->unref();
     }

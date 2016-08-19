@@ -23,6 +23,7 @@
 #include "com/RecvBufs.h"
 #include "mem/MainMemory.h"
 #include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "SyscallHandler.h"
 
 using namespace kernel;
@@ -39,7 +40,8 @@ int main(int argc, char *argv[]) {
 
     RecvBufs::init();
     PEManager::create();
-    PEManager::get().load(argc - 1, argv + 1);
+    VPEManager::create();
+    VPEManager::get().load(argc - 1, argv + 1);
 
     KLOG(INFO, "Kernel is ready");
 
@@ -49,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     KLOG(INFO, "Shutting down");
 
-    PEManager::destroy();
+    VPEManager::destroy();
 
     m3::Machine::shutdown();
 }
