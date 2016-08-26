@@ -21,6 +21,7 @@
 
 namespace kernel {
 
+class VPE;
 struct VPEDesc;
 
 class DTU {
@@ -43,34 +44,43 @@ public:
 
     void deprivilege(int core);
 
-    void get_regs_state(int core, m3::DTU::reg_state_t *state);
-    void set_regs_state(const VPEDesc &vpe, m3::DTU::reg_state_t *state);
+    void get_regs_state(int core, m3::DTU::reg_t *state);
+    void set_regs_state(const VPEDesc &vpe, int vpeid, m3::DTU::reg_t *state);
 
     void set_vpeid(const VPEDesc &vpe);
     void unset_vpeid(const VPEDesc &vpe);
+
+    void reset(void *regs, uintptr_t addr);
 
     void wakeup(const VPEDesc &vpe);
     void suspend(const VPEDesc &vpe);
     void injectIRQ(const VPEDesc &vpe);
 
-    void set_rw_barrier(const VPEDesc &vpe, uintptr_t addr);
+    void config_rwb(void *regs, uintptr_t addr);
+    void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
 
+    void config_pf(void *regs, uint64_t rootpt, int ep);
     void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep);
     void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
+    void get_ep(const void *regs, void *dst, int ep);
     void invalidate_ep(const VPEDesc &vpe, int ep);
     void invalidate_eps(const VPEDesc &vpe, int first = 0);
 
+    void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);
     void config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
     void config_recv_remote(const VPEDesc &vpe, int ep, uintptr_t buf, uint order, uint msgorder,
         int flags, bool valid);
 
+    void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep,
+        size_t msgsize, word_t credits);
     void config_send_local(int ep, label_t label, int dstcore, int dstvpe,
         int dstep, size_t msgsize, word_t credits);
     void config_send_remote(const VPEDesc &vpe, int ep, label_t label, int dstcore, int dstvpe,
         int dstep, size_t msgsize, word_t credits);
 
+    void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
     void config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size);
     void config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe,
         uintptr_t addr, size_t size, int perm);
@@ -92,15 +102,11 @@ private:
         m3::DTU::pte_t pte, int perm);
     bool create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
         uintptr_t &phys, uint &pages, int perm);
+    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level);
     void do_set_vpeid(const VPEDesc &vpe, int newVPE);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
 #endif
-
-    void config_recv(void *e, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_send(void *e, label_t label, int dstcore, int dstvpe, int dstep,
-        size_t msgsize, word_t credits);
-    void config_mem(void *e, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
     int _next_ep;
     int _ep;

@@ -20,10 +20,10 @@
 #include <base/DTU.h>
 #include <base/WorkLoop.h>
 
-#include "com/RecvBufs.h"
 #include "mem/MainMemory.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "Platform.h"
 #include "SyscallHandler.h"
 
 using namespace kernel;
@@ -38,10 +38,11 @@ int main(int argc, char *argv[]) {
 
     KLOG(MEM, MainMemory::get());
 
-    RecvBufs::init();
     PEManager::create();
     VPEManager::create();
     VPEManager::get().load(argc - 1, argv + 1);
+
+    PEManager::get().init();
 
     KLOG(INFO, "Kernel is ready");
 

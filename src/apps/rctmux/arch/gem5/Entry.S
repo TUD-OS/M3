@@ -14,6 +14,14 @@
 # General Public License version 2 for more details.
 #
 
+.global _start
+
+.extern _init
+.extern interrupt_handler
+.extern _rctmux_stack
+
+.text
+
 // macro to build a default-isr-handler
 .macro BUILD_DEF_ISR no
     .global isr\no
@@ -77,10 +85,51 @@ isrCommon:
     push    %r14
     push    %r15
 
-    // call c-routine
-    mov     %rsp,%rdi               // pointer to stack-frame
-    call    intrpt_handler
+    // call C++ routine
+    mov     %rsp, %rdi
+    call    interrupt_handler
 
+    // the kernel will reset the PE
+    hlt
+
+    // we should not get here
+1:  jmp     1b
+
+_start:
+    // use a small stack
+    mov     $_rctmux_stack, %rsp
+    mov     %rsp, %rbp
+
+    // first, init exception handling and stuff
+    call    _init
+    test    %rax, %rax
+    jne     1f
+
+    // use a separate stack for idling because on an IRQ, we want to save our state there
+    // and restore it later. so make sure, that it doesn't overlap with the stack we use in _init,
+    // and _start_app.
+    mov     $_idle_stack, %rsp
+    mov     %rsp, %rbp
+    // _if we get here, there is nothing to run, so idle
+    sti
+    hlt
+    jmp     _start
+
+1:
+    // try to start the application
+    call    _start_app
+    test    %rax, %rax
+    jne      1f
+
+    // no app yet, wait until we are waked up again
+    mov     $_idle_stack, %rsp
+    mov     %rsp, %rbp
+    hlt
+    jmp     1b
+
+1:
+    // restore application state
+    mov     %rax, %rsp
     pop     %r15
     pop     %r14
     pop     %r13
@@ -100,3 +149,13 @@ isrCommon:
     // remove error-code and interrupt-number from stack and return
     add     $16,%rsp
     iretq
+
+.data
+
+    .align 16
+    .space 512, 0
+_rctmux_stack:
+
+    .align 16
+    .space 256, 0
+_idle_stack:

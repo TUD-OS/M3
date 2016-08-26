@@ -21,7 +21,7 @@
 
 #include <cstring>
 
-#include "com/RBuf.h"
+#include "com/RecvBufs.h"
 #include "cap/CapTable.h"
 #include "cap/Capability.h"
 #include "mem/AddrSpace.h"
@@ -29,6 +29,7 @@
 
 namespace kernel {
 
+// TODO move that to somewhere else
 typedef size_t vpeid_t;
 
 struct VPEDesc {
@@ -43,19 +44,10 @@ class ContextSwitcher;
 class RecvBufs;
 
 class VPE : public SlabObject<VPE> {
-    // use an object to set the VPE id at first and unset it at last
-    struct VPEId {
-        VPEId(vpeid_t _id, int _core);
-        ~VPEId();
-
-        VPEDesc desc;
-    };
+    friend class ContextSwitcher;
 
 public:
     static const uint16_t INVALID_ID = 0xFFFF;
-
-    // FIXME test
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_state_t dtu_state;
 
     enum State {
         RUNNING,
@@ -64,9 +56,11 @@ public:
     };
 
     enum Flags {
-        BOOTMOD     = 1 << 0,
-        DAEMON      = 1 << 1,
-        MEMINIT     = 1 << 2,
+        F_BOOTMOD     = 1 << 0,
+        F_DAEMON      = 1 << 1,
+        F_IDLE        = 1 << 2,
+        F_INIT        = 1 << 3,
+        F_START       = 1 << 4,
     };
 
     struct ServName : public m3::SListItem {
@@ -77,7 +71,7 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
-    explicit VPE(m3::String &&prog, int coreid, vpeid_t id, bool bootmod, int ep = -1,
+    explicit VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep = -1,
         capsel_t pfgate = m3::KIF::INV_SEL, bool tmuxable = false);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
@@ -91,40 +85,29 @@ public:
     }
     void unref();
 
-    void start(int argc, char **argv, int pid);
+    void start();
     void stop();
     void exit(int exitcode);
 
     void init();
 
+    m3::DTU::reg_t *dtu_state() {
+        return _dtu_state;
+    }
+
+    RecvBufs &rbufs() {
+        return _rbufs;
+    }
+
     void wakeup();
 
-    void suspend() {
-        _state = SUSPENDED;
-        save_rbufs();
-        detach_rbufs(true);
-    }
-
-    void resume() {
-        if (_state == SUSPENDED) {
-            restore_rbufs();
-        }
-
-        _state = RUNNING;
-
-        // notify subscribers
-        for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
-            auto cur = it++;
-            cur->callback(true, &*cur);
-            _resumesubscr.unsubscribe(&*cur);
-        }
-    }
+    void set_ready();
 
     void activate_sysc_ep(void *addr);
     m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     const VPEDesc &desc() const {
-        return _id.desc;
+        return _desc;
     }
     vpeid_t id() const {
         return desc().id;
@@ -188,8 +171,29 @@ public:
     }
     void make_daemon();
 
+    void invalidate_ep(int ep);
+    void invalidate_eps(int first);
+
+    void config_snd_ep(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize,
+        word_t credits);
+    void config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
+    void config_mem_ep(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
+
 private:
-    void init_memory(const char *name);
+    m3::DTU::reg_t *ep_regs(int ep);
+
+    void notify_resume() {
+        // notify subscribers
+        for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
+            auto cur = it++;
+            cur->callback(true, &*cur);
+            _resumesubscr.unsubscribe(&*cur);
+        }
+    }
+
+    void init_memory();
+    void load_app(const char *name);
+
     void write_env_file(int pid, label_t label, size_t epid);
     void activate_sysc_ep();
 
@@ -199,24 +203,23 @@ private:
             delete &*old;
         }
     }
-    void detach_rbufs(bool all);
-    void save_rbufs();
-    void restore_rbufs();
 
-    VPEId _id;
+    VPEDesc _desc;
     uint _flags;
     int _refs;
     int _pid;
     int _state;
     int _exitcode;
     bool _tmuxable;
+    uintptr_t _entry;
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_state_t _dtu_state;
     void *_eps;
     RecvGate _syscgate;
     RecvGate _srvgate;
-    RBuf _saved_rbufs[EP_COUNT];
+    RecvBufs _rbufs;
     AddrSpace *_as;
     m3::SList<ServName> _requires;
     m3::Subscriptions<int> _exitsubscr;

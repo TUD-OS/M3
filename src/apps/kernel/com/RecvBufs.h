@@ -17,107 +17,131 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/col/SList.h>
 #include <base/util/Math.h>
-#include <base/util/Subscriber.h>
 #include <base/Config.h>
 #include <base/DTU.h>
 #include <base/Errors.h>
 
 #include "com/RBuf.h"
-#include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
+
+#include <functional>
 
 namespace kernel {
 
 class RecvBufs {
-    RecvBufs() = delete;
+    struct RBuf : public m3::SListItem {
+        explicit RBuf(size_t _epid, uintptr_t _addr, int _order, int _msgorder, uint _flags)
+            : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder), flags(_flags) {
+        }
 
-    enum Flags {
-        F_ATTACHED  = 1 << (sizeof(int) * 8 - 1),
+        void configure(VPE &vpe, bool attach);
+
+        size_t epid;
+        uintptr_t addr;
+        int order;
+        int msgorder;
+        int flags;
+    };
+
+    struct Subscriber : public m3::SListItem {
+        // TODO hack: we have to use m3::Subscriber<bool> here
+        using callback_type = std::function<void(bool,m3::Subscriber<bool>*)>;
+
+        callback_type callback;
+        size_t epid;
+
+        explicit Subscriber(const callback_type &cb, size_t epid)
+            : m3::SListItem(), callback(cb), epid(epid) {
+        }
     };
 
 public:
-    static void init() {
-        _rbufs = new RBuf[Platform::pe_count() * EP_COUNT]();
+    explicit RecvBufs() : _rbufs() {
     }
 
-    static bool is_attached(size_t core, size_t epid) {
-        RBuf &rbuf = get(core, epid);
-        return rbuf.flags & F_ATTACHED;
+    ~RecvBufs() {
+        while(_waits.length() > 0)
+            delete _waits.remove_first();
+        while(_rbufs.length() > 0)
+            delete _rbufs.remove_first();
     }
 
-    static void subscribe(size_t core, size_t epid, const m3::Subscriptions<bool>::callback_type &cb) {
-        RBuf &rbuf = get(core, epid);
-        assert(~rbuf.flags & F_ATTACHED);
-        rbuf.waitlist.subscribe(cb);
+    bool is_attached(size_t epid) {
+        return get(epid) != nullptr;
     }
 
-    static m3::Errors::Code attach(VPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
-        RBuf &rbuf = get(vpe.core(), epid);
-        if(rbuf.flags & F_ATTACHED)
+    void subscribe(size_t epid, const Subscriber::callback_type &cb) {
+        _waits.append(new Subscriber(cb, epid));
+    }
+
+    m3::Errors::Code attach(VPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+        RBuf *rbuf = get(epid);
+        if(rbuf)
             return m3::Errors::EXISTS;
 
-        for(size_t i = 0; i < EP_COUNT; ++i) {
-            if(i != epid) {
-                RBuf &rb = get(vpe.core(), i);
-                if((rb.flags & F_ATTACHED) &&
-                    m3::Math::overlap(rb.addr, rb.addr + (1UL << rb.order), addr, addr + (1UL << order)))
-                    return m3::Errors::INV_ARGS;
-            }
+        for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
+            if(it->epid == epid)
+                return m3::Errors::EXISTS;
+
+            if(m3::Math::overlap(it->addr, it->addr + (1UL << it->order), addr, addr + (1UL << order)))
+                return m3::Errors::INV_ARGS;
         }
 
-        rbuf.addr = addr;
-        rbuf.order = order;
-        rbuf.msgorder = msgorder;
-        rbuf.flags = flags | F_ATTACHED;
-        configure(vpe, epid, rbuf);
-        notify(rbuf, true);
+        rbuf = new RBuf(epid, addr, order, msgorder, flags);
+        rbuf->configure(vpe, true);
+        _rbufs.append(rbuf);
+        notify(epid, true);
         return m3::Errors::NO_ERROR;
     }
 
-    static void detach(VPE &vpe, size_t epid) {
-        RBuf &rbuf = get(vpe.core(), epid);
-        if(rbuf.flags & F_ATTACHED) {
-            // TODO we have to make sure here that nobody can send to that EP anymore
-            // BEFORE detaching it!
-            rbuf.flags = 0;
-            configure(vpe, epid, rbuf);
-        }
-        notify(rbuf, false);
+    void detach(VPE &vpe, size_t epid) {
+        RBuf *rbuf = get(epid);
+        if(!rbuf)
+            return;
+
+        rbuf->configure(vpe, false);
+        notify(epid, false);
+        _rbufs.remove(rbuf);
+        delete rbuf;
     }
 
-    static void get_vpe_rbufs(VPE &vpe, RBuf (&bufs)[EP_COUNT]) {
-        memcpy(&_rbufs[vpe.core() * EP_COUNT], &bufs, EP_COUNT * sizeof(RBuf));
-    }
-
-    static void set_vpe_rbufs(VPE &vpe, RBuf (&bufs)[EP_COUNT]) {
-        memcpy(&bufs, &_rbufs[vpe.core() * EP_COUNT], EP_COUNT * sizeof(RBuf));
+    void detach_all(VPE &vpe, size_t except) {
+        // TODO not nice
         for(size_t i = 0; i < EP_COUNT; ++i) {
-            RBuf &rbuf = get(vpe.core(), i);
-            configure(vpe, i, rbuf);
-            notify(rbuf, true);
+            if(i == except)
+                continue;
+            detach(vpe, i);
         }
     }
 
 private:
-    static void configure(VPE &vpe, size_t epid, RBuf &rbuf) {
-        DTU::get().config_recv_remote(vpe.desc(), epid,
-            rbuf.addr, rbuf.order, rbuf.msgorder, rbuf.flags & ~F_ATTACHED, rbuf.flags & F_ATTACHED);
-    }
-
-    static void notify(RBuf &rbuf, bool success) {
-        for(auto sub = rbuf.waitlist.begin(); sub != rbuf.waitlist.end(); ) {
+    void notify(size_t epid, bool success) {
+        for(auto sub = _waits.begin(); sub != _waits.end(); ) {
             auto old = sub++;
-            old->callback(success, nullptr);
-            rbuf.waitlist.unsubscribe(&*old);
+            if(old->epid == epid) {
+                old->callback(success, nullptr);
+                _waits.remove(&*old);
+                delete &*old;
+            }
         }
     }
-    static RBuf &get(size_t coreid, size_t epid) {
-        return _rbufs[coreid * EP_COUNT + epid];
+
+    const RBuf *get(size_t epid) const {
+        return const_cast<RecvBufs*>(this)->get(epid);
+    }
+    RBuf *get(size_t epid) {
+        for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
+            if(it->epid == epid)
+                return &*it;
+        }
+        return nullptr;
     }
 
-    static RBuf *_rbufs;
+    m3::SList<RBuf> _rbufs;
+    m3::SList<Subscriber> _waits;
 };
 
 }

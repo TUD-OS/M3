@@ -17,10 +17,9 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/Config.h>
 
 #include <m3/RCTMux.h>
-
-static unsigned _RCTMUX_FLAGS;
 
 namespace RCTMux {
 
@@ -34,26 +33,23 @@ inline void jump_to_start(const uintptr_t ptr) {
 inline void jump_to_app(const uintptr_t ptr, const word_t sp) {
     // tell crt0 to set this stackpointer
     asm volatile (
+        "sti;"
         "mov %2, %%rsp;"
         "jmp *%1;"
         : : "a"(0xDEADBEEF), "r"(ptr), "r"(sp)
     );
 }
 
-inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
-    _RCTMUX_FLAGS |= flag;
+inline uint64_t flags_get() {
+    return *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS);
 }
 
-inline void flag_unset(const m3::RCTMUXCtrlFlag flag) {
-    _RCTMUX_FLAGS ^= flag;
-}
-
-inline void flags_reset() {
-    _RCTMUX_FLAGS = 0;
+inline void flags_set(uint64_t flags) {
+    *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) = flags;
 }
 
 inline bool flag_is_set(const m3::RCTMUXCtrlFlag flag) {
-    return (_RCTMUX_FLAGS & flag);
+    return (*reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) & flag);
 }
 
 } /* namespace RCTMux */

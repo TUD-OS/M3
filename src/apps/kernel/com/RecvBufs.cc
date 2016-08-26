@@ -15,10 +15,12 @@
  */
 
 #include "com/RecvBufs.h"
-#include "com/RBuf.h"
+#include "pes/VPE.h"
 
 namespace kernel {
 
-RBuf *RecvBufs::_rbufs;
+void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
+    vpe.config_rcv_ep(epid, addr, order, msgorder, flags, attach);
+}
 
 }

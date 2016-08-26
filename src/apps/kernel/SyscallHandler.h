@@ -92,7 +92,6 @@ public:
 private:
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
     void exchange_over_sess(GateIStream &is, bool obtain);
-    void tryTerminate();
 
     int _serv_ep;
     // +1 for init on host

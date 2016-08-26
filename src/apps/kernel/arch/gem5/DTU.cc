@@ -20,6 +20,7 @@
 #include <base/DTU.h>
 
 #include "mem/MainMemory.h"
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
@@ -64,21 +65,17 @@ void DTU::deprivilege(int core) {
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
-void DTU::get_regs_state(int core, m3::DTU::reg_state_t *state) {
-    read_mem(VPEDesc(core, VPE::INVALID_ID), m3::DTU::BASE_ADDR, state, sizeof(*state));
+void DTU::get_regs_state(int core, m3::DTU::reg_t *state) {
+    read_mem(VPEDesc(core, VPE::INVALID_ID), m3::DTU::BASE_ADDR, state, sizeof(m3::DTU::reg_state_t));
 }
 
-void DTU::set_regs_state(const VPEDesc &vpe, m3::DTU::reg_state_t *state) {
-    // FIXME
-    m3::DTU::reg_t *regs = reinterpret_cast<m3::DTU::reg_t*>(state);
-    regs[(int)m3::DTU::DtuRegs::EXT_CMD] = 0;
-    regs[(int)m3::DTU::DtuRegs::VPE_ID] = vpe.id;
+void DTU::set_regs_state(const VPEDesc &vpe, int vpeid, m3::DTU::reg_t *state) {
+    state[static_cast<size_t>(m3::DTU::DtuRegs::VPE_ID)] = vpeid;
     m3::Sync::compiler_barrier();
-    write_mem(vpe, m3::DTU::BASE_ADDR, state, sizeof(*state));
+    write_mem(vpe, m3::DTU::BASE_ADDR, state, sizeof(m3::DTU::reg_state_t));
 }
 
 void DTU::set_vpeid(const VPEDesc &vpe) {
-    // currently, the invalid ID is still set, so specify that
     do_set_vpeid(VPEDesc(vpe.core, VPE::INVALID_ID), vpe.id);
 }
 
@@ -86,38 +83,37 @@ void DTU::unset_vpeid(const VPEDesc &vpe) {
     do_set_vpeid(vpe, VPE::INVALID_ID);
 }
 
-void DTU::wakeup(const VPEDesc &vpe) {
-    // only programmable cores use libm3 and thus need the core id
-    // TODO actually, libm3 should write that, not the kernel; but libm3 doesn't know the coreid atm
-    if(Platform::pe(vpe.id).is_programmable()) {
-        // write the core id to the PE
-        uint64_t id = vpe.core;
-        m3::Sync::compiler_barrier();
-        write_mem(vpe, RT_START, &id, sizeof(id));
-    }
-
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE));
+void DTU::reset(void *regs, uintptr_t addr) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(regs);
+    m3::DTU::reg_t value = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::RESET) | (addr << 3);
+    r[static_cast<size_t>(m3::DTU::DtuRegs::EXT_CMD)] = value;
 }
 
-void DTU::suspend(const VPEDesc &vpe) {
-    // invalidate TLB and cache
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_CACHE));
-
-    // disable paging
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
-    m3::Sync::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
+void DTU::wakeup(const VPEDesc &vpe) {
+    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE));
 }
 
 void DTU::injectIRQ(const VPEDesc &vpe) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 3));
 }
 
-void DTU::set_rw_barrier(const VPEDesc &vpe, uintptr_t addr) {
+void DTU::config_rwb(void *regs, uintptr_t addr) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(regs);
+    r[static_cast<size_t>(m3::DTU::DtuRegs::RW_BARRIER)] = addr;
+}
+
+void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t barrier = addr;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
+}
+
+void DTU::config_pf(void *regs, uint64_t rootpt, int ep) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(regs);
+    uint flags = ep != -1 ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
+    r[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = flags;
+    r[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
+    r[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)]   = ep;
 }
 
 void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
@@ -135,13 +131,10 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
 
     // init DTU registers
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t dtuRegs[3];
-    uint flags = ep != EP_COUNT ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
-    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)]  = flags;
-    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
-    dtuRegs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)]   = ep;
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
+    config_pf(regs, rootpt, ep);
     m3::Sync::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), dtuRegs, sizeof(dtuRegs));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), regs, sizeof(regs));
 
     // invalidate TLB, because we have changed the root PT
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
@@ -159,7 +152,12 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE);
         assert(alloc);
 
-        pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr) | m3::DTU::PTE_RWX;
+        // clear PT
+        pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
+        // clear_pt(pte);
+
+        // insert PTE
+        pte |= m3::DTU::PTE_RWX;
         KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
         m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
@@ -235,12 +233,47 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
+uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
+    VPE &v = VPEManager::get().vpe(vpe.id);
+
+    uintptr_t pt = m3::DTU::noc_to_virt(v.address_space()->root_pt());
+    for(int l = m3::DTU::LEVEL_CNT - 1; l >= 0; --l) {
+        size_t idx = (virt >> (PAGE_BITS + m3::DTU::LEVEL_BITS * l)) & m3::DTU::LEVEL_MASK;
+        pt += idx * m3::DTU::PTE_SIZE;
+
+        if(level == l)
+            return pt;
+
+        m3::DTU::pte_t pte;
+        m3::DTU::get().read(_ep, &pte, sizeof(pte), pt, m3::DTU::CmdFlags::NOPF);
+
+        pt = m3::DTU::noc_to_virt(pte & ~PAGE_MASK);
+    }
+
+    UNREACHED;
+}
+
 void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
     // configure the memory EP once and use it for all accesses
-    config_mem_local(_ep, vpe.core, vpe.id, 0, 0xFFFFFFFFFFFFFFFF);
+    bool running = vpe.core == (int)Platform::kernel_pe() ||
+        VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
+
+    if(!running) {
+        // TODO in theory, PTEs could be in different memory PEs
+        VPE &v = VPEManager::get().vpe(vpe.id);
+        int core = m3::DTU::noc_to_pe(v.address_space()->root_pt());
+        config_mem_local(_ep, core, VPE::INVALID_ID, 0, 0xFFFFFFFFFFFFFFFF);
+    }
+    else
+        config_mem_local(_ep, vpe.core, vpe.id, 0, 0xFFFFFFFFFFFFFFFF);
+
     while(pages > 0) {
         for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
-            uintptr_t pteAddr = get_pte_addr(virt, level);
+            uintptr_t pteAddr;
+            if(!running)
+                pteAddr = get_pte_addr_mem(vpe, virt, level);
+            else
+                pteAddr = get_pte_addr(virt, level);
 
             m3::DTU::pte_t pte;
             m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
@@ -260,6 +293,12 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     map_pages(vpe, virt, 0, pages, 0);
 
     // TODO remove pagetables on demand
+}
+
+void DTU::get_ep(const void *regs, void *dst, int ep) {
+    const m3::DTU::reg_t *r = reinterpret_cast<const m3::DTU::reg_t*>(regs);
+    memcpy(dst, r + m3::DTU::DTU_REGS + m3::DTU::CMD_REGS + m3::DTU::EP_REGS * ep,
+        m3::DTU::EP_REGS * sizeof(m3::DTU::reg_t));
 }
 
 void DTU::invalidate_ep(const VPEDesc &vpe, int ep) {

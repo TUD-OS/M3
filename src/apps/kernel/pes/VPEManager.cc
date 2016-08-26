@@ -23,6 +23,7 @@
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
 #include "Platform.h"
+#include "WorkLoop.h"
 
 namespace kernel {
 
@@ -45,11 +46,9 @@ void VPEManager::load(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
             // allow multiple applications with the same name
-            m3::OStringStream name;
-            name << path_to_name(m3::String(argv[i]), nullptr).c_str() << "-" << coreid;
-            _vpes[id] = new VPE(m3::String(name.str()), coreid, id, true);
+            _vpes[id] = new VPE(m3::String(argv[i]), coreid, id, VPE::F_BOOTMOD);
 
-            PEManager::get().add_vpe(coreid, _vpes[id]);
+            coreid++;
             _count++;
 
 #if defined(__t3__)
@@ -80,14 +79,11 @@ void VPEManager::load(int argc, char **argv) {
                 end++;
         }
 
-        // start it, or register pending item
-        if(strcmp(argv[i], "idle") != 0) {
-            if(_vpes[id]->requirements().length() == 0)
-                _vpes[id]->start(end - i, argv + i, 0);
-            else
-                _pending.append(new Pending(_vpes[id], end - i, argv + i));
-            coreid++;
-        }
+        // register pending item if necessary
+        if(strcmp(argv[i], "idle") != 0 && _vpes[id]->requirements().length() > 0)
+            _pending.append(new Pending(_vpes[id], end - i, argv + i));
+        else
+            _vpes[id]->set_ready();
 
         i = j;
     }
@@ -105,7 +101,7 @@ void VPEManager::start_pending(ServiceList &serv) {
 
         if(fullfilled) {
             auto old = it++;
-            old->vpe->start(old->argc, old->argv, 0);
+            old->vpe->set_ready();
             _pending.remove(&*old);
             delete &*old;
         }
@@ -128,26 +124,6 @@ void VPEManager::shutdown() {
         serv.send_and_receive(ref, msg.bytes(), msg.total());
         msg.claim();
     }
-}
-
-m3::String VPEManager::path_to_name(const m3::String &path, const char *suffix) {
-    static char name[256];
-    strncpy(name, path.c_str(), sizeof(name));
-    name[sizeof(name) - 1] = '\0';
-    m3::OStringStream os;
-    char *start = name;
-    size_t len = strlen(name);
-    for(ssize_t i = len - 1; i >= 0; --i) {
-        if(name[i] == '/') {
-            start = name + i + 1;
-            break;
-        }
-    }
-
-    os << start;
-    if(suffix)
-        os << "-" << suffix;
-    return os.str();
 }
 
 vpeid_t VPEManager::get_id() {
@@ -177,26 +153,52 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_
     if(id == MAX_VPES)
         return nullptr;
 
-    _vpes[id] = new VPE(std::move(name), i, id, false, ep, pfgate, tmuxable);
-
-    PEManager::get().add_vpe(i, _vpes[id]);
+    UNUSED VPE *vpe = new VPE(std::move(name), i, id, 0, ep, pfgate, tmuxable);
+    assert(vpe == _vpes[id]);
 
     _count++;
     return _vpes[id];
 }
 
-void VPEManager::remove(vpeid_t id, bool daemon) {
+void VPEManager::start(vpeid_t id) {
     assert(_vpes[id]);
+
+    PEManager::get().start_vpe(_vpes[id]);
+}
+
+void VPEManager::resume(vpeid_t id, const m3::Subscriptions<bool>::callback_type &cb) {
+    assert(_vpes[id]);
+
+    _vpes[id]->subscribe_resume(cb);
+    PEManager::get().start_switch(_vpes[id]->core());
+}
+
+void VPEManager::remove(vpeid_t id) {
+    assert(_vpes[id]);
+
+    uint flags = _vpes[id]->flags();
+
     delete _vpes[id];
     _vpes[id] = nullptr;
 
-    if(daemon) {
+    if(flags & VPE::F_DAEMON) {
         assert(_daemons > 0);
         _daemons--;
     }
 
-    assert(_count > 0);
-    _count--;
+    if(~flags & VPE::F_IDLE) {
+        assert(_count > 0);
+        _count--;
+    }
+
+    // if there are no VPEs left, we can stop everything
+    if(used() == 0) {
+        destroy();
+        m3::env()->workloop()->stop();
+    }
+    // if there are only daemons left, start the shutdown-procedure
+    else if(used() == daemons())
+        shutdown();
 }
 
 }

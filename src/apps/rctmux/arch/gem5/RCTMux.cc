@@ -15,6 +15,7 @@
  */
 
 #include <m3/RCTMux.h>
+#include <base/arch/gem5/Exceptions.h>
 #include <base/DTU.h>
 #include <base/Env.h>
 #include <base/util/Math.h>
@@ -23,6 +24,7 @@
 #include <string.h>
 
 #include "RCTMux.h"
+#include "Exceptions.h"
 
 using namespace m3;
 
@@ -30,6 +32,7 @@ using namespace m3;
 
 EXTERN_C void _start();
 EXTERN_C void isr64();
+EXTERN_C void _interrupt_handler(m3::Exceptions::State *state);
 
 volatile static struct alignas(DTU_PKG_SIZE) {
     word_t magic;
@@ -41,16 +44,17 @@ void setup() {
     _state.magic = RCTMUX_MAGIC;
     //flags_reset();
 
-    m3::env()->isr64_handler = reinterpret_cast<uintptr_t>(&isr64);
+    ::Exceptions::init();
+    ::Exceptions::get_table()[64] = _interrupt_handler;
 }
 
 void init() {
     // tell kernel that we are ready
-    flag_set(SIGNAL);
+    // flag_set(SIGNAL);
 }
 
 void finish() {
-    flags_reset();
+    // flags_reset();
 }
 
 void store() {
@@ -66,7 +70,7 @@ void store() {
     //mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     // success
-    flag_unset(STORE);
+    // flag_unset(STORE);
 
     // on gem5 store is handled via libm3
 }
@@ -83,12 +87,12 @@ void restore() {
     //mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
 
     if (_state.magic != RCTMUX_MAGIC) {
-        flag_set(ERROR);
+        // flag_set(ERROR);
         return;
     }
 
     // success
-    flag_unset(RESTORE);
+    // flag_unset(RESTORE);
 }
 
 void reset() {

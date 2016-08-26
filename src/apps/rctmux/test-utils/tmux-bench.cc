@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <m3/Syscalls.h>
+#include <m3/vfs/Executable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 #include <m3/stream/Standard.h>
@@ -26,25 +27,21 @@
 
 using namespace m3;
 
-#define START(x, y) { \
-    Errors::Code c = x.exec(1, y); \
-    if (c != Errors::NO_ERROR) \
-        PANIC("Cannot execute " << y[0] << ": " << Errors::to_string(c)); }
-
-/*void _pseudo_sleep(int ticks) {
+/*static void _pseudo_sleep(int ticks) {
     for (int i = 0; i < ticks * 1000; ++i)
         if (!(i % 1000))
             Serial::get() << "TICK\n";
 }*/
 
-void _switchalot(int count) {
+static const int TEST_COUNT = 50;
+
+static void _switchalot(int count) {
     for (int i = 0; i < count; ++i) {
         Syscalls::get().tmuxswitch();
     }
 }
 
-int main()
-{
+int main() {
     cout << "Time-multiplexing context-switch benchmark started.\n";
 
     cout << "Mounting filesystem...\n";
@@ -53,25 +50,30 @@ int main()
 
     cout << "Starting two VPEs with time-multiplexing enabled\n";
 
-    const char *args1[] = { "/bin/rctmux-util-counter"};
-    const char *args2[] = { "/bin/unittests-misc"};
+    const char *args1[] = {"/bin/rctmux-util-counter"};
+    const char *args2[] = {"/bin/unittests-misc"};
 
     // start the first vpe
     VPE s1(args1[0], VPE::self().pe(), "pager", true);
     s1.mountspace(*VPE::self().mountspace());
     s1.obtain_mountspace();
-    START(s1, args1);
+    Executable exec1(1, args1);
+    Errors::Code res1 = s1.exec(exec1);
+    if(res1 != Errors::NO_ERROR)
+        PANIC("Cannot execute " << args1[0] << ": " << Errors::to_string(res1));
 
     // start the second VPE
     VPE s2(args2[0], VPE::self().pe(), "pager", true);
     s2.mountspace(*VPE::self().mountspace());
     s2.obtain_mountspace();
-    START(s2, args2);
+    Executable exec2(1, args2);
+    Errors::Code res2 = s2.exec(exec2);
+    if(res2 != Errors::NO_ERROR)
+        PANIC("Cannot execute " << args2[0] << ": " << Errors::to_string(res2));
 
     // now do some switches
-#define COUNT 50
-    cout << "Starting benchmark (" << COUNT << " switches)...\n";
-    _switchalot(COUNT);
+    cout << "Starting benchmark (" << TEST_COUNT << " switches)...\n";
+    _switchalot(TEST_COUNT);
     cout << "Benchmark finished.\n";
 
     return 0;

@@ -29,12 +29,12 @@
 #define HEAP_SIZE           0x10000
 #define EP_COUNT            7
 
-#define RT_START            0x3000
+#define RT_START            0x6000
 #define RT_SIZE             0x2000
 #define RT_END              (RT_START + RT_SIZE)
 
 #define RCTMUX_FLAGS_SIZE   0x8
-#define RCTMUX_FLAGS        0x3FFC000
+#define RCTMUX_FLAGS        0x2FF8
 
 #define STACK_SIZE          0x1000
 #define STACK_TOP           (RT_END + STACK_SIZE)

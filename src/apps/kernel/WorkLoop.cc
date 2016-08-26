@@ -19,6 +19,7 @@
 #include <base/log/Kernel.h>
 #include <base/WorkLoop.h>
 
+#include "pes/PEManager.h"
 #include "SyscallHandler.h"
 #include "WorkLoop.h"
 
@@ -64,7 +65,12 @@ void WorkLoop::run() {
     int sysep = sysch.epid();
     int srvep = sysch.srvepid();
     while(has_items()) {
-        m3::DTU::get().wait();
+        if(!PEManager::get().continue_switches()) {
+            // the switch might have removed a VPE and thus terminated everything
+            if(!has_items())
+                break;
+            m3::DTU::get().wait();
+        }
 
         if(dtu.fetch_msg(sysep)) {
             // we know the subscriber here, so optimize that a bit

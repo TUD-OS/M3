@@ -186,7 +186,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
     return header.e_entry;
 }
 
-static void map_idle(VPE &vpe) {
+static uintptr_t map_idle(VPE &vpe) {
     BootModule *idle = idles[vpe.core()];
     if(!idle) {
         bool first;
@@ -208,87 +208,99 @@ static void map_idle(VPE &vpe) {
         PANIC("Unable to find boot module 'idle'");
 
     // load idle
-    load_mod(vpe, idle, false, false);
+    return load_mod(vpe, idle, false, false);
 }
 
-void VPE::init_memory(const char *name) {
-    if(_flags & MEMINIT)
-        return;
-    _flags |= MEMINIT;
+void VPE::load_app(const char *name) {
+    assert(_flags & F_BOOTMOD);
+
+    bool appFirst;
+    BootModule *mod = get_mod(name, &appFirst);
+    if(!mod)
+        PANIC("Unable to find boot module '" << name << "'");
+
+    KLOG(KENV, "Loading mod '" << mod->name << "':");
+
+    if(Platform::pe(core()).has_virtmem()) {
+        // map runtime space
+        uintptr_t virt = RT_START;
+        uintptr_t phys = alloc_mem(STACK_TOP - virt);
+        map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
+    }
+
+    // load app
+    uint64_t entry = load_mod(*this, mod, !appFirst, true);
+
+    // count arguments
+    int argc = 1;
+    for(size_t i = 0; mod->name[i]; ++i) {
+        if(mod->name[i] == ' ')
+            argc++;
+    }
+
+    // copy arguments and arg pointers to buffer
+    char **argptr = (char**)buffer;
+    char *args = buffer + argc * sizeof(char*);
+    char c;
+    size_t i, off = args - buffer;
+    *argptr++ = (char*)(RT_SPACE_START + off);
+    for(i = 0; i < sizeof(buffer) && (c = mod->name[i]); ++i) {
+        if(c == ' ') {
+            args[i] = '\0';
+            *argptr++ = (char*)(RT_SPACE_START + off + i + 1);
+        }
+        else
+            args[i] = c;
+    }
+    if(i == sizeof(buffer))
+        PANIC("Not enough space for arguments");
+
+    // write buffer to the target PE
+    size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
+    DTU::get().write_mem(desc(), RT_SPACE_START, buffer, argssize);
+
+    // write env to targetPE
+    m3::Env senv;
+    memset(&senv, 0, sizeof(senv));
+
+    senv.argc = argc;
+    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+    senv.sp = STACK_TOP - sizeof(word_t);
+    senv.entry = entry;
+    senv.pe = Platform::pe(core());
+    senv.heapsize = MOD_HEAP_SIZE;
+
+    DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
+
+    // we can start now
+    assert(_flags & F_INIT);
+    _flags |= F_START;
+
+    // add a reference, like VPE::start() does
+    ref();
+}
+
+void VPE::init_memory() {
+    DTU::get().set_vpeid(desc());
 
     bool vm = Platform::pe(core()).has_virtmem();
-
-    if(_flags & BOOTMOD) {
-        bool appFirst;
-        BootModule *mod = get_mod(name, &appFirst);
-        if(!mod)
-            PANIC("Unable to find boot module '" << name << "'");
-
-        KLOG(KENV, "Loading mod '" << mod->name << "':");
-
-        if(vm) {
-            DTU::get().config_pf_remote(desc(), address_space()->root_pt(), EP_COUNT);
-
-            // map runtime space
-            uintptr_t virt = RT_START;
-            uintptr_t phys = alloc_mem(STACK_TOP - virt);
-            map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
-        }
-
-        // load app
-        uint64_t entry = load_mod(*this, mod, !appFirst, true);
-
-        // count arguments
-        int argc = 1;
-        for(size_t i = 0; mod->name[i]; ++i) {
-            if(mod->name[i] == ' ')
-                argc++;
-        }
-
-        // copy arguments and arg pointers to buffer
-        char **argptr = (char**)buffer;
-        char *args = buffer + argc * sizeof(char*);
-        char c;
-        size_t i, off = args - buffer;
-        *argptr++ = (char*)(RT_SPACE_START + off);
-        for(i = 0; i < sizeof(buffer) && (c = mod->name[i]); ++i) {
-            if(c == ' ') {
-                args[i] = '\0';
-                *argptr++ = (char*)(RT_SPACE_START + off + i + 1);
-            }
-            else
-                args[i] = c;
-        }
-        if(i == sizeof(buffer))
-            PANIC("Not enough space for arguments");
-
-        // write buffer to the target PE
-        size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
-        DTU::get().write_mem(desc(), RT_SPACE_START, buffer, argssize);
-
-        // write env to targetPE
-        m3::Env senv;
-        memset(&senv, 0, sizeof(senv));
-
-        senv.argc = argc;
-        senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
-        senv.sp = STACK_TOP - sizeof(word_t);
-        senv.entry = entry;
-        senv.pe = Platform::pe(core());
-        senv.heapsize = MOD_HEAP_SIZE;
-
-        DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
+    if(vm) {
+        DTU::get().config_pf(dtu_state(), address_space()->root_pt(), address_space()->ep());
+        DTU::get().config_pf_remote(desc(), address_space()->root_pt(), address_space()->ep());
     }
 
     if(Platform::pe(core()).is_programmable())
-        map_idle(*this);
+        _entry = map_idle(*this);
 
     if(vm) {
         // map receive buffer
         uintptr_t phys = alloc_mem(RECVBUF_SIZE);
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
-    DTU::get().set_rw_barrier(desc(), Platform::rw_barrier(core()));
+
+    uintptr_t barrier = Platform::rw_barrier(core());
+    DTU::get().config_rwb(dtu_state(), barrier);
+    DTU::get().config_rwb_remote(desc(), barrier);
 }
 
 }

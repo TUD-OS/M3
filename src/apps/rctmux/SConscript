@@ -23,7 +23,7 @@ if env['ARCH'] == 't3':
 # gem5
 elif env['ARCH'] == 'gem5':
     myenv = env.Clone()
-    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x3FFA000')
+    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x1000')
 
     # flto does not work for currently unknown reasons
     # (hi part of adresses in idt are missing for some reason)

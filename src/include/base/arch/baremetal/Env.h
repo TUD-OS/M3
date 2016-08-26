@@ -17,6 +17,9 @@
 #pragma once
 
 #include <base/Common.h>
+#if defined(__gem5__)
+#   include <base/arch/gem5/Exceptions.h>
+#endif
 #include <base/Config.h>
 #include <base/EnvBackend.h>
 #include <base/PEDesc.h>
@@ -63,7 +66,7 @@ public:
     PEDesc pe;
 
 #if defined(__gem5__)
-    uintptr_t isr64_handler;
+    m3::Exceptions::isr_func *isrs;
 #endif
 
     WorkLoop *workloop() {

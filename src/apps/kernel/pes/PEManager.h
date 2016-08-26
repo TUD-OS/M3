@@ -35,18 +35,20 @@ private:
     explicit PEManager();
 
 public:
-    int find_pe(const m3::PEDesc &pe, bool tmuxable);
+    void init();
 
-    void add_vpe(int pe, VPE *vpe) {
-        _ctxswitcher[pe]->enqueue(vpe);
-    }
+    int find_pe(const m3::PEDesc &pe, bool tmuxable);
+    void add_vpe(int pe, VPE *vpe);
+    void start_vpe(VPE *vpe);
+    void remove_vpe(VPE *vpe);
+    void start_switch(int pe);
+    bool continue_switches();
 
 private:
     void deprivilege_pes();
 
-#if defined(__t3__) || defined(__gem5__)
+    m3::SList<ContextSwitcher> _switches;
     ContextSwitcher **_ctxswitcher;
-#endif
     static PEManager *_inst;
 };
 

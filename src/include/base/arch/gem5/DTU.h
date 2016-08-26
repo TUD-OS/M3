@@ -27,12 +27,14 @@
 
 namespace kernel {
 class DTU;
+class VPE;
 }
 
 namespace m3 {
 
 class DTU {
     friend class kernel::DTU;
+    friend class kernel::VPE;
 
     explicit DTU() : _unack() {
     }
@@ -102,12 +104,12 @@ private:
         WAKEUP_CORE         = 1,
         INV_PAGE            = 2,
         INV_TLB             = 3,
-        INV_CACHE           = 4,
-        INJECT_IRQ          = 5,
+        INJECT_IRQ          = 4,
+        RESET               = 5,
     };
 
 public:
-    typedef reg_t reg_state_t[DTU_REGS + CMD_REGS + EP_REGS];
+    typedef reg_t reg_state_t[DTU_REGS + CMD_REGS + EP_REGS * EP_COUNT];
 
 public:
     typedef uint64_t pte_t;
@@ -203,9 +205,14 @@ public:
         return Errors::NO_ERROR;
     }
 
-    void abort(uint flags) {
+    void abort(uint flags, reg_t *cmdreg) {
+        *cmdreg = read_reg(CmdRegs::COMMAND);
         write_reg(CmdRegs::ABORT, flags);
-        wait_until_ready(0);
+        if(get_error() != Errors::ABORT)
+            *cmdreg = static_cast<reg_t>(CmdOpCode::IDLE);
+    }
+    void retry(reg_t cmd) {
+        write_reg(CmdRegs::COMMAND, cmd);
     }
 
     bool is_valid(int epid) const {

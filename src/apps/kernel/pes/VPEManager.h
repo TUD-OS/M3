@@ -29,6 +29,7 @@ namespace kernel {
 
 class VPEManager {
     friend class VPE;
+    friend class ContextSwitcher;
 
     struct Pending : public m3::SListItem {
         explicit Pending(VPE *_vpe, int _argc, char **_argv)
@@ -65,7 +66,7 @@ public:
     void load(int argc, char **argv);
 
     VPE *create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t pfgate, bool tmuxable = false);
-    void remove(vpeid_t id, bool daemon);
+    void remove(vpeid_t id);
 
     size_t used() const {
         return _count;
@@ -81,12 +82,14 @@ public:
         return *_vpes[id];
     }
 
+    void start(vpeid_t id);
+    void resume(vpeid_t id, const m3::Subscriptions<bool>::callback_type &cb);
+
     void start_pending(ServiceList &serv);
 
 private:
     vpeid_t get_id();
 
-    static m3::String path_to_name(const m3::String &path, const char *suffix);
     static m3::String fork_name(const m3::String &name);
 
     vpeid_t _next_id;

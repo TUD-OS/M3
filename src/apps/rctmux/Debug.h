@@ -21,13 +21,15 @@
 #ifndef NDEBUG
 
 #if defined(__t3__)
-EXTERN_C void __assert(const char *, const char *, unsigned int, const char *)
-{
+EXTERN_C void __assert(const char *, const char *, unsigned int, const char *) {
     // nothing yet
 }
 #else
-EXTERN_C void __assert(const char *, const char *, int)
-{
+EXTERN_C void __assert(const char *, const char *, int) {
+    // nothing yet
+}
+
+EXTERN_C void __assert_fail(const char *, const char *, unsigned int, const char *) throw() {
     // nothing yet
 }
 #endif /* defined(__t3__) */

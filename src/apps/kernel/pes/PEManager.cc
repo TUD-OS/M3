@@ -28,18 +28,68 @@ namespace kernel {
 PEManager *PEManager::_inst;
 
 PEManager::PEManager()
-#if defined(__t3__) || defined(__gem5__)
-    :  _ctxswitcher(new ContextSwitcher*[Platform::pe_count()])
-#endif
-{
-    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i)
-        _ctxswitcher[i] = new ContextSwitcher(i);
+    :  _switches(), _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
+    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        if(Platform::pe(i).is_programmable())
+            _ctxswitcher[i] = new ContextSwitcher(i);
+        else
+            _ctxswitcher[i] = nullptr;
+    }
     deprivilege_pes();
+}
+
+void PEManager::init() {
+    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        if(_ctxswitcher[i]) {
+            _ctxswitcher[i]->init();
+            start_switch(i);
+        }
+    }
+}
+
+void PEManager::add_vpe(int pe, VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[pe];
+    assert(ctx);
+    if(ctx->enqueue(vpe))
+        start_switch(pe);
+}
+
+void PEManager::remove_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->core()];
+    assert(ctx);
+    if(ctx->remove(vpe))
+        _switches.append(ctx);
+}
+
+void PEManager::start_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->core()];
+    assert(ctx);
+    if(ctx->start_vpe())
+        _switches.append(ctx);
+}
+
+void PEManager::start_switch(int pe) {
+    ContextSwitcher *ctx = _ctxswitcher[pe];
+    assert(ctx);
+    if(ctx->start_switch())
+        _switches.append(ctx);
+}
+
+bool PEManager::continue_switches() {
+    for(auto it = _switches.begin(); it != _switches.end(); ) {
+        auto old = it++;
+        if(!old->continue_switch())
+            _switches.remove(&*old);
+    }
+    return _switches.length() > 0;
 }
 
 int PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
     size_t i;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        if(!_ctxswitcher[i])
+            continue;
+
         if((_ctxswitcher[i]->count() == 0 || tmuxable) &&
             Platform::pe(i).isa() == pe.isa() && Platform::pe(i).type() == pe.type())
             break;

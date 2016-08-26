@@ -30,6 +30,7 @@
 #define RCTMUX_FLAG_SIGNAL  (1 << 1)
 #define RCTMUX_FLAG_STORE   (1 << 2)
 #define RCTMUX_FLAG_RESTORE (1 << 3)
+#define RCTMUX_FLAG_INIT    (1 << 4)
 
 #if defined(__cplusplus)
 namespace m3 {
@@ -52,6 +53,7 @@ enum RCTMUXCtrlFlag {
     STORE               = RCTMUX_FLAG_STORE,    // save operation required
     RESTORE             = RCTMUX_FLAG_RESTORE,  // restore operation required
     SIGNAL              = RCTMUX_FLAG_SIGNAL,   // used for event polling
+    INIT                = RCTMUX_FLAG_INIT,     // used for event polling
 };
 
 } /* namespace m3 */

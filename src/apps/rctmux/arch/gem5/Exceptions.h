@@ -17,9 +17,8 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/arch/gem5/Exceptions.h>
 #include <base/Config.h>
-
-namespace m3 {
 
 class Exceptions {
     Exceptions() = delete;
@@ -151,44 +150,13 @@ public:
         uint8_t ioMapEnd;
     } PACKED;
 
-    /* isr prototype */
-    typedef void (*isr_func)();
-
     /* reserved by intel */
     enum {
         INTEL_RES1          = 2,
         INTEL_RES2          = 15
     };
 
-    /* the stack frame for the interrupt-handler */
-    struct State {
-        /* general purpose registers */
-        ulong r15;
-        ulong r14;
-        ulong r13;
-        ulong r12;
-        ulong r11;
-        ulong r10;
-        ulong r9;
-        ulong r8;
-        ulong rbp;
-        ulong rsi;
-        ulong rdi;
-        ulong rdx;
-        ulong rcx;
-        ulong rbx;
-        ulong rax;
-        /* interrupt-number */
-        ulong intrptNo;
-        /* error-code (for exceptions); default = 0 */
-        ulong errorCode;
-        /* pushed by the CPU */
-        ulong rip;
-        ulong cs;
-        ulong rflags;
-        ulong rsp;
-        ulong ss;
-    } PACKED;
+    typedef void (*entry_func)();
 
     static const size_t IDT_COUNT       = 66;
 
@@ -198,8 +166,13 @@ public:
 public:
     static void init();
 
+    static m3::Exceptions::isr_func *get_table() {
+        return isrs;
+    }
+
 private:
-    static void handler(State *state) asm("intrpt_handler");
+    static void handler(m3::Exceptions::State *state) asm("interrupt_handler");
+    static void null_handler(m3::Exceptions::State *state);
 
     static void loadIDT(DescTable *tbl) {
         asm volatile ("lidt %0" : : "m"(*tbl));
@@ -213,24 +186,18 @@ private:
     static void loadGDT(DescTable *gdt) {
         asm volatile ("lgdt (%0)" : : "r"(gdt));
     }
-    static word_t getCR2() {
-        word_t res;
-        asm volatile ("mov %%cr2, %0" : "=r"(res));
-        return res;
-    }
     static void enableIRQs() {
         asm volatile ("sti");
     }
 
     static void setDesc(Desc *d,uintptr_t address,size_t limit,uint8_t granu,uint8_t type,uint8_t dpl);
     static void setDesc64(Desc *d,uintptr_t address,size_t limit,uint8_t granu,uint8_t type,uint8_t dpl);
-    static void setIDT(size_t number,isr_func handler,uint8_t dpl);
+    static void setIDT(size_t number,entry_func handler,uint8_t dpl);
     static void setTSS(Desc *gdt,TSS *tss,uintptr_t kstack);
 
+    static m3::Exceptions::isr_func isrs[IDT_COUNT];
     static Desc gdt[GDT_ENTRY_COUNT];
     static Desc64 idt[IDT_COUNT];
     static TSS tss;
     static Desc64 *idt_p;
 };
-
-}

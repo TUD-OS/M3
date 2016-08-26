@@ -20,14 +20,13 @@
 #include <base/Panic.h>
 #include <base/WorkLoop.h>
 
+#include "pes/ContextSwitcher.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
 #include "com/Services.h"
-#include "com/RecvBufs.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
 #include "com/RecvBufs.h"
-#include "ContextSwitcher.h"
 
 // #define SIMPLE_SYSC_LOG
 
@@ -339,6 +338,8 @@ void SyscallHandler::createvpe(GateIStream &is) {
         if(msg == nullptr)
             SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap(s)");
     }
+    else
+        ep = -1;
 
     // create VPE
     VPE *nvpe = VPEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
@@ -346,20 +347,18 @@ void SyscallHandler::createvpe(GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
 
     // childs of daemons are daemons
-    if(vpe->flags() & VPE::DAEMON)
+    if(vpe->flags() & VPE::F_DAEMON)
         nvpe->make_daemon();
 
     // inherit VPE and mem caps to the parent
     vpe->objcaps().obtain(tcap, nvpe->objcaps().get(0));
     vpe->objcaps().obtain(mcap, nvpe->objcaps().get(1));
 
-    // initialize paging
-    if(gcap != m3::KIF::INV_SEL) {
-        // delegate pf gate to the new VPE
+    // delegate pf gate to the new VPE
+    if(gcap != m3::KIF::INV_SEL)
         nvpe->objcaps().obtain(gcap, msg);
 
-        DTU::get().config_pf_remote(nvpe->desc(), nvpe->address_space()->root_pt(), ep);
-    }
+    nvpe->set_ready();
 
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR, Platform::pe(nvpe->core()).value());
 }
@@ -434,7 +433,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(addr < Platform::rw_barrier(tcapobj->vpe->core()) || (order > 20) || (msgorder > order))
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Not in receive buffer space");
 
-    m3::Errors::Code res = RecvBufs::attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
+    m3::Errors::Code res = tcapobj->vpe->rbufs().attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Unable to attach receive buffer");
 
@@ -453,7 +452,7 @@ void SyscallHandler::detachrb(GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE capability is invalid");
 
-    RecvBufs::detach(*tcapobj->vpe, ep);
+    tcapobj->vpe->rbufs().detach(*tcapobj->vpe, ep);
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
 
@@ -495,7 +494,8 @@ void SyscallHandler::vpectrl(GateIStream &is) {
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START:
-            vpecap->vpe->start(0, nullptr, pid);
+            // TODO the VPE might be suspended
+            vpecap->vpe->start();
             reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
             break;
 
@@ -633,7 +633,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     m3::CapRngDesc caps;
     is >> tvpe >> sesscap >> caps;
     // TODO compiler-bug? if I try to print caps, it hangs on T2!? doing it here manually works
-    LOG_SYS(vpe, (obtain ? "syscall::obtain" : "syscall::delegate"),
+    LOG_SYS(vpe, (obtain ? ": syscall::obtain" : ": syscall::delegate"),
             "(vpe=" << tvpe << ", sess=" << sesscap << ", caps="
             << caps.start() << ":" << caps.count() << ")");
 
@@ -708,42 +708,56 @@ void SyscallHandler::activate(GateIStream &is) {
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
-    MsgCapability *oldcapobj = oldcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *ocap = oldcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
-    MsgCapability *newcapobj = newcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
+    MsgCapability *ncap = newcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(newcap, Capability::MSG | Capability::MEM));
     // ep 0 can never be used for sending
-    if(epid == 0 || (oldcapobj == nullptr && newcapobj == nullptr)) {
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap(s) (old=" << oldcap << "," << oldcapobj
-            << ", new=" << newcap << "," << newcapobj << ")");
+    if(epid == 0 || (ocap == nullptr && ncap == nullptr)) {
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap(s) (old=" << oldcap << "," << ocap
+            << ", new=" << newcap << "," << ncap << ")");
     }
 
-    if(newcapobj && newcapobj->type == Capability::MSG) {
-        if(!RecvBufs::is_attached(newcapobj->obj->core, newcapobj->obj->epid)) {
-            ReplyInfo rinfo(is.message());
+    if(ncap) {
+        int wait_needed = 0;
+        if(ncap->obj->vpe != VPE::INVALID_ID &&
+                VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
+            LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->core);
+            wait_needed = 1;
+        }
+        else if(ncap->type == Capability::MSG &&
+                !VPEManager::get().vpe(ncap->obj->vpe).rbufs().is_attached(ncap->obj->epid)) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
-                << newcapobj->obj->core << ":" << newcapobj->obj->epid << " to get attached");
+                << ncap->obj->core << ":" << ncap->obj->epid << " to get attached");
+            wait_needed = 2;
+        }
 
-            auto callback = [rinfo, vpe, epid, oldcapobj, newcapobj](bool success, m3::Subscriber<bool> *) {
+        if(wait_needed) {
+            ReplyInfo rinfo(is.message());
+            auto callback = [rinfo, vpe, epid, ocap, ncap](bool success, m3::Subscriber<bool> *) {
                 EVENT_TRACER_Syscall_activate();
                 m3::Errors::Code res = success ? m3::Errors::NO_ERROR : m3::Errors::RECV_GONE;
 
                 LOG_SYS(vpe, ": syscall::activate-cb", "(res=" << res << ")");
 
                 if(success)
-                    res = do_activate(vpe, epid, oldcapobj, newcapobj);
+                    res = do_activate(vpe, epid, ocap, ncap);
                 if(res != m3::Errors::NO_ERROR)
                     KLOG(ERR, vpe->name() << ": activate failed (" << res << ")");
 
                 auto reply = kernel::create_vmsg(res);
                 reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
             };
-            RecvBufs::subscribe(newcapobj->obj->core, newcapobj->obj->epid, callback);
+
+            if(wait_needed == 1)
+                VPEManager::get().resume(ncap->obj->vpe, callback);
+            else
+                VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
             return;
         }
     }
 
-    m3::Errors::Code res = do_activate(vpe, epid, oldcapobj, newcapobj);
+    m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "cmpxchg failed");
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
@@ -772,11 +786,6 @@ void SyscallHandler::revoke(GateIStream &is) {
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is.gate(), res, "Revoke failed");
 
-    if(crd.type() == m3::CapRngDesc::OBJ) {
-        // maybe we have removed a VPE
-        tryTerminate();
-    }
-
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
 
@@ -789,19 +798,6 @@ void SyscallHandler::exit(GateIStream &is) {
 
     vpe->exit(exitcode);
     vpe->unref();
-
-    tryTerminate();
-}
-
-void SyscallHandler::tryTerminate() {
-    // if there are no VPEs left, we can stop everything
-    if(VPEManager::get().used() == 0) {
-        VPEManager::destroy();
-        m3::env()->workloop()->stop();
-    }
-    // if there are only daemons left, start the shutdown-procedure
-    else if(VPEManager::get().used() == VPEManager::get().daemons())
-        VPEManager::shutdown();
 }
 
 void SyscallHandler::noop(GateIStream &is) {
@@ -813,7 +809,7 @@ void SyscallHandler::tmuxswitch(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, "syscall::tmuxswitch()", "(" << vpe->name() << ")");
 
-    // ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
+    // ContextSwitcher *ctxswitcher = VPEManager::get().ctxswitcher();
     // if (ctxswitcher) {
     //     VPE *newvpe = ctxswitcher->switch_next();
 
