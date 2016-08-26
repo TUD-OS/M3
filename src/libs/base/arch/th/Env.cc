@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #if defined(__t3__)
-#   include <m3/RCTMux.h>
+#   include <base/RCTMux.h>
 #   include <xtensa/simcall.h>
 #endif
 

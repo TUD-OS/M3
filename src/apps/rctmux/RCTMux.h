@@ -16,26 +16,18 @@
 
 #pragma once
 
-#include <base/Config.h>
-
-#if defined(__t3__)
-#   include "arch/t3/RCTMux.h"
-#elif defined(__gem5__)
-#   include "arch/gem5/RCTMux.h"
-#else
-#   error "Unsupported target"
-#endif
+#include <base/Common.h>
+#include <base/RCTMux.h>
 
 namespace RCTMux {
 
-extern void setup();
-extern void set_idle_mode();
-extern void init();             // init phase
-extern void store();            // store phase
-extern void reset();            // reset phase
-extern void restore();          // restore phase
-extern void finish();
+extern void init();
+extern void *init_state();
+extern void save();
+extern void resume();
 
-extern bool flag_is_set(const m3::RCTMUXCtrlFlag flag);
+extern uint64_t flags_get();
+extern void flags_set(uint64_t flags);
+extern bool flag_is_set(const m3::RCTMuxCtrl flag);
 
 } /* namespace RCTMux */

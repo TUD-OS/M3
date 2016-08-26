@@ -14,100 +14,78 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/RCTMux.h>
 #include <base/arch/gem5/Exceptions.h>
 #include <base/DTU.h>
 #include <base/Env.h>
-#include <base/util/Math.h>
-#include <base/util/Sync.h>
-#include <base/util/Profile.h>
-#include <string.h>
 
-#include "RCTMux.h"
+#include <base/RCTMux.h>
+
+#include "../../RCTMux.h"
 #include "Exceptions.h"
 
-using namespace m3;
-
-#define RCTMUX_MAGIC       0x42C0FFEE
-
-EXTERN_C void _start();
-EXTERN_C void isr64();
-EXTERN_C void _interrupt_handler(m3::Exceptions::State *state);
-
-volatile static struct alignas(DTU_PKG_SIZE) {
-    word_t magic;
-} _state;
+EXTERN_C void _save(void *state);
 
 namespace RCTMux {
 
-void setup() {
-    _state.magic = RCTMUX_MAGIC;
-    //flags_reset();
+static m3::DTU::reg_t cmdreg;
 
-    ::Exceptions::init();
-    ::Exceptions::get_table()[64] = _interrupt_handler;
+uint64_t flags_get() {
+    return *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS);
+}
+
+void flags_set(uint64_t flags) {
+    *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) = flags;
+}
+
+bool flag_is_set(const m3::RCTMuxCtrl flag) {
+    return (*reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) & flag);
 }
 
 void init() {
-    // tell kernel that we are ready
-    // flag_set(SIGNAL);
+    Exceptions::init();
+    Exceptions::get_table()[64] = reinterpret_cast<m3::Exceptions::isr_func>(_save);
 }
 
-void finish() {
-    // flags_reset();
+void *init_state() {
+    m3::Env *senv = m3::env();
+    senv->isrs = Exceptions::get_table();
+
+    // put state at the stack top
+    // TODO using senv->sp in that way is still wrong, I think
+    m3::Exceptions::State *state = reinterpret_cast<m3::Exceptions::State*>(senv->sp) - 1;
+
+    // init State
+    state->rax = 0xDEADBEEF;    // tell crt0 that we've set the SP
+    state->rbx = 0;
+    state->rcx = 0;
+    state->rdx = 0;
+    state->rsi = 0;
+    state->rdi = 0;
+    state->r8  = 0;
+    state->r9  = 0;
+    state->r10 = 0;
+    state->r11 = 0;
+    state->r12 = 0;
+    state->r13 = 0;
+    state->r14 = 0;
+    state->r15 = 0;
+
+    state->cs  = (Exceptions::SEG_CODE << 3) | 3;
+    state->ss  = (Exceptions::SEG_DATA << 3) | 3;
+    state->rip = senv->entry;
+    state->rsp = reinterpret_cast<uintptr_t>(state);
+    state->rbp = state->rsp;
+    state->rflags = 0x200;  // enable interrupts
+
+    return state;
 }
 
-void store() {
-    // wait for kernel
-    while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
-        ;
-
-    if (flag_is_set(ERROR))
-        return;
-
-    // store state
-    //size_t offset = 0;
-    //mem_write(RCTMUX_STORE_EP, (void*)&_state, sizeof(_state), &offset);
-
-    // success
-    // flag_unset(STORE);
-
-    // on gem5 store is handled via libm3
+void save() {
+    m3::DTU::get().abort(m3::DTU::ABORT_CMD | m3::DTU::ABORT_VPE, &cmdreg);
 }
 
-void restore() {
-    while (flag_is_set(SIGNAL) && !flag_is_set(ERROR))
-        ;
-
-    if (flag_is_set(ERROR))
-        return;
-
-    // read state
-    //size_t offset = 0;
-    //mem_read(RCTMUX_RESTORE_EP, (void*)&_state, sizeof(_state), &offset);
-
-    if (_state.magic != RCTMUX_MAGIC) {
-        // flag_set(ERROR);
-        return;
-    }
-
-    // success
-    // flag_unset(RESTORE);
-}
-
-void reset() {
-    // simulate reset since resetting the PE from kernel side is not
-    // currently supported for t3
-    // TODO
-}
-
-void set_idle_mode() {
-    // reset program entry
-    m3::env()->entry = 0;
-    // set epc (exception program counter) to jump into idle mode
-    // when returning from exception
-    //_state.cpu_regs[EPC_REG] = (word_t*)&_start;
-    jump_to_start((uintptr_t)&_start);
+void resume() {
+    m3::DTU::get().retry(cmdreg);
 }
 
 } /* namespace RCTMux */

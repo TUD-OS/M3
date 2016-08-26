@@ -20,6 +20,8 @@
 #include <base/arch/gem5/Exceptions.h>
 #include <base/Config.h>
 
+namespace RCTMux {
+
 class Exceptions {
     Exceptions() = delete;
 
@@ -201,3 +203,5 @@ private:
     static TSS tss;
     static Desc64 *idt_p;
 };
+
+}

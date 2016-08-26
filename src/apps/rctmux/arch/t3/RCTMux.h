@@ -18,8 +18,7 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
-
-#include <m3/RCTMux.h>
+#include <base/RCTMux.h>
 
 namespace RCTMux {
 
@@ -32,11 +31,11 @@ inline void jump_to_app(const uintptr_t ptr, const word_t sp) {
     asm volatile ( "jx    %0;" : : "a"(a2) );
 }
 
-inline void flag_set(const m3::RCTMUXCtrlFlag flag) {
+inline void flag_set(const m3::RCTMuxCtrl flag) {
     *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) |= flag;
 }
 
-inline void flag_unset(const m3::RCTMUXCtrlFlag flag) {
+inline void flag_unset(const m3::RCTMuxCtrl flag) {
     *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) ^= flag;
 }
 
@@ -44,7 +43,7 @@ inline void flags_reset() {
     *((volatile unsigned *)RCTMUX_FLAGS_LOCAL) = 0;
 }
 
-inline bool flag_is_set(const m3::RCTMUXCtrlFlag flag) {
+inline bool flag_is_set(const m3::RCTMuxCtrl flag) {
     return (*((volatile unsigned *)RCTMUX_FLAGS_LOCAL) & flag);
 }
 

@@ -14,8 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/DTU.h>
-#include <m3/util/Sync.h>
+#include <base/util/Sync.h>
+#include <base/DTU.h>
 
 // this is mostly taken from libm3 (arch/t3/DTU.cc)
 

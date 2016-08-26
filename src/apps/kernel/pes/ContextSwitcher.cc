@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/RCTMux.h>
+#include <base/RCTMux.h>
 #include <base/log/Kernel.h>
 #include <base/col/Treap.h>
 
@@ -113,7 +113,7 @@ bool ContextSwitcher::continue_switch() {
     uint64_t flags;
     // rctmux is expected to invalidate the VPE id after we've injected the IRQ
     recv_flags(_state == STATE_STORE ? VPE::INVALID_ID : _cur->id(), &flags);
-    if(~flags & m3::RCTMUXCtrlFlag::SIGNAL)
+    if(~flags & m3::RCTMuxCtrl::SIGNAL)
         return true;
 
     return !next_state();
@@ -136,7 +136,7 @@ bool ContextSwitcher::next_state() {
         case STATE_IDLE: {
             assert(_cur != nullptr);
 
-            send_flags(_cur->id(), m3::RCTMUXCtrlFlag::STORE);
+            send_flags(_cur->id(), m3::RCTMuxCtrl::STORE);
             DTU::get().injectIRQ(_cur->desc());
 
             _state = STATE_STORE;
@@ -181,11 +181,11 @@ bool ContextSwitcher::next_state() {
             uint64_t flags = 0;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
-                flags |= m3::RCTMUXCtrlFlag::INIT;
+                flags |= m3::RCTMuxCtrl::INIT;
             // there is an application to restore if we are either resuming an application (!INIT)
             // or if we are just starting it
             if(!(_cur->flags() & VPE::F_INIT) || (_cur->flags() & VPE::F_START))
-                flags |= m3::RCTMUXCtrlFlag::RESTORE | (static_cast<uint64_t>(_core) << 32);
+                flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_core) << 32);
 
             KLOG(VPES, "CtxSw[" << _core << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
 

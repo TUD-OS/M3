@@ -22,15 +22,15 @@
 
 #if defined(__t3__)
 EXTERN_C void __assert(const char *, const char *, unsigned int, const char *) {
-    // nothing yet
+    while(1);
 }
 #else
 EXTERN_C void __assert(const char *, const char *, int) {
-    // nothing yet
+    while(1);
 }
 
 EXTERN_C void __assert_fail(const char *, const char *, unsigned int, const char *) throw() {
-    // nothing yet
+    while(1);
 }
 #endif /* defined(__t3__) */
 

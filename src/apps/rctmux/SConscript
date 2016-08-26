@@ -25,13 +25,6 @@ elif env['ARCH'] == 'gem5':
     myenv = env.Clone()
     myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x1000')
 
-    # flto does not work for currently unknown reasons
-    # (hi part of adresses in idt are missing for some reason)
-    # we therefore remove this build option for the moment
-    myenv.Replace(CXXFLAGS = str(myenv['CXXFLAGS']).replace('-flto', ''))
-    myenv.Replace(CFLAGS = str(myenv['CFLAGS']).replace('-flto', ''))
-    myenv.Replace(LINKFLAGS = str(myenv['LINKFLAGS']).replace('-flto', ''))
-
     myenv.M3Program(
         myenv,
         target = 'idle',

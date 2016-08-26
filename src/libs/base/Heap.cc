@@ -23,7 +23,7 @@
 #include <cstring>
 
 #if defined(__t3__)
-#   include <m3/RCTMux.h>
+#   include <base/RCTMux.h>
 #endif
 
 namespace m3 {

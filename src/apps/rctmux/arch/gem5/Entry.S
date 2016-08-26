@@ -25,21 +25,25 @@
 // macro to build a default-isr-handler
 .macro BUILD_DEF_ISR no
     .global isr\no
+    .type   isr\no, @function
     isr\no:
     // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
     push    $0                      // error-code (no error here)
     push    $\no                    // the interrupt-number
     jmp     isrCommon
+    .size   isr\no, .-isr\no
 .endm
 
 // macro to build an error-isr-handler
 .macro BUILD_ERR_ISR no
     .global isr\no
+    .type   isr\no, @function
     isr\no:
     // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
     // the error-code has already been pushed
     push    $\no                    // the interrupt-number
     jmp     isrCommon
+    .size   isr\no, .-isr\no
 .endm
 
 // our ISRs
@@ -64,10 +68,13 @@ BUILD_DEF_ISR 64
 BUILD_DEF_ISR 65
 
 .global isrNull
+.type   isrNull, @function
 isrNull:
     push    $0                      // error-code (no error here)
     push    $32                     // the interrupt-number
+.size   isrNull, .-isrNull
 
+.type   isrCommon, @function
 isrCommon:
     push    %rax
     push    %rbx
@@ -94,7 +101,9 @@ isrCommon:
 
     // we should not get here
 1:  jmp     1b
+.size   isrCommon, .-isrCommon
 
+.type   _start, @function
 _start:
     // use a small stack
     mov     $_rctmux_stack, %rsp
@@ -149,6 +158,7 @@ _start:
     // remove error-code and interrupt-number from stack and return
     add     $16,%rsp
     iretq
+.size   _start, .-_start
 
 .data
 

@@ -44,6 +44,8 @@ EXTERN_C void isr65();
 // the handler for a other interrupts
 EXTERN_C void isrNull();
 
+namespace RCTMux {
+
 m3::Exceptions::isr_func Exceptions::isrs[IDT_COUNT];
 Exceptions::Desc Exceptions::gdt[GDT_ENTRY_COUNT];
 Exceptions::Desc64 Exceptions::idt[IDT_COUNT];
@@ -146,4 +148,6 @@ void Exceptions::setTSS(Desc *gdt, TSS *tss, uintptr_t kstack) {
     tss->setSP(kstack);
     setDesc64(gdt + SEG_TSS, reinterpret_cast<uintptr_t>(tss), sizeof(TSS) - 1,
         Desc::GRANU_BYTES, Desc::SYS_TSS, Desc::DPL_KERNEL);
+}
+
 }

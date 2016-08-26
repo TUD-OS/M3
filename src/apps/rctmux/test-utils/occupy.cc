@@ -16,9 +16,10 @@
 
 #include <base/Common.h>
 #include <base/stream/Serial.h>
-#include <m3/VPE.h>
-#include <m3/Syscalls.h>
 #include <base/DTU.h>
+
+#include <m3/Syscalls.h>
+#include <m3/VPE.h>
 
 using namespace m3;
 
@@ -28,7 +29,7 @@ int main(int, char**)
 {
     Serial::get() << "Occupy program started...\n";
 
-    // this program tries to keep the kernel busy 
+    // this program tries to keep the kernel busy
 
     while (1) {
         {

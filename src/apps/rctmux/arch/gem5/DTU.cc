@@ -79,4 +79,4 @@ Errors::Code DTU::write(int ep, const void *data, size_t size, size_t off, uint 
     return transfer(cmd, dataaddr, size, off);
 }
 
-} /* namespace m3 */
+}
