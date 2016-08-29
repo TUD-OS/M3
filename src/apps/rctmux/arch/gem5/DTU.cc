@@ -28,24 +28,6 @@ DTU m3::DTU::inst;
 
 /* Re-implement the necessary DTU methods we need. */
 
-Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
-    static_assert(MemGate::R == DTU::R, "DTU::R does not match MemGate::R");
-    static_assert(MemGate::W == DTU::W, "DTU::W does not match MemGate::W");
-
-    static_assert(MemGate::R == DTU::PTE_R, "DTU::PTE_R does not match MemGate::R");
-    static_assert(MemGate::W == DTU::PTE_W, "DTU::PTE_W does not match MemGate::W");
-    static_assert(MemGate::X == DTU::PTE_X, "DTU::PTE_X does not match MemGate::X");
-
-    write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    write_reg(CmdRegs::DATA_SIZE, size);
-    write_reg(CmdRegs::REPLY_LABEL, replylbl);
-    write_reg(CmdRegs::REPLY_EP, reply_ep);
-    Sync::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::SEND));
-
-    return get_error();
-}
-
 Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
     size_t left = size;
     while(left > 0) {
