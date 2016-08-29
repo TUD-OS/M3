@@ -35,19 +35,22 @@ class ContextSwitcher : public m3::SListItem {
 
     enum State {
         // normal state, no context switch happening
-        STATE_IDLE,
+        S_IDLE,
 
-        // we injected an IRQ and wait for rctmux's ACK
-        STATE_STORE,
+        // inject IRQ to store state
+        S_STORE_WAIT,
 
-        // we have finished the store phase and can switch now
-        STATE_SWITCH,
+        // on rctmux's ACK: save DTU state
+        S_STORE_DONE,
 
-        // switch is done, start the application (or idle in rctmux)
-        STATE_START,
+        // schedule and reset
+        S_SWITCH,
 
-        // we have finished the restore phase
-        STATE_DONE
+        // wakeup to start application
+        S_RESTORE_WAIT,
+
+        // on rctmux's ACK: finished restore phase
+        S_RESTORE_DONE
     };
 
 public:

@@ -28,15 +28,16 @@
 namespace kernel {
 
 static const char *stateNames[] = {
-    "STATE_IDLE",
-    "STATE_STORE",
-    "STATE_SWITCH",
-    "STATE_START",
-    "STATE_DONE",
+    "S_IDLE",
+    "S_STORE_WAIT",
+    "S_STORE_DONE",
+    "S_SWITCH",
+    "S_START",
+    "S_RESTORE_DONE",
 };
 
 ContextSwitcher::ContextSwitcher(size_t core)
-    : m3::SListItem(), _core(core), _state(STATE_IDLE), _vpes(), _it(), _idle(), _cur() {
+    : m3::SListItem(), _core(core), _state(S_IDLE), _vpes(), _it(), _idle(), _cur() {
     assert(core > 0);
     KLOG(VPES, "Initialized context switcher for core " << core);
 }
@@ -106,21 +107,25 @@ bool ContextSwitcher::remove(VPE *vpe) {
 
 bool ContextSwitcher::start_switch() {
     // if there is a switch running, do nothing
-    if(_state != STATE_IDLE)
+    if(_state != S_IDLE)
         return false;
 
     // if no VPE is running, directly switch to a new VPE
     if (_cur == nullptr)
-        _state = STATE_SWITCH;
+        _state = S_SWITCH;
+    else
+        _state = S_STORE_WAIT;
 
     next_state();
     return true;
 }
 
 bool ContextSwitcher::continue_switch() {
+    assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
+
     uint64_t flags = 0;
     // rctmux is expected to invalidate the VPE id after we've injected the IRQ
-    recv_flags(_state == STATE_STORE ? VPE::INVALID_ID : _cur->id(), &flags);
+    recv_flags(_state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id(), &flags);
     if(~flags & m3::RCTMuxCtrl::SIGNAL)
         return true;
 
@@ -128,9 +133,12 @@ bool ContextSwitcher::continue_switch() {
 }
 
 bool ContextSwitcher::start_vpe() {
-    assert(_state == STATE_IDLE);
+    assert(_state == S_IDLE);
+    assert(_cur);
+    assert(_cur->state() == VPE::RUNNING);
+    assert(_cur->flags() & VPE::F_START);
 
-    _state = STATE_START;
+    _state = S_RESTORE_WAIT;
     return !next_state();
 }
 
@@ -141,17 +149,19 @@ bool ContextSwitcher::next_state() {
 
     bool res = false;
     switch(_state) {
-        case STATE_IDLE: {
-            assert(_cur != nullptr);
+        case S_IDLE:
+            assert(false);
+            break;
 
+        case S_STORE_WAIT: {
             send_flags(_cur->id(), m3::RCTMuxCtrl::STORE);
             DTU::get().injectIRQ(_cur->desc());
 
-            _state = STATE_STORE;
+            _state = S_STORE_DONE;
             break;
         }
 
-        case STATE_STORE: {
+        case S_STORE_DONE: {
             DTU::get().get_regs_state(_cur->core(), _cur->dtu_state());
 
             if(_cur->state() == VPE::DEAD) {
@@ -162,11 +172,11 @@ bool ContextSwitcher::next_state() {
             }
             else
                 _cur->_state = VPE::SUSPENDED;
-            _state = STATE_SWITCH;
+
             // fall through
         }
 
-        case STATE_SWITCH: {
+        case S_SWITCH: {
             _cur = schedule();
 
             // make it running here, so that the PTEs are sent to the PE, if F_INIT is set
@@ -185,7 +195,7 @@ bool ContextSwitcher::next_state() {
             // fall through
         }
 
-        case STATE_START: {
+        case S_RESTORE_WAIT: {
             uint64_t flags = 0;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
@@ -199,17 +209,17 @@ bool ContextSwitcher::next_state() {
 
             send_flags(_cur->id(), flags);
             DTU::get().wakeup(_cur->desc());
-            _state = STATE_DONE;
+            _state = S_RESTORE_DONE;
             break;
         }
 
-        case STATE_DONE: {
+        case S_RESTORE_DONE: {
             // we have finished these phases now (if they were set)
             _cur->_flags &= ~(VPE::F_INIT | VPE::F_START);
             _cur->notify_resume();
 
             send_flags(_cur->id(), 0);
-            _state = STATE_IDLE;
+            _state = S_IDLE;
             res = true;
             break;
         }
