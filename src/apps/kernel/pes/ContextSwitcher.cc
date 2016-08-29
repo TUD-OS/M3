@@ -110,7 +110,7 @@ bool ContextSwitcher::start_switch() {
 }
 
 bool ContextSwitcher::continue_switch() {
-    uint64_t flags;
+    uint64_t flags = 0;
     // rctmux is expected to invalidate the VPE id after we've injected the IRQ
     recv_flags(_state == STATE_STORE ? VPE::INVALID_ID : _cur->id(), &flags);
     if(~flags & m3::RCTMuxCtrl::SIGNAL)
