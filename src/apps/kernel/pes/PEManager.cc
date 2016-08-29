@@ -47,11 +47,11 @@ void PEManager::init() {
     }
 }
 
-void PEManager::add_vpe(int pe, VPE *vpe) {
-    ContextSwitcher *ctx = _ctxswitcher[pe];
+void PEManager::add_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->core()];
     assert(ctx);
     if(ctx->enqueue(vpe))
-        start_switch(pe);
+        start_switch(vpe->core());
 }
 
 void PEManager::remove_vpe(VPE *vpe) {

@@ -38,9 +38,10 @@ public:
     void init();
 
     int find_pe(const m3::PEDesc &pe, bool tmuxable);
-    void add_vpe(int pe, VPE *vpe);
+    void add_vpe(VPE *vpe);
     void start_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
+
     void start_switch(int pe);
     bool continue_switches();
 

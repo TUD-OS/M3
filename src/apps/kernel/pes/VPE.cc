@@ -74,7 +74,7 @@ void VPE::set_ready() {
     assert(!(_flags & (F_INIT | F_START)));
 
     _flags |= F_INIT;
-    PEManager::get().add_vpe(core(), this);
+    PEManager::get().add_vpe(this);
 }
 
 void VPE::start() {
