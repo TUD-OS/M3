@@ -100,8 +100,6 @@ public:
         return _rbufs;
     }
 
-    void wakeup();
-
     void set_ready();
 
     void activate_sysc_ep(void *addr);

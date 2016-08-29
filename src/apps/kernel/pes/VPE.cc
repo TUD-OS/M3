@@ -117,11 +117,6 @@ m3::DTU::reg_t *VPE::ep_regs(int ep) {
     return regs + m3::DTU::DTU_REGS + m3::DTU::CMD_REGS + m3::DTU::EP_REGS * ep;
 }
 
-void VPE::wakeup() {
-    assert(state() == VPE::RUNNING);
-    PEManager::get().start_vpe(this);
-}
-
 void VPE::invalidate_ep(int ep) {
     if(state() != VPE::RUNNING)
         memset(ep_regs(ep), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
