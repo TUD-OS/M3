@@ -39,7 +39,8 @@ EXTERN_C bool _init() {
 }
 
 EXTERN_C void *_start_app() {
-    if(!flag_is_set(m3::RESTORE)) {
+    uint64_t flags = flags_get();
+    if(!(flags & m3::RESTORE)) {
         // tell the kernel that we are ready
         // TODO only do that if the kernel knows about that (not after exit)
         flags_set(m3::SIGNAL);
@@ -48,9 +49,9 @@ EXTERN_C void *_start_app() {
 
     m3::Env *senv = m3::env();
     // remember the current core id (might have changed since last switch)
-    senv->coreid = flags_get() >> 32;
+    senv->coreid = flags >> 32;
 
-    if(flag_is_set(m3::INIT)) {
+    if(flags & m3::INIT) {
         // if we get here, there is an application to jump to
         assert(senv->entry != 0);
 
@@ -70,7 +71,7 @@ EXTERN_C void *_start_app() {
 }
 
 EXTERN_C void _save(void *s) {
-    assert(flag_is_set(m3::STORE));
+    assert(flags_get() & m3::STORE);
 
     save();
 

@@ -37,10 +37,6 @@ void flags_set(uint64_t flags) {
     *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) = flags;
 }
 
-bool flag_is_set(const m3::RCTMuxCtrl flag) {
-    return (*reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) & flag);
-}
-
 void init() {
     Exceptions::init();
     Exceptions::get_table()[64] = reinterpret_cast<m3::Exceptions::isr_func>(_save);

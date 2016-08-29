@@ -28,6 +28,5 @@ extern void resume();
 
 extern uint64_t flags_get();
 extern void flags_set(uint64_t flags);
-extern bool flag_is_set(const m3::RCTMuxCtrl flag);
 
 } /* namespace RCTMux */
