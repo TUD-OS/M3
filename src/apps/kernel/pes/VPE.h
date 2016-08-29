@@ -61,6 +61,7 @@ public:
         F_IDLE        = 1 << 2,
         F_INIT        = 1 << 3,
         F_START       = 1 << 4,
+        F_MUXABLE     = 1 << 5, // TODO temporary
     };
 
     struct ServName : public m3::SListItem {
@@ -72,7 +73,7 @@ public:
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
     explicit VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep = -1,
-        capsel_t pfgate = m3::KIF::INV_SEL, bool tmuxable = false);
+        capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
     ~VPE();
@@ -129,9 +130,6 @@ public:
     }
     AddrSpace *address_space() {
         return _as;
-    }
-    bool tmuxable() const {
-        return _tmuxable;
     }
     void subscribe_exit(const m3::Subscriptions<int>::callback_type &cb) {
         _exitsubscr.subscribe(cb);
@@ -210,7 +208,6 @@ private:
     int _pid;
     int _state;
     int _exitcode;
-    bool _tmuxable;
     uintptr_t _entry;
     m3::String _name;
     CapTable _objcaps;

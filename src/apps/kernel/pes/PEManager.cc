@@ -90,8 +90,14 @@ int PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
         if(!_ctxswitcher[i])
             continue;
 
-        if((_ctxswitcher[i]->count() == 0 || tmuxable) &&
-            Platform::pe(i).isa() == pe.isa() && Platform::pe(i).type() == pe.type())
+        if(Platform::pe(i).isa() != pe.isa() || Platform::pe(i).type() != pe.type())
+            continue;
+
+        if(_ctxswitcher[i]->count() == 0)
+            break;
+
+        // TODO temporary
+        if(tmuxable && _ctxswitcher[i]->can_mux())
             break;
     }
     if(i > Platform::last_pe())

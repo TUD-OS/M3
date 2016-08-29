@@ -68,6 +68,8 @@ public:
         return _vpes.length();
     }
 
+    bool can_mux() const;
+
     bool enqueue(VPE *vpe);
     bool remove(VPE *vpe);
     bool start_vpe();

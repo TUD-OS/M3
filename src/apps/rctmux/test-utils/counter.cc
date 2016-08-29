@@ -25,7 +25,7 @@ int main(int, char **argv)
 
     // this program simply counts and prints a message at every step
 
-    while (1) {
+    while (counter < 100) {
         m3::cout << "Message " << counter << " from " << name << "\n";
         ++counter;
     }

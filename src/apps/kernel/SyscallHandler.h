@@ -82,8 +82,7 @@ public:
     void exit(GateIStream &is);
     void noop(GateIStream &is);
 
-    void tmuxswitch(GateIStream &is);
-    void tmuxresume(GateIStream &is);
+    void resume(GateIStream &is);
 
 #if defined(__host__)
     void init(GateIStream &is);

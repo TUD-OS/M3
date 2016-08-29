@@ -25,14 +25,13 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep, capsel_t pfgate, bool tmuxable)
+VPE::VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep, capsel_t pfgate)
     : _desc(coreid, id),
       _flags(flags),
       _refs(0),
       _pid(),
       _state(DEAD),
       _exitcode(),
-      _tmuxable(tmuxable),
       _entry(),
       _name(std::move(prog)),
       _objcaps(id + 1),

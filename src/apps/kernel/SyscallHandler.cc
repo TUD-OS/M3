@@ -126,8 +126,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::REVOKE, &SyscallHandler::revoke);
     add_operation(m3::KIF::Syscall::EXIT, &SyscallHandler::exit);
     add_operation(m3::KIF::Syscall::NOOP, &SyscallHandler::noop);
-    add_operation(m3::KIF::Syscall::TMUXSWITCH, &SyscallHandler::tmuxswitch);
-    add_operation(m3::KIF::Syscall::TMUXRESUME, &SyscallHandler::tmuxresume);
+    add_operation(m3::KIF::Syscall::RESUME, &SyscallHandler::resume);
 #if defined(__host__)
     add_operation(m3::KIF::Syscall::COUNT, &SyscallHandler::init);
 #endif
@@ -804,41 +803,25 @@ void SyscallHandler::noop(GateIStream &is) {
     reply_vmsg(is.gate(), 0);
 }
 
-void SyscallHandler::tmuxswitch(GateIStream &is) {
-
+void SyscallHandler::resume(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
-    LOG_SYS(vpe, "syscall::tmuxswitch()", "(" << vpe->name() << ")");
+    capsel_t vcap;
+    is >> vcap;
+    LOG_SYS(vpe, ": syscall::resume", "(vpe=" << vcap << ")");
 
-    // ContextSwitcher *ctxswitcher = VPEManager::get().ctxswitcher();
-    // if (ctxswitcher) {
-    //     VPE *newvpe = ctxswitcher->switch_next();
+    VPECapability *vpecap = static_cast<VPECapability*>(vpe->objcaps().get(vcap, Capability::VIRTPE));
+    if(vpecap == nullptr)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap");
+    if(vpecap->vpe->state() == VPE::DEAD)
+        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE is dead");
 
-    //     if (newvpe) {
-    //         ReplyInfo rinfo(is.message());
-    //         newvpe->subscribe_resume([vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
-    //             StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
-    //             os << m3::Errors::NO_ERROR;
-    //             reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
-    //             });
-    //         return;
-    //     }
-    // }
-
-    reply_vmsg(is.gate(), m3::Errors::NOT_SUP);
-}
-
-void SyscallHandler::tmuxresume(GateIStream &is) {
-
-    VPE *vpe = is.gate().session<VPE>();
-    LOG_SYS(vpe, "syscall::tmuxresume", "(" << vpe->name() << ")");
-
-    // ContextSwitcher *ctxswitcher = PEManager::get().ctxswitcher();
-    // if (ctxswitcher)
-    //     ctxswitcher->finalize_switch();
-
-    // TODO: handle errors
-
-    // this syscall is non blocking (no reply is sent)
+    ReplyInfo rinfo(is.message());
+    auto callback = [vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
+        StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
+        os << m3::Errors::NO_ERROR;
+        reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
+    };
+    VPEManager::get().resume(vpecap->vpe->id(), callback);
 }
 
 #if defined(__host__)

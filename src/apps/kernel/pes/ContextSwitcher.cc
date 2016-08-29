@@ -41,6 +41,14 @@ ContextSwitcher::ContextSwitcher(size_t core)
     KLOG(VPES, "Initialized context switcher for core " << core);
 }
 
+bool ContextSwitcher::can_mux() const {
+    for(auto it = _vpes.begin(); it != _vpes.end(); ++it) {
+        if(!(it->vpe->flags() & VPE::F_MUXABLE))
+            return false;
+    }
+    return true;
+}
+
 void ContextSwitcher::send_flags(int vpeid, uint64_t flags) {
     alignas(DTU_PKG_SIZE) uint64_t ctrl = flags;
     DTU::get().write_mem(VPEDesc(_core, vpeid), RCTMUX_FLAGS, &ctrl, sizeof(ctrl));
@@ -65,7 +73,7 @@ void ContextSwitcher::init() {
     assert(_idle == nullptr);
 
     _idle = new VPE(m3::String("idle"), _core, VPEManager::get().get_id(),
-        VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL, true);
+        VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
 }
 
 bool ContextSwitcher::enqueue(VPE *vpe) {

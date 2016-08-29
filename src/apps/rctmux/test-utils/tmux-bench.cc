@@ -27,19 +27,7 @@
 
 using namespace m3;
 
-/*static void _pseudo_sleep(int ticks) {
-    for (int i = 0; i < ticks * 1000; ++i)
-        if (!(i % 1000))
-            Serial::get() << "TICK\n";
-}*/
-
 static const int TEST_COUNT = 50;
-
-static void _switchalot(int count) {
-    for (int i = 0; i < count; ++i) {
-        Syscalls::get().tmuxswitch();
-    }
-}
 
 int main() {
     cout << "Time-multiplexing context-switch benchmark started.\n";
@@ -73,7 +61,26 @@ int main() {
 
     // now do some switches
     cout << "Starting benchmark (" << TEST_COUNT << " switches)...\n";
-    _switchalot(TEST_COUNT);
+
+    // switch between them until both exited
+    size_t remaining = 2;
+    capsel_t vpes[] = {s1.sel(), s2.sel()};
+    for (int i = 0; remaining > 0 && i < TEST_COUNT; ++i) {
+        if(vpes[i % 2] == ObjCap::INVALID)
+            continue;
+
+        // wait a bit
+        for(volatile int i = 0; i < 10000; ++i)
+            ;
+
+        if(Syscalls::get().resume(vpes[i % 2]) != Errors::NO_ERROR) {
+            // do not try that again for this VPE
+            remaining--;
+            vpes[i % 2] = ObjCap::INVALID;
+            cout << "resume failed\n";
+        }
+    }
+
     cout << "Benchmark finished.\n";
 
     return 0;

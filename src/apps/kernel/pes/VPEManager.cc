@@ -153,7 +153,8 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_
     if(id == MAX_VPES)
         return nullptr;
 
-    UNUSED VPE *vpe = new VPE(std::move(name), i, id, 0, ep, pfgate, tmuxable);
+    uint flags = tmuxable ? VPE::F_MUXABLE : 0;
+    UNUSED VPE *vpe = new VPE(std::move(name), i, id, flags, ep, pfgate);
     assert(vpe == _vpes[id]);
 
     _count++;

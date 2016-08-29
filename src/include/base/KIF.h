@@ -71,8 +71,7 @@ struct KIF {
             REVOKE,
             EXIT,
             NOOP,
-            TMUXSWITCH,
-            TMUXRESUME,
+            RESUME,
             COUNT
         };
 
