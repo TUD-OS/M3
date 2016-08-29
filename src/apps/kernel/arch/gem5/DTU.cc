@@ -70,6 +70,12 @@ void DTU::get_regs_state(int core, m3::DTU::reg_t *state) {
 }
 
 void DTU::set_regs_state(const VPEDesc &vpe, int vpeid, m3::DTU::reg_t *state) {
+    // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
+    m3::DTU::reg_t status = 0;
+    if(state[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] != static_cast<m3::DTU::reg_t>(-1))
+        status = m3::DTU::StatusFlags::PAGEFAULTS;
+    state[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)] = status;
+    // similarly, set the vpeid again, because abort invalidates it
     state[static_cast<size_t>(m3::DTU::DtuRegs::VPE_ID)] = vpeid;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::BASE_ADDR, state, sizeof(m3::DTU::reg_state_t));
