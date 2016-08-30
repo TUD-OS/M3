@@ -14,16 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include "com/RecvBufs.h"
-#include "pes/VPE.h"
+#pragma once
 
-namespace kernel {
+#include <base/Types.h>
 
-void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
-    if(attach)
-        vpe.config_rcv_ep(epid, addr, order, msgorder, flags);
-    else
-        vpe.invalidate_ep(epid);
-}
-
-}
+typedef size_t vpeid_t;

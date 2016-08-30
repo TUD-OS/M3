@@ -94,12 +94,12 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     // configure both receive buffers (we need to do that manually in the kernel)
     int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_CREDIT_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().config_recv_local(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+    DTU::get().recv_msgs(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_CREDIT_ORD, 0);
 
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().config_recv_local(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+    DTU::get().recv_msgs(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, m3::nextlog2<256>::val, 0);
 #endif
 

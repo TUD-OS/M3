@@ -14,16 +14,19 @@
  * General Public License version 2 for more details.
  */
 
-#include "com/RecvBufs.h"
-#include "pes/VPE.h"
+#pragma once
+
+#include "Types.h"
 
 namespace kernel {
 
-void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
-    if(attach)
-        vpe.config_rcv_ep(epid, addr, order, msgorder, flags);
-    else
-        vpe.invalidate_ep(epid);
-}
+class VPEDesc {
+public:
+    explicit VPEDesc(int _core, vpeid_t _id) : core(_core), id(_id) {
+    }
+
+    int core;
+    vpeid_t id;
+};
 
 }

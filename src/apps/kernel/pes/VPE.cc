@@ -36,7 +36,7 @@ VPE::VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep, capsel_t
       _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
-      _dtu_state(),
+      _dtustate(),
       _eps(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(SyscallHandler::get().srvepid(), nullptr),
@@ -98,7 +98,8 @@ void VPE::stop() {
 }
 
 void VPE::exit(int exitcode) {
-    invalidate_eps(m3::DTU::FIRST_FREE_EP);
+    // no update on the PE here, since we don't save the state anyway
+    _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
     rbufs().detach_all(*this, m3::DTU::DEF_RECVEP);
 
     _exitcode = exitcode;
@@ -112,49 +113,28 @@ void VPE::exit(int exitcode) {
     }
 }
 
-m3::DTU::reg_t *VPE::ep_regs(int ep) {
-    m3::DTU::reg_t *regs = reinterpret_cast<m3::DTU::reg_t*>(dtu_state());
-    return regs + m3::DTU::DTU_REGS + m3::DTU::CMD_REGS + m3::DTU::EP_REGS * ep;
-}
-
 void VPE::invalidate_ep(int ep) {
-    if(state() != VPE::RUNNING)
-        memset(ep_regs(ep), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
-    else
-        DTU::get().invalidate_ep(desc(), ep);
+    _dtustate.invalidate(ep);
+    if(state() == VPE::RUNNING)
+        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::invalidate_eps(int first) {
-    if(state() != VPE::RUNNING)
-        memset(ep_regs(0), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS * EP_COUNT);
-    else
-        DTU::get().invalidate_eps(desc(), first);
+void VPE::config_snd_ep(int ep, label_t lbl, int core, int vpe, int dstep, size_t msgsize, word_t crd) {
+    _dtustate.config_send(ep, lbl, core, vpe, dstep, msgsize, crd);
+    if(state() == VPE::RUNNING)
+        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_snd_ep(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize,
-        word_t credits) {
-    if(state() != VPE::RUNNING)
-        DTU::get().config_send(ep_regs(ep), label, dstcore, dstvpe, dstep, msgsize, credits);
-    else
-        DTU::get().config_send_remote(desc(), ep, label, dstcore, dstvpe, dstep, msgsize, credits);
-}
-
-void VPE::config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid) {
-    if(state() != VPE::RUNNING) {
-        if(valid)
-            DTU::get().config_recv(ep_regs(ep), buf, order, msgorder, flags);
-        else
-            memset(ep_regs(ep), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
-    }
-    else
-        DTU::get().config_recv_remote(desc(), ep, buf, order, msgorder, flags, valid);
+void VPE::config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+    _dtustate.config_recv(ep, buf, order, msgorder, flags);
+    if(state() == VPE::RUNNING)
+        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
 void VPE::config_mem_ep(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
-    if(state() != VPE::RUNNING)
-        DTU::get().config_mem(ep_regs(ep), dstcore, dstvpe, addr, size, perm);
-    else
-        DTU::get().config_mem_remote(desc(), ep, dstcore, dstvpe, addr, size, perm);
+    _dtustate.config_mem(ep, dstcore, dstvpe, addr, size, perm);
+    if(state() == VPE::RUNNING)
+        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
 }

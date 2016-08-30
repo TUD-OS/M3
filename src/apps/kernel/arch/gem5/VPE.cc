@@ -285,7 +285,7 @@ void VPE::init_memory() {
 
     bool vm = Platform::pe(core()).has_virtmem();
     if(vm) {
-        DTU::get().config_pf(dtu_state(), address_space()->root_pt(), address_space()->ep());
+        dtustate().config_pf(address_space()->root_pt(), address_space()->ep());
         DTU::get().config_pf_remote(desc(), address_space()->root_pt(), address_space()->ep());
     }
 
@@ -299,7 +299,7 @@ void VPE::init_memory() {
     }
 
     uintptr_t barrier = Platform::rw_barrier(core());
-    DTU::get().config_rwb(dtu_state(), barrier);
+    dtustate().config_rwb(barrier);
     DTU::get().config_rwb_remote(desc(), barrier);
 }
 

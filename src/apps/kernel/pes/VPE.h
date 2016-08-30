@@ -26,19 +26,11 @@
 #include "cap/Capability.h"
 #include "mem/AddrSpace.h"
 #include "mem/SlabCache.h"
+#include "pes/VPEDesc.h"
+#include "DTUState.h"
+#include "Types.h"
 
 namespace kernel {
-
-// TODO move that to somewhere else
-typedef size_t vpeid_t;
-
-struct VPEDesc {
-    explicit VPEDesc(int _core, vpeid_t _id) : core(_core), id(_id) {
-    }
-
-    int core;
-    vpeid_t id;
-};
 
 class ContextSwitcher;
 class RecvBufs;
@@ -92,8 +84,8 @@ public:
 
     void init();
 
-    m3::DTU::reg_t *dtu_state() {
-        return _dtu_state;
+    DTUState &dtustate() {
+        return _dtustate;
     }
 
     RecvBufs &rbufs() {
@@ -168,16 +160,12 @@ public:
     void make_daemon();
 
     void invalidate_ep(int ep);
-    void invalidate_eps(int first);
 
-    void config_snd_ep(int ep, label_t label, int dstcore, int dstvpe, int dstep, size_t msgsize,
-        word_t credits);
-    void config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags, bool valid);
+    void config_snd_ep(int ep, label_t lbl, int core, int vpe, int dstep, size_t msgsize, word_t crd);
+    void config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
     void config_mem_ep(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:
-    m3::DTU::reg_t *ep_regs(int ep);
-
     void notify_resume() {
         // notify subscribers
         for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
@@ -210,7 +198,7 @@ private:
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_state_t _dtu_state;
+    alignas(DTU_PKG_SIZE) DTUState _dtustate;
     void *_eps;
     RecvGate _syscgate;
     RecvGate _srvgate;

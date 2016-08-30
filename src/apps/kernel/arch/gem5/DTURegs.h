@@ -14,16 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#include "com/RecvBufs.h"
-#include "pes/VPE.h"
+#pragma once
+
+#include <base/Common.h>
+#include <base/DTU.h>
 
 namespace kernel {
 
-void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
-    if(attach)
-        vpe.config_rcv_ep(epid, addr, order, msgorder, flags);
-    else
-        vpe.invalidate_ep(epid);
-}
+class DTURegs {
+public:
+    explicit DTURegs() : _dtu(), _cmd(), _eps() {
+    }
+
+    m3::DTU::reg_t get(m3::DTU::DtuRegs reg) {
+        return _dtu[static_cast<size_t>(reg)];
+    }
+    void set(m3::DTU::DtuRegs reg, m3::DTU::reg_t value) {
+        _dtu[static_cast<size_t>(reg)] = value;
+    }
+
+    m3::DTU::reg_t _dtu[m3::DTU::DTU_REGS];
+    m3::DTU::reg_t _cmd[m3::DTU::CMD_REGS];
+    m3::DTU::reg_t _eps[m3::DTU::EP_REGS * EP_COUNT];
+} PACKED;
 
 }

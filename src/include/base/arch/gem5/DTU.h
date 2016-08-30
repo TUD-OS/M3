@@ -27,6 +27,8 @@
 
 namespace kernel {
 class DTU;
+class DTURegs;
+class DTUState;
 class VPE;
 }
 
@@ -34,6 +36,8 @@ namespace m3 {
 
 class DTU {
     friend class kernel::DTU;
+    friend class kernel::DTURegs;
+    friend class kernel::DTUState;
     friend class kernel::VPE;
 
     explicit DTU() : _unack() {
@@ -107,9 +111,6 @@ private:
         INJECT_IRQ          = 4,
         RESET               = 5,
     };
-
-public:
-    typedef reg_t reg_state_t[DTU_REGS + CMD_REGS + EP_REGS * EP_COUNT];
 
 public:
     typedef uint64_t pte_t;

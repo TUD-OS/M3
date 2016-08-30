@@ -190,7 +190,7 @@ bool ContextSwitcher::next_state() {
         }
 
         case S_STORE_DONE: {
-            DTU::get().get_regs_state(_cur->core(), _cur->dtu_state());
+            _cur->dtustate().save(_cur->desc());
 
             if(_cur->state() == VPE::DEAD) {
                 _cur->unref();
@@ -215,10 +215,10 @@ bool ContextSwitcher::next_state() {
             if(_cur->flags() & VPE::F_BOOTMOD)
                 _cur->load_app(_cur->name().c_str());
 
-            DTU::get().reset(_cur->dtu_state(), _cur->_entry);
+            _cur->dtustate().reset(_cur->_entry);
 
             VPEDesc vpe(_core, (_cur->flags() & VPE::F_INIT) ? _cur->id() : VPE::INVALID_ID);
-            DTU::get().set_regs_state(vpe, _cur->id(), _cur->dtu_state());
+            _cur->dtustate().restore(vpe, _cur->id());
 
             // fall through
         }
