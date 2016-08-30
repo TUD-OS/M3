@@ -27,7 +27,7 @@ namespace kernel {
 void VPE::init() {
     // attach default receive endpoint
     UNUSED m3::Errors::Code res = rbufs().attach(
-        *this, m3::DTU::DEF_RECVEP, Platform::def_recvbuf(core()), DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+        *this, m3::DTU::DEF_RECVEP, Platform::def_recvbuf(pe()), DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
     assert(res == m3::Errors::NO_ERROR);
 
     // configure syscall endpoint
@@ -46,7 +46,7 @@ m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {
         if(n->type & Capability::MEM) {
             uintptr_t addr = n->obj->label & ~m3::KIF::Perm::RWX;
             int perm = n->obj->label & m3::KIF::Perm::RWX;
-            config_mem_ep(epid, n->obj->core, n->obj->vpe, addr, n->obj->credits, perm);
+            config_mem_ep(epid, n->obj->pe, n->obj->vpe, addr, n->obj->credits, perm);
         }
         else {
             // TODO we could use a logical ep id for receiving credits
@@ -54,7 +54,7 @@ m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {
             // immediately regain the credits
             // TODO we need the max-msg size here
             config_snd_ep(epid,
-                n->obj->label, n->obj->core, n->obj->vpe, n->obj->epid,
+                n->obj->label, n->obj->pe, n->obj->vpe, n->obj->epid,
                 n->obj->credits, n->obj->credits);
         }
     }

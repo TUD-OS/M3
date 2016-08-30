@@ -31,7 +31,7 @@ MemObject::~MemObject() {
     // if it's not derived, it's always memory from mem-PEs
     if(!derived) {
         uintptr_t addr = label & ~m3::KIF::Perm::RWX;
-        MainMemory::get().free(core, addr, credits);
+        MainMemory::get().free(pe, addr, credits);
     }
 }
 
@@ -55,7 +55,7 @@ m3::Errors::Code MsgCapability::revoke() {
     if(localepid != static_cast<epid_t>(-1)) {
         VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
         vpe.xchg_ep(localepid, nullptr, nullptr);
-        // wakeup the core to give him the chance to notice that the endpoint was invalidated
+        // wakeup the pe to give him the chance to notice that the endpoint was invalidated
         if(vpe.state() != VPE::DEAD)
             DTU::get().wakeup(vpe.desc());
     }
@@ -111,7 +111,7 @@ VPECapability::VPECapability(const VPECapability &t) : Capability(t), vpe(t.vpe)
 
 m3::Errors::Code VPECapability::revoke() {
     vpe->unref();
-    // TODO reset core and release it (make it free to use for others)
+    // TODO reset pe and release it (make it free to use for others)
     return m3::Errors::NO_ERROR;
 }
 
@@ -124,7 +124,7 @@ void Capability::print(m3::OStream &os) const {
 void MsgCapability::printInfo(m3::OStream &os) const {
     os << ": mesg[refs=" << obj->refcount()
        << ", curep=" << localepid
-       << ", dst=" << obj->core << ":" << obj->epid
+       << ", dst=" << obj->pe << ":" << obj->epid
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
@@ -132,7 +132,7 @@ void MsgCapability::printInfo(m3::OStream &os) const {
 void MemCapability::printInfo(m3::OStream &os) const {
     os << ": mem [refs=" << obj->refcount()
        << ", curep=" << localepid
-       << ", dst=" << obj->core << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
+       << ", dst=" << obj->pe << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
 

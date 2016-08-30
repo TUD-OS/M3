@@ -25,8 +25,8 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep, capsel_t pfgate)
-    : _desc(coreid, id),
+VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, capsel_t pfgate)
+    : _desc(peid, id),
       _flags(flags),
       _refs(0),
       _pid(),
@@ -40,12 +40,12 @@ VPE::VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep, ca
       _eps(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(SyscallHandler::get().srvepid(), nullptr),
-      _as(Platform::pe(core()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
+      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr(),
       _resumesubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, MEMCAP_END, m3::KIF::Perm::RWX, core(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, MEMCAP_END, m3::KIF::Perm::RWX, pe(), id, 0));
 
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get()._vpes[id] = this;
@@ -53,7 +53,7 @@ VPE::VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep, ca
     if(~_flags & F_IDLE)
         init();
 
-    KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << core() << "]");
+    KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << pe() << "]");
     for(auto &r : _requires)
         KLOG(VPES, "  requires: '" << r.name << "'");
 }
@@ -119,8 +119,8 @@ void VPE::invalidate_ep(epid_t ep) {
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
-    _dtustate.config_send(ep, lbl, core, vpe, dstep, msgsize, crd);
+void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
+    _dtustate.config_send(ep, lbl, pe, vpe, dstep, msgsize, crd);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
@@ -131,8 +131,8 @@ void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_mem_ep(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm) {
-    _dtustate.config_mem(ep, dstcore, dstvpe, addr, size, perm);
+void VPE::config_mem_ep(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm) {
+    _dtustate.config_mem(ep, pe, vpe, addr, size, perm);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }

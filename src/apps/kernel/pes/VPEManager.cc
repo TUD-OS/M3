@@ -35,7 +35,7 @@ VPEManager::VPEManager()
 }
 
 void VPEManager::load(int argc, char **argv) {
-    peid_t coreid = Platform::first_pe();
+    peid_t peid = Platform::first_pe();
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
@@ -46,9 +46,9 @@ void VPEManager::load(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
             // allow multiple applications with the same name
-            _vpes[id] = new VPE(m3::String(argv[i]), coreid, id, VPE::F_BOOTMOD);
+            _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);
 
-            coreid++;
+            peid++;
             _count++;
 
 #if defined(__t3__)
@@ -171,7 +171,7 @@ void VPEManager::resume(vpeid_t id, const m3::Subscriptions<bool>::callback_type
     assert(_vpes[id]);
 
     _vpes[id]->subscribe_resume(cb);
-    PEManager::get().start_switch(_vpes[id]->core());
+    PEManager::get().start_switch(_vpes[id]->pe());
 }
 
 void VPEManager::remove(vpeid_t id) {

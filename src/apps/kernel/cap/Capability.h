@@ -110,15 +110,15 @@ private:
 
 class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(label_t _label, peid_t _core, vpeid_t _vpe, epid_t _epid, word_t _credits)
-        : RefCounted(), label(_label), core(_core), vpe(_vpe), epid(_epid), credits(_credits),
+    explicit MsgObject(label_t _label, peid_t _pe, vpeid_t _vpe, epid_t _epid, word_t _credits)
+        : RefCounted(), label(_label), pe(_pe), vpe(_vpe), epid(_epid), credits(_credits),
           derived(false) {
     }
     virtual ~MsgObject() {
     }
 
     label_t label;
-    peid_t core;
+    peid_t pe;
     vpeid_t vpe;
     epid_t epid;
     word_t credits;
@@ -127,8 +127,8 @@ public:
 
 class MemObject : public MsgObject {
 public:
-    explicit MemObject(uintptr_t addr, size_t size, uint perms, peid_t core, vpeid_t vpe, epid_t epid)
-        : MsgObject(addr | perms, core, vpe, epid, size) {
+    explicit MemObject(uintptr_t addr, size_t size, uint perms, peid_t pe, vpeid_t vpe, epid_t epid)
+        : MsgObject(addr | perms, pe, vpe, epid, size) {
         assert((addr & m3::KIF::Perm::RWX) == 0);
     }
     virtual ~MemObject();
@@ -155,9 +155,9 @@ protected:
     }
 
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t core, vpeid_t vpe, epid_t epid,
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t pe, vpeid_t vpe, epid_t epid,
         word_t credits)
-        : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, vpe, epid, credits)) {
+        : MsgCapability(tbl, sel, MSG, new MsgObject(label, pe, vpe, epid, credits)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -179,8 +179,8 @@ public:
 class MemCapability : public MsgCapability {
 public:
     explicit MemCapability(CapTable *tbl, capsel_t sel, uintptr_t addr, size_t size, uint perms,
-            peid_t core, vpeid_t vpe, epid_t epid)
-        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, vpe, epid)) {
+            peid_t pe, vpeid_t vpe, epid_t epid)
+        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, pe, vpe, epid)) {
     }
 
     void printInfo(m3::OStream &os) const override;

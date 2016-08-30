@@ -44,7 +44,7 @@ public:
 
     peid_t log_to_phys(peid_t pe);
 
-    void deprivilege(peid_t core);
+    void deprivilege(peid_t pe);
 
     void set_vpeid(const VPEDesc &vpe);
     void unset_vpeid(const VPEDesc &vpe);

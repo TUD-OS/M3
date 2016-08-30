@@ -115,7 +115,7 @@ static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t 
 }
 
 static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
-    if(Platform::pe(vpe.core()).has_virtmem()) {
+    if(Platform::pe(vpe.pe()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
         size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
         MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst, phys, pages, perms);
@@ -187,7 +187,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
 }
 
 static uintptr_t map_idle(VPE &vpe) {
-    BootModule *idle = idles[vpe.core()];
+    BootModule *idle = idles[vpe.pe()];
     if(!idle) {
         bool first;
         BootModule *tmp = get_mod("idle", &first);
@@ -202,7 +202,7 @@ static uintptr_t map_idle(VPE &vpe) {
         strcpy(idle->name, "idle");
         idle->addr = phys;
         idle->size = tmp->size;
-        idles[vpe.core()] = idle;
+        idles[vpe.pe()] = idle;
     }
     if(!idle)
         PANIC("Unable to find boot module 'idle'");
@@ -221,7 +221,7 @@ void VPE::load_app(const char *name) {
 
     KLOG(KENV, "Loading mod '" << mod->name << "':");
 
-    if(Platform::pe(core()).has_virtmem()) {
+    if(Platform::pe(pe()).has_virtmem()) {
         // map runtime space
         uintptr_t virt = RT_START;
         uintptr_t phys = alloc_mem(STACK_TOP - virt);
@@ -267,7 +267,7 @@ void VPE::load_app(const char *name) {
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = STACK_TOP - sizeof(word_t);
     senv.entry = entry;
-    senv.pe = Platform::pe(core());
+    senv.pe = Platform::pe(pe());
     senv.heapsize = MOD_HEAP_SIZE;
 
     DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
@@ -283,13 +283,13 @@ void VPE::load_app(const char *name) {
 void VPE::init_memory() {
     DTU::get().set_vpeid(desc());
 
-    bool vm = Platform::pe(core()).has_virtmem();
+    bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
         dtustate().config_pf(address_space()->root_pt(), address_space()->ep());
         DTU::get().config_pf_remote(desc(), address_space()->root_pt(), address_space()->ep());
     }
 
-    if(Platform::pe(core()).is_programmable())
+    if(Platform::pe(pe()).is_programmable())
         _entry = map_idle(*this);
 
     if(vm) {
@@ -298,7 +298,7 @@ void VPE::init_memory() {
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
 
-    uintptr_t barrier = Platform::rw_barrier(core());
+    uintptr_t barrier = Platform::rw_barrier(pe());
     dtustate().config_rwb(barrier);
     DTU::get().config_rwb_remote(desc(), barrier);
 }

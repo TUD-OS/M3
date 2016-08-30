@@ -63,7 +63,7 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
-    explicit VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep = -1,
+    explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = -1,
         capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
@@ -105,8 +105,8 @@ public:
     int pid() const {
         return _pid;
     }
-    peid_t core() const {
-        return desc().core;
+    peid_t pe() const {
+        return desc().pe;
     }
     uint flags() const {
         return _flags;
@@ -160,9 +160,9 @@ public:
 
     void invalidate_ep(epid_t ep);
 
-    void config_snd_ep(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
+    void config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_mem_ep(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
+    void config_mem_ep(epid_t ep, peid_t dstpe, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:
     void notify_resume() {

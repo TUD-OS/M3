@@ -45,7 +45,7 @@ void VPE::start(int argc, char **argv, int pid) {
             char **childargs = new char*[argc + 1];
             int i = 0, j = 0;
             for(; i < argc; ++i) {
-                if(strncmp(argv[i], "core=", 5) == 0)
+                if(strncmp(argv[i], "pe=", 5) == 0)
                     continue;
                 else if(strcmp(argv[i], "daemon") == 0)
                     continue;
@@ -77,7 +77,7 @@ void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
     of << m3::env()->shm_prefix().c_str() << "\n";
-    of << core() << "\n";
+    of << pe() << "\n";
     of << label << "\n";
     of << epid << "\n";
     of << (1 << SYSC_CREDIT_ORD) << "\n";
@@ -90,7 +90,7 @@ m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *oldcapobj, MsgCapabili
     MsgCapability *co[] = {oldcapobj, newcapobj};
     for(size_t i = 0; i < 2; ++i) {
         if(co[i]) {
-            m3::DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->core,
+            m3::DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->pe,
                 co[i]->obj->epid, co[i]->obj->credits);
         }
     }

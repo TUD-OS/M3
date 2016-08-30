@@ -57,16 +57,16 @@ peid_t DTU::log_to_phys(peid_t pe) {
     return pe;
 }
 
-void DTU::deprivilege(peid_t core) {
+void DTU::deprivilege(peid_t pe) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
     m3::Sync::compiler_barrier();
-    write_mem(VPEDesc(core, VPE::INVALID_ID),
+    write_mem(VPEDesc(pe, VPE::INVALID_ID),
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
 }
 
 void DTU::set_vpeid(const VPEDesc &vpe) {
-    do_set_vpeid(VPEDesc(vpe.core, VPE::INVALID_ID), vpe.id);
+    do_set_vpeid(VPEDesc(vpe.pe, VPE::INVALID_ID), vpe.id);
 }
 
 void DTU::unset_vpeid(const VPEDesc &vpe) {
@@ -135,7 +135,7 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
 
         // insert PTE
         pte |= m3::DTU::PTE_RWX;
-        KLOG(PTES, "PE" << vpe.core << ": lvl 1 PTE for "
+        KLOG(PTES, "PE" << vpe.pe << ": lvl 1 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
         m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
     }
@@ -167,7 +167,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
     phys += count << PAGE_BITS;
 
     while(pteAddr < endpte) {
-        KLOG(PTES, "PE" << vpe.core << ": lvl 0 PTE for "
+        KLOG(PTES, "PE" << vpe.pe << ": lvl 0 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
         m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr, m3::DTU::CmdFlags::NOPF);
 
@@ -232,17 +232,17 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
 
 void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
     // configure the memory EP once and use it for all accesses
-    bool running = vpe.core == Platform::kernel_pe() ||
+    bool running = vpe.pe == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
 
     if(!running) {
         // TODO in theory, PTEs could be in different memory PEs
         VPE &v = VPEManager::get().vpe(vpe.id);
-        peid_t core = m3::DTU::noc_to_pe(v.address_space()->root_pt());
-        _state.config_mem(_ep, core, VPE::INVALID_ID, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
+        peid_t pe = m3::DTU::noc_to_pe(v.address_space()->root_pt());
+        _state.config_mem(_ep, pe, VPE::INVALID_ID, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
     }
     else
-        _state.config_mem(_ep, vpe.core, vpe.id, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
+        _state.config_mem(_ep, vpe.pe, vpe.id, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
     write_ep_local(_ep);
 
     while(pages > 0) {
@@ -292,7 +292,7 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int fla
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
         label_t replylbl, epid_t replyep) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
-    _state.config_send(_ep, label, vpe.core, vpe.id, ep, msgsize, msgsize);
+    _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, msgsize);
     write_ep_local(_ep);
 
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
@@ -304,7 +304,7 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label,
 }
 
 void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
-    _state.config_mem(_ep, vpe.core, vpe.id, addr, size, m3::DTU::W);
+    _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::W);
     write_ep_local(_ep);
 
     // the kernel can never cause pagefaults with reads/writes
@@ -312,7 +312,7 @@ void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
-    _state.config_mem(_ep, vpe.core, vpe.id, addr, size, m3::DTU::R);
+    _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::R);
     write_ep_local(_ep);
 
     m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);

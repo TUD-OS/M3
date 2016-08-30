@@ -43,7 +43,7 @@ INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
         KLOG(SYSC, (vpe)->name() << (sysname))
 #else
 #   define LOG_SYS(vpe, sysname, expr) \
-        KLOG(SYSC, (vpe)->name() << "@" << m3::fmt((vpe)->core(), "X") << (sysname) << expr)
+        KLOG(SYSC, (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X") << (sysname) << expr)
 #endif
 
 #define SYS_ERROR(vpe, gate, error, msg) { \
@@ -71,7 +71,7 @@ static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_
 static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     if(newcapobj) {
         LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to lbl="
-                << m3::fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
+                << m3::fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", pe=" << newcapobj->obj->pe
                 << ", ep=" << newcapobj->obj->epid
                 << ", crd=#" << m3::fmt(newcapobj->obj->credits, "x"));
     }
@@ -307,7 +307,7 @@ void SyscallHandler::creategate(GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap or ep");
 
     vpe->objcaps().set(dstcap,
-        new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->core(),
+        new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->pe(),
             tcapobj->vpe->id(), epid, credits));
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 }
@@ -343,7 +343,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     // create VPE
     VPE *nvpe = VPEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
     if(nvpe == nullptr)
-        SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable core found");
+        SYS_ERROR(vpe, is.gate(), m3::Errors::NO_FREE_CORE, "No free and suitable pe found");
 
     // childs of daemons are daemons
     if(vpe->flags() & VPE::F_DAEMON)
@@ -359,7 +359,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
 
     nvpe->set_ready();
 
-    reply_vmsg(is.gate(), m3::Errors::NO_ERROR, Platform::pe(nvpe->core()).value());
+    reply_vmsg(is.gate(), m3::Errors::NO_ERROR, Platform::pe(nvpe->pe()).value());
 }
 
 void SyscallHandler::createmap(UNUSED GateIStream &is) {
@@ -390,7 +390,7 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     if(first >= total || first + pages <= first || first + pages > total)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Region of memory capability is invalid");
 
-    uintptr_t phys = m3::DTU::build_noc_addr(mcapobj->obj->core, mcapobj->addr() + PAGE_SIZE * first);
+    uintptr_t phys = m3::DTU::build_noc_addr(mcapobj->obj->pe, mcapobj->addr() + PAGE_SIZE * first);
     CapTable &mcaps = tcapobj->vpe->mapcaps();
 
     MapCapability *mapcap = static_cast<MapCapability*>(mcaps.get(dst, Capability::MAP));
@@ -429,7 +429,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(tcapobj == nullptr)
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE capability is invalid");
 
-    if(addr < Platform::rw_barrier(tcapobj->vpe->core()) || (order > 20) || (msgorder > order))
+    if(addr < Platform::rw_barrier(tcapobj->vpe->pe()) || (order > 20) || (msgorder > order))
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Not in receive buffer space");
 
     m3::Errors::Code res = tcapobj->vpe->rbufs().attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
@@ -574,7 +574,7 @@ void SyscallHandler::derivemem(GateIStream &is) {
         srccap->addr() + offset,
         size,
         perms & srccap->perms(),
-        srccap->obj->core,
+        srccap->obj->pe,
         srccap->obj->vpe,
         srccap->obj->epid
     ));
@@ -721,13 +721,13 @@ void SyscallHandler::activate(GateIStream &is) {
         int wait_needed = 0;
         if(ncap->obj->vpe != VPE::INVALID_ID &&
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
-            LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->core);
+            LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->pe);
             wait_needed = 1;
         }
         else if(ncap->type == Capability::MSG &&
                 !VPEManager::get().vpe(ncap->obj->vpe).rbufs().is_attached(ncap->obj->epid)) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
-                << ncap->obj->core << ":" << ncap->obj->epid << " to get attached");
+                << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
             wait_needed = 2;
         }
 

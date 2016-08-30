@@ -65,10 +65,10 @@ static const char *stateNames[] = {
  *                       +------------------+
  */
 
-ContextSwitcher::ContextSwitcher(size_t core)
-    : m3::SListItem(), _core(core), _state(S_IDLE), _vpes(), _it(), _idle(), _cur() {
-    assert(core > 0);
-    KLOG(VPES, "Initialized context switcher for core " << core);
+ContextSwitcher::ContextSwitcher(size_t pe)
+    : m3::SListItem(), _pe(pe), _state(S_IDLE), _vpes(), _it(), _idle(), _cur() {
+    assert(pe > 0);
+    KLOG(VPES, "Initialized context switcher for pe " << pe);
 }
 
 bool ContextSwitcher::can_mux() const {
@@ -81,11 +81,11 @@ bool ContextSwitcher::can_mux() const {
 
 void ContextSwitcher::send_flags(vpeid_t vpeid, uint64_t flags) {
     alignas(DTU_PKG_SIZE) uint64_t ctrl = flags;
-    DTU::get().write_mem(VPEDesc(_core, vpeid), RCTMUX_FLAGS, &ctrl, sizeof(ctrl));
+    DTU::get().write_mem(VPEDesc(_pe, vpeid), RCTMUX_FLAGS, &ctrl, sizeof(ctrl));
 }
 
 void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
-    DTU::get().read_mem(VPEDesc(_core, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
+    DTU::get().read_mem(VPEDesc(_pe, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 
 VPE* ContextSwitcher::schedule() {
@@ -102,7 +102,7 @@ VPE* ContextSwitcher::schedule() {
 void ContextSwitcher::init() {
     assert(_idle == nullptr);
 
-    _idle = new VPE(m3::String("idle"), _core, VPEManager::get().get_id(),
+    _idle = new VPE(m3::String("idle"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
 }
 
@@ -171,7 +171,7 @@ bool ContextSwitcher::start_vpe() {
 }
 
 bool ContextSwitcher::next_state() {
-    KLOG(VPES, "CtxSw[" << _core << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(VPES, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
@@ -217,7 +217,7 @@ bool ContextSwitcher::next_state() {
 
             _cur->dtustate().reset(_cur->_entry);
 
-            VPEDesc vpe(_core, (_cur->flags() & VPE::F_INIT) ? _cur->id() : VPE::INVALID_ID);
+            VPEDesc vpe(_pe, (_cur->flags() & VPE::F_INIT) ? _cur->id() : VPE::INVALID_ID);
             _cur->dtustate().restore(vpe, _cur->id());
 
             // fall through
@@ -231,9 +231,9 @@ bool ContextSwitcher::next_state() {
             // there is an application to restore if we are either resuming an application (!INIT)
             // or if we are just starting it
             if(!(_cur->flags() & VPE::F_INIT) || (_cur->flags() & VPE::F_START))
-                flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_core) << 32);
+                flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
-            KLOG(VPES, "CtxSw[" << _core << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
+            KLOG(VPES, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
 
             send_flags(_cur->id(), flags);
             DTU::get().wakeup(_cur->desc());
@@ -253,7 +253,7 @@ bool ContextSwitcher::next_state() {
         }
     }
 
-    KLOG(VPES, "CtxSw[" << _core << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(VPES, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 

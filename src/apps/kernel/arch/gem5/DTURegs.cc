@@ -28,7 +28,7 @@ void *DTUState::get_ep(epid_t ep) {
 }
 
 void DTUState::save(const VPEDesc &vpe) {
-    DTU::get().read_mem(VPEDesc(vpe.core, VPE::INVALID_ID), m3::DTU::BASE_ADDR, this, sizeof(*this));
+    DTU::get().read_mem(VPEDesc(vpe.pe, VPE::INVALID_ID), m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
 
 void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
@@ -64,20 +64,20 @@ void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder, 
     r[2] = 0;
 }
 
-void DTUState::config_send(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t) {
+void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((vpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);
     // TODO hand out "unlimited" credits atm
-    r[1] = ((core & 0xFF) << 24) | ((dstep & 0xFF) << 16) | m3::DTU::CREDITS_UNLIM;
+    r[1] = ((pe & 0xFF) << 24) | ((dstep & 0xFF) << 16) | m3::DTU::CREDITS_UNLIM;
     r[2] = lbl;
 }
 
-void DTUState::config_mem(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm) {
+void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::MEMORY) << 61) | (size & 0x1FFFFFFFFFFFFFFF);
     r[1] = addr;
-    r[2] = ((dstvpe & 0xFFFF) << 12) | ((dstcore & 0xFF) << 4) | (perm & 0x7);
+    r[2] = ((vpe & 0xFFFF) << 12) | ((pe & 0xFF) << 4) | (perm & 0x7);
 }
 
 void DTUState::config_rwb(uintptr_t addr) {
