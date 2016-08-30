@@ -50,11 +50,11 @@ public:
         reply_vmsg(msg.gate(), m3::Errors::INV_ARGS);
     }
 
-    size_t epid() const {
+    epid_t epid() const {
         // we can use it here because we won't issue syscalls ourself
         return m3::DTU::SYSC_EP;
     }
-    size_t srvepid() const {
+    epid_t srvepid() const {
         return _serv_ep;
     }
 
@@ -92,7 +92,7 @@ private:
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
     void exchange_over_sess(GateIStream &is, bool obtain);
 
-    int _serv_ep;
+    epid_t _serv_ep;
     // +1 for init on host
     handler_func _callbacks[m3::KIF::Syscall::COUNT + 1];
     static SyscallHandler _inst;

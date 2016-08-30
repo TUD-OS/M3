@@ -23,7 +23,7 @@
 
 namespace kernel {
 
-void *DTUState::get_ep(int ep) {
+void *DTUState::get_ep(epid_t ep) {
     return _regs._eps + ep * m3::DTU::EP_REGS;
 }
 
@@ -45,16 +45,16 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
 
-void DTUState::invalidate(int ep) {
+void DTUState::invalidate(epid_t ep) {
     memset(get_ep(ep), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
-void DTUState::invalidate_eps(int first) {
+void DTUState::invalidate_eps(epid_t first) {
     size_t total = sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS * (EP_COUNT - first);
     memset(get_ep(first), 0, total);
 }
 
-void DTUState::config_recv(int ep, uintptr_t buf, uint order, uint msgorder, int) {
+void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder, int) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     m3::DTU::reg_t bufSize = static_cast<m3::DTU::reg_t>(1) << (order - msgorder);
     m3::DTU::reg_t msgSize = static_cast<m3::DTU::reg_t>(1) << msgorder;
@@ -64,7 +64,7 @@ void DTUState::config_recv(int ep, uintptr_t buf, uint order, uint msgorder, int
     r[2] = 0;
 }
 
-void DTUState::config_send(int ep, label_t lbl, int core, int vpe, int dstep, size_t msgsize, word_t) {
+void DTUState::config_send(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((vpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);
@@ -73,7 +73,7 @@ void DTUState::config_send(int ep, label_t lbl, int core, int vpe, int dstep, si
     r[2] = lbl;
 }
 
-void DTUState::config_mem(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void DTUState::config_mem(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::MEMORY) << 61) | (size & 0x1FFFFFFFFFFFFFFF);
     r[1] = addr;
@@ -84,8 +84,10 @@ void DTUState::config_rwb(uintptr_t addr) {
     _regs.set(m3::DTU::DtuRegs::RW_BARRIER, addr);
 }
 
-void DTUState::config_pf(uint64_t rootpt, int ep) {
-    uint flags = ep != -1 ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
+void DTUState::config_pf(uint64_t rootpt, epid_t ep) {
+    uint flags = 0;
+    if(ep != static_cast<epid_t>(-1))
+        flags = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
     _regs.set(m3::DTU::DtuRegs::STATUS, flags);
     _regs.set(m3::DTU::DtuRegs::ROOT_PT, rootpt);
     _regs.set(m3::DTU::DtuRegs::PF_EP, ep);

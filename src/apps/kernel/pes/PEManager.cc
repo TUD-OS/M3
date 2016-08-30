@@ -29,7 +29,7 @@ PEManager *PEManager::_inst;
 
 PEManager::PEManager()
     :  _switches(), _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
-    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+    for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(Platform::pe(i).is_programmable())
             _ctxswitcher[i] = new ContextSwitcher(i);
         else
@@ -39,7 +39,7 @@ PEManager::PEManager()
 }
 
 void PEManager::init() {
-    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+    for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(_ctxswitcher[i]) {
             _ctxswitcher[i]->init();
             start_switch(i);
@@ -68,7 +68,7 @@ void PEManager::start_vpe(VPE *vpe) {
         _switches.append(ctx);
 }
 
-void PEManager::start_switch(int pe) {
+void PEManager::start_switch(peid_t pe) {
     ContextSwitcher *ctx = _ctxswitcher[pe];
     assert(ctx);
     if(ctx->start_switch())
@@ -84,7 +84,7 @@ bool PEManager::continue_switches() {
     return _switches.length() > 0;
 }
 
-int PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
+peid_t PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
     size_t i;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(!_ctxswitcher[i])
@@ -106,7 +106,7 @@ int PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
 }
 
 void PEManager::deprivilege_pes() {
-    for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i)
+    for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i)
         DTU::get().deprivilege(i);
 }
 

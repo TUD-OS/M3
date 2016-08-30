@@ -33,7 +33,6 @@
 namespace kernel {
 
 class ContextSwitcher;
-class RecvBufs;
 
 class VPE : public SlabObject<VPE> {
     friend class ContextSwitcher;
@@ -64,7 +63,7 @@ public:
 
     static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
 
-    explicit VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep = -1,
+    explicit VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep = -1,
         capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
@@ -106,7 +105,7 @@ public:
     int pid() const {
         return _pid;
     }
-    int core() const {
+    peid_t core() const {
         return desc().core;
     }
     uint flags() const {
@@ -159,11 +158,11 @@ public:
     }
     void make_daemon();
 
-    void invalidate_ep(int ep);
+    void invalidate_ep(epid_t ep);
 
-    void config_snd_ep(int ep, label_t lbl, int core, int vpe, int dstep, size_t msgsize, word_t crd);
-    void config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
-    void config_mem_ep(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm);
+    void config_snd_ep(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
+    void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void config_mem_ep(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:
     void notify_resume() {
@@ -178,7 +177,7 @@ private:
     void init_memory();
     void load_app(const char *name);
 
-    void write_env_file(int pid, label_t label, size_t epid);
+    void write_env_file(int pid, label_t label, epid_t epid);
     void activate_sysc_ep();
 
     void free_reqs() {

@@ -18,4 +18,6 @@
 
 #include <base/Types.h>
 
-typedef size_t vpeid_t;
+typedef ulong vpeid_t;
+typedef ulong peid_t;
+typedef ulong epid_t;

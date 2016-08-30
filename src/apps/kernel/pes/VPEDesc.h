@@ -22,10 +22,10 @@ namespace kernel {
 
 class VPEDesc {
 public:
-    explicit VPEDesc(int _core, vpeid_t _id) : core(_core), id(_id) {
+    explicit VPEDesc(peid_t _core, vpeid_t _id) : core(_core), id(_id) {
     }
 
-    int core;
+    peid_t core;
     vpeid_t id;
 };
 

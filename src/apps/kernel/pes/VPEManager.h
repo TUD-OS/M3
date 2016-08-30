@@ -65,7 +65,7 @@ private:
 public:
     void load(int argc, char **argv);
 
-    VPE *create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t pfgate, bool tmuxable = false);
+    VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable = false);
     void remove(vpeid_t id);
 
     size_t used() const {

@@ -27,11 +27,11 @@ namespace kernel {
 INIT_PRIO_USER(2) Platform::KEnv Platform::_kenv;
 
 // note that we currently assume here, that compute PEs and memory PEs are not mixed
-static size_t last_pe_id;
+static peid_t last_pe_id;
 
 Platform::KEnv::KEnv() {
     // read kernel env
-    int pe = m3::DTU::noc_to_pe(m3::env()->kenv);
+    peid_t pe = m3::DTU::noc_to_pe(m3::env()->kenv);
     uintptr_t addr = m3::DTU::noc_to_virt(m3::env()->kenv);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, this, sizeof(*this));
 
@@ -55,22 +55,22 @@ Platform::KEnv::KEnv() {
     }
 }
 
-size_t Platform::kernel_pe() {
+peid_t Platform::kernel_pe() {
     // gem5 initializes the coreid for us
     return m3::env()->coreid;
 }
-size_t Platform::first_pe() {
+peid_t Platform::first_pe() {
     return m3::env()->coreid + 1;
 }
-size_t Platform::last_pe() {
+peid_t Platform::last_pe() {
     return last_pe_id;
 }
 
-uintptr_t Platform::def_recvbuf(size_t no) {
+uintptr_t Platform::def_recvbuf(peid_t no) {
     return rw_barrier(no);
 }
 
-uintptr_t Platform::rw_barrier(size_t no) {
+uintptr_t Platform::rw_barrier(peid_t no) {
     if(pe(no).has_virtmem())
         return RECVBUF_SPACE;
     return pe(no).mem_size() - RECVBUF_SIZE_SPM;

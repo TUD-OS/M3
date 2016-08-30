@@ -52,7 +52,7 @@ SessionObject::~SessionObject() {
 }
 
 m3::Errors::Code MsgCapability::revoke() {
-    if(localepid != -1) {
+    if(localepid != static_cast<epid_t>(-1)) {
         VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the core to give him the chance to notice that the endpoint was invalidated

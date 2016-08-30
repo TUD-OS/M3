@@ -31,7 +31,7 @@ class VPE;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, int sel, const m3::String &name, int ep, label_t label, int capacity)
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity)
         : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
           _sgate(vpe, ep, label), _queue(capacity) {
     }
@@ -40,7 +40,7 @@ public:
     VPE &vpe() const {
         return _vpe;
     }
-    int selector() const {
+    capsel_t selector() const {
         return _sel;
     }
     const m3::String &name() const {
@@ -64,7 +64,7 @@ public:
 
 private:
     VPE &_vpe;
-    int _sel;
+    capsel_t _sel;
     m3::String _name;
     SendGate _sgate;
     SendQueue _queue;
@@ -90,7 +90,7 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, int sel, const m3::String &name, int ep, label_t label, int capacity) {
+    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity) {
         Service *inst = new Service(vpe, sel, name, ep, label, capacity);
         _list.append(inst);
         return inst;

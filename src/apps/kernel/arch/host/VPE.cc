@@ -72,7 +72,7 @@ void VPE::activate_sysc_ep(void *addr) {
     _eps = addr;
 }
 
-void VPE::write_env_file(pid_t pid, label_t label, size_t epid) {
+void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
@@ -83,7 +83,7 @@ void VPE::write_env_file(pid_t pid, label_t label, size_t epid) {
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 
-m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     // set registers for caps
     word_t regs[m3::DTU::EPS_RCNT * 2];
     memset(regs, 0, sizeof(regs));

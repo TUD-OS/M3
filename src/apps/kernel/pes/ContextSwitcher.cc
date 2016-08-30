@@ -79,12 +79,12 @@ bool ContextSwitcher::can_mux() const {
     return true;
 }
 
-void ContextSwitcher::send_flags(int vpeid, uint64_t flags) {
+void ContextSwitcher::send_flags(vpeid_t vpeid, uint64_t flags) {
     alignas(DTU_PKG_SIZE) uint64_t ctrl = flags;
     DTU::get().write_mem(VPEDesc(_core, vpeid), RCTMUX_FLAGS, &ctrl, sizeof(ctrl));
 }
 
-void ContextSwitcher::recv_flags(int vpeid, uint64_t *flags) {
+void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
     DTU::get().read_mem(VPEDesc(_core, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 

@@ -27,8 +27,8 @@
 
 namespace kernel {
 
-void DTU::do_set_vpeid(const VPEDesc &vpe, int newVPE) {
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = newVPE;
+void DTU::do_set_vpeid(const VPEDesc &vpe, vpeid_t nid) {
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = nid;
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
@@ -43,7 +43,7 @@ void DTU::clear_pt(uintptr_t pt) {
     // clear the pagetable
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
-    size_t pe = m3::DTU::noc_to_pe(pt);
+    peid_t pe = m3::DTU::noc_to_pe(pt);
     uintptr_t addr = m3::DTU::noc_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
         write_mem(VPEDesc(pe, VPE::INVALID_ID), addr + i * sizeof(buffer), buffer, sizeof(buffer));
@@ -53,11 +53,11 @@ void DTU::init() {
     do_set_vpeid(VPEDesc(Platform::kernel_pe(), VPE::INVALID_ID), Platform::kernel_pe());
 }
 
-int DTU::log_to_phys(int pe) {
+peid_t DTU::log_to_phys(peid_t pe) {
     return pe;
 }
 
-void DTU::deprivilege(int core) {
+void DTU::deprivilege(peid_t core) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
     m3::Sync::compiler_barrier();
@@ -87,7 +87,7 @@ void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
 }
 
-void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
+void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
@@ -103,7 +103,9 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep) {
 
     // init DTU registers
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
-    uint flags = ep != -1 ? static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS) : 0;
+    uint flags = 0;
+    if(ep != static_cast<epid_t>(-1))
+        flags = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
     regs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)] = flags;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = ep;
@@ -230,13 +232,13 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
 
 void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
     // configure the memory EP once and use it for all accesses
-    bool running = vpe.core == (int)Platform::kernel_pe() ||
+    bool running = vpe.core == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
 
     if(!running) {
         // TODO in theory, PTEs could be in different memory PEs
         VPE &v = VPEManager::get().vpe(vpe.id);
-        int core = m3::DTU::noc_to_pe(v.address_space()->root_pt());
+        peid_t core = m3::DTU::noc_to_pe(v.address_space()->root_pt());
         _state.config_mem(_ep, core, VPE::INVALID_ID, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
     }
     else
@@ -271,24 +273,24 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     // TODO remove pagetables on demand
 }
 
-void DTU::write_ep_remote(const VPEDesc &vpe, int ep, void *regs) {
+void DTU::write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
-void DTU::write_ep_local(int ep) {
+void DTU::write_ep_local(epid_t ep) {
     memcpy(reinterpret_cast<void*>(m3::DTU::ep_regs_addr(ep)),
            _state.get_ep(ep),
            sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
-void DTU::recv_msgs(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     _state.config_recv(ep, buf, order, msgorder, flags);
     write_ep_local(ep);
 }
 
-void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, int replyep) {
+void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
+        label_t replylbl, epid_t replyep) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
     _state.config_send(_ep, label, vpe.core, vpe.id, ep, msgsize, msgsize);
     write_ep_local(_ep);
@@ -296,7 +298,7 @@ void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, si
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
 }
 
-void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label, const void *msg,
+void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label, const void *msg,
         size_t size) {
     send_to(vpe, ep, label, msg, size, 0, 0);
 }

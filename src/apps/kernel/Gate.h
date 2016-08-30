@@ -38,10 +38,10 @@ using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
 
 class RecvGate : public SlabObject<RecvGate>, public m3::Subscriptions<GateIStream&> {
 public:
-    explicit RecvGate(int ep, void *sess) : m3::Subscriptions<GateIStream&>(), _ep(ep), _sess(sess) {
+    explicit RecvGate(epid_t ep, void *sess) : m3::Subscriptions<GateIStream&>(), _ep(ep), _sess(sess) {
     }
 
-    size_t epid() const {
+    epid_t epid() const {
         return _ep;
     }
     template<class T>
@@ -71,13 +71,13 @@ public:
     }
 
 private:
-    int _ep;
+    epid_t _ep;
     void *_sess;
 };
 
 class SendGate {
 public:
-    explicit SendGate(VPE &vpe, int ep, label_t label)
+    explicit SendGate(VPE &vpe, epid_t ep, label_t label)
         : _vpe(vpe), _ep(ep), _label(label) {
     }
 
@@ -85,7 +85,7 @@ public:
 
 private:
     VPE &_vpe;
-    int _ep;
+    epid_t _ep;
     label_t _label;
 };
 

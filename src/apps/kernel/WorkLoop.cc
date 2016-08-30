@@ -62,8 +62,8 @@ void WorkLoop::run() {
 
     m3::DTU &dtu = m3::DTU::get();
     SyscallHandler &sysch = SyscallHandler::get();
-    int sysep = sysch.epid();
-    int srvep = sysch.srvepid();
+    epid_t sysep = sysch.epid();
+    epid_t srvep = sysch.srvepid();
     while(has_items()) {
         if(!PEManager::get().continue_switches()) {
             // the switch might have removed a VPE and thus terminated everything

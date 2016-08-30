@@ -46,7 +46,7 @@ static BootModule *get_mod(const char *name, bool *first) {
     if(count == 0) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
             uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
-            size_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
+            peid_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
             DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
@@ -91,7 +91,7 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
         PANIC("Invalid ELF file");
 
     uintptr_t addr = m3::DTU::noc_to_virt(mod->addr + offset);
-    size_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
+    peid_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, data, size);
 }
 

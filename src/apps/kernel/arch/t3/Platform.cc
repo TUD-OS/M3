@@ -41,21 +41,21 @@ Platform::KEnv::KEnv() {
     mem.add(new MemoryModule(true, MAX_CORES, USABLE_MEM, pes[MAX_CORES].mem_size() - USABLE_MEM));
 }
 
-size_t Platform::kernel_pe() {
+peid_t Platform::kernel_pe() {
     return 0;
 }
-size_t Platform::first_pe() {
+peid_t Platform::first_pe() {
     return 1;
 }
-size_t Platform::last_pe() {
+peid_t Platform::last_pe() {
     return _kenv.pe_count - 2;
 }
 
-uintptr_t Platform::def_recvbuf(size_t) {
+uintptr_t Platform::def_recvbuf(peid_t) {
     return DEF_RCVBUF;
 }
 
-uintptr_t Platform::rw_barrier(size_t) {
+uintptr_t Platform::rw_barrier(peid_t) {
     // no rw barrier here
     return 1;
 }

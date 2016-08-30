@@ -33,13 +33,13 @@ namespace kernel {
 
 class RecvBufs {
     struct RBuf : public m3::SListItem {
-        explicit RBuf(size_t _epid, uintptr_t _addr, int _order, int _msgorder, uint _flags)
+        explicit RBuf(epid_t _epid, uintptr_t _addr, int _order, int _msgorder, uint _flags)
             : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder), flags(_flags) {
         }
 
         void configure(VPE &vpe, bool attach);
 
-        size_t epid;
+        epid_t epid;
         uintptr_t addr;
         int order;
         int msgorder;
@@ -51,9 +51,9 @@ class RecvBufs {
         using callback_type = std::function<void(bool,m3::Subscriber<bool>*)>;
 
         callback_type callback;
-        size_t epid;
+        epid_t epid;
 
-        explicit Subscriber(const callback_type &cb, size_t epid)
+        explicit Subscriber(const callback_type &cb, epid_t epid)
             : m3::SListItem(), callback(cb), epid(epid) {
         }
     };
@@ -69,15 +69,15 @@ public:
             delete _rbufs.remove_first();
     }
 
-    bool is_attached(size_t epid) {
+    bool is_attached(epid_t epid) {
         return get(epid) != nullptr;
     }
 
-    void subscribe(size_t epid, const Subscriber::callback_type &cb) {
+    void subscribe(epid_t epid, const Subscriber::callback_type &cb) {
         _waits.append(new Subscriber(cb, epid));
     }
 
-    m3::Errors::Code attach(VPE &vpe, size_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
         RBuf *rbuf = get(epid);
         if(rbuf)
             return m3::Errors::EXISTS;
@@ -97,7 +97,7 @@ public:
         return m3::Errors::NO_ERROR;
     }
 
-    void detach(VPE &vpe, size_t epid) {
+    void detach(VPE &vpe, epid_t epid) {
         RBuf *rbuf = get(epid);
         if(!rbuf)
             return;
@@ -108,9 +108,9 @@ public:
         delete rbuf;
     }
 
-    void detach_all(VPE &vpe, size_t except) {
+    void detach_all(VPE &vpe, epid_t except) {
         // TODO not nice
-        for(size_t i = 0; i < EP_COUNT; ++i) {
+        for(epid_t i = 0; i < EP_COUNT; ++i) {
             if(i == except)
                 continue;
             detach(vpe, i);
@@ -118,7 +118,7 @@ public:
     }
 
 private:
-    void notify(size_t epid, bool success) {
+    void notify(epid_t epid, bool success) {
         for(auto sub = _waits.begin(); sub != _waits.end(); ) {
             auto old = sub++;
             if(old->epid == epid) {
@@ -129,10 +129,10 @@ private:
         }
     }
 
-    const RBuf *get(size_t epid) const {
+    const RBuf *get(epid_t epid) const {
         return const_cast<RecvBufs*>(this)->get(epid);
     }
-    RBuf *get(size_t epid) {
+    RBuf *get(epid_t epid) {
         for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
             if(it->epid == epid)
                 return &*it;

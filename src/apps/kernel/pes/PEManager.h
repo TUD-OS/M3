@@ -37,12 +37,12 @@ private:
 public:
     void init();
 
-    int find_pe(const m3::PEDesc &pe, bool tmuxable);
+    peid_t find_pe(const m3::PEDesc &pe, bool tmuxable);
     void add_vpe(VPE *vpe);
     void start_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 
-    void start_switch(int pe);
+    void start_switch(peid_t pe);
     bool continue_switches();
 
 private:

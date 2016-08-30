@@ -24,10 +24,10 @@ namespace kernel {
 
 class AddrSpace {
 public:
-    explicit AddrSpace(int ep, capsel_t gate);
+    explicit AddrSpace(epid_t ep, capsel_t gate);
     ~AddrSpace();
 
-    int ep() const {
+    epid_t ep() const {
         return _ep;
     }
     capsel_t gate() const {
@@ -37,7 +37,7 @@ public:
         return m3::DTU::build_noc_addr(_rootpt.pe(), _rootpt.addr);
     }
 
-    int _ep;
+    epid_t _ep;
     capsel_t _gate;
     MainMemory::Allocation _rootpt;
 };

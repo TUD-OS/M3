@@ -36,15 +36,15 @@ public:
         return _inst;
     }
 
-    int alloc_ep() {
+    epid_t alloc_ep() {
         return _next_ep++;
     }
 
     void init();
 
-    int log_to_phys(int pe);
+    peid_t log_to_phys(peid_t pe);
 
-    void deprivilege(int core);
+    void deprivilege(peid_t core);
 
     void set_vpeid(const VPEDesc &vpe);
     void unset_vpeid(const VPEDesc &vpe);
@@ -54,19 +54,19 @@ public:
     void injectIRQ(const VPEDesc &vpe);
 
     void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
-    void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, int ep);
+    void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep);
 
     void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
-    void write_ep_remote(const VPEDesc &vpe, int ep, void *regs);
-    void write_ep_local(int ep);
+    void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
+    void write_ep_local(epid_t ep);
 
-    void recv_msgs(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    void send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, int replyep);
-    void reply_to(const VPEDesc &vpe, int ep, int crdep, word_t credits, label_t label,
+    void send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
+        label_t replylbl, epid_t replyep);
+    void reply_to(const VPEDesc &vpe, epid_t ep, epid_t crdep, word_t credits, label_t label,
         const void *msg, size_t size);
 
     void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
@@ -82,13 +82,13 @@ private:
     bool create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
         uintptr_t &phys, uint &pages, int perm);
     uintptr_t get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level);
-    void do_set_vpeid(const VPEDesc &vpe, int newVPE);
+    void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);
 #endif
 
-    int _next_ep;
-    int _ep;
+    epid_t _next_ep;
+    epid_t _ep;
     DTUState _state;
     static DTU _inst;
 };

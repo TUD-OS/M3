@@ -25,7 +25,7 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, int coreid, vpeid_t id, uint flags, int ep, capsel_t pfgate)
+VPE::VPE(m3::String &&prog, peid_t coreid, vpeid_t id, uint flags, epid_t ep, capsel_t pfgate)
     : _desc(coreid, id),
       _flags(flags),
       _refs(0),
@@ -113,25 +113,25 @@ void VPE::exit(int exitcode) {
     }
 }
 
-void VPE::invalidate_ep(int ep) {
+void VPE::invalidate_ep(epid_t ep) {
     _dtustate.invalidate(ep);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_snd_ep(int ep, label_t lbl, int core, int vpe, int dstep, size_t msgsize, word_t crd) {
+void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t core, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
     _dtustate.config_send(ep, lbl, core, vpe, dstep, msgsize, crd);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_rcv_ep(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     _dtustate.config_recv(ep, buf, order, msgorder, flags);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
-void VPE::config_mem_ep(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void VPE::config_mem_ep(epid_t ep, peid_t dstcore, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm) {
     _dtustate.config_mem(ep, dstcore, dstvpe, addr, size, perm);
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));

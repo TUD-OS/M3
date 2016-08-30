@@ -17,19 +17,20 @@
 #pragma once
 
 #include "mem/MemoryMap.h"
+#include "Types.h"
 
 namespace kernel {
 
 class MemoryModule {
 public:
-    explicit MemoryModule(bool avail, size_t pe, uintptr_t addr, size_t size)
+    explicit MemoryModule(bool avail, peid_t pe, uintptr_t addr, size_t size)
         : _avail(avail), _pe(pe), _addr(addr), _size(size), _map(addr, size) {
     }
 
     bool available() const {
         return _avail;
     }
-    size_t pe() const {
+    peid_t pe() const {
         return _pe;
     }
     uintptr_t addr() const {
@@ -44,7 +45,7 @@ public:
 
 private:
     bool _avail;
-    size_t _pe;
+    peid_t _pe;
     uintptr_t _addr;
     size_t _size;
     MemoryMap _map;

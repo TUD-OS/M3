@@ -110,7 +110,7 @@ private:
 
 class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(label_t _label, int _core, int _vpe, int _epid, word_t _credits)
+    explicit MsgObject(label_t _label, peid_t _core, vpeid_t _vpe, epid_t _epid, word_t _credits)
         : RefCounted(), label(_label), core(_core), vpe(_vpe), epid(_epid), credits(_credits),
           derived(false) {
     }
@@ -118,16 +118,16 @@ public:
     }
 
     label_t label;
-    int core;
-    int vpe;
-    int epid;
+    peid_t core;
+    vpeid_t vpe;
+    epid_t epid;
     word_t credits;
     bool derived;
 };
 
 class MemObject : public MsgObject {
 public:
-    explicit MemObject(uintptr_t addr, size_t size, uint perms, int core, int vpe, int epid)
+    explicit MemObject(uintptr_t addr, size_t size, uint perms, peid_t core, vpeid_t vpe, epid_t epid)
         : MsgObject(addr | perms, core, vpe, epid, size) {
         assert((addr & m3::KIF::Perm::RWX) == 0);
     }
@@ -155,7 +155,7 @@ protected:
     }
 
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, int core, int vpe, int epid,
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t core, vpeid_t vpe, epid_t epid,
         word_t credits)
         : MsgCapability(tbl, sel, MSG, new MsgObject(label, core, vpe, epid, credits)) {
     }
@@ -172,14 +172,14 @@ protected:
     }
 
 public:
-    int localepid;
+    epid_t localepid;
     m3::Reference<MsgObject> obj;
 };
 
 class MemCapability : public MsgCapability {
 public:
     explicit MemCapability(CapTable *tbl, capsel_t sel, uintptr_t addr, size_t size, uint perms,
-            int core, int vpe, int epid)
+            peid_t core, vpeid_t vpe, epid_t epid)
         : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, core, vpe, epid)) {
     }
 

@@ -33,9 +33,9 @@ public:
         m3::PEDesc pes[MAX_PES];
     } PACKED;
 
-    static size_t kernel_pe();
-    static size_t first_pe();
-    static size_t last_pe();
+    static peid_t kernel_pe();
+    static peid_t first_pe();
+    static peid_t last_pe();
 
     static uintptr_t mod(size_t i) {
         return _kenv.mods[i];
@@ -43,12 +43,12 @@ public:
     static size_t pe_count() {
         return _kenv.pe_count;
     }
-    static m3::PEDesc pe(size_t no) {
+    static m3::PEDesc pe(peid_t no) {
         return _kenv.pes[no];
     }
 
-    static uintptr_t def_recvbuf(size_t no);
-    static uintptr_t rw_barrier(size_t no);
+    static uintptr_t def_recvbuf(peid_t no);
+    static uintptr_t rw_barrier(peid_t no);
 
 private:
     static KEnv _kenv;

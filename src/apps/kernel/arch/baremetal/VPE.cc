@@ -39,7 +39,7 @@ void VPE::init() {
 void VPE::activate_sysc_ep() {
 }
 
-m3::Errors::Code VPE::xchg_ep(size_t epid, MsgCapability *, MsgCapability *n) {
+m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {
     KLOG(EPS, "Setting ep " << epid << " of VPE " << id() << " to " << (n ? n->sel() : -1));
 
     if(n) {

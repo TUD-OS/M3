@@ -59,8 +59,8 @@ struct ReplyInfo {
     }
 
     label_t replylbl;
-    int replyep;
-    int crdep;
+    epid_t replyep;
+    epid_t crdep;
     word_t replycrd;
 };
 
@@ -68,7 +68,7 @@ static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_
     DTU::get().reply_to(vpe.desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
-static m3::Errors::Code do_activate(VPE *vpe, size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
     if(newcapobj) {
         LOG_SYS(vpe, ": syscall::activate", ": setting ep[" << epid << "] to lbl="
                 << m3::fmt(newcapobj->obj->label, "#0x", sizeof(label_t) * 2) << ", core=" << newcapobj->obj->core
@@ -286,7 +286,7 @@ void SyscallHandler::creategate(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     capsel_t tcap,dstcap;
     label_t label;
-    size_t epid;
+    epid_t epid;
     word_t credits;
     is >> tcap >> dstcap >> label >> epid >> credits;
     LOG_SYS(vpe, ": syscall::creategate", "(vpe=" << tcap << ", cap=" << dstcap
@@ -318,7 +318,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     capsel_t tcap, mcap, gcap;
     m3::PEDesc::value_t pe;
     m3::String name;
-    size_t ep;
+    epid_t ep;
     bool tmuxable;
 
     is >> tcap >> mcap >> name >> pe >> gcap >> ep >> tmuxable;
@@ -417,7 +417,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     capsel_t tcap;
     uintptr_t addr;
-    size_t ep;
+    epid_t ep;
     int order, msgorder;
     uint flags;
     is >> tcap >> ep >> addr >> order >> msgorder >> flags;
@@ -443,7 +443,7 @@ void SyscallHandler::detachrb(GateIStream &is) {
     EVENT_TRACER_Syscall_detachrb();
     VPE *vpe = is.gate().session<VPE>();
     capsel_t tcap;
-    size_t ep;
+    epid_t ep;
     is >> tcap >> ep;
     LOG_SYS(vpe, ": syscall::detachrb", "(vpe=" << tcap << ", ep=" << ep << ")");
 
@@ -701,7 +701,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
 void SyscallHandler::activate(GateIStream &is) {
     EVENT_TRACER_Syscall_activate();
     VPE *vpe = is.gate().session<VPE>();
-    size_t epid;
+    epid_t epid;
     capsel_t oldcap, newcap;
     is >> epid >> oldcap >> newcap;
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<

@@ -35,7 +35,7 @@ VPEManager::VPEManager()
 }
 
 void VPEManager::load(int argc, char **argv) {
-    int coreid = Platform::first_pe();
+    peid_t coreid = Platform::first_pe();
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
@@ -140,8 +140,8 @@ vpeid_t VPEManager::get_id() {
     return id;
 }
 
-VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, int ep, capsel_t pfgate, bool tmuxable) {
-    int i = PEManager::get().find_pe(pe, tmuxable);
+VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable) {
+    peid_t i = PEManager::get().find_pe(pe, tmuxable);
     if(i == 0)
         return nullptr;
 

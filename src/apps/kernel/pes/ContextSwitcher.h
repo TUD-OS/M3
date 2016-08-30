@@ -54,7 +54,7 @@ class ContextSwitcher : public m3::SListItem {
     };
 
 public:
-    explicit ContextSwitcher(size_t core);
+    explicit ContextSwitcher(peid_t core);
 
     ~ContextSwitcher() {
         while (_vpes.length() > 0) {
@@ -64,7 +64,7 @@ public:
 
     void init();
 
-    size_t core() const {
+    peid_t core() const {
         return _core;
     }
     size_t count() const {
@@ -84,11 +84,11 @@ private:
 
     bool next_state();
 
-    void send_flags(int vpeid, uint64_t flags);
-    void recv_flags(int vpeid, uint64_t *flags);
+    void send_flags(vpeid_t vpeid, uint64_t flags);
+    void recv_flags(vpeid_t vpeid, uint64_t *flags);
 
 private:
-    size_t _core;
+    peid_t _core;
     State _state;
     m3::SList<TMuxVPE> _vpes;
     m3::SList<TMuxVPE>::iterator _it;
