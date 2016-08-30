@@ -36,6 +36,35 @@ static const char *stateNames[] = {
     "S_RESTORE_DONE",
 };
 
+/**
+ * The state machine for context switching looks as follows:
+ *
+ *          switch & cur     +----------+
+ *         /-----------------|  S_IDLE  |<--------------\
+ *         |                 +----------+               |
+ *         v                     |   |                  |
+ * +------------------+          |   |         +-----------------+
+ * |   S_STORE_WAIT   |   switch |   |         |  S_RESTORE_DONE |
+ * |   ------------   |     &    |   |         |  -------------- |
+ * |   e/ inject IRQ  |    !cur  |   |         |    e/ notify    |
+ * +------------------+          |   | start   +-----------------+
+ *         |                     |   |                  ^
+ *         | signal              |   |                  | signal
+ *         |                     |   |                  |
+ *         v                     |   |                  |
+ * +------------------+          |   |         +-----------------+
+ * |   S_STORE_DONE   |          |   |         |  S_RESTORE_WAIT |
+ * |   ------------   |          |   \-------->|  -------------- |
+ * | e/ save DTU regs |          |             |    e/ wakeup    |
+ * +------------------+          |             +-----------------+
+ *         |                     v                      ^
+ *         |             +------------------+           |
+ *         |             |     S_SWITCH     |           |
+ *         \------------>|     --------     |-----------/
+ *                       | e/ sched & reset |
+ *                       +------------------+
+ */
+
 ContextSwitcher::ContextSwitcher(size_t core)
     : m3::SListItem(), _core(core), _state(S_IDLE), _vpes(), _it(), _idle(), _cur() {
     assert(core > 0);
