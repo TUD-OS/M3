@@ -32,7 +32,7 @@ static const char *stateNames[] = {
     "S_STORE_WAIT",
     "S_STORE_DONE",
     "S_SWITCH",
-    "S_START",
+    "S_RESTORE_WAIT",
     "S_RESTORE_DONE",
 };
 
