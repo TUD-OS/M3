@@ -116,8 +116,7 @@ bool ContextSwitcher::start_switch() {
     else
         _state = S_STORE_WAIT;
 
-    next_state();
-    return true;
+    return next_state();
 }
 
 bool ContextSwitcher::continue_switch() {
@@ -129,7 +128,7 @@ bool ContextSwitcher::continue_switch() {
     if(~flags & m3::RCTMuxCtrl::SIGNAL)
         return true;
 
-    return !next_state();
+    return next_state();
 }
 
 bool ContextSwitcher::start_vpe() {
@@ -139,7 +138,7 @@ bool ContextSwitcher::start_vpe() {
     assert(_cur->flags() & VPE::F_START);
 
     _state = S_RESTORE_WAIT;
-    return !next_state();
+    return next_state();
 }
 
 bool ContextSwitcher::next_state() {
@@ -147,7 +146,7 @@ bool ContextSwitcher::next_state() {
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
-    bool res = false;
+    bool res = true;
     switch(_state) {
         case S_IDLE:
             assert(false);
@@ -220,7 +219,7 @@ bool ContextSwitcher::next_state() {
 
             send_flags(_cur->id(), 0);
             _state = S_IDLE;
-            res = true;
+            res = false;
             break;
         }
     }
