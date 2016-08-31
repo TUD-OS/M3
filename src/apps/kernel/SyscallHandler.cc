@@ -124,6 +124,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::REQMEM, &SyscallHandler::reqmem);
     add_operation(m3::KIF::Syscall::DERIVEMEM, &SyscallHandler::derivemem);
     add_operation(m3::KIF::Syscall::REVOKE, &SyscallHandler::revoke);
+    add_operation(m3::KIF::Syscall::IDLE, &SyscallHandler::idle);
     add_operation(m3::KIF::Syscall::EXIT, &SyscallHandler::exit);
     add_operation(m3::KIF::Syscall::NOOP, &SyscallHandler::noop);
     add_operation(m3::KIF::Syscall::RESUME, &SyscallHandler::resume);
@@ -786,6 +787,17 @@ void SyscallHandler::revoke(GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), res, "Revoke failed");
 
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
+}
+
+void SyscallHandler::idle(GateIStream &is) {
+    VPE *vpe = is.gate().session<VPE>();
+    LOG_SYS(vpe, ": syscall::idle", "()");
+
+    // reply to the VPE first, because injecting the IRQ will in the end lead to invalidating the
+    // VPE id, so that we couldn't reply anymore.
+    reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
+
+    PEManager::get().start_switch(vpe->pe());
 }
 
 void SyscallHandler::exit(GateIStream &is) {

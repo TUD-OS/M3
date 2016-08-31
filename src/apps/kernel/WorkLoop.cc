@@ -69,7 +69,7 @@ void WorkLoop::run() {
             // the switch might have removed a VPE and thus terminated everything
             if(!has_items())
                 break;
-            m3::DTU::get().wait();
+            m3::DTU::get().sleep();
         }
 
         if(dtu.fetch_msg(sysep)) {

@@ -35,6 +35,7 @@ public:
     virtual bool extend_heap(size_t) {
         return false;
     }
+    virtual void report_idle() {}
     virtual void exit(int code) = 0;
 
 protected:

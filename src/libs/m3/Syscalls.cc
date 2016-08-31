@@ -163,6 +163,10 @@ Errors::Code Syscalls::revoke(capsel_t vpe, const CapRngDesc &crd, bool own) {
     return finish(send_receive_vmsg(_gate, KIF::Syscall::REVOKE, vpe, crd, own));
 }
 
+void Syscalls::idle() {
+    send_receive_vmsg(_gate, KIF::Syscall::IDLE);
+}
+
 // the USED seems to be necessary, because the libc calls it and LTO removes it otherwise
 USED void Syscalls::exit(int exitcode) {
     LLOG(SYSC, "exit(code=" << exitcode << ")");

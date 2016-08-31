@@ -49,6 +49,7 @@ public:
     void set_vpeid(const VPEDesc &vpe);
     void unset_vpeid(const VPEDesc &vpe);
 
+    uint64_t get_time();
     void wakeup(const VPEDesc &vpe);
     void suspend(const VPEDesc &vpe);
     void injectIRQ(const VPEDesc &vpe);

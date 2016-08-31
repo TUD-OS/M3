@@ -68,6 +68,10 @@ public:
         EVENT_TRACE_REINIT();
     }
 
+    void report_idle() override {
+        m3::Syscalls::get().idle();
+    }
+
     void exit(int code) override {
         Syscalls::get().exit(code);
     }

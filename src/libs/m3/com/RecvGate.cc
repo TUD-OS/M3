@@ -27,7 +27,7 @@ Errors::Code RecvGate::wait(SendGate *sgate) const {
     while(!DTU::get().fetch_msg(epid())) {
         if(sgate && !DTU::get().is_valid(sgate->epid()))
             return Errors::EP_INVALID;
-        DTU::get().wait();
+        DTU::get().sleep();
     }
     return Errors::NO_ERROR;
 }

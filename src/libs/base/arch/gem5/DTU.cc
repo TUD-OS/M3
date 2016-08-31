@@ -24,6 +24,30 @@ namespace m3 {
 
 INIT_PRIO_DTU DTU DTU::inst;
 
+void DTU::sleep(uint64_t ns) {
+    // no messages pending, then try to sleep
+    if(read_reg(DtuRegs::MSG_CNT) == 0) {
+        // report_idle() calls us again
+        if(m3::env()->idle_active)
+            return;
+
+        // remember that we idle in case we should switch context
+        m3::env()->idle_active = 1;
+
+        // if the kernel requested it, notify him that we are going to idle now
+        if(m3::env()->idle_report)
+            m3::env()->backend->report_idle();
+
+        // ensure that we have no pending writes before going to sleep
+        Sync::memory_barrier();
+
+        // note that the DTU checks again whether there actually are no messages, because we might
+        // have received something after the check above
+        write_reg(CmdRegs::COMMAND, buildCommand(ns, CmdOpCode::SLEEP));
+        m3::env()->idle_active = 0;
+    }
+}
+
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
     static_assert(KIF::Perm::R == DTU::R, "DTU::R does not match KIF::Perm::R");
     static_assert(KIF::Perm::W == DTU::W, "DTU::W does not match KIF::Perm::W");

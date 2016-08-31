@@ -197,6 +197,7 @@ private:
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;
+    uint64_t _lastsched;
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     void *_eps;
     RecvGate _syscgate;

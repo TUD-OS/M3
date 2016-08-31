@@ -59,10 +59,14 @@ peid_t DTU::log_to_phys(peid_t pe) {
 
 void DTU::deprivilege(peid_t pe) {
     // unset the privileged flag
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t status = 0;
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t features = 0;
     m3::Sync::compiler_barrier();
     write_mem(VPEDesc(pe, VPE::INVALID_ID),
-        m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), &status, sizeof(status));
+        m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), &features, sizeof(features));
+}
+
+uint64_t DTU::get_time() {
+    return m3::DTU::get().read_reg(m3::DTU::DtuRegs::CUR_TIME);
 }
 
 void DTU::set_vpeid(const VPEDesc &vpe) {
@@ -88,7 +92,7 @@ void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
 }
 
 void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::STATUS) == 0, "STATUS wrong");
+    static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
 
@@ -103,14 +107,14 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
 
     // init DTU registers
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
-    uint flags = 0;
+    uint features = 0;
     if(ep != static_cast<epid_t>(-1))
-        flags = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-    regs[static_cast<size_t>(m3::DTU::DtuRegs::STATUS)] = flags;
+        features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
+    regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = ep;
     m3::Sync::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::STATUS), regs, sizeof(regs));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), regs, sizeof(regs));
 
     // invalidate TLB, because we have changed the root PT
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));

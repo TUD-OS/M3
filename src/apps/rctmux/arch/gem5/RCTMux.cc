@@ -76,8 +76,9 @@ void *init_state() {
     return state;
 }
 
-void save() {
+bool save() {
     m3::DTU::get().abort(m3::DTU::ABORT_CMD | m3::DTU::ABORT_VPE, &cmdreg);
+    return m3::DTU::get().msgcnt() == 0;
 }
 
 void resume() {

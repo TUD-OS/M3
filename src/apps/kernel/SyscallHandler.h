@@ -79,6 +79,7 @@ public:
     void reqmem(GateIStream &is);
     void derivemem(GateIStream &is);
     void revoke(GateIStream &is);
+    void idle(GateIStream &is);
     void exit(GateIStream &is);
     void noop(GateIStream &is);
 

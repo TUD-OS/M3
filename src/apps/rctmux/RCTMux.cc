@@ -50,6 +50,7 @@ EXTERN_C void *_start_app() {
     m3::Env *senv = m3::env();
     // remember the current core id (might have changed since last switch)
     senv->coreid = flags >> 32;
+    senv->idle_report = flags & m3::REPORT;
 
     if(flags & m3::INIT) {
         // if we get here, there is an application to jump to
@@ -73,11 +74,14 @@ EXTERN_C void *_start_app() {
 EXTERN_C void _save(void *s) {
     assert(flags_get() & m3::STORE);
 
-    save();
+    bool can_block = save();
 
     state = s;
 
-    flags_set(m3::SIGNAL);
+    uint64_t flags = m3::SIGNAL;
+    if (can_block && m3::env()->idle_active)
+        flags |= m3::BLOCK;
+    flags_set(flags);
 }
 
 }

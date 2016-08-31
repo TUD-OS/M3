@@ -23,6 +23,10 @@
 
 namespace kernel {
 
+uint64_t DTUState::get_idle_time() const {
+    return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
+}
+
 void *DTUState::get_ep(epid_t ep) {
     return _regs._eps + ep * m3::DTU::EP_REGS;
 }
@@ -33,13 +37,17 @@ void DTUState::save(const VPEDesc &vpe) {
 
 void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
-    m3::DTU::reg_t status = 0;
+    m3::DTU::reg_t features = 0;
     if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<m3::DTU::reg_t>(-1))
-        status = m3::DTU::StatusFlags::PAGEFAULTS;
-    _regs.set(m3::DTU::DtuRegs::STATUS, status);
+        features = m3::DTU::StatusFlags::PAGEFAULTS;
+    _regs.set(m3::DTU::DtuRegs::FEATURES, features);
 
     // similarly, set the vpeid again, because abort invalidates it
     _regs.set(m3::DTU::DtuRegs::VPE_ID, vpeid);
+
+    // reset idle time and msg count; msg count will be recalculated from the EPs
+    _regs.set(m3::DTU::DtuRegs::MSG_CNT, 0);
+    _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
     m3::Sync::compiler_barrier();
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
@@ -85,10 +93,10 @@ void DTUState::config_rwb(uintptr_t addr) {
 }
 
 void DTUState::config_pf(uint64_t rootpt, epid_t ep) {
-    uint flags = 0;
+    uint features = 0;
     if(ep != static_cast<epid_t>(-1))
-        flags = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-    _regs.set(m3::DTU::DtuRegs::STATUS, flags);
+        features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
+    _regs.set(m3::DTU::DtuRegs::FEATURES, features);
     _regs.set(m3::DTU::DtuRegs::ROOT_PT, rootpt);
     _regs.set(m3::DTU::DtuRegs::PF_EP, ep);
 }

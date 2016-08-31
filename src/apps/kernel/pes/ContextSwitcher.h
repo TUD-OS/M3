@@ -82,7 +82,7 @@ public:
 private:
     VPE* schedule();
 
-    bool next_state();
+    bool next_state(uint64_t flags);
 
     void send_flags(vpeid_t vpeid, uint64_t flags);
     void recv_flags(vpeid_t vpeid, uint64_t *flags);

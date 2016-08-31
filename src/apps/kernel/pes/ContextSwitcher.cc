@@ -145,7 +145,7 @@ bool ContextSwitcher::start_switch() {
     else
         _state = S_STORE_WAIT;
 
-    return next_state();
+    return next_state(0);
 }
 
 bool ContextSwitcher::continue_switch() {
@@ -157,7 +157,7 @@ bool ContextSwitcher::continue_switch() {
     if(~flags & m3::RCTMuxCtrl::SIGNAL)
         return true;
 
-    return next_state();
+    return next_state(flags);
 }
 
 bool ContextSwitcher::start_vpe() {
@@ -167,10 +167,10 @@ bool ContextSwitcher::start_vpe() {
     assert(_cur->flags() & VPE::F_START);
 
     _state = S_RESTORE_WAIT;
-    return next_state();
+    return next_state(0);
 }
 
-bool ContextSwitcher::next_state() {
+bool ContextSwitcher::next_state(uint64_t flags) {
     KLOG(VPES, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
@@ -192,6 +192,14 @@ bool ContextSwitcher::next_state() {
         case S_STORE_DONE: {
             _cur->dtustate().save(_cur->desc());
 
+            uint64_t now = DTU::get().get_time();
+            uint64_t cycles = _cur->dtustate().get_idle_time();
+            uint64_t total = now - _cur->_lastsched;
+            KLOG(VPES, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
+                << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
+            KLOG(VPES, "CtxSw[" << _pe << "]: VPE state can be set to "
+                << ((flags & m3::RCTMuxCtrl::BLOCK) ? "blocked" : "ready"));
+
             if(_cur->state() == VPE::DEAD) {
                 _cur->unref();
                 _cur = nullptr;
@@ -209,6 +217,7 @@ bool ContextSwitcher::next_state() {
 
             // make it running here, so that the PTEs are sent to the PE, if F_INIT is set
             _cur->_state = VPE::RUNNING;
+            _cur->_lastsched = DTU::get().get_time();
 
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
@@ -228,10 +237,15 @@ bool ContextSwitcher::next_state() {
             // it's the first start if we are initializing or starting
             if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
                 flags |= m3::RCTMuxCtrl::INIT;
+
             // there is an application to restore if we are either resuming an application (!INIT)
             // or if we are just starting it
             if(!(_cur->flags() & VPE::F_INIT) || (_cur->flags() & VPE::F_START))
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
+
+            // let the VPE report idle times if there are other VPEs on this PE
+            if(_vpes.length() > 1)
+                flags |= m3::RCTMuxCtrl::REPORT;
 
             KLOG(VPES, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
 

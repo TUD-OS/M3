@@ -48,7 +48,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 8;
+    static const size_t DTU_REGS            = 10;
     static const size_t CMD_REGS            = 7;
     static const size_t EP_REGS             = 3;
 
@@ -56,24 +56,26 @@ private:
     static const size_t MAX_PKT_SIZE        = 1024;
 
     enum class DtuRegs {
-        STATUS              = 0,
+        FEATURES            = 0,
         ROOT_PT             = 1,
         PF_EP               = 2,
         LAST_PF             = 3,
         RW_BARRIER          = 4,
         VPE_ID              = 5,
-        MSGCNT              = 6,
-        EXT_CMD             = 7,
+        CUR_TIME            = 6,
+        IDLE_TIME           = 7,
+        MSG_CNT             = 8,
+        EXT_CMD             = 9,
     };
 
     enum class CmdRegs {
-        COMMAND             = 8,
-        ABORT               = 9,
-        DATA_ADDR           = 10,
-        DATA_SIZE           = 11,
-        OFFSET              = 12,
-        REPLY_EP            = 13,
-        REPLY_LABEL         = 14,
+        COMMAND             = 10,
+        ABORT               = 11,
+        DATA_ADDR           = 12,
+        DATA_SIZE           = 13,
+        OFFSET              = 14,
+        REPLY_EP            = 15,
+        REPLY_LABEL         = 16,
     };
 
     enum MemFlags : reg_t {
@@ -100,7 +102,8 @@ private:
         READ                = 3,
         WRITE               = 4,
         INC_READ_PTR        = 5,
-        DEBUG_MSG           = 6,
+        SLEEP               = 6,
+        DEBUG_MSG           = 7,
     };
 
     enum class ExtCmdOpCode {
@@ -262,16 +265,11 @@ public:
         do_ack(ep);
     }
 
-    bool wait() const {
-        // wait until the DTU wakes us up
-        // note that we have a race-condition here. if a message arrives between the check and the
-        // hlt, we miss it. this case is handled by a pin at the CPU, which indicates whether
-        // unprocessed messages are available. if so, hlt does nothing. in this way, the ISA does
-        // not have to be changed.
-        if(read_reg(DtuRegs::MSGCNT) == 0)
-            asm volatile ("hlt");
-        return true;
+    uint msgcnt() {
+        return read_reg(DtuRegs::MSG_CNT);
     }
+    void sleep(uint64_t ns = 0);
+
     void wait_until_ready(int) const {
         // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)
         // compilers are the worst. let's get rid of them and just write assembly code again ;)

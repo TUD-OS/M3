@@ -26,7 +26,7 @@ public:
     explicit DTURegs() : _dtu(), _cmd(), _eps() {
     }
 
-    m3::DTU::reg_t get(m3::DTU::DtuRegs reg) {
+    m3::DTU::reg_t get(m3::DTU::DtuRegs reg) const {
         return _dtu[static_cast<size_t>(reg)];
     }
     void set(m3::DTU::DtuRegs reg, m3::DTU::reg_t value) {
