@@ -89,6 +89,7 @@ public:
         return _vpe;
     }
     uintptr_t getRBAddr() override {
+        // TODO use _vpe.pe().mem_size() instead of ACC_MEM
         return ACC_MEM - RECVBUF_SIZE_SPM + DEF_RCVBUF_SIZE;
     }
 
