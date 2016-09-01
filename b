@@ -183,7 +183,11 @@ case "$cmd" in
             run_on_host $script
             kill_m3_procs
         else
-            ./src/tools/execute.sh $script 2>&1 | tee run/log.txt
+            if [ "$DBG_GEM5" = "1" ]; then
+                ./src/tools/execute.sh $script
+            else
+                ./src/tools/execute.sh $script 2>&1 | tee run/log.txt
+            fi
         fi
         ;;
 
