@@ -15,6 +15,7 @@
 #
 
 .global _start
+.extern idle
 
 .text
 
@@ -23,15 +24,13 @@ _start:
     mov     $stack, %rsp
     mov     %rsp, %rbp
 
-    # check if there is something to run
-    call    try_run
+    # start idling
+    call    idle
 
-    # _if we get here, there was none, so idle
-    hlt
-    jmp     _start
+1:  jmp     1b
 
 .data
 
     .align 16
-    .space 64, 0
+    .space 512, 0
 stack:

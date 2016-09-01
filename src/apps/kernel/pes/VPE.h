@@ -193,7 +193,6 @@ private:
     int _pid;
     int _state;
     int _exitcode;
-    uintptr_t _entry;
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;

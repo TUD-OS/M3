@@ -33,6 +33,7 @@
 #define RT_SIZE             0x2000
 #define RT_END              (RT_START + RT_SIZE)
 
+#define RCTMUX_ENTRY        0x1000
 #define RCTMUX_FLAGS_SIZE   0x8
 #define RCTMUX_FLAGS        0x2FF8
 

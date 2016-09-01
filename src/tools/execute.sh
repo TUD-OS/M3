@@ -127,13 +127,13 @@ build_params_gem5() {
             if [ $c -eq 0 ]; then
                 echo -n $bindir/$line $kargs,
             else
-                echo -n $bindir/idle,
+                echo -n $bindir/rctmux,
             fi
             c=$((c + 1))
         done
 
         while [ $c -lt $M3_CORES ]; do
-            echo -n $bindir/idle,
+            echo -n $bindir/rctmux,
             c=$((c + 1))
         done
     )`

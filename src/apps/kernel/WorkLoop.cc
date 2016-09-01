@@ -65,12 +65,8 @@ void WorkLoop::run() {
     epid_t sysep = sysch.epid();
     epid_t srvep = sysch.srvepid();
     while(has_items()) {
-        if(!PEManager::get().continue_switches()) {
-            // the switch might have removed a VPE and thus terminated everything
-            if(!has_items())
-                break;
-            m3::DTU::get().sleep();
-        }
+        if(!PEManager::get().continue_switches())
+            m3::DTU::get().try_sleep();
 
         if(dtu.fetch_msg(sysep)) {
             // we know the subscriber here, so optimize that a bit

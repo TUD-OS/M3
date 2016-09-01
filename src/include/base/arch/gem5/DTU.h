@@ -268,7 +268,10 @@ public:
     uint msgcnt() {
         return read_reg(DtuRegs::MSG_CNT);
     }
-    void sleep(uint64_t ns = 0);
+    void try_sleep(uint64_t cycles = 0);
+    void sleep(uint64_t cycles = 0) {
+        write_reg(CmdRegs::COMMAND, buildCommand(cycles, CmdOpCode::SLEEP));
+    }
 
     void wait_until_ready(int) const {
         // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)

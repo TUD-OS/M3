@@ -8,7 +8,7 @@ archdir_absolute = '#src/apps/rctmux/' + archdir
 if env['ARCH'] == 't3':
     rctmux = env.M3Program(
         env,
-        target = 'idle',
+        target = 'rctmux',
         source = [
             env['BINARYDIR'].abspath + '/Window.o',
             env.Glob('*.cc'),
@@ -27,11 +27,11 @@ elif env['ARCH'] == 'gem5':
 
     myenv.M3Program(
         myenv,
-        target = 'idle',
+        target = 'rctmux',
         source = [
-            env.Glob('*.cc'),
             env.Glob(archdir + '/*.S'),
             env.Glob(archdir + '/*.cc'),
+            env.Glob('*.cc'),
         ],
         NoSup = True,
         varAddr = False

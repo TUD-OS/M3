@@ -190,7 +190,7 @@ static uintptr_t map_idle(VPE &vpe) {
     BootModule *idle = idles[vpe.pe()];
     if(!idle) {
         bool first;
-        BootModule *tmp = get_mod("idle", &first);
+        BootModule *tmp = get_mod("rctmux", &first);
         idle = new BootModule;
 
         // copy the ELF file
@@ -199,7 +199,7 @@ static uintptr_t map_idle(VPE &vpe) {
         copy_clear(VPEDesc(m3::DTU::noc_to_pe(phys), VPE::INVALID_ID), phys, tmp->addr, tmp->size, false);
 
         // remember the copy
-        strcpy(idle->name, "idle");
+        strcpy(idle->name, "rctmux");
         idle->addr = phys;
         idle->size = tmp->size;
         idles[vpe.pe()] = idle;
@@ -281,8 +281,6 @@ void VPE::load_app(const char *name) {
 }
 
 void VPE::init_memory() {
-    DTU::get().set_vpeid(desc());
-
     bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
         dtustate().config_pf(address_space()->root_pt(), address_space()->ep());
@@ -290,7 +288,7 @@ void VPE::init_memory() {
     }
 
     if(Platform::pe(pe()).is_programmable())
-        _entry = map_idle(*this);
+        map_idle(*this);
 
     if(vm) {
         // map receive buffer

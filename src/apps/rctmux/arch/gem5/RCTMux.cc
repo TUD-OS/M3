@@ -30,16 +30,20 @@ namespace RCTMux {
 static m3::DTU::reg_t cmdreg;
 
 uint64_t flags_get() {
-    return *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS);
+    return *reinterpret_cast<volatile uint64_t*>(RCTMUX_FLAGS);
 }
 
 void flags_set(uint64_t flags) {
-    *reinterpret_cast<uint64_t*>(RCTMUX_FLAGS) = flags;
+    *reinterpret_cast<volatile uint64_t*>(RCTMUX_FLAGS) = flags;
 }
 
 void init() {
     Exceptions::init();
     Exceptions::get_table()[64] = reinterpret_cast<m3::Exceptions::isr_func>(_save);
+}
+
+void sleep() {
+    m3::DTU::get().sleep();
 }
 
 void *init_state() {

@@ -40,7 +40,7 @@ public:
                 _msgcnt = msgcnt;
                 break;
             }
-            DTU::get().sleep();
+            DTU::get().try_sleep();
         }
 
         word_t roff = ep_reg(DTU::EP_BUF_ROFF);

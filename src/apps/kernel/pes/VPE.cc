@@ -32,7 +32,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _pid(),
       _state(DEAD),
       _exitcode(),
-      _entry(),
       _name(std::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
@@ -51,8 +50,10 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get()._vpes[id] = this;
 
-    if(~_flags & F_IDLE)
+    if(~_flags & F_IDLE) {
+        VPEManager::get()._count++;
         init();
+    }
 
     KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << pe() << "]");
     for(auto &r : _requires)

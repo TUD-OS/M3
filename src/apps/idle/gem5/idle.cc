@@ -16,22 +16,15 @@
 
 #include <base/Common.h>
 #include <base/Env.h>
+#include <base/DTU.h>
 
-typedef void (*start_func)();
+namespace m3 {
+DTU DTU::inst;
+}
 
-extern void *_start;
-
-EXTERN_C void try_run() {
-    // is there something to run?
-    start_func ptr = reinterpret_cast<start_func>(m3::env()->entry);
-    if(ptr) {
-        // remember exit location
-        m3::env()->exitaddr = reinterpret_cast<uintptr_t>(&_start);
-        asm volatile (
-            // tell crt0 that we're set the stackpointer
-            "mov %2, %%rsp;"
-            "jmp *%1;"
-            : : "a"(0xDEADBEEF), "r"(ptr), "r"(m3::env()->sp)
-        );
-    }
+EXTERN_C void idle() {
+    m3::env()->idle_active = 1;
+    m3::Sync::memory_barrier();
+    while(1)
+        m3::DTU::get().sleep();
 }

@@ -49,7 +49,6 @@ void VPEManager::load(int argc, char **argv) {
             _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);
 
             peid++;
-            _count++;
 
 #if defined(__t3__)
             // VPEs started in t3 simulator are already running when loaded
@@ -157,7 +156,6 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, caps
     UNUSED VPE *vpe = new VPE(std::move(name), i, id, flags, ep, pfgate);
     assert(vpe == _vpes[id]);
 
-    _count++;
     return _vpes[id];
 }
 
@@ -182,15 +180,16 @@ void VPEManager::remove(vpeid_t id) {
     delete _vpes[id];
     _vpes[id] = nullptr;
 
+    if(flags & VPE::F_IDLE)
+        return;
+
     if(flags & VPE::F_DAEMON) {
         assert(_daemons > 0);
         _daemons--;
     }
 
-    if(~flags & VPE::F_IDLE) {
-        assert(_count > 0);
-        _count--;
-    }
+    assert(_count > 0);
+    _count--;
 
     // if there are no VPEs left, we can stop everything
     if(used() == 0) {

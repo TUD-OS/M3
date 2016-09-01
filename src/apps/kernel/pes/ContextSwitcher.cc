@@ -103,7 +103,7 @@ void ContextSwitcher::init() {
     assert(_idle == nullptr);
 
     _idle = new VPE(m3::String("idle"), _pe, VPEManager::get().get_id(),
-        VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
+        VPE::F_IDLE | VPE::F_INIT | VPE::F_BOOTMOD, -1, m3::KIF::INV_SEL);
 }
 
 bool ContextSwitcher::enqueue(VPE *vpe) {
@@ -127,8 +127,9 @@ bool ContextSwitcher::remove(VPE *vpe) {
 
     if(_cur == vpe) {
         _cur->_state = VPE::DEAD;
-        // increase the references until we are done with the VPE
-        _cur->ref();
+        // the VPE id is expected to be invalid in S_SWITCH
+        DTU::get().unset_vpeid(_cur->desc());
+        _cur = nullptr;
         return start_switch();
     }
     return false;
@@ -200,14 +201,7 @@ bool ContextSwitcher::next_state(uint64_t flags) {
             KLOG(VPES, "CtxSw[" << _pe << "]: VPE state can be set to "
                 << ((flags & m3::RCTMuxCtrl::BLOCK) ? "blocked" : "ready"));
 
-            if(_cur->state() == VPE::DEAD) {
-                _cur->unref();
-                _cur = nullptr;
-                if(!m3::env()->workloop()->has_items())
-                    return true;
-            }
-            else
-                _cur->_state = VPE::SUSPENDED;
+            _cur->_state = VPE::SUSPENDED;
 
             // fall through
         }
@@ -219,15 +213,15 @@ bool ContextSwitcher::next_state(uint64_t flags) {
             _cur->_state = VPE::RUNNING;
             _cur->_lastsched = DTU::get().get_time();
 
+            _cur->dtustate().reset(RCTMUX_ENTRY);
+
+            VPEDesc vpe(_pe, VPE::INVALID_ID);
+            _cur->dtustate().restore(vpe, _cur->id());
+
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
             if(_cur->flags() & VPE::F_BOOTMOD)
                 _cur->load_app(_cur->name().c_str());
-
-            _cur->dtustate().reset(_cur->_entry);
-
-            VPEDesc vpe(_pe, (_cur->flags() & VPE::F_INIT) ? _cur->id() : VPE::INVALID_ID);
-            _cur->dtustate().restore(vpe, _cur->id());
 
             // fall through
         }

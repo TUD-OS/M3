@@ -16,11 +16,74 @@
 
 .global _start
 
-.extern _init
+.extern _start_app
 .extern interrupt_handler
-.extern _rctmux_stack
 
 .text
+
+// put that at the beginning so that we know the address
+.type   _start, @function
+_start:
+    // interrupts in rctmux are always disabled
+    cli
+    // use a small stack
+    mov     $_rctmux_stack, %rsp
+    mov     %rsp, %rbp
+
+    call    _start_app
+
+    // restore application state
+    mov     %rax, %rsp
+    pop     %r15
+    pop     %r14
+    pop     %r13
+    pop     %r12
+    pop     %r11
+    pop     %r10
+    pop     %r9
+    pop     %r8
+    pop     %rbp
+    pop     %rsi
+    pop     %rdi
+    pop     %rdx
+    pop     %rcx
+    pop     %rbx
+    pop     %rax
+
+    // remove error-code and interrupt-number from stack and return
+    add     $16,%rsp
+    iretq
+.size   _start, .-_start
+
+.type   isrCommon, @function
+isrCommon:
+    push    %rax
+    push    %rbx
+    push    %rcx
+    push    %rdx
+    push    %rdi
+    push    %rsi
+    push    %rbp
+    push    %r8
+    push    %r9
+    push    %r10
+    push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+
+    // call C++ routine
+    mov     %rsp, %rdi
+    call    interrupt_handler
+
+    // the kernel will reset the PE
+    hlt
+
+    // we should not get here
+1:  jmp     1b
+
+.size   isrCommon, .-isrCommon
 
 // macro to build a default-isr-handler
 .macro BUILD_DEF_ISR no
@@ -74,98 +137,8 @@ isrNull:
     push    $32                     // the interrupt-number
 .size   isrNull, .-isrNull
 
-.type   isrCommon, @function
-isrCommon:
-    push    %rax
-    push    %rbx
-    push    %rcx
-    push    %rdx
-    push    %rdi
-    push    %rsi
-    push    %rbp
-    push    %r8
-    push    %r9
-    push    %r10
-    push    %r11
-    push    %r12
-    push    %r13
-    push    %r14
-    push    %r15
-
-    // call C++ routine
-    mov     %rsp, %rdi
-    call    interrupt_handler
-
-    // the kernel will reset the PE
-    hlt
-
-    // we should not get here
-1:  jmp     1b
-.size   isrCommon, .-isrCommon
-
-.type   _start, @function
-_start:
-    // use a small stack
-    mov     $_rctmux_stack, %rsp
-    mov     %rsp, %rbp
-
-    // first, init exception handling and stuff
-    call    _init
-    test    %rax, %rax
-    jne     1f
-
-    // use a separate stack for idling because on an IRQ, we want to save our state there
-    // and restore it later. so make sure, that it doesn't overlap with the stack we use in _init,
-    // and _start_app.
-    mov     $_idle_stack, %rsp
-    mov     %rsp, %rbp
-    // _if we get here, there is nothing to run, so idle
-    sti
-    hlt
-    jmp     _start
-
-1:
-    // try to start the application
-    call    _start_app
-    test    %rax, %rax
-    jne      1f
-
-    // no app yet, wait until we are waked up again
-    mov     $_idle_stack, %rsp
-    mov     %rsp, %rbp
-    hlt
-    jmp     1b
-
-1:
-    // restore application state
-    mov     %rax, %rsp
-    pop     %r15
-    pop     %r14
-    pop     %r13
-    pop     %r12
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rbp
-    pop     %rsi
-    pop     %rdi
-    pop     %rdx
-    pop     %rcx
-    pop     %rbx
-    pop     %rax
-
-    // remove error-code and interrupt-number from stack and return
-    add     $16,%rsp
-    iretq
-.size   _start, .-_start
-
 .data
 
     .align 16
     .space 512, 0
 _rctmux_stack:
-
-    .align 16
-    .space 256, 0
-_idle_stack:

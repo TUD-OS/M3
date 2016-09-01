@@ -29,7 +29,7 @@ int main(int, char **argv)
         m3::cout << "Message " << counter << " from " << name << "\n";
         ++counter;
 
-        m3::DTU::get().sleep(1000000);
+        m3::DTU::get().try_sleep(1000000);
     }
 
     return 0;
