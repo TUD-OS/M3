@@ -20,6 +20,7 @@
 #include <base/WorkLoop.h>
 
 #include "pes/PEManager.h"
+#include "pes/Timeouts.h"
 #include "SyscallHandler.h"
 #include "WorkLoop.h"
 
@@ -65,8 +66,10 @@ void WorkLoop::run() {
     epid_t sysep = sysch.epid();
     epid_t srvep = sysch.srvepid();
     while(has_items()) {
-        if(!PEManager::get().continue_switches())
-            m3::DTU::get().try_sleep();
+        cycles_t sleep = Timeouts::get().sleep_time();
+        if(sleep != static_cast<cycles_t>(-1))
+            m3::DTU::get().try_sleep(sleep);
+        Timeouts::get().trigger();
 
         if(dtu.fetch_msg(sysep)) {
             // we know the subscriber here, so optimize that a bit

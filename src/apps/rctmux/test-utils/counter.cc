@@ -28,8 +28,6 @@ int main(int, char **argv)
     while (counter < 100) {
         m3::cout << "Message " << counter << " from " << name << "\n";
         ++counter;
-
-        m3::DTU::get().try_sleep(1000000);
     }
 
     return 0;

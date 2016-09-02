@@ -72,8 +72,6 @@ public:
     void exit(int exitcode);
     void noop();
 
-    Errors::Code resume(capsel_t vpe);
-
 private:
     Errors::Code finish(GateIStream &&reply);
 

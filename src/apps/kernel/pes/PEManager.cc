@@ -28,7 +28,7 @@ namespace kernel {
 PEManager *PEManager::_inst;
 
 PEManager::PEManager()
-    :  _switches(), _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
+    :  _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(Platform::pe(i).is_programmable())
             _ctxswitcher[i] = new ContextSwitcher(i);
@@ -50,38 +50,37 @@ void PEManager::init() {
 void PEManager::add_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    if(ctx->enqueue(vpe))
-        start_switch(vpe->pe());
+    ctx->add(vpe);
 }
 
 void PEManager::remove_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    if(ctx->remove(vpe))
-        _switches.append(ctx);
+    ctx->remove(vpe, true);
 }
 
 void PEManager::start_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    if(ctx->start_vpe())
-        _switches.append(ctx);
+    ctx->start_vpe();
+}
+
+void PEManager::block_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    assert(ctx);
+    ctx->block_vpe(vpe);
+}
+
+void PEManager::unblock_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    assert(ctx);
+    ctx->unblock_vpe(vpe);
 }
 
 void PEManager::start_switch(peid_t pe) {
     ContextSwitcher *ctx = _ctxswitcher[pe];
     assert(ctx);
-    if(ctx->start_switch())
-        _switches.append(ctx);
-}
-
-bool PEManager::continue_switches() {
-    for(auto it = _switches.begin(); it != _switches.end(); ) {
-        auto old = it++;
-        if(!old->continue_switch())
-            _switches.remove(&*old);
-    }
-    return _switches.length() > 0;
+    ctx->start_switch();
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {

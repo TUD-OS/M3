@@ -65,7 +65,7 @@ void DTU::deprivilege(peid_t pe) {
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), &features, sizeof(features));
 }
 
-uint64_t DTU::get_time() {
+cycles_t DTU::get_time() {
     return m3::DTU::get().read_reg(m3::DTU::DtuRegs::CUR_TIME);
 }
 

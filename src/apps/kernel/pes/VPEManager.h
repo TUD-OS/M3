@@ -83,8 +83,6 @@ public:
     }
 
     void start(vpeid_t id);
-    void resume(vpeid_t id, const m3::Subscriptions<bool>::callback_type &cb);
-
     void start_pending(ServiceList &serv);
 
 private:

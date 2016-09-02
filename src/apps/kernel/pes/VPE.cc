@@ -26,7 +26,9 @@
 namespace kernel {
 
 VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, capsel_t pfgate)
-    : _desc(peid, id),
+    : SListItem(),
+      SlabObject<VPE>(),
+      _desc(peid, id),
       _flags(flags),
       _refs(0),
       _pid(),
@@ -79,8 +81,9 @@ void VPE::set_ready() {
     PEManager::get().add_vpe(this);
 }
 
-void VPE::start() {
-    assert(_state == RUNNING);
+m3::Errors::Code VPE::start() {
+    if(_state != RUNNING || (_flags & F_INIT))
+        return m3::Errors::INV_ARGS;
 
     _flags |= F_START;
 
@@ -90,6 +93,20 @@ void VPE::start() {
     KLOG(VPES, "Starting VPE '" << _name << "' [id=" << id() << "]");
 
     VPEManager::get().start(id());
+    return m3::Errors::NO_ERROR;
+}
+
+void VPE::block() {
+    KLOG(VPES, "Blocking VPE '" << _name << "' [id=" << id() << "]");
+
+    PEManager::get().block_vpe(this);
+}
+
+void VPE::resume(const m3::Subscriptions<bool>::callback_type &cb) {
+    KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
+
+    subscribe_resume(cb);
+    PEManager::get().unblock_vpe(this);
 }
 
 void VPE::stop() {

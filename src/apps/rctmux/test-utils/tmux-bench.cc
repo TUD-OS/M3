@@ -62,24 +62,10 @@ int main() {
     // now do some switches
     cout << "Starting benchmark (" << TEST_COUNT << " switches)...\n";
 
-    // switch between them until both exited
-    size_t remaining = 2;
-    capsel_t vpes[] = {s1.sel(), s2.sel()};
-    for (int i = 0; remaining > 0 && i < TEST_COUNT; ++i) {
-        if(vpes[i % 2] == ObjCap::INVALID)
-            continue;
-
-        // wait a bit
-        for(volatile int i = 0; i < 10000; ++i)
-            ;
-
-        if(Syscalls::get().resume(vpes[i % 2]) != Errors::NO_ERROR) {
-            // do not try that again for this VPE
-            remaining--;
-            vpes[i % 2] = ObjCap::INVALID;
-            cout << "resume failed\n";
-        }
-    }
+    int exit1 = s1.wait();
+    cout << args1[0] << " exited with " << exit1 << "\n";
+    int exit2 = s2.wait();
+    cout << args2[0] << " exited with " << exit2 << "\n";
 
     cout << "Benchmark finished.\n";
 

@@ -165,13 +165,6 @@ void VPEManager::start(vpeid_t id) {
     PEManager::get().start_vpe(_vpes[id]);
 }
 
-void VPEManager::resume(vpeid_t id, const m3::Subscriptions<bool>::callback_type &cb) {
-    assert(_vpes[id]);
-
-    _vpes[id]->subscribe_resume(cb);
-    PEManager::get().start_switch(_vpes[id]->pe());
-}
-
 void VPEManager::remove(vpeid_t id) {
     assert(_vpes[id]);
 

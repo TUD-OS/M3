@@ -127,7 +127,6 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::IDLE, &SyscallHandler::idle);
     add_operation(m3::KIF::Syscall::EXIT, &SyscallHandler::exit);
     add_operation(m3::KIF::Syscall::NOOP, &SyscallHandler::noop);
-    add_operation(m3::KIF::Syscall::RESUME, &SyscallHandler::resume);
 #if defined(__host__)
     add_operation(m3::KIF::Syscall::COUNT, &SyscallHandler::init);
 #endif
@@ -493,11 +492,12 @@ void SyscallHandler::vpectrl(GateIStream &is) {
         SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap");
 
     switch(op) {
-        case m3::KIF::Syscall::VCTRL_START:
+        case m3::KIF::Syscall::VCTRL_START: {
             // TODO the VPE might be suspended
-            vpecap->vpe->start();
-            reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
+            m3::Errors::Code res = vpecap->vpe->start();
+            reply_vmsg(is.gate(), res);
             break;
+        }
 
         case m3::KIF::Syscall::VCTRL_STOP:
             vpecap->vpe->stop();
@@ -750,7 +750,7 @@ void SyscallHandler::activate(GateIStream &is) {
             };
 
             if(wait_needed == 1)
-                VPEManager::get().resume(ncap->obj->vpe, callback);
+                VPEManager::get().vpe(ncap->obj->vpe).resume(callback);
             else
                 VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
             return;
@@ -797,7 +797,7 @@ void SyscallHandler::idle(GateIStream &is) {
     // VPE id, so that we couldn't reply anymore.
     reply_vmsg(is.gate(), m3::Errors::NO_ERROR);
 
-    PEManager::get().start_switch(vpe->pe());
+    vpe->block();
 }
 
 void SyscallHandler::exit(GateIStream &is) {
@@ -813,27 +813,6 @@ void SyscallHandler::exit(GateIStream &is) {
 
 void SyscallHandler::noop(GateIStream &is) {
     reply_vmsg(is.gate(), 0);
-}
-
-void SyscallHandler::resume(GateIStream &is) {
-    VPE *vpe = is.gate().session<VPE>();
-    capsel_t vcap;
-    is >> vcap;
-    LOG_SYS(vpe, ": syscall::resume", "(vpe=" << vcap << ")");
-
-    VPECapability *vpecap = static_cast<VPECapability*>(vpe->objcaps().get(vcap, Capability::VIRTPE));
-    if(vpecap == nullptr)
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "Invalid cap");
-    if(vpecap->vpe->state() == VPE::DEAD)
-        SYS_ERROR(vpe, is.gate(), m3::Errors::INV_ARGS, "VPE is dead");
-
-    ReplyInfo rinfo(is.message());
-    auto callback = [vpe, is, rinfo] (bool, m3::Subscriber<bool> *) {
-        StaticGateOStream<m3::ostreamsize<m3::Errors::Code>()> os;
-        os << m3::Errors::NO_ERROR;
-        reply_to_vpe(*vpe, rinfo, os.bytes(), os.total());
-    };
-    VPEManager::get().resume(vpecap->vpe->id(), callback);
 }
 
 #if defined(__host__)

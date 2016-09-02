@@ -174,9 +174,4 @@ USED void Syscalls::exit(int exitcode) {
     send_vmsg(_gate, KIF::Syscall::EXIT, exitcode);
 }
 
-Errors::Code Syscalls::resume(capsel_t vpe) {
-    LLOG(SYSC, "resume(vpe=" << vpe << ")");
-    return finish(send_receive_vmsg(_gate, KIF::Syscall::RESUME, vpe));
-}
-
 }

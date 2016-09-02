@@ -20,6 +20,7 @@
 
 #include "DTU.h"
 #include "pes/ContextSwitcher.h"
+#include "pes/Timeouts.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "Platform.h"
@@ -66,14 +67,15 @@ static const char *stateNames[] = {
  */
 
 ContextSwitcher::ContextSwitcher(size_t pe)
-    : m3::SListItem(), _pe(pe), _state(S_IDLE), _vpes(), _it(), _idle(), _cur() {
+    : _pe(pe), _state(S_IDLE), _count(), _ready(), _it(),
+      _timeout(), _wait_time(), _idle(), _cur() {
     assert(pe > 0);
     KLOG(VPES, "Initialized context switcher for pe " << pe);
 }
 
 bool ContextSwitcher::can_mux() const {
-    for(auto it = _vpes.begin(); it != _vpes.end(); ++it) {
-        if(!(it->vpe->flags() & VPE::F_MUXABLE))
+    for(auto it = _ready.begin(); it != _ready.end(); ++it) {
+        if(!(it->flags() & VPE::F_MUXABLE))
             return false;
     }
     return true;
@@ -89,11 +91,11 @@ void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
 }
 
 VPE* ContextSwitcher::schedule() {
-    if (_vpes.length() > 0) {
+    if (_ready.length() > 0) {
         _it++;
-        if (_it == _vpes.end())
-            _it = _vpes.begin();
-        return _it->vpe;
+        if (_it == _ready.end())
+            _it = _ready.begin();
+        return &*_it;
     }
 
     return _idle;
@@ -106,39 +108,65 @@ void ContextSwitcher::init() {
         VPE::F_IDLE | VPE::F_INIT | VPE::F_BOOTMOD, -1, m3::KIF::INV_SEL);
 }
 
-bool ContextSwitcher::enqueue(VPE *vpe) {
-    _vpes.append(new TMuxVPE(vpe));
-    if(_vpes.length() == 1) {
-        _it = _vpes.begin();
-        return true;
-    }
-    return false;
+void ContextSwitcher::enqueue(VPE *vpe) {
+    if(vpe->_flags & VPE::F_READY)
+        return;
+
+    vpe->_flags |= VPE::F_READY;
+    _ready.append(vpe);
+    if(_ready.length() == 1)
+        _it = _ready.begin();
 }
 
-bool ContextSwitcher::remove(VPE *vpe) {
-    for(auto it = _vpes.begin(); it != _vpes.end(); ++it) {
-        if(it->vpe == vpe) {
-            _vpes.remove(&*it);
-            if(_it == it)
-                _it = _vpes.begin();
-            break;
-        }
-    }
+void ContextSwitcher::dequeue(VPE *vpe) {
+    if(!(vpe->_flags & VPE::F_READY))
+        return;
+
+    vpe->_flags &= ~VPE::F_READY;
+    _ready.remove(vpe);
+    if(&*_it == vpe)
+        _it = _ready.begin();
+}
+
+void ContextSwitcher::add(VPE *vpe) {
+    _count++;
+    unblock_vpe(vpe);
+}
+
+void ContextSwitcher::remove(VPE *vpe, bool destroy) {
+    dequeue(vpe);
+    _count--;
 
     if(_cur == vpe) {
-        _cur->_state = VPE::DEAD;
-        // the VPE id is expected to be invalid in S_SWITCH
-        DTU::get().unset_vpeid(_cur->desc());
+        if(destroy) {
+            _cur->_state = VPE::DEAD;
+            // the VPE id is expected to be invalid in S_SWITCH
+            DTU::get().unset_vpeid(_cur->desc());
+        }
         _cur = nullptr;
-        return start_switch();
+        start_switch();
     }
-    return false;
 }
 
-bool ContextSwitcher::start_switch() {
+void ContextSwitcher::block_vpe(VPE *vpe) {
+    dequeue(vpe);
+    start_switch();
+}
+
+void ContextSwitcher::unblock_vpe(VPE *vpe) {
+    enqueue(vpe);
+    // TODO don't do that immediately
+    start_switch();
+}
+
+void ContextSwitcher::start_switch(bool timedout) {
+    if(!timedout && _timeout)
+        Timeouts::get().cancel(_timeout);
+    _timeout = nullptr;
+
     // if there is a switch running, do nothing
     if(_state != S_IDLE)
-        return false;
+        return;
 
     // if no VPE is running, directly switch to a new VPE
     if (_cur == nullptr)
@@ -146,37 +174,42 @@ bool ContextSwitcher::start_switch() {
     else
         _state = S_STORE_WAIT;
 
-    return next_state(0);
+    next_state(0);
 }
 
-bool ContextSwitcher::continue_switch() {
-    assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
-
-    uint64_t flags = 0;
-    // rctmux is expected to invalidate the VPE id after we've injected the IRQ
-    recv_flags(_state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id(), &flags);
-    if(~flags & m3::RCTMuxCtrl::SIGNAL)
-        return true;
-
-    return next_state(flags);
-}
-
-bool ContextSwitcher::start_vpe() {
+void ContextSwitcher::start_vpe() {
     assert(_state == S_IDLE);
     assert(_cur);
     assert(_cur->state() == VPE::RUNNING);
     assert(_cur->flags() & VPE::F_START);
 
     _state = S_RESTORE_WAIT;
-    return next_state(0);
+    next_state(0);
 }
 
-bool ContextSwitcher::next_state(uint64_t flags) {
+void ContextSwitcher::continue_switch() {
+    assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
+
+    uint64_t flags = 0;
+    // rctmux is expected to invalidate the VPE id after we've injected the IRQ
+    recv_flags(_state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id(), &flags);
+
+    if(~flags & m3::RCTMuxCtrl::SIGNAL) {
+        assert(_wait_time > 0);
+        if(_wait_time < MAX_WAIT_TIME)
+            _wait_time *= 2;
+        Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
+    }
+    else
+        next_state(flags);
+}
+
+void ContextSwitcher::next_state(uint64_t flags) {
     KLOG(VPES, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
-    bool res = true;
+    _wait_time = 0;
     switch(_state) {
         case S_IDLE:
             assert(false);
@@ -187,6 +220,9 @@ bool ContextSwitcher::next_state(uint64_t flags) {
             DTU::get().injectIRQ(_cur->desc());
 
             _state = S_STORE_DONE;
+
+            _wait_time = INIT_WAIT_TIME;
+            Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
             break;
         }
 
@@ -202,6 +238,13 @@ bool ContextSwitcher::next_state(uint64_t flags) {
                 << ((flags & m3::RCTMuxCtrl::BLOCK) ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
+            if(flags & m3::RCTMuxCtrl::BLOCK)
+                dequeue(_cur);
+            // ensure that it is still enqueued. the idle syscall might have dequeued it
+            // note that we want to make it ready even in this case, because that means that, e.g.,
+            // the PE has received a message and thus does not want to be blocked anymore
+            else
+                enqueue(_cur);
 
             // fall through
         }
@@ -238,7 +281,7 @@ bool ContextSwitcher::next_state(uint64_t flags) {
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             // let the VPE report idle times if there are other VPEs on this PE
-            if(_vpes.length() > 1)
+            if(_ready.length() > 1)
                 flags |= m3::RCTMuxCtrl::REPORT;
 
             KLOG(VPES, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
@@ -246,6 +289,9 @@ bool ContextSwitcher::next_state(uint64_t flags) {
             send_flags(_cur->id(), flags);
             DTU::get().wakeup(_cur->desc());
             _state = S_RESTORE_DONE;
+
+            _wait_time = INIT_WAIT_TIME;
+            Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
             break;
         }
 
@@ -256,7 +302,14 @@ bool ContextSwitcher::next_state(uint64_t flags) {
 
             send_flags(_cur->id(), 0);
             _state = S_IDLE;
-            res = false;
+
+            // if we are starting a VPE, we might already have a timeout for it
+            if(_ready.length() > 1 && !_timeout) {
+                auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
+                // timeout immediately, if the VPE is no longer ready
+                cycles_t wait = !(_cur->flags() & VPE::F_READY) ? 0 : VPE::TIME_SLICE;
+                _timeout = Timeouts::get().wait_for(wait, callback);
+            }
             break;
         }
     }
@@ -264,8 +317,6 @@ bool ContextSwitcher::next_state(uint64_t flags) {
     KLOG(VPES, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
-
-    return res;
 }
 
 } /* namespace m3 */

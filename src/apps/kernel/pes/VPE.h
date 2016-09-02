@@ -34,11 +34,13 @@ namespace kernel {
 
 class ContextSwitcher;
 
-class VPE : public SlabObject<VPE> {
+class VPE : public m3::SListItem, public SlabObject<VPE> {
     friend class ContextSwitcher;
 
 public:
-    static const uint16_t INVALID_ID = 0xFFFF;
+    static const uint16_t INVALID_ID    = 0xFFFF;
+
+    static const cycles_t TIME_SLICE    = 500000;
 
     enum State {
         RUNNING,
@@ -53,6 +55,7 @@ public:
         F_INIT        = 1 << 3,
         F_START       = 1 << 4,
         F_MUXABLE     = 1 << 5, // TODO temporary
+        F_READY       = 1 << 6,
     };
 
     struct ServName : public m3::SListItem {
@@ -77,7 +80,12 @@ public:
     }
     void unref();
 
-    void start();
+    void set_ready();
+
+    void block();
+    void resume(const m3::Subscriptions<bool>::callback_type &cb);
+
+    m3::Errors::Code start();
     void stop();
     void exit(int exitcode);
 
@@ -90,8 +98,6 @@ public:
     RecvBufs &rbufs() {
         return _rbufs;
     }
-
-    void set_ready();
 
     void activate_sysc_ep(void *addr);
     m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);

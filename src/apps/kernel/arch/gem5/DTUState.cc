@@ -23,7 +23,7 @@
 
 namespace kernel {
 
-uint64_t DTUState::get_idle_time() const {
+cycles_t DTUState::get_idle_time() const {
     return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
 }
 

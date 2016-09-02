@@ -16,43 +16,43 @@
 
 #pragma once
 
-#include <base/PEDesc.h>
+#include <base/col/SList.h>
 
-#include "ContextSwitcher.h"
+#include <functional>
 
 namespace kernel {
 
-class PEManager {
+class Timeouts {
 public:
-    static void create() {
-        _inst = new PEManager();
-    }
-    static PEManager &get() {
-        return *_inst;
-    }
+    struct Timeout : public m3::SListItem {
+        explicit Timeout(cycles_t when, std::function<void()> callback)
+            : m3::SListItem(), when(when), callback(callback) {
+        }
+
+        cycles_t when;
+        std::function<void ()> callback;
+    };
 
 private:
-    explicit PEManager();
+    explicit Timeouts() : _timeouts() {
+    }
 
 public:
-    void init();
+    static Timeouts &get() {
+        return _inst;
+    }
 
-    peid_t find_pe(const m3::PEDesc &pe, bool tmuxable);
-    void add_vpe(VPE *vpe);
-    void start_vpe(VPE *vpe);
-    void block_vpe(VPE *vpe);
-    void unblock_vpe(VPE *vpe);
-    void remove_vpe(VPE *vpe);
+    cycles_t sleep_time() const;
 
-    void start_switch(peid_t pe);
+    void trigger();
+
+    Timeout *wait_for(cycles_t cycles, std::function<void()> callback);
+
+    void cancel(Timeout *to);
 
 private:
-    void deprivilege_pes();
-
-    static void continue_switch(ContextSwitcher *ctx);
-
-    ContextSwitcher **_ctxswitcher;
-    static PEManager *_inst;
+    m3::SList<Timeout> _timeouts;
+    static Timeouts _inst;
 };
 
 }

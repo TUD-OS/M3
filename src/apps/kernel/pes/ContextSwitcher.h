@@ -19,20 +19,12 @@
 #include <base/Config.h>
 #include <base/col/SList.h>
 
+#include "pes/Timeouts.h"
 #include "pes/VPE.h"
 
 namespace kernel {
 
-class ContextSwitcher : public m3::SListItem {
-
-    struct TMuxVPE : public m3::SListItem {
-        explicit TMuxVPE(VPE *_vpe)
-            : vpe(_vpe) {
-        }
-
-        VPE *vpe;
-    };
-
+class ContextSwitcher {
     enum State {
         // normal state, no context switch happening
         S_IDLE,
@@ -53,14 +45,11 @@ class ContextSwitcher : public m3::SListItem {
         S_RESTORE_DONE
     };
 
+    static const cycles_t MAX_WAIT_TIME     = 50000;
+    static const cycles_t INIT_WAIT_TIME    = 100;
+
 public:
     explicit ContextSwitcher(peid_t pe);
-
-    ~ContextSwitcher() {
-        while (_vpes.length() > 0) {
-            delete _vpes.remove_first();
-        }
-    }
 
     void init();
 
@@ -68,21 +57,28 @@ public:
         return _pe;
     }
     size_t count() const {
-        return _vpes.length();
+        return _count;
     }
 
     bool can_mux() const;
 
-    bool enqueue(VPE *vpe);
-    bool remove(VPE *vpe);
-    bool start_vpe();
-    bool start_switch();
-    bool continue_switch();
+    void add(VPE *vpe);
+    void remove(VPE *vpe, bool destroy);
+
+    void block_vpe(VPE *vpe);
+    void unblock_vpe(VPE *vpe);
+
+    void start_vpe();
+    void start_switch(bool timedout = false);
+    void continue_switch();
 
 private:
     VPE* schedule();
 
-    bool next_state(uint64_t flags);
+    void enqueue(VPE *vpe);
+    void dequeue(VPE *vpe);
+
+    void next_state(uint64_t flags);
 
     void send_flags(vpeid_t vpeid, uint64_t flags);
     void recv_flags(vpeid_t vpeid, uint64_t *flags);
@@ -90,8 +86,11 @@ private:
 private:
     peid_t _pe;
     State _state;
-    m3::SList<TMuxVPE> _vpes;
-    m3::SList<TMuxVPE>::iterator _it;
+    size_t _count;
+    m3::SList<VPE> _ready;
+    m3::SList<VPE>::iterator _it;
+    Timeouts::Timeout *_timeout;
+    cycles_t _wait_time;
     VPE *_idle;
     VPE *_cur;
 };

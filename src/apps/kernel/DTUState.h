@@ -33,7 +33,7 @@ public:
     explicit DTUState() : _regs() {
     }
 
-    uint64_t get_idle_time() const;
+    cycles_t get_idle_time() const;
 
     void *get_ep(epid_t ep);
     void save(const VPEDesc &vpe);

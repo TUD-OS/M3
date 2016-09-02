@@ -83,8 +83,6 @@ public:
     void exit(GateIStream &is);
     void noop(GateIStream &is);
 
-    void resume(GateIStream &is);
-
 #if defined(__host__)
     void init(GateIStream &is);
 #endif

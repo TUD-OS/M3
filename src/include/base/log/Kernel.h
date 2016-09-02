@@ -37,6 +37,7 @@ public:
         EPS         = 1 << 7,
         SERV        = 1 << 8,
         SLAB        = 1 << 9,
+        TIMEOUTS    = 1 << 10,
     };
 
     static const int level = INFO | ERR;

@@ -72,7 +72,6 @@ struct KIF {
             EXIT,
             NOOP,
             IDLE,
-            RESUME,
             COUNT
         };
 
