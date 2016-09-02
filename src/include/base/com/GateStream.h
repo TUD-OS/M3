@@ -175,7 +175,7 @@ public:
      * @param gate the gate to fetch the message from
      * @param msg the message
      */
-    explicit BaseGateIStream(RGATE &gate, DTU::Message *msg)
+    explicit BaseGateIStream(RGATE &gate, const DTU::Message *msg)
         : _err(Errors::NO_ERROR), _flags(FL_READ | FL_ACK), _pos(0), _gate(&gate), _msg(msg) {
     }
 
@@ -306,13 +306,13 @@ public:
     template<typename T>
     BaseGateIStream & operator>>(T &value) {
         assert(_pos + sizeof(T) <= length());
-        value = *reinterpret_cast<T*>(_msg->data + _pos);
+        value = *reinterpret_cast<const T*>(_msg->data + _pos);
         _pos += Math::round_up(sizeof(T), sizeof(ulong));
         return *this;
     }
     BaseGateIStream & operator>>(String &value) {
         assert(_pos + sizeof(size_t) <= length());
-        size_t len = *reinterpret_cast<size_t*>(_msg->data + _pos);
+        size_t len = *reinterpret_cast<const size_t*>(_msg->data + _pos);
         _pos += sizeof(size_t);
         assert(_pos + len <= length());
         value.reset(reinterpret_cast<const char*>(_msg->data + _pos), len);
@@ -349,7 +349,7 @@ private:
     bool _ack;
     size_t _pos;
     RGATE *_gate;
-    DTU::Message *_msg;
+    const DTU::Message *_msg;
 };
 
 template<class RGATE, class SGATE>
