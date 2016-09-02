@@ -17,6 +17,7 @@
 .global _start
 
 .extern _start_app
+.extern _sleep
 .extern interrupt_handler
 
 .text
@@ -31,7 +32,20 @@ _start:
     mov     %rsp, %rbp
 
     call    _start_app
+    test    %rax, %rax
+    jne     1f
 
+    // if there is nothing to run yet, sleep
+    mov     $_idle_stack, %rsp
+    mov     %rsp, %rbp
+    sti
+
+    call    _sleep
+
+    // we got waked up; try again
+    jmp     _start
+
+1:
     // restore application state
     mov     %rax, %rsp
     pop     %r15
@@ -142,3 +156,6 @@ isrNull:
     .align 16
     .space 512, 0
 _rctmux_stack:
+
+    .space 512, 0
+_idle_stack:

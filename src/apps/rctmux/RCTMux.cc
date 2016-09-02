@@ -32,21 +32,22 @@ static void *restore();
 static void *state;
 
 EXTERN_C void *_start_app() {
+    uint64_t flags = flags_get();
     // if we're here for the first time, setup exception handling
-    if(flags_get() & m3::INIT)
+    if(flags & m3::INIT)
         init();
 
-    while(1) {
-        if(flags_get() & m3::RESTORE)
-            return restore();
+    if(flags & m3::RESTORE)
+        return restore();
 
-        if(flags_get())
-            flags_set(m3::SIGNAL);
+    if(flags)
+        flags_set(m3::SIGNAL);
 
-        // idle until we get waked up
-        sleep();
-    }
-    UNREACHED;
+    return nullptr;
+}
+
+EXTERN_C void _sleep() {
+    sleep();
 }
 
 EXTERN_C void _save(void *s) {
