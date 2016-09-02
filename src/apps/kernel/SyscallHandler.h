@@ -39,16 +39,7 @@ public:
         _callbacks[op] = func;
     }
 
-    void handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *) {
-        EVENT_TRACER_handle_message();
-        m3::KIF::Syscall::Operation op;
-        msg >> op;
-        if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
-            (this->*_callbacks[op])(msg);
-            return;
-        }
-        reply_vmsg(msg.gate(), m3::Errors::INV_ARGS);
-    }
+    void handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *sub);
 
     epid_t epid() const {
         // we can use it here because we won't issue syscalls ourself

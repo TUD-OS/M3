@@ -132,6 +132,17 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 #endif
 }
 
+void SyscallHandler::handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *) {
+    EVENT_TRACER_handle_message();
+    m3::KIF::Syscall::Operation op;
+    msg >> op;
+    if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
+        (this->*_callbacks[op])(msg);
+        return;
+    }
+    reply_vmsg(msg.gate(), m3::Errors::INV_ARGS);
+}
+
 void SyscallHandler::createsrv(GateIStream &is) {
     EVENT_TRACER_Syscall_createsrv();
     VPE *vpe = is.gate().session<VPE>();
