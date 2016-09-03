@@ -24,9 +24,9 @@ template<typename... Args>
 static Errors::Code reply_vmsg_late(RecvGate &gate, const DTU::Message *msg,
         const Args &... args) {
     auto reply = create_vmsg(args...);
-    Errors::Code res = gate.reply_sync(
-        reply.bytes(), reply.total(), DTU::get().get_msgoff(gate.epid(), msg));
-    DTU::get().mark_acked(gate.epid());
+    size_t idx = DTU::get().get_msgoff(gate.epid(), msg);
+    Errors::Code res = gate.reply_sync(reply.bytes(), reply.total(), idx);
+    DTU::get().mark_read(gate.epid(), idx);
     return res;
 }
 
@@ -99,7 +99,7 @@ void PipeReadHandler::read(GateIStream &is) {
         if(sess->flags & WRITE_EOF) {
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " EOF");
             amount = 0;
-            reply_vmsg(is.gate(), Errors::NO_ERROR, pos, amount, 0);
+            reply_vmsg(is, Errors::NO_ERROR, pos, amount, 0);
         }
         else
             append_request(sess, is, amount);
@@ -109,7 +109,7 @@ void PipeReadHandler::read(GateIStream &is) {
         lastread = amount;
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " @" << pos
             << " [" << _lastid << "]");
-        reply_vmsg(is.gate(), Errors::NO_ERROR, pos, amount, _lastid);
+        reply_vmsg(is, Errors::NO_ERROR, pos, amount, _lastid);
     }
 }
 
@@ -181,7 +181,7 @@ void PipeWriteHandler::write(GateIStream &is) {
 
     if(sess->flags & READ_EOF) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " EOF");
-        reply_vmsg(is.gate(), Errors::END_OF_FILE);
+        reply_vmsg(is, Errors::END_OF_FILE);
         return;
     }
 
@@ -212,7 +212,7 @@ void PipeWriteHandler::write(GateIStream &is) {
         _lastid++;
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount
             << " @" << pos << " [" << _lastid << "]");
-        reply_vmsg(is.gate(), Errors::NO_ERROR, pos, _lastid);
+        reply_vmsg(is, Errors::NO_ERROR, pos, _lastid);
     }
 }
 

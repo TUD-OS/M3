@@ -50,7 +50,7 @@ public:
 
     virtual void handle_delegate(AddrSpace *sess, GateIStream &args, uint capcount) override {
         if(capcount != 1 && capcount != 2) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
@@ -60,7 +60,7 @@ public:
             sel = sess->init(VPE::self().alloc_caps(2));
         else
             sel = map_ds(sess, args, &virt);
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel, capcount), virt);
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel, capcount), virt);
     }
 
     virtual void handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, GateIStream &args, uint capcount) override {
@@ -76,7 +76,7 @@ public:
         Syscalls::get().createsessat(srv->sel(), nsess->sess.sel(), reinterpret_cast<word_t>(nsess));
         add_session(nsess);
 
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, nsess->sess.sel()));
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, nsess->sess.sel()));
     }
 
     void pf(GateIStream &is) {
@@ -96,27 +96,27 @@ public:
         // we never map page 0 and thus we tell the DTU to remember that there is no mapping
         if((virt & ~PAGE_MASK) == 0) {
             SLOG(PAGER, "No mapping at page 0");
-            reply_vmsg(is.gate(), Errors::NO_MAPPING);
+            reply_vmsg(is, Errors::NO_MAPPING);
             return;
         }
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
             SLOG(PAGER, "Invalid session");
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
 
         DataSpace *ds = sess->dstree.find(virt);
         if(!ds) {
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
 
         if((ds->flags() & access) != access) {
             SLOG(PAGER, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
                 << " not allowed: " << fmt(ds->flags(), "#x"));
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
 
@@ -124,11 +124,11 @@ public:
         Errors::Code res = ds->handle_pf(virt);
         if(res != Errors::NO_ERROR) {
             SLOG(PAGER, "Unable to handle pagefault: " << Errors::to_string(res));
-            reply_vmsg(is.gate(), res);
+            reply_vmsg(is, res);
             return;
         }
 
-        reply_vmsg(is.gate(), Errors::NO_ERROR);
+        reply_vmsg(is, Errors::NO_ERROR);
     }
 
     void clone(GateIStream &is) {
@@ -140,7 +140,7 @@ public:
         if(res != Errors::NO_ERROR)
             SLOG(PAGER, "Clone failed: " << Errors::to_string(res));
 
-        reply_vmsg(is.gate(), res);
+        reply_vmsg(is, res);
     }
 
     void map_anon(GateIStream &is) {
@@ -159,17 +159,17 @@ public:
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
             SLOG(PAGER, "Invalid virtual address / size");
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
         if((virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
             SLOG(PAGER, "Invalid protection flags");
-            reply_vmsg(is.gate(), Errors::INV_ARGS);
+            reply_vmsg(is, Errors::INV_ARGS);
             return;
         }
 
@@ -177,7 +177,7 @@ public:
         AnonDataSpace *ds = new AnonDataSpace(sess, virt, len, prot | flags);
         sess->add(ds);
 
-        reply_vmsg(is.gate(), Errors::NO_ERROR, virt);
+        reply_vmsg(is, Errors::NO_ERROR, virt);
     }
 
     capsel_t map_ds(AddrSpace *sess, GateIStream &args, uintptr_t *virt) {
@@ -222,7 +222,7 @@ public:
         else
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
 
-        reply_vmsg(is.gate(), res);
+        reply_vmsg(is, res);
     }
 };
 

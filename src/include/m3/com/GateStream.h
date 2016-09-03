@@ -43,12 +43,8 @@ static inline Errors::Code send_msg(SendGate &gate, const void *data, size_t len
     EVENT_TRACER_send_msg();
     return gate.send(data, len);
 }
-static inline Errors::Code reply_msg(RecvGate &gate, const void *data, size_t len) {
+static inline Errors::Code reply_msg(const GateIStream &is, const void *data, size_t len) {
     EVENT_TRACER_reply_msg();
-    return gate.reply_sync(data, len, DTU::get().get_msgoff(gate.epid()));
-}
-static inline Errors::Code reply_msg_on(const GateIStream &is, const void *data, size_t len) {
-    EVENT_TRACER_reply_msg_on();
     return is.reply(data, len);
 }
 
@@ -80,13 +76,8 @@ static inline Errors::Code send_vmsg(SendGate &gate, const Args &... args) {
     return gate.send(msg.bytes(), msg.total());
 }
 template<typename... Args>
-static inline Errors::Code reply_vmsg(RecvGate &gate, const Args &... args) {
+static inline Errors::Code reply_vmsg(const GateIStream &is, const Args &... args) {
     EVENT_TRACER_reply_vmsg();
-    return create_vmsg(args...).reply(gate);
-}
-template<typename... Args>
-static inline Errors::Code reply_vmsg_on(const GateIStream &is, const Args &... args) {
-    EVENT_TRACER_reply_vmsg_on();
     return is.reply(create_vmsg(args...));
 }
 
@@ -115,8 +106,9 @@ static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &
  */
 static inline GateIStream receive_msg(RecvGate &gate) {
     EVENT_TRACER_receive_msg();
-    Errors::Code err = gate.wait(nullptr);
-    return GateIStream(gate, err);
+    DTU::Message *msg;
+    Errors::Code err = gate.wait(nullptr, &msg);
+    return GateIStream(gate, msg, err);
 }
 /**
  * Receives a message from <gate> and unmarshalls the message into <args>. Note that
@@ -129,8 +121,9 @@ static inline GateIStream receive_msg(RecvGate &gate) {
 template<typename... Args>
 static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
     EVENT_TRACER_receive_vmsg();
-    Errors::Code err = gate.wait(nullptr);
-    GateIStream is(gate, err);
+    DTU::Message *msg;
+    Errors::Code err = gate.wait(nullptr, &msg);
+    GateIStream is(gate, msg, err);
     is.vpull(args...);
     return is;
 }
@@ -145,8 +138,9 @@ static inline GateIStream receive_vmsg(RecvGate &gate, Args &... args) {
  */
 static inline GateIStream receive_reply(SendGate &gate) {
     EVENT_TRACER_receive_msg();
-    Errors::Code err = gate.receive_gate()->wait(&gate);
-    return GateIStream(*gate.receive_gate(), err);
+    DTU::Message *msg;
+    Errors::Code err = gate.receive_gate()->wait(&gate, &msg);
+    return GateIStream(*gate.receive_gate(), msg, err);
 }
 
 /**

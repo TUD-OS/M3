@@ -372,20 +372,20 @@ public:
 
     void left(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() - 1);
-        reply_vmsg(is.gate(), 0);
+        reply_vmsg(is, 0);
     }
     void right(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() + 1);
-        reply_vmsg(is.gate(), 0);
+        reply_vmsg(is, 0);
     }
 
     void colup(GateIStream &is) {
         pa.set_color(pa.color() + 1);
-        reply_vmsg(is.gate(), 0);
+        reply_vmsg(is, 0);
     }
     void coldown(GateIStream &is) {
         pa.set_color(pa.color() - 1);
-        reply_vmsg(is.gate(), 0);
+        reply_vmsg(is, 0);
     }
 };
 

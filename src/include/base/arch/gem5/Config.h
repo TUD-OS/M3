@@ -41,6 +41,8 @@
 #define STACK_TOP           (RT_END + STACK_SIZE)
 #define STACK_BOTTOM        RT_END
 
+#define MAX_RB_SIZE         32
+
 #define RECVBUF_SPACE       0x3FC00000
 #define RECVBUF_SIZE        (4 * PAGE_SIZE)
 #define RECVBUF_SIZE_SPM    16384

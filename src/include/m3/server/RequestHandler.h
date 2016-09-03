@@ -73,14 +73,14 @@ protected:
         // TODO can't check that atm, because messages are size-aligned. so we don't know whether
         // there are actually more arguments or it's just padding
         if(sess->send_gate() || /*args.remaining() > 0 || */capcount != 1) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
         sess->_rgate = new RecvGate(RecvGate::create(recvbuf(ctrlbuf), sess));
         sess->_sgate = new SendGate(SendGate::create(credits(), sess->_rgate));
         sess->_rgate->subscribe(std::bind(&RequestHandler::handle_message, this, _1, _2));
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->send_gate()->sel()));
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->send_gate()->sel()));
     }
 
 public:
@@ -92,7 +92,7 @@ public:
             (static_cast<CLS*>(this)->*_callbacks[op])(msg);
             return;
         }
-        reply_vmsg(msg.gate(), Errors::INV_ARGS);
+        reply_vmsg(msg, Errors::INV_ARGS);
     }
 
 private:

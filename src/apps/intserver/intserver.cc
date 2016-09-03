@@ -41,7 +41,7 @@ public:
         int irq;
         args >> irq;
         auto *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(irq));
-        reply_vmsg_on(args, Errors::NO_ERROR, add_session(sess));
+        reply_vmsg(args, Errors::NO_ERROR, add_session(sess));
         return sess;
     }
 };

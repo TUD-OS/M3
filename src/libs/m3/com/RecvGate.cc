@@ -23,13 +23,18 @@ namespace m3 {
 
 INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
 
-Errors::Code RecvGate::wait(SendGate *sgate) const {
-    while(!DTU::get().fetch_msg(epid())) {
+Errors::Code RecvGate::wait(SendGate *sgate, DTU::Message **msg) const {
+    while(1) {
+        *msg = DTU::get().fetch_msg(epid());
+        if(*msg)
+            return Errors::NO_ERROR;
+
         if(sgate && !DTU::get().is_valid(sgate->epid()))
             return Errors::EP_INVALID;
+
         DTU::get().try_sleep();
     }
-    return Errors::NO_ERROR;
+    UNREACHED;
 }
 
 }

@@ -32,7 +32,7 @@ public:
     }
 
     virtual void handle_obtain(SessionData *, RecvBuf *, GateIStream &args, uint) override {
-        reply_vmsg_on(args, Errors::NOT_SUP);
+        reply_vmsg(args, Errors::NOT_SUP);
         if(++_count == 5)
             srv->shutdown();
     }

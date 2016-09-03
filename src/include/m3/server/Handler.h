@@ -67,19 +67,19 @@ public:
 protected:
     virtual SESS *handle_open(GateIStream &args) {
         SESS *s = add_session(new SESS());
-        reply_vmsg_on(args, Errors::NO_ERROR, s);
+        reply_vmsg(args, Errors::NO_ERROR, s);
         return s;
     }
     virtual void handle_obtain(SESS *, RecvBuf *, GateIStream &args, uint) {
-        reply_vmsg_on(args, Errors::NOT_SUP);
+        reply_vmsg(args, Errors::NOT_SUP);
     }
     virtual void handle_delegate(SESS *, GateIStream &args, uint) {
-        reply_vmsg_on(args, Errors::NOT_SUP);
+        reply_vmsg(args, Errors::NOT_SUP);
     }
     virtual void handle_close(SESS *sess, GateIStream &args) {
         remove_session(sess);
         delete sess;
-        reply_vmsg_on(args, Errors::NO_ERROR);
+        reply_vmsg(args, Errors::NO_ERROR);
     }
     virtual void handle_shutdown() {
     }

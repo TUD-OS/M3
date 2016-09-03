@@ -62,7 +62,7 @@ public:
 
         OStringStream os;
         os << res;
-        reply_vmsg(is.gate(), String(os.str()));
+        reply_vmsg(is, String(os.str()));
     }
 };
 

@@ -26,7 +26,7 @@ DirectPipeReader::State::State(capsel_t caps, size_t rep)
       _rbuf(RecvBuf::create(rep,
         nextlog2<DirectPipe::MSG_BUF_SIZE>::val, nextlog2<DirectPipe::MSG_SIZE>::val, 0)),
       _rgate(RecvGate::create(&_rbuf)),
-      _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate) {
+      _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate, nullptr) {
 }
 
 DirectPipeReader::DirectPipeReader(capsel_t caps, size_t rep, State *state)
@@ -49,7 +49,7 @@ void DirectPipeReader::send_eof() {
         if(_state->_pkglen == static_cast<size_t>(-1))
             _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
         DBG_PIPE("[read] replying len=0\n");
-        reply_vmsg_on(_state->_is, (size_t)0);
+        reply_vmsg(_state->_is, (size_t)0);
         _state->_eof |= DirectPipe::READ_EOF;
     }
 }
@@ -65,7 +65,7 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     if(_state->_rem == 0) {
         if(_state->_pos > 0) {
             DBG_PIPE("[read] replying len=" << _state->_pkglen << "\n");
-            reply_vmsg_on(_state->_is, _state->_pkglen);
+            reply_vmsg(_state->_is, _state->_pkglen);
             _state->_is.finish();
         }
         _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);

@@ -66,9 +66,10 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     return get_error();
 }
 
-Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t) {
+Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
+    write_reg(CmdRegs::OFFSET, off);
     Sync::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::REPLY));
 

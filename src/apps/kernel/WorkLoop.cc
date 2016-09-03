@@ -65,22 +65,24 @@ void WorkLoop::run() {
     SyscallHandler &sysch = SyscallHandler::get();
     epid_t sysep = sysch.epid();
     epid_t srvep = sysch.srvepid();
+    const m3::DTU::Message *msg;
     while(has_items()) {
         cycles_t sleep = Timeouts::get().sleep_time();
         if(sleep != static_cast<cycles_t>(-1))
             m3::DTU::get().try_sleep(sleep);
         Timeouts::get().trigger();
 
-        if(dtu.fetch_msg(sysep)) {
+        msg = dtu.fetch_msg(sysep);
+        if(msg) {
             // we know the subscriber here, so optimize that a bit
-            const m3::DTU::Message *msg = dtu.message(sysep);
             RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
             GateIStream is(*rgate, msg);
             sysch.handle_message(is, nullptr);
             EVENT_TRACE_FLUSH_LIGHT();
         }
-        if(dtu.fetch_msg(srvep)) {
-            const m3::DTU::Message *msg = dtu.message(srvep);
+
+        msg = dtu.fetch_msg(srvep);
+        if(msg) {
             RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
             GateIStream is(*gate, msg);
             gate->notify_all(is);

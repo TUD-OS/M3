@@ -138,23 +138,23 @@ public:
         for(uint i = 0; i < CLIENTS; ++i) {
             if(!(occupied & (1 << i))) {
                 HashSessionData *sess = add_session(new HashSessionData(i));
-                reply_vmsg_on(args, Errors::NO_ERROR, sess);
+                reply_vmsg(args, Errors::NO_ERROR, sess);
                 return sess;
             }
         }
 
-        reply_vmsg_on(args, Errors::NO_SPACE);
+        reply_vmsg(args, Errors::NO_SPACE);
         return nullptr;
     }
 
     void handle_obtain(HashSessionData *sess, RecvBuf *, GateIStream &args, uint capcount) override {
         if(capcount != 2 || sess->sgate) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
         capsel_t caps = sess->connect(_acc);
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, caps, 2));
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, caps, 2));
     }
 
 private:

@@ -30,11 +30,11 @@ public:
 
     virtual void handle_obtain(SessionData *, RecvBuf *, GateIStream &args, uint capcount) override {
         if(capcount != 1) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, _vgamem->sel()));
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, _vgamem->sel()));
     }
 
 private:

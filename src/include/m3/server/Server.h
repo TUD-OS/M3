@@ -63,8 +63,9 @@ public:
         while(VPE::self().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
             LLOG(SERV, "handling pending requests...");
-            while(DTU::get().fetch_msg(_ctrl_rgate.epid())) {
-                GateIStream is(_ctrl_rgate, Errors::NO_ERROR);
+            DTU::Message *msg;
+            while((msg = DTU::get().fetch_msg(_ctrl_rgate.epid()))) {
+                GateIStream is(_ctrl_rgate, msg, Errors::NO_ERROR);
                 handle_message(is, nullptr);
             }
         }
@@ -92,7 +93,7 @@ private:
             (this->*_ctrl_handler[op])(msg);
             return;
         }
-        reply_vmsg(msg.gate(), Errors::INV_ARGS);
+        reply_vmsg(msg, Errors::INV_ARGS);
     }
 
     void handle_open(GateIStream &is) {
@@ -145,7 +146,7 @@ private:
 
         _handler->handle_shutdown();
         shutdown();
-        reply_vmsg_on(is, Errors::NO_ERROR);
+        reply_vmsg(is, Errors::NO_ERROR);
     }
 
 protected:

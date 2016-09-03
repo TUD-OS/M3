@@ -61,7 +61,7 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        m3::DTU::get().mark_read(epid());
+        m3::DTU::get().mark_read(epid(), msgidx);
 #endif
 
         m3::DTU::get().wait_until_ready(_ep);
@@ -103,9 +103,10 @@ static inline m3::Errors::Code send_vmsg(SendGate &gate, RecvGate *rgate, const 
     return gate.send(msg.bytes(), msg.total, rgate);
 }
 template<typename... Args>
-static inline m3::Errors::Code reply_vmsg(RecvGate &gate, const Args &... args) {
+static inline m3::Errors::Code reply_vmsg(GateIStream &is, const Args &... args) {
     EVENT_TRACER_reply_vmsg();
-    return kernel::create_vmsg(args...).reply(gate);
+    auto msg = kernel::create_vmsg(args...);
+    return is.reply(msg.bytes(), msg.total());
 }
 
 }

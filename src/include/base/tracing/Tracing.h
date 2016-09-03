@@ -29,51 +29,49 @@
 #define EVENT_TRACER_send_receive_msg()     EVENT_TRACER(5)
 #define EVENT_TRACER_send_receive_vmsg()    EVENT_TRACER(6)
 #define EVENT_TRACER_reply_msg()            EVENT_TRACER(7)
-#define EVENT_TRACER_reply_msg_on()         EVENT_TRACER(8)
-#define EVENT_TRACER_reply_vmsg()           EVENT_TRACER(9)
-#define EVENT_TRACER_reply_vmsg_on()        EVENT_TRACER(10)
-#define EVENT_TRACER_write_vmsg()           EVENT_TRACER(11)
-#define EVENT_TRACER_KWorkLoop_run()        EVENT_TRACER(12)
-#define EVENT_TRACER_lambda_main()          EVENT_TRACER(13)
-#define EVENT_TRACER_read_sync()            EVENT_TRACER(14)
-#define EVENT_TRACER_write_sync()           EVENT_TRACER(15)
-#define EVENT_TRACER_cmpxchg_sync()         EVENT_TRACER(16)
-#define EVENT_TRACER_handle_message()       EVENT_TRACER(17)
+#define EVENT_TRACER_reply_vmsg()           EVENT_TRACER(8)
+#define EVENT_TRACER_write_vmsg()           EVENT_TRACER(9)
+#define EVENT_TRACER_KWorkLoop_run()        EVENT_TRACER(10)
+#define EVENT_TRACER_lambda_main()          EVENT_TRACER(11)
+#define EVENT_TRACER_read_sync()            EVENT_TRACER(12)
+#define EVENT_TRACER_write_sync()           EVENT_TRACER(13)
+#define EVENT_TRACER_cmpxchg_sync()         EVENT_TRACER(14)
+#define EVENT_TRACER_handle_message()       EVENT_TRACER(15)
 // syscalls
-#define EVENT_TRACER_Syscall_createsrv()    EVENT_TRACER(18);
-#define EVENT_TRACER_Syscall_createsess()   EVENT_TRACER(19);
-#define EVENT_TRACER_Syscall_creategate()   EVENT_TRACER(20);
-#define EVENT_TRACER_Syscall_createvpe()    EVENT_TRACER(21);
-#define EVENT_TRACER_Syscall_createmap()    EVENT_TRACER(22);
-#define EVENT_TRACER_Syscall_attachrb()     EVENT_TRACER(23);
-#define EVENT_TRACER_Syscall_detachrb()     EVENT_TRACER(24);
-#define EVENT_TRACER_Syscall_exchange()     EVENT_TRACER(25);
-#define EVENT_TRACER_Syscall_vpectrl()      EVENT_TRACER(26);
-#define EVENT_TRACER_Syscall_reqmem()       EVENT_TRACER(27);
-#define EVENT_TRACER_Syscall_derivemem()    EVENT_TRACER(28);
-#define EVENT_TRACER_Syscall_delegate()     EVENT_TRACER(29);
-#define EVENT_TRACER_Syscall_obtain()       EVENT_TRACER(30);
-#define EVENT_TRACER_Syscall_delob_done()   EVENT_TRACER(31);
-#define EVENT_TRACER_Syscall_activate()     EVENT_TRACER(32);
-#define EVENT_TRACER_Syscall_revoke()       EVENT_TRACER(33);
-#define EVENT_TRACER_Syscall_exit()         EVENT_TRACER(34);
+#define EVENT_TRACER_Syscall_createsrv()    EVENT_TRACER(16);
+#define EVENT_TRACER_Syscall_createsess()   EVENT_TRACER(17);
+#define EVENT_TRACER_Syscall_creategate()   EVENT_TRACER(18);
+#define EVENT_TRACER_Syscall_createvpe()    EVENT_TRACER(19);
+#define EVENT_TRACER_Syscall_createmap()    EVENT_TRACER(20);
+#define EVENT_TRACER_Syscall_attachrb()     EVENT_TRACER(21);
+#define EVENT_TRACER_Syscall_detachrb()     EVENT_TRACER(22);
+#define EVENT_TRACER_Syscall_exchange()     EVENT_TRACER(23);
+#define EVENT_TRACER_Syscall_vpectrl()      EVENT_TRACER(24);
+#define EVENT_TRACER_Syscall_reqmem()       EVENT_TRACER(25);
+#define EVENT_TRACER_Syscall_derivemem()    EVENT_TRACER(26);
+#define EVENT_TRACER_Syscall_delegate()     EVENT_TRACER(27);
+#define EVENT_TRACER_Syscall_obtain()       EVENT_TRACER(28);
+#define EVENT_TRACER_Syscall_delob_done()   EVENT_TRACER(29);
+#define EVENT_TRACER_Syscall_activate()     EVENT_TRACER(30);
+#define EVENT_TRACER_Syscall_revoke()       EVENT_TRACER(31);
+#define EVENT_TRACER_Syscall_exit()         EVENT_TRACER(32);
 // service commands
-#define EVENT_TRACER_Service_open()         EVENT_TRACER(35);
-#define EVENT_TRACER_Service_obtain()       EVENT_TRACER(36);
-#define EVENT_TRACER_Service_delegate()     EVENT_TRACER(37);
-#define EVENT_TRACER_Service_close()        EVENT_TRACER(38);
-#define EVENT_TRACER_Service_shutdown()     EVENT_TRACER(39);
+#define EVENT_TRACER_Service_open()         EVENT_TRACER(33);
+#define EVENT_TRACER_Service_obtain()       EVENT_TRACER(34);
+#define EVENT_TRACER_Service_delegate()     EVENT_TRACER(35);
+#define EVENT_TRACER_Service_close()        EVENT_TRACER(36);
+#define EVENT_TRACER_Service_shutdown()     EVENT_TRACER(37);
 // fs commands
-#define EVENT_TRACER_FS_open()              EVENT_TRACER(40);
-#define EVENT_TRACER_FS_seek()              EVENT_TRACER(41);
-#define EVENT_TRACER_FS_stat()              EVENT_TRACER(42);
-#define EVENT_TRACER_FS_fstat()             EVENT_TRACER(43);
-#define EVENT_TRACER_FS_mkdir()             EVENT_TRACER(44);
-#define EVENT_TRACER_FS_rmdir()             EVENT_TRACER(45);
-#define EVENT_TRACER_FS_link()              EVENT_TRACER(46);
-#define EVENT_TRACER_FS_unlink()            EVENT_TRACER(47);
-#define EVENT_TRACER_FS_close()             EVENT_TRACER(48);
-#define EVENT_TRACER_FS_getlocs()           EVENT_TRACER(49);
+#define EVENT_TRACER_FS_open()              EVENT_TRACER(38);
+#define EVENT_TRACER_FS_seek()              EVENT_TRACER(39);
+#define EVENT_TRACER_FS_stat()              EVENT_TRACER(40);
+#define EVENT_TRACER_FS_fstat()             EVENT_TRACER(41);
+#define EVENT_TRACER_FS_mkdir()             EVENT_TRACER(42);
+#define EVENT_TRACER_FS_rmdir()             EVENT_TRACER(43);
+#define EVENT_TRACER_FS_link()              EVENT_TRACER(44);
+#define EVENT_TRACER_FS_unlink()            EVENT_TRACER(45);
+#define EVENT_TRACER_FS_close()             EVENT_TRACER(46);
+#define EVENT_TRACER_FS_getlocs()           EVENT_TRACER(47);
 
 // here some functions can be filtered at compile time by redefining the macros
 #undef  EVENT_TRACER_read_sync
@@ -82,12 +80,8 @@
 #define EVENT_TRACER_write_sync()
 #undef  EVENT_TRACER_reply_msg
 #define EVENT_TRACER_reply_msg()
-#undef  EVENT_TRACER_reply_msg_on
-#define EVENT_TRACER_reply_msg_on()
 #undef  EVENT_TRACER_reply_vmsg
 #define EVENT_TRACER_reply_vmsg()
-#undef  EVENT_TRACER_reply_vmsg_on
-#define EVENT_TRACER_reply_vmsg_on()
 #undef  EVENT_TRACER_handle_message
 #define EVENT_TRACER_handle_message()
 

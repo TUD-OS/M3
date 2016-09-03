@@ -44,7 +44,7 @@ public:
         size_t size;
         args >> size;
         PipeSessionData *sess = add_session(new PipeSessionData(size));
-        reply_vmsg_on(args, Errors::NO_ERROR, sess);
+        reply_vmsg(args, Errors::NO_ERROR, sess);
         return sess;
     }
 
@@ -55,18 +55,18 @@ public:
             return;
         }
         if((sess->reader && sess->writer) || capcount != 1) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
         if(sess->reader == nullptr) {
             sess->reader = new PipeReadHandler(sess);
-            reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
+            reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
                 sess->reader->sendgate().sel()));
         }
         else {
             sess->writer = new PipeWriteHandler(sess);
-            reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
+            reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
                 sess->writer->sendgate().sel()));
         }
     }
@@ -78,7 +78,7 @@ public:
         is >> reading;
 
         Errors::Code res = reading ? sess->reader->attach(sess) : sess->writer->attach(sess);
-        reply_vmsg(is.gate(), res);
+        reply_vmsg(is, res);
     }
 
     void close(GateIStream &is) {
@@ -89,7 +89,7 @@ public:
         is >> reading >> id;
 
         Errors::Code res = reading ? sess->reader->close(sess, id) : sess->writer->close(sess, id);
-        reply_vmsg(is.gate(), res);
+        reply_vmsg(is, res);
     }
 };
 

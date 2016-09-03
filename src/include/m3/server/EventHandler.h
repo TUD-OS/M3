@@ -58,12 +58,12 @@ protected:
     virtual void handle_delegate(EventSessionData *sess, GateIStream &args, uint capcount) override {
         // TODO like in RequestHandler, don't check additional argument size
         if(sess->gate() || /*args.remaining() > 0 || */capcount != 1) {
-            reply_vmsg_on(args, Errors::INV_ARGS);
+            reply_vmsg(args, Errors::INV_ARGS);
             return;
         }
 
         sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));
-        reply_vmsg_on(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->gate()->sel()));
+        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->gate()->sel()));
     }
 
 private:

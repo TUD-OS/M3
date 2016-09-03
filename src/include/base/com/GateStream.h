@@ -56,14 +56,14 @@ public:
     BaseGateOStream &operator=(const BaseGateOStream &) = default;
 
     /**
-     * Replies the current content of this GateOStream as a message to the first not acknowledged
-     * message in the receive buffer of given receive gate.
+     * Replies the current content of this GateOStream as a message to the given message.
      *
      * @param gate the gate that hosts the message to reply to
+     * @param msg the message to reply to
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code reply(RGATE &gate) {
-        return gate.reply_sync(bytes(), total(), m3::DTU::get().get_msgoff(gate.epid()));
+    Errors::Code reply(RGATE &gate, const void *msg) {
+        return gate.reply_sync(bytes(), total(), m3::DTU::get().get_msgoff(gate.epid(), msg));
     }
 
     using Marshaller::put;
@@ -154,9 +154,6 @@ public:
  */
 template<class RGATE, class SGATE>
 class BaseGateIStream {
-    static const uint FL_READ   = 1;
-    static const uint FL_ACK    = 2;
-
 public:
     /**
      * Creates an object to read the first not acknowledged message from <gate>.
@@ -164,9 +161,8 @@ public:
      * @param gate the gate to fetch the message from
      * @param err the error code
      */
-    explicit BaseGateIStream(RGATE &gate, Errors::Code err = Errors::NO_ERROR)
-        : _err(err), _flags(FL_READ | FL_ACK), _pos(0), _gate(&gate),
-          _msg(DTU::get().message(gate.epid())) {
+    explicit BaseGateIStream(RGATE &gate, const DTU::Message *msg, Errors::Code err)
+        : _err(err), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
     }
 
     /**
@@ -176,17 +172,17 @@ public:
      * @param msg the message
      */
     explicit BaseGateIStream(RGATE &gate, const DTU::Message *msg)
-        : _err(Errors::NO_ERROR), _flags(FL_READ | FL_ACK), _pos(0), _gate(&gate), _msg(msg) {
+        : _err(Errors::NO_ERROR), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
     }
 
     // don't do the ack twice. thus, copies never ack.
     BaseGateIStream(const BaseGateIStream &is)
-        : _err(is._err), _flags(0), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        : _err(is._err), _ack(), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
     }
     BaseGateIStream &operator=(const BaseGateIStream &is) {
         if(this != &is) {
             _err = is._err;
-            _flags = 0;
+            _ack = false;
             _pos = is._pos;
             _gate = is._gate;
             _msg = is._msg;
@@ -196,17 +192,17 @@ public:
     BaseGateIStream &operator=(BaseGateIStream &&is) {
         if(this != &is) {
             _err = is._err;
-            _flags = is._flags;
+            _ack = is._ack;
             _pos = is._pos;
             _gate = is._gate;
             _msg = is._msg;
-            is._flags = 0;
+            is._ack = 0;
         }
         return *this;
     }
     BaseGateIStream(BaseGateIStream &&is)
-        : _err(is._err), _flags(is._flags), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
-        is._flags = 0;
+        : _err(is._err), _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        is._ack = 0;
     }
     ~BaseGateIStream() {
         finish();
@@ -325,7 +321,7 @@ public:
      * to ack the message on your own via DTU::get().mark_acked(<epid>).
      */
     void claim() {
-        _flags &= ~FL_ACK;
+        _ack = false;
     }
 
     /**
@@ -333,9 +329,9 @@ public:
      * acknowledgement has not been disabled (see claim), it will be acked.
      */
     void finish() {
-        if(_flags) {
-            DTU::get().mark_read(_gate->epid(), _flags & FL_ACK);
-            _flags = 0;
+        if(_ack) {
+            DTU::get().mark_read(_gate->epid(), DTU::get().get_msgoff(_gate->epid(), _msg));
+            _ack = false;
         }
     }
 
@@ -345,7 +341,6 @@ private:
     }
 
     Errors::Code _err;
-    uint _flags;
     bool _ack;
     size_t _pos;
     RGATE *_gate;

@@ -91,9 +91,10 @@ public:
      * soon as it gets invalid and return the appropriate error.
      *
      * @param sgate the send-gate (optional), if waiting for a reply
+     * @param msg will be set to the fetched message
      * @return the error code
      */
-    Errors::Code wait(SendGate *sgate) const;
+    Errors::Code wait(SendGate *sgate, DTU::Message **msg) const;
 
     /**
      * Calls all subscribers
@@ -126,7 +127,7 @@ public:
         // might send us another message, which we might miss if we ACK this message after we've got
         // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-        DTU::get().mark_read(epid(), true);
+        DTU::get().mark_read(epid(), msgidx);
 #endif
         wait_until_sent();
         return DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);

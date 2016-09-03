@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
             cout << "Got " << count << " data items\n";
 
-            reply_vmsg_on(is, 0);
+            reply_vmsg(is, 0);
             total += count;
         }
         cout << "Got " << total << " items in total\n";

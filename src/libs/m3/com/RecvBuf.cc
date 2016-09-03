@@ -37,8 +37,8 @@ INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
 void RecvBuf::RecvBufWorkItem::work() {
     DTU &dtu = DTU::get();
     assert(_epid != UNBOUND);
-    if(dtu.fetch_msg(_epid)) {
-        DTU::Message *msg = dtu.message(_epid);
+    DTU::Message *msg = dtu.fetch_msg(_epid);
+    if(msg) {
         LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
         RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
         GateIStream is(*gate, msg);

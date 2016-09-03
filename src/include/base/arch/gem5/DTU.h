@@ -40,7 +40,7 @@ class DTU {
     friend class kernel::DTUState;
     friend class kernel::VPE;
 
-    explicit DTU() : _unack() {
+    explicit DTU() {
     }
 
 public:
@@ -101,9 +101,10 @@ private:
         REPLY               = 2,
         READ                = 3,
         WRITE               = 4,
-        INC_READ_PTR        = 5,
-        SLEEP               = 6,
-        DEBUG_MSG           = 7,
+        FETCH_MSG           = 5,
+        ACK_MSG             = 6,
+        SLEEP               = 7,
+        DEBUG_MSG           = 8,
     };
 
     enum class ExtCmdOpCode {
@@ -201,7 +202,7 @@ public:
     }
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
-    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code reply(int ep, const void *msg, size_t size, size_t off);
     Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
     Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
     Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
@@ -224,45 +225,23 @@ public:
         return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
     }
 
-    bool fetch_msg(int epid) const {
-        reg_t r0 = read_reg(epid, 0) & 0xFFFF;
-        return r0 - _unack[epid] > 0;
+    Message *fetch_msg(int epid) const {
+        write_reg(CmdRegs::COMMAND, buildCommand(epid, CmdOpCode::FETCH_MSG));
+        Sync::memory_barrier();
+        return reinterpret_cast<Message*>(read_reg(CmdRegs::OFFSET));
     }
 
-    DTU::Message *message(int epid) const {
-        reg_t r0 = read_reg(epid, 0);
-        reg_t r1 = read_reg(epid, 1);
-        reg_t r2 = read_reg(epid, 2);
-        r2 = (r2 >> 16) & 0xFFFF;
-        if(EXPECT_FALSE(_unack[epid])) {
-            size_t msgsize = (r0 >> 32) & 0xFFFF;
-            r2 += _unack[epid] * msgsize;
-            r2 &= ((r0 >> 16) & 0xFFFF) * msgsize - 1;
-        }
-        return reinterpret_cast<Message*>(r1 + r2);
-    }
-    Message *message_at(int, size_t) const {
-        // TODO unsupported
-        return nullptr;
+    size_t get_msgoff(int, const Message *msg) const {
+        return reinterpret_cast<uintptr_t>(msg);
     }
 
-    size_t get_msgoff(int) const {
-        return 0;
-    }
-    size_t get_msgoff(int, const Message *) const {
-        // TODO unsupported
-        return 0;
-    }
-
-    void mark_read(int ep, bool ack = true) {
-        if(ack)
-            do_ack(ep);
-        else
-            _unack[ep]++;
-    }
-    void mark_acked(int ep) {
-        _unack[ep]--;
-        do_ack(ep);
+    void mark_read(int ep, size_t off) {
+        write_reg(CmdRegs::OFFSET, off);
+        // ensure that we are really done with the message before acking it
+        Sync::memory_barrier();
+        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::ACK_MSG));
+        // ensure that we don't do something else before the ack
+        Sync::memory_barrier();
     }
 
     uint msgcnt() {
@@ -290,14 +269,6 @@ public:
 
 private:
     Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, size_t off);
-
-    void do_ack(int ep) {
-        // ensure that we are really done with the message before acking it
-        Sync::memory_barrier();
-        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::INC_READ_PTR));
-        // ensure that we don't do something else before the ack
-        Sync::memory_barrier();
-    }
 
     static Errors::Code get_error() {
         while(true) {
@@ -356,7 +327,6 @@ private:
                 (static_cast<reg_t>(flags) << 35);
     }
 
-    int _unack[EP_COUNT];
     static DTU inst;
 };
 
