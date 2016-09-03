@@ -213,6 +213,7 @@ static uintptr_t map_idle(VPE &vpe) {
 
 void VPE::load_app(const char *name) {
     assert(_flags & F_BOOTMOD);
+    assert(_flags & F_START);
 
     bool appFirst;
     BootModule *mod = get_mod(name, &appFirst);
@@ -271,13 +272,6 @@ void VPE::load_app(const char *name) {
     senv.heapsize = MOD_HEAP_SIZE;
 
     DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));
-
-    // we can start now
-    assert(_flags & F_INIT);
-    _flags |= F_START;
-
-    // add a reference, like VPE::start() does
-    ref();
 }
 
 void VPE::init_memory() {
@@ -299,6 +293,14 @@ void VPE::init_memory() {
     uintptr_t barrier = Platform::rw_barrier(pe());
     dtustate().config_rwb(barrier);
     DTU::get().config_rwb_remote(desc(), barrier);
+
+    // boot modules are started implicitly
+    if(_flags & F_BOOTMOD) {
+        _flags |= F_START;
+
+        // add a reference, like VPE::start() does
+        ref();
+    }
 }
 
 }

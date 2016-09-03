@@ -263,7 +263,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
 
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
-            if(_cur->flags() & VPE::F_BOOTMOD)
+            if((_cur->flags() & (VPE::F_BOOTMOD | VPE::F_START)) == (VPE::F_BOOTMOD | VPE::F_START))
                 _cur->load_app(_cur->name().c_str());
 
             // fall through
