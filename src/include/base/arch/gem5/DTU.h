@@ -249,7 +249,9 @@ public:
     }
     void try_sleep(uint64_t cycles = 0);
     void sleep(uint64_t cycles = 0) {
-        write_reg(CmdRegs::COMMAND, buildCommand(cycles, CmdOpCode::SLEEP));
+        write_reg(CmdRegs::OFFSET, cycles);
+        Sync::memory_barrier();
+        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::SLEEP));
     }
 
     void wait_until_ready(int) const {
@@ -264,7 +266,9 @@ public:
     }
 
     void debug_msg(uint msg) {
-        write_reg(CmdRegs::COMMAND, buildCommand(msg, CmdOpCode::DEBUG_MSG));
+        write_reg(CmdRegs::OFFSET, msg);
+        Sync::memory_barrier();
+        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::DEBUG_MSG));
     }
 
 private:
@@ -321,10 +325,10 @@ private:
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
-    static reg_t buildCommand(uint arg, CmdOpCode c, uint flags = 0) {
+    static reg_t buildCommand(int epid, CmdOpCode c, uint flags = 0) {
         return static_cast<reg_t>(c) |
-                (static_cast<reg_t>(arg) << 3) |
-                (static_cast<reg_t>(flags) << 35);
+                (static_cast<reg_t>(epid) << 3) |
+                (static_cast<reg_t>(flags) << 11);
     }
 
     static DTU inst;
