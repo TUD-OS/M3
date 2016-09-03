@@ -35,7 +35,6 @@ VPEManager::VPEManager()
 }
 
 void VPEManager::load(int argc, char **argv) {
-    peid_t peid = Platform::first_pe();
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
@@ -45,10 +44,13 @@ void VPEManager::load(int argc, char **argv) {
 
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
+            // TODO the required PE depends on the boot module, not the kernel PE
+            peid_t peid = PEManager::get().find_pe(Platform::pe(Platform::kernel_pe()), false);
+            if(peid == 0)
+                PANIC("Unable to find a free PE for boot module " << argv[i]);
+
             // allow multiple applications with the same name
             _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);
-
-            peid++;
 
 #if defined(__t3__)
             // VPEs started in t3 simulator are already running when loaded
