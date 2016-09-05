@@ -167,6 +167,8 @@ public:
     void config_mem_ep(epid_t ep, peid_t dstpe, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:
+    void update_ep(epid_t ep);
+
     void notify_resume() {
         // notify subscribers
         for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {

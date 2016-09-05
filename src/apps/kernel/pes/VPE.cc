@@ -134,24 +134,25 @@ void VPE::exit(int exitcode) {
 
 void VPE::invalidate_ep(epid_t ep) {
     _dtustate.invalidate(ep);
-    if(state() == VPE::RUNNING)
-        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
+    update_ep(ep);
 }
 
 void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
     _dtustate.config_send(ep, lbl, pe, vpe, dstep, msgsize, crd);
-    if(state() == VPE::RUNNING)
-        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
+    update_ep(ep);
 }
 
 void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     _dtustate.config_recv(ep, buf, order, msgorder, flags);
-    if(state() == VPE::RUNNING)
-        DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
+    update_ep(ep);
 }
 
 void VPE::config_mem_ep(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm) {
     _dtustate.config_mem(ep, pe, vpe, addr, size, perm);
+    update_ep(ep);
+}
+
+void VPE::update_ep(epid_t ep) {
     if(state() == VPE::RUNNING)
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }

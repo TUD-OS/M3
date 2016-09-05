@@ -134,14 +134,13 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
 
         // clear PT
         pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
-        // TODO can't do that here because it would reconfigure _ep
-        // clear_pt(pte);
+        clear_pt(pte);
 
         // insert PTE
         pte |= m3::DTU::PTE_RWX;
         KLOG(PTES, "PE" << vpe.pe << ": lvl 1 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-        m3::DTU::get().write(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
+        write_mem(vpe, pteAddr, &pte, sizeof(pte));
     }
 
     assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
@@ -173,7 +172,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
     while(pteAddr < endpte) {
         KLOG(PTES, "PE" << vpe.pe << ": lvl 0 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
-        m3::DTU::get().write(_ep, &npte, sizeof(npte), pteAddr, m3::DTU::CmdFlags::NOPF);
+        write_mem(vpe, pteAddr, &npte, sizeof(npte));
 
         // permissions downgraded?
         if(downgrade) {
@@ -182,8 +181,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
             alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
                 static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3);
             m3::Sync::compiler_barrier();
-            m3::DTU::get().write(_ep, &reg, sizeof(reg),
-                m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), m3::DTU::CmdFlags::NOPF);
+            write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
         }
 
         pteAddr += sizeof(npte);
@@ -226,7 +224,7 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
             return pt;
 
         m3::DTU::pte_t pte;
-        m3::DTU::get().read(_ep, &pte, sizeof(pte), pt, m3::DTU::CmdFlags::NOPF);
+        read_mem(vpe, pt, &pte, sizeof(pte));
 
         pt = m3::DTU::noc_to_virt(pte & ~PAGE_MASK);
     }
@@ -235,19 +233,8 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
 }
 
 void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
-    // configure the memory EP once and use it for all accesses
     bool running = vpe.pe == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
-
-    if(!running) {
-        // TODO in theory, PTEs could be in different memory PEs
-        VPE &v = VPEManager::get().vpe(vpe.id);
-        peid_t pe = m3::DTU::noc_to_pe(v.address_space()->root_pt());
-        _state.config_mem(_ep, pe, VPE::INVALID_ID, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
-    }
-    else
-        _state.config_mem(_ep, vpe.pe, vpe.id, 0, 0xFFFFFFFFFFFFFFFF, m3::DTU::W | m3::DTU::R);
-    write_ep_local(_ep);
 
     while(pages > 0) {
         for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
@@ -258,7 +245,7 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pag
                 pteAddr = get_pte_addr(virt, level);
 
             m3::DTU::pte_t pte;
-            m3::DTU::get().read(_ep, &pte, sizeof(pte), pteAddr, m3::DTU::CmdFlags::NOPF);
+            read_mem(vpe, pteAddr, &pte, sizeof(pte));
             if(level > 0) {
                 if(create_pt(vpe, virt, pteAddr, pte, perm))
                     return;
@@ -272,6 +259,10 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pag
 }
 
 void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
+    // don't do anything if the VPE is already dead
+    if(vpe.pe != Platform::kernel_pe() && VPEManager::get().vpe(vpe.id).state() == VPE::DEAD)
+        return;
+
     map_pages(vpe, virt, 0, pages, 0);
 
     // TODO remove pagetables on demand
@@ -299,7 +290,8 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, msgsize);
     write_ep_local(_ep);
 
-    m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    UNUSED m3::Errors::Code res = m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    assert(res == m3::Errors::NO_ERROR);
 }
 
 void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label, const void *msg,
@@ -312,14 +304,28 @@ void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t
     write_ep_local(_ep);
 
     // the kernel can never cause pagefaults with reads/writes
-    m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    m3::Errors::Code res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    if(res == m3::Errors::VPE_GONE) {
+        // if a context switch is in progress, it might be that the VPE is still RUNNING, but the
+        // app has already done the abort, so that the VPE id is invalid.
+        _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::W);
+        write_ep_local(_ep);
+        res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    }
+    assert(res == m3::Errors::NO_ERROR);
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::R);
     write_ep_local(_ep);
 
-    m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    m3::Errors::Code res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    if(res == m3::Errors::VPE_GONE) {
+        _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::R);
+        write_ep_local(_ep);
+        res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    }
+    assert(res == m3::Errors::NO_ERROR);
 }
 
 }
