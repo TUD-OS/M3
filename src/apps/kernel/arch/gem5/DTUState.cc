@@ -46,7 +46,6 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     _regs.set(m3::DTU::DtuRegs::VPE_ID, vpeid);
 
     // reset idle time and msg count; msg count will be recalculated from the EPs
-    _regs.set(m3::DTU::DtuRegs::MSG_CNT, 0);
     _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
     m3::Sync::compiler_barrier();
