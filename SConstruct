@@ -116,6 +116,10 @@ if target == 't2' or target == 't3':
 else:
     env.Append(CXXFLAGS = ' -fno-omit-frame-pointer')
     if target == 'gem5':
+        # disable red-zone for all applications, because we use the application's stack in rctmux's
+        # IRQ handlers since applications run in privileged mode.
+        env.Append(CFLAGS = ' -mno-red-zone')
+        env.Append(CXXFLAGS = ' -mno-red-zone')
         # no build-id because it confuses gem5
         env.Append(LINKFLAGS = ' -static -Wl,--build-id=none -nostdlib')
         # binaries get very large otherwise
