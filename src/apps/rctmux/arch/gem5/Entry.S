@@ -92,10 +92,9 @@ isrCommon:
     call    interrupt_handler
 
     // the kernel will reset the PE
+1:
     hlt
-
-    // we should not get here
-1:  jmp     1b
+    jmp     1b
 
 .size   isrCommon, .-isrCommon
 
