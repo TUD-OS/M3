@@ -42,7 +42,7 @@ void SessionObject::close() {
         msg << m3::KIF::Service::CLOSE << ident;
         KLOG(SERV, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8)
             << " to " << srv->name());
-        ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total());
+        ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total(), msg.is_on_heap());
         msg.claim();
     }
 }

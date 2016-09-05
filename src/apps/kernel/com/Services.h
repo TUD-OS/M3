@@ -53,8 +53,8 @@ public:
     int pending() const {
         return _queue.inflight() + _queue.pending();
     }
-    void send(RecvGate *rgate, const void *msg, size_t size) {
-        _queue.send(rgate, &_sgate, msg, size);
+    void send(RecvGate *rgate, const void *msg, size_t size, bool free) {
+        _queue.send(rgate, &_sgate, msg, size, free);
     }
     void received_reply() {
         _queue.received_reply();
@@ -102,7 +102,7 @@ public:
         }
         return nullptr;
     }
-    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size);
+    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free);
 
 private:
     void remove(Service *inst) {

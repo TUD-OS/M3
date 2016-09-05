@@ -47,9 +47,9 @@ public:
         return _queue.length();
     }
 
-    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
+    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool free) {
         if(_inflight < _capacity)
-            do_send(rgate, sgate, msg, size);
+            do_send(rgate, sgate, msg, size, free);
         else {
             // if it's not already on the heap, put it there
             if(!m3::Heap::is_on_heap(msg)) {
@@ -68,15 +68,16 @@ public:
         _inflight--;
         Entry *e = _queue.remove_first();
         if(e) {
-            do_send(e->rgate, e->sgate, e->msg, e->size);
+            // pending messages have always been copied to the heap
+            do_send(e->rgate, e->sgate, e->msg, e->size, true);
             delete e;
         }
     }
 
 private:
-    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size) {
+    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool free) {
         sgate->send(msg, size, rgate);
-        if(m3::Heap::is_on_heap(msg))
+        if(free)
             m3::Heap::free(const_cast<void*>(msg));
         _inflight++;
     }

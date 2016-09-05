@@ -28,7 +28,7 @@ Service::~Service() {
     ServiceList::get().remove(this);
 }
 
-void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size) {
+void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free) {
     // better use a new RecvGate here to not interfere with other syscalls
     RecvGate *rgate = new RecvGate(SyscallHandler::get().srvepid(), nullptr);
     rgate->subscribe([this, rgate, serv] (GateIStream &, m3::Subscriber<GateIStream&> *s) {
@@ -40,7 +40,7 @@ void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg,
         delete rgatecpy;
     });
 
-    serv->send(rgate, msg, size);
+    serv->send(rgate, msg, size, free);
 }
 
 }

@@ -122,7 +122,7 @@ void VPEManager::shutdown() {
         AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command>());
         msg << m3::KIF::Service::SHUTDOWN;
         KLOG(SERV, "Sending SHUTDOWN message to " << ref->name());
-        serv.send_and_receive(ref, msg.bytes(), msg.total());
+        serv.send_and_receive(ref, msg.bytes(), msg.total(), msg.is_on_heap());
         msg.claim();
     }
 }

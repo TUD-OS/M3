@@ -263,7 +263,7 @@ void SyscallHandler::createsess(GateIStream &is) {
     AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command>(), is.remaining()));
     msg << m3::KIF::Service::OPEN;
     msg.put(is);
-    s->send(&vpe->service_gate(), msg.bytes(), msg.total());
+    s->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
 
@@ -710,7 +710,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         m3::CapRngDesc>(), is.remaining()));
     msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
-    sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total());
+    sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
 

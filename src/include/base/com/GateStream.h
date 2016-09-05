@@ -136,6 +136,14 @@ public:
         : BaseGateOStream<RGATE, SGATE>(os) {
     }
 
+    bool is_on_heap() const {
+#if defined(__t2__) or defined(__t3__)
+        return true;
+#else
+        return false;
+#endif
+    }
+
     /**
      * Claim the ownership of the data from this class. Thus, it will not free it.
      */
