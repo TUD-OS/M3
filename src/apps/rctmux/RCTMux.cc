@@ -53,12 +53,12 @@ EXTERN_C void _sleep() {
 EXTERN_C void _save(void *s) {
     assert(flags_get() & m3::STORE);
 
-    bool can_block = save();
+    save();
 
     state = s;
 
     uint64_t flags = m3::SIGNAL;
-    if (can_block && m3::env()->idle_active)
+    if (m3::env()->idle_active)
         flags |= m3::BLOCK;
     flags_set(flags);
 }

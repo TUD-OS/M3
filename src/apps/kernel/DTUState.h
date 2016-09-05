@@ -35,6 +35,8 @@ public:
 
     cycles_t get_idle_time() const;
 
+    uint get_msg_count() const;
+
     void *get_ep(epid_t ep);
     void save(const VPEDesc &vpe);
     void restore(const VPEDesc &vpe, vpeid_t vpeid);

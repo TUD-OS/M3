@@ -27,6 +27,10 @@ cycles_t DTUState::get_idle_time() const {
     return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
 }
 
+uint DTUState::get_msg_count() const {
+    return _regs.get(m3::DTU::DtuRegs::MSG_CNT);
+}
+
 void *DTUState::get_ep(epid_t ep) {
     return _regs._eps + ep * m3::DTU::EP_REGS;
 }

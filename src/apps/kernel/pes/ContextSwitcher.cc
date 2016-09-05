@@ -232,13 +232,15 @@ void ContextSwitcher::next_state(uint64_t flags) {
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
+            bool blocked = (flags & m3::RCTMuxCtrl::BLOCK) && _cur->_dtustate.get_msg_count() == 0;
+
             KLOG(VPES, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
                 << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
             KLOG(VPES, "CtxSw[" << _pe << "]: VPE state can be set to "
-                << ((flags & m3::RCTMuxCtrl::BLOCK) ? "blocked" : "ready"));
+                << (blocked ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
-            if(flags & m3::RCTMuxCtrl::BLOCK)
+            if(blocked)
                 dequeue(_cur);
             // ensure that it is still enqueued. the idle syscall might have dequeued it
             // note that we want to make it ready even in this case, because that means that, e.g.,

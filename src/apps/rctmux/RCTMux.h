@@ -24,7 +24,7 @@ namespace RCTMux {
 extern void init();
 extern void sleep();
 extern void *init_state();
-extern bool save();
+extern void save();
 extern void resume();
 
 extern uint64_t flags_get();
