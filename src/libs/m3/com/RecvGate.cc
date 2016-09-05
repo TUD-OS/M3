@@ -32,7 +32,8 @@ Errors::Code RecvGate::wait(SendGate *sgate, DTU::Message **msg) const {
         if(sgate && !DTU::get().is_valid(sgate->epid()))
             return Errors::EP_INVALID;
 
-        DTU::get().try_sleep();
+        // don't report idles if we wait for a syscall reply
+        DTU::get().try_sleep(sgate->epid() != m3::DTU::SYSC_EP);
     }
     UNREACHED;
 }

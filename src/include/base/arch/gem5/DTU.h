@@ -247,7 +247,7 @@ public:
     uint msgcnt() {
         return read_reg(DtuRegs::MSG_CNT);
     }
-    void try_sleep(uint64_t cycles = 0);
+    void try_sleep(bool report = true, uint64_t cycles = 0);
     void sleep(uint64_t cycles = 0) {
         write_reg(CmdRegs::OFFSET, cycles);
         Sync::memory_barrier();

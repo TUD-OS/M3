@@ -69,7 +69,7 @@ void WorkLoop::run() {
     while(has_items()) {
         cycles_t sleep = Timeouts::get().sleep_time();
         if(sleep != static_cast<cycles_t>(-1))
-            m3::DTU::get().try_sleep(sleep);
+            m3::DTU::get().try_sleep(false, sleep);
         Timeouts::get().trigger();
 
         msg = dtu.fetch_msg(sysep);

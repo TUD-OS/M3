@@ -24,7 +24,7 @@ namespace m3 {
 
 INIT_PRIO_DTU DTU DTU::inst;
 
-void DTU::try_sleep(uint64_t cycles) {
+void DTU::try_sleep(bool report, uint64_t cycles) {
     // no messages pending, then try to sleep
     if(read_reg(DtuRegs::MSG_CNT) == 0) {
         // report_idle() calls us again
@@ -35,7 +35,7 @@ void DTU::try_sleep(uint64_t cycles) {
         m3::env()->idle_active = 1;
 
         // if the kernel requested it, notify him that we are going to idle now
-        if(m3::env()->idle_report)
+        if(report && m3::env()->idle_report)
             m3::env()->backend->report_idle();
 
         // ensure that we have no pending writes before going to sleep
