@@ -91,10 +91,6 @@ public:
 
     void init();
 
-    DTUState &dtustate() {
-        return _dtustate;
-    }
-
     RecvBufs &rbufs() {
         return _rbufs;
     }

@@ -277,7 +277,7 @@ void VPE::load_app(const char *name) {
 void VPE::init_memory() {
     bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
-        dtustate().config_pf(address_space()->root_pt(), address_space()->ep());
+        _dtustate.config_pf(address_space()->root_pt(), address_space()->ep());
         DTU::get().config_pf_remote(desc(), address_space()->root_pt(), address_space()->ep());
     }
 
@@ -291,7 +291,7 @@ void VPE::init_memory() {
     }
 
     uintptr_t barrier = Platform::rw_barrier(pe());
-    dtustate().config_rwb(barrier);
+    _dtustate.config_rwb(barrier);
     DTU::get().config_rwb_remote(desc(), barrier);
 
     // boot modules are started implicitly

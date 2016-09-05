@@ -227,10 +227,10 @@ void ContextSwitcher::next_state(uint64_t flags) {
         }
 
         case S_STORE_DONE: {
-            _cur->dtustate().save(_cur->desc());
+            _cur->_dtustate.save(_cur->desc());
 
             uint64_t now = DTU::get().get_time();
-            uint64_t cycles = _cur->dtustate().get_idle_time();
+            uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
             KLOG(VPES, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
                 << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
@@ -256,10 +256,10 @@ void ContextSwitcher::next_state(uint64_t flags) {
             _cur->_state = VPE::RUNNING;
             _cur->_lastsched = DTU::get().get_time();
 
-            _cur->dtustate().reset(RCTMUX_ENTRY);
+            _cur->_dtustate.reset(RCTMUX_ENTRY);
 
             VPEDesc vpe(_pe, VPE::INVALID_ID);
-            _cur->dtustate().restore(vpe, _cur->id());
+            _cur->_dtustate.restore(vpe, _cur->id());
 
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
