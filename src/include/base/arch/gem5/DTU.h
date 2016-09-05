@@ -278,7 +278,7 @@ private:
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
             if(static_cast<CmdOpCode>(cmd & 0x7) == CmdOpCode::IDLE)
-                return static_cast<Errors::Code>(cmd >> 36);
+                return static_cast<Errors::Code>(cmd >> 12);
         }
         UNREACHED;
     }
