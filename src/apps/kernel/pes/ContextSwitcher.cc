@@ -277,9 +277,8 @@ void ContextSwitcher::next_state(uint64_t flags) {
             if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
                 flags |= m3::RCTMuxCtrl::INIT;
 
-            // there is an application to restore if we are either resuming an application (!INIT)
-            // or if we are just starting it
-            if(!(_cur->flags() & VPE::F_INIT) || (_cur->flags() & VPE::F_START))
+            // tell rctmux whether there is an application and the PE id
+            if(_cur->flags() & (VPE::F_STARTED | VPE::F_START))
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             // let the VPE report idle times if there are other VPEs on this PE
@@ -298,7 +297,9 @@ void ContextSwitcher::next_state(uint64_t flags) {
         }
 
         case S_RESTORE_DONE: {
-            // we have finished these phases now (if they were set)
+            // we have finished the start phase (if it was set)
+            if(_cur->_flags & VPE::F_START)
+                _cur->_flags |= VPE::F_STARTED;
             _cur->_flags &= ~(VPE::F_INIT | VPE::F_START);
             _cur->notify_resume();
 

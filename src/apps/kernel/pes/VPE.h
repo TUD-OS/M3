@@ -54,8 +54,9 @@ public:
         F_IDLE        = 1 << 2,
         F_INIT        = 1 << 3,
         F_START       = 1 << 4,
-        F_MUXABLE     = 1 << 5, // TODO temporary
-        F_READY       = 1 << 6,
+        F_STARTED     = 1 << 5,
+        F_MUXABLE     = 1 << 6, // TODO temporary
+        F_READY       = 1 << 7,
     };
 
     struct ServName : public m3::SListItem {
