@@ -27,47 +27,53 @@
 
 using namespace m3;
 
-static const int TEST_COUNT = 50;
+struct App {
+    explicit App(int argc, const char *argv[])
+        : exec(argc, argv),
+          vpe(argv[0], VPE::self().pe(), "pager", true) {
+    }
+
+    Executable exec;
+    VPE vpe;
+};
 
 int main() {
-    cout << "Time-multiplexing context-switch benchmark started.\n";
-
     cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
-    cout << "Starting two VPEs with time-multiplexing enabled\n";
+    cout << "Creating VPEs...\n";
+
+    App *apps[2];
 
     const char *args1[] = {"/bin/rctmux-util-counter"};
+    apps[0] = new App(ARRAY_SIZE(args1), args1);
+
     const char *args2[] = {"/bin/unittests-misc"};
+    apps[1] = new App(ARRAY_SIZE(args2), args2);
 
-    // start the first vpe
-    VPE s1(args1[0], VPE::self().pe(), "pager", true);
-    s1.mountspace(*VPE::self().mountspace());
-    s1.obtain_mountspace();
-    Executable exec1(1, args1);
-    Errors::Code res1 = s1.exec(exec1);
-    if(res1 != Errors::NO_ERROR)
-        PANIC("Cannot execute " << args1[0] << ": " << Errors::to_string(res1));
+    cout << "Starting VPEs...\n";
 
-    // start the second VPE
-    VPE s2(args2[0], VPE::self().pe(), "pager", true);
-    s2.mountspace(*VPE::self().mountspace());
-    s2.obtain_mountspace();
-    Executable exec2(1, args2);
-    Errors::Code res2 = s2.exec(exec2);
-    if(res2 != Errors::NO_ERROR)
-        PANIC("Cannot execute " << args2[0] << ": " << Errors::to_string(res2));
+    for(size_t i = 0; i < ARRAY_SIZE(apps); ++i) {
+        apps[i]->vpe.mountspace(*VPE::self().mountspace());
+        apps[i]->vpe.obtain_mountspace();
+        Errors::Code res = apps[i]->vpe.exec(apps[i]->exec);
+        if(res != Errors::NO_ERROR)
+            PANIC("Cannot execute " << apps[i]->exec.argv()[0] << ": " << Errors::to_string(res));
+    }
 
-    // now do some switches
-    cout << "Starting benchmark (" << TEST_COUNT << " switches)...\n";
+    cout << "Waiting for VPEs...\n";
 
-    int exit1 = s1.wait();
-    cout << args1[0] << " exited with " << exit1 << "\n";
-    int exit2 = s2.wait();
-    cout << args2[0] << " exited with " << exit2 << "\n";
+    for(size_t i = 0; i < ARRAY_SIZE(apps); ++i) {
+        int res = apps[i]->vpe.wait();
+        cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
+    }
 
-    cout << "Benchmark finished.\n";
+    cout << "Deleting VPEs...\n";
 
+    for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
+        delete apps[i];
+
+    cout << "Done\n";
     return 0;
 }
