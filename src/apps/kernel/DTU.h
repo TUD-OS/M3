@@ -82,7 +82,7 @@ private:
         m3::DTU::pte_t pte, int perm);
     bool create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
         uintptr_t &phys, uint &pages, int perm);
-    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level);
+    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, uint64_t root, uintptr_t virt, int level);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void clear_pt(uintptr_t pt);

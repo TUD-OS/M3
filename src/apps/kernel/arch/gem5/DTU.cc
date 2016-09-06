@@ -161,6 +161,8 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
 
     bool downgrade = ((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0;
     downgrade |= (pte & ~m3::DTU::PTE_IRWX) != phys;
+    // do not invalidate pages if we are writing to a memory PE
+    downgrade &= Platform::pe(vpe.pe).has_virtmem();
     uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
         m3::Math::round_up(pteAddr + sizeof(npte), PAGE_SIZE));
 
@@ -212,10 +214,8 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uintptr_t virt, int level) {
-    VPE &v = VPEManager::get().vpe(vpe.id);
-
-    uintptr_t pt = m3::DTU::noc_to_virt(v.address_space()->root_pt());
+uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uint64_t root, uintptr_t virt, int level) {
+    uintptr_t pt = m3::DTU::noc_to_virt(root);
     for(int l = m3::DTU::LEVEL_CNT - 1; l >= 0; --l) {
         size_t idx = (virt >> (PAGE_BITS + m3::DTU::LEVEL_BITS * l)) & m3::DTU::LEVEL_MASK;
         pt += idx * m3::DTU::PTE_SIZE;
@@ -236,22 +236,32 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pag
     bool running = vpe.pe == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
 
+    VPEDesc rvpe(vpe);
+    uint64_t root = 0;
+    if(!running) {
+        VPE &v = VPEManager::get().vpe(vpe.id);
+        // TODO we currently assume that all PTEs are in the same mem PE as the root PT
+        peid_t pe = m3::DTU::noc_to_pe(v.address_space()->root_pt());
+        root = v.address_space()->root_pt();
+        rvpe = VPEDesc(pe, VPE::INVALID_ID);
+    }
+
     while(pages > 0) {
         for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
             uintptr_t pteAddr;
             if(!running)
-                pteAddr = get_pte_addr_mem(vpe, virt, level);
+                pteAddr = get_pte_addr_mem(rvpe, root, virt, level);
             else
                 pteAddr = get_pte_addr(virt, level);
 
             m3::DTU::pte_t pte;
-            read_mem(vpe, pteAddr, &pte, sizeof(pte));
+            read_mem(rvpe, pteAddr, &pte, sizeof(pte));
             if(level > 0) {
-                if(create_pt(vpe, virt, pteAddr, pte, perm))
+                if(create_pt(rvpe, virt, pteAddr, pte, perm))
                     return;
             }
             else {
-                if(create_ptes(vpe, virt, pteAddr, pte, phys, pages, perm))
+                if(create_ptes(rvpe, virt, pteAddr, pte, phys, pages, perm))
                     return;
             }
         }
