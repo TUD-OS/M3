@@ -56,8 +56,7 @@ m3::Errors::Code MsgCapability::revoke() {
         VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
         vpe.xchg_ep(localepid, nullptr, nullptr);
         // wakeup the pe to give him the chance to notice that the endpoint was invalidated
-        if(vpe.state() != VPE::DEAD)
-            DTU::get().wakeup(vpe.desc());
+        vpe.wakeup();
     }
     obj.unref();
     return m3::Errors::NO_ERROR;

@@ -85,6 +85,7 @@ public:
 
     void block();
     void resume(const m3::Subscriptions<bool>::callback_type &cb);
+    void wakeup();
 
     m3::Errors::Code start();
     void stop();

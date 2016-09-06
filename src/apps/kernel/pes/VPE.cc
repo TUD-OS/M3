@@ -107,6 +107,12 @@ void VPE::resume(const m3::Subscriptions<bool>::callback_type &cb) {
 
     subscribe_resume(cb);
     PEManager::get().unblock_vpe(this);
+
+void VPE::wakeup() {
+    if(_state == RUNNING)
+        DTU::get().wakeup(desc());
+    else if(_state != DEAD)
+        PEManager::get().unblock_vpe(this);
 }
 
 void VPE::stop() {
