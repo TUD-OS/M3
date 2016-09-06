@@ -17,6 +17,8 @@
 #include <base/Common.h>
 #include <base/log/Kernel.h>
 
+#include <thread/ThreadManager.h>
+
 #include "com/RecvBufs.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
@@ -102,11 +104,15 @@ void VPE::block() {
     PEManager::get().block_vpe(this);
 }
 
-void VPE::resume(const m3::Subscriptions<bool>::callback_type &cb) {
+void VPE::resume(bool unblock) {
     KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
 
-    subscribe_resume(cb);
-    PEManager::get().unblock_vpe(this);
+    if(unblock)
+        PEManager::get().unblock_vpe(this);
+    m3::ThreadManager::get().wait_for(this);
+
+    KLOG(VPES, "Resumed VPE '" << _name << "' [id=" << id() << "]");
+}
 
 void VPE::wakeup() {
     if(_state == RUNNING)

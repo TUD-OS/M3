@@ -19,6 +19,8 @@
 #include <base/log/Kernel.h>
 #include <base/WorkLoop.h>
 
+#include <thread/ThreadManager.h>
+
 #include "pes/PEManager.h"
 #include "pes/Timeouts.h"
 #include "SyscallHandler.h"
@@ -87,6 +89,8 @@ void WorkLoop::run() {
             GateIStream is(*gate, msg);
             gate->notify_all(is);
         }
+
+        m3::ThreadManager::get().yield();
 
 #if defined(__host__)
         check_childs();

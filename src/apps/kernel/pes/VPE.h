@@ -19,6 +19,8 @@
 #include <base/col/SList.h>
 #include <base/KIF.h>
 
+#include <thread/ThreadManager.h>
+
 #include <cstring>
 
 #include "com/RecvBufs.h"
@@ -84,7 +86,7 @@ public:
     void set_ready();
 
     void block();
-    void resume(const m3::Subscriptions<bool>::callback_type &cb);
+    void resume(bool unblock = true);
     void wakeup();
 
     m3::Errors::Code start();
@@ -172,6 +174,8 @@ private:
     void update_ep(epid_t ep);
 
     void notify_resume() {
+        m3::ThreadManager::get().notify(this);
+
         // notify subscribers
         for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
             auto cur = it++;

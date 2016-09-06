@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
@@ -14,33 +14,18 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
-
-#include <base/log/Log.h>
-
-#define LLOG(lvl, msg)  LOG(LibLog, lvl, msg)
+#include <thread/Thread.h>
 
 namespace m3 {
 
-class LibLog {
-    LibLog() = delete;
-
-public:
-    enum Level {
-        SYSC        = 1 << 0,
-        DTU         = 1 << 1,
-        DTUERR      = 1 << 2,
-        IPC         = 1 << 3,
-        TRACE       = 1 << 4,
-        IRQS        = 1 << 5,
-        SHM         = 1 << 6,
-        HEAP        = 1 << 7,
-        FS          = 1 << 8,
-        SERV        = 1 << 9,
-        THREAD      = 1 << 10,
-    };
-
-    static const int level = 0;
-};
+void thread_init(Thread::thread_func func, void *arg, Regs *regs, word_t *stack) {
+    // put argument in rdi and function to return to on the stack
+    // take care of alignment for SSE
+    regs->rdi = reinterpret_cast<word_t>(arg);
+    stack[T_STACK_WORDS - 4] = reinterpret_cast<word_t>(func);
+    regs->rsp = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 5);
+    regs->rbp = regs->rsp;
+    stack[T_STACK_WORDS - 5] = regs->rbp;
+}
 
 }

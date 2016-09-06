@@ -20,6 +20,8 @@
 #include <base/Panic.h>
 #include <base/WorkLoop.h>
 
+#include <thread/ThreadManager.h>
+
 #include "pes/ContextSwitcher.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
@@ -48,7 +50,7 @@ INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 
 #define SYS_ERROR(vpe, is, error, msg) { \
         KLOG(ERR, (vpe)->name() << ": " << msg << " (" << error << ")"); \
-        reply_vmsg((is), (error)); \
+        kreply_vmsg((vpe), (is), (error)); \
         return; \
     }
 
@@ -64,8 +66,21 @@ struct ReplyInfo {
     word_t replycrd;
 };
 
-static void reply_to_vpe(VPE &vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    DTU::get().reply_to(vpe.desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_t size) {
+    // to send a reply, the VPE has to be running on a PE
+    if(vpe->state() != VPE::RUNNING)
+        vpe->resume();
+
+    DTU::get().reply_to(vpe->desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
+}
+
+template<typename... Args>
+static inline m3::Errors::Code kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
+    if(vpe->state() != VPE::RUNNING)
+        vpe->resume();
+
+    auto msg = kernel::create_vmsg(args...);
+    return is.reply(msg.bytes(), msg.total());
 }
 
 static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
@@ -132,15 +147,17 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 #endif
 }
 
-void SyscallHandler::handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *) {
+void SyscallHandler::handle_message(GateIStream &is, m3::Subscriber<GateIStream&> *) {
     EVENT_TRACER_handle_message();
     m3::KIF::Syscall::Operation op;
-    msg >> op;
+    is >> op;
     if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
-        (this->*_callbacks[op])(msg);
+        (this->*_callbacks[op])(is);
         return;
     }
-    reply_vmsg(msg, m3::Errors::INV_ARGS);
+
+    VPE *vpe = is.gate().session<VPE>();
+    kreply_vmsg(vpe, is, m3::Errors::INV_ARGS);
 }
 
 void SyscallHandler::createsrv(GateIStream &is) {
@@ -172,7 +189,7 @@ void SyscallHandler::createsrv(GateIStream &is) {
     // maybe there are VPEs that now have all requirements fullfilled
     VPEManager::get().start_pending(ServiceList::get());
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::pagefault(UNUSED GateIStream &is) {
@@ -191,7 +208,7 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
     capsel_t gcap = vpe->address_space()->gate();
     MsgCapability *msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
     if(msg == nullptr) {
-        reply_vmsg(is, m3::Errors::INV_ARGS);
+        kreply_vmsg(vpe, is, m3::Errors::INV_ARGS);
         return;
     }
 
@@ -201,7 +218,7 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
         SYS_ERROR(vpe, is, res, "Activate failed");
 #endif
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::createsess(GateIStream &is) {
@@ -237,7 +254,7 @@ void SyscallHandler::createsess(GateIStream &is) {
         if(res != m3::Errors::NO_ERROR) {
             KLOG(SYSC, vpe->id() << ": Server denied session creation (" << res << ")");
             auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
         }
         else {
             word_t sess;
@@ -253,7 +270,7 @@ void SyscallHandler::createsess(GateIStream &is) {
             tvpeobj->vpe->objcaps().set(cap, sesscap);
 
             auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
         }
 
         const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
@@ -263,6 +280,10 @@ void SyscallHandler::createsess(GateIStream &is) {
     AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command>(), is.remaining()));
     msg << m3::KIF::Service::OPEN;
     msg.put(is);
+
+    if(s->vpe().state() != VPE::RUNNING)
+        s->vpe().resume();
+
     s->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
@@ -289,7 +310,7 @@ void SyscallHandler::createsessat(GateIStream &is) {
     sess->obj->servowned = true;
     vpe->objcaps().set(sesscap, sess);
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::creategate(GateIStream &is) {
@@ -320,7 +341,7 @@ void SyscallHandler::creategate(GateIStream &is) {
     vpe->objcaps().set(dstcap,
         new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->pe(),
             tcapobj->vpe->id(), epid, credits));
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::createvpe(GateIStream &is) {
@@ -370,7 +391,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
 
     nvpe->set_ready();
 
-    reply_vmsg(is, m3::Errors::NO_ERROR, Platform::pe(nvpe->pe()).value());
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, Platform::pe(nvpe->pe()).value());
 }
 
 void SyscallHandler::createmap(UNUSED GateIStream &is) {
@@ -420,7 +441,7 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     }
 #endif
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::attachrb(GateIStream &is) {
@@ -451,7 +472,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Unable to attach receive buffer");
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::detachrb(GateIStream &is) {
@@ -467,7 +488,7 @@ void SyscallHandler::detachrb(GateIStream &is) {
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
     tcapobj->vpe->rbufs().detach(*tcapobj->vpe, ep);
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::exchange(GateIStream &is) {
@@ -488,7 +509,7 @@ void SyscallHandler::exchange(GateIStream &is) {
     VPE *t1 = obtain ? vpecap->vpe : vpe;
     VPE *t2 = obtain ? vpe : vpecap->vpe;
     m3::Errors::Code res = do_exchange(t1, t2, own, other, obtain);
-    reply_vmsg(is, res);
+    kreply_vmsg(vpe, is, res);
 }
 
 void SyscallHandler::vpectrl(GateIStream &is) {
@@ -512,18 +533,18 @@ void SyscallHandler::vpectrl(GateIStream &is) {
         case m3::KIF::Syscall::VCTRL_START: {
             // TODO the VPE might be suspended
             m3::Errors::Code res = vpecap->vpe->start();
-            reply_vmsg(is, res);
+            kreply_vmsg(vpe, is, res);
             break;
         }
 
         case m3::KIF::Syscall::VCTRL_STOP:
             vpecap->vpe->stop();
-            reply_vmsg(is, m3::Errors::NO_ERROR);
+            kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
             break;
 
         case m3::KIF::Syscall::VCTRL_WAIT:
             if(vpecap->vpe->state() == VPE::DEAD)
-                reply_vmsg(is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
+                kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             else {
                 ReplyInfo rinfo(is.message());
                 vpecap->vpe->subscribe_exit([vpe, is, rinfo] (int exitcode, m3::Subscriber<int> *) {
@@ -532,7 +553,7 @@ void SyscallHandler::vpectrl(GateIStream &is) {
                     LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << exitcode << ")");
 
                     auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR,exitcode);
-                    reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+                    reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
                 });
             }
             break;
@@ -565,7 +586,7 @@ void SyscallHandler::reqmem(GateIStream &is) {
     // TODO if addr was 0, we don't want to free it on revoke
     vpe->objcaps().set(cap, new MemCapability(&vpe->objcaps(), cap,
         alloc.addr, alloc.size, perms, alloc.pe(), VPE::INVALID_ID, 0));
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::derivemem(GateIStream &is) {
@@ -597,7 +618,7 @@ void SyscallHandler::derivemem(GateIStream &is) {
         srccap->obj->epid
     ));
     dercap->obj->derived = true;
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::delegate(GateIStream &is) {
@@ -684,14 +705,14 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             KLOG(SYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
 
             auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
             goto error;
         }
 
         reply >> srvcaps;
         if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
             auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
             goto error;
         }
 
@@ -700,7 +721,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
                 reply.remaining()));
             msg << m3::Errors::NO_ERROR;
             msg.put(reply);
-            reply_to_vpe(*vpe, rinfo, msg.bytes(), msg.total());
+            reply_to_vpe(vpe, rinfo, msg.bytes(), msg.total());
         }
 
     error:
@@ -712,6 +733,10 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         m3::CapRngDesc>(), is.remaining()));
     msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
+
+    if(sess->obj->srv->vpe().state() != VPE::RUNNING)
+        sess->obj->srv->vpe().resume();
+
     sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
@@ -736,20 +761,16 @@ void SyscallHandler::activate(GateIStream &is) {
     }
 
     if(ncap) {
-        int wait_needed = 0;
         if(ncap->obj->vpe != VPE::INVALID_ID &&
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->pe);
-            wait_needed = 1;
+            VPEManager::get().vpe(ncap->obj->vpe).resume();
         }
         else if(ncap->type == Capability::MSG &&
                 !VPEManager::get().vpe(ncap->obj->vpe).rbufs().is_attached(ncap->obj->epid)) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
                 << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
-            wait_needed = 2;
-        }
 
-        if(wait_needed) {
             ReplyInfo rinfo(is.message());
             auto callback = [rinfo, vpe, epid, ocap, ncap](bool success, m3::Subscriber<bool> *) {
                 EVENT_TRACER_Syscall_activate();
@@ -763,13 +784,10 @@ void SyscallHandler::activate(GateIStream &is) {
                     KLOG(ERR, vpe->name() << ": activate failed (" << res << ")");
 
                 auto reply = kernel::create_vmsg(res);
-                reply_to_vpe(*vpe, rinfo, reply.bytes(), reply.total());
+                reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
             };
 
-            if(wait_needed == 1)
-                VPEManager::get().vpe(ncap->obj->vpe).resume(callback);
-            else
-                VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
+            VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
             return;
         }
     }
@@ -777,7 +795,7 @@ void SyscallHandler::activate(GateIStream &is) {
     m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "cmpxchg failed");
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::revoke(GateIStream &is) {
@@ -803,18 +821,17 @@ void SyscallHandler::revoke(GateIStream &is) {
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Revoke failed");
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::idle(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, ": syscall::idle", "()");
 
-    // reply to the VPE first, because injecting the IRQ will in the end lead to invalidating the
-    // VPE id, so that we couldn't reply anymore.
-    reply_vmsg(is, m3::Errors::NO_ERROR);
-
     vpe->block();
+
+    vpe->resume(false);
+    reply_vmsg(is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::exit(GateIStream &is) {
@@ -829,7 +846,9 @@ void SyscallHandler::exit(GateIStream &is) {
 }
 
 void SyscallHandler::noop(GateIStream &is) {
-    reply_vmsg(is, 0);
+    VPE *vpe = is.gate().session<VPE>();
+    LOG_SYS(vpe, ": syscall::noop", "()");
+    kreply_vmsg(vpe, is, 0);
 }
 
 #if defined(__host__)
@@ -840,7 +859,7 @@ void SyscallHandler::init(GateIStream &is) {
     vpe->activate_sysc_ep(addr);
     LOG_SYS(vpe, "syscall::init", "(" << addr << ")");
 
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 #endif
 

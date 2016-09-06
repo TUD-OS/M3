@@ -1,0 +1,11 @@
+Import('env')
+sources = [
+    env.Glob('*.cc'), env.Glob('*/*.cc'),
+    env.Glob('arch/$ARCH/*.S'), env.Glob('arch/$ARCH/*.cc')
+]
+
+lib = env.StaticLibrary(
+    target = 'thread',
+    source = sources
+)
+env.Install(env['LIBDIR'], lib)

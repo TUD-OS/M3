@@ -20,6 +20,8 @@
 #include <base/DTU.h>
 #include <base/WorkLoop.h>
 
+#include <thread/ThreadManager.h>
+
 #include "mem/MainMemory.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
@@ -27,6 +29,14 @@
 #include "SyscallHandler.h"
 
 using namespace kernel;
+
+static void thread_startup(void *) {
+    m3::env()->workloop()->run();
+
+    m3::ThreadManager::get().stop();
+
+    PANIC("Should not get here");
+}
 
 int main(int argc, char *argv[]) {
     if(argc < 2) {
@@ -37,6 +47,10 @@ int main(int argc, char *argv[]) {
     EVENT_TRACE_INIT_KERNEL();
 
     KLOG(MEM, MainMemory::get());
+
+    // create some worker threads
+    for(int i = 0; i < 8; ++i)
+        new m3::Thread(thread_startup, nullptr);
 
     PEManager::create();
     VPEManager::create();
