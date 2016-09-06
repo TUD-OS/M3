@@ -11,7 +11,8 @@ cmd_list = options.cmd.split(",")
 num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
-num_spm = 4
+# TODO re-enable SPMs
+num_spm = 0
 mem_pe = num_pes
 
 pes = []
