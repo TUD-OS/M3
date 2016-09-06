@@ -41,3 +41,5 @@ elif env['ARCH'] == 'gem5':
 env.M3Program(env, 'rctmux-util-tmux-bench', ['test-utils/tmux-bench.cc'])
 env.M3Program(env, 'rctmux-util-counter',    ['test-utils/counter.cc'])
 env.M3Program(env, 'rctmux-util-occupy',     ['test-utils/occupy.cc'])
+env.M3Program(env, 'rctmux-util-client',     ['test-utils/client.cc'])
+env.M3Program(env, 'rctmux-util-service',    ['test-utils/service.cc'])
