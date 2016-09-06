@@ -27,31 +27,33 @@
 
 using namespace m3;
 
+static void start(VPE &v, Executable &e) {
+    v.mountspace(*VPE::self().mountspace());
+    v.obtain_mountspace();
+    Errors::Code res = v.exec(e);
+    if(res != Errors::NO_ERROR)
+        PANIC("Cannot execute " << e.argv()[0] << ": " << Errors::to_string(res));
+}
+
 int main() {
     cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
+    cout << "Creating VPEs...\n";
+
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
-    const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
-
-    // start the first vpe
-    VPE s1(args1[0], VPE::self().pe(), "pager", true);
-    s1.mountspace(*VPE::self().mountspace());
-    s1.obtain_mountspace();
     Executable exec1(ARRAY_SIZE(args1), args1);
-    Errors::Code res1 = s1.exec(exec1);
-    if(res1 != Errors::NO_ERROR)
-        PANIC("Cannot execute " << args1[0] << ": " << Errors::to_string(res1));
+    VPE s1(args1[0], VPE::self().pe(), "pager", true);
 
-    // start the second VPE
-    VPE s2(args2[0], VPE::self().pe(), "pager", true);
-    s2.mountspace(*VPE::self().mountspace());
-    s2.obtain_mountspace();
+    const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
     Executable exec2(ARRAY_SIZE(args2), args2);
-    Errors::Code res2 = s2.exec(exec2);
-    if(res2 != Errors::NO_ERROR)
-        PANIC("Cannot execute " << args2[0] << ": " << Errors::to_string(res2));
+    VPE s2(args2[0], VPE::self().pe(), "pager", true);
+
+    cout << "Starting VPEs...\n";
+
+    start(s1, exec1);
+    start(s2, exec2);
 
     enum TestOp {
         TEST
@@ -84,7 +86,7 @@ int main() {
 
     cout << "Starting test...\n";
 
-    for(int i = 0; i < 5; ++i) {
+    for(int i = 0; i < 20; ++i) {
         size_t no = i % 2;
         int res;
         GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
