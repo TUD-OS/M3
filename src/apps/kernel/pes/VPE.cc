@@ -116,10 +116,13 @@ void VPE::wakeup() {
 }
 
 void VPE::stop() {
-    if(_state == RUNNING) {
+    if(_state == RUNNING)
         exit(1);
+    else
+        PEManager::get().remove_vpe(this);
+
+    if(_flags & (F_START | F_STARTED))
         unref();
-    }
 }
 
 void VPE::exit(int exitcode) {
