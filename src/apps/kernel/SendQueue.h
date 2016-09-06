@@ -47,12 +47,12 @@ public:
         return _queue.length();
     }
 
-    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool free) {
+    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
         if(_inflight < _capacity)
-            do_send(rgate, sgate, msg, size, free);
+            do_send(rgate, sgate, msg, size, onheap);
         else {
             // if it's not already on the heap, put it there
-            if(!m3::Heap::is_on_heap(msg)) {
+            if(!onheap) {
                 void *nmsg = m3::Heap::alloc(size);
                 memcpy(nmsg, msg, size);
                 msg = nmsg;
@@ -75,9 +75,9 @@ public:
     }
 
 private:
-    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool free) {
+    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
         sgate->send(msg, size, rgate);
-        if(free)
+        if(onheap)
             m3::Heap::free(const_cast<void*>(msg));
         _inflight++;
     }
