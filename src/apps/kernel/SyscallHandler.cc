@@ -505,6 +505,8 @@ void SyscallHandler::vpectrl(GateIStream &is) {
             vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+    if(vpe == vpecap->vpe)
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE can't ctrl itself");
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START: {
