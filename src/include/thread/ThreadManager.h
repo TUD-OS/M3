@@ -73,8 +73,8 @@ public:
                 Thread* t = &(*old);
                 t->set_msg(msg, size);
                 LLOG(THREAD, "Waking up thread " << t->id() << " for event " << event);
-                _ready.append(t);
                 _blocked.remove(t);
+                _ready.append(t);
             }
         }
     }
