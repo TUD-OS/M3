@@ -70,19 +70,23 @@ struct ReplyInfo {
 
 static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_t size) {
     // to send a reply, the VPE has to be running on a PE
-    if(vpe->state() != VPE::RUNNING)
-        vpe->resume();
+    if(vpe->state() != VPE::RUNNING) {
+        if(!vpe->resume())
+            return;
+    }
 
     DTU::get().reply_to(vpe->desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
 template<typename... Args>
-static inline m3::Errors::Code kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
-    if(vpe->state() != VPE::RUNNING)
-        vpe->resume();
+static inline void kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
+    if(vpe->state() != VPE::RUNNING) {
+        if(!vpe->resume())
+            return;
+    }
 
     auto msg = kernel::create_vmsg(args...);
-    return is.reply(msg.bytes(), msg.total());
+    is.reply(msg.bytes(), msg.total());
 }
 
 static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
@@ -283,8 +287,10 @@ void SyscallHandler::createsess(GateIStream &is) {
     msg << m3::KIF::Service::OPEN;
     msg.put(is);
 
-    if(s->vpe().state() != VPE::RUNNING)
-        s->vpe().resume();
+    if(s->vpe().state() != VPE::RUNNING) {
+        if(!s->vpe().resume())
+            SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+    }
 
     s->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
@@ -736,8 +742,10 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
 
-    if(sess->obj->srv->vpe().state() != VPE::RUNNING)
-        sess->obj->srv->vpe().resume();
+    if(sess->obj->srv->vpe().state() != VPE::RUNNING) {
+        if(!sess->obj->srv->vpe().resume())
+            SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+    }
 
     sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
@@ -766,7 +774,8 @@ void SyscallHandler::activate(GateIStream &is) {
         if(ncap->obj->vpe != VPE::INVALID_ID &&
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->pe);
-            VPEManager::get().vpe(ncap->obj->vpe).resume();
+            if(!VPEManager::get().vpe(ncap->obj->vpe).resume())
+                SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
         }
         else if(ncap->type == Capability::MSG &&
                 !VPEManager::get().vpe(ncap->obj->vpe).rbufs().is_attached(ncap->obj->epid)) {
@@ -832,8 +841,8 @@ void SyscallHandler::idle(GateIStream &is) {
 
     vpe->block();
 
-    vpe->resume(false);
-    reply_vmsg(is, m3::Errors::NO_ERROR);
+    if(vpe->resume(false))
+        reply_vmsg(is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::exit(GateIStream &is) {

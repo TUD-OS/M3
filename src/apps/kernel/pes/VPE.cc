@@ -104,7 +104,10 @@ void VPE::block() {
     PEManager::get().block_vpe(this);
 }
 
-void VPE::resume(bool unblock) {
+bool VPE::resume(bool unblock) {
+    if(_state == DEAD)
+        return false;
+
     KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
 
     if(unblock)
@@ -112,6 +115,7 @@ void VPE::resume(bool unblock) {
     m3::ThreadManager::get().wait_for(this);
 
     KLOG(VPES, "Resumed VPE '" << _name << "' [id=" << id() << "]");
+    return true;
 }
 
 void VPE::wakeup() {

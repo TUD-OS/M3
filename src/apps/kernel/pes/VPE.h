@@ -86,7 +86,7 @@ public:
     void set_ready();
 
     void block();
-    void resume(bool unblock = true);
+    bool resume(bool unblock = true);
     void wakeup();
 
     m3::Errors::Code start();
