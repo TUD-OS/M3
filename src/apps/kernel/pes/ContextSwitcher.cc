@@ -133,16 +133,15 @@ void ContextSwitcher::add(VPE *vpe) {
     unblock_vpe(vpe);
 }
 
-void ContextSwitcher::remove(VPE *vpe, bool destroy) {
+void ContextSwitcher::remove(VPE *vpe) {
     dequeue(vpe);
     _count--;
 
+    vpe->_state = VPE::DEAD;
+
     if(_cur == vpe) {
-        if(destroy) {
-            _cur->_state = VPE::DEAD;
-            // the VPE id is expected to be invalid in S_SWITCH
-            DTU::get().unset_vpeid(_cur->desc());
-        }
+        // the VPE id is expected to be invalid in S_SWITCH
+        DTU::get().unset_vpeid(_cur->desc());
         _cur = nullptr;
         start_switch();
     }

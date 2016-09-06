@@ -63,7 +63,7 @@ public:
     bool can_mux() const;
 
     void add(VPE *vpe);
-    void remove(VPE *vpe, bool destroy);
+    void remove(VPE *vpe);
 
     void block_vpe(VPE *vpe);
     void unblock_vpe(VPE *vpe);
