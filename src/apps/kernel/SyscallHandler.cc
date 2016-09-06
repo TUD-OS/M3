@@ -41,17 +41,19 @@ namespace kernel {
 INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 
 #if defined(SIMPLE_SYSC_LOG)
-#   define LOG_SYS(vpe, sysname, expr) \
+#   define LOG_SYS(vpe, sysname, expr)                                                      \
         KLOG(SYSC, (vpe)->name() << (sysname))
 #else
-#   define LOG_SYS(vpe, sysname, expr) \
-        KLOG(SYSC, (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X") << (sysname) << expr)
+#   define LOG_SYS(vpe, sysname, expr)                                                      \
+        KLOG(SYSC, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")  \
+            << (sysname) << expr)
 #endif
 
-#define SYS_ERROR(vpe, is, error, msg) { \
-        KLOG(ERR, (vpe)->name() << ": " << msg << " (" << error << ")"); \
-        kreply_vmsg((vpe), (is), (error)); \
-        return; \
+#define SYS_ERROR(vpe, is, error, msg) {                                                    \
+        KLOG(ERR, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")   \
+            << ": " << msg << " (" << error << ")");                                        \
+        kreply_vmsg((vpe), (is), (error));                                                  \
+        return;                                                                             \
     }
 
 struct ReplyInfo {
