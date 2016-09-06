@@ -65,6 +65,8 @@ public:
 
     void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
+    void reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
+
     void send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
         label_t replylbl, epid_t replyep);
     void reply_to(const VPEDesc &vpe, epid_t ep, epid_t crdep, word_t credits, label_t label,

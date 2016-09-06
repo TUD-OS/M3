@@ -300,7 +300,26 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, msgsize);
     write_ep_local(_ep);
 
-    UNUSED m3::Errors::Code res = m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    m3::Errors::Code res = m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    if(res == m3::Errors::VPE_GONE) {
+        // if a context switch is in progress, it might be that the VPE is still RUNNING, but the
+        // app has already done the abort, so that the VPE id is invalid.
+        _state.config_send(_ep, label, vpe.pe, VPE::INVALID_ID, ep, msgsize, msgsize);
+        write_ep_local(_ep);
+        res = m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    }
+    assert(res == m3::Errors::NO_ERROR);
+}
+
+void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
+    m3::Errors::Code res = m3::DTU::get().reply(ep, msg, size, msgidx);
+    if(res == m3::Errors::VPE_GONE) {
+        m3::DTU::Message *rmsg = reinterpret_cast<m3::DTU::Message*>(msgidx);
+        rmsg->senderVpeId = VPE::INVALID_ID;
+        // re-enable replies
+        rmsg->flags |= 1 << 2;
+        res = m3::DTU::get().reply(ep, msg, size, msgidx);
+    }
     assert(res == m3::Errors::NO_ERROR);
 }
 
@@ -315,14 +334,14 @@ void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t
 
     // the kernel can never cause pagefaults with reads/writes
     m3::Errors::Code res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
-    if(res == m3::Errors::VPE_GONE) {
-        // if a context switch is in progress, it might be that the VPE is still RUNNING, but the
-        // app has already done the abort, so that the VPE id is invalid.
-        _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::W);
-        write_ep_local(_ep);
-        res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    if(vpe.id != VPE::INVALID_ID) {
+        if(res == m3::Errors::VPE_GONE) {
+            _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::W);
+            write_ep_local(_ep);
+            res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+        }
+        assert(res == m3::Errors::NO_ERROR);
     }
-    assert(res == m3::Errors::NO_ERROR);
 }
 
 void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
@@ -330,12 +349,14 @@ void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) 
     write_ep_local(_ep);
 
     m3::Errors::Code res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
-    if(res == m3::Errors::VPE_GONE) {
-        _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::R);
-        write_ep_local(_ep);
-        res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    if(vpe.id != VPE::INVALID_ID) {
+        if(res == m3::Errors::VPE_GONE) {
+            _state.config_mem(_ep, vpe.pe, VPE::INVALID_ID, addr, size, m3::DTU::R);
+            write_ep_local(_ep);
+            res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+        }
+        assert(res == m3::Errors::NO_ERROR);
     }
-    assert(res == m3::Errors::NO_ERROR);
 }
 
 }

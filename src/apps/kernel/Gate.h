@@ -57,17 +57,8 @@ public:
     }
 
     m3::Errors::Code reply_sync(const void *data, size_t len, size_t msgidx) {
-        // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
-        // might send us another message, which we might miss if we ACK this message after we've got
-        // another one. so, ACK it now since the reply marks the end of the handling anyway.
-#if defined(__t2__)
-        m3::DTU::get().mark_read(epid(), msgidx);
-#endif
-
-        m3::DTU::get().wait_until_ready(_ep);
-        m3::Errors::Code res = m3::DTU::get().reply(_ep, data, len, msgidx);
-        m3::DTU::get().wait_until_ready(_ep);
-        return res;
+        DTU::get().reply(_ep, data, len, msgidx);
+        return m3::Errors::NO_ERROR;
     }
 
 private:

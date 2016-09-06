@@ -170,6 +170,17 @@ void DTU::config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe,
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
 
+void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
+    // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
+    // might send us another message, which we might miss if we ACK this message after we've got
+    // another one. so, ACK it now since the reply marks the end of the handling anyway.
+    m3::DTU::get().mark_read(ep, msgidx);
+
+    m3::DTU::get().wait_until_ready(ep);
+    m3::DTU::get().reply(ep, msg, size, msgidx);
+    m3::DTU::get().wait_until_ready(ep);
+}
+
 void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
     config_send_local(_ep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
