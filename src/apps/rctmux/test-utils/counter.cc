@@ -15,6 +15,7 @@
 */
 
 #include <m3/stream/Standard.h>
+#include <m3/Syscalls.h>
 
 int main(int, char **argv)
 {
@@ -27,6 +28,7 @@ int main(int, char **argv)
 
     while (counter < 100) {
         m3::cout << "Message " << counter << " from " << name << "\n";
+        m3::Syscalls::get().noop();
         ++counter;
     }
 
