@@ -84,7 +84,7 @@ void VPE::set_ready() {
 }
 
 m3::Errors::Code VPE::start() {
-    if(_state != RUNNING || (_flags & F_INIT))
+    if(_flags & F_INIT)
         return m3::Errors::INV_ARGS;
 
     _flags |= F_START;
