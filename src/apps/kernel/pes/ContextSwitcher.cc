@@ -178,7 +178,9 @@ void ContextSwitcher::start_switch(bool timedout) {
 }
 
 void ContextSwitcher::start_vpe() {
-    assert(_state == S_IDLE);
+    if(_state != S_IDLE)
+        return;
+
     assert(_cur);
     assert(_cur->state() == VPE::RUNNING);
     assert(_cur->flags() & VPE::F_START);
@@ -232,7 +234,9 @@ void ContextSwitcher::next_state(uint64_t flags) {
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
-            bool blocked = (flags & m3::RCTMuxCtrl::BLOCK) && _cur->_dtustate.get_msg_count() == 0;
+            bool blocked = (flags & m3::RCTMuxCtrl::BLOCK) &&
+                _cur->_dtustate.get_msg_count() == 0 &&
+                !(_cur->_flags & VPE::F_START);
 
             KLOG(VPES, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
                 << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
