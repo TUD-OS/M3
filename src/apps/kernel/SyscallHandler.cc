@@ -775,7 +775,8 @@ void SyscallHandler::activate(GateIStream &is) {
     if(ncap) {
         if(ncap->obj->vpe != VPE::INVALID_ID &&
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
-            LOG_SYS(vpe, ": syscall::activate", ": waiting for target VPE at " << ncap->obj->pe);
+            LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
+                << ncap->obj->vpe << " at " << ncap->obj->pe);
             if(!VPEManager::get().vpe(ncap->obj->vpe).resume())
                 SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
         }
