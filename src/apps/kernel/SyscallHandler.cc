@@ -543,6 +543,8 @@ void SyscallHandler::vpectrl(GateIStream &is) {
         case m3::KIF::Syscall::VCTRL_START: {
             // TODO the VPE might be suspended
             m3::Errors::Code res = vpecap->vpe->start();
+            if(res != m3::Errors::NO_ERROR)
+                SYS_ERROR(vpe, is, res, "VPE start failed");
             kreply_vmsg(vpe, is, res);
             break;
         }
