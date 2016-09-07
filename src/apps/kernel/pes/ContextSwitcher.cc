@@ -70,7 +70,7 @@ ContextSwitcher::ContextSwitcher(size_t pe)
     : _pe(pe), _state(S_IDLE), _count(), _ready(), _it(),
       _timeout(), _wait_time(), _idle(), _cur() {
     assert(pe > 0);
-    KLOG(VPES, "Initialized context switcher for pe " << pe);
+    KLOG(CTXSW, "Initialized context switcher for pe " << pe);
 }
 
 bool ContextSwitcher::can_mux() const {
@@ -207,7 +207,7 @@ void ContextSwitcher::continue_switch() {
 }
 
 void ContextSwitcher::next_state(uint64_t flags) {
-    KLOG(VPES, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(CTXSW, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
@@ -238,9 +238,9 @@ void ContextSwitcher::next_state(uint64_t flags) {
                 _cur->_dtustate.get_msg_count() == 0 &&
                 !(_cur->_flags & VPE::F_START);
 
-            KLOG(VPES, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
                 << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
-            KLOG(VPES, "CtxSw[" << _pe << "]: VPE state can be set to "
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE state can be set to "
                 << (blocked ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
@@ -289,7 +289,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
             if(_ready.length() > 1)
                 flags |= m3::RCTMuxCtrl::REPORT;
 
-            KLOG(VPES, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
 
             send_flags(_cur->id(), flags);
             DTU::get().wakeup(_cur->desc());
@@ -321,7 +321,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
         }
     }
 
-    KLOG(VPES, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(CTXSW, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 }
