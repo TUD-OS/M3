@@ -421,8 +421,10 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     if(mcapobj == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Memory capability is invalid");
 
-    if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
+    if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK)) {
+        KLOG(INFO, "addr=" << (void*)mcapobj->addr() << " size=" << (void*)mcapobj->size());
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Memory capability is not page aligned");
+    }
     if(perms & ~mcapobj->perms())
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid permissions");
 
@@ -587,7 +589,7 @@ void SyscallHandler::reqmem(GateIStream &is) {
 
     MainMemory &mem = MainMemory::get();
     MainMemory::Allocation alloc =
-        addr == (uintptr_t)-1 ? mem.allocate(size) : mem.allocate_at(addr, size);
+        addr == (uintptr_t)-1 ? mem.allocate(size, PAGE_SIZE) : mem.allocate_at(addr, size);
     if(!alloc)
         SYS_ERROR(vpe, is, m3::Errors::OUT_OF_MEM, "Not enough memory");
 

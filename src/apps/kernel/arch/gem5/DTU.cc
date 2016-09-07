@@ -129,7 +129,7 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
             return true;
 
         // TODO this is prelimilary
-        MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE);
+        MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE);
         assert(alloc);
 
         // clear PT

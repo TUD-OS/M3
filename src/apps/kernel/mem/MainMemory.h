@@ -62,7 +62,7 @@ public:
 
     const MemoryModule &module(size_t id) const;
 
-    Allocation allocate(size_t size);
+    Allocation allocate(size_t size, size_t align);
     Allocation allocate_at(uintptr_t offset, size_t size);
 
     void free(size_t pe, uintptr_t addr, size_t size);

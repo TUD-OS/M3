@@ -36,11 +36,11 @@ const MemoryModule &MainMemory::module(size_t id) const {
     return *_mods[id];
 }
 
-MainMemory::Allocation MainMemory::allocate(size_t size) {
+MainMemory::Allocation MainMemory::allocate(size_t size, size_t align) {
     for(size_t i = 0; i < _count; ++i) {
         if(!_mods[i]->available())
             continue;
-        uintptr_t res = _mods[i]->map().allocate(size);
+        uintptr_t res = _mods[i]->map().allocate(size, align);
         if(res)
             return Allocation(i, res, size);
     }

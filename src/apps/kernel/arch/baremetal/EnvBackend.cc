@@ -55,7 +55,7 @@ public:
             m3::Math::round_up<size_t>(size, PAGE_SIZE) >> PAGE_BITS);
 
         // allocate memory
-        MainMemory::Allocation alloc = MainMemory::get().allocate(pages * PAGE_SIZE);
+        MainMemory::Allocation alloc = MainMemory::get().allocate(pages * PAGE_SIZE, PAGE_SIZE);
         if(!alloc)
             return false;
 

@@ -80,7 +80,7 @@ static BootModule *get_mod(const char *name, bool *first) {
 }
 
 static uint64_t alloc_mem(size_t size) {
-    MainMemory::Allocation alloc = MainMemory::get().allocate(size);
+    MainMemory::Allocation alloc = MainMemory::get().allocate(size, PAGE_SIZE);
     if(!alloc)
         PANIC("Not enough memory");
     return m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);

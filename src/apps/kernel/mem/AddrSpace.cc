@@ -26,7 +26,7 @@ namespace kernel {
 AddrSpace::AddrSpace(epid_t ep, capsel_t gate)
     : _ep(ep),
       _gate(gate),
-      _rootpt(MainMemory::get().allocate(PAGE_SIZE)) {
+      _rootpt(MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE)) {
 }
 
 AddrSpace::~AddrSpace() {

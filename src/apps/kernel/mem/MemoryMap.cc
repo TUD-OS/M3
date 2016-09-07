@@ -15,6 +15,7 @@
  */
 
 #include <base/log/Kernel.h>
+#include <base/util/Math.h>
 
 #include <assert.h>
 
@@ -37,15 +38,33 @@ MemoryMap::~MemoryMap() {
     list = nullptr;
 }
 
-uintptr_t MemoryMap::allocate(size_t size) {
+uintptr_t MemoryMap::allocate(size_t size, size_t align) {
     Area *a;
     Area *p = nullptr;
     for(a = list; a != nullptr; p = a, a = a->next) {
-        if(a->size >= size)
+        size_t diff = m3::Math::round_up(a->addr, align) - a->addr;
+        if(a->size - diff >= size)
             break;
     }
     if(a == nullptr)
         return -1;
+
+    /* if we need to do some alignment, create a new area in front of a */
+    size_t diff = m3::Math::round_up(a->addr, align) - a->addr;
+    if(diff) {
+        Area *n = new Area();
+        n->addr = a->addr;
+        n->size = diff;
+        if(p)
+            p->next = n;
+        else
+            list = n;
+        n->next = a;
+
+        a->addr += diff;
+        a->size -= diff;
+        p = n;
+    }
 
     /* take it from the front */
     uintptr_t res = a->addr;

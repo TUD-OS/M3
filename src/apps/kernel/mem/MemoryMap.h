@@ -47,9 +47,10 @@ public:
      *
      * @param map the map
      * @param size the size of the area
+     * @param align the desired alignment
      * @return the address of -1 if failed
      */
-    uintptr_t allocate(size_t size);
+    uintptr_t allocate(size_t size, size_t align);
 
     /**
      * Frees the area at <addr> with <size> bytes.
