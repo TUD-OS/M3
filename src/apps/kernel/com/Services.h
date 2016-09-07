@@ -31,10 +31,7 @@ class VPE;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity)
-        : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-          _sgate(vpe, ep, label), _queue(capacity) {
-    }
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity);
     ~Service();
 
     VPE &vpe() const {
@@ -48,6 +45,9 @@ public:
     }
     SendGate &send_gate() const {
         return const_cast<SendGate&>(_sgate);
+    }
+    RecvGate &recv_gate() {
+        return _rgate;
     }
 
     int pending() const {
@@ -66,6 +66,7 @@ private:
     VPE &_vpe;
     capsel_t _sel;
     m3::String _name;
+    RecvGate _rgate;
     SendGate _sgate;
     SendQueue _queue;
 };
