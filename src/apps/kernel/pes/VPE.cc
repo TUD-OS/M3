@@ -126,6 +126,9 @@ void VPE::wakeup() {
 }
 
 void VPE::stop() {
+    if(_state == DEAD)
+        return;
+
     if(_state == RUNNING)
         exit(1);
     else
