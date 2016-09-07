@@ -104,12 +104,13 @@ VPE* ContextSwitcher::schedule() {
 void ContextSwitcher::init() {
     assert(_idle == nullptr);
 
-    _idle = new VPE(m3::String("idle"), _pe, VPEManager::get().get_id(),
-        VPE::F_IDLE | VPE::F_INIT | VPE::F_BOOTMOD, -1, m3::KIF::INV_SEL);
+    _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
+        VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
 }
 
 void ContextSwitcher::enqueue(VPE *vpe) {
-    if(vpe->_flags & VPE::F_READY)
+    // never make IDLE VPEs ready
+    if(vpe->_flags & (VPE::F_READY | VPE::F_IDLE))
         return;
 
     vpe->_flags |= VPE::F_READY;
@@ -215,7 +216,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
             break;
 
         case S_STORE_WAIT: {
-            send_flags(_cur->id(), m3::RCTMuxCtrl::STORE);
+            send_flags(_cur->id(), m3::RCTMuxCtrl::STORE | m3::RCTMuxCtrl::WAITING);
             DTU::get().injectIRQ(_cur->desc());
 
             _state = S_STORE_DONE;
@@ -271,7 +272,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
         }
 
         case S_RESTORE_WAIT: {
-            uint64_t flags = 0;
+            uint64_t flags = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
                 flags |= m3::RCTMuxCtrl::INIT;

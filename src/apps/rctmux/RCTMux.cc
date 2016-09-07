@@ -40,7 +40,7 @@ EXTERN_C void *_start_app() {
     if(flags & m3::RESTORE)
         return restore();
 
-    if(flags)
+    if(flags & m3::WAITING)
         flags_set(m3::SIGNAL);
 
     state = nullptr;
@@ -53,6 +53,7 @@ EXTERN_C void _sleep() {
 
 EXTERN_C void _save(void *s) {
     assert(flags_get() & m3::STORE);
+    assert(flags_get() & m3::WAITING);
 
     // don't access the environment if there is no application
     bool idle_active = state && m3::env()->idle_active;
@@ -70,6 +71,7 @@ EXTERN_C void _save(void *s) {
 
 static void *restore() {
     uint64_t flags = flags_get();
+    assert(flags & m3::WAITING);
 
     m3::Env *senv = m3::env();
     // remember the current core id (might have changed since last switch)

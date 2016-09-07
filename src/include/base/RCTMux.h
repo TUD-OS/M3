@@ -32,9 +32,10 @@ enum RCTMuxCtrl {
     INIT                = 1 << 0, // set during first restore
     STORE               = 1 << 1, // store operation required
     RESTORE             = 1 << 2, // restore operation required
-    SIGNAL              = 1 << 3, // used to signal completion to the kernel
-    BLOCK               = 1 << 4, // used to tell the kernel that we can be blocked
-    REPORT              = 1 << 5, // the kernel wants to get notified about idling
+    REPORT              = 1 << 3, // set by the kernel if it wants to get notified about idling
+    WAITING             = 1 << 4, // set by the kernel if a signal is required
+    SIGNAL              = 1 << 5, // used to signal completion to the kernel
+    BLOCK               = 1 << 6, // used to tell the kernel that we can be blocked
 };
 
 }
