@@ -51,7 +51,6 @@ void *init_state() {
     senv->isrs = Exceptions::get_table();
 
     // put state at the stack top
-    // TODO using senv->sp in that way is still wrong, I think
     m3::Exceptions::State *state = reinterpret_cast<m3::Exceptions::State*>(senv->sp) - 1;
 
     // init State

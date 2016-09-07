@@ -110,7 +110,6 @@ VPECapability::VPECapability(const VPECapability &t) : Capability(t), vpe(t.vpe)
 
 m3::Errors::Code VPECapability::revoke() {
     vpe->unref();
-    // TODO reset pe and release it (make it free to use for others)
     return m3::Errors::NO_ERROR;
 }
 
