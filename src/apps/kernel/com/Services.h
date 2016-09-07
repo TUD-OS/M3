@@ -53,9 +53,12 @@ public:
     int pending() const {
         return _queue.inflight() + _queue.pending();
     }
-    void send(RecvGate *rgate, const void *msg, size_t size, bool free) {
-        _queue.send(rgate, &_sgate, msg, size, free);
+    void send(VPE *vpe, RecvGate *rgate, const void *msg, size_t size, bool free) {
+        _queue.send(vpe, rgate, &_sgate, msg, size, free);
     }
+    /**
+     * Note that this function might perform a thread switch
+     */
     void received_reply() {
         _queue.received_reply();
     }

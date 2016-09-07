@@ -40,7 +40,7 @@ void ServiceList::send_and_receive(m3::Reference<Service> serv, const void *msg,
         srvcpy->recv_gate().unsubscribe(s);
     });
 
-    serv->send(&serv->recv_gate(), msg, size, free);
+    serv->send(&serv->vpe(), &serv->recv_gate(), msg, size, free);
 }
 
 }

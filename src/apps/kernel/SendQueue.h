@@ -26,10 +26,11 @@ namespace kernel {
 
 class SendQueue {
     struct Entry : public m3::SListItem {
-        explicit Entry(RecvGate *_rgate, SendGate *_sgate, const void *_msg, size_t _size)
-            : SListItem(), rgate(_rgate), sgate(_sgate), msg(_msg), size(_size) {
+        explicit Entry(VPE *_vpe, RecvGate *_rgate, SendGate *_sgate, const void *_msg, size_t _size)
+            : SListItem(), vpe(_vpe), rgate(_rgate), sgate(_sgate), msg(_msg), size(_size) {
         }
 
+        VPE *vpe;
         RecvGate *rgate;
         SendGate *sgate;
         const void *msg;
@@ -47,40 +48,12 @@ public:
         return _queue.length();
     }
 
-    void send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
-        if(_inflight < _capacity)
-            do_send(rgate, sgate, msg, size, onheap);
-        else {
-            // if it's not already on the heap, put it there
-            if(!onheap) {
-                void *nmsg = m3::Heap::alloc(size);
-                memcpy(nmsg, msg, size);
-                msg = nmsg;
-            }
-
-            Entry *e = new Entry(rgate, sgate, msg, size);
-            _queue.append(e);
-        }
-    }
-
-    void received_reply() {
-        assert(_inflight > 0);
-        _inflight--;
-        Entry *e = _queue.remove_first();
-        if(e) {
-            // pending messages have always been copied to the heap
-            do_send(e->rgate, e->sgate, e->msg, e->size, true);
-            delete e;
-        }
-    }
+    void send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap);
+    void send_pending();
+    void received_reply();
 
 private:
-    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
-        sgate->send(msg, size, rgate);
-        if(onheap)
-            m3::Heap::free(const_cast<void*>(msg));
-        _inflight++;
-    }
+    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap);
 
     m3::SList<Entry> _queue;
     int _capacity;

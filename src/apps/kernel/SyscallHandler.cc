@@ -292,7 +292,7 @@ void SyscallHandler::createsess(GateIStream &is) {
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
-    s->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
+    s->send(&s->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
 
@@ -742,12 +742,12 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
     msg.put(is);
 
-    if(sess->obj->srv->vpe().state() != VPE::RUNNING) {
-        if(!sess->obj->srv->vpe().resume())
+    if(rsrv->vpe().state() != VPE::RUNNING) {
+        if(!rsrv->vpe().resume())
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
-    sess->obj->srv->send(&vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
+    rsrv->send(&rsrv->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
 

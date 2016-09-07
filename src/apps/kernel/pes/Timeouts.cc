@@ -50,8 +50,9 @@ void Timeouts::trigger() {
             break;
 
         KLOG(TIMEOUTS, "Triggering timeout " << &to << " (now=" << now << ", due=" << to.when << ")");
-        to.callback();
+        // remove it first to get into a consistent state; the callback might do a thread switch
         _timeouts.remove_first();
+        to.callback();
         delete &to;
     }
     while(_timeouts.length() > 0);
