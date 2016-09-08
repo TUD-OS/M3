@@ -67,21 +67,23 @@ public:
 
     VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable = false);
 
+    void start_pending(ServiceList &serv);
+
     size_t used() const {
         return _count;
     }
     size_t daemons() const {
         return _daemons;
     }
+
     bool exists(vpeid_t id) {
         return id < MAX_VPES && _vpes[id];
     }
+
     VPE &vpe(vpeid_t id) {
         assert(exists(id));
         return *_vpes[id];
     }
-
-    void start_pending(ServiceList &serv);
 
 private:
     vpeid_t get_id();
