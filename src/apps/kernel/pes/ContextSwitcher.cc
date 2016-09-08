@@ -146,8 +146,12 @@ void ContextSwitcher::remove(VPE *vpe) {
     }
 }
 
-void ContextSwitcher::block_vpe(VPE *vpe) {
-    dequeue(vpe);
+void ContextSwitcher::yield_vpe(VPE *vpe) {
+    if(_cur != vpe)
+        return;
+    if(_ready.length() == 0)
+        return;
+
     start_switch();
 }
 

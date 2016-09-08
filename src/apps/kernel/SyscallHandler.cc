@@ -849,7 +849,7 @@ void SyscallHandler::idle(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, ": syscall::idle", "()");
 
-    vpe->block();
+    vpe->yield();
 }
 
 void SyscallHandler::exit(GateIStream &is) {

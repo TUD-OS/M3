@@ -98,10 +98,8 @@ m3::Errors::Code VPE::start() {
     return m3::Errors::NO_ERROR;
 }
 
-void VPE::block() {
-    KLOG(VPES, "Blocking VPE '" << _name << "' [id=" << id() << "]");
-
-    PEManager::get().block_vpe(this);
+void VPE::yield() {
+    PEManager::get().yield_vpe(this);
 }
 
 bool VPE::resume(bool unblock) {

@@ -65,10 +65,10 @@ void PEManager::start_vpe(VPE *vpe) {
     ctx->start_vpe();
 }
 
-void PEManager::block_vpe(VPE *vpe) {
+void PEManager::yield_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->block_vpe(vpe);
+    ctx->yield_vpe(vpe);
 }
 
 void PEManager::unblock_vpe(VPE *vpe) {

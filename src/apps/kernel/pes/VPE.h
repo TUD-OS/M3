@@ -87,7 +87,7 @@ public:
 
     void set_ready();
 
-    void block();
+    void yield();
     bool resume(bool unblock = true);
     void wakeup();
 

@@ -40,7 +40,7 @@ public:
     peid_t find_pe(const m3::PEDesc &pe, bool tmuxable);
     void add_vpe(VPE *vpe);
     void start_vpe(VPE *vpe);
-    void block_vpe(VPE *vpe);
+    void yield_vpe(VPE *vpe);
     void unblock_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 
