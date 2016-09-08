@@ -92,9 +92,8 @@ void VPE::stop_app() {
     else {
         PEManager::get().remove_vpe(this);
         _flags &= ~F_HASAPP;
+        unref();
     }
-
-    unref();
 }
 
 void VPE::exit_app(int exitcode) {
