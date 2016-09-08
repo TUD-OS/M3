@@ -67,6 +67,7 @@ public:
     void delegate(GateIStream &is);
     void obtain(GateIStream &is);
     void activate(GateIStream &is);
+    void activatereply(GateIStream &is);
     void reqmem(GateIStream &is);
     void derivemem(GateIStream &is);
     void revoke(GateIStream &is);

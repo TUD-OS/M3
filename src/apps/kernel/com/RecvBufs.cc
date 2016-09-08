@@ -19,6 +19,49 @@
 
 namespace kernel {
 
+m3::Errors::Code RecvBufs::get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head) {
+    RBuf *rbuf = get(epid);
+    if(!rbuf)
+        return m3::Errors::EP_INVALID;
+
+    // the message has to be within the receive buffer
+    if(!(msgaddr >= rbuf->addr && msgaddr < rbuf->addr + rbuf->size()))
+        return m3::Errors::INV_ARGS;
+
+    // ensure that we start at a message boundary
+    size_t idx = (msgaddr - rbuf->addr) >> rbuf->msgorder;
+    msgaddr = rbuf->addr + (idx << rbuf->msgorder);
+
+    DTU::get().read_mem(vpe.desc(), msgaddr, &head, sizeof(head));
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code RecvBufs::reply_target(VPE &vpe, epid_t epid, uintptr_t msgaddr, vpeid_t *id) {
+    m3::DTU::Header head;
+    m3::Errors::Code res = get_header(vpe, epid, msgaddr, head);
+    if(res != m3::Errors::NO_ERROR)
+        return res;
+
+    *id = head.senderVpeId;
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code RecvBufs::activate_reply(VPE &vpe, VPE &dest, epid_t epid, uintptr_t msgaddr) {
+    m3::DTU::Header head;
+    m3::Errors::Code res = get_header(vpe, epid, msgaddr, head);
+    if(res != m3::Errors::NO_ERROR)
+        return res;
+
+    // re-enable replies
+    head.flags |= m3::DTU::Header::FL_REPLY_ENABLED;
+
+    // set new destination
+    head.senderCoreId = dest.pe();
+
+    DTU::get().write_mem(vpe.desc(), msgaddr, &head, sizeof(head));
+    return m3::Errors::NO_ERROR;
+}
+
 m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
     RBuf *rbuf = get(epid);
     if(rbuf)

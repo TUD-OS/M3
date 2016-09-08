@@ -42,6 +42,11 @@ Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
     return finish(send_receive_vmsg(_gate, KIF::Syscall::ACTIVATE, ep, oldcap, newcap));
 }
 
+Errors::Code Syscalls::activatereply(size_t ep, uintptr_t msgaddr) {
+    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << (void*)msgaddr << ")");
+    return finish(send_receive_vmsg(_gate, KIF::Syscall::ACTIVATEREPLY, ep, msgaddr));
+}
+
 Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name) {
     LLOG(SYSC, "createsrv(gate=" << gate << ", srv=" << srv << ", name=" << name << ")");
     return finish(send_receive_vmsg(_gate, KIF::Syscall::CREATESRV, gate, srv, name));

@@ -47,6 +47,7 @@ private:
 
 public:
     Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
+    Errors::Code activatereply(size_t ep, uintptr_t msgaddr);
     Errors::Code createsrv(capsel_t gate, capsel_t srv, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, const GateOStream &args);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);

@@ -66,6 +66,7 @@ struct KIF {
             DELEGATE,
             OBTAIN,
             ACTIVATE,
+            ACTIVATEREPLY,
             REQMEM,
             DERIVEMEM,
             REVOKE,

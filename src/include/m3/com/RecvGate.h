@@ -122,16 +122,7 @@ public:
         wait_until_sent();
         return res;
     }
-    Errors::Code reply_async(const void *data, size_t len, size_t msgidx) {
-        // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
-        // might send us another message, which we might miss if we ACK this message after we've got
-        // another one. so, ACK it now since the reply marks the end of the handling anyway.
-#if defined(__t2__)
-        DTU::get().mark_read(epid(), msgidx);
-#endif
-        wait_until_sent();
-        return DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
-    }
+    Errors::Code reply_async(const void *data, size_t len, size_t msgidx);
 
 private:
     RecvBuf *_rcvbuf;

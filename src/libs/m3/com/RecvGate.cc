@@ -18,10 +18,33 @@
 
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
+#include <m3/Syscalls.h>
 
 namespace m3 {
 
 INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
+
+Errors::Code RecvGate::reply_async(const void *data, size_t len, size_t msgidx) {
+    // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
+    // might send us another message, which we might miss if we ACK this message after we've got
+    // another one. so, ACK it now since the reply marks the end of the handling anyway.
+#if defined(__t2__)
+    DTU::get().mark_read(epid(), msgidx);
+#endif
+    wait_until_sent();
+
+retry:
+    Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
+
+    if(res == Errors::VPE_GONE) {
+        res = Syscalls::get().activatereply(epid(), msgidx);
+        if(res != Errors::NO_ERROR)
+            return res;
+        goto retry;
+    }
+
+    return res;
+}
 
 Errors::Code RecvGate::wait(SendGate *sgate, DTU::Message **msg) const {
     while(1) {

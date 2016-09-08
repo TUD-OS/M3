@@ -147,6 +147,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::DELEGATE, &SyscallHandler::delegate);
     add_operation(m3::KIF::Syscall::OBTAIN, &SyscallHandler::obtain);
     add_operation(m3::KIF::Syscall::ACTIVATE, &SyscallHandler::activate);
+    add_operation(m3::KIF::Syscall::ACTIVATEREPLY, &SyscallHandler::activatereply);
     add_operation(m3::KIF::Syscall::REQMEM, &SyscallHandler::reqmem);
     add_operation(m3::KIF::Syscall::DERIVEMEM, &SyscallHandler::derivemem);
     add_operation(m3::KIF::Syscall::REVOKE, &SyscallHandler::revoke);
@@ -811,6 +812,34 @@ void SyscallHandler::activate(GateIStream &is) {
     m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "cmpxchg failed");
+    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+}
+
+void SyscallHandler::activatereply(GateIStream &is) {
+    EVENT_TRACER_Syscall_activate();
+    VPE *vpe = is.gate().session<VPE>();
+    epid_t epid;
+    uintptr_t msgaddr;
+    is >> epid >> msgaddr;
+    LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr=" << (void*)msgaddr << ")");
+
+    vpeid_t id;
+    m3::Errors::Code res = vpe->rbufs().reply_target(*vpe, epid, msgaddr, &id);
+    if(res != m3::Errors::NO_ERROR)
+        SYS_ERROR(vpe, is, res, "Invalid arguments");
+
+    VPE &tvpe = VPEManager::get().vpe(id);
+    if(tvpe.state() != VPE::RUNNING) {
+        LOG_SYS(vpe, ": syscall::activatereply", ": waiting for VPE "
+            << tvpe.id() << " at " << tvpe.pe());
+        if(!tvpe.resume())
+            SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+    }
+
+    res = vpe->rbufs().activate_reply(*vpe, tvpe, epid, msgaddr);
+    if(res != m3::Errors::NO_ERROR)
+        SYS_ERROR(vpe, is, res, "Activating reply failed");
+
     kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
 }
 

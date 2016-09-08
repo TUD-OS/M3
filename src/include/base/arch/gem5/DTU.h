@@ -149,6 +149,13 @@ public:
     };
 
     struct Header {
+        enum {
+            FL_REPLY            = 1 << 0,
+            FL_GRANT_CREDITS    = 1 << 1,
+            FL_REPLY_ENABLED    = 1 << 2,
+            FL_PAGEFAULT        = 1 << 3,
+        };
+
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
         uint8_t senderCoreId;
         uint8_t senderEpId;

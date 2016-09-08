@@ -81,6 +81,8 @@ public:
         _waits.append(new Subscriber(cb, epid));
     }
 
+    m3::Errors::Code reply_target(VPE &vpe, epid_t epid, uintptr_t msgaddr, vpeid_t *id);
+    m3::Errors::Code activate_reply(VPE &vpe, VPE &dest, epid_t epid, uintptr_t msgaddr);
 
     m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags);
     void detach(VPE &vpe, epid_t epid);
@@ -88,6 +90,8 @@ public:
 
 private:
     void notify(epid_t epid, bool success);
+
+    m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
 
     const RBuf *get(epid_t epid) const {
         return const_cast<RecvBufs*>(this)->get(epid);
