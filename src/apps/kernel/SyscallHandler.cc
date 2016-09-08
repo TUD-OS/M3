@@ -778,9 +778,17 @@ void SyscallHandler::activate(GateIStream &is) {
     if(ncap) {
         if(ncap->obj->vpe != VPE::INVALID_ID &&
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
+            VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
+
+            if(tvpe.pe() == vpe->pe()) {
+                tvpe.migrate();
+                ncap->obj->pe = tvpe.pe();
+            }
+
             LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
-                << ncap->obj->vpe << " at " << ncap->obj->pe);
-            if(!VPEManager::get().vpe(ncap->obj->vpe).resume(false))
+                << tvpe.id() << " at " << tvpe.pe());
+
+            if(!tvpe.resume(false))
                 SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
         }
         else if(ncap->type == Capability::MSG &&
@@ -830,6 +838,9 @@ void SyscallHandler::activatereply(GateIStream &is) {
 
     VPE &tvpe = VPEManager::get().vpe(id);
     if(tvpe.state() != VPE::RUNNING) {
+        if(tvpe.pe() == vpe->pe())
+            tvpe.migrate();
+
         LOG_SYS(vpe, ": syscall::activatereply", ": waiting for VPE "
             << tvpe.id() << " at " << tvpe.pe());
         if(!tvpe.resume())

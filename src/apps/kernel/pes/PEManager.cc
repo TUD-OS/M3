@@ -69,6 +69,22 @@ void PEManager::stop_vpe(VPE *vpe) {
     ctx->stop_vpe(vpe);
 }
 
+void PEManager::migrate_vpe(VPE *vpe) {
+    peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true);
+    if(npe == 0)
+        return;
+
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    assert(ctx);
+    ctx->remove_vpe(vpe);
+
+    vpe->set_pe(npe);
+
+    ctx = _ctxswitcher[npe];
+    assert(ctx);
+    ctx->add_vpe(vpe);
+}
+
 void PEManager::yield_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
@@ -81,10 +97,13 @@ void PEManager::unblock_vpe(VPE *vpe) {
     ctx->unblock_vpe(vpe);
 }
 
-peid_t PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {
+peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
     size_t i;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(!_ctxswitcher[i])
+            continue;
+
+        if(i == except)
             continue;
 
         if(Platform::pe(i).isa() != pe.isa() || Platform::pe(i).type() != pe.type())

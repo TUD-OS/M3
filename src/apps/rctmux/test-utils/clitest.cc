@@ -53,7 +53,7 @@ int main() {
     apps[1] = new App(ARRAY_SIZE(args2), args2, true);
 
     const char *args3[] = {"/bin/rctmux-util-service", "srv1"};
-    apps[2] = new App(ARRAY_SIZE(args3), args3, false);
+    apps[2] = new App(ARRAY_SIZE(args3), args3, true);
 
     cout << "Starting VPEs...\n";
 

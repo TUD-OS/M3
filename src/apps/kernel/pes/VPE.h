@@ -96,6 +96,10 @@ public:
         return _name;
     }
 
+    void set_pe(peid_t pe) {
+        _desc.pe = pe;
+    }
+
     uint flags() const {
         return _flags;
     }
@@ -158,6 +162,7 @@ public:
 
     void yield();
 
+    void migrate();
     bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 

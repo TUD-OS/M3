@@ -45,7 +45,7 @@ void VPEManager::init(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
             // TODO the required PE depends on the boot module, not the kernel PE
-            peid_t peid = PEManager::get().find_pe(Platform::pe(Platform::kernel_pe()), false);
+            peid_t peid = PEManager::get().find_pe(Platform::pe(Platform::kernel_pe()), 0, false);
             if(peid == 0)
                 PANIC("Unable to find a free PE for boot module " << argv[i]);
 
@@ -142,7 +142,7 @@ vpeid_t VPEManager::get_id() {
 }
 
 VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable) {
-    peid_t i = PEManager::get().find_pe(pe, tmuxable);
+    peid_t i = PEManager::get().find_pe(pe, 0, tmuxable);
     if(i == 0)
         return nullptr;
 

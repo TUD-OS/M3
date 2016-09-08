@@ -123,6 +123,14 @@ void VPE::yield() {
     PEManager::get().yield_vpe(this);
 }
 
+void VPE::migrate() {
+    peid_t old = pe();
+
+    PEManager::get().migrate_vpe(this);
+
+    KLOG(VPES, "Migrated VPE '" << _name << "' [id=" << id() << "] from " << old << " to " << pe());
+}
+
 bool VPE::resume(bool need_app, bool unblock) {
     if(need_app && !has_app())
         return false;
