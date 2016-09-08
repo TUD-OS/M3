@@ -88,13 +88,11 @@ public:
         return _flags & F_HASAPP;
     }
 
-    void set_ready();
-
     void yield();
     bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 
-    m3::Errors::Code start();
+    void start();
     void stop();
     void exit(int exitcode);
 

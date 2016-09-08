@@ -126,7 +126,6 @@ void ContextSwitcher::add(VPE *vpe) {
         _muxable = false;
 
     _count++;
-    unblock_vpe(vpe);
 }
 
 void ContextSwitcher::remove(VPE *vpe) {
@@ -178,13 +177,15 @@ void ContextSwitcher::start_switch(bool timedout) {
     next_state(0);
 }
 
-void ContextSwitcher::start_vpe() {
+void ContextSwitcher::start_vpe(VPE *vpe) {
+    if(_cur != vpe) {
+        enqueue(vpe);
+        start_switch();
+        return;
+    }
+
     if(_state != S_IDLE)
         return;
-
-    assert(_cur);
-    assert(_cur->state() == VPE::RUNNING);
-    assert(_cur->flags() & VPE::F_HASAPP);
 
     _state = S_RESTORE_WAIT;
     next_state(0);

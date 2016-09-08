@@ -68,7 +68,7 @@ public:
     void yield_vpe(VPE *vpe);
     void unblock_vpe(VPE *vpe);
 
-    void start_vpe();
+    void start_vpe(VPE *vpe);
     void start_switch(bool timedout = false);
     void continue_switch();
 

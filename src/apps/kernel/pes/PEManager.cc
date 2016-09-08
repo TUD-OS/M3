@@ -62,7 +62,7 @@ void PEManager::remove_vpe(VPE *vpe) {
 void PEManager::start_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->start_vpe();
+    ctx->start_vpe(vpe);
 }
 
 void PEManager::yield_vpe(VPE *vpe) {

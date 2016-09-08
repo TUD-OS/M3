@@ -294,14 +294,8 @@ void VPE::init_memory() {
     DTU::get().config_rwb_remote(desc(), barrier);
 
     // boot modules are started implicitly
-    if(_flags & F_BOOTMOD) {
+    if(_flags & F_BOOTMOD)
         load_app(_name.c_str());
-
-        // add a reference, like VPE::start() does
-        ref();
-
-        _flags |= F_HASAPP;
-    }
 }
 
 }

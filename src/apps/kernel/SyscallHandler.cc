@@ -402,8 +402,6 @@ void SyscallHandler::createvpe(GateIStream &is) {
     if(gcap != m3::KIF::INV_SEL)
         nvpe->objcaps().obtain(gcap, msg);
 
-    nvpe->set_ready();
-
     kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, Platform::pe(nvpe->pe()).value());
 }
 
@@ -546,11 +544,8 @@ void SyscallHandler::vpectrl(GateIStream &is) {
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START: {
-            // TODO the VPE might be suspended
-            m3::Errors::Code res = vpecap->vpe->start();
-            if(res != m3::Errors::NO_ERROR)
-                SYS_ERROR(vpe, is, res, "VPE start failed");
-            kreply_vmsg(vpe, is, res);
+            vpecap->vpe->start();
+            kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
             break;
         }
 

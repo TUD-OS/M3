@@ -31,7 +31,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
     : SListItem(),
       SlabObject<VPE>(),
       _desc(peid, id),
-      _flags(flags),
+      _flags(flags | F_INIT),
       _refs(0),
       _pid(),
       _state(DEAD),
@@ -57,6 +57,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
     if(~_flags & F_IDLE) {
         VPEManager::get()._count++;
         init();
+        PEManager::get().add_vpe(this);
     }
 
     KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << pe() << "]");
@@ -75,18 +76,7 @@ void VPE::unref() {
         VPEManager::get().remove(id());
 }
 
-void VPE::set_ready() {
-    assert(_state == DEAD);
-    assert(!(_flags & (F_INIT | F_HASAPP)));
-
-    _flags |= F_INIT;
-    PEManager::get().add_vpe(this);
-}
-
-m3::Errors::Code VPE::start() {
-    if(_flags & F_INIT)
-        return m3::Errors::INV_ARGS;
-
+void VPE::start() {
     _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference
@@ -95,7 +85,6 @@ m3::Errors::Code VPE::start() {
     KLOG(VPES, "Starting VPE '" << _name << "' [id=" << id() << "]");
 
     VPEManager::get().start(id());
-    return m3::Errors::NO_ERROR;
 }
 
 void VPE::yield() {
