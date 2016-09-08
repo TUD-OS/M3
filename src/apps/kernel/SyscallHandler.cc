@@ -544,13 +544,13 @@ void SyscallHandler::vpectrl(GateIStream &is) {
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START: {
-            vpecap->vpe->start();
+            vpecap->vpe->start_app();
             kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
             break;
         }
 
         case m3::KIF::Syscall::VCTRL_STOP:
-            vpecap->vpe->stop();
+            vpecap->vpe->stop_app();
             kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
             break;
 
@@ -854,8 +854,7 @@ void SyscallHandler::exit(GateIStream &is) {
     is >> exitcode;
     LOG_SYS(vpe, ": syscall::exit", "(" << exitcode << ")");
 
-    vpe->exit(exitcode);
-    vpe->unref();
+    vpe->exit_app(exitcode);
 }
 
 void SyscallHandler::noop(GateIStream &is) {

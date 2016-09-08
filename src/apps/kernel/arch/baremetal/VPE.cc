@@ -41,7 +41,7 @@ void VPE::init() {
         m3::DTU::NOTIFY_EP, 1 << NOTIFY_MSGSIZE_ORD, m3::DTU::CREDITS_UNLIM);
 }
 
-void VPE::activate_sysc_ep() {
+void VPE::activate_sysc_ep(void *) {
 }
 
 m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {

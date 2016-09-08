@@ -41,7 +41,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _mapcaps(id + 1),
       _lastsched(),
       _dtustate(),
-      _eps(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _srvgate(SyscallHandler::get().srvepid(), nullptr),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
@@ -76,7 +75,7 @@ void VPE::unref() {
         VPEManager::get().remove(id());
 }
 
-void VPE::start() {
+void VPE::start_app() {
     _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference
@@ -85,6 +84,40 @@ void VPE::start() {
     KLOG(VPES, "Starting VPE '" << _name << "' [id=" << id() << "]");
 
     VPEManager::get().start(id());
+}
+
+void VPE::stop_app() {
+    if(!has_app())
+        return;
+
+    if(_state == RUNNING)
+        exit(1);
+    else {
+        PEManager::get().remove_vpe(this);
+        _flags &= ~F_HASAPP;
+    }
+
+    unref();
+}
+
+void VPE::exit_app(int exitcode) {
+    // no update on the PE here, since we don't save the state anyway
+    _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
+    rbufs().detach_all(*this, m3::DTU::DEF_RECVEP);
+
+    _exitcode = exitcode;
+
+    _flags &= ~F_HASAPP;
+
+    PEManager::get().remove_vpe(this);
+
+    for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
+        auto cur = it++;
+        cur->callback(exitcode, &*cur);
+        _exitsubscr.unsubscribe(&*cur);
+    }
+
+    unref();
 }
 
 void VPE::yield() {
@@ -112,35 +145,21 @@ void VPE::wakeup() {
         PEManager::get().unblock_vpe(this);
 }
 
-void VPE::stop() {
-    if(!has_app())
-        return;
+void VPE::notify_resume() {
+    m3::ThreadManager::get().notify(this);
 
-    if(_state == RUNNING)
-        exit(1);
-    else {
-        PEManager::get().remove_vpe(this);
-        _flags &= ~F_HASAPP;
+    // notify subscribers
+    for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
+        auto cur = it++;
+        cur->callback(true, &*cur);
+        _resumesubscr.unsubscribe(&*cur);
     }
-
-    unref();
 }
 
-void VPE::exit(int exitcode) {
-    // no update on the PE here, since we don't save the state anyway
-    _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
-    rbufs().detach_all(*this, m3::DTU::DEF_RECVEP);
-
-    _exitcode = exitcode;
-
-    _flags &= ~F_HASAPP;
-
-    PEManager::get().remove_vpe(this);
-
-    for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
-        auto cur = it++;
-        cur->callback(exitcode, &*cur);
-        _exitsubscr.unsubscribe(&*cur);
+void VPE::free_reqs() {
+    for(auto it = _requires.begin(); it != _requires.end(); ) {
+        auto old = it++;
+        delete &*old;
     }
 }
 

@@ -35,14 +35,28 @@
 namespace kernel {
 
 class ContextSwitcher;
+class VPECapability;
+class VPEManager;
 
 class VPE : public m3::SListItem, public SlabObject<VPE> {
     friend class ContextSwitcher;
+    friend class VPECapability;
+    friend class VPEManager;
+
+    struct ServName : public m3::SListItem {
+        explicit ServName(const m3::String &_name) : name(_name) {
+        }
+        m3::String name;
+    };
 
 public:
     static const uint16_t INVALID_ID    = 0xFFFF;
 
     static const cycles_t TIME_SLICE    = 500000;
+
+    static const int SYSC_MSGSIZE_ORD   = m3::nextlog2<512>::val;
+    static const int SYSC_CREDIT_ORD    = SYSC_MSGSIZE_ORD;
+    static const int NOTIFY_MSGSIZE_ORD = m3::nextlog2<64>::val;
 
     enum State {
         RUNNING,
@@ -60,50 +74,11 @@ public:
         F_READY       = 1 << 6,
     };
 
-    struct ServName : public m3::SListItem {
-        explicit ServName(const m3::String &_name) : name(_name) {
-        }
-        m3::String name;
-    };
-
-    static constexpr int SYSC_MSGSIZE_ORD   = m3::nextlog2<512>::val;
-    static constexpr int SYSC_CREDIT_ORD    = SYSC_MSGSIZE_ORD;
-    static constexpr int NOTIFY_MSGSIZE_ORD = m3::nextlog2<64>::val;
-
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = -1,
         capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
     ~VPE();
-
-    int refcount() const {
-        return _refs;
-    }
-    void ref() {
-        _refs++;
-    }
-    void unref();
-
-    bool has_app() const {
-        return _flags & F_HASAPP;
-    }
-
-    void yield();
-    bool resume(bool need_app = true, bool unblock = true);
-    void wakeup();
-
-    void start();
-    void stop();
-    void exit(int exitcode);
-
-    void init();
-
-    RecvBufs &rbufs() {
-        return _rbufs;
-    }
-
-    void activate_sysc_ep(void *addr);
-    m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     const VPEDesc &desc() const {
         return _desc;
@@ -117,18 +92,28 @@ public:
     peid_t pe() const {
         return desc().pe;
     }
+    const m3::String &name() const {
+        return _name;
+    }
+
     uint flags() const {
         return _flags;
     }
     int state() const {
         return _state;
     }
-    int exitcode() const {
-        return _exitcode;
-    }
+
     AddrSpace *address_space() {
         return _as;
     }
+    RecvBufs &rbufs() {
+        return _rbufs;
+    }
+
+    int exitcode() const {
+        return _exitcode;
+    }
+
     void subscribe_exit(const m3::Subscriptions<int>::callback_type &cb) {
         _exitsubscr.subscribe(cb);
     }
@@ -141,31 +126,44 @@ public:
     void unsubscribe_resume(m3::Subscriber<bool> *sub) {
         _resumesubscr.unsubscribe(sub);
     }
+
     const m3::SList<ServName> &requirements() const {
         return _requires;
     }
     void add_requirement(const m3::String &name) {
         _requires.append(new ServName(name));
     }
-    const m3::String &name() const {
-        return _name;
-    }
+
     CapTable &objcaps() {
         return _objcaps;
     }
     CapTable &mapcaps() {
         return _mapcaps;
     }
+
     RecvGate &syscall_gate() {
         return _syscgate;
     }
     RecvGate &service_gate() {
         return _srvgate;
     }
-    void *eps() {
-        return _eps;
+
+    bool has_app() const {
+        return _flags & F_HASAPP;
     }
+
+    void start_app();
+    void stop_app();
+    void exit_app(int exitcode);
+
+    void yield();
+
+    bool resume(bool need_app = true, bool unblock = true);
+    void wakeup();
+
     void make_daemon();
+
+    m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     void invalidate_ep(epid_t ep);
 
@@ -174,31 +172,26 @@ public:
     void config_mem_ep(epid_t ep, peid_t dstpe, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:
-    void update_ep(epid_t ep);
-
-    void notify_resume() {
-        m3::ThreadManager::get().notify(this);
-
-        // notify subscribers
-        for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
-            auto cur = it++;
-            cur->callback(true, &*cur);
-            _resumesubscr.unsubscribe(&*cur);
-        }
+    int refcount() const {
+        return _refs;
     }
+    void ref() {
+        _refs++;
+    }
+    void unref();
 
+    void init();
     void init_memory();
     void load_app(const char *name);
 
-    void write_env_file(int pid, label_t label, epid_t epid);
-    void activate_sysc_ep();
+    void update_ep(epid_t ep);
 
-    void free_reqs() {
-        for(auto it = _requires.begin(); it != _requires.end(); ) {
-            auto old = it++;
-            delete &*old;
-        }
-    }
+    void notify_resume();
+
+    void write_env_file(int pid, label_t label, epid_t epid);
+    void activate_sysc_ep(void *addr);
+
+    void free_reqs();
 
     VPEDesc _desc;
     uint _flags;
@@ -211,7 +204,6 @@ private:
     CapTable _mapcaps;
     uint64_t _lastsched;
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
-    void *_eps;
     RecvGate _syscgate;
     RecvGate _srvgate;
     RecvBufs _rbufs;
