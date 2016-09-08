@@ -25,27 +25,30 @@ namespace m3 {
 INIT_PRIO_DTU DTU DTU::inst;
 
 void DTU::try_sleep(bool report, uint64_t cycles) {
-    // no messages pending, then try to sleep
-    if(read_reg(DtuRegs::MSG_CNT) == 0) {
-        // report_idle() calls us again
-        if(m3::env()->idle_active)
+    // report_idle() calls us again
+    if(m3::env()->idle_active)
+        return;
+
+    // check for messages a few times
+    for(int i = 0; i < 100; ++i) {
+        if(read_reg(DtuRegs::MSG_CNT) > 0)
             return;
-
-        // remember that we idle in case we should switch context
-        m3::env()->idle_active = 1;
-
-        // if the kernel requested it, notify him that we are going to idle now
-        if(report && m3::env()->idle_report)
-            m3::env()->backend->report_idle();
-
-        // ensure that we have no pending writes before going to sleep
-        Sync::memory_barrier();
-
-        // note that the DTU checks again whether there actually are no messages, because we might
-        // have received something after the check above
-        sleep(cycles);
-        m3::env()->idle_active = 0;
     }
+
+    // remember that we idle in case we should switch context
+    m3::env()->idle_active = 1;
+
+    // if the kernel requested it, notify him that we are going to idle now
+    if(report && m3::env()->idle_report)
+        m3::env()->backend->report_idle();
+
+    // ensure that we have no pending writes before going to sleep
+    Sync::memory_barrier();
+
+    // note that the DTU checks again whether there actually are no messages, because we might
+    // have received something after the check above
+    sleep(cycles);
+    m3::env()->idle_active = 0;
 }
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
