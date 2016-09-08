@@ -258,7 +258,7 @@ public:
     void wait_until_ready(int) const {
         // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)
         // compilers are the worst. let's get rid of them and just write assembly code again ;)
-        while((read_reg(CmdRegs::COMMAND) & 0x7) != 0)
+        while((read_reg(CmdRegs::COMMAND) & 0xF) != 0)
             ;
     }
     bool wait_for_mem_cmd() const {
@@ -278,8 +278,8 @@ private:
     static Errors::Code get_error() {
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
-            if(static_cast<CmdOpCode>(cmd & 0x7) == CmdOpCode::IDLE)
-                return static_cast<Errors::Code>(cmd >> 12);
+            if(static_cast<CmdOpCode>(cmd & 0xF) == CmdOpCode::IDLE)
+                return static_cast<Errors::Code>(cmd >> 13);
         }
         UNREACHED;
     }
@@ -328,8 +328,8 @@ private:
 
     static reg_t buildCommand(int epid, CmdOpCode c, uint flags = 0) {
         return static_cast<reg_t>(c) |
-                (static_cast<reg_t>(epid) << 3) |
-                (static_cast<reg_t>(flags) << 11);
+                (static_cast<reg_t>(epid) << 4) |
+                (static_cast<reg_t>(flags) << 12);
     }
 
     static DTU inst;
