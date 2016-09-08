@@ -27,6 +27,12 @@ using namespace m3;
 
 int main() {
     cycles_t total = 0;
+
+    // do some warmup
+    Syscalls::get().noop();
+    Syscalls::get().noop();
+    Syscalls::get().noop();
+
     cout << "Starting...\n";
     for(int i = 0; i < COUNT; ++i) {
         cycles_t start = Profile::start(0);
