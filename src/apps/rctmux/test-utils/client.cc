@@ -15,91 +15,48 @@
 */
 
 #include <base/Common.h>
-#include <base/util/Sync.h>
-#include <base/util/Profile.h>
-#include <base/Panic.h>
 
+#include <m3/com/SendGate.h>
+#include <m3/session/Session.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
-#include <m3/vfs/VFS.h>
-#include <m3/Syscalls.h>
-#include <m3/VPE.h>
 
 using namespace m3;
 
-static void start(VPE &v, Executable &e) {
-    v.mountspace(*VPE::self().mountspace());
-    v.obtain_mountspace();
-    Errors::Code res = v.exec(e);
-    if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << e.argv()[0] << ": " << Errors::to_string(res));
-}
+enum TestOp {
+    TEST
+};
 
-int main() {
-    cout << "Mounting filesystem...\n";
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        PANIC("Cannot mount root fs");
+int main(int, char *argv[]) {
+    // the kernel does not block us atm until the service is available
+    // so try to connect until it's available
+    Session *sess = nullptr;
+    while(sess == nullptr) {
+        sess = new Session(argv[2]);
+        if(sess->is_connected())
+            break;
 
-    cout << "Creating VPEs...\n";
+        for(volatile int x = 0; x < 10000; ++x)
+            ;
+        delete sess;
+        sess = nullptr;
+    }
 
-    const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
-    Executable exec1(ARRAY_SIZE(args1), args1);
-    VPE s1(args1[0], VPE::self().pe(), "pager", true);
+    {
+        SendGate sgate = SendGate::bind(sess->obtain(1).start());
 
-    const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
-    Executable exec2(ARRAY_SIZE(args2), args2);
-    VPE s2(args2[0], VPE::self().pe(), "pager", true);
+        cout << argv[1] << ": Starting test...\n";
 
-    cout << "Starting VPEs...\n";
-
-    start(s1, exec1);
-    start(s2, exec2);
-
-    enum TestOp {
-        TEST
-    };
-
-    cout << "Starting session creation...\n";
-
-    Session *sess[2];
-    SendGate *sgate[2];
-    const char *name[2];
-
-    for(int i = 0; i < 2; ++i) {
-        name[i] = i == 0 ? "srv1" : "srv2";
-
-        // the kernel does not block us atm until the service is available
-        // so try to connect until it's available
-        while(sess[i] == nullptr) {
-            sess[i] = new Session(name[i]);
-            if(sess[i]->is_connected())
-                break;
-
-            for(volatile int x = 0; x < 10000; ++x)
-                ;
-            delete sess[i];
-            sess[i] = nullptr;
+        for(int i = 0; i < 20; ++i) {
+            int res;
+            GateIStream reply = send_receive_vmsg(sgate, TEST);
+            reply >> res;
+            cout << argv[1] << ": Got " << res << " from " << argv[2] << "\n";
         }
 
-        sgate[i] = new SendGate(SendGate::bind(sess[i]->obtain(1).start()));
+        cout << argv[1] << ": Test finished.\n";
     }
 
-    cout << "Starting test...\n";
-
-    for(int i = 0; i < 20; ++i) {
-        size_t no = i % 2;
-        int res;
-        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
-        reply >> res;
-        cout << "Got " << res << " from " << name[no] << "\n";
-    }
-
-    cout << "Test finished.\n";
-
-    for(int i = 0; i < 2; ++i) {
-        delete sgate[i];
-        delete sess[i];
-    }
+    delete sess;
 
     return 0;
 }
