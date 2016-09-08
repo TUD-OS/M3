@@ -69,7 +69,8 @@ public:
     }
 
     void report_idle() override {
-        m3::Syscalls::get().idle();
+        SendGate sg(ObjCap::INVALID, 0, nullptr, DTU::SYSC_EP);
+        send_vmsg(sg, m3::KIF::Syscall::IDLE);
     }
 
     void exit(int code) override {

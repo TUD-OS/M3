@@ -118,6 +118,11 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     DTU::get().recv_msgs(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_MSGSIZE_ORD, 0);
 
+    buford = m3::getnextlog2(Platform::pe_count()) + VPE::NOTIFY_MSGSIZE_ORD;
+    bufsize = static_cast<size_t>(1) << buford;
+    DTU::get().recv_msgs(m3::DTU::NOTIFY_EP, reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+        buford, VPE::NOTIFY_MSGSIZE_ORD, 0);
+
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
@@ -845,9 +850,6 @@ void SyscallHandler::idle(GateIStream &is) {
     LOG_SYS(vpe, ": syscall::idle", "()");
 
     vpe->block();
-
-    if(vpe->resume(false))
-        reply_vmsg(is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::exit(GateIStream &is) {

@@ -34,6 +34,11 @@ void VPE::init() {
     config_snd_ep(m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         Platform::kernel_pe(), Platform::kernel_pe(),
         m3::DTU::SYSC_EP, 1 << SYSC_MSGSIZE_ORD, 1 << SYSC_CREDIT_ORD);
+
+    // configure notify endpoint
+    config_snd_ep(m3::DTU::NOTIFY_EP, reinterpret_cast<label_t>(&syscall_gate()),
+        Platform::kernel_pe(), Platform::kernel_pe(),
+        m3::DTU::NOTIFY_EP, 1 << NOTIFY_MSGSIZE_ORD, m3::DTU::CREDITS_UNLIM);
 }
 
 void VPE::activate_sysc_ep() {

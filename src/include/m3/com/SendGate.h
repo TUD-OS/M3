@@ -24,6 +24,7 @@
 namespace m3 {
 
 class Syscalls;
+class EnvUserBackend;
 class VPE;
 
 /**
@@ -38,6 +39,7 @@ class VPE;
  */
 class SendGate : public Gate {
     friend class Syscalls;
+    friend class EnvUserBackend;
 
     explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, size_t epid = UNBOUND)
         : Gate(SEND_GATE, cap, capflags, epid),
