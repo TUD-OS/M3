@@ -37,6 +37,10 @@ class RecvBufs {
             : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder), flags(_flags) {
         }
 
+        size_t size() const {
+            return 1UL << order;
+        }
+
         void configure(VPE &vpe, bool attach);
 
         epid_t epid;
@@ -77,57 +81,13 @@ public:
         _waits.append(new Subscriber(cb, epid));
     }
 
-    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
-        RBuf *rbuf = get(epid);
-        if(rbuf)
-            return m3::Errors::EXISTS;
 
-        for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
-            if(it->epid == epid)
-                return m3::Errors::EXISTS;
-
-            if(m3::Math::overlap(it->addr, it->addr + (1UL << it->order), addr, addr + (1UL << order)))
-                return m3::Errors::INV_ARGS;
-        }
-
-        rbuf = new RBuf(epid, addr, order, msgorder, flags);
-        rbuf->configure(vpe, true);
-        _rbufs.append(rbuf);
-        notify(epid, true);
-        return m3::Errors::NO_ERROR;
-    }
-
-    void detach(VPE &vpe, epid_t epid) {
-        RBuf *rbuf = get(epid);
-        if(!rbuf)
-            return;
-
-        rbuf->configure(vpe, false);
-        notify(epid, false);
-        _rbufs.remove(rbuf);
-        delete rbuf;
-    }
-
-    void detach_all(VPE &vpe, epid_t except) {
-        // TODO not nice
-        for(epid_t i = 0; i < EP_COUNT; ++i) {
-            if(i == except)
-                continue;
-            detach(vpe, i);
-        }
-    }
+    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags);
+    void detach(VPE &vpe, epid_t epid);
+    void detach_all(VPE &vpe, epid_t except);
 
 private:
-    void notify(epid_t epid, bool success) {
-        for(auto sub = _waits.begin(); sub != _waits.end(); ) {
-            auto old = sub++;
-            if(old->epid == epid) {
-                old->callback(success, nullptr);
-                _waits.remove(&*old);
-                delete &*old;
-            }
-        }
-    }
+    void notify(epid_t epid, bool success);
 
     const RBuf *get(epid_t epid) const {
         return const_cast<RecvBufs*>(this)->get(epid);
