@@ -67,7 +67,8 @@ public:
         m3::String name;
     };
 
-    static constexpr int SYSC_CREDIT_ORD    = m3::nextlog2<512>::val;
+    static constexpr int SYSC_MSGSIZE_ORD   = m3::nextlog2<512>::val;
+    static constexpr int SYSC_CREDIT_ORD    = SYSC_MSGSIZE_ORD;
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = -1,
         capsel_t pfgate = m3::KIF::INV_SEL);

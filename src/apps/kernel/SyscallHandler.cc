@@ -113,10 +113,10 @@ static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcap
 SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 #if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
-    int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_CREDIT_ORD;
+    int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_MSGSIZE_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, VPE::SYSC_CREDIT_ORD, 0);
+        buford, VPE::SYSC_MSGSIZE_ORD, 0);
 
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;

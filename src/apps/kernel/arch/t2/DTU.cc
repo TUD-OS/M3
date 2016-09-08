@@ -70,7 +70,7 @@ void DTU::wakeup(const VPEDesc &vpe) {
     label_t label = reinterpret_cast<label_t>(&VPEManager::get().vpe(vpe.id).syscall_gate());
     config_send_remote(vpe, m3::DTU::SYSC_EP, label,
         Platform::kernel_pe(), Platform::kernel_pe(), m3::DTU::SYSC_EP,
-        1 << VPE::SYSC_CREDIT_ORD, 1 << VPE::SYSC_CREDIT_ORD);
+        1 << VPE::SYSC_MSGSIZE_ORD, 1 << VPE::SYSC_CREDIT_ORD);
 
     injectIRQ(vpe);
 }

@@ -33,7 +33,7 @@ void VPE::init() {
     // configure syscall endpoint
     config_snd_ep(m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
         Platform::kernel_pe(), Platform::kernel_pe(),
-        m3::DTU::SYSC_EP, 1 << SYSC_CREDIT_ORD, 1 << SYSC_CREDIT_ORD);
+        m3::DTU::SYSC_EP, 1 << SYSC_MSGSIZE_ORD, 1 << SYSC_CREDIT_ORD);
 }
 
 void VPE::activate_sysc_ep() {
