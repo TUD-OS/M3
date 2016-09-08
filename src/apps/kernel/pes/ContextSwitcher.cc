@@ -138,7 +138,7 @@ void ContextSwitcher::remove(VPE *vpe) {
 
     vpe->_state = VPE::DEAD;
 
-    if(_cur == vpe) {
+    if(_cur == vpe && _state == S_IDLE) {
         // the VPE id is expected to be invalid in S_SWITCH
         DTU::get().unset_vpeid(_cur->desc());
         _cur = nullptr;
