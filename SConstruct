@@ -86,7 +86,7 @@ env = baseenv.Clone()
 env.Append(
     CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2' \
         ' -fno-threadsafe-statics -fno-stack-protector',
-    CPPFLAGS = ' -D_FORTIFY_SOURCE=0',
+    CPPFLAGS = ' -U_FORTIFY_SOURCE',
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections -Wno-lto-type-mismatch',
@@ -127,6 +127,8 @@ else:
     env.Replace(CXX = 'g++')
     env.Replace(CC = 'gcc')
     env.Replace(AS = 'gcc')
+    env.Replace(AR = 'gcc-ar')
+    env.Replace(RANLIB = 'gcc-ranlib')
 
 # add build-dependent flags (debug/release)
 btype = os.environ.get('M3_BUILD', 'release')
