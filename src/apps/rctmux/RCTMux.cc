@@ -44,6 +44,7 @@ EXTERN_C void *_start_app() {
     if(flags & m3::WAITING)
         flags_set(m3::SIGNAL);
 
+    started = false;
     state = nullptr;
     return nullptr;
 }
