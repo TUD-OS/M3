@@ -63,7 +63,7 @@ private:
     ~VPEManager();
 
 public:
-    void load(int argc, char **argv);
+    void init(int argc, char **argv);
 
     VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable = false);
 

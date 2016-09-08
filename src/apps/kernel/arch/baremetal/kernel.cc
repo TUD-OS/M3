@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     PEManager::create();
     VPEManager::create();
-    VPEManager::get().load(argc - 1, argv + 1);
+    VPEManager::get().init(argc - 1, argv + 1);
 
     PEManager::get().init();
 

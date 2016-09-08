@@ -34,7 +34,7 @@ VPEManager::VPEManager()
     : _next_id(0), _vpes(new VPE*[MAX_VPES]()), _count(), _daemons(), _pending() {
 }
 
-void VPEManager::load(int argc, char **argv) {
+void VPEManager::init(int argc, char **argv) {
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
