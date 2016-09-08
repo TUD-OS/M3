@@ -80,7 +80,7 @@ void VPE::start_app() {
 
     KLOG(VPES, "Starting VPE '" << _name << "' [id=" << id() << "]");
 
-    VPEManager::get().start(id());
+    PEManager::get().start_vpe(this);
 }
 
 void VPE::stop_app() {

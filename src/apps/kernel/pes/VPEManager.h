@@ -81,7 +81,6 @@ public:
         return *_vpes[id];
     }
 
-    void start(vpeid_t id);
     void start_pending(ServiceList &serv);
 
 private:

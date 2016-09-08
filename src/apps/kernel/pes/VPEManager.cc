@@ -161,12 +161,6 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, caps
     return _vpes[id];
 }
 
-void VPEManager::start(vpeid_t id) {
-    assert(_vpes[id]);
-
-    PEManager::get().start_vpe(_vpes[id]);
-}
-
 void VPEManager::add(VPE *vpe) {
     _vpes[vpe->id()] = vpe;
 
