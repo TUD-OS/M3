@@ -67,18 +67,14 @@ static const char *stateNames[] = {
  */
 
 ContextSwitcher::ContextSwitcher(size_t pe)
-    : _pe(pe), _state(S_IDLE), _count(), _ready(), _it(),
+    : _muxable(true), _pe(pe), _state(S_IDLE), _count(), _ready(),
       _timeout(), _wait_time(), _idle(), _cur() {
     assert(pe > 0);
     KLOG(CTXSW, "Initialized context switcher for pe " << pe);
 }
 
 bool ContextSwitcher::can_mux() const {
-    for(auto it = _ready.begin(); it != _ready.end(); ++it) {
-        if(!(it->flags() & VPE::F_MUXABLE))
-            return false;
-    }
-    return true;
+    return _muxable;
 }
 
 void ContextSwitcher::send_flags(vpeid_t vpeid, uint64_t flags) {
@@ -92,10 +88,10 @@ void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
 
 VPE* ContextSwitcher::schedule() {
     if (_ready.length() > 0) {
-        _it++;
-        if (_it == _ready.end())
-            _it = _ready.begin();
-        return &*_it;
+        VPE *vpe = _ready.remove_first();
+        assert(vpe->_flags & VPE::F_READY);
+        vpe->_flags &= ~VPE::F_READY;
+        return vpe;
     }
 
     return _idle;
@@ -115,8 +111,6 @@ void ContextSwitcher::enqueue(VPE *vpe) {
 
     vpe->_flags |= VPE::F_READY;
     _ready.append(vpe);
-    if(_ready.length() == 1)
-        _it = _ready.begin();
 }
 
 void ContextSwitcher::dequeue(VPE *vpe) {
@@ -125,11 +119,12 @@ void ContextSwitcher::dequeue(VPE *vpe) {
 
     vpe->_flags &= ~VPE::F_READY;
     _ready.remove(vpe);
-    if(&*_it == vpe)
-        _it = _ready.begin();
 }
 
 void ContextSwitcher::add(VPE *vpe) {
+    if(!(vpe->_flags & VPE::F_MUXABLE))
+        _muxable = false;
+
     _count++;
     unblock_vpe(vpe);
 }
@@ -137,6 +132,9 @@ void ContextSwitcher::add(VPE *vpe) {
 void ContextSwitcher::remove(VPE *vpe) {
     dequeue(vpe);
     _count--;
+
+    if(_count == 0)
+        _muxable = true;
 
     vpe->_state = VPE::DEAD;
 
@@ -244,12 +242,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
                 << (blocked ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
-            if(blocked)
-                dequeue(_cur);
-            // ensure that it is still enqueued. the idle syscall might have dequeued it
-            // note that we want to make it ready even in this case, because that means that, e.g.,
-            // the PE has received a message and thus does not want to be blocked anymore
-            else
+            if(!blocked)
                 enqueue(_cur);
 
             // fall through
@@ -286,7 +279,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             // let the VPE report idle times if there are other VPEs on this PE
-            if(_ready.length() > 1)
+            if(_ready.length() > 0)
                 flags |= m3::RCTMuxCtrl::REPORT;
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
@@ -311,11 +304,9 @@ void ContextSwitcher::next_state(uint64_t flags) {
             _state = S_IDLE;
 
             // if we are starting a VPE, we might already have a timeout for it
-            if(_ready.length() > 1 && !_timeout) {
+            if(_ready.length() > 0 && !_timeout) {
                 auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
-                // timeout immediately, if the VPE is no longer ready
-                cycles_t wait = !(_cur->flags() & VPE::F_READY) ? 0 : VPE::TIME_SLICE;
-                _timeout = Timeouts::get().wait_for(wait, callback);
+                _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE, callback);
             }
             break;
         }

@@ -84,11 +84,11 @@ private:
     void recv_flags(vpeid_t vpeid, uint64_t *flags);
 
 private:
+    bool _muxable;
     peid_t _pe;
     State _state;
     size_t _count;
     m3::SList<VPE> _ready;
-    m3::SList<VPE>::iterator _it;
     Timeouts::Timeout *_timeout;
     cycles_t _wait_time;
     VPE *_idle;
