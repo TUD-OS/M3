@@ -213,7 +213,6 @@ static uintptr_t map_idle(VPE &vpe) {
 
 void VPE::load_app(const char *name) {
     assert(_flags & F_BOOTMOD);
-    assert(_flags & F_START);
 
     bool appFirst;
     BootModule *mod = get_mod(name, &appFirst);
@@ -296,10 +295,12 @@ void VPE::init_memory() {
 
     // boot modules are started implicitly
     if(_flags & F_BOOTMOD) {
-        _flags |= F_START;
+        load_app(_name.c_str());
 
         // add a reference, like VPE::start() does
         ref();
+
+        _flags |= F_HASAPP;
     }
 }
 

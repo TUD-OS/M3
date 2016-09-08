@@ -185,7 +185,7 @@ void ContextSwitcher::start_vpe() {
 
     assert(_cur);
     assert(_cur->state() == VPE::RUNNING);
-    assert(_cur->flags() & VPE::F_START);
+    assert(_cur->flags() & VPE::F_HASAPP);
 
     _state = S_RESTORE_WAIT;
     next_state(0);
@@ -238,7 +238,7 @@ void ContextSwitcher::next_state(uint64_t flags) {
             uint64_t total = now - _cur->_lastsched;
             bool blocked = (flags & m3::RCTMuxCtrl::BLOCK) &&
                 _cur->_dtustate.get_msg_count() == 0 &&
-                !(_cur->_flags & VPE::F_START);
+                (_cur->_flags & VPE::F_HASAPP);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
                 << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
@@ -266,8 +266,6 @@ void ContextSwitcher::next_state(uint64_t flags) {
 
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
-            if((_cur->flags() & (VPE::F_BOOTMOD | VPE::F_START)) == (VPE::F_BOOTMOD | VPE::F_START))
-                _cur->load_app(_cur->name().c_str());
 
             // fall through
         }
@@ -275,11 +273,11 @@ void ContextSwitcher::next_state(uint64_t flags) {
         case S_RESTORE_WAIT: {
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
-            if(_cur->flags() & (VPE::F_INIT | VPE::F_START))
+            if(_cur->flags() & VPE::F_INIT)
                 flags |= m3::RCTMuxCtrl::INIT;
 
             // tell rctmux whether there is an application and the PE id
-            if(_cur->flags() & (VPE::F_STARTED | VPE::F_START))
+            if(_cur->flags() & VPE::F_HASAPP)
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             // let the VPE report idle times if there are other VPEs on this PE
@@ -298,10 +296,8 @@ void ContextSwitcher::next_state(uint64_t flags) {
         }
 
         case S_RESTORE_DONE: {
-            // we have finished the start phase (if it was set)
-            if(_cur->_flags & VPE::F_START)
-                _cur->_flags |= VPE::F_STARTED;
-            _cur->_flags &= ~(VPE::F_INIT | VPE::F_START);
+            // we have finished the init phase (if it was set)
+            _cur->_flags &= ~VPE::F_INIT;
             _cur->notify_resume();
 
             send_flags(_cur->id(), 0);

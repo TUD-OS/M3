@@ -77,7 +77,7 @@ void VPE::unref() {
 
 void VPE::set_ready() {
     assert(_state == DEAD);
-    assert(!(_flags & (F_INIT | F_START)));
+    assert(!(_flags & (F_INIT | F_HASAPP)));
 
     _flags |= F_INIT;
     PEManager::get().add_vpe(this);
@@ -87,7 +87,7 @@ m3::Errors::Code VPE::start() {
     if(_flags & F_INIT)
         return m3::Errors::INV_ARGS;
 
-    _flags |= F_START;
+    _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference
     ref();
@@ -127,12 +127,16 @@ void VPE::stop() {
     if(_state == DEAD)
         return;
 
+    uint flags = _flags;
+
     if(_state == RUNNING)
         exit(1);
-    else
+    else {
         PEManager::get().remove_vpe(this);
+        _flags &= ~F_HASAPP;
+    }
 
-    if(_flags & (F_START | F_STARTED))
+    if(flags & F_HASAPP)
         unref();
 }
 
@@ -142,6 +146,8 @@ void VPE::exit(int exitcode) {
     rbufs().detach_all(*this, m3::DTU::DEF_RECVEP);
 
     _exitcode = exitcode;
+
+    _flags &= ~F_HASAPP;
 
     PEManager::get().remove_vpe(this);
 

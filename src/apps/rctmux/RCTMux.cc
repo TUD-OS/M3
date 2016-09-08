@@ -29,7 +29,8 @@ namespace RCTMux {
 
 static void *restore();
 
-static void *state;
+static bool started = false;
+static void *state = nullptr;
 
 EXTERN_C void *_start_app() {
     uint64_t flags = flags_get();
@@ -78,7 +79,7 @@ static void *restore() {
     senv->coreid = flags >> 32;
     senv->idle_report = flags & m3::REPORT;
 
-    if(flags & m3::INIT) {
+    if(!started) {
         // if we get here, there is an application to jump to
         assert(senv->entry != 0);
 
@@ -87,6 +88,7 @@ static void *restore() {
 
         // initialize the state to be able to resume from it
         state = init_state();
+        started = true;
     }
     else
         resume();
