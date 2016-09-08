@@ -102,8 +102,8 @@ void VPE::yield() {
     PEManager::get().yield_vpe(this);
 }
 
-bool VPE::resume(bool unblock) {
-    if(_state == DEAD)
+bool VPE::resume(bool need_app, bool unblock) {
+    if(need_app && !has_app())
         return false;
 
     KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
@@ -119,15 +119,13 @@ bool VPE::resume(bool unblock) {
 void VPE::wakeup() {
     if(_state == RUNNING)
         DTU::get().wakeup(desc());
-    else if(_state != DEAD)
+    else if(has_app())
         PEManager::get().unblock_vpe(this);
 }
 
 void VPE::stop() {
-    if(_state == DEAD)
+    if(!has_app())
         return;
-
-    uint flags = _flags;
 
     if(_state == RUNNING)
         exit(1);
@@ -136,8 +134,7 @@ void VPE::stop() {
         _flags &= ~F_HASAPP;
     }
 
-    if(flags & F_HASAPP)
-        unref();
+    unref();
 }
 
 void VPE::exit(int exitcode) {

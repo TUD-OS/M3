@@ -37,7 +37,7 @@ MemObject::~MemObject() {
 
 void SessionObject::close() {
     // only send the close message, if the service has not exited yet
-    if(srv->vpe().state() != VPE::DEAD) {
+    if(srv->vpe().has_app()) {
         AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command, word_t>());
         msg << m3::KIF::Service::CLOSE << ident;
         KLOG(SERV, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8)

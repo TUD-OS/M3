@@ -84,10 +84,14 @@ public:
     }
     void unref();
 
+    bool has_app() const {
+        return _flags & F_HASAPP;
+    }
+
     void set_ready();
 
     void yield();
-    bool resume(bool unblock = true);
+    bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 
     m3::Errors::Code start();

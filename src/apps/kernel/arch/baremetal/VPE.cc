@@ -70,6 +70,7 @@ m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {
 
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
+    _state = DEAD;
     free_reqs();
     _objcaps.revoke_all();
     _mapcaps.revoke_all();

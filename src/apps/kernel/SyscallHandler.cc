@@ -560,7 +560,7 @@ void SyscallHandler::vpectrl(GateIStream &is) {
             break;
 
         case m3::KIF::Syscall::VCTRL_WAIT:
-            if(vpecap->vpe->state() == VPE::DEAD)
+            if(!vpecap->vpe->has_app())
                 kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             else {
                 ReplyInfo rinfo(is.message());
@@ -784,7 +784,7 @@ void SyscallHandler::activate(GateIStream &is) {
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
             LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
                 << ncap->obj->vpe << " at " << ncap->obj->pe);
-            if(!VPEManager::get().vpe(ncap->obj->vpe).resume())
+            if(!VPEManager::get().vpe(ncap->obj->vpe).resume(false))
                 SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
         }
         else if(ncap->type == Capability::MSG &&
