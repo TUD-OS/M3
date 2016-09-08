@@ -62,21 +62,23 @@ public:
 
     bool can_mux() const;
 
-    void add(VPE *vpe);
-    void remove(VPE *vpe);
+    void add_vpe(VPE *vpe);
+    void remove_vpe(VPE *vpe);
 
     void yield_vpe(VPE *vpe);
     void unblock_vpe(VPE *vpe);
 
     void start_vpe(VPE *vpe);
-    void start_switch(bool timedout = false);
-    void continue_switch();
+    void stop_vpe(VPE *vpe);
 
 private:
     VPE* schedule();
 
     void enqueue(VPE *vpe);
     void dequeue(VPE *vpe);
+
+    void start_switch(bool timedout = false);
+    void continue_switch();
 
     void next_state(uint64_t flags);
 

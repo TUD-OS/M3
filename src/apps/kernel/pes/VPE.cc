@@ -73,6 +73,9 @@ void VPE::unref() {
 }
 
 void VPE::start_app() {
+    if(has_app())
+        return;
+
     _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference
@@ -88,9 +91,9 @@ void VPE::stop_app() {
         return;
 
     if(_state == RUNNING)
-        exit(1);
+        exit_app(1);
     else {
-        PEManager::get().remove_vpe(this);
+        PEManager::get().stop_vpe(this);
         _flags &= ~F_HASAPP;
         unref();
     }
@@ -105,7 +108,7 @@ void VPE::exit_app(int exitcode) {
 
     _flags &= ~F_HASAPP;
 
-    PEManager::get().remove_vpe(this);
+    PEManager::get().stop_vpe(this);
 
     for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
         auto cur = it++;

@@ -174,6 +174,8 @@ void VPEManager::remove(VPE *vpe) {
     uint flags = vpe->flags();
     vpeid_t id = vpe->id();
 
+    PEManager::get().remove_vpe(vpe);
+
     delete vpe;
     // do that afterwards, because some actions in the destructor might try to get the VPE
     _vpes[id] = nullptr;

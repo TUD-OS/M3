@@ -102,6 +102,8 @@ void ContextSwitcher::init() {
 
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
+
+    start_switch();
 }
 
 void ContextSwitcher::enqueue(VPE *vpe) {
@@ -121,19 +123,36 @@ void ContextSwitcher::dequeue(VPE *vpe) {
     _ready.remove(vpe);
 }
 
-void ContextSwitcher::add(VPE *vpe) {
+void ContextSwitcher::add_vpe(VPE *vpe) {
     if(!(vpe->_flags & VPE::F_MUXABLE))
         _muxable = false;
 
     _count++;
 }
 
-void ContextSwitcher::remove(VPE *vpe) {
-    dequeue(vpe);
-    _count--;
+void ContextSwitcher::remove_vpe(VPE *vpe) {
+    stop_vpe(vpe);
 
-    if(_count == 0)
+    if(--_count == 0)
         _muxable = true;
+}
+
+void ContextSwitcher::start_vpe(VPE *vpe) {
+    if(_cur != vpe) {
+        enqueue(vpe);
+        start_switch();
+        return;
+    }
+
+    if(_state != S_IDLE)
+        return;
+
+    _state = S_RESTORE_WAIT;
+    next_state(0);
+}
+
+void ContextSwitcher::stop_vpe(VPE *vpe) {
+    dequeue(vpe);
 
     if(_cur == vpe && _state == S_IDLE) {
         // the VPE id is expected to be invalid in S_SWITCH
@@ -174,20 +193,6 @@ void ContextSwitcher::start_switch(bool timedout) {
     else
         _state = S_STORE_WAIT;
 
-    next_state(0);
-}
-
-void ContextSwitcher::start_vpe(VPE *vpe) {
-    if(_cur != vpe) {
-        enqueue(vpe);
-        start_switch();
-        return;
-    }
-
-    if(_state != S_IDLE)
-        return;
-
-    _state = S_RESTORE_WAIT;
     next_state(0);
 }
 

@@ -40,29 +40,33 @@ PEManager::PEManager()
 
 void PEManager::init() {
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(_ctxswitcher[i]) {
+        if(_ctxswitcher[i])
             _ctxswitcher[i]->init();
-            start_switch(i);
-        }
     }
 }
 
 void PEManager::add_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->add(vpe);
+    ctx->add_vpe(vpe);
 }
 
 void PEManager::remove_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->remove(vpe);
+    ctx->remove_vpe(vpe);
 }
 
 void PEManager::start_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->start_vpe(vpe);
+}
+
+void PEManager::stop_vpe(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    assert(ctx);
+    ctx->stop_vpe(vpe);
 }
 
 void PEManager::yield_vpe(VPE *vpe) {
@@ -75,12 +79,6 @@ void PEManager::unblock_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->unblock_vpe(vpe);
-}
-
-void PEManager::start_switch(peid_t pe) {
-    ContextSwitcher *ctx = _ctxswitcher[pe];
-    assert(ctx);
-    ctx->start_switch();
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, bool tmuxable) {

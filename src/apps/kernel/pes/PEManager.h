@@ -38,18 +38,18 @@ public:
     void init();
 
     peid_t find_pe(const m3::PEDesc &pe, bool tmuxable);
+
     void add_vpe(VPE *vpe);
-    void start_vpe(VPE *vpe);
-    void yield_vpe(VPE *vpe);
-    void unblock_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 
-    void start_switch(peid_t pe);
+    void start_vpe(VPE *vpe);
+    void stop_vpe(VPE *vpe);
+
+    void yield_vpe(VPE *vpe);
+    void unblock_vpe(VPE *vpe);
 
 private:
     void deprivilege_pes();
-
-    static void continue_switch(ContextSwitcher *ctx);
 
     ContextSwitcher **_ctxswitcher;
     static PEManager *_inst;
