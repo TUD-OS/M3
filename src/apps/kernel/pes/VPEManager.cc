@@ -167,13 +167,20 @@ void VPEManager::start(vpeid_t id) {
     PEManager::get().start_vpe(_vpes[id]);
 }
 
-void VPEManager::remove(vpeid_t id) {
-    assert(_vpes[id]);
+void VPEManager::add(VPE *vpe) {
+    _vpes[vpe->id()] = vpe;
 
-    uint flags = _vpes[id]->flags();
+    if(~vpe->flags() & VPE::F_IDLE) {
+        _count++;
+        PEManager::get().add_vpe(vpe);
+    }
+}
 
-    delete _vpes[id];
-    _vpes[id] = nullptr;
+void VPEManager::remove(VPE *vpe) {
+    uint flags = vpe->flags();
+
+    _vpes[vpe->id()] = nullptr;
+    delete vpe;
 
     if(flags & VPE::F_IDLE)
         return;

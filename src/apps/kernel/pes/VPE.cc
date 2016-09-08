@@ -51,13 +51,10 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
     _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, MEMCAP_END, m3::KIF::Perm::RWX, pe(), id, 0));
 
     // let the VPEManager know about us before we continue with initialization
-    VPEManager::get()._vpes[id] = this;
+    VPEManager::get().add(this);
 
-    if(~_flags & F_IDLE) {
-        VPEManager::get()._count++;
+    if(~_flags & F_IDLE)
         init();
-        PEManager::get().add_vpe(this);
-    }
 
     KLOG(VPES, "Created VPE '" << _name << "' [id=" << id << ", pe=" << pe() << "]");
     for(auto &r : _requires)
@@ -72,7 +69,7 @@ void VPE::make_daemon() {
 void VPE::unref() {
     // 1 because we always have a VPE-cap for ourself (not revokeable)
     if(--_refs == 1)
-        VPEManager::get().remove(id());
+        VPEManager::get().remove(this);
 }
 
 void VPE::start_app() {

@@ -66,7 +66,6 @@ public:
     void load(int argc, char **argv);
 
     VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable = false);
-    void remove(vpeid_t id);
 
     size_t used() const {
         return _count;
@@ -87,6 +86,9 @@ public:
 
 private:
     vpeid_t get_id();
+
+    void add(VPE *vpe);
+    void remove(VPE *vpe);
 
     static m3::String fork_name(const m3::String &name);
 
