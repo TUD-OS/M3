@@ -1,0 +1,22 @@
+Import('hostenv')
+
+# check for otfconfig
+def CheckOTFConfig(context):
+    context.Message('Checking for otfconfig...')
+    result = context.TryAction('otfconfig')[0]
+    context.Result(result)
+    return result
+
+traceenv = hostenv.Clone()
+conf = Configure(traceenv, custom_tests={'CheckOTFConfig': CheckOTFConfig})
+
+if conf.CheckOTFConfig():
+    traceenv.ParseConfig('otfconfig --includes --libs')
+    traceenv.Program(
+        target = 'gem52otf',
+        source = traceenv.Glob('*.cc'),
+    )
+else:
+    print('Cannot execute otfconfig, skipping gem52otf...')
+
+conf.Finish()
