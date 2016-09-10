@@ -39,6 +39,7 @@
 
 static const uint64_t GEM5_TICKS_PER_SEC    = 1000000000;
 static const int GEM5_MAX_PES               = 64;
+static const unsigned INVALID_VPEID         = 0xFFFF;
 
 enum event_type {
     EVENT_MSG_SEND_START,
@@ -50,6 +51,7 @@ enum event_type {
     EVENT_MEM_WRITE_DONE,
     EVENT_SUSPEND,
     EVENT_WAKEUP,
+    EVENT_SET_VPEID,
 };
 
 static const char *event_names[] = {
@@ -62,6 +64,7 @@ static const char *event_names[] = {
     "EVENT_MEM_WRITE_DONE",
     "EVENT_SUSPEND",
     "EVENT_WAKEUP",
+    "EVENT_SET_VPEID",
 };
 
 struct Event {
@@ -139,6 +142,9 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
     std::regex suswake_regex(
         "^\\.connector: (Suspending|Waking)"
     );
+    std::regex setvpe_regex(
+        "^\\.regFile: NOC-> DTU\\[VPE_ID      \\]: 0x([0-9a-f]+)"
+    );
 
     State states[GEM5_MAX_PES];
 
@@ -167,6 +173,12 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
         else if(std::regex_search(line, match, suswake_regex)) {
             event_type type = match[1].str() == "Waking" ? EVENT_WAKEUP : EVENT_SUSPEND;
             buf.push_back(build_event(type, timestamp, pe, "", "", 0));
+
+            last_pe = std::max(pe, last_pe);
+        }
+        else if(std::regex_search(line, match, setvpe_regex)) {
+            uint32_t tag = strtoul(match[1].str().c_str(), NULL, 16);
+            buf.push_back(build_event(EVENT_SET_VPEID, timestamp, pe, "", "", tag));
 
             last_pe = std::max(pe, last_pe);
         }
@@ -266,8 +278,8 @@ int main(int argc,char **argv) {
 
     // Function groups
     unsigned grp_func_count = 0;
-    unsigned grp_func_gen = grp_func_count++;
-    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_gen, "General");
+    unsigned grp_func_exec = grp_func_count++;
+    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_exec, "Execution");
     unsigned grp_func_mem = grp_func_count++;
     OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_mem, "Memory");
     unsigned grp_func_msg = grp_func_count++;
@@ -275,20 +287,25 @@ int main(int argc,char **argv) {
     unsigned grp_func_user = grp_func_count++;
     OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_user, "User");
 
-    // General functions
-    unsigned fn_gen_awake = (2 << 20) + 1;
-    OTF_Writer_writeDefFunction(writer, 0, fn_gen_awake, "Running", grp_func_gen, 0);
-    unsigned fn_gen_sleep = (2 << 20) + 2;
-    OTF_Writer_writeDefFunction(writer, 0, fn_gen_sleep, "Sleeping", grp_func_gen, 0);
+    // Execution functions
+    unsigned fn_exec_last = (2 << 20) + 0;
+    std::map<unsigned, unsigned> vpefuncs;
+
+    unsigned fn_exec_sleep = ++fn_exec_last;
+    OTF_Writer_writeDefFunction(writer, 0, fn_exec_sleep, "Sleeping", grp_func_exec, 0);
+
+    unsigned fn_vpe_invalid = ++fn_exec_last;
+    vpefuncs[INVALID_VPEID] = fn_vpe_invalid;
+    OTF_Writer_writeDefFunction(writer, 0, fn_vpe_invalid, "No VPE", grp_func_exec, 0);
 
     // Message functions
-    unsigned fn_msg_send = (2 << 20) + 3;
+    unsigned fn_msg_send = (3 << 20) + 1;
     OTF_Writer_writeDefFunction(writer, 0, fn_msg_send, "msg_send", grp_func_msg, 0);
 
     // Memory Functions
-    unsigned fn_mem_read = (2 << 20) + 4;
+    unsigned fn_mem_read = (3 << 20) + 2;
     OTF_Writer_writeDefFunction(writer, 0, fn_mem_read, "mem_read", grp_func_mem, 0);
-    unsigned fn_mem_write = (2 << 20) + 5;
+    unsigned fn_mem_write = (3 << 20) + 3;
     OTF_Writer_writeDefFunction(writer, 0, fn_mem_write, "mem_write", grp_func_mem, 0);
 
     unsigned processed_events = 0;
@@ -301,10 +318,12 @@ int main(int argc,char **argv) {
     uint64_t timestamp = 0;
 
     bool awake[pe_count];
+    unsigned cur_vpe[pe_count];
 
     for(int i = 0; i < pe_count; ++i) {
         awake[i] = true;
-        OTF_Writer_writeEnter(writer, timestamp, fn_gen_awake, i, 0);
+        cur_vpe[i] = fn_vpe_invalid;
+        OTF_Writer_writeEnter(writer, timestamp, fn_vpe_invalid, i, 0);
     }
 
     // finally loop over events and write OTF
@@ -366,19 +385,38 @@ int main(int argc,char **argv) {
 
             case EVENT_WAKEUP:
                 if(!awake[event->pe]) {
-                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_gen_sleep, event->pe, 0);
-                    OTF_Writer_writeEnter(writer, timestamp, fn_gen_awake, event->pe, 0);
+                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_exec_sleep, event->pe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, cur_vpe[event->pe], event->pe, 0);
                     awake[event->pe] = true;
                 }
                 break;
 
             case EVENT_SUSPEND:
                 if(awake[event->pe]) {
-                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_gen_awake, event->pe, 0);
-                    OTF_Writer_writeEnter(writer, timestamp, fn_gen_sleep, event->pe, 0);
+                    OTF_Writer_writeLeave(writer, timestamp - 1, cur_vpe[event->pe], event->pe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, fn_exec_sleep, event->pe, 0);
                     awake[event->pe] = false;
                 }
                 break;
+
+            case EVENT_SET_VPEID: {
+                auto fn = vpefuncs.find(event->tag);
+                if(fn == vpefuncs.end()) {
+                    char name[16];
+                    snprintf(name, sizeof(name), "VPE%u", event->tag);
+                    vpefuncs[event->tag] = ++fn_exec_last;
+                    OTF_Writer_writeDefFunction(writer, 0, vpefuncs[event->tag], name, grp_func_exec, 0);
+                    fn = vpefuncs.find(event->tag);
+                }
+
+                if(awake[event->pe] && cur_vpe[event->pe] != fn->second) {
+                    OTF_Writer_writeLeave(writer, timestamp - 1, cur_vpe[event->pe], event->pe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, fn->second, event->pe, 0);
+                }
+
+                cur_vpe[event->pe] = fn->second;
+                break;
+            }
         }
 
         ++processed_events;
@@ -386,9 +424,9 @@ int main(int argc,char **argv) {
 
     for(int i = 0; i < pe_count; ++i) {
         if(awake[i])
-            OTF_Writer_writeLeave(writer, timestamp, fn_gen_awake, i, 0);
+            OTF_Writer_writeLeave(writer, timestamp, cur_vpe[i], i, 0);
         else
-            OTF_Writer_writeLeave(writer, timestamp, fn_gen_sleep, i, 0);
+            OTF_Writer_writeLeave(writer, timestamp, fn_exec_sleep, i, 0);
     }
 
     if(num_send != num_recv) {
