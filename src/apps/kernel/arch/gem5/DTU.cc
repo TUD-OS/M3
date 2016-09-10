@@ -50,7 +50,7 @@ void DTU::clear_pt(uintptr_t pt) {
 }
 
 void DTU::init() {
-    do_set_vpeid(VPEDesc(Platform::kernel_pe(), VPE::INVALID_ID), Platform::kernel_pe());
+    do_set_vpeid(VPEDesc(Platform::kernel_pe(), VPE::INVALID_ID), VPEManager::MAX_VPES);
 }
 
 peid_t DTU::log_to_phys(peid_t pe) {

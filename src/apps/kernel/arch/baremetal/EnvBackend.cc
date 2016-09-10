@@ -21,6 +21,7 @@
 #include <base/Heap.h>
 
 #include "mem/MainMemory.h"
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
@@ -63,7 +64,7 @@ public:
         uintptr_t virt = m3::Math::round_up<uintptr_t>(
             reinterpret_cast<uintptr_t>(m3::Heap::_end), PAGE_SIZE);
         uint64_t phys = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
-        VPEDesc vpe(Platform::kernel_pe(), Platform::kernel_pe());
+        VPEDesc vpe(Platform::kernel_pe(), VPEManager::MAX_VPES);
         DTU::get().map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
 
         // build new end Area and connect it
