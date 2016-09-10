@@ -67,7 +67,7 @@ static const char *event_names[] = {
 struct Event {
     explicit Event() : pe(), timestamp(), type(), size(), remote(), tag() {
     }
-    explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint64_t tag)
+    explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint32_t tag)
         : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag) {
     }
 
@@ -86,7 +86,7 @@ struct Event {
 
     size_t size;
     int remote;
-    uint64_t tag;
+    uint32_t tag;
 };
 
 struct State {
@@ -99,7 +99,7 @@ struct State {
 };
 
 static Event build_event(event_type type, uint64_t timestamp, int pe,
-                         const std::string &remote, const std::string &size, uint64_t tag) {
+                         const std::string &remote, const std::string &size, uint32_t tag) {
     Event ev(
         pe,
         timestamp,
