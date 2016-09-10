@@ -131,13 +131,14 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
     }
 
     std::regex msg_snd_regex(
-        "^: \e\\[1m\\[(?:sd|rp) -> (\\d+)\\]\e\\[0m with EP\\d+ of 0x[0-9a-f]+:(\\d+)"
+        "^: \e\\[1m\\[(?:sd|rp) -> (\\d+)\\]\e\\[0m with EP\\d+ of (?:0x)?[0-9a-f]+:(\\d+)"
     );
     std::regex msg_rcv_regex(
         "^: \e\\[1m\\[rv <- (\\d+)\\]\e\\[0m (\\d+) bytes on EP\\d+"
     );
     std::regex msg_rw_regex(
-        "^: \e\\[1m\\[(rd|wr) -> (\\d+)\\]\e\\[0m at 0x[0-9a-f]+\\+\\d+ with EP\\d+ (?:from|into) 0x[0-9a-f]+:(\\d+)"
+        "^: \e\\[1m\\[(rd|wr) -> (\\d+)\\]\e\\[0m at (?:0x)?[0-9a-f]+\\+(?:0x)?[0-9a-f]+"
+        " with EP\\d+ (?:from|into) (?:0x)?[0-9a-f]+:(\\d+)"
     );
     std::regex suswake_regex(
         "^\\.connector: (Suspending|Waking)"
