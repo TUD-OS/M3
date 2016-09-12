@@ -14,12 +14,14 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <base/tracing/Tracing.h>
 
-// this does currently only work on the T2 chip and on gem5
-#if defined(__t2__) || defined(__gem5__)
+#if defined(TRACE_ENABLED)
 
-// enable/disable tracing
-// #define TRACE_ENABLED
+namespace m3 {
+
+Tracing Tracing::_inst;
+
+}
 
 #endif

@@ -30,6 +30,7 @@
 #endif
 #define TRACE_FUNCS_TO_STRING
 
+#include <base/arch/t2/TracingEvent.h>
 #include <base/tracing/Event.h>
 
 #include <iostream>

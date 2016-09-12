@@ -160,7 +160,6 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 }
 
 void SyscallHandler::handle_message(GateIStream &is, m3::Subscriber<GateIStream&> *) {
-    EVENT_TRACER_handle_message();
     m3::KIF::Syscall::Operation op;
     is >> op;
     if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
@@ -206,6 +205,7 @@ void SyscallHandler::createsrv(GateIStream &is) {
 
 void SyscallHandler::pagefault(UNUSED GateIStream &is) {
 #if defined(__gem5__)
+    EVENT_TRACER_Syscall_pagefault();
     VPE *vpe = is.gate().session<VPE>();
     uint64_t virt, access;
     is >> virt >> access;
@@ -303,7 +303,7 @@ void SyscallHandler::createsess(GateIStream &is) {
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
-    EVENT_TRACER_Syscall_createsess();
+    EVENT_TRACER_Syscall_createsessat();
     VPE *vpe = is.gate().session<VPE>();
     capsel_t srvcap, sesscap;
     word_t ident;
@@ -824,7 +824,7 @@ void SyscallHandler::activate(GateIStream &is) {
 }
 
 void SyscallHandler::activatereply(GateIStream &is) {
-    EVENT_TRACER_Syscall_activate();
+    EVENT_TRACER_Syscall_activaterp();
     VPE *vpe = is.gate().session<VPE>();
     epid_t epid;
     uintptr_t msgaddr;
@@ -881,6 +881,7 @@ void SyscallHandler::revoke(GateIStream &is) {
 }
 
 void SyscallHandler::idle(GateIStream &is) {
+    EVENT_TRACER_Syscall_idle();
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, ": syscall::idle", "()");
 

@@ -22,7 +22,10 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include <otf.h>
+#define TRACE_FUNCS_TO_STRING
+#include <base/tracing/Event.h>
+
+#include <vampirtrace/open-trace-format/otf.h>
 
 #include <iostream>
 #include <queue>
@@ -39,9 +42,14 @@
 
 static const uint64_t GEM5_TICKS_PER_SEC    = 1000000000;
 static const int GEM5_MAX_PES               = 64;
+static const int GEM5_MAX_VPES              = 1024 + 1;
 static const unsigned INVALID_VPEID         = 0xFFFF;
 
 enum event_type {
+    EVENT_FUNC_ENTER    = m3::EVENT_FUNC_ENTER,
+    EVENT_FUNC_EXIT     = m3::EVENT_FUNC_EXIT,
+    EVENT_UFUNC_ENTER   = m3::EVENT_UFUNC_ENTER,
+    EVENT_UFUNC_EXIT    = m3::EVENT_UFUNC_EXIT,
     EVENT_MSG_SEND_START,
     EVENT_MSG_SEND_DONE,
     EVENT_MSG_RECV,
@@ -55,6 +63,11 @@ enum event_type {
 };
 
 static const char *event_names[] = {
+    "",
+    "EVENT_FUNC_ENTER",
+    "EVENT_FUNC_EXIT",
+    "EVENT_UFUNC_ENTER",
+    "EVENT_UFUNC_EXIT",
     "EVENT_MSG_SEND_START",
     "EVENT_MSG_SEND_DONE",
     "EVENT_MSG_RECV",
@@ -70,15 +83,37 @@ static const char *event_names[] = {
 struct Event {
     explicit Event() : pe(), timestamp(), type(), size(), remote(), tag() {
     }
-    explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint32_t tag)
+    explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint64_t tag)
         : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag) {
     }
 
+    const char *tag_to_string() const {
+        static char buf[5];
+        buf[0] = (tag >> 24) & 0xFF;
+        buf[1] = (tag >> 16) & 0xFF;
+        buf[2] = (tag >>  8) & 0xFF;
+        buf[3] = (tag >>  0) & 0xFF;
+        buf[4] = '\0';
+        return buf;
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const Event &ev) {
-        os << ev.pe << " " << event_names[ev.type] << ": " << ev.timestamp
-           << "  receiver: " << ev.remote
-           << "  size: " << ev.size
-           << "  tag: " << ev.tag;
+        os << ev.pe << " " << event_names[ev.type] << ": " << ev.timestamp;
+        switch(ev.type) {
+            case EVENT_FUNC_ENTER:
+            case EVENT_FUNC_EXIT:
+                if(ev.tag >= sizeof(m3::event_funcs) / sizeof(m3::event_funcs[0]))
+                    os << " function: unknown (" << ev.tag << ")";
+                else
+                    os << " function: " << m3::event_funcs[ev.tag].name;
+                break;
+
+            default:
+                os << "  receiver: " << ev.remote
+                   << "  size: " << ev.size
+                   << "  tag: " << ev.tag;
+                break;
+        }
         return os;
     }
 
@@ -89,7 +124,7 @@ struct Event {
 
     size_t size;
     int remote;
-    uint32_t tag;
+    uint64_t tag;
 };
 
 struct State {
@@ -101,8 +136,27 @@ struct State {
     Event start_event;
 };
 
+struct Stats {
+    unsigned total = 0;
+    unsigned send = 0;
+    unsigned recv = 0;
+    unsigned read = 0;
+    unsigned write = 0;
+    unsigned finish = 0;
+    unsigned ufunc_enter = 0;
+    unsigned ufunc_exit = 0;
+    unsigned func_enter = 0;
+    unsigned func_exit = 0;
+    unsigned warnings = 0;
+};
+
+enum Mode {
+    MODE_PES,
+    MODE_VPES,
+};
+
 static Event build_event(event_type type, uint64_t timestamp, int pe,
-                         const std::string &remote, const std::string &size, uint32_t tag) {
+                         const std::string &remote, const std::string &size, uint64_t tag) {
     Event ev(
         pe,
         timestamp,
@@ -114,7 +168,7 @@ static Event build_event(event_type type, uint64_t timestamp, int pe,
     return ev;
 }
 
-int read_trace_file(const char *path, std::vector<Event> &buf) {
+int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
     char filename[256];
     char readbuf[256];
     if(path) {
@@ -145,6 +199,9 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
     );
     std::regex setvpe_regex(
         "^\\.regFile: NOC-> DTU\\[VPE_ID      \\]: 0x([0-9a-f]+)"
+    );
+    std::regex debug_regex(
+        "^: DEBUG (?:0x)([0-9a-f]+)"
     );
 
     State states[GEM5_MAX_PES];
@@ -182,6 +239,14 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
             buf.push_back(build_event(EVENT_SET_VPEID, timestamp, pe, "", "", tag));
 
             last_pe = std::max(pe, last_pe);
+        }
+        else if(mode == MODE_VPES && std::regex_search(line, match, debug_regex)) {
+            uint64_t value = strtoul(match[1].str().c_str(), NULL, 16);
+            if(value >> 48 != 0) {
+                event_type type = static_cast<event_type>(value >> 48);
+                uint64_t tag = value & 0xFFFFFFFFFFFF;
+                buf.push_back(build_event(type, timestamp, pe, "", "", tag));
+            }
         }
         else if (!states[pe].in_cmd) {
             if(strncmp(line.c_str(), ": Starting command ", 19) == 0) {
@@ -231,38 +296,12 @@ int read_trace_file(const char *path, std::vector<Event> &buf) {
     return last_pe + 1;
 }
 
-int main(int argc,char **argv) {
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <file>\n", argv[0]);
-        fprintf(stderr, "  <file>: the gem5 log file with flags >= Dtu,DtuCmd,DtuConnector\n");
-        return EXIT_FAILURE;
-    }
-
-    std::vector<Event> trace_buf;
-
-    int pe_count = read_trace_file(argv[1], trace_buf);
-
-    // Declare a file manager and a writer.
-    OTF_FileManager *manager;
-    OTF_Writer *writer;
-
-    // Initialize the file manager. Open at most 100 OS files.
-    manager = OTF_FileManager_open(100);
-    assert(manager);
-
-    // Initialize the writer.
-    writer = OTF_Writer_open("trace", 1, manager);
-    assert(writer);
-
-    // Write some important Definition Records.
-    // Timer res. in ticks per second
-    OTF_Writer_writeDefTimerResolution(writer, 0, GEM5_TICKS_PER_SEC);
-
+static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf, int pe_count) {
     // Processes.
     int stream = 1;
     for(int i = 0; i < pe_count; ++i) {
         char peName[8];
-        snprintf(peName, sizeof(peName), "Pe%d", i);
+        snprintf(peName, sizeof(peName), "PE%d", i);
         OTF_Writer_writeDefProcess(writer, 0, i, peName, 0);
         OTF_Writer_assignProcess(writer, i, stream);
     }
@@ -281,12 +320,6 @@ int main(int argc,char **argv) {
     unsigned grp_func_count = 0;
     unsigned grp_func_exec = grp_func_count++;
     OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_exec, "Execution");
-    unsigned grp_func_mem = grp_func_count++;
-    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_mem, "Memory");
-    unsigned grp_func_msg = grp_func_count++;
-    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_msg, "Messaging");
-    unsigned grp_func_user = grp_func_count++;
-    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_user, "User");
 
     // Execution functions
     unsigned fn_exec_last = (2 << 20) + 0;
@@ -298,21 +331,6 @@ int main(int argc,char **argv) {
     unsigned fn_vpe_invalid = ++fn_exec_last;
     vpefuncs[INVALID_VPEID] = fn_vpe_invalid;
     OTF_Writer_writeDefFunction(writer, 0, fn_vpe_invalid, "No VPE", grp_func_exec, 0);
-
-    // Message functions
-    unsigned fn_msg_send = (3 << 20) + 1;
-    OTF_Writer_writeDefFunction(writer, 0, fn_msg_send, "msg_send", grp_func_msg, 0);
-
-    // Memory Functions
-    unsigned fn_mem_read = (3 << 20) + 2;
-    OTF_Writer_writeDefFunction(writer, 0, fn_mem_read, "mem_read", grp_func_mem, 0);
-    unsigned fn_mem_write = (3 << 20) + 3;
-    OTF_Writer_writeDefFunction(writer, 0, fn_mem_write, "mem_write", grp_func_mem, 0);
-
-    unsigned processed_events = 0;
-    unsigned num_send = 0, num_recv = 0, num_read = 0, num_write = 0, num_finish = 0;
-    unsigned num_ufunc_enter = 0, num_ufunc_exit = 0, num_func_enter = 0, num_func_exit = 0;
-    unsigned warnings = 0;
 
     printf("writing OTF events\n");
 
@@ -340,48 +358,42 @@ int main(int argc,char **argv) {
 
         switch(event->type) {
             case EVENT_MSG_SEND_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_msg_send, event->pe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     event->pe, event->remote, grp_msg, event->tag, event->size, 0);
-                ++num_send;
+                ++stats.send;
                 break;
 
             case EVENT_MSG_RECV:
                 OTF_Writer_writeRecvMsg(writer, timestamp,
                     event->pe, event->remote, grp_msg, event->tag, event->size, 0);
-                ++num_recv;
+                ++stats.recv;
                 break;
 
             case EVENT_MSG_SEND_DONE:
-                OTF_Writer_writeLeave(writer, timestamp, fn_msg_send, event->pe, 0);
                 break;
 
             case EVENT_MEM_READ_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_mem_read, event->pe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     event->pe, event->remote, grp_mem, event->tag, event->size, 0);
-                ++num_read;
+                ++stats.read;
                 break;
 
             case EVENT_MEM_READ_DONE:
-                OTF_Writer_writeLeave(writer, timestamp, fn_mem_read, event->pe, 0);
                 OTF_Writer_writeRecvMsg(writer, timestamp,
                     event->remote, event->pe, grp_mem, event->tag, event->size, 0);
-                ++num_finish;
+                ++stats.finish;
                 break;
 
             case EVENT_MEM_WRITE_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_mem_write, event->pe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     event->pe, event->remote, grp_mem, event->tag, event->size, 0);
-                ++num_write;
+                ++stats.write;
                 break;
 
             case EVENT_MEM_WRITE_DONE:
-                OTF_Writer_writeLeave(writer, timestamp, fn_mem_write, event->pe, 0);
                 OTF_Writer_writeRecvMsg(writer, timestamp,
                     event->remote, event->pe, grp_mem, event->tag, event->size, 0);
-                ++num_finish;
+                ++stats.finish;
                 break;
 
             case EVENT_WAKEUP:
@@ -404,7 +416,7 @@ int main(int argc,char **argv) {
                 auto fn = vpefuncs.find(event->tag);
                 if(fn == vpefuncs.end()) {
                     char name[16];
-                    snprintf(name, sizeof(name), "VPE%u", event->tag);
+                    snprintf(name, sizeof(name), "VPE%u", (unsigned)event->tag);
                     vpefuncs[event->tag] = ++fn_exec_last;
                     OTF_Writer_writeDefFunction(writer, 0, vpefuncs[event->tag], name, grp_func_exec, 0);
                     fn = vpefuncs.find(event->tag);
@@ -420,7 +432,7 @@ int main(int argc,char **argv) {
             }
         }
 
-        ++processed_events;
+        ++stats.total;
     }
 
     for(int i = 0; i < pe_count; ++i) {
@@ -429,35 +441,342 @@ int main(int argc,char **argv) {
         else
             OTF_Writer_writeLeave(writer, timestamp, fn_exec_sleep, i, 0);
     }
+}
 
-    if(num_send != num_recv) {
-        printf("WARNING: num_send != num_recv\n");
-        ++warnings;
-    }
-    if(num_read + num_write != num_finish) {
-        printf("WARNING: num_read+num_write != num_finish\n");
-        ++warnings;
-    }
-    if(num_func_enter != num_func_exit) {
-        printf("WARNING: num_func_enter != num_func_exit\n");
-        ++warnings;
-    }
-    if(num_ufunc_enter != num_ufunc_exit) {
-        printf("WARNING: num_ufunc_enter != num_ufunc_exit\n");
-        ++warnings;
+static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf, int pe_count) {
+    // Processes
+    std::set<unsigned> vpeIds;
+
+    OTF_Writer_writeDefProcess(writer, 0, INVALID_VPEID, "No VPE", 0);
+    OTF_Writer_assignProcess(writer, INVALID_VPEID, 1);
+    vpeIds.insert(INVALID_VPEID);
+
+    for(auto ev = trace_buf.begin(); ev != trace_buf.end(); ++ev) {
+        if(ev->type == EVENT_SET_VPEID && vpeIds.find(ev->tag) == vpeIds.end()) {
+            char vpeName[8];
+            snprintf(vpeName, sizeof(vpeName), "VPE%u", (unsigned)ev->tag);
+            OTF_Writer_writeDefProcess(writer, 0, ev->tag, vpeName, 0);
+            OTF_Writer_assignProcess(writer, ev->tag, 1);
+            vpeIds.insert(ev->tag);
+        }
     }
 
-    printf("processed events: %u\n", processed_events);
-    printf("warnings: %u\n", warnings);
-    printf("num_send: %u\n", num_send);
-    printf("num_recv: %u\n", num_recv);
-    printf("num_read: %u\n", num_read);
-    printf("num_write: %u\n", num_write);
-    printf("num_finish: %u\n", num_finish);
-    printf("num_func_enter: %u\n", num_func_enter);
-    printf("num_func_exit: %u\n", num_func_exit);
-    printf("num_ufunc_enter: %u\n", num_ufunc_enter);
-    printf("num_ufunc_exit: %u\n", num_ufunc_exit);
+    // Process groups
+    size_t i = 0;
+    uint32_t allVPEs[vpeIds.size()];
+    for(auto it = vpeIds.begin(); it != vpeIds.end(); ++it, ++i)
+        allVPEs[i] = *it;
+
+    unsigned grp_mem = (1 << 20) + 1;
+    OTF_Writer_writeDefProcessGroup(writer, 0, grp_mem, "Memory Read/Write", pe_count, allVPEs);
+    unsigned grp_msg = (1 << 20) + 2;
+    OTF_Writer_writeDefProcessGroup(writer, 0, grp_msg, "Message Send/Receive", pe_count, allVPEs);
+
+    // Function groups
+    unsigned grp_func_count = 0;
+    unsigned grp_func_exec = grp_func_count++;
+    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_exec, "Execution");
+    unsigned grp_func_mem = grp_func_count++;
+    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_mem, "Memory");
+    unsigned grp_func_msg = grp_func_count++;
+    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_msg, "Messaging");
+    unsigned grp_func_user = grp_func_count++;
+    OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_user, "User");
+
+    // Execution functions
+    unsigned fn_exec_last = (2 << 20) + 0;
+    std::map<unsigned, unsigned> vpefuncs;
+
+    unsigned fn_exec_sleep = ++fn_exec_last;
+    OTF_Writer_writeDefFunction(writer, 0, fn_exec_sleep, "Sleeping", grp_func_exec, 0);
+    unsigned fn_exec_running = ++fn_exec_last;
+    OTF_Writer_writeDefFunction(writer, 0, fn_exec_running, "Running", grp_func_exec, 0);
+
+    // Message functions
+    unsigned fn_msg_send = (3 << 20) + 1;
+    OTF_Writer_writeDefFunction(writer, 0, fn_msg_send, "msg_send", grp_func_msg, 0);
+
+    // Memory Functions
+    unsigned fn_mem_read = (3 << 20) + 2;
+    OTF_Writer_writeDefFunction(writer, 0, fn_mem_read, "mem_read", grp_func_mem, 0);
+    unsigned fn_mem_write = (3 << 20) + 3;
+    OTF_Writer_writeDefFunction(writer, 0, fn_mem_write, "mem_write", grp_func_mem, 0);
+
+    // Function groups, defined in Event.h
+    unsigned grp_func_start = (4 << 20);
+    for(unsigned int i = 0; i < m3::event_func_groups_size; ++i)
+        OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_start + i, m3::event_func_groups[i]);
+
+    printf("writing OTF events\n");
+
+    unsigned cur_vpe[pe_count];
+
+    for(int i = 0; i < pe_count; ++i)
+        cur_vpe[i] = INVALID_VPEID;
+
+    uint32_t ufunc_max_id = ( 3 << 20 );
+    std::map<uint32_t, uint32_t> ufunc_map;
+
+    uint32_t func_start_id = ( 4 << 20 );
+    std::set<uint32_t> func_set;
+
+    // function call stack per VPE
+    std::array<uint, GEM5_MAX_VPES> func_stack;
+    func_stack.fill( 0 );
+    std::array<uint, GEM5_MAX_VPES> ufunc_stack;
+    ufunc_stack.fill( 0 );
+
+    uint64_t timestamp = 0;
+
+    std::map<unsigned, bool> awake;
+    for(auto it = vpeIds.begin(); it != vpeIds.end(); ++it) {
+        awake[*it] = false;
+        OTF_Writer_writeEnter(writer, timestamp, fn_exec_sleep, *it, 0);
+    }
+
+    // finally loop over events and write OTF
+    for(auto event = trace_buf.begin(); event != trace_buf.end(); ++event) {
+        // don't use the same timestamp twice
+        if(event->timestamp == timestamp)
+            event->timestamp++;
+
+        timestamp = event->timestamp;
+        unsigned vpe = cur_vpe[event->pe];
+        unsigned remote_vpe = cur_vpe[event->remote];
+
+        if(vpe == INVALID_VPEID && event->type != EVENT_SET_VPEID)
+            continue;
+
+        if(VERBOSE) {
+            unsigned pe = event->pe;
+            unsigned remote = event->remote;
+            event->pe = vpe;
+            event->remote = remote_vpe;
+            std::cout << *event << "\n";
+            event->pe = pe;
+            event->remote = remote;
+        }
+
+        switch(event->type) {
+            case EVENT_MSG_SEND_START:
+                OTF_Writer_writeEnter(writer, timestamp, fn_msg_send, vpe, 0);
+                OTF_Writer_writeSendMsg(writer, timestamp,
+                    vpe, remote_vpe, grp_msg, event->tag, event->size, 0);
+                ++stats.send;
+                break;
+
+            case EVENT_MSG_RECV:
+                OTF_Writer_writeRecvMsg(writer, timestamp,
+                    vpe, remote_vpe, grp_msg, event->tag, event->size, 0);
+                ++stats.recv;
+                break;
+
+            case EVENT_MSG_SEND_DONE:
+                OTF_Writer_writeLeave(writer, timestamp, fn_msg_send, vpe, 0);
+                break;
+
+            case EVENT_MEM_READ_START:
+                OTF_Writer_writeEnter(writer, timestamp, fn_mem_read, vpe, 0);
+                OTF_Writer_writeSendMsg(writer, timestamp,
+                    vpe, remote_vpe, grp_mem, event->tag, event->size, 0);
+                ++stats.read;
+                break;
+
+            case EVENT_MEM_READ_DONE:
+                OTF_Writer_writeLeave(writer, timestamp, fn_mem_read, vpe, 0);
+                OTF_Writer_writeRecvMsg(writer, timestamp,
+                    remote_vpe, vpe, grp_mem, event->tag, event->size, 0);
+                ++stats.finish;
+                break;
+
+            case EVENT_MEM_WRITE_START:
+                OTF_Writer_writeEnter(writer, timestamp, fn_mem_write, vpe, 0);
+                OTF_Writer_writeSendMsg(writer, timestamp,
+                    vpe, remote_vpe, grp_mem, event->tag, event->size, 0);
+                ++stats.write;
+                break;
+
+            case EVENT_MEM_WRITE_DONE:
+                if(stats.read || stats.write) {
+                    OTF_Writer_writeLeave(writer, timestamp, fn_mem_write, vpe, 0);
+                    OTF_Writer_writeRecvMsg(writer, timestamp,
+                        remote_vpe, vpe, grp_mem, event->tag, event->size, 0);
+                    ++stats.finish;
+                }
+                break;
+
+            case EVENT_WAKEUP:
+                if(!awake[vpe]) {
+                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_exec_sleep, vpe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, fn_exec_running, vpe, 0);
+                    awake[vpe] = true;
+                }
+                break;
+
+            case EVENT_SUSPEND:
+                if(awake[vpe]) {
+                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_exec_running, vpe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, fn_exec_sleep, vpe, 0);
+                    awake[vpe] = false;
+                }
+                break;
+
+            case EVENT_SET_VPEID: {
+                if(awake[vpe]) {
+                    OTF_Writer_writeLeave(writer, timestamp - 1, fn_exec_running, vpe, 0);
+                    OTF_Writer_writeEnter(writer, timestamp, fn_exec_sleep, vpe, 0);
+                    awake[vpe] = false;
+                }
+
+                cur_vpe[event->pe] = event->tag;
+                break;
+            }
+
+            case EVENT_UFUNC_ENTER: {
+                auto ufunc_map_iter = ufunc_map.find(event->tag);
+                uint32_t id = 0;
+                if(ufunc_map_iter == ufunc_map.end()) {
+                    id = (++ufunc_max_id);
+                    ufunc_map.insert(std::pair<uint32_t, uint32_t>(event->tag, id));
+                    OTF_Writer_writeDefFunction(writer, 0, id, event->tag_to_string(), grp_func_user, 0);
+                }
+                else
+                    id = ufunc_map_iter->second;
+                ++(ufunc_stack[vpe]);
+                OTF_Writer_writeEnter(writer, timestamp, id, vpe, 0);
+                ++stats.ufunc_enter;
+            }
+            break;
+
+            case EVENT_UFUNC_EXIT: {
+                if(ufunc_stack[vpe] < 1) {
+                    std::cout << vpe << " WARNING: exit at ufunc stack level "
+                              << ufunc_stack[vpe] << " dropped.\n";
+                    ++stats.warnings;
+                }
+                else {
+                    --(ufunc_stack[vpe]);
+                    OTF_Writer_writeLeave(writer, timestamp, 0, vpe, 0);
+                }
+                ++stats.ufunc_exit;
+            }
+            break;
+
+            case EVENT_FUNC_ENTER: {
+                uint32_t id = event->tag;
+                if(func_set.find(id) == func_set.end()) {
+                    func_set.insert(id);
+                    unsigned group = grp_func_start + m3::event_funcs[id].group;
+                    OTF_Writer_writeDefFunction(writer, 0, func_start_id + id, m3::event_funcs[id].name, group, 0);
+                }
+                ++(func_stack[vpe]);
+                OTF_Writer_writeEnter(writer, timestamp, func_start_id + id, vpe, 0);
+                ++stats.func_enter;
+            }
+            break;
+
+            case EVENT_FUNC_EXIT: {
+                if(func_stack[vpe] < 1) {
+                    std::cout << vpe << " WARNING: exit at func stack level "
+                              << func_stack[vpe] << " dropped.\n";
+                    ++stats.warnings;
+                }
+                else {
+                    --(func_stack[vpe]);
+                    OTF_Writer_writeLeave(writer, timestamp, 0, vpe, 0);
+                }
+                ++stats.func_exit;
+            }
+            break;
+        }
+
+        ++stats.total;
+    }
+
+    for(auto it = vpeIds.begin(); it != vpeIds.end(); ++it) {
+        if(awake[*it])
+            OTF_Writer_writeLeave(writer, timestamp, fn_exec_running, *it, 0);
+        else
+            OTF_Writer_writeLeave(writer, timestamp, fn_exec_sleep, *it, 0);
+    }
+}
+
+static void usage(const char *name) {
+    fprintf(stderr, "Usage: %s (pes|vpes) <file>\n", name);
+    fprintf(stderr, "  <file>: the gem5 log file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "In mode 'pes' : M3_GEM5_DBG >= Dtu,DtuCmd,DtuConnector,DtuRegWrite\n");
+    fprintf(stderr, "In mode 'vpes': M3_GEM5_DBG >= Dtu,DtuCmd\n");
+    exit(EXIT_FAILURE);
+}
+
+int main(int argc,char **argv) {
+    if(argc != 3)
+        usage(argv[0]);
+
+    Mode mode = MODE_PES;
+    if(strcmp(argv[1], "pes") == 0)
+        mode = MODE_PES;
+    else if(strcmp(argv[1], "vpes") == 0)
+        mode = MODE_VPES;
+    else
+        usage(argv[0]);
+
+    std::vector<Event> trace_buf;
+
+    int pe_count = read_trace_file(argv[2], mode, trace_buf);
+
+    // Declare a file manager and a writer.
+    OTF_FileManager *manager;
+    OTF_Writer *writer;
+
+    // Initialize the file manager. Open at most 100 OS files.
+    manager = OTF_FileManager_open(100);
+    assert(manager);
+
+    // Initialize the writer.
+    writer = OTF_Writer_open("trace", 1, manager);
+    assert(writer);
+
+    // Write some important Definition Records.
+    // Timer res. in ticks per second
+    OTF_Writer_writeDefTimerResolution(writer, 0, GEM5_TICKS_PER_SEC);
+
+    Stats stats;
+
+    if(mode == MODE_PES)
+        gen_pe_events(writer, stats, trace_buf, pe_count);
+    else
+        gen_vpe_events(writer, stats, trace_buf, pe_count);
+
+    if(stats.send != stats.recv) {
+        printf("WARNING: #send != #recv\n");
+        ++stats.warnings;
+    }
+    if(stats.read + stats.write != stats.finish) {
+        printf("WARNING: #read+#write != #finish\n");
+        ++stats.warnings;
+    }
+    if(stats.func_enter != stats.func_exit) {
+        printf("WARNING: #func_enter != #func_exit\n");
+        ++stats.warnings;
+    }
+    if(stats.ufunc_enter != stats.ufunc_exit) {
+        printf("WARNING: #ufunc_enter != #ufunc_exit\n");
+        ++stats.warnings;
+    }
+
+    printf("total events: %u\n", stats.total);
+    printf("warnings: %u\n", stats.warnings);
+    printf("send: %u\n", stats.send);
+    printf("recv: %u\n", stats.recv);
+    printf("read: %u\n", stats.read);
+    printf("write: %u\n", stats.write);
+    printf("finish: %u\n", stats.finish);
+    printf("func_enter: %u\n", stats.func_enter);
+    printf("func_exit: %u\n", stats.func_exit);
+    printf("ufunc_enter: %u\n", stats.ufunc_enter);
+    printf("ufunc_exit: %u\n", stats.ufunc_exit);
 
     // Clean up before exiting the program.
     OTF_Writer_close(writer);

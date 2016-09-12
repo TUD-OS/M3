@@ -93,7 +93,7 @@ public:
     }
 
     void handle_message(m3::GateIStream &msg, m3::Subscriber<m3::GateIStream&> *) {
-        EVENT_TRACER_handle_message();
+        EVENT_TRACER_Service_request();
         (static_cast<SUB*>(this)->*_callbacks[0])(msg);
     }
 

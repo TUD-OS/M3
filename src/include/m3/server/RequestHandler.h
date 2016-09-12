@@ -85,7 +85,7 @@ protected:
 
 public:
     void handle_message(GateIStream &msg, Subscriber<GateIStream&> *) {
-        EVENT_TRACER_handle_message();
+        EVENT_TRACER_Service_request();
         OP op;
         msg >> op;
         if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {

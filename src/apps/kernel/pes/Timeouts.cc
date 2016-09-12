@@ -15,6 +15,7 @@
  */
 
 #include <base/log/Kernel.h>
+#include <base/tracing/Tracing.h>
 
 #include "pes/Timeouts.h"
 #include "DTU.h"
@@ -42,6 +43,7 @@ void Timeouts::trigger() {
     if(_timeouts.length() == 0)
         return;
 
+    EVENT_TRACER_Kernel_Timeouts();
     cycles_t now = DTU::get().get_time();
     do {
         auto &to = *_timeouts.begin();

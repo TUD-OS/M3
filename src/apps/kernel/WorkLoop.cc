@@ -61,7 +61,6 @@ void WorkLoop::run() {
 #if defined(__host__)
     signal(SIGCHLD, sigchild);
 #endif
-    EVENT_TRACER_KWorkLoop_run();
 
     m3::DTU &dtu = m3::DTU::get();
     SyscallHandler &sysch = SyscallHandler::get();

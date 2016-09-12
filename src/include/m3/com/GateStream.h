@@ -147,13 +147,11 @@ static inline GateIStream receive_reply(SendGate &gate) {
  * Convenience methods that combine send_msg()/send_vmsg() and receive_msg().
  */
 static inline GateIStream send_receive_msg(SendGate &gate, const void *data, size_t len) {
-    EVENT_TRACER_send_receive_msg();
     send_msg(gate, data, len);
     return receive_reply(gate);
 }
 template<typename... Args>
 static inline GateIStream send_receive_vmsg(SendGate &gate, const Args &... args) {
-    EVENT_TRACER_send_receive_vmsg();
     send_vmsg(gate, args...);
     return receive_reply(gate);
 }

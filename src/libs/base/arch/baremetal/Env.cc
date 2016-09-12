@@ -59,8 +59,8 @@ void Env::run() {
     if(e->lambda) {
         e->backend->reinit();
 
+        EVENT_TRACER_Lambda();
         std::function<int()> *f = reinterpret_cast<std::function<int()>*>(e->lambda);
-        EVENT_TRACER_lambda_main();
         res = (*f)();
     }
     else {
@@ -69,6 +69,7 @@ void Env::run() {
         e->backend->init();
         e->post_init();
 
+        EVENT_TRACER_Main();
         res = main(e->argc, e->argv);
     }
 
