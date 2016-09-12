@@ -273,7 +273,7 @@ public:
         return true;
     }
 
-    void debug_msg(uint msg) {
+    void debug_msg(uint64_t msg) {
         write_reg(CmdRegs::OFFSET, msg);
         Sync::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::DEBUG_MSG));
