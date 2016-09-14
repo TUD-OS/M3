@@ -3,6 +3,9 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/bench', '.', scan=1)
 env.M3Strip('$FSDIR/bench/bin/noop', '$BINARYDIR/noop')
+env.M3Strip('$FSDIR/bench/bin/bench-pipe', '$BINARYDIR/bench-pipe')
+env.M3Strip('$FSDIR/bench/bin/bench-pagefaults', '$BINARYDIR/bench-pagefaults')
+env.M3Strip('$FSDIR/bench/bin/bench-vpes', '$BINARYDIR/bench-vpes')
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
 if os.environ.get('M3_FSBLKS') is None:
