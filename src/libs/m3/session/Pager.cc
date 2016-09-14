@@ -38,11 +38,17 @@ Errors::Code Pager::map_anon(uintptr_t *virt, size_t len, int prot, int flags) {
 
 Errors::Code Pager::map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
         int fd, size_t offset) {
-    auto args = create_vmsg(*virt, len, prot, flags, fd, offset);
-    GateIStream resp = delegate(CapRngDesc(CapRngDesc::OBJ, sess.sel()), args);
+    word_t args[5];
+    args[0] = *virt;
+    args[1] = len;
+    args[2] = prot | flags;
+    args[3] = fd;
+    args[4] = offset;
+    size_t argcount = ARRAY_SIZE(args);
+    delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess.sel()), &argcount, args);
     if(Errors::last != Errors::NO_ERROR)
         return Errors::last;
-    resp >> *virt;
+    *virt = args[0];
     return Errors::NO_ERROR;
 }
 
@@ -54,9 +60,9 @@ Errors::Code Pager::unmap(uintptr_t virt) {
 }
 
 Pager *Pager::create_clone() {
-    CapRngDesc caps;
+    KIF::CapRngDesc caps;
     {
-        GateIStream reply = obtain(1, caps, StaticGateOStream<1>());
+        caps = obtain(1);
         if(Errors::last != Errors::NO_ERROR)
             return nullptr;
     }

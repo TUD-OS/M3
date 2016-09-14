@@ -37,7 +37,7 @@ public:
           _wrgate(SendGate::bind(wrgate)) {
     }
     explicit Pipe(const String &service, size_t memsize)
-        : Session(service, create_vmsg(memsize)),
+        : Session(service, memsize),
           _metagate(SendGate::bind(obtain(1).start())),
           _rdgate(SendGate::bind(obtain(1).start())),
           _wrgate(SendGate::bind(obtain(1).start())) {

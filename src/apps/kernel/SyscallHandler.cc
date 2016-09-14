@@ -52,7 +52,7 @@ INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 #define SYS_ERROR(vpe, is, error, msg) {                                                    \
         KLOG(ERR, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")   \
             << ": " << msg << " (" << error << ")");                                        \
-        kreply_vmsg((vpe), (is), (error));                                                  \
+        kreply_result((vpe), (is), (error));                                                \
         return;                                                                             \
     }
 
@@ -78,15 +78,30 @@ static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_
     DTU::get().reply_to(vpe->desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
 }
 
-template<typename... Args>
-static inline void kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
+static inline void kreply_msg(VPE *vpe, GateIStream &is, const void *msg, size_t size) {
     if(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
             return;
     }
 
+    is.reply(msg, size);
+}
+
+static inline void kreply_result(VPE *vpe, GateIStream &is, m3::Errors::Code code) {
+    m3::KIF::Syscall::DefaultReply reply;
+    reply.error = code;
+    return kreply_msg(vpe, is, &reply, sizeof(reply));
+}
+
+template<typename... Args>
+static inline void kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
     auto msg = kernel::create_vmsg(args...);
-    is.reply(msg.bytes(), msg.total());
+    kreply_msg(vpe, is, msg.bytes(), msg.total());
+}
+
+template<typename T>
+static const T *get_message(GateIStream &is) {
+    return reinterpret_cast<const T*>(is.message().data);
 }
 
 static m3::Errors::Code do_activate(VPE *vpe, epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
@@ -159,24 +174,29 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 #endif
 }
 
-void SyscallHandler::handle_message(GateIStream &is, m3::Subscriber<GateIStream&> *) {
-    m3::KIF::Syscall::Operation op;
-    is >> op;
+void SyscallHandler::handle_message(GateIStream &is) {
+    auto req = get_message<m3::KIF::Syscall::DefaultRequest>(is);
+    m3::KIF::Syscall::Operation op = static_cast<m3::KIF::Syscall::Operation>(req->opcode);
+    is.ignore(sizeof(word_t));
+
     if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0])) {
         (this->*_callbacks[op])(is);
         return;
     }
 
     VPE *vpe = is.gate().session<VPE>();
-    kreply_vmsg(vpe, is, m3::Errors::INV_ARGS);
+    kreply_result(vpe, is, m3::Errors::INV_ARGS);
 }
 
 void SyscallHandler::createsrv(GateIStream &is) {
     EVENT_TRACER_Syscall_createsrv();
     VPE *vpe = is.gate().session<VPE>();
-    m3::String name;
-    capsel_t gatesel, srv;
-    is >> gatesel >> srv >> name;
+
+    auto req = get_message<m3::KIF::Syscall::CreateSrv>(is);
+    capsel_t gatesel = req->gate;
+    capsel_t srv = req->srv;
+    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+
     LOG_SYS(vpe, ": syscall::createsrv", "(gate=" << gatesel
         << ", srv=" << srv << ", name=" << name << ")");
 
@@ -200,15 +220,18 @@ void SyscallHandler::createsrv(GateIStream &is) {
     // maybe there are VPEs that now have all requirements fullfilled
     VPEManager::get().start_pending(ServiceList::get());
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::pagefault(UNUSED GateIStream &is) {
 #if defined(__gem5__)
     EVENT_TRACER_Syscall_pagefault();
     VPE *vpe = is.gate().session<VPE>();
-    uint64_t virt, access;
-    is >> virt >> access;
+
+    auto req = get_message<m3::KIF::Syscall::Pagefault>(is);
+    uint64_t virt = req->virt;
+    uint access = req->access;
+
     LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << m3::fmt(virt, "p")
         << ", access " << m3::fmt(access, "#x") << ")");
 
@@ -220,7 +243,7 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
     capsel_t gcap = vpe->address_space()->gate();
     MsgCapability *msg = static_cast<MsgCapability*>(vpe->objcaps().get(gcap, Capability::MSG));
     if(msg == nullptr) {
-        kreply_vmsg(vpe, is, m3::Errors::INV_ARGS);
+        kreply_result(vpe, is, m3::Errors::INV_ARGS);
         return;
     }
 
@@ -230,17 +253,21 @@ void SyscallHandler::pagefault(UNUSED GateIStream &is) {
         SYS_ERROR(vpe, is, res, "Activate failed");
 #endif
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::createsess(GateIStream &is) {
     EVENT_TRACER_Syscall_createsess();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tvpe, cap;
-    m3::String name;
-    is >> tvpe >> cap >> name;
+
+    auto req = get_message<m3::KIF::Syscall::CreateSess>(is);
+    capsel_t tvpe = req->vpe;
+    capsel_t cap = req->sess;
+    word_t arg = req->arg;
+    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+
     LOG_SYS(vpe, ": syscall::createsess",
-        "(vpe=" << tvpe << ", name=" << name << ", cap=" << cap << ")");
+        "(vpe=" << tvpe << ", name=" << name << ", cap=" << cap << ", arg=" << arg << ")");
 
     VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
     if(tvpeobj == nullptr)
@@ -289,25 +316,24 @@ void SyscallHandler::createsess(GateIStream &is) {
         vpe->service_gate().unsubscribe(sub);
     });
 
-    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command>(), is.remaining()));
-    msg << m3::KIF::Service::OPEN;
-    msg.put(is);
-
     if(s->vpe().state() != VPE::RUNNING) {
         if(!s->vpe().resume())
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
-    s->send(&s->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
-    msg.claim();
+    auto msg = create_vmsg(m3::KIF::Service::OPEN, arg);
+    s->send(&s->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), false);
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
     EVENT_TRACER_Syscall_createsessat();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t srvcap, sesscap;
-    word_t ident;
-    is >> srvcap >> sesscap >> ident;
+
+    auto req = get_message<m3::KIF::Syscall::CreateSessAt>(is);
+    capsel_t srvcap = req->srv;
+    capsel_t sesscap = req->sess;
+    word_t ident = req->ident;
+
     LOG_SYS(vpe, ": syscall::createsessat",
         "(service=" << srvcap << ", session=" << sesscap << ", ident=#" << m3::fmt(ident, "0x") << ")");
 
@@ -324,17 +350,20 @@ void SyscallHandler::createsessat(GateIStream &is) {
     sess->obj->servowned = true;
     vpe->objcaps().set(sesscap, sess);
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::creategate(GateIStream &is) {
     EVENT_TRACER_Syscall_creategate();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap,dstcap;
-    label_t label;
-    epid_t epid;
-    word_t credits;
-    is >> tcap >> dstcap >> label >> epid >> credits;
+
+    auto req = get_message<m3::KIF::Syscall::CreateGate>(is);
+    capsel_t tcap = req->vpe;
+    capsel_t dstcap = req->gate;
+    label_t label = req->label;
+    epid_t epid = req->ep;
+    word_t credits = req->credits;
+
     LOG_SYS(vpe, ": syscall::creategate", "(vpe=" << tcap << ", cap=" << dstcap
         << ", label=" << m3::fmt(label, "#0x", sizeof(label_t) * 2)
         << ", ep=" << epid << ", crd=#" << m3::fmt(credits, "0x") << ")");
@@ -355,19 +384,22 @@ void SyscallHandler::creategate(GateIStream &is) {
     vpe->objcaps().set(dstcap,
         new MsgCapability(&vpe->objcaps(), dstcap, label, tcapobj->vpe->pe(),
             tcapobj->vpe->id(), epid, credits));
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::createvpe(GateIStream &is) {
     EVENT_TRACER_Syscall_createvpe();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap, mcap, gcap;
-    m3::PEDesc::value_t pe;
-    m3::String name;
-    epid_t ep;
-    bool tmuxable;
 
-    is >> tcap >> mcap >> name >> pe >> gcap >> ep >> tmuxable;
+    auto req = get_message<m3::KIF::Syscall::CreateVPE>(is);
+    capsel_t tcap = req->vpe;
+    capsel_t mcap = req->mem;
+    capsel_t gcap = req->gate;
+    m3::PEDesc::value_t pe = req->pe;
+    epid_t ep = req->ep;
+    bool tmuxable = req->muxable;
+    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+
     LOG_SYS(vpe, ": syscall::createvpe", "(name=" << name
         << ", pe=" << static_cast<int>(m3::PEDesc(pe).type())
         << ", tcap=" << tcap << ", mcap=" << mcap << ", pfgate=" << gcap
@@ -410,10 +442,15 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
 #if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap, mcap;
-    capsel_t first, pages, dst;
-    int perms;
-    is >> tcap >> mcap >> first >> pages >> dst >> perms;
+
+    auto req = get_message<m3::KIF::Syscall::CreateMap>(is);
+    capsel_t tcap = req->vpe;
+    capsel_t mcap = req->mem;
+    capsel_t first = req->first;
+    capsel_t pages = req->pages;
+    capsel_t dst = req->dest;
+    int perms = req->perms;
+
     LOG_SYS(vpe, ": syscall::createmap", "(vpe=" << tcap << ", mem=" << mcap
         << ", first=" << first << ", pages=" << pages << ", dst=" << dst
         << ", perms=" << perms << ")");
@@ -455,18 +492,21 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     }
 #endif
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::attachrb(GateIStream &is) {
     EVENT_TRACER_Syscall_attachrb();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap;
-    uintptr_t addr;
-    epid_t ep;
-    int order, msgorder;
-    uint flags;
-    is >> tcap >> ep >> addr >> order >> msgorder >> flags;
+
+    auto req = get_message<m3::KIF::Syscall::AttachRB>(is);
+    capsel_t tcap = req->vpe;
+    uintptr_t addr = req->addr;
+    epid_t ep = req->ep;
+    int order = req->order;
+    int msgorder = req->msgorder;
+    uint flags = req->flags;
+
     LOG_SYS(vpe, ": syscall::attachrb", "(vpe=" << tcap << ", ep=" << ep
         << ", addr=" << m3::fmt(addr, "p") << ", size=" << m3::fmt(1UL << order, "#x")
         << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ", flags=" << m3::fmt(flags, "#x") << ")");
@@ -486,15 +526,17 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Unable to attach receive buffer");
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::detachrb(GateIStream &is) {
     EVENT_TRACER_Syscall_detachrb();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap;
-    epid_t ep;
-    is >> tcap >> ep;
+
+    auto req = get_message<m3::KIF::Syscall::DetachRB>(is);
+    capsel_t tcap = req->vpe;
+    epid_t ep = req->ep;
+
     LOG_SYS(vpe, ": syscall::detachrb", "(vpe=" << tcap << ", ep=" << ep << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
@@ -502,16 +544,20 @@ void SyscallHandler::detachrb(GateIStream &is) {
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
     tcapobj->vpe->rbufs().detach(*tcapobj->vpe, ep);
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::exchange(GateIStream &is) {
     EVENT_TRACER_Syscall_exchange();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap;
-    m3::CapRngDesc own, other;
-    bool obtain;
-    is >> tcap >> own >> other >> obtain;
+
+    auto req = get_message<m3::KIF::Syscall::Exchange>(is);
+    capsel_t tcap = req->vpe;
+    m3::KIF::CapRngDesc own(req->own);
+    m3::KIF::CapRngDesc other(req->other);
+    bool obtain = req->obtain;
+
     LOG_SYS(vpe, ": syscall::exchange", "(vpe=" << tcap << ", own=" << own
         << ", other=" << other << ", obtain=" << obtain << ")");
 
@@ -523,16 +569,19 @@ void SyscallHandler::exchange(GateIStream &is) {
     VPE *t1 = obtain ? vpecap->vpe : vpe;
     VPE *t2 = obtain ? vpe : vpecap->vpe;
     m3::Errors::Code res = do_exchange(t1, t2, own, other, obtain);
-    kreply_vmsg(vpe, is, res);
+
+    kreply_result(vpe, is, res);
 }
 
 void SyscallHandler::vpectrl(GateIStream &is) {
     EVENT_TRACER_Syscall_vpectrl();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tcap;
-    m3::KIF::Syscall::VPECtrl op;
-    int pid;
-    is >> tcap >> op >> pid;
+
+    auto req = get_message<m3::KIF::Syscall::VPECtrl>(is);
+    capsel_t tcap = req->vpe;
+    m3::KIF::Syscall::VPEOp op = static_cast<m3::KIF::Syscall::VPEOp>(req->op);
+    int pid = req->pid;
+
     LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tcap << ", op=" << op
             << ", pid=" << pid << ")");
 
@@ -546,13 +595,13 @@ void SyscallHandler::vpectrl(GateIStream &is) {
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START: {
             vpecap->vpe->start_app();
-            kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+            kreply_result(vpe, is, m3::Errors::NO_ERROR);
             break;
         }
 
         case m3::KIF::Syscall::VCTRL_STOP:
             vpecap->vpe->stop_app();
-            kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+            kreply_result(vpe, is, m3::Errors::NO_ERROR);
             break;
 
         case m3::KIF::Syscall::VCTRL_WAIT:
@@ -565,7 +614,7 @@ void SyscallHandler::vpectrl(GateIStream &is) {
 
                     LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << exitcode << ")");
 
-                    auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR,exitcode);
+                    auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR, exitcode);
                     reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
                 });
             }
@@ -576,11 +625,13 @@ void SyscallHandler::vpectrl(GateIStream &is) {
 void SyscallHandler::reqmem(GateIStream &is) {
     EVENT_TRACER_Syscall_reqmem();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t cap;
-    uintptr_t addr;
-    size_t size;
-    int perms;
-    is >> cap >> addr >> size >> perms;
+
+    auto req = get_message<m3::KIF::Syscall::ReqMem>(is);
+    capsel_t cap = req->mem;
+    uintptr_t addr = req->addr;
+    size_t size = req->size;
+    int perms = req->perms;
+
     LOG_SYS(vpe, ": syscall::reqmem", "(cap=" << cap
         << ", addr=#" << m3::fmt(addr, "x") << ", size=#" << m3::fmt(size, "x")
         << ", perms=" << perms << ")");
@@ -599,16 +650,21 @@ void SyscallHandler::reqmem(GateIStream &is) {
     // TODO if addr was 0, we don't want to free it on revoke
     vpe->objcaps().set(cap, new MemCapability(&vpe->objcaps(), cap,
         alloc.addr, alloc.size, perms, alloc.pe(), VPE::INVALID_ID, 0));
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::derivemem(GateIStream &is) {
     EVENT_TRACER_Syscall_derivemem();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t src, dst;
-    size_t offset, size;
-    int perms;
-    is >> src >> dst >> offset >> size >> perms;
+
+    auto req = get_message<m3::KIF::Syscall::DeriveMem>(is);
+    capsel_t src = req->src;
+    capsel_t dst = req->dst;
+    size_t offset = req->offset;
+    size_t size = req->size;
+    int perms = req->perms;
+
     LOG_SYS(vpe, ": syscall::derivemem", "(src=" << src << ", dst=" << dst
         << ", size=" << size << ", off=" << offset << ", perms=" << perms << ")");
 
@@ -631,7 +687,8 @@ void SyscallHandler::derivemem(GateIStream &is) {
         srccap->obj->epid
     ));
     dercap->obj->derived = true;
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::delegate(GateIStream &is) {
@@ -644,12 +701,12 @@ void SyscallHandler::obtain(GateIStream &is) {
     exchange_over_sess(is, true);
 }
 
-m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1,
-        const m3::CapRngDesc &c2, bool obtain) {
+m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
+        const m3::KIF::CapRngDesc &c2, bool obtain) {
     VPE &src = obtain ? *v2 : *v1;
     VPE &dst = obtain ? *v1 : *v2;
-    const m3::CapRngDesc &srcrng = obtain ? c2 : c1;
-    const m3::CapRngDesc &dstrng = obtain ? c1 : c2;
+    const m3::KIF::CapRngDesc &srcrng = obtain ? c2 : c1;
+    const m3::KIF::CapRngDesc &dstrng = obtain ? c1 : c2;
 
     if(c1.type() != c2.type()) {
         KLOG(SYSC, v1->id() << ": Descriptor types don't match (" << m3::Errors::INV_ARGS << ")");
@@ -666,8 +723,8 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngD
 
     // TODO exchange map caps doesn't really work yet, because they might have a length > 1
 
-    CapTable &srctab = c1.type() == m3::CapRngDesc::OBJ ? src.objcaps() : src.mapcaps();
-    CapTable &dsttab = c1.type() == m3::CapRngDesc::OBJ ? dst.objcaps() : dst.mapcaps();
+    CapTable &srctab = c1.type() == m3::KIF::CapRngDesc::OBJ ? src.objcaps() : src.mapcaps();
+    CapTable &dsttab = c1.type() == m3::KIF::CapRngDesc::OBJ ? dst.objcaps() : dst.mapcaps();
     for(uint i = 0; i < c2.count(); ++i) {
         capsel_t srccap = srcrng.start() + i;
         capsel_t dstcap = dstrng.start() + i;
@@ -680,9 +737,12 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::CapRngD
 
 void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t tvpe, sesscap;
-    m3::CapRngDesc caps;
-    is >> tvpe >> sesscap >> caps;
+
+    auto req = get_message<m3::KIF::Syscall::ExchangeSess>(is);
+    capsel_t tvpe = req->vpe;
+    capsel_t sesscap = req->sess;
+    m3::KIF::CapRngDesc caps(req->caps);
+
     // TODO compiler-bug? if I try to print caps, it hangs on T2!? doing it here manually works
     LOG_SYS(vpe, (obtain ? ": syscall::obtain" : ": syscall::delegate"),
             "(vpe=" << tvpe << ", sess=" << sesscap << ", caps="
@@ -706,7 +766,6 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     vpe->service_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
             (GateIStream &reply, m3::Subscriber<GateIStream&> *sub) {
         EVENT_TRACER_Syscall_delob_done();
-        m3::CapRngDesc srvcaps;
 
         m3::Errors::Code res;
         reply >> res;
@@ -722,19 +781,28 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             goto error;
         }
 
-        reply >> srvcaps;
-        if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
-            auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-            goto error;
+        {
+            word_t crd;
+            reply >> crd;
+
+            m3::KIF::CapRngDesc srvcaps(crd);
+            if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
+                auto reply = kernel::create_vmsg(res);
+                reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
+                goto error;
+            }
         }
 
         {
-            AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::Errors, m3::CapRngDesc>(),
-                reply.remaining()));
-            msg << m3::Errors::NO_ERROR;
-            msg.put(reply);
-            reply_to_vpe(vpe, rinfo, msg.bytes(), msg.total());
+            size_t count;
+            reply >> count;
+
+            m3::KIF::Syscall::ExchangeSessReply msg;
+            msg.error = m3::Errors::NO_ERROR;
+            msg.argcount = m3::Math::min(count, ARRAY_SIZE(msg.args));
+            for(size_t i = 0; i < msg.argcount; ++i)
+                reply >> msg.args[i];
+            reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
         }
 
     error:
@@ -742,16 +810,17 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         vpe->service_gate().unsubscribe(sub);
     });
 
-    AutoGateOStream msg(m3::vostreamsize(m3::ostreamsize<m3::KIF::Service::Command, word_t,
-        m3::CapRngDesc>(), is.remaining()));
-    msg << (obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE) << sess->obj->ident << caps.count();
-    msg.put(is);
-
     if(rsrv->vpe().state() != VPE::RUNNING) {
         if(!rsrv->vpe().resume())
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
+    // TODO
+    AutoGateOStream msg(128);
+    auto opcode = obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE;
+    msg << opcode << sess->obj->ident << caps.count();
+    for(size_t i = 0; i < req->argcount; ++i)
+        msg << req->args[i];
     rsrv->send(&rsrv->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
     msg.claim();
 }
@@ -759,9 +828,12 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
 void SyscallHandler::activate(GateIStream &is) {
     EVENT_TRACER_Syscall_activate();
     VPE *vpe = is.gate().session<VPE>();
-    epid_t epid;
-    capsel_t oldcap, newcap;
-    is >> epid >> oldcap >> newcap;
+
+    auto *req = get_message<m3::KIF::Syscall::Activate>(is);
+    epid_t epid = req->ep;
+    capsel_t oldcap = req->old_sel;
+    capsel_t newcap = req->new_sel;
+
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<
         oldcap << ", new=" << newcap << ")");
 
@@ -820,15 +892,18 @@ void SyscallHandler::activate(GateIStream &is) {
     m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "cmpxchg failed");
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::activatereply(GateIStream &is) {
     EVENT_TRACER_Syscall_activaterp();
     VPE *vpe = is.gate().session<VPE>();
-    epid_t epid;
-    uintptr_t msgaddr;
-    is >> epid >> msgaddr;
+
+    auto *req = get_message<m3::KIF::Syscall::ActivateReply>(is);
+    epid_t epid = req->ep;
+    uintptr_t msgaddr = req->msg_addr;
+
     LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr=" << (void*)msgaddr << ")");
 
     vpeid_t id;
@@ -851,33 +926,35 @@ void SyscallHandler::activatereply(GateIStream &is) {
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Activating reply failed");
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::revoke(GateIStream &is) {
     EVENT_TRACER_Syscall_revoke();
     VPE *vpe = is.gate().session<VPE>();
-    capsel_t vcap;
-    m3::CapRngDesc crd;
-    bool own;
-    is >> vcap >> crd >> own;
+
+    auto *req = get_message<m3::KIF::Syscall::Revoke>(is);
+    capsel_t vcap = req->vpe;
+    m3::KIF::CapRngDesc crd(req->crd);
+    bool own = req->own;
+
     LOG_SYS(vpe, ": syscall::revoke", "(vpe=" << vcap << ", crd=" << crd << ", own=" << own << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(vpe->objcaps().get(vcap, Capability::VIRTPE));
     if(vpecap == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
 
-    if(crd.type() == m3::CapRngDesc::OBJ && crd.start() < 2)
+    if(crd.type() == m3::KIF::CapRngDesc::OBJ && crd.start() < 2)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
-    CapTable &table = crd.type() == m3::CapRngDesc::OBJ
+    CapTable &table = crd.type() == m3::KIF::CapRngDesc::OBJ
         ? vpecap->vpe->objcaps()
         : vpecap->vpe->mapcaps();
     m3::Errors::Code res = table.revoke(crd, own);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Revoke failed");
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 void SyscallHandler::idle(GateIStream &is) {
@@ -891,8 +968,10 @@ void SyscallHandler::idle(GateIStream &is) {
 void SyscallHandler::exit(GateIStream &is) {
     EVENT_TRACER_Syscall_exit();
     VPE *vpe = is.gate().session<VPE>();
-    int exitcode;
-    is >> exitcode;
+
+    auto *req = get_message<m3::KIF::Syscall::Exit>(is);
+    int exitcode = req->exitcode;
+
     LOG_SYS(vpe, ": syscall::exit", "(" << exitcode << ")");
 
     vpe->exit_app(exitcode);
@@ -902,7 +981,8 @@ void SyscallHandler::noop(GateIStream &is) {
     EVENT_TRACER_Syscall_noop();
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, ": syscall::noop", "()");
-    kreply_vmsg(vpe, is, 0);
+
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 
 #if defined(__host__)
@@ -913,7 +993,7 @@ void SyscallHandler::init(GateIStream &is) {
     vpe->activate_sysc_ep(addr);
     LOG_SYS(vpe, "syscall::init", "(" << addr << ")");
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR);
+    kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
 #endif
 

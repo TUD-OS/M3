@@ -29,7 +29,7 @@ class Interrupts : public Session {
 public:
     explicit Interrupts(const String &service, HWInterrupts::IRQ irq, int buford = nextlog2<256>::val,
             int msgord = nextlog2<64>::val)
-        : Session(service, create_vmsg(irq)),
+        : Session(service, irq),
           _rcvbuf(RecvBuf::create(VPE::self().alloc_ep(), buford, msgord, 0)),
           _rgate(RecvGate::create(&_rcvbuf)), _sgate(SendGate::create(SendGate::UNLIMITED, &_rgate)) {
         if(!Errors::occurred())

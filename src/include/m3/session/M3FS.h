@@ -71,12 +71,29 @@ public:
     void close(int fd, size_t extent, size_t off);
 
     template<size_t N>
-    bool get_locs(int fd, size_t offset, size_t count, size_t blocks, CapRngDesc &crd, LocList<N> &locs) {
-        auto args = create_vmsg(fd, offset, count, blocks, 0);
+    bool get_locs(int fd, size_t offset, size_t count, size_t blocks, KIF::CapRngDesc &crd, LocList<N> &locs) {
+        return get_locs(*this, fd, &offset, count, blocks, crd, locs, 0);
+    }
+
+    // TODO wrong place. we should have a DataSpace session or something
+    template<size_t N>
+    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count, size_t blocks,
+            KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
+        word_t args[5];
+        args[0] = fd;
+        args[1] = *offset;
+        args[2] = count;
+        args[3] = blocks;
+        args[4] = flags;
         bool extended = false;
-        GateIStream resp = obtain(count, crd, args);
-        if(Errors::last == Errors::NO_ERROR)
-            resp >> locs >> extended;
+        size_t argcount = ARRAY_SIZE(args);
+        crd = sess.obtain(count, &argcount, args);
+        if(Errors::last == Errors::NO_ERROR) {
+            extended = args[0];
+            *offset = args[1];
+            for(size_t i = 2; i < argcount; ++i)
+                locs.append(args[i]);
+        }
         return extended;
     }
 

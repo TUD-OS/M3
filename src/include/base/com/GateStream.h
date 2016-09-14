@@ -289,6 +289,10 @@ public:
         return _gate->reply_sync(data, len, DTU::get().get_msgoff(_gate->epid(), _msg));
     }
 
+    void ignore(size_t bytes) {
+        _pos += bytes;
+    }
+
     /**
      * Pulls the given values out of this stream
      *

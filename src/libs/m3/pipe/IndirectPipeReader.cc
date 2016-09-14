@@ -61,7 +61,7 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
 
 void IndirectPipeReader::delegate(VPE &vpe) {
     IndirectPipeFile::delegate(vpe);
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _pipe.read_gate().sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.read_gate().sel(), 1));
     _pipe.attach(true);
 }
 

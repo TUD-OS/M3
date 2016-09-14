@@ -34,7 +34,8 @@ public:
             return;
         }
 
-        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, _vgamem->sel()));
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vgamem->sel());
+        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
     }
 
 private:

@@ -148,7 +148,7 @@ size_t DirectPipeWriter::serialize_length() {
 }
 
 void DirectPipeWriter::delegate(VPE &vpe) {
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _caps, 2));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
 }
 
 void DirectPipeWriter::serialize(Marshaller &m) {

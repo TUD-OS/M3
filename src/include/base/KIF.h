@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/stream/OStream.h>
 
 namespace m3 {
 
@@ -45,6 +46,48 @@ struct KIF {
         static const int X = 4;
         static const int RW = R | W;
         static const int RWX = R | W | X;
+    };
+
+    struct CapRngDesc {
+        typedef uint64_t value_type;
+
+        enum Type {
+            OBJ,
+            MAP,
+        };
+
+        explicit CapRngDesc() : CapRngDesc(OBJ, 0, 0) {
+        }
+        explicit CapRngDesc(value_type value)
+            : _value(value) {
+        }
+        explicit CapRngDesc(Type type, capsel_t start, capsel_t count = 1)
+            : _value(type |
+                    (static_cast<value_type>(start) << 33) |
+                    (static_cast<value_type>(count) << 1)) {
+        }
+
+        value_type value() const {
+            return _value;
+        }
+        Type type() const {
+            return static_cast<Type>(_value & 1);
+        }
+        capsel_t start() const {
+            return _value >> 33;
+        }
+        capsel_t count() const {
+            return (_value >> 1) & 0xFFFFFFFF;
+        }
+
+        friend OStream &operator <<(OStream &os, const CapRngDesc &crd) {
+            os << "CRD[" << (crd.type() == OBJ ? "OBJ" : "MAP") << ":"
+               << crd.start() << ":" << crd.count() << "]";
+            return os;
+        }
+
+    private:
+        value_type _value;
     };
 
     /**
@@ -76,11 +119,160 @@ struct KIF {
             COUNT
         };
 
-        enum VPECtrl {
+        enum VPEOp {
             VCTRL_START,
             VCTRL_STOP,
             VCTRL_WAIT,
         };
+
+        struct DefaultReply {
+            word_t error;
+        } PACKED;
+
+        struct DefaultRequest {
+            word_t opcode;
+        } PACKED;
+
+        struct Pagefault : public DefaultRequest {
+            word_t virt;
+            word_t access;
+        } PACKED;
+
+        struct Activate : public DefaultRequest {
+            word_t ep;
+            word_t old_sel;
+            word_t new_sel;
+        } PACKED;
+
+        struct ActivateReply : public DefaultRequest {
+            word_t ep;
+            word_t msg_addr;
+        } PACKED;
+
+        struct CreateSrv : public DefaultRequest {
+            word_t gate;
+            word_t srv;
+            word_t namelen;
+            char name[32];
+        } PACKED;
+
+        struct CreateSess : public DefaultRequest {
+            word_t vpe;
+            word_t sess;
+            word_t arg;
+            word_t namelen;
+            char name[32];
+        } PACKED;
+
+        struct CreateSessAt : public DefaultRequest {
+            word_t srv;
+            word_t sess;
+            word_t ident;
+        } PACKED;
+
+        struct CreateGate : public DefaultRequest {
+            word_t vpe;
+            word_t gate;
+            word_t label;
+            word_t ep;
+            word_t credits;
+        } PACKED;
+
+        struct CreateVPE : public DefaultRequest {
+            word_t vpe;
+            word_t mem;
+            word_t gate;
+            word_t pe;
+            word_t ep;
+            word_t muxable;
+            word_t namelen;
+            char name[32];
+        } PACKED;
+
+        struct CreateVPEReply : public DefaultReply {
+            word_t pe;
+        } PACKED;
+
+        struct CreateMap : public DefaultRequest {
+            word_t vpe;
+            word_t mem;
+            word_t first;
+            word_t pages;
+            word_t dest;
+            word_t perms;
+        } PACKED;
+
+        struct AttachRB : public DefaultRequest {
+            word_t vpe;
+            word_t addr;
+            word_t ep;
+            word_t order;
+            word_t msgorder;
+            word_t flags;
+        } PACKED;
+
+        struct DetachRB : public DefaultRequest {
+            word_t vpe;
+            word_t ep;
+        } PACKED;
+
+        struct VPECtrl : public DefaultRequest {
+            word_t vpe;
+            word_t op;
+            word_t pid;
+        } PACKED;
+
+        struct VPECtrlReply : public DefaultReply {
+            word_t exitcode;
+        } PACKED;
+
+        struct Exchange : public DefaultRequest {
+            word_t vpe;
+            word_t own;
+            word_t other;
+            word_t obtain;
+        } PACKED;
+
+        struct ExchangeSess : public DefaultRequest {
+            word_t vpe;
+            word_t sess;
+            word_t caps;
+            word_t argcount;
+            word_t args[8];
+        } PACKED;
+
+        struct ExchangeSessReply : public DefaultReply {
+            word_t argcount;
+            word_t args[8];
+        } PACKED;
+
+        struct Revoke : public DefaultRequest {
+            word_t vpe;
+            word_t crd;
+            word_t own;
+        } PACKED;
+
+        struct ReqMem : public DefaultRequest {
+            word_t mem;
+            word_t addr;
+            word_t size;
+            word_t perms;
+        } PACKED;
+
+        struct DeriveMem : public DefaultRequest {
+            word_t src;
+            word_t dst;
+            word_t offset;
+            word_t size;
+            word_t perms;
+        } PACKED;
+
+        struct Exit : public DefaultRequest {
+            word_t exitcode;
+        } PACKED;
+
+        struct Noop : public DefaultRequest {
+        } PACKED;
     };
 
     /**

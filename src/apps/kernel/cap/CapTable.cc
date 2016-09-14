@@ -117,7 +117,7 @@ m3::Errors::Code CapTable::revoke(Capability *c, bool revnext) {
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code CapTable::revoke(const m3::CapRngDesc &crd, bool own) {
+m3::Errors::Code CapTable::revoke(const m3::KIF::CapRngDesc &crd, bool own) {
     for(capsel_t i = crd.start(), end = crd.start() + crd.count(); i < end; ) {
         m3::Errors::Code res;
         Capability *c = get(i);

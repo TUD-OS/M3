@@ -39,7 +39,7 @@ public:
         _callbacks[op] = func;
     }
 
-    void handle_message(GateIStream &msg, m3::Subscriber<GateIStream&> *sub);
+    void handle_message(GateIStream &msg);
 
     epid_t epid() const {
         // we can use it here because we won't issue syscalls ourself
@@ -80,7 +80,8 @@ public:
 #endif
 
 private:
-    m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::CapRngDesc &c1, const m3::CapRngDesc &c2, bool obtain);
+    m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
+        const m3::KIF::CapRngDesc &c2, bool obtain);
     void exchange_over_sess(GateIStream &is, bool obtain);
 
     epid_t _serv_ep;

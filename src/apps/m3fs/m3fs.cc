@@ -43,7 +43,7 @@ struct LimitedCapContainer {
         request(MAX_CAPS);
     }
 
-    void add(const CapRngDesc &crd) {
+    void add(const KIF::CapRngDesc &crd) {
         for(size_t i = 0; i < crd.count(); ++i) {
             assert(caps[pos] == ObjCap::INVALID);
             caps[pos] = crd.start() + i;
@@ -59,14 +59,14 @@ struct LimitedCapContainer {
             count--;
 
             if(first != ObjCap::INVALID) {
-                CapRngDesc caps = get_linear(first, count);
+                KIF::CapRngDesc caps = get_linear(first, count);
                 VPE::self().free_caps(caps.start(), caps.count());
                 VPE::self().revoke(caps);
             }
         }
     }
 
-    CapRngDesc get_linear(capsel_t first, size_t &rem) {
+    KIF::CapRngDesc get_linear(capsel_t first, size_t &rem) {
         capsel_t last = first;
         while(rem > 0 && caps[victim] == last + 1) {
             caps[victim] = ObjCap::INVALID;
@@ -74,7 +74,7 @@ struct LimitedCapContainer {
             rem--;
             last++;
         }
-        return CapRngDesc(CapRngDesc::OBJ, first, 1 + last - first);
+        return KIF::CapRngDesc(KIF::CapRngDesc::OBJ, first, 1 + last - first);
     }
 
     size_t pos;
@@ -205,7 +205,7 @@ public:
             firstOff = rem;
         }
 
-        CapRngDesc crd;
+        KIF::CapRngDesc crd;
         bool extended = false;
         Errors::last = Errors::NO_ERROR;
         m3::loclist_type *locs = INodes::get_locs(_handle, inode, offset, count, blocks,
@@ -217,7 +217,13 @@ public:
             return;
         }
 
-        reply_vmsg(args, Errors::NO_ERROR, crd, *locs, extended, firstOff);
+        // TODO
+        AutoGateOStream reply(128);
+        reply << Errors::NO_ERROR << crd.value() << (2 + locs->count()) << (word_t)extended << firstOff;
+        for(size_t i = 0; i < locs->count(); ++i)
+            reply << locs->get(i);
+        reply_msg(args, reply.bytes(), reply.total());
+
         of->caps.add(crd);
     }
 

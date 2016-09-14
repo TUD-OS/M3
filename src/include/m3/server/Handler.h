@@ -17,8 +17,8 @@
 #pragma once
 
 #include <base/col/SList.h>
-#include <base/util/CapRngDesc.h>
 #include <base/Errors.h>
+#include <base/KIF.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/com/RecvGate.h>

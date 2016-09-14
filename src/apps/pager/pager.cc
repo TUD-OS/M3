@@ -60,7 +60,9 @@ public:
             sel = sess->init(VPE::self().alloc_caps(2));
         else
             sel = map_ds(sess, args, &virt);
-        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sel, capcount), virt);
+
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, capcount);
+        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 1UL, virt);
     }
 
     virtual void handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, GateIStream &args, uint capcount) override {
@@ -76,7 +78,8 @@ public:
         Syscalls::get().createsessat(srv->sel(), nsess->sess.sel(), reinterpret_cast<word_t>(nsess));
         add_session(nsess);
 
-        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, nsess->sess.sel()));
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
+        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
     }
 
     void pf(GateIStream &is) {
@@ -182,12 +185,11 @@ public:
 
     capsel_t map_ds(AddrSpace *sess, GateIStream &args, uintptr_t *virt) {
         size_t len, offset;
-        int prot, flags, id;
-        args >> *virt >> len >> prot >> flags >> id >> offset;
+        int flags, id;
+        args >> *virt >> len >> flags >> id >> offset;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
-            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
-            << ", flags=" << fmt(flags, "#x") << ", id=" << id
+            << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
 
         *virt = Math::round_dn(*virt, PAGE_SIZE);
@@ -199,7 +201,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        ExternalDataSpace *ds = new ExternalDataSpace(sess, *virt, len, prot | flags, id, offset);
+        ExternalDataSpace *ds = new ExternalDataSpace(sess, *virt, len, flags, id, offset);
         sess->add(ds);
 
         return ds->sess.sel();

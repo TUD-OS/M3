@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <base/util/CapRngDesc.h>
 #include <base/Errors.h>
+#include <base/KIF.h>
 
 #include <m3/ObjCap.h>
 #include <m3/VPE.h>
@@ -36,14 +36,14 @@ namespace m3 {
 class Session : public ObjCap {
 public:
     /**
-     * Creates a session at service <name>, sending him <args> as arguments to the OPEN event.
+     * Creates a session at service <name>, sending him <arg> as argument to the OPEN event.
      *
      * @param name the service name
-     * @param args the arguments
+     * @param arg the argument
      */
-    explicit Session(const String &name, const GateOStream &args = StaticGateOStream<1>())
+    explicit Session(const String &name, word_t arg = 0)
         : ObjCap(SESSION), _vpe(VPE::self()) {
-        connect(name, args);
+        connect(name, arg);
     }
 
     /**
@@ -54,9 +54,9 @@ public:
      * @param name the service name
      * @param args the arguments
      */
-    explicit Session(VPE &vpe, const String &name, const GateOStream &args = StaticGateOStream<1>())
+    explicit Session(VPE &vpe, const String &name, word_t arg = 0)
         : ObjCap(SESSION), _vpe(vpe) {
-        connect(name, args);
+        connect(name, arg);
     }
 
     /**
@@ -82,42 +82,33 @@ public:
      * @param sel the capability
      */
     void delegate_obj(capsel_t sel) {
-        delegate(CapRngDesc(CapRngDesc::OBJ, sel, 1));
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, 1);
+        delegate(crd);
     }
     /**
-     * Delegates the given capability range to the server.
+     * Delegates the given capability range to the server with additional arguments and puts the
+     * arguments from the server again into argcount and args.
      *
-     * @param crd the capabilities
-     */
-    void delegate(const CapRngDesc &crd);
-    /**
-     * Delegates the given capability range to the server with additional arguments.
-     *
-     * @param crd the capabilities
+     * @param caps the capabilities
+     * @param argcount the number of arguments
      * @param args the arguments to pass to the server
-     * @return the GateIStream with the received values
+     * @return the error code
      */
-    GateIStream delegate(const CapRngDesc &crd, const GateOStream &args);
+    void delegate(const KIF::CapRngDesc &caps, size_t *argcount = nullptr, word_t *args = nullptr);
 
     /**
-     * Obtains up to <count> capabilities from the server
+     * Obtains up to <count> capabilities from the server with additional arguments and puts the
+     * arguments from the server again into argcount and args.
      *
      * @param count the number of capabilities
-     * @return the received range
-     */
-    CapRngDesc obtain(uint count);
-    /**
-     * Obtains up to <count> capabilities from the server with additional arguments
-     *
-     * @param count the number of capabilities
-     * @param crd will be set to the received range
+     * @param argcount the number of arguments
      * @param args the arguments to pass to the server
-     * @return the GateIStream with the received values
+     * @return the received capabilities
      */
-    GateIStream obtain(uint count, CapRngDesc &crd, const GateOStream &args);
+    KIF::CapRngDesc obtain(uint count, size_t *argcount = nullptr, word_t *args = nullptr);
 
 private:
-    void connect(const String &name, const GateOStream &args);
+    void connect(const String &name, word_t arg);
 
     VPE &_vpe;
 };

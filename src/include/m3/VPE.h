@@ -17,10 +17,10 @@
 #pragma once
 
 #include <base/util/BitField.h>
-#include <base/util/CapRngDesc.h>
 #include <base/util/String.h>
 #include <base/ELF.h>
 #include <base/Errors.h>
+#include <base/KIF.h>
 #include <base/PEDesc.h>
 
 #include <m3/com/MemGate.h>
@@ -74,8 +74,8 @@ public:
     /**
      * @return the complete range of object capabilities
      */
-    static CapRngDesc all_caps() {
-        return CapRngDesc(CapRngDesc::OBJ, SEL_START, SEL_COUNT);
+    static KIF::CapRngDesc all_caps() {
+        return KIF::CapRngDesc(KIF::CapRngDesc::OBJ, SEL_START, SEL_COUNT);
     }
 
     /**
@@ -216,7 +216,7 @@ public:
      * @return the error code
      */
     Errors::Code delegate_obj(capsel_t sel) {
-        return delegate(CapRngDesc(CapRngDesc::OBJ, sel));
+        return delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel));
     }
 
     /**
@@ -225,7 +225,7 @@ public:
      * @param crd the capabilities of your to VPE to delegate to this VPE
      * @return the error code
      */
-    Errors::Code delegate(const CapRngDesc &crd);
+    Errors::Code delegate(const KIF::CapRngDesc &crd);
 
     /**
      * Obtains the given range of capabilities from this VPE to your VPE. The selectors are
@@ -234,7 +234,7 @@ public:
      * @param crd the capabilities of this VPE to delegate to your VPE
      * @return the error code
      */
-    Errors::Code obtain(const CapRngDesc &crd);
+    Errors::Code obtain(const KIF::CapRngDesc &crd);
 
     /**
      * Obtains the given range of capabilities from this VPE to your VPE at position <dest>.
@@ -243,7 +243,7 @@ public:
      * @param dest the destination in your VPE
      * @return the error code
      */
-    Errors::Code obtain(const CapRngDesc &crd, capsel_t dest);
+    Errors::Code obtain(const KIF::CapRngDesc &crd, capsel_t dest);
 
     /**
      * Revokes the given range of capabilities from this VPE.
@@ -252,7 +252,7 @@ public:
      * @param delonly whether to revoke delegations only
      * @return the error code
      */
-    Errors::Code revoke(const CapRngDesc &crd, bool delonly = false);
+    Errors::Code revoke(const KIF::CapRngDesc &crd, bool delonly = false);
 
     /**
      * Starts the VPE, i.e., prepares the PE for execution and wakes it up.

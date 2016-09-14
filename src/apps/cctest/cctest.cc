@@ -56,7 +56,7 @@ int main() {
     nums[0] = 0;
 
     // TODO hack: simply specify 1 page because the pager maps them together
-    cc.delegate(CapRngDesc(CapRngDesc::MAP, virt >> PAGE_BITS, 1));
+    cc.delegate(KIF::CapRngDesc(KIF::CapRngDesc::MAP, virt >> PAGE_BITS, 1));
     send_vmsg(sg, 1);
 
     nums[0] = 4;

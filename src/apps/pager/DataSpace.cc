@@ -106,20 +106,16 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
 
     // if we don't have memory yet, request it
     if(!reg->has_mem()) {
-        off_t off;
-        m3::CapRngDesc crd;
+        size_t off;
+        m3::KIF::CapRngDesc crd;
         m3::loclist_type locs;
         // get memory caps for the region
         {
             size_t count = 1, blocks = 0;
-            auto args = m3::create_vmsg(id, fileoff + pfoff, count, blocks, m3::M3FS::BYTE_OFFSET);
-            m3::GateIStream resp = sess.obtain(1, crd, args);
-            if(m3::Errors::last != m3::Errors::NO_ERROR)
-                return m3::Errors::last;
 
-            // adjust region
-            bool extended;
-            resp >> locs >> extended >> off;
+            off = fileoff + pfoff;
+            m3::M3FS::get_locs(
+                sess, id, &off, count, blocks, crd, locs, m3::M3FS::BYTE_OFFSET);
         }
 
         // first, resize the region to not be too large

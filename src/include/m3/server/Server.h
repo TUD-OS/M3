@@ -59,7 +59,7 @@ public:
         LLOG(SERV, "destroy()");
         // if it fails, there are pending requests. this might happen multiple times because
         // the kernel might have them still in the send-queue.
-        CapRngDesc caps(CapRngDesc::OBJ, sel());
+        KIF::CapRngDesc caps(KIF::CapRngDesc::OBJ, sel());
         while(VPE::self().revoke(caps) == Errors::MSGS_WAITING) {
             // handle all requests
             LLOG(SERV, "handling pending requests...");

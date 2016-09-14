@@ -17,7 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/util/CapRngDesc.h>
+#include <base/KIF.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/vfs/LocList.h>
@@ -118,7 +118,7 @@ private:
     mutable off_t _begin;
     mutable off_t _length;
     mutable Position _pos;
-    mutable CapRngDesc _memcaps;
+    mutable KIF::CapRngDesc _memcaps;
     mutable loclist_type _locs;
     mutable MemGate _lastmem;
     mutable uint16_t _last_extent;

@@ -53,9 +53,9 @@ void IndirectPipeFile::serialize(Marshaller &m) {
 }
 
 void IndirectPipeFile::delegate(VPE &vpe) {
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _mem.sel(), 1));
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _pipe.sel(), 1));
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _pipe.meta_gate().sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _mem.sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.meta_gate().sel(), 1));
 }
 
 }

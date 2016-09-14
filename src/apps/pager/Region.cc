@@ -35,7 +35,7 @@ Region::~Region() {
     // if another address space still uses this, we still want to unmap it from this one
     if(has_mem() && !_mem->is_last()) {
         m3::Syscalls::get().revoke(_ds->addrspace()->vpe.sel(),
-            m3::CapRngDesc(m3::CapRngDesc::MAP, virt() >> PAGE_BITS, size() >> PAGE_BITS));
+            m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::MAP, virt() >> PAGE_BITS, size() >> PAGE_BITS));
     }
 }
 

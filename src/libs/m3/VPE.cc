@@ -79,7 +79,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         assert(!_caps->is_set(_pager->gate().sel()));
         _caps->set(_pager->gate().sel());
         // now delegate our VPE cap and memory cap to the pager
-        _pager->delegate(CapRngDesc(CapRngDesc::OBJ, sel(), 2));
+        _pager->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel(), 2));
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }
@@ -164,7 +164,7 @@ void VPE::obtain_fds() {
     _fds->delegate(*this);
 }
 
-Errors::Code VPE::delegate(const CapRngDesc &crd) {
+Errors::Code VPE::delegate(const KIF::CapRngDesc &crd) {
     Errors::Code res = Syscalls::get().exchange(sel(), crd, crd, false);
     if(res == Errors::NO_ERROR) {
         for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel) {
@@ -175,15 +175,15 @@ Errors::Code VPE::delegate(const CapRngDesc &crd) {
     return res;
 }
 
-Errors::Code VPE::obtain(const CapRngDesc &crd) {
+Errors::Code VPE::obtain(const KIF::CapRngDesc &crd) {
     return obtain(crd, VPE::self().alloc_caps(crd.count()));
 }
 
-Errors::Code VPE::obtain(const CapRngDesc &crd, capsel_t dest) {
-    return Syscalls::get().exchange(sel(), CapRngDesc(CapRngDesc::OBJ, dest, crd.count()), crd, true);
+Errors::Code VPE::obtain(const KIF::CapRngDesc &crd, capsel_t dest) {
+    return Syscalls::get().exchange(sel(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, dest, crd.count()), crd, true);
 }
 
-Errors::Code VPE::revoke(const CapRngDesc &crd, bool delonly) {
+Errors::Code VPE::revoke(const KIF::CapRngDesc &crd, bool delonly) {
     return Syscalls::get().revoke(sel(), crd, !delonly);
 }
 

@@ -35,7 +35,7 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
 
 void IndirectPipeWriter::delegate(VPE &vpe) {
     IndirectPipeFile::delegate(vpe);
-    vpe.delegate(CapRngDesc(CapRngDesc::OBJ, _pipe.write_gate().sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.write_gate().sel(), 1));
     _pipe.attach(false);
 }
 

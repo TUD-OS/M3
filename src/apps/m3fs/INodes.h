@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <base/util/CapRngDesc.h>
+#include <base/KIF.h>
 
 #include <fs/internal.h>
 
@@ -47,7 +47,7 @@ public:
     static off_t seek(FSHandle &h, m3::inodeno_t ino, off_t &off, int whence, size_t &extent, size_t &extoff);
 
     static m3::loclist_type *get_locs(FSHandle &h, m3::INode *inode, size_t offset, size_t locs,
-        size_t blocks, int perms, m3::CapRngDesc &crd, bool &extended);
+        size_t blocks, int perms, m3::KIF::CapRngDesc &crd, bool &extended);
 
     static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i, m3::Extent **indir, bool create);
     static m3::Extent *change_extent(FSHandle &h, m3::INode *inode, size_t i, m3::Extent **indir, bool remove);

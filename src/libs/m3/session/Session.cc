@@ -20,36 +20,23 @@
 
 namespace m3 {
 
-void Session::connect(const String &service, const GateOStream &args) {
+void Session::connect(const String &service, word_t arg) {
     capsel_t cap = _vpe.alloc_cap();
-    Errors::Code res = Syscalls::get().createsess(_vpe.sel(), cap, service, args);
+    Errors::Code res = Syscalls::get().createsess(_vpe.sel(), cap, service, arg);
     if(res == Errors::NO_ERROR)
         sel(cap);
     else
         _vpe.free_cap(cap);
 }
 
-void Session::delegate(const CapRngDesc &crd) {
-    Syscalls::get().delegate(_vpe.sel(), sel(), crd);
+void Session::delegate(const KIF::CapRngDesc &crd, size_t *argcount, word_t *args) {
+    Syscalls::get().delegate(_vpe.sel(), sel(), crd, argcount, args);
 }
 
-GateIStream Session::delegate(const CapRngDesc &crd, const GateOStream &args) {
-    GateIStream reply = Syscalls::get().delegate(_vpe.sel(), sel(), crd, args);
-    reply >> Errors::last;
-    return reply;
-}
-
-CapRngDesc Session::obtain(uint count) {
-    CapRngDesc crd(CapRngDesc::OBJ, _vpe.alloc_caps(count), count);
-    Syscalls::get().obtain(_vpe.sel(), sel(), crd);
+KIF::CapRngDesc Session::obtain(uint count, size_t *argcount, word_t *args) {
+    KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vpe.alloc_caps(count), count);
+    Syscalls::get().obtain(_vpe.sel(), sel(), crd, argcount, args);
     return crd;
-}
-
-GateIStream Session::obtain(uint count, CapRngDesc &crd, const GateOStream &args) {
-    crd = CapRngDesc(CapRngDesc::OBJ, _vpe.alloc_caps(count), count);
-    GateIStream reply = Syscalls::get().obtain(_vpe.sel(), sel(), crd, args);
-    reply >> Errors::last;
-    return reply;
 }
 
 }

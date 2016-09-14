@@ -61,13 +61,13 @@ public:
 
         if(sess->reader == nullptr) {
             sess->reader = new PipeReadHandler(sess);
-            reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
-                sess->reader->sendgate().sel()));
+            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->reader->sendgate().sel());
+            reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
         }
         else {
             sess->writer = new PipeWriteHandler(sess);
-            reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ,
-                sess->writer->sendgate().sel()));
+            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->writer->sendgate().sel());
+            reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
         }
     }
 

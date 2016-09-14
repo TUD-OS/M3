@@ -154,7 +154,8 @@ public:
         }
 
         capsel_t caps = sess->connect(_acc);
-        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, caps, 2));
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, caps, 2);
+        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
     }
 
 private:

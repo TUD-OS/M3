@@ -18,7 +18,6 @@
 
 #include <base/Common.h>
 #include <base/col/SList.h>
-#include <base/util/CapRngDesc.h>
 #include <base/util/Reference.h>
 #include <base/log/Services.h>
 #include <base/DTU.h>

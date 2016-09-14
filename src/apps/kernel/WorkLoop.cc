@@ -79,7 +79,7 @@ void WorkLoop::run() {
             // we know the subscriber here, so optimize that a bit
             RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
             GateIStream is(*rgate, msg);
-            sysch.handle_message(is, nullptr);
+            sysch.handle_message(is);
             EVENT_TRACE_FLUSH_LIGHT();
         }
 
@@ -88,7 +88,7 @@ void WorkLoop::run() {
             // we know the subscriber here, so optimize that a bit
             RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
             GateIStream is(*rgate, msg);
-            sysch.handle_message(is, nullptr);
+            sysch.handle_message(is);
         }
 
         msg = dtu.fetch_msg(srvep);

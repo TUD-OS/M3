@@ -80,7 +80,9 @@ protected:
         sess->_rgate = new RecvGate(RecvGate::create(recvbuf(ctrlbuf), sess));
         sess->_sgate = new SendGate(SendGate::create(credits(), sess->_rgate));
         sess->_rgate->subscribe(std::bind(&RequestHandler::handle_message, this, _1, _2));
-        reply_vmsg(args, Errors::NO_ERROR, CapRngDesc(CapRngDesc::OBJ, sess->send_gate()->sel()));
+
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
+        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
     }
 
 public:

@@ -75,13 +75,13 @@ void INodes::write_back(FSHandle &h, INode *inode) {
 }
 
 loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
-        size_t locs, size_t blocks, int perms, CapRngDesc &crd, bool &extended) {
+        size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd, bool &extended) {
     if(locs > MAX_LOCS) {
         Errors::last = Errors::INV_ARGS;
         return nullptr;
     }
 
-    crd = CapRngDesc(CapRngDesc::OBJ, VPE::self().alloc_caps(locs), locs);
+    crd = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, VPE::self().alloc_caps(locs), locs);
     Extent *indir = nullptr;
     // we're reusing the locations
     _locs.clear();
