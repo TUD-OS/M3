@@ -24,7 +24,7 @@
 
 using namespace m3;
 
-static Server<EventHandler> *server;
+static Server<EventHandler<>> *server;
 
 static constexpr size_t DATA_SIZE   = 256;
 
@@ -50,7 +50,7 @@ int main() {
     timerirqs.gate().subscribe(timer_irq);
 
     // now, register service
-    server = new Server<EventHandler>("queuetest", new EventHandler(), nextlog2<4096>::val);
+    server = new Server<EventHandler<>>("queuetest", new EventHandler<>(), nextlog2<4096>::val);
 
     env()->workloop()->add(&SendQueue::get(), true);
     env()->workloop()->run();

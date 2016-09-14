@@ -38,12 +38,13 @@ MemObject::~MemObject() {
 void SessionObject::close() {
     // only send the close message, if the service has not exited yet
     if(srv->vpe().has_app()) {
-        AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command, word_t>());
-        msg << m3::KIF::Service::CLOSE << ident;
         KLOG(SERV, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8)
             << " to " << srv->name());
-        ServiceList::get().send_and_receive(srv, msg.bytes(), msg.total(), msg.is_on_heap());
-        msg.claim();
+
+        m3::KIF::Service::Close msg;
+        msg.opcode = m3::KIF::Service::CLOSE;
+        msg.sess = ident;
+        ServiceList::get().send_and_receive(srv, &msg, sizeof(msg), false);
     }
 }
 SessionObject::~SessionObject() {

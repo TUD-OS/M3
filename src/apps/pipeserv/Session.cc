@@ -181,7 +181,7 @@ void PipeWriteHandler::write(GateIStream &is) {
 
     if(sess->flags & READ_EOF) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " EOF");
-        reply_vmsg(is, Errors::END_OF_FILE);
+        reply_error(is, Errors::END_OF_FILE);
         return;
     }
 

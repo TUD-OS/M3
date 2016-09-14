@@ -65,21 +65,20 @@ public:
     }
 
 protected:
-    virtual SESS *handle_open(GateIStream &args) {
-        SESS *s = add_session(new SESS());
-        reply_vmsg(args, Errors::NO_ERROR, s);
-        return s;
+    virtual Errors::Code handle_open(SESS **sess, word_t) {
+        *sess = new SESS();
+        return Errors::NO_ERROR;
     }
-    virtual void handle_obtain(SESS *, RecvBuf *, GateIStream &args, uint) {
-        reply_vmsg(args, Errors::NOT_SUP);
+    virtual Errors::Code handle_obtain(SESS *, RecvBuf *, KIF::Service::ExchangeData &) {
+        return Errors::NOT_SUP;
     }
-    virtual void handle_delegate(SESS *, GateIStream &args, uint) {
-        reply_vmsg(args, Errors::NOT_SUP);
+    virtual Errors::Code handle_delegate(SESS *, KIF::Service::ExchangeData &) {
+        return Errors::NOT_SUP;
     }
-    virtual void handle_close(SESS *sess, GateIStream &args) {
+    virtual Errors::Code handle_close(SESS *sess) {
         remove_session(sess);
         delete sess;
-        reply_vmsg(args, Errors::NO_ERROR);
+        return Errors::NO_ERROR;
     }
     virtual void handle_shutdown() {
     }

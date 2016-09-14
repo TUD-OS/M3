@@ -35,14 +35,11 @@ public:
     HWInterrupts::IRQ irq;
 };
 
-class IntEventHandler : public EventHandler {
+class IntEventHandler : public EventHandler<IntSessionData> {
 public:
-    virtual IntSessionData *handle_open(GateIStream &args) override {
-        int irq;
-        args >> irq;
-        auto *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(irq));
-        reply_vmsg(args, Errors::NO_ERROR, add_session(sess));
-        return sess;
+    virtual Errors::Code handle_open(IntSessionData **sess, word_t arg) override {
+        *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(arg));
+        return Errors::NO_ERROR;
     }
 };
 

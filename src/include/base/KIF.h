@@ -18,6 +18,7 @@
 
 #include <base/Common.h>
 #include <base/stream/OStream.h>
+#include <base/Errors.h>
 
 namespace m3 {
 
@@ -90,6 +91,14 @@ struct KIF {
         value_type _value;
     };
 
+    struct DefaultReply {
+        word_t error;
+    } PACKED;
+
+    struct DefaultRequest {
+        word_t opcode;
+    } PACKED;
+
     /**
      * System calls
      */
@@ -124,14 +133,6 @@ struct KIF {
             VCTRL_STOP,
             VCTRL_WAIT,
         };
-
-        struct DefaultReply {
-            word_t error;
-        } PACKED;
-
-        struct DefaultRequest {
-            word_t opcode;
-        } PACKED;
 
         struct Pagefault : public DefaultRequest {
             word_t virt;
@@ -286,6 +287,36 @@ struct KIF {
             CLOSE,
             SHUTDOWN
         };
+
+        struct Open : public DefaultRequest {
+            word_t arg;
+        } PACKED;
+
+        struct OpenReply : public DefaultReply {
+            word_t sess;
+        } PACKED;
+
+        struct ExchangeData {
+            word_t caps;
+            word_t argcount;
+            word_t args[8];
+        } PACKED;
+
+        struct Exchange : public DefaultRequest {
+            word_t sess;
+            ExchangeData data;
+        } PACKED;
+
+        struct ExchangeReply : public DefaultReply {
+            ExchangeData data;
+        } PACKED;
+
+        struct Close : public DefaultRequest {
+            word_t sess;
+        } PACKED;
+
+        struct Shutdown : public DefaultRequest {
+        } PACKED;
     };
 };
 

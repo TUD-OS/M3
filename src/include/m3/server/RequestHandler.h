@@ -66,23 +66,19 @@ public:
     }
 
 protected:
-    virtual void handle_obtain(SESS *sess, RecvBuf *ctrlbuf, GateIStream &args,
-                               uint capcount) override {
+    virtual Errors::Code handle_obtain(SESS *sess, RecvBuf *ctrlbuf, KIF::Service::ExchangeData &data) override {
         using std::placeholders::_1;
         using std::placeholders::_2;
-        // TODO can't check that atm, because messages are size-aligned. so we don't know whether
-        // there are actually more arguments or it's just padding
-        if(sess->send_gate() || /*args.remaining() > 0 || */capcount != 1) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+        if(sess->send_gate() || data.argcount > 0 || data.caps != 1)
+            return Errors::INV_ARGS;
 
         sess->_rgate = new RecvGate(RecvGate::create(recvbuf(ctrlbuf), sess));
         sess->_sgate = new SendGate(SendGate::create(credits(), sess->_rgate));
         sess->_rgate->subscribe(std::bind(&RequestHandler::handle_message, this, _1, _2));
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+        data.caps = crd.value();
+        return Errors::NO_ERROR;
     }
 
 public:
@@ -94,7 +90,8 @@ public:
             (static_cast<CLS*>(this)->*_callbacks[op])(msg);
             return;
         }
-        reply_vmsg(msg, Errors::INV_ARGS);
+
+        reply_error(msg, Errors::INV_ARGS);
     }
 
 private:

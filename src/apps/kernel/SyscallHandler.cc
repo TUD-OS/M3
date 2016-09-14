@@ -88,7 +88,7 @@ static inline void kreply_msg(VPE *vpe, GateIStream &is, const void *msg, size_t
 }
 
 static inline void kreply_result(VPE *vpe, GateIStream &is, m3::Errors::Code code) {
-    m3::KIF::Syscall::DefaultReply reply;
+    m3::KIF::DefaultReply reply;
     reply.error = code;
     return kreply_msg(vpe, is, &reply, sizeof(reply));
 }
@@ -175,7 +175,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 }
 
 void SyscallHandler::handle_message(GateIStream &is) {
-    auto req = get_message<m3::KIF::Syscall::DefaultRequest>(is);
+    auto req = get_message<m3::KIF::DefaultRequest>(is);
     m3::KIF::Syscall::Operation op = static_cast<m3::KIF::Syscall::Operation>(req->opcode);
     is.ignore(sizeof(word_t));
 
@@ -283,10 +283,11 @@ void SyscallHandler::createsess(GateIStream &is) {
     ReplyInfo rinfo(is.message());
     m3::Reference<Service> rsrv(s);
     vpe->service_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
-            (GateIStream &reply, m3::Subscriber<GateIStream&> *sub) {
+            (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
         EVENT_TRACER_Syscall_createsess();
-        m3::Errors::Code res;
-        reply >> res;
+
+        auto reply = get_message<m3::KIF::Service::OpenReply>(is);
+        m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
 
         LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
 
@@ -296,15 +297,12 @@ void SyscallHandler::createsess(GateIStream &is) {
             reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
         }
         else {
-            word_t sess;
-            reply >> sess;
-
             // inherit the session-cap from the service-cap. this way, it will be automatically
             // revoked if the service-cap is revoked
             Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
             assert(srvcap != nullptr);
             SessionCapability *sesscap = new SessionCapability(
-                &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), sess);
+                &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
             tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
             tvpeobj->vpe->objcaps().set(cap, sesscap);
 
@@ -321,8 +319,10 @@ void SyscallHandler::createsess(GateIStream &is) {
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
-    auto msg = create_vmsg(m3::KIF::Service::OPEN, arg);
-    s->send(&s->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), false);
+    m3::KIF::Service::Open msg;
+    msg.opcode = m3::KIF::Service::OPEN;
+    msg.arg = arg;
+    s->send(&s->vpe(), &vpe->service_gate(), &msg, sizeof(msg), false);
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
@@ -764,11 +764,12 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     // when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
     vpe->service_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
-            (GateIStream &reply, m3::Subscriber<GateIStream&> *sub) {
+            (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
         EVENT_TRACER_Syscall_delob_done();
 
-        m3::Errors::Code res;
-        reply >> res;
+        auto *reply = get_message<m3::KIF::Service::ExchangeReply>(is);
+
+        m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
 
         LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
             "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
@@ -782,10 +783,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         }
 
         {
-            word_t crd;
-            reply >> crd;
-
-            m3::KIF::CapRngDesc srvcaps(crd);
+            m3::KIF::CapRngDesc srvcaps(reply->data.caps);
             if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
                 auto reply = kernel::create_vmsg(res);
                 reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
@@ -794,14 +792,11 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         }
 
         {
-            size_t count;
-            reply >> count;
-
             m3::KIF::Syscall::ExchangeSessReply msg;
             msg.error = m3::Errors::NO_ERROR;
-            msg.argcount = m3::Math::min(count, ARRAY_SIZE(msg.args));
+            msg.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(msg.args));
             for(size_t i = 0; i < msg.argcount; ++i)
-                reply >> msg.args[i];
+                msg.args[i] = reply->data.args[i];
             reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
         }
 
@@ -815,14 +810,14 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
     }
 
-    // TODO
-    AutoGateOStream msg(128);
-    auto opcode = obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE;
-    msg << opcode << sess->obj->ident << caps.count();
+    m3::KIF::Service::Exchange msg;
+    msg.opcode = obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE;
+    msg.sess = sess->obj->ident;
+    msg.data.caps = caps.count();
+    msg.data.argcount = req->argcount;
     for(size_t i = 0; i < req->argcount; ++i)
-        msg << req->args[i];
-    rsrv->send(&rsrv->vpe(), &vpe->service_gate(), msg.bytes(), msg.total(), msg.is_on_heap());
-    msg.claim();
+        msg.data.args[i] = req->args[i];
+    rsrv->send(&rsrv->vpe(), &vpe->service_gate(), &msg, sizeof(msg), false);
 }
 
 void SyscallHandler::activate(GateIStream &is) {

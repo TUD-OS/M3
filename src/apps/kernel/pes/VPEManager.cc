@@ -119,11 +119,11 @@ void VPEManager::shutdown() {
     ServiceList &serv = ServiceList::get();
     for(auto &s : serv) {
         m3::Reference<Service> ref(&s);
-        AutoGateOStream msg(m3::ostreamsize<m3::KIF::Service::Command>());
-        msg << m3::KIF::Service::SHUTDOWN;
         KLOG(SERV, "Sending SHUTDOWN message to " << ref->name());
-        serv.send_and_receive(ref, msg.bytes(), msg.total(), msg.is_on_heap());
-        msg.claim();
+
+        m3::KIF::Service::Shutdown msg;
+        msg.opcode = m3::KIF::Service::SHUTDOWN;
+        serv.send_and_receive(ref, &msg, sizeof(msg), false);
     }
 }
 

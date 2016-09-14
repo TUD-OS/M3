@@ -22,9 +22,11 @@
 
 namespace m3 {
 
+template<class SESS>
 class EventHandler;
 
 class EventSessionData : public SessionData {
+    template<class SESS>
     friend class EventHandler;
 
 public:
@@ -42,7 +44,8 @@ protected:
     SendGate *_sgate;
 };
 
-class EventHandler : public Handler<EventSessionData> {
+template<class SESS = EventSessionData>
+class EventHandler : public Handler<SESS> {
     template<class HDL>
     friend class Server;
 
@@ -55,16 +58,14 @@ public:
     }
 
 protected:
-    virtual void handle_delegate(EventSessionData *sess, GateIStream &args, uint capcount) override {
-        // TODO like in RequestHandler, don't check additional argument size
-        if(sess->gate() || /*args.remaining() > 0 || */capcount != 1) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+    virtual Errors::Code handle_delegate(SESS *sess, KIF::Service::ExchangeData &data) override {
+        if(sess->gate() || data.argcount != 0 || data.caps != 1)
+            return Errors::INV_ARGS;
 
         sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->gate()->sel());
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+        data.caps = crd.value();
+        return Errors::NO_ERROR;
     }
 
 private:

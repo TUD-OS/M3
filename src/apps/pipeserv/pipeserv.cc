@@ -40,35 +40,30 @@ public:
         return 64;
     }
 
-    virtual PipeSessionData *handle_open(GateIStream &args) override {
-        size_t size;
-        args >> size;
-        PipeSessionData *sess = add_session(new PipeSessionData(size));
-        reply_vmsg(args, Errors::NO_ERROR, sess);
-        return sess;
+    virtual Errors::Code handle_open(PipeSessionData **sess, word_t arg) override {
+        *sess = new PipeSessionData(arg);
+        return Errors::NO_ERROR;
     }
 
-    virtual void handle_obtain(PipeSessionData *sess, RecvBuf *rcvbuf, GateIStream &args,
-            uint capcount) override {
-        if(!sess->send_gate()) {
-            base_class_t::handle_obtain(sess, rcvbuf, args, capcount);
-            return;
-        }
-        if((sess->reader && sess->writer) || capcount != 1) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+    virtual Errors::Code handle_obtain(PipeSessionData *sess, RecvBuf *rcvbuf,
+            KIF::Service::ExchangeData &data) override {
+        if(!sess->send_gate())
+            return base_class_t::handle_obtain(sess, rcvbuf, data);
+
+        if((sess->reader && sess->writer) || data.argcount != 0 || data.caps != 1)
+            return Errors::INV_ARGS;
 
         if(sess->reader == nullptr) {
             sess->reader = new PipeReadHandler(sess);
             KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->reader->sendgate().sel());
-            reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+            data.caps = crd.value();
         }
         else {
             sess->writer = new PipeWriteHandler(sess);
             KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->writer->sendgate().sel());
-            reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+            data.caps = crd.value();
         }
+        return Errors::NO_ERROR;
     }
 
     void attach(GateIStream &is) {
@@ -78,7 +73,7 @@ public:
         is >> reading;
 
         Errors::Code res = reading ? sess->reader->attach(sess) : sess->writer->attach(sess);
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void close(GateIStream &is) {
@@ -89,7 +84,7 @@ public:
         is >> reading >> id;
 
         Errors::Code res = reading ? sess->reader->close(sess, id) : sess->writer->close(sess, id);
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 };
 

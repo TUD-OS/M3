@@ -28,7 +28,7 @@
 
 using namespace m3;
 
-static Server<EventHandler> *server;
+static Server<EventHandler<>> *server;
 
 class Sender : public WorkItem {
 public:
@@ -49,7 +49,7 @@ public:
 
 int main() {
     // now, register service
-    server = new Server<EventHandler>("streamer", new EventHandler());
+    server = new Server<EventHandler<>>("streamer", new EventHandler<>());
 
     env()->workloop()->add(new Sender(), true);
     env()->workloop()->add(&SendQueue::get(), true);

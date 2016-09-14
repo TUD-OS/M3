@@ -86,57 +86,78 @@ public:
     }
 
 private:
-    void handle_message(GateIStream &msg, Subscriber<GateIStream&> *) {
-        KIF::Service::Command op;
-        msg >> op;
+    void handle_message(GateIStream &is, Subscriber<GateIStream&> *) {
+        auto *req = reinterpret_cast<const KIF::DefaultRequest*>(is.message().data);
+        KIF::Service::Command op = static_cast<KIF::Service::Command>(req->opcode);
+
         if(static_cast<size_t>(op) < ARRAY_SIZE(_ctrl_handler)) {
-            (this->*_ctrl_handler[op])(msg);
+            (this->*_ctrl_handler[op])(is);
             return;
         }
-        reply_vmsg(msg, Errors::INV_ARGS);
+        reply_error(is, Errors::INV_ARGS);
     }
 
     void handle_open(GateIStream &is) {
         EVENT_TRACER_Service_open();
 
-        word_t sessptr = reinterpret_cast<word_t>(_handler->handle_open(is));
+        auto *req = reinterpret_cast<const KIF::Service::Open*>(is.message().data);
 
-        LLOG(SERV, fmt(sessptr, "#x") << ": open()");
+        KIF::Service::OpenReply reply;
+
+        typename HDL::session_type *sess = nullptr;
+        reply.error = _handler->handle_open(&sess, req->arg);
+        if(sess) {
+            _handler->add_session(sess);
+            LLOG(SERV, fmt((void*)sess, "#x") << ": open()");
+        }
+
+        reply.sess = reinterpret_cast<word_t>(sess);
+        is.reply(&reply, sizeof(reply));
     }
 
     void handle_obtain(GateIStream &is) {
         EVENT_TRACER_Service_obtain();
-        word_t sessptr;
-        uint capcount;
-        is >> sessptr >> capcount;
 
-        LLOG(SERV, fmt(sessptr, "#x") << ": obtain(caps=" << capcount << ")");
+        auto *req = reinterpret_cast<const KIF::Service::Exchange*>(is.message().data);
 
-        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
-        _handler->handle_obtain(sess, &_rcvbuf, is, capcount);
+        LLOG(SERV, fmt((void*)req->sess, "#x") << ": obtain(caps=" << req->data.caps << ")");
+
+        KIF::Service::ExchangeReply reply;
+        memcpy(&reply.data, &req->data, sizeof(req->data));
+
+        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
+        reply.error = _handler->handle_obtain(sess, &_rcvbuf, reply.data);
+
+        is.reply(&reply, sizeof(reply));
     }
 
     void handle_delegate(GateIStream &is) {
         EVENT_TRACER_Service_delegate();
-        word_t sessptr;
-        uint capcount;
-        is >> sessptr >> capcount;
 
-        LLOG(SERV, fmt(sessptr, "#x") << ": delegate(caps=" << capcount << ")");
+        auto *req = reinterpret_cast<const KIF::Service::Exchange*>(is.message().data);
 
-        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
-        _handler->handle_delegate(sess, is, capcount);
+        LLOG(SERV, fmt((void*)req->sess, "#x") << ": delegate(caps=" << req->data.caps << ")");
+
+        KIF::Service::ExchangeReply reply;
+        memcpy(&reply.data, &req->data, sizeof(req->data));
+
+        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
+        reply.error = _handler->handle_delegate(sess, reply.data);
+
+        is.reply(&reply, sizeof(reply));
     }
 
     void handle_close(GateIStream &is) {
         EVENT_TRACER_Service_close();
-        word_t sessptr;
-        is >> sessptr;
 
-        LLOG(SERV, fmt(sessptr, "#x") << ": close()");
+        auto *req = reinterpret_cast<const KIF::Service::Close*>(is.message().data);
 
-        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(sessptr);
-        _handler->handle_close(sess, is);
+        LLOG(SERV, fmt((void*)req->sess, "#x") << ": close()");
+
+        typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
+        Errors::Code res = _handler->handle_close(sess);
+
+        reply_error(is, res);
     }
 
     void handle_shutdown(GateIStream &is) {
@@ -146,7 +167,8 @@ private:
 
         _handler->handle_shutdown();
         shutdown();
-        reply_vmsg(is, Errors::NO_ERROR);
+
+        reply_error(is, Errors::NO_ERROR);
     }
 
 protected:

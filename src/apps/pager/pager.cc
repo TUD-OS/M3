@@ -48,28 +48,30 @@ public:
         return Server<MemReqHandler>::DEF_MSGSIZE;
     }
 
-    virtual void handle_delegate(AddrSpace *sess, GateIStream &args, uint capcount) override {
-        if(capcount != 1 && capcount != 2) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+    virtual Errors::Code handle_delegate(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
+        if(data.caps != 1 && data.caps != 2)
+            return Errors::INV_ARGS;
 
         capsel_t sel;
         uintptr_t virt = 0;
         if(sess->vpe.sel() == ObjCap::INVALID)
             sel = sess->init(VPE::self().alloc_caps(2));
-        else
-            sel = map_ds(sess, args, &virt);
+        else {
+            sel = map_ds(sess, data.argcount, data.args, &virt);
+            data.argcount = 1;
+            data.args[0] = virt;
+        }
 
-        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, capcount);
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 1UL, virt);
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, data.caps);
+        data.caps = crd.value();
+        return Errors::NO_ERROR;
     }
 
-    virtual void handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, GateIStream &args, uint capcount) override {
-        if(!sess->send_gate()) {
-            base_class_t::handle_obtain(sess, rcvbuf, args, capcount);
-            return;
-        }
+    virtual Errors::Code handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, KIF::Service::ExchangeData &data) override {
+        if(!sess->send_gate())
+            return base_class_t::handle_obtain(sess, rcvbuf, data);
+        if(data.caps != 1 || data.argcount != 0)
+            return Errors::INV_ARGS;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
 
@@ -79,7 +81,8 @@ public:
         add_session(nsess);
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+        data.caps = crd.value();
+        return Errors::NO_ERROR;
     }
 
     void pf(GateIStream &is) {
@@ -99,27 +102,27 @@ public:
         // we never map page 0 and thus we tell the DTU to remember that there is no mapping
         if((virt & ~PAGE_MASK) == 0) {
             SLOG(PAGER, "No mapping at page 0");
-            reply_vmsg(is, Errors::NO_MAPPING);
+            reply_error(is, Errors::NO_MAPPING);
             return;
         }
 
         if(sess->vpe.sel() == ObjCap::INVALID) {
             SLOG(PAGER, "Invalid session");
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
         DataSpace *ds = sess->dstree.find(virt);
         if(!ds) {
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
         if((ds->flags() & access) != access) {
             SLOG(PAGER, "Access at " << fmt(virt, "p") << " for " << fmt(access, "#x")
                 << " not allowed: " << fmt(ds->flags(), "#x"));
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
@@ -127,11 +130,11 @@ public:
         Errors::Code res = ds->handle_pf(virt);
         if(res != Errors::NO_ERROR) {
             SLOG(PAGER, "Unable to handle pagefault: " << Errors::to_string(res));
-            reply_vmsg(is, res);
+            reply_error(is, res);
             return;
         }
 
-        reply_vmsg(is, Errors::NO_ERROR);
+        reply_error(is, Errors::NO_ERROR);
     }
 
     void clone(GateIStream &is) {
@@ -143,7 +146,7 @@ public:
         if(res != Errors::NO_ERROR)
             SLOG(PAGER, "Clone failed: " << Errors::to_string(res));
 
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void map_anon(GateIStream &is) {
@@ -162,17 +165,17 @@ public:
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
             SLOG(PAGER, "Invalid virtual address / size");
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
         if((virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
             SLOG(PAGER, "Invalid protection flags");
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
@@ -183,10 +186,15 @@ public:
         reply_vmsg(is, Errors::NO_ERROR, virt);
     }
 
-    capsel_t map_ds(AddrSpace *sess, GateIStream &args, uintptr_t *virt) {
-        size_t len, offset;
-        int flags, id;
-        args >> *virt >> len >> flags >> id >> offset;
+    capsel_t map_ds(AddrSpace *sess, size_t argc, const word_t *args, uintptr_t *virt) {
+        if(argc != 5)
+            return Errors::INV_ARGS;
+
+        *virt = args[0];
+        size_t len = args[1];
+        int flags = args[2];
+        int id = args[3];
+        size_t offset = args[4];
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
             << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x") << ", id=" << id
@@ -224,7 +232,7 @@ public:
         else
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));
 
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 };
 

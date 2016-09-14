@@ -28,14 +28,13 @@ public:
     explicit VGAHandler(MemGate *vgamem) : _vgamem(vgamem) {
     }
 
-    virtual void handle_obtain(SessionData *, RecvBuf *, GateIStream &args, uint capcount) override {
-        if(capcount != 1) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+    virtual Errors::Code handle_obtain(SessionData *, RecvBuf *, KIF::Service::ExchangeData &data) override {
+        if(data.caps != 1 || data.argcount != 0)
+            return Errors::INV_ARGS;
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vgamem->sel());
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+        data.caps = crd.value();
+        return Errors::NO_ERROR;
     }
 
 private:

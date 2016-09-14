@@ -134,28 +134,25 @@ public:
         return Server<HashReqHandler>::DEF_MSGSIZE;
     }
 
-    HashSessionData *handle_open(GateIStream &args) override {
+    Errors::Code handle_open(HashSessionData **sess, word_t) override {
         for(uint i = 0; i < CLIENTS; ++i) {
             if(!(occupied & (1 << i))) {
-                HashSessionData *sess = add_session(new HashSessionData(i));
-                reply_vmsg(args, Errors::NO_ERROR, sess);
-                return sess;
+                *sess = new HashSessionData(i);
+                return Errors::NO_ERROR;
             }
         }
-
-        reply_vmsg(args, Errors::NO_SPACE);
-        return nullptr;
+        return Errors::NO_SPACE;
     }
 
-    void handle_obtain(HashSessionData *sess, RecvBuf *, GateIStream &args, uint capcount) override {
-        if(capcount != 2 || sess->sgate) {
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
-        }
+    Errors::Code handle_obtain(HashSessionData *sess, RecvBuf *, KIF::Service::ExchangeData &data) override {
+        if(data.caps != 2 || data.argcount != 0 || sess->sgate)
+            return Errors::INV_ARGS;
 
         capsel_t caps = sess->connect(_acc);
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, caps, 2);
-        reply_vmsg(args, Errors::NO_ERROR, crd.value(), 0UL);
+        data.caps = crd.value();
+        data.argcount = 0;
+        return Errors::NO_ERROR;
     }
 
 private:

@@ -43,7 +43,7 @@ DTU::Message *Syscalls::send_receive(const void *msg, size_t size) {
 Errors::Code Syscalls::send_receive_result(const void *msg, size_t size) {
     DTU::Message *reply = send_receive(msg, size);
 
-    KIF::Syscall::DefaultReply *rdata = reinterpret_cast<KIF::Syscall::DefaultReply*>(reply->data);
+    KIF::DefaultReply *rdata = reinterpret_cast<KIF::DefaultReply*>(reply->data);
     Errors::last = static_cast<Errors::Code>(rdata->error);
 
     DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));

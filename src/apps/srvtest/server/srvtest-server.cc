@@ -31,14 +31,14 @@ public:
     MyHandler() : Handler<>(), _count() {
     }
 
-    virtual void handle_obtain(SessionData *, RecvBuf *, GateIStream &args, uint) override {
-        reply_vmsg(args, Errors::NOT_SUP);
+    virtual Errors::Code handle_obtain(SessionData *, RecvBuf *, KIF::Service::ExchangeData &) override {
         if(++_count == 5)
             srv->shutdown();
+        return  Errors::NOT_SUP;
     }
-    virtual void handle_close(SessionData *sess, GateIStream &args) override {
+    virtual Errors::Code handle_close(SessionData *sess) override {
         cout << "Client closed connection.\n";
-        Handler<>::handle_close(sess, args);
+        return Handler<>::handle_close(sess);
     }
     virtual void handle_shutdown() override {
         cout << "Kernel wants to shut down.\n";

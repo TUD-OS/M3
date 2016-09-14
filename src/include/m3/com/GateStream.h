@@ -30,6 +30,12 @@ using StaticGateOStream = BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
 using AutoGateOStream = BaseAutoGateOStream<RecvGate, SendGate>;
 using GateIStream = BaseGateIStream<RecvGate, SendGate>;
 
+static inline Errors::Code reply_error(const GateIStream &is, m3::Errors::Code error) {
+    KIF::DefaultReply reply;
+    reply.error = error;
+    return is.reply(&reply, sizeof(reply));
+}
+
 /**
  * All these methods send the given data; either over <gate> or as an reply to the first not
  * acknowledged message in <gate> or as a reply on a GateIStream.

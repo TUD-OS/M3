@@ -166,25 +166,28 @@ public:
         return Server<M3FSRequestHandler>::DEF_MSGSIZE;
     }
 
-    virtual void handle_obtain(M3FSSessionData *sess, RecvBuf *rcvbuf, GateIStream &args,
-            uint capcount) override {
-        if(!sess->send_gate()) {
-            m3fs_reqh_base_t::handle_obtain(sess, rcvbuf, args, capcount);
-            return;
-        }
+    virtual Errors::Code handle_obtain(M3FSSessionData *sess, RecvBuf *rcvbuf,
+            KIF::Service::ExchangeData &data) override {
+        if(!sess->send_gate())
+            return m3fs_reqh_base_t::handle_obtain(sess, rcvbuf, data);
 
         EVENT_TRACER_FS_getlocs();
-        int fd, flags;
-        size_t offset, count, blocks;
-        args >> fd >> offset >> count >> blocks >> flags;
+        if(data.argcount != 5)
+            return Errors::INV_ARGS;
+
+        int fd = data.args[0];
+        size_t offset = data.args[1];
+        size_t count = data.args[2];
+        size_t blocks = data.args[3];
+        int flags = data.args[4];
+
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::get_locs(fd=" << fd << ", offset=" << offset
             << ", count=" << count << ", blocks=" << blocks << ", flags=" << flags << ")");
 
         M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of || count == 0) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": Invalid request (of=" << of << ")");
-            reply_vmsg(args, Errors::INV_ARGS);
-            return;
+            return Errors::INV_ARGS;
         }
         m3::INode *inode = INodes::get(_handle, of->ino);
 
@@ -213,18 +216,18 @@ public:
         if(!locs) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": Determining locations failed: "
                 << Errors::to_string(Errors::last));
-            reply_vmsg(args, Errors::last);
-            return;
+            return Errors::last;
         }
 
-        // TODO
-        AutoGateOStream reply(128);
-        reply << Errors::NO_ERROR << crd.value() << (2 + locs->count()) << (word_t)extended << firstOff;
+        data.caps = crd.value();
+        data.argcount = 2 + locs->count();
+        data.args[0] = extended;
+        data.args[1] = firstOff;
         for(size_t i = 0; i < locs->count(); ++i)
-            reply << locs->get(i);
-        reply_msg(args, reply.bytes(), reply.total());
+            data.args[2 + i] = locs->get(i);
 
         of->caps.add(crd);
+        return Errors::NO_ERROR;
     }
 
     void open(GateIStream &is) {
@@ -240,7 +243,7 @@ public:
         if(ino == INVALID_INO) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": open failed: "
                 << Errors::to_string(Errors::last));
-            reply_vmsg(is, Errors::last);
+            reply_error(is, Errors::last);
             return;
         }
         m3::INode *inode = INodes::get(_handle, ino);
@@ -248,7 +251,7 @@ public:
             ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": open failed: "
                 << Errors::to_string(Errors::NO_PERM));
-            reply_vmsg(is, Errors::NO_PERM);
+            reply_error(is, Errors::NO_PERM);
             return;
         }
 
@@ -291,7 +294,7 @@ public:
         if(!of) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": seek failed: "
                 << Errors::to_string(Errors::INV_ARGS));
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
@@ -310,7 +313,7 @@ public:
         if(ino == INVALID_INO) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": stat failed: "
                 << Errors::to_string(Errors::last));
-            reply_vmsg(is, Errors::last);
+            reply_error(is, Errors::last);
             return;
         }
 
@@ -330,7 +333,7 @@ public:
         if(!of) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": fstat failed: "
                 << Errors::to_string(Errors::INV_ARGS));
-            reply_vmsg(is, Errors::INV_ARGS);
+            reply_error(is, Errors::INV_ARGS);
             return;
         }
 
@@ -351,7 +354,7 @@ public:
         Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
         if(res != Errors::NO_ERROR)
             SLOG(FS, fmt((word_t)sess, "#x") << ": mkdir failed: " << Errors::to_string(res));
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void rmdir(GateIStream &is) {
@@ -364,7 +367,7 @@ public:
         Errors::Code res = Dirs::remove(_handle, path.c_str());
         if(res != Errors::NO_ERROR)
             SLOG(FS, fmt((word_t)sess, "#x") << ": rmdir failed: " << Errors::to_string(res));
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void link(GateIStream &is) {
@@ -378,7 +381,7 @@ public:
         Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
         if(res != Errors::NO_ERROR)
             SLOG(FS, fmt((word_t)sess, "#x") << ": link failed: " << Errors::to_string(res));
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void unlink(GateIStream &is) {
@@ -391,7 +394,7 @@ public:
         Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
         if(res != Errors::NO_ERROR)
             SLOG(FS, fmt((word_t)sess, "#x") << ": unlink failed: " << Errors::to_string(res));
-        reply_vmsg(is, res);
+        reply_error(is, res);
     }
 
     void close(GateIStream &is) {
@@ -406,7 +409,7 @@ public:
         if(extoff != 0) {
             const M3FSSessionData::OpenFile *of = sess->get(fd);
             if(!of || (~of->flags & FILE_W)) {
-                reply_vmsg(is, Errors::INV_ARGS);
+                reply_error(is, Errors::INV_ARGS);
                 return;
             }
 
@@ -426,7 +429,7 @@ public:
 
         sess->release_fd(fd);
 
-        reply_vmsg(is, Errors::NO_ERROR);
+        reply_error(is, Errors::NO_ERROR);
     }
 
     virtual void handle_shutdown() override {
