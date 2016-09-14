@@ -17,7 +17,7 @@ env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')
 env.M3Strip('$FSDIR/default/bin/fdchild', '$BINARYDIR/fdchild')
 env.M3Strip('$FSDIR/default/bin/fdtest', '$BINARYDIR/fdtest')
 env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
-if env['ARCH'] != 'host':
+if env['ARCH'] != 'host' and env['ARCH'] != 'gem5':
     env.M3Strip('$FSDIR/default/bin/idle', '$BINARYDIR/idle')
 env.M3Strip('$FSDIR/default/bin/ln', '$BINARYDIR/ln')
 env.M3Strip('$FSDIR/default/bin/ls', '$BINARYDIR/ls')
