@@ -103,7 +103,8 @@ void ContextSwitcher::init() {
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
 
-    start_switch();
+    if(_cur == nullptr)
+        start_switch();
 }
 
 void ContextSwitcher::enqueue(VPE *vpe) {
