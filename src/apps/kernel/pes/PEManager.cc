@@ -91,10 +91,10 @@ void PEManager::yield_vpe(VPE *vpe) {
     ctx->yield_vpe(vpe);
 }
 
-void PEManager::unblock_vpe(VPE *vpe) {
+bool PEManager::unblock_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->unblock_vpe(vpe);
+    return ctx->unblock_vpe(vpe);
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {

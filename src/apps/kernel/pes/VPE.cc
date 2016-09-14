@@ -137,9 +137,11 @@ bool VPE::resume(bool need_app, bool unblock) {
 
     KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
 
+    bool wait = true;
     if(unblock)
-        PEManager::get().unblock_vpe(this);
-    m3::ThreadManager::get().wait_for(this);
+        wait = !PEManager::get().unblock_vpe(this);
+    if(wait)
+        m3::ThreadManager::get().wait_for(this);
 
     KLOG(VPES, "Resumed VPE '" << _name << "' [id=" << id() << "]");
     return true;

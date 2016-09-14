@@ -46,7 +46,8 @@ class ContextSwitcher {
     };
 
     static const cycles_t MAX_WAIT_TIME     = 50000;
-    static const cycles_t INIT_WAIT_TIME    = 100;
+    static const cycles_t INIT_WAIT_TIME    = 1000;
+    static const int SIGNAL_WAIT_COUNT      = 50;
 
 public:
     explicit ContextSwitcher(peid_t pe);
@@ -66,7 +67,7 @@ public:
     void remove_vpe(VPE *vpe);
 
     void yield_vpe(VPE *vpe);
-    void unblock_vpe(VPE *vpe);
+    bool unblock_vpe(VPE *vpe);
 
     void start_vpe(VPE *vpe);
     void stop_vpe(VPE *vpe);
@@ -77,10 +78,10 @@ private:
     void enqueue(VPE *vpe);
     void dequeue(VPE *vpe);
 
-    void start_switch(bool timedout = false);
+    bool start_switch(bool timedout = false);
     void continue_switch();
 
-    void next_state(uint64_t flags);
+    bool next_state(uint64_t flags);
 
     void send_flags(vpeid_t vpeid, uint64_t flags);
     void recv_flags(vpeid_t vpeid, uint64_t *flags);

@@ -173,20 +173,20 @@ void ContextSwitcher::yield_vpe(VPE *vpe) {
     start_switch();
 }
 
-void ContextSwitcher::unblock_vpe(VPE *vpe) {
+bool ContextSwitcher::unblock_vpe(VPE *vpe) {
     enqueue(vpe);
     // TODO don't do that immediately
-    start_switch();
+    return start_switch();
 }
 
-void ContextSwitcher::start_switch(bool timedout) {
+bool ContextSwitcher::start_switch(bool timedout) {
     if(!timedout && _timeout)
         Timeouts::get().cancel(_timeout);
     _timeout = nullptr;
 
     // if there is a switch running, do nothing
     if(_state != S_IDLE)
-        return;
+        return false;
 
     // if no VPE is running, directly switch to a new VPE
     if (_cur == nullptr)
@@ -194,7 +194,8 @@ void ContextSwitcher::start_switch(bool timedout) {
     else
         _state = S_STORE_WAIT;
 
-    next_state(0);
+    bool finished = next_state(0);
+    return finished;
 }
 
 void ContextSwitcher::continue_switch() {
@@ -214,7 +215,8 @@ void ContextSwitcher::continue_switch() {
         next_state(flags);
 }
 
-void ContextSwitcher::next_state(uint64_t flags) {
+bool ContextSwitcher::next_state(uint64_t flags) {
+retry:
     KLOG(CTXSW, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
@@ -232,7 +234,6 @@ void ContextSwitcher::next_state(uint64_t flags) {
             _state = S_STORE_DONE;
 
             _wait_time = INIT_WAIT_TIME;
-            Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
             break;
         }
 
@@ -297,7 +298,6 @@ void ContextSwitcher::next_state(uint64_t flags) {
             _state = S_RESTORE_DONE;
 
             _wait_time = INIT_WAIT_TIME;
-            Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
             break;
         }
 
@@ -321,6 +321,20 @@ void ContextSwitcher::next_state(uint64_t flags) {
     KLOG(CTXSW, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
+
+    if(_wait_time) {
+        // rctmux is expected to invalidate the VPE id after we've injected the IRQ
+        vpeid_t vpeid = _state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id();
+        for(int i = 0; i < SIGNAL_WAIT_COUNT; ++i) {
+            recv_flags(vpeid, &flags);
+            if(flags & m3::RCTMuxCtrl::SIGNAL)
+                goto retry;
+        }
+
+        Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
+    }
+
+    return _state == S_IDLE;
 }
 
 } /* namespace m3 */
