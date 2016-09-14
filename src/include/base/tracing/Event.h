@@ -89,6 +89,7 @@ static const event_func_names_and_group_struct event_funcs[] = {
     { "Syscall_activaterp",   2 },
     { "Syscall_revoke",       2 },
     { "Syscall_idle",         2 },
+    { "Syscall_noop",         2 },
     { "Syscall_exit",         2 },
 
     { "Service_open",         3 },

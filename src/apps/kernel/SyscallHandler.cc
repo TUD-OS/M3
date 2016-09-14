@@ -899,6 +899,7 @@ void SyscallHandler::exit(GateIStream &is) {
 }
 
 void SyscallHandler::noop(GateIStream &is) {
+    EVENT_TRACER_Syscall_noop();
     VPE *vpe = is.gate().session<VPE>();
     LOG_SYS(vpe, ": syscall::noop", "()");
     kreply_vmsg(vpe, is, 0);
