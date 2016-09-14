@@ -92,6 +92,12 @@ env.Append(
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections -Wno-lto-type-mismatch',
 )
 
+# allow to add preprocessor flags via env variable
+cppdefines = []
+for flag in os.environ.get('M3_CFLAGS', '').split():
+   cppdefines.append(flag)
+env.Append(CPPDEFINES = cppdefines)
+
 # add target-dependent stuff to env
 if target == 't2' or target == 't3':
     env.Append(

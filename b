@@ -85,6 +85,7 @@ help() {
     echo "                             mode optimizations are disabled, debug infos are"
     echo "                             available and assertions are active. In release"
     echo "                             mode all that is disabled. The default is release."
+    echo "    M3_CFLAGS:               flags to pass to the preprocessor."
     echo "    M3_VERBOSE:              print executed commands in detail during build."
     echo "    M3_VALGRIND:             for runvalgrind: pass arguments to valgrind."
     echo "    M3_CORES:                # of cores to simulate (only considered on t3)."
