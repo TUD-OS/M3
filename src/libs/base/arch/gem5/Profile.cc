@@ -26,7 +26,7 @@ static cycles_t rdtsc() {
 }
 
 cycles_t Profile::start(unsigned msg) {
-    Sync::memory_barrier();
+    Sync::compiler_barrier();
     DTU::get().debug_msg(START_TSC | msg);
     return rdtsc();
 }
@@ -34,7 +34,7 @@ cycles_t Profile::start(unsigned msg) {
 cycles_t Profile::stop(unsigned msg) {
     DTU::get().debug_msg(STOP_TSC | msg);
     cycles_t res = rdtsc();
-    Sync::memory_barrier();
+    Sync::compiler_barrier();
     return res;
 }
 
