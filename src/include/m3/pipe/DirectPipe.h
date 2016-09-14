@@ -24,6 +24,10 @@
 #include <m3/com/SendGate.h>
 #include <m3/VPE.h>
 
+#if !defined(SINGLE_ITEM_BUF)
+#   define SINGLE_ITEM_BUF  0
+#endif
+
 #define DEBUG_PIPE  0
 #if DEBUG_PIPE
 #   include <base/stream/Serial.h>
@@ -79,7 +83,7 @@ class DirectPipe {
 public:
     static const size_t MSG_SIZE        = 64;
 
-#if defined(__t2__)
+#if defined(__t2__) || SINGLE_ITEM_BUF
     // TODO on t2, we can't send multiple messages at once
     static const size_t MSG_BUF_SIZE    = MSG_SIZE;
 #else
