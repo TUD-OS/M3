@@ -44,18 +44,10 @@ public:
     inline void event_mem_finish() {
     }
 
-    inline void event_ufunc_enter(const char name[5]) {
-        DTU::get().debug_msg(
-            ((uint64_t)EVENT_UFUNC_ENTER << 48) |
-            ((uint64_t)name[0] << 24) |
-            ((uint64_t)name[1] << 16) |
-            ((uint64_t)name[2] <<  8) |
-            ((uint64_t)name[3] <<  0)
-        );
+    inline void event_ufunc_enter(const char [5]) {
     }
 
     inline void event_ufunc_exit() {
-        DTU::get().debug_msg((uint64_t)EVENT_UFUNC_EXIT << 48);
     }
 
     inline void event_func_enter(uint32_t id) {

@@ -36,6 +36,8 @@
 #include <algorithm>
 #include <regex>
 
+#include "Symbols.h"
+
 #ifndef VERBOSE
 #   define VERBOSE 0
 #endif
@@ -81,10 +83,13 @@ static const char *event_names[] = {
 };
 
 struct Event {
-    explicit Event() : pe(), timestamp(), type(), size(), remote(), tag() {
+    explicit Event() : pe(), timestamp(), type(), size(), remote(), tag(), bin(-1), name() {
     }
     explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint64_t tag)
-        : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag) {
+        : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag), bin(-1), name() {
+    }
+    explicit Event(int pe, uint64_t ts, int type, int bin, const char *name)
+        : pe(pe), timestamp(ts / 1000), type(type), size(), remote(), tag(), bin(bin), name(name) {
     }
 
     const char *tag_to_string() const {
@@ -108,6 +113,11 @@ struct Event {
                     os << " function: " << m3::event_funcs[ev.tag].name;
                 break;
 
+            case EVENT_UFUNC_ENTER:
+            case EVENT_UFUNC_EXIT:
+                os << " function: " << ev.name;
+                break;
+
             default:
                 os << "  receiver: " << ev.remote
                    << "  size: " << ev.size
@@ -125,12 +135,16 @@ struct Event {
     size_t size;
     int remote;
     uint64_t tag;
+
+    int bin;
+    const char *name;
 };
 
 struct State {
-    explicit State() : in_cmd(), have_start(), start_event() {
+    explicit State() : in_call(), in_cmd(), have_start(), start_event() {
     }
 
+    bool in_call;
     bool in_cmd;
     bool have_start;
     Event start_event;
@@ -154,6 +168,8 @@ enum Mode {
     MODE_PES,
     MODE_VPES,
 };
+
+static Symbols syms;
 
 static Event build_event(event_type type, uint64_t timestamp, int pe,
                          const std::string &remote, const std::string &size, uint64_t tag) {
@@ -203,6 +219,15 @@ int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
     std::regex debug_regex(
         "^: DEBUG (?:0x)([0-9a-f]+)"
     );
+    std::regex exec_regex(
+        "^(?:0x)([0-9a-f]+) @ .*  :"
+    );
+    std::regex call_regex(
+        "^(?:0x)([0-9a-f]+) @ .*  :   CALL_NEAR"
+    );
+    std::regex ret_regex(
+        "^(?:0x)([0-9a-f]+) @ .*\\.0  :   RET_NEAR"
+    );
 
     State states[GEM5_MAX_PES];
 
@@ -211,10 +236,42 @@ int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
     std::smatch match;
 
-    while(fgets( readbuf, sizeof(readbuf), fd)) {
+    while(fgets(readbuf, sizeof(readbuf), fd)) {
         unsigned long long timestamp;
         int pe;
         int numchars;
+        int tid;
+
+        if(mode == MODE_VPES &&
+                sscanf(readbuf, "%Lu: pe%d.cpu T%d : %n", &timestamp, &pe, &tid, &numchars) == 3) {
+
+            if(!states[pe].in_call && !strstr(readbuf + numchars, "CALL")
+                                   && !strstr(readbuf + numchars, "RET"))
+                continue;
+
+            std::string line(readbuf + numchars);
+
+            if(std::regex_search(line, match, call_regex))
+                states[pe].in_call = true;
+            else if(states[pe].in_call) {
+                std::regex_search(line, match, exec_regex);
+                unsigned long addr = strtoul(match[1].str().c_str(), NULL, 16);
+                int bin;
+                const char *name = syms.resolve(addr, &bin);
+                buf.push_back(Event(pe, timestamp, EVENT_UFUNC_ENTER, bin, name));
+                states[pe].in_call = false;
+
+                last_pe = std::max(pe, last_pe);
+            }
+            else if(std::regex_search(line, match, ret_regex)) {
+                buf.push_back(Event(pe, timestamp, EVENT_UFUNC_EXIT, 0, ""));
+
+                last_pe = std::max(pe, last_pe);
+            }
+
+            continue;
+        }
+
         if(sscanf(readbuf, "%Lu: pe%d.dtu%n", &timestamp, &pe, &numchars) != 2)
             continue;
 
@@ -443,7 +500,8 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
     }
 }
 
-static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf, int pe_count) {
+static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf,
+        int pe_count, int binary_count, char **binaries) {
     // Processes
     std::set<unsigned> vpeIds;
 
@@ -483,6 +541,9 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
     unsigned grp_func_user = grp_func_count++;
     OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_user, "User");
 
+    for(int i = 0; i < binary_count; ++i)
+        OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_count + i, binaries[i]);
+
     // Execution functions
     unsigned fn_exec_last = (2 << 20) + 0;
     std::map<unsigned, unsigned> vpefuncs;
@@ -515,7 +576,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
         cur_vpe[i] = INVALID_VPEID;
 
     uint32_t ufunc_max_id = ( 3 << 20 );
-    std::map<uint32_t, uint32_t> ufunc_map;
+    std::map<std::pair<int, std::string>, uint32_t> ufunc_map;
 
     uint32_t func_start_id = ( 4 << 20 );
     std::set<uint32_t> func_set;
@@ -544,18 +605,18 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
         unsigned vpe = cur_vpe[event->pe];
         unsigned remote_vpe = cur_vpe[event->remote];
 
-        if(vpe == INVALID_VPEID && event->type != EVENT_SET_VPEID)
-            continue;
-
         if(VERBOSE) {
             unsigned pe = event->pe;
             unsigned remote = event->remote;
             event->pe = vpe;
             event->remote = remote_vpe;
-            std::cout << *event << "\n";
+            std::cout << pe << ": " << *event << "\n";
             event->pe = pe;
             event->remote = remote;
         }
+
+        if(vpe == INVALID_VPEID && event->type != EVENT_SET_VPEID)
+            continue;
 
         switch(event->type) {
             case EVENT_MSG_SEND_START:
@@ -633,12 +694,15 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
             }
 
             case EVENT_UFUNC_ENTER: {
-                auto ufunc_map_iter = ufunc_map.find(event->tag);
+                auto ufunc_map_iter = ufunc_map.find(std::make_pair(event->bin, event->name));
                 uint32_t id = 0;
                 if(ufunc_map_iter == ufunc_map.end()) {
                     id = (++ufunc_max_id);
-                    ufunc_map.insert(std::pair<uint32_t, uint32_t>(event->tag, id));
-                    OTF_Writer_writeDefFunction(writer, 0, id, event->tag_to_string(), grp_func_user, 0);
+                    ufunc_map.insert(std::make_pair(std::make_pair(event->bin, event->name), id));
+                    unsigned group = grp_func_user;
+                    if(event->bin != -1)
+                        group = grp_func_count + event->bin;
+                    OTF_Writer_writeDefFunction(writer, 0, id, event->name, group, 0);
                 }
                 else
                     id = ufunc_map_iter->second;
@@ -702,16 +766,26 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
 }
 
 static void usage(const char *name) {
-    fprintf(stderr, "Usage: %s (pes|vpes) <file>\n", name);
-    fprintf(stderr, "  <file>: the gem5 log file\n");
+    fprintf(stderr, "Usage: %s (pes|vpes) <file> [<binary>...]\n", name);
+    fprintf(stderr, "  (pes|vpes):    the mode\n");
+    fprintf(stderr, "  <file>:        the gem5 log file\n");
+    fprintf(stderr, "  [<binary>...]: optionally a list of binaries for profiling\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "In mode 'pes' : M3_GEM5_DBG >= Dtu,DtuCmd,DtuConnector,DtuRegWrite\n");
-    fprintf(stderr, "In mode 'vpes': M3_GEM5_DBG >= Dtu,DtuCmd\n");
+    fprintf(stderr, "The 'pes' mode generates a PE-centric trace, i.e., the PEs are the processes");
+    fprintf(stderr, " and it is shown at which points in time which VPE was running on which PE.\n");
+    fprintf(stderr, "The 'vpes' mode generates a VPE-centric trace, i.e., the VPEs are the processes");
+    fprintf(stderr, " and it is shown what they do.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The following gem5 flags (M3_GEM5_DBG) are used:\n");
+    fprintf(stderr, " - Dtu,DtuCmd    for messages and memory reads/writes\n");
+    fprintf(stderr, " - DtuConnector  for suspend/wakeup\n");
+    fprintf(stderr, " - DtuRegWrite   for the running VPE\n");
+    fprintf(stderr, " - Exec,ExecPC   for profiling (only in 'vpes' mode)\n");
     exit(EXIT_FAILURE);
 }
 
 int main(int argc,char **argv) {
-    if(argc != 3)
+    if(argc < 3)
         usage(argv[0]);
 
     Mode mode = MODE_PES;
@@ -722,9 +796,21 @@ int main(int argc,char **argv) {
     else
         usage(argv[0]);
 
+    if(mode == MODE_VPES) {
+        for(int i = 3; i < argc; ++i)
+            syms.addFile(argv[i]);
+    }
+
     std::vector<Event> trace_buf;
 
     int pe_count = read_trace_file(argv[2], mode, trace_buf);
+
+    // now sort the trace buffer according to timestamps
+    printf( "sorting %zu events\n", trace_buf.size());
+
+    std::sort(trace_buf.begin(), trace_buf.end(), [](const Event &a, const Event &b) {
+        return a.timestamp < b.timestamp;
+    });
 
     // Declare a file manager and a writer.
     OTF_FileManager *manager;
@@ -747,7 +833,7 @@ int main(int argc,char **argv) {
     if(mode == MODE_PES)
         gen_pe_events(writer, stats, trace_buf, pe_count);
     else
-        gen_vpe_events(writer, stats, trace_buf, pe_count);
+        gen_vpe_events(writer, stats, trace_buf, pe_count, argc - 3, argv + 3);
 
     if(stats.send != stats.recv) {
         printf("WARNING: #send != #recv\n");
