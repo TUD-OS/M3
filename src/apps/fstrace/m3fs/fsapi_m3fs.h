@@ -226,11 +226,11 @@ public:
 private:
     const char *add_prefix(const char *path) {
         static char tmp[255];
-        if(_prefix.length() == 0 || path[0] == '/')
+        if(_prefix.length() == 0 || strncmp(path, "/tmp/", 5) != 0)
             return path;
 
         m3::OStringStream os(tmp, sizeof(tmp));
-        os << _prefix << path;
+        os << _prefix << (path + 5);
         return tmp;
     }
 

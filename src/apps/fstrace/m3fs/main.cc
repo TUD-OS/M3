@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
 
     // playback / revert to init-trace contents
     const char *prefix = "";
-    if(argc > 2) {
+    if(argc > 1) {
         prefix = argv[1];
         VFS::mkdir(prefix, 0755);
     }
