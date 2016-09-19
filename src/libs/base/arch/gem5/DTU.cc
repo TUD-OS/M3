@@ -24,6 +24,8 @@ namespace m3 {
 
 INIT_PRIO_DTU DTU DTU::inst;
 
+static const uint64_t TIME_UNTIL_REPORT     = 20000;
+
 void DTU::try_sleep(bool report, uint64_t cycles) {
     // report_idle() calls us again
     if(m3::env()->idle_active)
@@ -38,12 +40,34 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
     // remember that we idle in case we should switch context
     m3::env()->idle_active = 1;
 
-    // if the kernel requested it, notify him that we are going to idle now
     if(report && m3::env()->idle_report)
-        m3::env()->backend->report_idle();
+        // if we want to wait longer than our report time, sleep first for a while until we report
+        if(cycles == 0 || cycles > TIME_UNTIL_REPORT) {
+            // sleep a bit
+            uint64_t now = read_reg(DtuRegs::CUR_TIME);
+            Sync::memory_barrier();
+            sleep(TIME_UNTIL_REPORT);
+            Sync::memory_barrier();
+            uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
 
-    // ensure that we have no pending writes before going to sleep
-    Sync::memory_barrier();
+            // if we were waked up early, there is something to do
+            if(sleep_time < TIME_UNTIL_REPORT) {
+                m3::env()->idle_active = 0;
+                return;
+            }
+
+            // adjust the remaining sleep time
+            if(cycles >= sleep_time)
+                cycles -= sleep_time;
+            else if(cycles) {
+                m3::env()->idle_active = 0;
+                return;
+            }
+        }
+
+        // if we still want to sleep, report that
+        m3::env()->backend->report_idle();
+    }
 
     // note that the DTU checks again whether there actually are no messages, because we might
     // have received something after the check above
