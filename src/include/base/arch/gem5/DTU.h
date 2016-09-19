@@ -69,13 +69,13 @@ private:
     };
 
     enum class CmdRegs {
-        COMMAND             = 10,
-        ABORT               = 11,
-        DATA_ADDR           = 12,
-        DATA_SIZE           = 13,
-        OFFSET              = 14,
-        REPLY_EP            = 15,
-        REPLY_LABEL         = 16,
+        COMMAND             = DTU_REGS + 0,
+        ABORT               = DTU_REGS + 1,
+        DATA_ADDR           = DTU_REGS + 2,
+        DATA_SIZE           = DTU_REGS + 3,
+        OFFSET              = DTU_REGS + 4,
+        REPLY_EP            = DTU_REGS + 5,
+        REPLY_LABEL         = DTU_REGS + 6,
     };
 
     enum MemFlags : reg_t {
