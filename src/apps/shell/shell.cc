@@ -15,6 +15,7 @@
  */
 
 #include <base/stream/IStringStream.h>
+#include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
@@ -45,7 +46,7 @@ static PEDesc get_pe_type(const char *name) {
     return VPE::self().pe();
 }
 
-static bool execute(CmdList *list) {
+static bool execute(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     Executable *exec[MAX_CMDS] = {nullptr};
@@ -67,7 +68,7 @@ static bool execute(CmdList *list) {
             }
         }
 
-        vpes[i] = new VPE(cmd->args->args[0], pe);
+        vpes[i] = new VPE(cmd->args->args[0], pe, nullptr, muxed);
         if(Errors::last != Errors::NO_ERROR) {
             errmsg("Unable to create VPE for " << cmd->args->args[0]);
             break;
@@ -145,10 +146,35 @@ static bool execute(CmdList *list) {
     return true;
 }
 
-int main() {
+int main(int argc, char **argv) {
     if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Unable to mount filesystem\n");
+    }
+
+    bool muxed = argc > 1 && strcmp(argv[1], "1") == 0;
+
+    if(argc > 2) {
+        OStringStream os;
+        for(int i = 2; i < argc; ++i)
+            os << argv[i] << " ";
+
+        String input(os.str(), os.length());
+        IStringStream is(input);
+        CmdList *list = get_command(&is);
+        if(!list)
+            exitmsg("Unable to parse command '" << input << "'");
+
+        for(size_t i = 0; i < list->count; ++i) {
+            Args::prefix_path(list->cmds[i]->args);
+            Args::expand(list->cmds[i]->args);
+        }
+
+        cycles_t start = Profile::start(0x1234);
+        execute(list, muxed);
+        cycles_t end = Profile::stop(0x1234);
+        cerr << "Execution took " << (end - start) << " cycles\n";
+        return 0;
     }
 
     cout << "========================\n";
@@ -159,10 +185,6 @@ int main() {
     while(!cin.eof()) {
         cout << "$ ";
         cout.flush();
-
-        // String input("echo < foo");
-        // IStringStream is(input);
-        // CmdList *list = get_command(&is);
 
         CmdList *list = get_command(&cin);
         if(!list)
@@ -181,7 +203,7 @@ int main() {
             Args::expand(list->cmds[i]->args);
         }
 
-        if(!execute(list))
+        if(!execute(list, muxed))
             break;
 
         ast_cmds_destroy(list);
