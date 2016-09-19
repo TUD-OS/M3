@@ -52,7 +52,7 @@ class VPE : public m3::SListItem, public SlabObject<VPE> {
 public:
     static const uint16_t INVALID_ID    = 0xFFFF;
 
-    static const cycles_t TIME_SLICE    = 500000;
+    static const cycles_t TIME_SLICE    = 1000000;
 
     static const int SYSC_MSGSIZE_ORD   = m3::nextlog2<512>::val;
     static const int SYSC_CREDIT_ORD    = SYSC_MSGSIZE_ORD;
