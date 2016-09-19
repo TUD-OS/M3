@@ -29,7 +29,7 @@
 
 using namespace m3;
 
-#define VERBOSE     1
+#define VERBOSE     0
 
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)

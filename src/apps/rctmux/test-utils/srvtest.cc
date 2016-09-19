@@ -27,6 +27,8 @@
 
 using namespace m3;
 
+#define VERBOSE     0
+
 static void start(VPE &v, Executable &e) {
     v.mountspace(*VPE::self().mountspace());
     v.obtain_mountspace();
@@ -36,11 +38,11 @@ static void start(VPE &v, Executable &e) {
 }
 
 int main() {
-    cout << "Mounting filesystem...\n";
+if(VERBOSE)     cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
-    cout << "Creating VPEs...\n";
+    if(VERBOSE) cout << "Creating VPEs...\n";
 
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
     Executable exec1(ARRAY_SIZE(args1), args1);
@@ -50,7 +52,7 @@ int main() {
     Executable exec2(ARRAY_SIZE(args2), args2);
     VPE s2(args2[0], VPE::self().pe(), "pager", true);
 
-    cout << "Starting VPEs...\n";
+    if(VERBOSE) cout << "Starting VPEs...\n";
 
     start(s1, exec1);
     start(s2, exec2);
@@ -59,7 +61,7 @@ int main() {
         TEST
     };
 
-    cout << "Starting session creation...\n";
+    if(VERBOSE) cout << "Starting session creation...\n";
 
     Session *sess[2];
     SendGate *sgate[2];
@@ -84,17 +86,17 @@ int main() {
         sgate[i] = new SendGate(SendGate::bind(sess[i]->obtain(1).start()));
     }
 
-    cout << "Starting test...\n";
+    if(VERBOSE) cout << "Starting test...\n";
 
     for(int i = 0; i < 20; ++i) {
         size_t no = i % 2;
         int res;
         GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
         reply >> res;
-        cout << "Got " << res << " from " << name[no] << "\n";
+        if(VERBOSE) cout << "Got " << res << " from " << name[no] << "\n";
     }
 
-    cout << "Test finished.\n";
+    if(VERBOSE) cout << "Test finished.\n";
 
     for(int i = 0; i < 2; ++i) {
         delete sgate[i];

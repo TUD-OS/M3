@@ -25,6 +25,8 @@
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+#define VERBOSE     0
+
 using namespace m3;
 
 struct App {
@@ -38,11 +40,11 @@ struct App {
 };
 
 int main() {
-    cout << "Mounting filesystem...\n";
+    if(VERBOSE) cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
-    cout << "Creating VPEs...\n";
+    if(VERBOSE) cout << "Creating VPEs...\n";
 
     App *apps[3];
 
@@ -55,7 +57,7 @@ int main() {
     const char *args3[] = {"/bin/rctmux-util-service", "srv1"};
     apps[2] = new App(ARRAY_SIZE(args3), args3, true);
 
-    cout << "Starting VPEs...\n";
+    if(VERBOSE) cout << "Starting VPEs...\n";
 
     for(size_t i = 0; i < ARRAY_SIZE(apps); ++i) {
         apps[i]->vpe.mountspace(*VPE::self().mountspace());
@@ -65,19 +67,19 @@ int main() {
             PANIC("Cannot execute " << apps[i]->exec.argv()[0] << ": " << Errors::to_string(res));
     }
 
-    cout << "Waiting for VPEs...\n";
+    if(VERBOSE) cout << "Waiting for VPEs...\n";
 
     // don't wait for the service
     for(size_t i = 0; i < 2; ++i) {
         int res = apps[i]->vpe.wait();
-        cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
+        if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
     }
 
-    cout << "Deleting VPEs...\n";
+    if(VERBOSE) cout << "Deleting VPEs...\n";
 
     for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
         delete apps[i];
 
-    cout << "Done\n";
+    if(VERBOSE) cout << "Done\n";
     return 0;
 }
