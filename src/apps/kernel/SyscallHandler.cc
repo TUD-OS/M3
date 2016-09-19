@@ -847,10 +847,8 @@ void SyscallHandler::activate(GateIStream &is) {
                 VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
             VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
 
-            if(tvpe.pe() == vpe->pe()) {
+            if(tvpe.pe() == vpe->pe())
                 tvpe.migrate();
-                ncap->obj->pe = tvpe.pe();
-            }
 
             LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
                 << tvpe.id() << " at " << tvpe.pe());
@@ -882,6 +880,12 @@ void SyscallHandler::activate(GateIStream &is) {
             VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
             return;
         }
+    }
+
+    // update PE id in case it changed
+    if(oldcap == newcap && ncap->obj->vpe != VPE::INVALID_ID) {
+        VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
+        ncap->obj->pe = tvpe.pe();
     }
 
     m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
