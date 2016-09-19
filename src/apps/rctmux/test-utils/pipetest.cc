@@ -42,8 +42,8 @@ struct App {
 };
 
 int main(int argc, char **argv) {
-    if(argc < 2) {
-        cerr << "Usage: " << argv[0] << " 1|0\n";
+    if(argc < 3) {
+        cerr << "Usage: " << argv[0] << " 1|0 <file>\n";
         return 1;
     }
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     const char *args1[] = {"/bin/pipeserv"};
     apps[0] = new App(ARRAY_SIZE(args1), args1, muxed);
 
-    const char *args2[] = {"/bin/cat", "/largetext.txt"};
+    const char *args2[] = {"/bin/cat", argv[2]};
     apps[1] = new App(ARRAY_SIZE(args2), args2, muxed);
 
     const char *args3[] = {"/bin/wc"};
