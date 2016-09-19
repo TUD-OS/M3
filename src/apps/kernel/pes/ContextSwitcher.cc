@@ -148,6 +148,7 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
     if(_state != S_IDLE)
         return;
 
+    m3::Profile::start(0xcccc);
     _state = S_RESTORE_WAIT;
     next_state(0);
 }
@@ -188,6 +189,8 @@ bool ContextSwitcher::start_switch(bool timedout) {
     if(_state != S_IDLE)
         return false;
 
+    m3::Profile::start(0xcccc);
+
     // if no VPE is running, directly switch to a new VPE
     if (_cur == nullptr)
         _state = S_SWITCH;
@@ -195,6 +198,8 @@ bool ContextSwitcher::start_switch(bool timedout) {
         _state = S_STORE_WAIT;
 
     bool finished = next_state(0);
+    if(finished)
+        m3::Profile::stop(0xcccc);
     return finished;
 }
 
@@ -211,8 +216,10 @@ void ContextSwitcher::continue_switch() {
             _wait_time *= 2;
         Timeouts::get().wait_for(_wait_time, std::bind(&ContextSwitcher::continue_switch, this));
     }
-    else
-        next_state(flags);
+    else {
+        if(next_state(flags))
+            m3::Profile::stop(0xcccc);
+    }
 }
 
 bool ContextSwitcher::next_state(uint64_t flags) {
