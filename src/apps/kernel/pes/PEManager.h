@@ -45,9 +45,9 @@ public:
     void start_vpe(VPE *vpe);
     void stop_vpe(VPE *vpe);
 
-    void migrate_vpe(VPE *vpe);
+    bool migrate_vpe(VPE *vpe);
     void yield_vpe(VPE *vpe);
-    bool unblock_vpe(VPE *vpe);
+    bool unblock_vpe(VPE *vpe, bool force);
 
 private:
     void deprivilege_pes();

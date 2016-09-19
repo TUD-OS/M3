@@ -67,7 +67,7 @@ public:
     void remove_vpe(VPE *vpe);
 
     void yield_vpe(VPE *vpe);
-    bool unblock_vpe(VPE *vpe);
+    bool unblock_vpe(VPE *vpe, bool force);
 
     void start_vpe(VPE *vpe);
     void stop_vpe(VPE *vpe);

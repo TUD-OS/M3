@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "pes/PEManager.h"
+#include "pes/VPEManager.h"
 #include "Platform.h"
 
 namespace kernel {
@@ -69,10 +70,10 @@ void PEManager::stop_vpe(VPE *vpe) {
     ctx->stop_vpe(vpe);
 }
 
-void PEManager::migrate_vpe(VPE *vpe) {
+bool PEManager::migrate_vpe(VPE *vpe) {
     peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true);
     if(npe == 0)
-        return;
+        return false;
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
@@ -83,6 +84,7 @@ void PEManager::migrate_vpe(VPE *vpe) {
     ctx = _ctxswitcher[npe];
     assert(ctx);
     ctx->add_vpe(vpe);
+    return true;
 }
 
 void PEManager::yield_vpe(VPE *vpe) {
@@ -91,14 +93,16 @@ void PEManager::yield_vpe(VPE *vpe) {
     ctx->yield_vpe(vpe);
 }
 
-bool PEManager::unblock_vpe(VPE *vpe) {
+bool PEManager::unblock_vpe(VPE *vpe, bool force) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    return ctx->unblock_vpe(vpe);
+    return ctx->unblock_vpe(vpe, force);
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
     size_t i;
+    peid_t choice = 0;
+    uint others = VPEManager::MAX_VPES;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(!_ctxswitcher[i])
             continue;
@@ -110,15 +114,15 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
             continue;
 
         if(_ctxswitcher[i]->count() == 0)
-            break;
+            return i;
 
         // TODO temporary
-        if(tmuxable && _ctxswitcher[i]->can_mux())
-            break;
+        if(tmuxable && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
+            choice = i;
+            others = _ctxswitcher[i]->count();
+        }
     }
-    if(i > Platform::last_pe())
-        return 0;
-    return i;
+    return choice;
 }
 
 void PEManager::deprivilege_pes() {

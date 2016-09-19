@@ -162,7 +162,7 @@ public:
 
     void yield();
 
-    void migrate();
+    bool migrate();
     bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 

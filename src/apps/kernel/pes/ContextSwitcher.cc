@@ -136,6 +136,20 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
 
     if(--_count == 0)
         _muxable = true;
+
+    if(_count == 1) {
+        // cancel timeout; the remaining VPE can run as long as it likes
+        if(_timeout) {
+            Timeouts::get().cancel(_timeout);
+            _timeout = nullptr;
+        }
+
+        // we don't need idle reports anymore
+        if(_cur) {
+            uint64_t val = 0;
+            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
+        }
+    }
 }
 
 void ContextSwitcher::start_vpe(VPE *vpe) {
@@ -174,10 +188,33 @@ void ContextSwitcher::yield_vpe(VPE *vpe) {
     start_switch();
 }
 
-bool ContextSwitcher::unblock_vpe(VPE *vpe) {
+bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     enqueue(vpe);
-    // TODO don't do that immediately
-    return start_switch();
+
+    // if we are forced or are executing nothing useful atm, start a switch immediately
+    if(force || !_cur || (_cur->flags() & VPE::F_IDLE))
+        return start_switch();
+
+    if(!_timeout) {
+        uint64_t now = DTU::get().get_time();
+        uint64_t exectime = now - _cur->_lastsched;
+        // if there is some time left in the timeslice, program a timeout
+        if(exectime < VPE::TIME_SLICE) {
+            // update idle_report and wake him up in case he was idling
+            uint64_t val = 1;
+            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
+            DTU::get().wakeup(_cur->desc());
+
+            auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
+            _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE - exectime, callback);
+        }
+        // otherwise, switch now
+        else
+            return start_switch();
+    }
+
+    // wait for the timeout
+    return false;
 }
 
 bool ContextSwitcher::start_switch(bool timedout) {
@@ -229,6 +266,8 @@ retry:
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
     _wait_time = 0;
+
+    VPE *migvpe = nullptr;
     switch(_state) {
         case S_IDLE:
             assert(false);
@@ -254,14 +293,23 @@ retry:
                 _cur->_dtustate.get_msg_count() == 0 &&
                 (_cur->_flags & VPE::F_HASAPP);
 
-            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE idled for " << cycles << " of " << total
-                << " cycles (now=" << now << ", last=" << _cur->_lastsched << ")");
-            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE state can be set to "
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " idled for "
+                << cycles << " of " << total << " cycles (now=" << now
+                << ", last=" << _cur->_lastsched << ")");
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " is set to "
                 << (blocked ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
-            if(!blocked)
-                enqueue(_cur);
+            if(!blocked) {
+                // the VPE is ready, so try to migrate it somewhere else to continue immediately
+                if(!_cur->migrate())
+                    enqueue(_cur);
+                // if that worked, remember to switch to it. don't do that now, because we have to
+                // do the reset first to ensure that the cache is flushed in case of non coherent
+                // caches.
+                else
+                    migvpe = _cur;
+            }
 
             // fall through
         }
@@ -327,6 +375,9 @@ retry:
     KLOG(CTXSW, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
+
+    if(migvpe)
+        PEManager::get().unblock_vpe(migvpe, false);
 
     if(_wait_time) {
         // rctmux is expected to invalidate the VPE id after we've injected the IRQ

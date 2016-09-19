@@ -123,12 +123,18 @@ void VPE::yield() {
     PEManager::get().yield_vpe(this);
 }
 
-void VPE::migrate() {
+bool VPE::migrate() {
+    // idle VPEs are never migrated
+    if(_flags & VPE::F_IDLE)
+        return false;
+
     peid_t old = pe();
 
-    PEManager::get().migrate_vpe(this);
+    bool changed = PEManager::get().migrate_vpe(this);
+    if(changed)
+        KLOG(VPES, "Migrated VPE '" << _name << "' [id=" << id() << "] from " << old << " to " << pe());
 
-    KLOG(VPES, "Migrated VPE '" << _name << "' [id=" << id() << "] from " << old << " to " << pe());
+    return changed;
 }
 
 bool VPE::resume(bool need_app, bool unblock) {
@@ -139,7 +145,7 @@ bool VPE::resume(bool need_app, bool unblock) {
 
     bool wait = true;
     if(unblock)
-        wait = !PEManager::get().unblock_vpe(this);
+        wait = !PEManager::get().unblock_vpe(this, true);
     if(wait)
         m3::ThreadManager::get().wait_for(this);
 
@@ -151,7 +157,7 @@ void VPE::wakeup() {
     if(_state == RUNNING)
         DTU::get().wakeup(desc());
     else if(has_app())
-        PEManager::get().unblock_vpe(this);
+        PEManager::get().unblock_vpe(this, true);
 }
 
 void VPE::notify_resume() {
