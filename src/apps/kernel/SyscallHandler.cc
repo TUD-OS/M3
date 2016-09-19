@@ -899,6 +899,12 @@ void SyscallHandler::activatereply(GateIStream &is) {
     epid_t epid = req->ep;
     uintptr_t msgaddr = req->msg_addr;
 
+    // ensure that the VPE is running, because we need to access it's address space
+    if(vpe->state() != VPE::RUNNING) {
+        if(!vpe->resume())
+            return;
+    }
+
     LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr=" << (void*)msgaddr << ")");
 
     vpeid_t id;
@@ -915,6 +921,12 @@ void SyscallHandler::activatereply(GateIStream &is) {
             << tvpe.id() << " at " << tvpe.pe());
         if(!tvpe.resume())
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+    }
+
+    // it might be suspended again
+    if(vpe->state() != VPE::RUNNING) {
+        if(!vpe->resume())
+            return;
     }
 
     res = vpe->rbufs().activate_reply(*vpe, tvpe, epid, msgaddr);
