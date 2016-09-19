@@ -3,53 +3,9 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/default', '.', scan=1)
 
-env.M3Strip('$FSDIR/default/bin/bench-activate', '$BINARYDIR/bench-activate')
-env.M3Strip('$FSDIR/default/bin/bench-pipe', '$BINARYDIR/bench-pipe')
-env.M3Strip('$FSDIR/default/bin/bench-syscall', '$BINARYDIR/bench-syscall')
-env.M3Strip('$FSDIR/default/bin/bench-pagefaults', '$BINARYDIR/bench-pagefaults')
-env.M3Strip('$FSDIR/default/bin/bench-vpes', '$BINARYDIR/bench-vpes')
-env.M3Strip('$FSDIR/default/bin/cat', '$BINARYDIR/cat')
-if env['ARCH'] == 'gem5':
-    env.M3Strip('$FSDIR/default/bin/cctest', '$BINARYDIR/cctest')
-env.M3Strip('$FSDIR/default/bin/cp', '$BINARYDIR/cp')
-env.M3Strip('$FSDIR/default/bin/echo', '$BINARYDIR/echo')
-env.M3Strip('$FSDIR/default/bin/filterchain', '$BINARYDIR/filterchain')
-env.M3Strip('$FSDIR/default/bin/fdchild', '$BINARYDIR/fdchild')
-env.M3Strip('$FSDIR/default/bin/fdtest', '$BINARYDIR/fdtest')
-env.M3Strip('$FSDIR/default/bin/hello', '$BINARYDIR/hello')
-if env['ARCH'] != 'host' and env['ARCH'] != 'gem5':
-    env.M3Strip('$FSDIR/default/bin/idle', '$BINARYDIR/idle')
-env.M3Strip('$FSDIR/default/bin/ln', '$BINARYDIR/ln')
-env.M3Strip('$FSDIR/default/bin/ls', '$BINARYDIR/ls')
-env.M3Strip('$FSDIR/default/bin/mkdir', '$BINARYDIR/mkdir')
-env.M3Strip('$FSDIR/default/bin/noop', '$BINARYDIR/noop')
-env.M3Strip('$FSDIR/default/bin/parchksum', '$BINARYDIR/parchksum')
-if env['ARCH'] == 'gem5':
-    env.M3Strip('$FSDIR/default/bin/pgchild', '$BINARYDIR/pgchild')
-env.M3Strip('$FSDIR/default/bin/pipe', '$BINARYDIR/pipe')
-env.M3Strip('$FSDIR/default/bin/pipetr', '$BINARYDIR/pipetr')
-env.M3Strip('$FSDIR/default/bin/rdwr', '$BINARYDIR/rdwr')
-env.M3Strip('$FSDIR/default/bin/readelf', '$BINARYDIR/readelf')
-env.M3Strip('$FSDIR/default/bin/rm', '$BINARYDIR/rm')
-env.M3Strip('$FSDIR/default/bin/rmdir', '$BINARYDIR/rmdir')
-if env['ARCH'] == 't2':
-    env.M3Strip('$FSDIR/default/bin/sendfile', '$BINARYDIR/sendfile')
-env.M3Strip('$FSDIR/default/bin/shell', '$BINARYDIR/shell')
-env.M3Strip('$FSDIR/default/bin/stat', '$BINARYDIR/stat')
-env.M3Strip('$FSDIR/default/bin/time', '$BINARYDIR/time')
-env.M3Strip('$FSDIR/default/bin/tr', '$BINARYDIR/tr')
-env.M3Strip('$FSDIR/default/bin/unittests', '$BINARYDIR/unittests')
-if env['ARCH'] == 'host':
-    env.M3Strip('$FSDIR/default/bin/unittests-dtu', '$BINARYDIR/unittests-dtu')
-env.M3Strip('$FSDIR/default/bin/unittests-fs', '$BINARYDIR/unittests-fs')
-env.M3Strip('$FSDIR/default/bin/unittests-fs2', '$BINARYDIR/unittests-fs2')
-env.M3Strip('$FSDIR/default/bin/unittests-misc', '$BINARYDIR/unittests-misc')
-env.M3Strip('$FSDIR/default/bin/unittests-stream', '$BINARYDIR/unittests-stream')
-env.M3Strip('$FSDIR/default/bin/wc', '$BINARYDIR/wc')
-if env['ARCH'] in ['t3', 'gem5']:
-    env.M3Strip('$FSDIR/default/bin/rctmux-util-counter', '$BINARYDIR/rctmux-util-counter')
-    env.M3Strip('$FSDIR/default/bin/rctmux-util-client', '$BINARYDIR/rctmux-util-client')
-    env.M3Strip('$FSDIR/default/bin/rctmux-util-service', '$BINARYDIR/rctmux-util-service')
+for f in env.Glob('$BINARYDIR/*'):
+    if not f.abspath.endswith('.a'):
+        env.M3Strip('$FSDIR/default/bin/${SOURCE.file}', f)
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
 if os.environ.get('M3_FSBLKS') is None:
