@@ -278,22 +278,21 @@ retry:
         }
 
         case S_RESTORE_WAIT: {
-            uint64_t flags = m3::RCTMuxCtrl::WAITING;
+            uint64_t vals[2];
+            // let the VPE report idle times if there are other VPEs on this PE
+            vals[0] = _ready.length() > 0;
+            vals[1] = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & VPE::F_INIT)
-                flags |= m3::RCTMuxCtrl::INIT;
+                vals[1] |= m3::RCTMuxCtrl::INIT;
 
             // tell rctmux whether there is an application and the PE id
             if(_cur->flags() & VPE::F_HASAPP)
-                flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
-
-            // let the VPE report idle times if there are other VPEs on this PE
-            if(_ready.length() > 0)
-                flags |= m3::RCTMuxCtrl::REPORT;
+                vals[1] |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
 
-            send_flags(_cur->id(), flags);
+            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, vals, sizeof(vals));
             DTU::get().wakeup(_cur->desc());
             _state = S_RESTORE_DONE;
 

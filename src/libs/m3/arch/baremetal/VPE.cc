@@ -87,7 +87,6 @@ Errors::Code VPE::run(void *lambda) {
 
     senv.backend = env()->backend;
     senv.pe = _pe;
-    senv.idle_report = 0;
     senv.idle_active = 0;
 
     senv.heapsize = env()->heapsize;
@@ -160,7 +159,6 @@ Errors::Code VPE::exec(Executable &exec) {
 
     senv.backend = nullptr;
     senv.pe = _pe;
-    senv.idle_report = 0;
     senv.idle_active = 0;
 
     senv.heapsize = _pager ? APP_HEAP_SIZE : 0;

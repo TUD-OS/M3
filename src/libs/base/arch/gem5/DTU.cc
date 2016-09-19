@@ -40,7 +40,7 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
     // remember that we idle in case we should switch context
     m3::env()->idle_active = 1;
 
-    if(report && m3::env()->idle_report)
+    if(report && *reinterpret_cast<uint64_t*>(RCTMUX_REPORT)) {
         // if we want to wait longer than our report time, sleep first for a while until we report
         if(cycles == 0 || cycles > TIME_UNTIL_REPORT) {
             // sleep a bit

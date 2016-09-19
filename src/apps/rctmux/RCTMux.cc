@@ -78,7 +78,6 @@ static void *restore() {
     m3::Env *senv = m3::env();
     // remember the current core id (might have changed since last switch)
     senv->coreid = flags >> 32;
-    senv->idle_report = flags & m3::REPORT;
 
     if(!started) {
         // if we get here, there is an application to jump to
