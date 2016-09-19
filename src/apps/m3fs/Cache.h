@@ -30,7 +30,7 @@ class Cache {
     };
 
 public:
-    static const size_t BLOCK_COUNT     = 8;
+    static const size_t BLOCK_COUNT     = 16;
 
     explicit Cache(m3::MemGate &mem, size_t blocksize);
     void *get_block(m3::blockno_t bno, bool write);

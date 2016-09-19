@@ -23,10 +23,10 @@
 #define PAGE_SIZE           (static_cast<size_t>(1) << PAGE_BITS)
 #define PAGE_MASK           (PAGE_SIZE - 1)
 
-#define MOD_HEAP_SIZE       (64 * 1024)
+#define MOD_HEAP_SIZE       (128 * 1024)
 #define APP_HEAP_SIZE       (64 * 1024 * 1024)
 
-#define HEAP_SIZE           0x10000
+#define HEAP_SIZE           0x20000
 #define EP_COUNT            8
 
 #define RT_START            0x6000
