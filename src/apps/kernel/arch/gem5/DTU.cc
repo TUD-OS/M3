@@ -315,7 +315,14 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     m3::Errors::Code res = m3::DTU::get().reply(ep, msg, size, msgidx);
     if(res == m3::Errors::VPE_GONE) {
         m3::DTU::Message *rmsg = reinterpret_cast<m3::DTU::Message*>(msgidx);
-        rmsg->senderVpeId = VPE::INVALID_ID;
+        // senderVpeId can't be invalid
+        VPE &v = VPEManager::get().vpe(rmsg->senderVpeId);
+        // the VPE might have been migrated
+        if(rmsg->senderCoreId != v.pe())
+            rmsg->senderCoreId = v.pe();
+        // or we just suspended it, but it's still running with an invalid VPE id
+        else
+            rmsg->senderVpeId = VPE::INVALID_ID;
         // re-enable replies
         rmsg->flags |= 1 << 2;
         res = m3::DTU::get().reply(ep, msg, size, msgidx);
