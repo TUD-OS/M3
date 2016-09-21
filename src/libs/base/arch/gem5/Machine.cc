@@ -15,6 +15,7 @@
  */
 
 #include <base/Machine.h>
+#include <base/DTU.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,6 +33,8 @@ void Machine::shutdown() {
 }
 
 int Machine::write(const char *str, size_t len) {
+    DTU::get().print(str, len);
+
     static const char *fileAddr = "stdout";
     asm volatile (
         ".byte 0x0F, 0x04;"
