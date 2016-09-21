@@ -23,6 +23,7 @@
 
 #include <m3/stream/Standard.h>
 #include <m3/vfs/Executable.h>
+#include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -109,6 +110,39 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
+
+        if(VERBOSE) cout << "Cleaning up /tmp...\n";
+
+        for(int i = 0; i < 4; ++i) {
+            char path[128];
+            OStringStream os(path, sizeof(path));
+            os << "/tmp/" << i;
+
+            Dir dir(os.str());
+            if(Errors::occurred())
+                continue;
+
+            size_t x = 0;
+            String *entries[16];
+
+            // remove all entries; we assume here that they are files
+            Dir::Entry e;
+            while(dir.readdir(e)) {
+                if(strcmp(e.name, ".") == 0 || strcmp(e.name, "..") == 0)
+                    continue;
+
+                OStringStream file(path, sizeof(path));
+                file << "/tmp/" << i << "/" << e.name;
+                if(x > ARRAY_SIZE(entries))
+                    PANIC("Too few entries");
+                entries[x++] = new String(file.str());
+            }
+
+            for(; x > 0; --x) {
+                VFS::unlink(entries[x - 1]->c_str());
+                delete entries[x - 1];
+            }
+        }
     }
 
     if(VERBOSE) cout << "Done\n";
