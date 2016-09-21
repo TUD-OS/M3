@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, target = 'rand', source = Glob('*.cc'))
