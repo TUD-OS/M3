@@ -43,7 +43,7 @@ struct App {
 
 int main(int argc, char **argv) {
     if(argc < 3) {
-        cerr << "Usage: " << argv[0] << " 1|0 <file>\n";
+        cerr << "Usage: " << argv[0] << " 1|0 <rargs> ...\n";
         return 1;
     }
 
@@ -55,16 +55,31 @@ int main(int argc, char **argv) {
     if(VERBOSE) cout << "Creating VPEs...\n";
 
     bool muxed = strcmp(argv[1], "1") == 0;
+    size_t rargs = IStringStream::read_from<size_t>(argv[2]);
+
     App *apps[3];
 
     const char *args1[] = {"/bin/pipeserv"};
     apps[0] = new App(ARRAY_SIZE(args1), args1, muxed);
+    if(VERBOSE) cout << "VPE1: " << args1[0] << "\n";
 
-    const char *args2[] = {"/bin/cat", argv[2]};
-    apps[1] = new App(ARRAY_SIZE(args2), args2, muxed);
+    if(VERBOSE) cout << "VPE2: ";
+    const char **args2 = new const char*[rargs];
+    for(size_t i = 0; i < rargs; ++i) {
+        args2[i] = argv[3 + i];
+        if(VERBOSE) cout << args2[i] << " ";
+    }
+    if(VERBOSE) cout << "\n";
+    apps[1] = new App(rargs, args2, muxed);
 
-    const char *args3[] = {"/bin/wc"};
-    apps[2] = new App(ARRAY_SIZE(args3), args3, muxed);
+    if(VERBOSE) cout << "VPE3: ";
+    const char **args3 = new const char*[argc - (3 + rargs)];
+    for(int i = 3 + rargs; i < argc; ++i) {
+        args3[i - (3 + rargs)] = argv[i];
+        if(VERBOSE) cout << argv[i] << " ";
+    }
+    if(VERBOSE) cout << "\n";
+    apps[2] = new App(argc - (3 + rargs), args3, muxed);
 
     if(VERBOSE) cout << "Starting service...\n";
 
