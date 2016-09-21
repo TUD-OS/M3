@@ -46,34 +46,62 @@ void PEManager::init() {
     }
 }
 
+void PEManager::update_report(size_t before) {
+    if((before == 0 && ContextSwitcher::global_ready() > 0) ||
+       (before > 0 && ContextSwitcher::global_ready() == 0)) {
+        for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+            if(_ctxswitcher[i])
+                _ctxswitcher[i]->update_report();
+        }
+    }
+}
+
 void PEManager::add_vpe(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->add_vpe(vpe);
+
+    update_report(global);
 }
 
 void PEManager::remove_vpe(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->remove_vpe(vpe);
+
+    update_report(global);
 }
 
 void PEManager::start_vpe(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->start_vpe(vpe);
+
+    update_report(global);
 }
 
 void PEManager::stop_vpe(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     ctx->stop_vpe(vpe);
+
+    update_report(global);
 }
 
 bool PEManager::migrate_vpe(VPE *vpe) {
     peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true);
     if(npe == 0)
         return false;
+
+    size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
@@ -84,19 +112,54 @@ bool PEManager::migrate_vpe(VPE *vpe) {
     ctx = _ctxswitcher[npe];
     assert(ctx);
     ctx->add_vpe(vpe);
+
+    update_report(global);
     return true;
 }
 
 void PEManager::yield_vpe(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    ctx->yield_vpe(vpe);
+    // check if there is somebody else on the current PE
+    if(!ctx->yield_vpe(vpe)) {
+        m3::PEDesc pe = Platform::pe(vpe->pe());
+
+        // try to steal a VPE from a different PE
+        for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+            if(!_ctxswitcher[i] ||
+                i == vpe->pe() ||
+                Platform::pe(i).isa() != pe.isa() ||
+                Platform::pe(i).type() != pe.type())
+                continue;
+
+            VPE *nvpe = _ctxswitcher[i]->steal_vpe();
+            if(!nvpe)
+                continue;
+
+            KLOG(VPES, "Stole VPE " << nvpe->id() << " from " << i << " to " << vpe->pe());
+
+            nvpe->set_pe(vpe->pe());
+            _ctxswitcher[nvpe->pe()]->add_vpe(nvpe);
+
+            _ctxswitcher[nvpe->pe()]->unblock_vpe(nvpe, true);
+            break;
+        }
+    }
+
+    update_report(global);
 }
 
 bool PEManager::unblock_vpe(VPE *vpe, bool force) {
+    size_t global = ContextSwitcher::global_ready();
+
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
-    return ctx->unblock_vpe(vpe, force);
+    bool res = ctx->unblock_vpe(vpe, force);
+
+    update_report(global);
+    return res;
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
@@ -104,13 +167,10 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(!_ctxswitcher[i])
-            continue;
-
-        if(i == except)
-            continue;
-
-        if(Platform::pe(i).isa() != pe.isa() || Platform::pe(i).type() != pe.type())
+        if(!_ctxswitcher[i] ||
+            i == except ||
+            Platform::pe(i).isa() != pe.isa() ||
+            Platform::pe(i).type() != pe.type())
             continue;
 
         if(_ctxswitcher[i]->count() == 0)

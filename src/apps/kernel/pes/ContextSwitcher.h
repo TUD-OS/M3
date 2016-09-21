@@ -52,6 +52,10 @@ class ContextSwitcher {
 public:
     explicit ContextSwitcher(peid_t pe);
 
+    static size_t global_ready() {
+        return _global_ready;
+    }
+
     void init();
 
     peid_t pe() const {
@@ -66,11 +70,15 @@ public:
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 
-    void yield_vpe(VPE *vpe);
+    bool yield_vpe(VPE *vpe);
     bool unblock_vpe(VPE *vpe, bool force);
 
     void start_vpe(VPE *vpe);
     void stop_vpe(VPE *vpe);
+
+    VPE *steal_vpe();
+
+    void update_report();
 
 private:
     VPE* schedule();
@@ -96,6 +104,8 @@ private:
     cycles_t _wait_time;
     VPE *_idle;
     VPE *_cur;
+    bool _set_report;
+    static size_t _global_ready;
 };
 
 }

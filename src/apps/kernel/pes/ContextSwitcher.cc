@@ -66,9 +66,11 @@ static const char *stateNames[] = {
  *                       +------------------+
  */
 
+size_t ContextSwitcher::_global_ready = 0;
+
 ContextSwitcher::ContextSwitcher(size_t pe)
     : _muxable(true), _pe(pe), _state(S_IDLE), _count(), _ready(),
-      _timeout(), _wait_time(), _idle(), _cur() {
+      _timeout(), _wait_time(), _idle(), _cur(), _set_report() {
     assert(pe > 0);
     KLOG(CTXSW, "Initialized context switcher for pe " << pe);
 }
@@ -89,6 +91,7 @@ void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
 VPE* ContextSwitcher::schedule() {
     if (_ready.length() > 0) {
         VPE *vpe = _ready.remove_first();
+        _global_ready--;
         assert(vpe->_flags & VPE::F_READY);
         vpe->_flags &= ~VPE::F_READY;
         return vpe;
@@ -114,6 +117,7 @@ void ContextSwitcher::enqueue(VPE *vpe) {
 
     vpe->_flags |= VPE::F_READY;
     _ready.append(vpe);
+    _global_ready++;
 }
 
 void ContextSwitcher::dequeue(VPE *vpe) {
@@ -122,6 +126,7 @@ void ContextSwitcher::dequeue(VPE *vpe) {
 
     vpe->_flags &= ~VPE::F_READY;
     _ready.remove(vpe);
+    _global_ready--;
 }
 
 void ContextSwitcher::add_vpe(VPE *vpe) {
@@ -143,13 +148,18 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
             Timeouts::get().cancel(_timeout);
             _timeout = nullptr;
         }
-
-        // we don't need idle reports anymore
-        if(_cur) {
-            uint64_t val = 0;
-            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
-        }
     }
+}
+
+VPE *ContextSwitcher::steal_vpe() {
+    if(can_mux() && _ready.length() > 0) {
+        VPE *vpe = _ready.remove_first();
+        vpe->_flags &= ~VPE::F_READY;
+        _global_ready--;
+        return vpe;
+    }
+
+    return nullptr;
 }
 
 void ContextSwitcher::start_vpe(VPE *vpe) {
@@ -179,13 +189,14 @@ void ContextSwitcher::stop_vpe(VPE *vpe) {
     }
 }
 
-void ContextSwitcher::yield_vpe(VPE *vpe) {
+bool ContextSwitcher::yield_vpe(VPE *vpe) {
     if(_cur != vpe)
-        return;
+        return false;
     if(_ready.length() == 0)
-        return;
+        return false;
 
     start_switch();
+    return true;
 }
 
 bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
@@ -200,11 +211,6 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
         uint64_t exectime = now - _cur->_lastsched;
         // if there is some time left in the timeslice, program a timeout
         if(exectime < VPE::TIME_SLICE) {
-            // update idle_report and wake him up in case he was idling
-            uint64_t val = 1;
-            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
-            DTU::get().wakeup(_cur->desc());
-
             auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
             _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE - exectime, callback);
         }
@@ -215,6 +221,17 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 
     // wait for the timeout
     return false;
+}
+
+void ContextSwitcher::update_report() {
+    bool report = _global_ready > 0;
+    if(can_mux() && _cur && !(_cur->flags() & VPE::F_IDLE) && report != _set_report) {
+        // update idle_report and wake him up in case he was idling
+        uint64_t val = _set_report = report;
+        DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
+        if(report)
+            DTU::get().wakeup(_cur->desc());
+    }
 }
 
 bool ContextSwitcher::start_switch(bool timedout) {
@@ -334,8 +351,8 @@ retry:
 
         case S_RESTORE_WAIT: {
             uint64_t vals[2];
-            // let the VPE report idle times if there are other VPEs on this PE
-            vals[0] = _ready.length() > 0;
+            // let the VPE report idle times if there are other VPEs
+            vals[0] = _set_report = migvpe || _global_ready > 0;
             vals[1] = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & VPE::F_INIT)
