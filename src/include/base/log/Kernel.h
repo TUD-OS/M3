@@ -27,18 +27,19 @@ class KernelLog {
 
 public:
     enum Level {
-        INFO        = 1 << 0,
-        KENV        = 1 << 1,
-        ERR         = 1 << 2,
-        MEM         = 1 << 3,
-        SYSC        = 1 << 4,
-        PTES        = 1 << 5,
-        VPES        = 1 << 6,
-        EPS         = 1 << 7,
-        SERV        = 1 << 8,
-        SLAB        = 1 << 9,
-        TIMEOUTS    = 1 << 10,
-        CTXSW       = 1 << 11,
+        INFO            = 1 << 0,
+        KENV            = 1 << 1,
+        ERR             = 1 << 2,
+        MEM             = 1 << 3,
+        SYSC            = 1 << 4,
+        PTES            = 1 << 5,
+        VPES            = 1 << 6,
+        EPS             = 1 << 7,
+        SERV            = 1 << 8,
+        SLAB            = 1 << 9,
+        TIMEOUTS        = 1 << 10,
+        CTXSW           = 1 << 11,
+        CTXSW_STATES    = 1 << 12,
     };
 
     static const int level = INFO | ERR;

@@ -278,7 +278,8 @@ void ContextSwitcher::continue_switch() {
 
 bool ContextSwitcher::next_state(uint64_t flags) {
 retry:
-    KLOG(CTXSW, "CtxSw[" << _pe << "]: next; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(CTXSW_STATES, "CtxSw[" << _pe << "]: next; state="
+        << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
@@ -390,7 +391,8 @@ retry:
         }
     }
 
-    KLOG(CTXSW, "CtxSw[" << _pe << "]: done; state=" << stateNames[static_cast<size_t>(_state)]
+    KLOG(CTXSW_STATES, "CtxSw[" << _pe << "]: done; state="
+        << stateNames[static_cast<size_t>(_state)]
         << " (current=" << (_cur ? _cur->id() : 0) << ":"
                         << (_cur ? _cur->name().c_str() : "-") << ")");
 
