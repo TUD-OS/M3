@@ -30,8 +30,10 @@
 
 using namespace m3;
 
-#define VERBOSE     0
-#define REPEATS     4
+#define VERBOSE         0
+#define REPEATS         4
+#define MAX_TMP_DIRS    4
+#define MAX_TMP_FILES   16
 
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)
@@ -113,7 +115,7 @@ int main(int argc, char **argv) {
 
         if(VERBOSE) cout << "Cleaning up /tmp...\n";
 
-        for(int i = 0; i < 4; ++i) {
+        for(int i = 0; i < MAX_TMP_DIRS; ++i) {
             char path[128];
             OStringStream os(path, sizeof(path));
             os << "/tmp/" << i;
@@ -123,7 +125,7 @@ int main(int argc, char **argv) {
                 continue;
 
             size_t x = 0;
-            String *entries[16];
+            String *entries[MAX_TMP_FILES];
 
             // remove all entries; we assume here that they are files
             Dir::Entry e;
