@@ -141,7 +141,7 @@ bool VPE::resume(bool need_app, bool unblock) {
     if(need_app && !has_app())
         return false;
 
-    KLOG(VPES, "Resuming VPE '" << _name << "' [id=" << id() << "]");
+    KLOG(VPES, "Resuming VPE '" << _name << "' (unblock=" << unblock << ") [id=" << id() << "]");
 
     bool wait = true;
     if(unblock)
