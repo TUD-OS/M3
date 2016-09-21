@@ -226,6 +226,8 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 void ContextSwitcher::update_report() {
     bool report = _global_ready > 0;
     if(can_mux() && _cur && !(_cur->flags() & VPE::F_IDLE) && report != _set_report) {
+        KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating report=" << report);
+
         // update idle_report and wake him up in case he was idling
         uint64_t val = _set_report = report;
         DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
