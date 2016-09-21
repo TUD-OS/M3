@@ -345,7 +345,8 @@ retry:
             if(_cur->flags() & VPE::F_HASAPP)
                 vals[1] |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
-            KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with flags=" << m3::fmt(flags, "#x"));
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with report="
+                << vals[0] << " flags=" << m3::fmt(vals[1], "#x"));
 
             DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, vals, sizeof(vals));
             DTU::get().wakeup(_cur->desc());
