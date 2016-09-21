@@ -291,11 +291,8 @@ void SyscallHandler::createsess(GateIStream &is) {
 
         LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
 
-        if(res != m3::Errors::NO_ERROR) {
+        if(res != m3::Errors::NO_ERROR)
             KLOG(SYSC, vpe->id() << ": Server denied session creation (" << res << ")");
-            auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-        }
         else {
             // inherit the session-cap from the service-cap. this way, it will be automatically
             // revoked if the service-cap is revoked
@@ -305,12 +302,15 @@ void SyscallHandler::createsess(GateIStream &is) {
                 &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
             tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
             tvpeobj->vpe->objcaps().set(cap, sesscap);
-
-            auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
         }
 
+        // better do that first, because we might have more messages in the queue
         const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
+
+        m3::KIF::DefaultReply msg;
+        msg.error = res;
+        reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
+
         vpe->service_gate().unsubscribe(sub);
     });
 
@@ -774,34 +774,24 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
             "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
 
-        if(res != m3::Errors::NO_ERROR) {
+        if(res != m3::Errors::NO_ERROR)
             KLOG(SYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
-
-            auto reply = kernel::create_vmsg(res);
-            reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-            goto error;
-        }
-
-        {
+        else {
             m3::KIF::CapRngDesc srvcaps(reply->data.caps);
-            if((res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain)) != m3::Errors::NO_ERROR) {
-                auto reply = kernel::create_vmsg(res);
-                reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-                goto error;
-            }
+            res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
         }
+
+        const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
 
         {
             m3::KIF::Syscall::ExchangeSessReply msg;
-            msg.error = m3::Errors::NO_ERROR;
+            msg.error = res;
             msg.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(msg.args));
             for(size_t i = 0; i < msg.argcount; ++i)
                 msg.args[i] = reply->data.args[i];
             reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
         }
 
-    error:
-        const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
         vpe->service_gate().unsubscribe(sub);
     });
 
