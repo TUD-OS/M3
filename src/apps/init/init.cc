@@ -33,6 +33,8 @@ int main(int argc, const char **argv) {
     }
 
     VPE sh(argv[1], VPE::self().pe(), "pager");
+    if(Errors::last != Errors::NO_ERROR)
+        exitmsg("Unable to create VPE");
 
     sh.mountspace(*VPE::self().mountspace());
     sh.obtain_mountspace();
