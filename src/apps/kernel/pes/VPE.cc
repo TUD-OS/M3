@@ -43,8 +43,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _dtustate(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _upcsgate(*this, m3::DTU::UPCALL_EP, 0),
-      _upcrgate(SyscallHandler::get().srvepid(), this),
-      _upcqueue(1), // atm, we have just one message slot
+      _upcqueue(*this),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr(),

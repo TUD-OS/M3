@@ -44,7 +44,7 @@ void SessionObject::close() {
         m3::KIF::Service::Close msg;
         msg.opcode = m3::KIF::Service::CLOSE;
         msg.sess = ident;
-        ServiceList::get().send_and_receive(srv, &msg, sizeof(msg), false);
+        ServiceList::get().send(srv, &msg, sizeof(msg), false);
     }
 }
 SessionObject::~SessionObject() {

@@ -19,31 +19,36 @@
 #include "pes/Timeouts.h"
 #include "pes/VPE.h"
 #include "SendQueue.h"
+#include "SyscallHandler.h"
 
 namespace kernel {
 
-void SendQueue::send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
-    KLOG(SQUEUE, "SendQueue: trying to send message to VPE " << vpe->id());
+void *SendQueue::get_event(uint64_t id) {
+    return reinterpret_cast<void*>(static_cast<uint64_t>(1) << 63 | id);
+}
 
-    if(vpe->state() == VPE::RUNNING && _inflight < _capacity)
-        do_send(vpe, rgate, sgate, msg, size, onheap);
-    else {
-        // call this again from the workloop to be sure that we can switch the thread
-        if(vpe->state() != VPE::RUNNING && _inflight == 0)
-            Timeouts::get().wait_for(0, std::bind(&SendQueue::send_pending, this));
+void *SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap) {
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: trying to send message");
 
-        // if it's not already on the heap, put it there
-        if(!onheap) {
-            void *nmsg = m3::Heap::alloc(size);
-            memcpy(nmsg, msg, size);
-            msg = nmsg;
-        }
+    if(_vpe.state() == VPE::RUNNING && _inflight == 0)
+        return do_send(sgate, _next_id++, msg, size, onheap);
 
-        KLOG(SQUEUE, "SendQueue: queuing message for VPE " << vpe->id());
+    // call this again from the workloop to be sure that we can switch the thread
+    if(_vpe.state() != VPE::RUNNING && _inflight == 0)
+        Timeouts::get().wait_for(0, std::bind(&SendQueue::send_pending, this));
 
-        Entry *e = new Entry(vpe, rgate, sgate, msg, size);
-        _queue.append(e);
+    // if it's not already on the heap, put it there
+    if(!onheap) {
+        void *nmsg = m3::Heap::alloc(size);
+        memcpy(nmsg, msg, size);
+        msg = nmsg;
     }
+
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: queuing message");
+
+    Entry *e = new Entry(_next_id++, sgate, msg, size);
+    _queue.append(e);
+    return get_event(e->id);
 }
 
 void SendQueue::send_pending() {
@@ -52,37 +57,46 @@ void SendQueue::send_pending() {
 
     Entry *e = _queue.remove_first();
 
-    KLOG(SQUEUE, "SendQueue: found pending message for VPE " << e->vpe->id());
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: found pending message");
 
     // ensure that the VPE is running
-    if(e->vpe->state() != VPE::RUNNING) {
+    if(_vpe.state() != VPE::RUNNING) {
         // if it died, just drop the pending message
-        if(!e->vpe->resume()) {
+        if(!_vpe.resume()) {
             delete e;
             return;
         }
     }
 
     // pending messages have always been copied to the heap
-    do_send(e->vpe, e->rgate, e->sgate, e->msg, e->size, true);
+    do_send(e->sgate, e->id, e->msg, e->size, true);
     delete e;
 }
 
-void SendQueue::received_reply(VPE &vpe) {
-    KLOG(SQUEUE, "SendQueue: received reply from VPE " << vpe.id());
+void SendQueue::received_reply(epid_t epid, const m3::DTU::Message *msg) {
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: received reply");
 
     assert(_inflight > 0);
     _inflight--;
+
+    m3::ThreadManager::get().notify(_cur_event, msg, msg->length + sizeof(m3::DTU::Message::Header));
+
+    // now that we've copied the message, we can mark it read
+    m3::DTU::get().mark_read(epid, reinterpret_cast<size_t>(msg));
+
     send_pending();
 }
 
-void SendQueue::do_send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
-    KLOG(SQUEUE, "SendQueue: sending message to VPE " << vpe->id());
+void *SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap) {
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: sending message");
 
-    sgate->send(msg, size, rgate);
+    _cur_event = get_event(id);
+    _inflight++;
+
+    sgate->send(msg, size, SyscallHandler::get().srvepid(), reinterpret_cast<label_t>(this));
     if(onheap)
         m3::Heap::free(const_cast<void*>(msg));
-    _inflight++;
+    return _cur_event;
 }
 
 }

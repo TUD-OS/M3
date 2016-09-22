@@ -72,7 +72,7 @@ public:
         : _vpe(vpe), _ep(ep), _label(label) {
     }
 
-    m3::Errors::Code send(const void *data, size_t len, RecvGate *rgate);
+    m3::Errors::Code send(const void *data, size_t len, epid_t rep, label_t label);
 
 private:
     VPE &_vpe;

@@ -123,7 +123,7 @@ void VPEManager::shutdown() {
 
         m3::KIF::Service::Shutdown msg;
         msg.opcode = m3::KIF::Service::SHUTDOWN;
-        serv.send_and_receive(ref, &msg, sizeof(msg), false);
+        serv.send(ref, &msg, sizeof(msg), false);
     }
 }
 

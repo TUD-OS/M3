@@ -46,14 +46,11 @@ public:
     SendGate &send_gate() const {
         return const_cast<SendGate&>(_sgate);
     }
-    RecvGate &recv_gate() const;
 
     int pending() const;
+
     void send(const void *msg, size_t size, bool free);
-    /**
-     * Note that this function might perform a thread switch
-     */
-    void received_reply();
+    const m3::DTU::Message *send_receive(const void *msg, size_t size, bool free);
 
     bool closing;
 
@@ -96,7 +93,8 @@ public:
         }
         return nullptr;
     }
-    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free) {
+
+    void send(m3::Reference<Service> serv, const void *msg, size_t size, bool free) {
         serv->send(msg, size, free);
     }
 

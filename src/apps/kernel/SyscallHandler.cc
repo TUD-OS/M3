@@ -275,36 +275,7 @@ void SyscallHandler::createsess(GateIStream &is) {
     if(!s || s->closing)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Unknown service");
 
-    ReplyInfo rinfo(is.message());
     m3::Reference<Service> rsrv(s);
-    s->recv_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
-            (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
-        EVENT_TRACER_Syscall_createsess();
-
-        auto reply = get_message<m3::KIF::Service::OpenReply>(is);
-        m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
-
-        LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
-
-        if(res != m3::Errors::NO_ERROR)
-            LOG_ERROR(vpe, res, "Server denied session creation");
-        else {
-            // inherit the session-cap from the service-cap. this way, it will be automatically
-            // revoked if the service-cap is revoked
-            Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
-            assert(srvcap != nullptr);
-            SessionCapability *sesscap = new SessionCapability(
-                &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
-            tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
-            tvpeobj->vpe->objcaps().set(cap, sesscap);
-        }
-
-        m3::KIF::DefaultReply msg;
-        msg.error = res;
-        reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
-
-        rsrv->recv_gate().unsubscribe(sub);
-    });
 
     if(s->vpe().state() != VPE::RUNNING) {
         if(!s->vpe().resume())
@@ -314,7 +285,30 @@ void SyscallHandler::createsess(GateIStream &is) {
     m3::KIF::Service::Open msg;
     msg.opcode = m3::KIF::Service::OPEN;
     msg.arg = arg;
-    s->send(&msg, sizeof(msg), false);
+
+    const m3::DTU::Message *srvreply = s->send_receive(&msg, sizeof(msg), false);
+
+    EVENT_TRACER_Syscall_createsess();
+    auto reply = reinterpret_cast<const m3::KIF::Service::OpenReply*>(srvreply->data);
+
+    m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
+
+    LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
+
+    if(res != m3::Errors::NO_ERROR)
+        LOG_ERROR(vpe, res, "Server denied session creation");
+    else {
+        // inherit the session-cap from the service-cap. this way, it will be automatically
+        // revoked if the service-cap is revoked
+        Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
+        assert(srvcap != nullptr);
+        SessionCapability *sesscap = new SessionCapability(
+            &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
+        tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
+        tvpeobj->vpe->objcaps().set(cap, sesscap);
+    }
+
+    kreply_result(vpe, is, res);
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
@@ -749,39 +743,8 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     if(sess->obj->srv->closing)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Server is shutting down");
 
-    ReplyInfo rinfo(is.message());
-    // only pass in the service-reference. we can't be sure that the session will still exist
-    // when we receive the reply
+    // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
-    rsrv->recv_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
-            (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
-        EVENT_TRACER_Syscall_delob_done();
-
-        auto *reply = get_message<m3::KIF::Service::ExchangeReply>(is);
-
-        m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
-
-        LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
-            "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
-
-        if(res != m3::Errors::NO_ERROR)
-            LOG_ERROR(tvpeobj->vpe, res, "Server denied cap-transfer");
-        else {
-            m3::KIF::CapRngDesc srvcaps(reply->data.caps);
-            res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
-        }
-
-        {
-            m3::KIF::Syscall::ExchangeSessReply msg;
-            msg.error = res;
-            msg.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(msg.args));
-            for(size_t i = 0; i < msg.argcount; ++i)
-                msg.args[i] = reply->data.args[i];
-            reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
-        }
-
-        rsrv->recv_gate().unsubscribe(sub);
-    });
 
     if(rsrv->vpe().state() != VPE::RUNNING) {
         if(!rsrv->vpe().resume())
@@ -795,7 +758,33 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     msg.data.argcount = req->argcount;
     for(size_t i = 0; i < req->argcount; ++i)
         msg.data.args[i] = req->args[i];
-    rsrv->send(&msg, sizeof(msg), false);
+
+    const m3::DTU::Message *srvreply = rsrv->send_receive(&msg, sizeof(msg), false);
+    EVENT_TRACER_Syscall_delob_done();
+
+    auto *reply = reinterpret_cast<const m3::KIF::Service::ExchangeReply*>(srvreply->data);
+
+    m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
+
+    LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
+        "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
+
+    if(res != m3::Errors::NO_ERROR)
+        LOG_ERROR(tvpeobj->vpe, res, "Server denied cap-transfer");
+    else {
+        m3::KIF::CapRngDesc srvcaps(reply->data.caps);
+        res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
+    }
+
+    m3::KIF::Syscall::ExchangeSessReply kreply;
+    kreply.error = res;
+    kreply.argcount = 0;
+    if(res == m3::Errors::NO_ERROR) {
+        kreply.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(kreply.args));
+        for(size_t i = 0; i < kreply.argcount; ++i)
+            kreply.args[i] = reply->data.args[i];
+    }
+    kreply_msg(vpe, is, &kreply, sizeof(kreply));
 }
 
 void SyscallHandler::activate(GateIStream &is) {

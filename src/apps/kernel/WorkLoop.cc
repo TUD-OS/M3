@@ -93,14 +93,8 @@ void WorkLoop::run() {
 
         msg = dtu.fetch_msg(srvep);
         if(msg) {
-            RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
-
-            // notify sendqueue about received message
-            VPE *vpe = gate->session<VPE>();
-            vpe->received_upcall_reply();
-
-            GateIStream is(*gate, msg);
-            gate->notify_all(is);
+            SendQueue *sq = reinterpret_cast<SendQueue*>(msg->label);
+            sq->received_reply(srvep, msg);
         }
 
         m3::ThreadManager::get().yield();

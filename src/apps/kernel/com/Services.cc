@@ -34,20 +34,20 @@ Service::~Service() {
     ServiceList::get().remove(this);
 }
 
-RecvGate &Service::recv_gate() const {
-    return const_cast<RecvGate&>(_vpe.upcall_rgate());
-}
-
 int Service::pending() const {
     return _vpe.upcall_queue().inflight() + _vpe.upcall_queue().pending();
 }
 
 void Service::send(const void *msg, size_t size, bool free) {
-    _vpe.upcall_queue().send(&_vpe, &_vpe.upcall_rgate(), &_sgate, msg, size, free);
+    _vpe.upcall_queue().send(&_sgate, msg, size, free);
 }
 
-void Service::received_reply() {
-    _vpe.upcall_queue().received_reply(_vpe);
+const m3::DTU::Message *Service::send_receive(const void *msg, size_t size, bool free) {
+    void *event = _vpe.upcall_queue().send(&_sgate, msg, size, free);
+
+    m3::ThreadManager::get().wait_for(event);
+
+    return reinterpret_cast<const m3::DTU::Message*>(m3::ThreadManager::get().get_current_msg());
 }
 
 }
