@@ -65,7 +65,7 @@ public:
         }
     }
 
-    void notify(void *event, void *msg = nullptr, size_t size = 0) {
+    void notify(void *event, const void *msg = nullptr, size_t size = 0) {
         assert(size <= Thread::MAX_MSG_SIZE);
         for(auto it = _blocked.begin(); it != _blocked.end(); ) {
             auto old = it++;

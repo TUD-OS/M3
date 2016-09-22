@@ -62,7 +62,7 @@ private:
         if(_event == event)
             _event = nullptr;
     }
-    void set_msg(void *msg, size_t size) {
+    void set_msg(const void *msg, size_t size) {
         _content = msg != nullptr;
         if(msg)
             memcpy(_msg, msg, (size > MAX_MSG_SIZE) ? MAX_MSG_SIZE : size);
