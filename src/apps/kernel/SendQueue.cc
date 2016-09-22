@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Kernel.h>
+
 #include "pes/Timeouts.h"
 #include "pes/VPE.h"
 #include "SendQueue.h"
@@ -21,8 +23,10 @@
 namespace kernel {
 
 void SendQueue::send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
+    KLOG(SQUEUE, "SendQueue: trying to send message to VPE " << vpe->id());
+
     if(vpe->state() == VPE::RUNNING && _inflight < _capacity)
-        do_send(rgate, sgate, msg, size, onheap);
+        do_send(vpe, rgate, sgate, msg, size, onheap);
     else {
         // call this again from the workloop to be sure that we can switch the thread
         if(vpe->state() != VPE::RUNNING && _inflight == 0)
@@ -35,6 +39,8 @@ void SendQueue::send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg
             msg = nmsg;
         }
 
+        KLOG(SQUEUE, "SendQueue: queuing message for VPE " << vpe->id());
+
         Entry *e = new Entry(vpe, rgate, sgate, msg, size);
         _queue.append(e);
     }
@@ -46,6 +52,8 @@ void SendQueue::send_pending() {
 
     Entry *e = _queue.remove_first();
 
+    KLOG(SQUEUE, "SendQueue: found pending message for VPE " << e->vpe->id());
+
     // ensure that the VPE is running
     if(e->vpe->state() != VPE::RUNNING) {
         // if it died, just drop the pending message
@@ -56,17 +64,21 @@ void SendQueue::send_pending() {
     }
 
     // pending messages have always been copied to the heap
-    do_send(e->rgate, e->sgate, e->msg, e->size, true);
+    do_send(e->vpe, e->rgate, e->sgate, e->msg, e->size, true);
     delete e;
 }
 
-void SendQueue::received_reply() {
+void SendQueue::received_reply(VPE &vpe) {
+    KLOG(SQUEUE, "SendQueue: received reply from VPE " << vpe.id());
+
     assert(_inflight > 0);
     _inflight--;
     send_pending();
 }
 
-void SendQueue::do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
+void SendQueue::do_send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap) {
+    KLOG(SQUEUE, "SendQueue: sending message to VPE " << vpe->id());
+
     sgate->send(msg, size, rgate);
     if(onheap)
         m3::Heap::free(const_cast<void*>(msg));

@@ -50,10 +50,10 @@ public:
 
     void send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap);
     void send_pending();
-    void received_reply();
+    void received_reply(VPE &vpe);
 
 private:
-    void do_send(RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap);
+    void do_send(VPE *vpe, RecvGate *rgate, SendGate *sgate, const void *msg, size_t size, bool onheap);
 
     m3::SList<Entry> _queue;
     int _capacity;

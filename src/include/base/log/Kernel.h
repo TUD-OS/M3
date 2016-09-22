@@ -40,6 +40,7 @@ public:
         TIMEOUTS        = 1 << 10,
         CTXSW           = 1 << 11,
         CTXSW_STATES    = 1 << 12,
+        SQUEUE          = 1 << 13,
     };
 
     static const int level = INFO | ERR;

@@ -60,7 +60,7 @@ public:
      * Note that this function might perform a thread switch
      */
     void received_reply() {
-        _queue.received_reply();
+        _queue.received_reply(_vpe);
     }
 
     bool closing;
