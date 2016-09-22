@@ -30,8 +30,6 @@
 #include "SyscallHandler.h"
 #include "com/RecvBufs.h"
 
-// #define SIMPLE_SYSC_LOG
-
 #if defined(__host__)
 extern int int_target;
 #endif
@@ -40,18 +38,20 @@ namespace kernel {
 
 INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 
-#if defined(SIMPLE_SYSC_LOG)
-#   define LOG_SYS(vpe, sysname, expr)                                                      \
-        KLOG(SYSC, (vpe)->name() << (sysname))
-#else
-#   define LOG_SYS(vpe, sysname, expr)                                                      \
+#define LOG_SYS(vpe, sysname, expr)                                                         \
         KLOG(SYSC, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")  \
             << (sysname) << expr)
-#endif
+
+#define LOG_ERROR(vpe, error, msg)                                                          \
+    do {                                                                                    \
+        KLOG(ERR, "\e[37;41m"                                                               \
+            << (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")      \
+            << ": " << msg << " (" << error << ")\e[0m");                                   \
+    }                                                                                       \
+    while(0)
 
 #define SYS_ERROR(vpe, is, error, msg) {                                                    \
-        KLOG(ERR, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")   \
-            << ": " << msg << " (" << error << ")");                                        \
+        LOG_ERROR(vpe, error, msg);                                                         \
         kreply_result((vpe), (is), (error));                                                \
         return;                                                                             \
     }
@@ -287,7 +287,7 @@ void SyscallHandler::createsess(GateIStream &is) {
         LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
 
         if(res != m3::Errors::NO_ERROR)
-            KLOG(SYSC, vpe->id() << ": Server denied session creation (" << res << ")");
+            LOG_ERROR(vpe, res, "Server denied session creation");
         else {
             // inherit the session-cap from the service-cap. this way, it will be automatically
             // revoked if the service-cap is revoked
@@ -454,10 +454,8 @@ void SyscallHandler::createmap(UNUSED GateIStream &is) {
     if(mcapobj == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Memory capability is invalid");
 
-    if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK)) {
-        KLOG(INFO, "addr=" << (void*)mcapobj->addr() << " size=" << (void*)mcapobj->size());
+    if((mcapobj->addr() & PAGE_MASK) || (mcapobj->size() & PAGE_MASK))
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Memory capability is not page aligned");
-    }
     if(perms & ~mcapobj->perms())
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid permissions");
 
@@ -701,15 +699,15 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::Ca
     const m3::KIF::CapRngDesc &dstrng = obtain ? c1 : c2;
 
     if(c1.type() != c2.type()) {
-        KLOG(SYSC, v1->id() << ": Descriptor types don't match (" << m3::Errors::INV_ARGS << ")");
+        LOG_ERROR(v1, m3::Errors::INV_ARGS, "Descriptor types don't match");
         return m3::Errors::INV_ARGS;
     }
     if((obtain && c2.count() > c1.count()) || (!obtain && c2.count() != c1.count())) {
-        KLOG(SYSC, v1->id() << ": Server gave me invalid CRD (" << m3::Errors::INV_ARGS << ")");
+        LOG_ERROR(v1, m3::Errors::INV_ARGS, "Server gave me invalid CRD");
         return m3::Errors::INV_ARGS;
     }
     if(!dst.objcaps().range_unused(dstrng)) {
-        KLOG(SYSC, v1->id() << ": Invalid destination caps (" << m3::Errors::INV_ARGS << ")");
+        LOG_ERROR(v1, m3::Errors::INV_ARGS, "Invalid destination caps");
         return m3::Errors::INV_ARGS;
     }
 
@@ -767,7 +765,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
 
         if(res != m3::Errors::NO_ERROR)
-            KLOG(SYSC, tvpeobj->vpe->id() << ": Server denied cap-transfer (" << res << ")");
+            LOG_ERROR(tvpeobj->vpe, res, "Server denied cap-transfer");
         else {
             m3::KIF::CapRngDesc srvcaps(reply->data.caps);
             res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
@@ -870,7 +868,7 @@ void SyscallHandler::activate(GateIStream &is) {
 
     m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
-        SYS_ERROR(vpe, is, res, "cmpxchg failed");
+        LOG_ERROR(vpe, res, ": activate failed");
 
     kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
