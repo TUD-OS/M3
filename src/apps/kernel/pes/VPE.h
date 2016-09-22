@@ -148,9 +148,6 @@ public:
     RecvGate &syscall_gate() {
         return _syscgate;
     }
-    RecvGate &service_gate() {
-        return _srvgate;
-    }
 
     bool has_app() const {
         return _flags & F_HASAPP;
@@ -210,7 +207,6 @@ private:
     uint64_t _lastsched;
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     RecvGate _syscgate;
-    RecvGate _srvgate;
     RecvBufs _rbufs;
     AddrSpace *_as;
     m3::SList<ServName> _requires;

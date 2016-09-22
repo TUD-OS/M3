@@ -42,7 +42,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _lastsched(),
       _dtustate(),
       _syscgate(SyscallHandler::get().create_gate(this)),
-      _srvgate(SyscallHandler::get().srvepid(), nullptr),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _exitsubscr(),

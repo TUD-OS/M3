@@ -94,6 +94,11 @@ void WorkLoop::run() {
         msg = dtu.fetch_msg(srvep);
         if(msg) {
             RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
+
+            // notify sendqueue about received message
+            Service *service = gate->session<Service>();
+            service->received_reply();
+
             GateIStream is(*gate, msg);
             gate->notify_all(is);
         }

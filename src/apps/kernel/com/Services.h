@@ -53,8 +53,8 @@ public:
     int pending() const {
         return _queue.inflight() + _queue.pending();
     }
-    void send(VPE *vpe, RecvGate *rgate, const void *msg, size_t size, bool free) {
-        _queue.send(vpe, rgate, &_sgate, msg, size, free);
+    void send(VPE *vpe, const void *msg, size_t size, bool free) {
+        _queue.send(vpe, &_rgate, &_sgate, msg, size, free);
     }
     /**
      * Note that this function might perform a thread switch
@@ -106,7 +106,9 @@ public:
         }
         return nullptr;
     }
-    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free);
+    void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free) {
+        serv->send(&serv->vpe(), msg, size, free);
+    }
 
 private:
     void remove(Service *inst) {

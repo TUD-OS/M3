@@ -282,7 +282,7 @@ void SyscallHandler::createsess(GateIStream &is) {
 
     ReplyInfo rinfo(is.message());
     m3::Reference<Service> rsrv(s);
-    vpe->service_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
+    s->recv_gate().subscribe([this, rsrv, cap, vpe, tvpeobj, rinfo]
             (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
         EVENT_TRACER_Syscall_createsess();
 
@@ -304,14 +304,11 @@ void SyscallHandler::createsess(GateIStream &is) {
             tvpeobj->vpe->objcaps().set(cap, sesscap);
         }
 
-        // better do that first, because we might have more messages in the queue
-        const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
-
         m3::KIF::DefaultReply msg;
         msg.error = res;
         reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
 
-        vpe->service_gate().unsubscribe(sub);
+        rsrv->recv_gate().unsubscribe(sub);
     });
 
     if(s->vpe().state() != VPE::RUNNING) {
@@ -322,7 +319,7 @@ void SyscallHandler::createsess(GateIStream &is) {
     m3::KIF::Service::Open msg;
     msg.opcode = m3::KIF::Service::OPEN;
     msg.arg = arg;
-    s->send(&s->vpe(), &vpe->service_gate(), &msg, sizeof(msg), false);
+    s->send(&s->vpe(), &msg, sizeof(msg), false);
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
@@ -763,7 +760,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     // only pass in the service-reference. we can't be sure that the session will still exist
     // when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
-    vpe->service_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
+    rsrv->recv_gate().subscribe([this, rsrv, caps, vpe, tvpeobj, obtain, rinfo]
             (GateIStream &is, m3::Subscriber<GateIStream&> *sub) {
         EVENT_TRACER_Syscall_delob_done();
 
@@ -781,8 +778,6 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
         }
 
-        const_cast<m3::Reference<Service>&>(rsrv)->received_reply();
-
         {
             m3::KIF::Syscall::ExchangeSessReply msg;
             msg.error = res;
@@ -792,7 +787,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
             reply_to_vpe(vpe, rinfo, &msg, sizeof(msg));
         }
 
-        vpe->service_gate().unsubscribe(sub);
+        rsrv->recv_gate().unsubscribe(sub);
     });
 
     if(rsrv->vpe().state() != VPE::RUNNING) {
@@ -807,7 +802,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     msg.data.argcount = req->argcount;
     for(size_t i = 0; i < req->argcount; ++i)
         msg.data.args[i] = req->args[i];
-    rsrv->send(&rsrv->vpe(), &vpe->service_gate(), &msg, sizeof(msg), false);
+    rsrv->send(&rsrv->vpe(), &msg, sizeof(msg), false);
 }
 
 void SyscallHandler::activate(GateIStream &is) {
