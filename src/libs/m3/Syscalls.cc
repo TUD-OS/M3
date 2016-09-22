@@ -236,16 +236,19 @@ Errors::Code Syscalls::exchangesess(capsel_t vpe, capsel_t sess, const KIF::CapR
     req.vpe = vpe;
     req.sess = sess;
     req.caps = crd.value();
-    assert(*argcount <= ARRAY_SIZE(req.args));
-    req.argcount = *argcount;
-    for(size_t i = 0; i < *argcount; ++i)
-        req.args[i] = args[i];
+    req.argcount = 0;
+    if(argcount) {
+        assert(*argcount <= ARRAY_SIZE(req.args));
+        req.argcount = *argcount;
+        for(size_t i = 0; i < *argcount; ++i)
+            req.args[i] = args[i];
+    }
 
     DTU::Message *msg = send_receive(&req, sizeof(req));
     auto *reply = reinterpret_cast<KIF::Syscall::ExchangeSessReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(Errors::last == Errors::NO_ERROR) {
+    if(Errors::last == Errors::NO_ERROR && argcount) {
         *argcount = reply->argcount;
         for(size_t i = 0; i < *argcount; ++i)
             args[i] = reply->args[i];
