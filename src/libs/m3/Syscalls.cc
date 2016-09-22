@@ -77,13 +77,13 @@ Errors::Code Syscalls::activatereply(size_t ep, uintptr_t msgaddr) {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createsrv(capsel_t gate, capsel_t srv, const String &name) {
-    LLOG(SYSC, "createsrv(gate=" << gate << ", srv=" << srv << ", name=" << name << ")");
+Errors::Code Syscalls::createsrv(capsel_t srv, label_t label, const String &name) {
+    LLOG(SYSC, "createsrv(srv=" << srv << ", label=" << fmt(label, "0x") << ", name=" << name << ")");
 
     KIF::Syscall::CreateSrv req;
     req.opcode = KIF::Syscall::CREATESRV;
-    req.gate = gate;
     req.srv = srv;
+    req.label = label;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
     return send_receive_result(&req, sizeof(req) - sizeof(req.name) + req.namelen);

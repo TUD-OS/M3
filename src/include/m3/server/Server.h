@@ -39,11 +39,11 @@ public:
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
           _epid(VPE::self().alloc_ep()),
+          // TODO we do not always need a receive buffer for clients
           _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
-          _ctrl_rgate(RecvGate::create(&_rcvbuf)),
-          _ctrl_sgate(SendGate::create(DEF_MSGSIZE, &_ctrl_rgate)) {
+          _ctrl_rgate(RecvGate::create(&RecvBuf::upcall())) {
         LLOG(SERV, "create(" << name << ")");
-        Syscalls::get().createsrv(_ctrl_sgate.sel(), sel(), name);
+        Syscalls::get().createsrv(sel(), _ctrl_rgate.label(), name);
 
         using std::placeholders::_1;
         using std::placeholders::_2;
@@ -64,8 +64,8 @@ public:
             // handle all requests
             LLOG(SERV, "handling pending requests...");
             DTU::Message *msg;
-            while((msg = DTU::get().fetch_msg(_ctrl_rgate.epid()))) {
-                GateIStream is(_ctrl_rgate, msg, Errors::NO_ERROR);
+            while((msg = DTU::get().fetch_msg(RecvGate::upcall().epid()))) {
+                GateIStream is(RecvGate::upcall(), msg, Errors::NO_ERROR);
                 handle_message(is, nullptr);
             }
         }
@@ -178,7 +178,6 @@ protected:
     size_t _epid;
     RecvBuf _rcvbuf;
     RecvGate _ctrl_rgate;
-    SendGate _ctrl_sgate;
 };
 
 }

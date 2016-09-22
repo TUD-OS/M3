@@ -193,22 +193,18 @@ void SyscallHandler::createsrv(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
 
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(is);
-    capsel_t gatesel = req->gate;
     capsel_t srv = req->srv;
+    label_t label = req->label;
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
-    LOG_SYS(vpe, ": syscall::createsrv", "(gate=" << gatesel
-        << ", srv=" << srv << ", name=" << name << ")");
+    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", label="
+        << m3::fmt(label, "0x") << ", name=" << name << ")");
 
-    MsgCapability *gatecap = static_cast<MsgCapability*>(vpe->objcaps().get(gatesel, Capability::MSG));
-    if(gatecap == nullptr || name.length() == 0)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap or name");
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, is, m3::Errors::EXISTS, "Service does already exist");
 
     int capacity = 1;   // TODO this depends on the credits that the kernel has
-    Service *s = ServiceList::get().add(*vpe, srv, name,
-        gatecap->obj->epid, gatecap->obj->label, capacity);
+    Service *s = ServiceList::get().add(*vpe, srv, name, label, capacity);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)

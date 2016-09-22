@@ -50,6 +50,9 @@ public:
     static RecvGate &def() {
         return _default;
     }
+    static RecvGate &upcall() {
+        return _upcall;
+    }
 
     /**
      * Creates a new receive-gate. Note that the receive-buffer has to be bound to an endpoint.
@@ -128,6 +131,7 @@ private:
     RecvBuf *_rcvbuf;
     void *_sess;
     static RecvGate _default;
+    static RecvGate _upcall;
 };
 
 }

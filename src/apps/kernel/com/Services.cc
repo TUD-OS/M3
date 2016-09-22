@@ -23,9 +23,9 @@ namespace kernel {
 
 ServiceList ServiceList::_inst;
 
-Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity)
+Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity)
     : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-      _rgate(SyscallHandler::get().srvepid(), this), _sgate(vpe, ep, label),
+      _rgate(SyscallHandler::get().srvepid(), this), _sgate(vpe, m3::DTU::UPCALL_EP, label),
       _queue(capacity) {
 }
 

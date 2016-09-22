@@ -31,7 +31,7 @@ class VPE;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity);
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity);
     ~Service();
 
     VPE &vpe() const {
@@ -94,8 +94,8 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, epid_t ep, label_t label, int capacity) {
-        Service *inst = new Service(vpe, sel, name, ep, label, capacity);
+    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity) {
+        Service *inst = new Service(vpe, sel, name, label, capacity);
         _list.append(inst);
         return inst;
     }

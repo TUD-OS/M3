@@ -151,8 +151,8 @@ struct KIF {
         } PACKED;
 
         struct CreateSrv : public DefaultRequest {
-            word_t gate;
             word_t srv;
+            word_t label;
             word_t namelen;
             char name[32];
         } PACKED;

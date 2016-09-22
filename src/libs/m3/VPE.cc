@@ -109,6 +109,7 @@ void VPE::init() {
     _eps->set(DTU::NOTIFY_EP);
     _eps->set(DTU::MEM_EP);
     _eps->set(DTU::DEF_RECVEP);
+    _eps->set(DTU::UPCALL_EP);
 }
 
 capsel_t VPE::alloc_caps(uint count) {

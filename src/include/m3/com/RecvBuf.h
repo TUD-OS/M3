@@ -53,6 +53,11 @@ public:
         size_t _epid;
     };
 
+    class UpcallWorkItem : public WorkItem {
+    public:
+        virtual void work() override;
+    };
+
 private:
     explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, unsigned flags)
         : _buf(reinterpret_cast<uint8_t*>(addr)), _order(order), _msgorder(msgorder),
@@ -68,6 +73,9 @@ private:
 public:
     static RecvBuf &def() {
         return _default;
+    }
+    static RecvBuf &upcall() {
+        return _upcall;
     }
 
 #if defined(__t2__)
@@ -145,6 +153,7 @@ private:
     unsigned _flags;
     RecvBufWorkItem *_workitem;
     static RecvBuf _default;
+    static RecvBuf _upcall;
 };
 
 }

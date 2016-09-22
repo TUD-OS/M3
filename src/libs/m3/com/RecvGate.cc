@@ -23,6 +23,7 @@
 namespace m3 {
 
 INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
+INIT_PRIO_RECVGATE RecvGate RecvGate::_upcall (RecvGate::create(&RecvBuf::upcall()));
 
 Errors::Code RecvGate::reply_async(const void *data, size_t len, size_t msgidx) {
     // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
