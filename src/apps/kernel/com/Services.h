@@ -31,7 +31,7 @@ class VPE;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity);
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label);
     ~Service();
 
     VPE &vpe() const {
@@ -46,22 +46,14 @@ public:
     SendGate &send_gate() const {
         return const_cast<SendGate&>(_sgate);
     }
-    RecvGate &recv_gate() {
-        return _rgate;
-    }
+    RecvGate &recv_gate() const;
 
-    int pending() const {
-        return _queue.inflight() + _queue.pending();
-    }
-    void send(VPE *vpe, const void *msg, size_t size, bool free) {
-        _queue.send(vpe, &_rgate, &_sgate, msg, size, free);
-    }
+    int pending() const;
+    void send(const void *msg, size_t size, bool free);
     /**
      * Note that this function might perform a thread switch
      */
-    void received_reply() {
-        _queue.received_reply(_vpe);
-    }
+    void received_reply();
 
     bool closing;
 
@@ -69,9 +61,7 @@ private:
     VPE &_vpe;
     capsel_t _sel;
     m3::String _name;
-    RecvGate _rgate;
     SendGate _sgate;
-    SendQueue _queue;
 };
 
 class ServiceList {
@@ -94,8 +84,8 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity) {
-        Service *inst = new Service(vpe, sel, name, label, capacity);
+    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, label_t label) {
+        Service *inst = new Service(vpe, sel, name, label);
         _list.append(inst);
         return inst;
     }
@@ -107,7 +97,7 @@ public:
         return nullptr;
     }
     void send_and_receive(m3::Reference<Service> serv, const void *msg, size_t size, bool free) {
-        serv->send(&serv->vpe(), msg, size, free);
+        serv->send(msg, size, free);
     }
 
 private:

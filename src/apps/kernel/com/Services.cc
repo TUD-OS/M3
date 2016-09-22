@@ -17,21 +17,37 @@
 #include <base/Common.h>
 
 #include "com/Services.h"
+#include "pes/VPE.h"
 #include "SyscallHandler.h"
 
 namespace kernel {
 
 ServiceList ServiceList::_inst;
 
-Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label, int capacity)
+Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label)
     : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-      _rgate(SyscallHandler::get().srvepid(), this), _sgate(vpe, m3::DTU::UPCALL_EP, label),
-      _queue(capacity) {
+      _sgate(vpe, m3::DTU::UPCALL_EP, label) {
 }
 
 Service::~Service() {
     // we have allocated the selector and stored it in our cap-table on creation; undo that
     ServiceList::get().remove(this);
+}
+
+RecvGate &Service::recv_gate() const {
+    return const_cast<RecvGate&>(_vpe.upcall_rgate());
+}
+
+int Service::pending() const {
+    return _vpe.upcall_queue().inflight() + _vpe.upcall_queue().pending();
+}
+
+void Service::send(const void *msg, size_t size, bool free) {
+    _vpe.upcall_queue().send(&_vpe, &_vpe.upcall_rgate(), &_sgate, msg, size, free);
+}
+
+void Service::received_reply() {
+    _vpe.upcall_queue().received_reply(_vpe);
 }
 
 }

@@ -148,6 +148,19 @@ public:
     RecvGate &syscall_gate() {
         return _syscgate;
     }
+    SendGate &upcall_sgate() {
+        return _upcsgate;
+    }
+    RecvGate &upcall_rgate() {
+        return _upcrgate;
+    }
+
+    SendQueue &upcall_queue() {
+        return _upcqueue;
+    }
+    void received_upcall_reply() {
+        _upcqueue.received_reply(*this);
+    }
 
     bool has_app() const {
         return _flags & F_HASAPP;
@@ -207,6 +220,9 @@ private:
     uint64_t _lastsched;
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     RecvGate _syscgate;
+    SendGate _upcsgate;
+    RecvGate _upcrgate;
+    SendQueue _upcqueue;
     RecvBufs _rbufs;
     AddrSpace *_as;
     m3::SList<ServName> _requires;

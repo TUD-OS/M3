@@ -203,8 +203,7 @@ void SyscallHandler::createsrv(GateIStream &is) {
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, is, m3::Errors::EXISTS, "Service does already exist");
 
-    int capacity = 1;   // TODO this depends on the credits that the kernel has
-    Service *s = ServiceList::get().add(*vpe, srv, name, label, capacity);
+    Service *s = ServiceList::get().add(*vpe, srv, name, label);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)
@@ -315,7 +314,7 @@ void SyscallHandler::createsess(GateIStream &is) {
     m3::KIF::Service::Open msg;
     msg.opcode = m3::KIF::Service::OPEN;
     msg.arg = arg;
-    s->send(&s->vpe(), &msg, sizeof(msg), false);
+    s->send(&msg, sizeof(msg), false);
 }
 
 void SyscallHandler::createsessat(GateIStream &is) {
@@ -798,7 +797,7 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     msg.data.argcount = req->argcount;
     for(size_t i = 0; i < req->argcount; ++i)
         msg.data.args[i] = req->args[i];
-    rsrv->send(&rsrv->vpe(), &msg, sizeof(msg), false);
+    rsrv->send(&msg, sizeof(msg), false);
 }
 
 void SyscallHandler::activate(GateIStream &is) {

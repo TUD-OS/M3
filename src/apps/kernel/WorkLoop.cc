@@ -96,8 +96,8 @@ void WorkLoop::run() {
             RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
 
             // notify sendqueue about received message
-            Service *service = gate->session<Service>();
-            service->received_reply();
+            VPE *vpe = gate->session<VPE>();
+            vpe->received_upcall_reply();
 
             GateIStream is(*gate, msg);
             gate->notify_all(is);
