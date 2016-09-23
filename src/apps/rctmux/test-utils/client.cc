@@ -46,7 +46,7 @@ int main(int, char *argv[]) {
 
         cout << argv[1] << ": Starting test...\n";
 
-        for(int i = 0; i < 20; ++i) {
+        for(int i = 0; i < 200; ++i) {
             int res;
             GateIStream reply = send_receive_vmsg(sgate, TEST);
             reply >> res;
