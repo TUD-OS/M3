@@ -47,6 +47,7 @@ static const char *errmsgs[] = {
     /* 22 */ "Receive buffer gone",
     /* 23 */ "End of file",
     /* 24 */ "Messages are waiting to be handled",
+    /* 25 */ "Reply will be sent via upcall",
 };
 
 const char *Errors::to_string(Code code) {

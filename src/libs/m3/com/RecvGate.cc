@@ -38,7 +38,7 @@ retry:
     Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
 
     if(res == Errors::VPE_GONE) {
-        res = Syscalls::get().activatereply(epid(), msgidx);
+        res = Syscalls::get().activatereply(epid(), msgidx, nullptr);
         if(res != Errors::NO_ERROR)
             return res;
         goto retry;

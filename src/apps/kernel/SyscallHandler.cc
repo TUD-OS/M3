@@ -18,17 +18,17 @@
 #include <base/log/Kernel.h>
 #include <base/Init.h>
 #include <base/Panic.h>
-#include <base/WorkLoop.h>
 
 #include <thread/ThreadManager.h>
 
+#include "com/RecvBufs.h"
+#include "com/Services.h"
 #include "pes/ContextSwitcher.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
-#include "com/Services.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
-#include "com/RecvBufs.h"
+#include "WorkLoop.h"
 
 #if defined(__host__)
 extern int int_target;
@@ -795,9 +795,10 @@ void SyscallHandler::activate(GateIStream &is) {
     epid_t epid = req->ep;
     capsel_t oldcap = req->old_sel;
     capsel_t newcap = req->new_sel;
+    word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<
-        oldcap << ", new=" << newcap << ")");
+        oldcap << ", new=" << newcap << ", event=" << m3::fmt(event, "0x") << ")");
 
     MsgCapability *ocap = oldcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
@@ -809,57 +810,71 @@ void SyscallHandler::activate(GateIStream &is) {
             << ", new=" << newcap << "," << ncap << ")");
     }
 
-    if(ncap) {
-        if(ncap->obj->vpe != VPE::INVALID_ID &&
-                VPEManager::get().vpe(ncap->obj->vpe).state() != VPE::RUNNING) {
-            VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
+    bool sent_reply = false;
+    m3::Errors::Code res = m3::Errors::NO_ERROR;
 
-            if(tvpe.pe() == vpe->pe())
-                tvpe.migrate();
-
-            LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
-                << tvpe.id() << " at " << tvpe.pe());
-
-            if(!tvpe.resume(false))
-                SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
-        }
-        else if(ncap->type == Capability::MSG &&
-                !VPEManager::get().vpe(ncap->obj->vpe).rbufs().is_attached(ncap->obj->epid)) {
-            LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
-                << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
-
-            ReplyInfo rinfo(is.message());
-            auto callback = [rinfo, vpe, epid, ocap, ncap](bool success, m3::Subscriber<bool> *) {
-                EVENT_TRACER_Syscall_activate();
-                m3::Errors::Code res = success ? m3::Errors::NO_ERROR : m3::Errors::RECV_GONE;
-
-                LOG_SYS(vpe, ": syscall::activate-cb", "(res=" << res << ")");
-
-                if(success)
-                    res = do_activate(vpe, epid, ocap, ncap);
-                if(res != m3::Errors::NO_ERROR)
-                    KLOG(ERR, vpe->name() << ": activate failed (" << res << ")");
-
-                auto reply = kernel::create_vmsg(res);
-                reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-            };
-
-            VPEManager::get().vpe(ncap->obj->vpe).rbufs().subscribe(ncap->obj->epid, callback);
-            return;
-        }
-    }
-
-    // update PE id in case it changed
-    if(oldcap == newcap && ncap->obj->vpe != VPE::INVALID_ID) {
+    if(ncap && ncap->obj->vpe != VPE::INVALID_ID) {
         VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
-        ncap->obj->pe = tvpe.pe();
+
+        // if we have waited for one of these conditions, the other might be no longer true again
+        bool done = false;
+        while(!done) {
+            done = true;
+
+            if(ncap->type == Capability::MSG && !tvpe.rbufs().is_attached(ncap->obj->epid)) {
+                done = false;
+
+                LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
+                    << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
+
+                if(event) {
+                    kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
+                    sent_reply = true;
+                }
+
+                tvpe.rbufs().wait_for(ncap->obj->epid);
+            }
+
+            if(tvpe.state() != VPE::RUNNING) {
+                done = false;
+
+                if(tvpe.pe() == vpe->pe())
+                    tvpe.migrate();
+
+                LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
+                    << tvpe.id() << " at " << tvpe.pe());
+
+                if(!sent_reply && event) {
+                    kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
+                    sent_reply = true;
+                }
+
+                if(!tvpe.resume(false))
+                    res = m3::Errors::VPE_GONE;
+            }
+        }
+
+        // update PE id in case it changed
+        if(oldcap == newcap)
+            ncap->obj->pe = tvpe.pe();
     }
 
-    m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
+    if(res == m3::Errors::NO_ERROR)
+        res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         LOG_ERROR(vpe, res, ": activate failed");
 
-    kreply_result(vpe, is, m3::Errors::NO_ERROR);
+    if(event && sent_reply) {
+        m3::KIF::Upcall::Notify msg;
+        msg.opcode = m3::KIF::Upcall::NOTIFY;
+        msg.error = res;
+        msg.event = event;
+        KLOG(UPCALLS, "Sending upcall NOTIFY (error=" << res << ", event="
+            << (void*)event << ") to VPE " << vpe->id());
+        vpe->upcall(&msg, sizeof(msg), false);
+    }
+    else
+        kreply_result(vpe, is, res);
 }
 
 void SyscallHandler::activatereply(GateIStream &is) {
@@ -869,6 +884,7 @@ void SyscallHandler::activatereply(GateIStream &is) {
     auto *req = get_message<m3::KIF::Syscall::ActivateReply>(is);
     epid_t epid = req->ep;
     uintptr_t msgaddr = req->msg_addr;
+    word_t event = req->event;
 
     // ensure that the VPE is running, because we need to access it's address space
     if(vpe->state() != VPE::RUNNING) {
@@ -876,12 +892,15 @@ void SyscallHandler::activatereply(GateIStream &is) {
             return;
     }
 
-    LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr=" << (void*)msgaddr << ")");
+    LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr="
+        << (void*)msgaddr << ", event=" << m3::fmt(event, "0x") << ")");
 
     vpeid_t id;
     m3::Errors::Code res = vpe->rbufs().reply_target(*vpe, epid, msgaddr, &id);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Invalid arguments");
+
+    bool sent_reply = false;
 
     VPE &tvpe = VPEManager::get().vpe(id);
     if(tvpe.state() != VPE::RUNNING) {
@@ -890,21 +909,39 @@ void SyscallHandler::activatereply(GateIStream &is) {
 
         LOG_SYS(vpe, ": syscall::activatereply", ": waiting for VPE "
             << tvpe.id() << " at " << tvpe.pe());
+
+        if(event) {
+            kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
+            sent_reply = true;
+        }
+
         if(!tvpe.resume())
-            SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+            res = m3::Errors::VPE_GONE;
     }
 
-    // it might be suspended again
-    if(vpe->state() != VPE::RUNNING) {
-        if(!vpe->resume())
-            return;
-    }
+    if(res == m3::Errors::NO_ERROR) {
+        // it might be suspended again
+        if(vpe->state() != VPE::RUNNING) {
+            if(!vpe->resume())
+                return;
+        }
 
-    res = vpe->rbufs().activate_reply(*vpe, tvpe, epid, msgaddr);
+        res = vpe->rbufs().activate_reply(*vpe, tvpe, epid, msgaddr);
+    }
     if(res != m3::Errors::NO_ERROR)
-        SYS_ERROR(vpe, is, res, "Activating reply failed");
+        LOG_ERROR(vpe, res, "Activating reply failed");
 
-    kreply_result(vpe, is, m3::Errors::NO_ERROR);
+    if(event && sent_reply) {
+        m3::KIF::Upcall::Notify msg;
+        msg.opcode = m3::KIF::Upcall::NOTIFY;
+        msg.error = res;
+        msg.event = event;
+        KLOG(UPCALLS, "Sending upcall NOTIFY (error=" << res << ", event="
+            << (void*)event << ") to VPE " << vpe->id());
+        vpe->upcall(&msg, sizeof(msg), false);
+    }
+    else
+        kreply_result(vpe, is, res);
 }
 
 void SyscallHandler::revoke(GateIStream &is) {

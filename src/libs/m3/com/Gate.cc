@@ -45,7 +45,7 @@ retry:
             break;
     }
     if(res == Errors::VPE_GONE) {
-        res = Syscalls::get().activate(_epid, sel(), sel());
+        res = Syscalls::get().activate(_epid, sel(), sel(), nullptr);
         if(res != Errors::NO_ERROR)
             return res;
         goto retry;

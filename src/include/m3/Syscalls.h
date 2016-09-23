@@ -47,8 +47,8 @@ private:
     }
 
 public:
-    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
-    Errors::Code activatereply(size_t ep, uintptr_t msgaddr);
+    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap, void *event);
+    Errors::Code activatereply(size_t ep, uintptr_t msgaddr, void *event);
     Errors::Code createsrv(capsel_t srv, label_t label, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);

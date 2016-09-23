@@ -50,6 +50,7 @@ struct Errors {
         RECV_GONE,
         END_OF_FILE,
         MSGS_WAITING,
+        UPCALL_REPLY,
     };
 
     /**

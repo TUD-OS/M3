@@ -56,24 +56,28 @@ Errors::Code Syscalls::noop() {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
-    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
+Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap, void *event) {
+    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap
+        << ", event=" << event << ")");
 
     KIF::Syscall::Activate req;
     req.opcode = KIF::Syscall::ACTIVATE;
     req.ep = ep;
     req.old_sel = oldcap;
     req.new_sel = newcap;
+    req.event = reinterpret_cast<word_t>(event);
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activatereply(size_t ep, uintptr_t msgaddr) {
-    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << (void*)msgaddr << ")");
+Errors::Code Syscalls::activatereply(size_t ep, uintptr_t msgaddr, void *event) {
+    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << (void*)msgaddr
+        << ", event=" << event << ")");
 
     KIF::Syscall::ActivateReply req;
     req.opcode = KIF::Syscall::ACTIVATEREPLY;
     req.ep = ep;
     req.msg_addr = msgaddr;
+    req.event = reinterpret_cast<word_t>(event);
     return send_receive_result(&req, sizeof(req));
 }
 

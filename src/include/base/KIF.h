@@ -143,11 +143,13 @@ struct KIF {
             word_t ep;
             word_t old_sel;
             word_t new_sel;
+            word_t event;
         } PACKED;
 
         struct ActivateReply : public DefaultRequest {
             word_t ep;
             word_t msg_addr;
+            word_t event;
         } PACKED;
 
         struct CreateSrv : public DefaultRequest {
@@ -316,6 +318,20 @@ struct KIF {
         } PACKED;
 
         struct Shutdown : public DefaultRequest {
+        } PACKED;
+    };
+
+    /**
+     * Upcalls
+     */
+    struct Upcall {
+        enum Operation {
+            NOTIFY,
+        };
+
+        struct Notify : public DefaultRequest {
+            word_t error;
+            word_t event;
         } PACKED;
     };
 };

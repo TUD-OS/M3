@@ -156,6 +156,10 @@ public:
         return _upcqueue;
     }
 
+    void upcall(const void *msg, size_t size, bool onheap) {
+        _upcqueue.send(&_upcsgate, msg, size, onheap);
+    }
+
     bool has_app() const {
         return _flags & F_HASAPP;
     }

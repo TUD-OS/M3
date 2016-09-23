@@ -78,7 +78,7 @@ m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int ord
     rbuf = new RBuf(epid, addr, order, msgorder, flags);
     rbuf->configure(vpe, true);
     _rbufs.append(rbuf);
-    notify(epid, true);
+    notify(epid);
     return m3::Errors::NO_ERROR;
 }
 
@@ -88,7 +88,7 @@ void RecvBufs::detach(VPE &vpe, epid_t epid) {
         return;
 
     rbuf->configure(vpe, false);
-    notify(epid, false);
+    notify(epid);
     _rbufs.remove(rbuf);
     delete rbuf;
 }
@@ -99,17 +99,6 @@ void RecvBufs::detach_all(VPE &vpe, epid_t except) {
         if(i == except)
             continue;
         detach(vpe, i);
-    }
-}
-
-void RecvBufs::notify(epid_t epid, bool success) {
-    for(auto sub = _waits.begin(); sub != _waits.end(); ) {
-        auto old = sub++;
-        if(old->epid == epid) {
-            old->callback(success, nullptr);
-            _waits.remove(&*old);
-            delete &*old;
-        }
     }
 }
 

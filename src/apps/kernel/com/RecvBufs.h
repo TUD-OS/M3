@@ -23,6 +23,8 @@
 #include <base/DTU.h>
 #include <base/Errors.h>
 
+#include <thread/ThreadManager.h>
+
 #include "com/RBuf.h"
 #include "DTU.h"
 #include "Platform.h"
@@ -50,25 +52,11 @@ class RecvBufs {
         int flags;
     };
 
-    struct Subscriber : public m3::SListItem {
-        // TODO hack: we have to use m3::Subscriber<bool> here
-        using callback_type = std::function<void(bool,m3::Subscriber<bool>*)>;
-
-        callback_type callback;
-        epid_t epid;
-
-        explicit Subscriber(const callback_type &cb, epid_t epid)
-            : m3::SListItem(), callback(cb), epid(epid) {
-        }
-    };
-
 public:
     explicit RecvBufs() : _rbufs() {
     }
 
     ~RecvBufs() {
-        while(_waits.length() > 0)
-            delete _waits.remove_first();
         while(_rbufs.length() > 0)
             delete _rbufs.remove_first();
     }
@@ -77,8 +65,8 @@ public:
         return get(epid) != nullptr;
     }
 
-    void subscribe(epid_t epid, const Subscriber::callback_type &cb) {
-        _waits.append(new Subscriber(cb, epid));
+    void wait_for(epid_t epid) {
+        m3::ThreadManager::get().wait_for(get_event(epid));
     }
 
     m3::Errors::Code reply_target(VPE &vpe, epid_t epid, uintptr_t msgaddr, vpeid_t *id);
@@ -89,7 +77,15 @@ public:
     void detach_all(VPE &vpe, epid_t except);
 
 private:
-    void notify(epid_t epid, bool success);
+    void *get_event(epid_t epid) {
+        // TODO in theory, the pointer could need more than 32 bits
+        word_t event = reinterpret_cast<word_t>(this) | (epid << 32);
+        return reinterpret_cast<void*>(event);
+    }
+
+    void notify(epid_t epid) {
+        m3::ThreadManager::get().notify(get_event(epid));
+    }
 
     m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
 
@@ -105,7 +101,6 @@ private:
     }
 
     m3::SList<RBuf> _rbufs;
-    m3::SList<Subscriber> _waits;
 };
 
 }

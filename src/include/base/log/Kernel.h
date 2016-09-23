@@ -41,6 +41,7 @@ public:
         CTXSW           = 1 << 11,
         CTXSW_STATES    = 1 << 12,
         SQUEUE          = 1 << 13,
+        UPCALLS         = 1 << 14,
     };
 
     static const int level = INFO | ERR;
