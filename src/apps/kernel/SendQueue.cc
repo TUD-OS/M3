@@ -66,6 +66,13 @@ void SendQueue::send_pending() {
             delete e;
             return;
         }
+
+        // it might happen that there is another message in flight now
+        if(_inflight != 0) {
+            KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: queuing message");
+            _queue.append(e);
+            return;
+        }
     }
 
     // pending messages have always been copied to the heap
