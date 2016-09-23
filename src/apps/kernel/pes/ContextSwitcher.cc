@@ -313,9 +313,8 @@ retry:
                 _cur->_dtustate.get_msg_count() == 0 &&
                 (_cur->_flags & VPE::F_HASAPP);
 
-            KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " idled for "
-                << cycles << " of " << total << " cycles (now=" << now
-                << ", last=" << _cur->_lastsched << ")");
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: saved VPE " << _cur->id() << " (idled "
+                << cycles << " of " << total << " cycles)");
             KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " is set to "
                 << (blocked ? "blocked" : "ready"));
 
@@ -365,7 +364,7 @@ retry:
             if(_cur->flags() & VPE::F_HASAPP)
                 vals[1] |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
-            KLOG(CTXSW, "CtxSw[" << _pe << "]: waking up PE with report="
+            KLOG(CTXSW, "CtxSw[" << _pe << "]: restoring VPE " << _cur->id() << " with report="
                 << vals[0] << " flags=" << m3::fmt(vals[1], "#x"));
 
             DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, vals, sizeof(vals));
