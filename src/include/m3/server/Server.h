@@ -88,7 +88,7 @@ public:
 private:
     void handle_message(GateIStream &is, Subscriber<GateIStream&> *) {
         auto *req = reinterpret_cast<const KIF::DefaultRequest*>(is.message().data);
-        KIF::Service::Command op = static_cast<KIF::Service::Command>(req->opcode);
+        KIF::Service::Operation op = static_cast<KIF::Service::Operation>(req->opcode);
 
         if(static_cast<size_t>(op) < ARRAY_SIZE(_ctrl_handler)) {
             (this->*_ctrl_handler[op])(is);

@@ -280,7 +280,7 @@ struct KIF {
      * Service calls
      */
     struct Service {
-        enum Command {
+        enum Operation {
             OPEN,
             OBTAIN,
             DELEGATE,
