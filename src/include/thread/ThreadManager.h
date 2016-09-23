@@ -47,6 +47,14 @@ public:
         return _current->get_msg();
     }
 
+    void *get_wait_event() {
+        // if we have no other threads available, don't use events
+        if(sleeping_count() == 0)
+            return nullptr;
+        // otherwise, use a unique number
+        return reinterpret_cast<void*>(_next_id++);
+    }
+
     void init(uint threads);
 
     void wait_for(void *event) {
@@ -91,7 +99,7 @@ public:
     }
 
 private:
-    explicit ThreadManager() : _current(), _ready(), _blocked(), _sleep() {
+    explicit ThreadManager() : _current(), _ready(), _blocked(), _sleep(), _next_id(1) {
         _current = new Thread();
     }
 
@@ -116,6 +124,7 @@ private:
     m3::SList<Thread> _ready;
     m3::SList<Thread> _blocked;
     m3::SList<Thread> _sleep;
+    uintptr_t _next_id;
     static ThreadManager inst;
 };
 

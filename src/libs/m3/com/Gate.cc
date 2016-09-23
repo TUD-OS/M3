@@ -24,13 +24,12 @@
 namespace m3 {
 
 Errors::Code Gate::reactivate() {
-    // if we have other threads available, let the kernel reply to us via upcall
-    void *event = ThreadManager::get().sleeping_count() > 0 ? this : nullptr;
+    void *event = ThreadManager::get().get_wait_event();
     Errors::Code res = Syscalls::get().activate(_epid, sel(), sel(), event);
 
     // if this has been done, go to sleep and wait until the kernel sends us the upcall
     if(res == Errors::UPCALL_REPLY) {
-        ThreadManager::get().wait_for(this);
+        ThreadManager::get().wait_for(event);
         auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
             ThreadManager::get().get_current_msg());
         res = static_cast<Errors::Code>(msg->error);
