@@ -45,6 +45,8 @@ private:
 int main(int argc, char **argv) {
     const char *name = argc > 1 ? argv[1] : "test";
     Server<TestRequestHandler> srv(name, new TestRequestHandler());
+
+    env()->workloop()->multithreaded(4);
     env()->workloop()->run();
     return 0;
 }
