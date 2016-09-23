@@ -18,13 +18,11 @@
 
 #include <base/WorkLoop.h>
 
-namespace kernel {
+namespace m3 {
 
-class WorkLoop : public m3::WorkLoop {
+class UserWorkLoop : public WorkLoop {
 public:
-    virtual void multithreaded(uint count) override;
-
-    virtual void run() override;
+    void multithreaded(uint count) override;
 };
 
 }

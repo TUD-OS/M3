@@ -23,6 +23,7 @@
 #include <m3/com/RecvBuf.h>
 #include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
+#include <m3/UserWorkLoop.h>
 #include <m3/VPE.h>
 
 namespace m3 {
@@ -30,7 +31,7 @@ namespace m3 {
 class EnvUserBackend : public BaremetalEnvBackend {
 public:
     explicit EnvUserBackend() {
-        _workloop = new WorkLoop();
+        _workloop = new UserWorkLoop();
     }
 
     virtual void init() override {

@@ -47,6 +47,8 @@ public:
         return _current->get_msg();
     }
 
+    void init(uint threads);
+
     void wait_for(void *event) {
         assert(_sleep.length() > 0);
         _current->subscribe(event);

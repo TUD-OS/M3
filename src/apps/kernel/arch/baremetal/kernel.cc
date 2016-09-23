@@ -18,7 +18,6 @@
 #include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
 #include <base/DTU.h>
-#include <base/WorkLoop.h>
 
 #include <thread/ThreadManager.h>
 
@@ -27,16 +26,9 @@
 #include "pes/VPEManager.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
+#include "WorkLoop.h"
 
 using namespace kernel;
-
-static void thread_startup(void *) {
-    m3::env()->workloop()->run();
-
-    m3::ThreadManager::get().stop();
-
-    PANIC("Should not get here");
-}
 
 int main(int argc, char *argv[]) {
     if(argc < 2) {
@@ -49,8 +41,7 @@ int main(int argc, char *argv[]) {
     KLOG(MEM, MainMemory::get());
 
     // create some worker threads
-    for(int i = 0; i < 8; ++i)
-        new m3::Thread(thread_startup, nullptr);
+    m3::env()->workloop()->multithreaded(8);
 
     PEManager::create();
     VPEManager::create();

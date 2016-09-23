@@ -46,10 +46,15 @@ public:
     void add(WorkItem *item, bool permanent);
     void remove(WorkItem *item);
 
+    virtual void multithreaded(uint count) = 0;
+
     virtual void run();
     void stop() {
         _permanents = _count;
     }
+
+protected:
+    static void thread_startup(void *);
 
 private:
     bool _changed;

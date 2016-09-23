@@ -14,9 +14,20 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Panic.h>
 #include <base/WorkLoop.h>
 
+#include <thread/ThreadManager.h>
+
 namespace m3 {
+
+void WorkLoop::thread_startup(void *) {
+    env()->workloop()->run();
+
+    ThreadManager::get().stop();
+
+    PANIC("Should not get here");
+}
 
 void WorkLoop::add(WorkItem *item, bool permanent) {
     assert(_count < MAX_ITEMS);
@@ -41,8 +52,11 @@ void WorkLoop::run() {
     while(_count > _permanents) {
         // wait first to ensure that we check for loop termination *before* going to sleep
         DTU::get().try_sleep();
+
         for(size_t i = 0; i < _count; ++i)
             _items[i]->work();
+
+        m3::ThreadManager::get().yield();
     }
 }
 

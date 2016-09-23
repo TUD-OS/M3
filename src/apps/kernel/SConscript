@@ -18,5 +18,5 @@ myenv.M3Program(
     myenv,
     target = 'kernel',
     source = sources,
-    libs = ['X11', 'rt'] if myenv['ARCH'] == 'host' else ['thread']
+    libs = ['X11', 'rt'] if myenv['ARCH'] == 'host' else []
 )

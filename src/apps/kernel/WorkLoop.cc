@@ -57,6 +57,11 @@ static void check_childs() {
 
 namespace kernel {
 
+void WorkLoop::multithreaded(uint count) {
+    for(uint i = 0; i < count; ++i)
+        new m3::Thread(thread_startup, nullptr);
+}
+
 void WorkLoop::run() {
 #if defined(__host__)
     signal(SIGCHLD, sigchild);

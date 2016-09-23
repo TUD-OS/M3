@@ -237,7 +237,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
               ldscript = None, varAddr = True):
     myenv = env.Clone()
 
-    m3libs = ['base'] if target == 'kernel' else ['base', 'm3']
+    m3libs = ['base', 'thread'] if target == 'kernel' else ['base', 'm3', 'thread']
 
     if myenv['ARCH'] == 't2' or myenv['ARCH'] == 't3':
         # set variables, depending on core
