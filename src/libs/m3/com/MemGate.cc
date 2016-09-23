@@ -48,25 +48,50 @@ MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) con
 
 Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_read_sync();
-    Errors::Code res = async_cmd(READ, data, len, offset, _cmdflags, 0);
-    wait_until_sent();
-    DTU::get().wait_for_mem_cmd();
+    ensure_activated();
+
+retry:
+    Errors::Code res = DTU::get().read(epid(), data, len, offset, _cmdflags);
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        res = reactivate();
+        if(res != Errors::NO_ERROR)
+            return res;
+        goto retry;
+    }
+
     return res;
 }
 
 Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
     EVENT_TRACER_write_sync();
-    Errors::Code res = async_cmd(WRITE, const_cast<void*>(data), len, offset, _cmdflags);
-    wait_until_sent();
+    ensure_activated();
+
+retry:
+    Errors::Code res = DTU::get().write(epid(), data, len, offset, _cmdflags);
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        res = reactivate();
+        if(res != Errors::NO_ERROR)
+            return res;
+        goto retry;
+    }
+
     return res;
 }
 
 #if defined(__host__)
 Errors::Code MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_cmpxchg_sync();
-    Errors::Code res = async_cmd(CMPXCHG, data, len, offset, len / 2, 0);
-    wait_until_sent();
-    DTU::get().wait_for_mem_cmd();
+    ensure_activated();
+
+retry:
+    Errors::Code res = DTU::get().cmpxchg(epid(), data, len, offset, len / 2);
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        res = reactivate();
+        if(res != Errors::NO_ERROR)
+            return res;
+        goto retry;
+    }
+
     return res;
 }
 #endif

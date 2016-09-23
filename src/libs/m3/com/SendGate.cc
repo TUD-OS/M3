@@ -43,4 +43,19 @@ SendGate SendGate::create_for(const VPE &vpe, size_t dstep, label_t label, word_
     return gate;
 }
 
+Errors::Code SendGate::send(const void *data, size_t len) {
+    ensure_activated();
+
+retry:
+    Errors::Code res = DTU::get().send(epid(), data, len, _rcvgate->label(), _rcvgate->epid());
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        res = reactivate();
+        if(res != Errors::NO_ERROR)
+            return res;
+        goto retry;
+    }
+
+    return res;
+}
+
 }

@@ -63,7 +63,7 @@ public:
      * @return the error code or Errors::NO_ERROR
      */
     Errors::Code reply(RGATE &gate, const void *msg) {
-        return gate.reply_sync(bytes(), total(), m3::DTU::get().get_msgoff(gate.epid(), msg));
+        return gate.reply(bytes(), total(), m3::DTU::get().get_msgoff(gate.epid(), msg));
     }
 
     using Marshaller::put;
@@ -286,7 +286,7 @@ public:
      * @return the error code or Errors::NO_ERROR
      */
     Errors::Code reply(const void *data, size_t len) const {
-        return _gate->reply_sync(data, len, DTU::get().get_msgoff(_gate->epid(), _msg));
+        return _gate->reply(data, len, DTU::get().get_msgoff(_gate->epid(), _msg));
     }
 
     void ignore(size_t bytes) {

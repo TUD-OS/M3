@@ -23,47 +23,19 @@
 
 namespace m3 {
 
-Errors::Code Gate::async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
-        label_t reply_lbl, int reply_ep) {
-    // ensure that the DMAUnit is ready. this is required if we want to mix async sends with
-    // sync sends.
-    wait_until_sent();
-    ensure_activated();
+Errors::Code Gate::reactivate() {
+    // if we have other threads available, let the kernel reply to us via upcall
+    void *event = ThreadManager::get().sleeping_count() > 0 ? this : nullptr;
+    Errors::Code res = Syscalls::get().activate(_epid, sel(), sel(), event);
 
-retry:
-    Errors::Code res;
-    switch(op) {
-        case SEND:
-            res = DTU::get().send(_epid, data, datalen, reply_lbl, reply_ep);
-            break;
-        case READ:
-            res = DTU::get().read(_epid, data, datalen, off, size);
-            break;
-        case WRITE:
-            res = DTU::get().write(_epid, data, datalen, off, size);
-            break;
-        case CMPXCHG:
-            res = DTU::get().cmpxchg(_epid, data, datalen, off, size);
-            break;
+    // if this has been done, go to sleep and wait until the kernel sends us the upcall
+    if(res == Errors::UPCALL_REPLY) {
+        ThreadManager::get().wait_for(this);
+        auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
+            ThreadManager::get().get_current_msg());
+        res = static_cast<Errors::Code>(msg->error);
     }
 
-    if(res == Errors::VPE_GONE) {
-        // if we have other threads available, let the kernel reply to us via upcall
-        void *event = ThreadManager::get().sleeping_count() > 0 ? this : nullptr;
-        res = Syscalls::get().activate(_epid, sel(), sel(), event);
-
-        // if this has been done, go to sleep and wait until the kernel sends us the upcall
-        if(res == Errors::UPCALL_REPLY) {
-            ThreadManager::get().wait_for(this);
-            auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
-                ThreadManager::get().get_current_msg());
-            res = static_cast<Errors::Code>(msg->error);
-        }
-
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
-    }
     return res;
 }
 

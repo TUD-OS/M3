@@ -25,7 +25,7 @@ static Errors::Code reply_vmsg_late(RecvGate &gate, const DTU::Message *msg,
         const Args &... args) {
     auto reply = create_vmsg(args...);
     size_t idx = DTU::get().get_msgoff(gate.epid(), msg);
-    Errors::Code res = gate.reply_sync(reply.bytes(), reply.total(), idx);
+    Errors::Code res = gate.reply(reply.bytes(), reply.total(), idx);
     DTU::get().mark_read(gate.epid(), idx);
     return res;
 }

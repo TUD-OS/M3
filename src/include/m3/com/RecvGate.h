@@ -112,20 +112,13 @@ public:
     /**
      * Performs the reply-operation with <data> of length <len> on message with index <msgidx>.
      * This requires that you have received a reply-capability with this message.
-     * Synchronous means that it waits until the data has been sent, but NOT until a potential reply
-     * has been received.
      *
      * @param data the data to send
      * @param len the length of the data
      * @param msgidx the index of the message to reply to
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code reply_sync(const void *data, size_t len, size_t msgidx) {
-        Errors::Code res = reply_async(data, len, msgidx);
-        wait_until_sent();
-        return res;
-    }
-    Errors::Code reply_async(const void *data, size_t len, size_t msgidx);
+    Errors::Code reply(const void *data, size_t len, size_t msgidx);
 
 private:
     RecvBuf *_rcvbuf;

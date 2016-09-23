@@ -27,22 +27,24 @@ namespace m3 {
 INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
 INIT_PRIO_RECVGATE RecvGate RecvGate::_upcall (RecvGate::create(&RecvBuf::upcall()));
 
-Errors::Code RecvGate::reply_async(const void *data, size_t len, size_t msgidx) {
+Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
     // might send us another message, which we might miss if we ACK this message after we've got
     // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
     DTU::get().mark_read(epid(), msgidx);
 #endif
-    wait_until_sent();
 
 retry:
     Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
 
-    if(res == Errors::VPE_GONE) {
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        // TODO note that we do not use Gate::reactivate here, because putting them together
+        // increases the runtime for the bench-fileread by 10%. not sure why
+
         // if we have other threads available, let the kernel reply to us via upcall
         void *event = ThreadManager::get().sleeping_count() > 0 ? this : nullptr;
-        res = Syscalls::get().activatereply(epid(), msgidx, event);
+        Errors::Code res = Syscalls::get().activatereply(epid(), msgidx, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {

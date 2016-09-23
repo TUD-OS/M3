@@ -56,7 +56,7 @@ public:
         }
     }
 
-    m3::Errors::Code reply_sync(const void *data, size_t len, size_t msgidx) {
+    m3::Errors::Code reply(const void *data, size_t len, size_t msgidx) {
         DTU::get().reply(_ep, data, len, msgidx);
         return m3::Errors::NO_ERROR;
     }

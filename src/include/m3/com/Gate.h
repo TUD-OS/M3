@@ -96,12 +96,8 @@ protected:
         if(_epid == UNBOUND && sel() != ObjCap::INVALID)
             EPMux::get().switch_to(this);
     }
-    void wait_until_sent() {
-        DTU::get().wait_until_ready(_epid);
-    }
 
-    Errors::Code async_cmd(Operation op, void *data, size_t datalen, size_t off, size_t size,
-            label_t reply_lbl = 0, int reply_ep = 0);
+    Errors::Code reactivate();
 
 private:
     size_t _epid;

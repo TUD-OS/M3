@@ -111,12 +111,7 @@ public:
      * @param len the length of the data
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code send(const void *data, size_t len) {
-        Errors::Code res = async_cmd(SEND, const_cast<void*>(data), len, 0, 0,
-            _rcvgate->label(), _rcvgate->epid());
-        wait_until_sent();
-        return res;
-    }
+    Errors::Code send(const void *data, size_t len);
 
 private:
     RecvGate *_rcvgate;
