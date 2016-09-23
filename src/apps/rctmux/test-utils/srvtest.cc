@@ -47,10 +47,14 @@ if(VERBOSE)     cout << "Mounting filesystem...\n";
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
     Executable exec1(ARRAY_SIZE(args1), args1);
     VPE s1(args1[0], VPE::self().pe(), "pager", true);
+    if(Errors::last != Errors::NO_ERROR)
+        exitmsg("Unable to create VPE");
 
     const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
     Executable exec2(ARRAY_SIZE(args2), args2);
     VPE s2(args2[0], VPE::self().pe(), "pager", true);
+    if(Errors::last != Errors::NO_ERROR)
+        exitmsg("Unable to create VPE");
 
     if(VERBOSE) cout << "Starting VPEs...\n";
 

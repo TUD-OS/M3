@@ -35,6 +35,8 @@ struct App {
     explicit App(int argc, const char *argv[], bool muxed)
         : exec(argc, argv),
           vpe(argv[0], VPE::self().pe(), "pager", muxed) {
+        if(Errors::last != Errors::NO_ERROR)
+            exitmsg("Unable to create VPE");
     }
 
     Executable exec;
