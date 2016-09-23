@@ -16,6 +16,8 @@
 
 #include <base/Init.h>
 
+#include <thread/ThreadManager.h>
+
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/Syscalls.h>
@@ -38,7 +40,18 @@ retry:
     Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
 
     if(res == Errors::VPE_GONE) {
-        res = Syscalls::get().activatereply(epid(), msgidx, nullptr);
+        // if we have other threads available, let the kernel reply to us via upcall
+        void *event = ThreadManager::get().sleeping_count() > 0 ? this : nullptr;
+        res = Syscalls::get().activatereply(epid(), msgidx, event);
+
+        // if this has been done, go to sleep and wait until the kernel sends us the upcall
+        if(res == Errors::UPCALL_REPLY) {
+            ThreadManager::get().wait_for(this);
+            auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
+                ThreadManager::get().get_current_msg());
+            res = static_cast<Errors::Code>(msg->error);
+        }
+
         if(res != Errors::NO_ERROR)
             return res;
         goto retry;
