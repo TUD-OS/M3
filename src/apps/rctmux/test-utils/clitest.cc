@@ -50,13 +50,13 @@ int main() {
 
     App *apps[3];
 
-    const char *args1[] = {"/bin/rctmux-util-client", "1", "srv1"};
+    const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
     apps[0] = new App(ARRAY_SIZE(args1), args1, true);
 
-    const char *args2[] = {"/bin/rctmux-util-client", "2", "srv1"};
+    const char *args2[] = {"/bin/rctmux-util-client", "1", "srv1"};
     apps[1] = new App(ARRAY_SIZE(args2), args2, true);
 
-    const char *args3[] = {"/bin/rctmux-util-service", "srv1"};
+    const char *args3[] = {"/bin/rctmux-util-client", "2", "srv1"};
     apps[2] = new App(ARRAY_SIZE(args3), args3, true);
 
     if(VERBOSE) cout << "Starting VPEs...\n";
@@ -72,7 +72,7 @@ int main() {
     if(VERBOSE) cout << "Waiting for VPEs...\n";
 
     // don't wait for the service
-    for(size_t i = 0; i < 2; ++i) {
+    for(size_t i = 1; i < 3; ++i) {
         int res = apps[i]->vpe.wait();
         if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
     }
