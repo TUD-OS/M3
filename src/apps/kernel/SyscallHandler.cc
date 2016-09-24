@@ -861,8 +861,10 @@ void SyscallHandler::activate(GateIStream &is) {
                     sent_reply = true;
                 }
 
-                if(!tvpe.resume(false))
+                if(!tvpe.resume(false)) {
                     res = m3::Errors::VPE_GONE;
+                    break;
+                }
             }
         }
 
