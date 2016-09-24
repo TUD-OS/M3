@@ -146,7 +146,7 @@ bool VPE::resume(bool need_app, bool unblock) {
 
     bool wait = true;
     if(unblock)
-        wait = !PEManager::get().unblock_vpe(this, true);
+        wait = !PEManager::get().unblock_vpe(this, false);
     if(wait)
         m3::ThreadManager::get().wait_for(this);
 
@@ -158,7 +158,7 @@ void VPE::wakeup() {
     if(_state == RUNNING)
         DTU::get().wakeup(desc());
     else if(has_app())
-        PEManager::get().unblock_vpe(this, true);
+        PEManager::get().unblock_vpe(this, false);
 }
 
 void VPE::notify_resume() {
