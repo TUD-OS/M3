@@ -27,19 +27,28 @@ class PipeReadHandler;
 class PipeWriteHandler;
 
 class PipeSessionData : public m3::RequestSessionData {
+    struct WorkItem : public m3::WorkItem {
+        virtual void work() override;
+
+        PipeSessionData *sess;
+    };
+
 public:
     // unused
     explicit PipeSessionData()
-        : m3::RequestSessionData(), flags(), reader(), writer(), rbuf(0) {
+        : m3::RequestSessionData(), flags(), reader(), writer(), workitem(), rbuf(0) {
     }
     explicit PipeSessionData(size_t _memsize)
-        : m3::RequestSessionData(), flags(), reader(), writer(), rbuf(_memsize) {
+        : m3::RequestSessionData(), flags(), reader(), writer(), workitem(), rbuf(_memsize) {
     }
     virtual ~PipeSessionData();
+
+    void init();
 
     uint flags;
     PipeReadHandler *reader;
     PipeWriteHandler *writer;
+    WorkItem *workitem;
     VarRingBuf rbuf;
 private:
     static int _nextid;

@@ -63,6 +63,7 @@ public:
             KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->writer->sendgate().sel());
             data.caps = crd.value();
         }
+        sess->init();
         return Errors::NO_ERROR;
     }
 
@@ -90,6 +91,7 @@ public:
 
 int main() {
     Server<PipeServiceHandler> srv("pipe", new PipeServiceHandler());
+    env()->workloop()->multithreaded(4);
     env()->workloop()->run();
     return 0;
 }

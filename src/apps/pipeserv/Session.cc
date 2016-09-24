@@ -32,7 +32,24 @@ static Errors::Code reply_vmsg_late(RecvGate &gate, const DTU::Message *msg,
 
 int PipeSessionData::_nextid = 0;
 
+void PipeSessionData::WorkItem::work() {
+    sess->writer->handle_pending_write(sess);
+    sess->reader->handle_pending_read(sess);
+}
+
+void PipeSessionData::init() {
+    if(reader && writer && !workitem) {
+        workitem = new WorkItem();
+        workitem->sess = this;
+        m3::env()->workloop()->add(workitem, false);
+    }
+}
+
 PipeSessionData::~PipeSessionData() {
+    if(workitem) {
+        m3::env()->workloop()->remove(workitem);
+        delete workitem;
+    }
     delete reader;
     delete writer;
 }
@@ -55,15 +72,12 @@ Errors::Code PipeReadHandler::close(PipeSessionData *sess, int id) {
 
     if(--refs > 0) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read-refs=" << refs);
-        handle_pending_read(sess);
-        sess->writer->handle_pending_write(sess);
         return Errors::NO_ERROR;
     }
 
     sess->flags |= READ_EOF;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read end");
 
-    sess->writer->handle_pending_write(sess);
     return Errors::NO_ERROR;
 }
 
@@ -82,12 +96,9 @@ void PipeReadHandler::read(GateIStream &is) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": read-pull: " << lastread << " [" << id << "]");
         sess->rbuf.pull(lastread);
         lastread = 0;
-
-        sess->writer->handle_pending_write(sess);
     }
 
     if(_pending.length() > 0) {
-        handle_pending_read(sess);
         if(!(sess->flags & WRITE_EOF)) {
             append_request(sess, is, amount);
             return;
@@ -125,18 +136,20 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
         size_t ramount = req->amount;
         ssize_t rpos = sess->rbuf.get_read_pos(&ramount);
         if(rpos != -1) {
+            _pending.remove_first();
             _lastid++;
             lastread = ramount;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: " << ramount << " @" << rpos
                 << " [" << _lastid << "]");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, rpos, ramount, _lastid);
-            delete _pending.remove_first();
+            delete req;
             break;
         }
         else if(sess->flags & WRITE_EOF) {
+            _pending.remove_first();
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: EOF");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, (size_t)0, (size_t)0, 0);
-            delete _pending.remove_first();
+            delete req;
         }
         else
             break;
@@ -161,15 +174,12 @@ Errors::Code PipeWriteHandler::close(PipeSessionData *sess, int id) {
 
     if(--refs > 0) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write-refs=" << refs);
-        handle_pending_write(sess);
-        sess->reader->handle_pending_read(sess);
         return Errors::NO_ERROR;
     }
 
     sess->flags |= WRITE_EOF;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write end");
 
-    sess->reader->handle_pending_read(sess);
     return Errors::NO_ERROR;
 }
 
@@ -194,12 +204,9 @@ void PipeWriteHandler::write(GateIStream &is) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastwrite << " [" << id << "]");
         sess->rbuf.push(lastwrite);
         lastwrite = 0;
-
-        sess->reader->handle_pending_read(sess);
     }
 
     if(_pending.length() > 0) {
-        handle_pending_write(sess);
         append_request(sess, is, amount);
         return;
     }
@@ -235,12 +242,13 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
         RdWrRequest *req = &*_pending.begin();
         ssize_t wpos = sess->rbuf.get_write_pos(req->amount);
         if(wpos != -1) {
+            _pending.remove_first();
+
             lastwrite = req->amount;
             _lastid++;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: " << req->amount
                 << " @" << wpos << " [" << _lastid << "]");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, wpos, _lastid);
-            _pending.remove_first();
             delete req;
         }
     }
