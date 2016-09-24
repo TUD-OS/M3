@@ -41,11 +41,16 @@ EXTERN_C void *_start_app() {
     if(flags & m3::RESTORE)
         return restore();
 
-    if(flags & m3::WAITING)
+    if(flags & m3::WAITING) {
         flags_set(m3::SIGNAL);
 
-    started = false;
-    state = nullptr;
+        // no application anymore; only reset that if the kernel actually requested that
+        // because it might happen that we are waked up by a message before the kernel has written
+        // the flags register. in this case, we don't want to lose the application.
+        started = false;
+        state = nullptr;
+    }
+
     return nullptr;
 }
 
