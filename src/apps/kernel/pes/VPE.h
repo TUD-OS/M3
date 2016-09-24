@@ -72,6 +72,7 @@ public:
         F_HASAPP      = 1 << 4,
         F_MUXABLE     = 1 << 5, // TODO temporary
         F_READY       = 1 << 6,
+        F_WAITING     = 1 << 7,
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = -1,
@@ -116,6 +117,18 @@ public:
 
     int exitcode() const {
         return _exitcode;
+    }
+
+    bool is_waiting() const {
+        return _flags & F_WAITING;
+    }
+    void start_wait() {
+        assert(!(_flags & F_WAITING));
+        _flags |= F_WAITING;
+    }
+    void stop_wait() {
+        assert(_flags & F_WAITING);
+        _flags &= ~F_WAITING;
     }
 
     void subscribe_exit(const m3::Subscriptions<int>::callback_type &cb) {

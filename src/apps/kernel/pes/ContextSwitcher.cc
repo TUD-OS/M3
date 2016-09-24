@@ -203,7 +203,7 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     enqueue(vpe);
 
     // if we are forced or are executing nothing useful atm, start a switch immediately
-    if(force || !_cur || (_cur->flags() & VPE::F_IDLE))
+    if(force || !_cur || (_cur->flags() & VPE::F_IDLE) || _cur->is_waiting())
         return start_switch();
 
     if(!_timeout) {

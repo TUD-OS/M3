@@ -277,9 +277,13 @@ void SyscallHandler::createsess(GateIStream &is) {
 
     m3::Reference<Service> rsrv(s);
 
+    vpe->start_wait();
+
     if(s->vpe().state() != VPE::RUNNING) {
-        if(!s->vpe().resume())
+        if(!s->vpe().resume()) {
+            vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+        }
     }
 
     m3::KIF::Service::Open msg;
@@ -288,6 +292,7 @@ void SyscallHandler::createsess(GateIStream &is) {
 
     const m3::DTU::Message *srvreply = s->send_receive(&msg, sizeof(msg), false);
 
+    vpe->stop_wait();
     EVENT_TRACER_Syscall_createsess();
     auto reply = reinterpret_cast<const m3::KIF::Service::OpenReply*>(srvreply->data);
 
@@ -746,9 +751,13 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
 
+    vpe->start_wait();
+
     if(rsrv->vpe().state() != VPE::RUNNING) {
-        if(!rsrv->vpe().resume())
+        if(!rsrv->vpe().resume()) {
+            vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
+        }
     }
 
     m3::KIF::Service::Exchange msg;
@@ -760,8 +769,9 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
         msg.data.args[i] = req->args[i];
 
     const m3::DTU::Message *srvreply = rsrv->send_receive(&msg, sizeof(msg), false);
-    EVENT_TRACER_Syscall_delob_done();
+    vpe->stop_wait();
 
+    EVENT_TRACER_Syscall_delob_done();
     auto *reply = reinterpret_cast<const m3::KIF::Service::ExchangeReply*>(srvreply->data);
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
@@ -816,6 +826,8 @@ void SyscallHandler::activate(GateIStream &is) {
     if(ncap && ncap->obj->vpe != VPE::INVALID_ID) {
         VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
 
+        vpe->start_wait();
+
         // if we have waited for one of these conditions, the other might be no longer true again
         bool done = false;
         while(!done) {
@@ -853,6 +865,8 @@ void SyscallHandler::activate(GateIStream &is) {
                     res = m3::Errors::VPE_GONE;
             }
         }
+
+        vpe->stop_wait();
 
         // update PE id in case it changed
         if(oldcap == newcap)
@@ -904,6 +918,8 @@ void SyscallHandler::activatereply(GateIStream &is) {
 
     VPE &tvpe = VPEManager::get().vpe(id);
     if(tvpe.state() != VPE::RUNNING) {
+        vpe->start_wait();
+
         if(tvpe.pe() == vpe->pe())
             tvpe.migrate();
 
@@ -917,6 +933,8 @@ void SyscallHandler::activatereply(GateIStream &is) {
 
         if(!tvpe.resume())
             res = m3::Errors::VPE_GONE;
+
+        vpe->stop_wait();
     }
 
     if(res == m3::Errors::NO_ERROR) {
