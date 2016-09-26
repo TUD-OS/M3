@@ -32,10 +32,9 @@ static const uint EPID          = 7;
 static const size_t ACC_MEM     = 64 * 1024;
 static const size_t RB_SIZE     = 1024;
 static const size_t BUF_SIZE    = 4096;
-static const size_t REPLY_SIZE  = 64;
 static const size_t CLIENTS     = 8;
 static const size_t BASE_ADDR   = PAGE_SIZE;
-static const size_t MEM_SIZE    = Math::round_up(CLIENTS * BUF_SIZE + REPLY_SIZE, PAGE_SIZE);
+static const size_t MEM_SIZE    = CLIENTS * BUF_SIZE;
 
 static uint occupied = 0;
 
