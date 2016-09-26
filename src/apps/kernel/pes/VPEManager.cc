@@ -35,6 +35,11 @@ VPEManager::VPEManager()
 }
 
 void VPEManager::init(int argc, char **argv) {
+    // TODO the required PE depends on the boot module, not the kernel PE
+    m3::PEDesc pedesc = Platform::pe(Platform::kernel_pe());
+    m3::PEDesc pedesc_cache(m3::PEType::COMP_EMEM, pedesc.isa(), pedesc.mem_size());
+    m3::PEDesc pedesc_spm(m3::PEType::COMP_IMEM, pedesc.isa(), pedesc.mem_size());
+
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
             continue;
@@ -44,10 +49,14 @@ void VPEManager::init(int argc, char **argv) {
 
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
-            // TODO the required PE depends on the boot module, not the kernel PE
-            peid_t peid = PEManager::get().find_pe(Platform::pe(Platform::kernel_pe()), 0, false);
-            if(peid == 0)
-                PANIC("Unable to find a free PE for boot module " << argv[i]);
+            // try to find a PE with the required ISA and a cache first
+            peid_t peid = PEManager::get().find_pe(pedesc_cache, 0, false);
+            if(peid == 0) {
+                // if that failed, try to find a SPM PE
+                peid = PEManager::get().find_pe(pedesc_spm, 0, false);
+                if(peid == 0)
+                    PANIC("Unable to find a free PE for boot module " << argv[i]);
+            }
 
             // allow multiple applications with the same name
             _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);

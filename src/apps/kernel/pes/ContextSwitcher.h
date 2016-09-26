@@ -65,7 +65,9 @@ public:
         return _count;
     }
 
-    bool can_mux() const;
+    bool can_mux() const {
+        return _muxable;
+    }
 
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);

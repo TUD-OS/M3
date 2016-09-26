@@ -69,14 +69,9 @@ static const char *stateNames[] = {
 size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(size_t pe)
-    : _muxable(true), _pe(pe), _state(S_IDLE), _count(), _ready(),
+    : _muxable(Platform::pe(pe).has_cache()), _pe(pe), _state(S_IDLE), _count(), _ready(),
       _timeout(), _wait_time(), _idle(), _cur(), _set_report() {
     assert(pe > 0);
-    KLOG(CTXSW, "Initialized context switcher for pe " << pe);
-}
-
-bool ContextSwitcher::can_mux() const {
-    return _muxable;
 }
 
 void ContextSwitcher::send_flags(vpeid_t vpeid, uint64_t flags) {
@@ -105,6 +100,9 @@ void ContextSwitcher::init() {
 
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
+
+    KLOG(CTXSW, "CTXSW[" << _pe << "] initialized (idle="
+        << _idle->id() << ", muxable=" << _muxable << ")");
 
     if(_cur == nullptr)
         start_switch();
@@ -140,7 +138,7 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
     stop_vpe(vpe);
 
     if(--_count == 0)
-        _muxable = true;
+        _muxable = Platform::pe(_pe).has_cache();
 
     if(_count == 1) {
         // cancel timeout; the remaining VPE can run as long as it likes
