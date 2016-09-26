@@ -18,6 +18,8 @@
 
 #include <m3/stream/Standard.h>
 
+#include "loop.h"
+
 using namespace m3;
 
 alignas(DTU_PKG_SIZE) static char buffer[4096];
@@ -30,14 +32,7 @@ static void count(FStream &in) {
     ssize_t res;
     int last_space = false;
     while((res = in.read(buffer, sizeof(buffer))) > 0) {
-        for(ssize_t i = 0; i < res; ++i) {
-            if(buffer[i] == '\n')
-                lines++;
-            int space = Chars::isspace(buffer[i]);
-            if(!last_space && space)
-                words++;
-            last_space = space;
-        }
+        count(buffer, res, &lines, &words, &last_space);
         bytes += res;
     }
 
