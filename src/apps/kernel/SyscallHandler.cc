@@ -198,7 +198,7 @@ void SyscallHandler::createsrv(GateIStream &is) {
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", label="
-        << m3::fmt(label, "0x") << ", name=" << name << ")");
+        << m3::fmt(label, "#0x", sizeof(label_t) * 2) << ", name=" << name << ")");
 
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, is, m3::Errors::EXISTS, "Service does already exist");
