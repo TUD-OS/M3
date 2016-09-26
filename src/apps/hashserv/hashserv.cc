@@ -28,7 +28,7 @@ using namespace m3;
 enum HashOp {
 };
 
-static const uint EPID          = 3;
+static const uint EPID          = 7;
 static const size_t ACC_MEM     = 64 * 1024;
 static const size_t RB_SIZE     = 1024;
 static const size_t BUF_SIZE    = 4096;
@@ -90,7 +90,7 @@ public:
     }
     uintptr_t getRBAddr() override {
         // TODO use _vpe.pe().mem_size() instead of ACC_MEM
-        return ACC_MEM - RECVBUF_SIZE_SPM + DEF_RCVBUF_SIZE;
+        return ACC_MEM - RECVBUF_SIZE_SPM + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
     }
 
 private:
@@ -111,7 +111,7 @@ public:
         return _vpe;
     }
     uintptr_t getRBAddr() override {
-        return RECVBUF_SPACE + DEF_RCVBUF_SIZE;
+        return RECVBUF_SPACE + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
     }
 
 private:
