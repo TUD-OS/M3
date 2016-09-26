@@ -173,7 +173,7 @@ public:
     }
 
 private:
-    static void handler(m3::Exceptions::State *state) asm("interrupt_handler");
+    static bool handler(m3::Exceptions::State *state) asm("interrupt_handler");
     static void null_handler(m3::Exceptions::State *state);
 
     static void loadIDT(DescTable *tbl) {

@@ -51,9 +51,10 @@ Exceptions::Desc Exceptions::gdt[GDT_ENTRY_COUNT];
 Exceptions::Desc64 Exceptions::idt[IDT_COUNT];
 Exceptions::TSS Exceptions::tss ALIGNED(PAGE_SIZE);
 
-void Exceptions::handler(m3::Exceptions::State *state) {
+bool Exceptions::handler(m3::Exceptions::State *state) {
     // TODO move that to Entry.S
     isrs[state->intrptNo](state);
+    return state->intrptNo != 64;
 }
 
 void Exceptions::null_handler(m3::Exceptions::State *) {

@@ -33,7 +33,7 @@ _start:
 
     call    _start_app
     test    %rax, %rax
-    jne     1f
+    jne     _restore
 
     // if there is nothing to run yet, sleep
     mov     $_idle_stack, %rsp
@@ -45,7 +45,7 @@ _start:
     // we got waked up; try again
     jmp     _start
 
-1:
+_restore:
     // restore application state
     mov     %rax, %rsp
     pop     %r15
@@ -90,6 +90,10 @@ isrCommon:
     // call C++ routine
     mov     %rsp, %rdi
     call    interrupt_handler
+
+    // resume application?
+    test    %rax, %rax
+    jne     _restore
 
     // the kernel will reset the PE
 1:
