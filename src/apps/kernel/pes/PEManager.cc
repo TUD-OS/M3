@@ -60,8 +60,8 @@ void PEManager::add_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
-    ctx->add_vpe(vpe);
+    if(ctx)
+        ctx->add_vpe(vpe);
 
     update_report(global);
 }
@@ -70,8 +70,8 @@ void PEManager::remove_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
-    ctx->remove_vpe(vpe);
+    if(ctx)
+        ctx->remove_vpe(vpe);
 
     update_report(global);
 }
@@ -80,8 +80,13 @@ void PEManager::start_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
-    ctx->start_vpe(vpe);
+    if(ctx)
+        ctx->start_vpe(vpe);
+    else {
+        vpe->_dtustate.restore(VPEDesc(vpe->pe(), VPE::INVALID_ID), vpe->id());
+        vpe->_state = VPE::RUNNING;
+        vpe->init_memory();
+    }
 
     update_report(global);
 }
@@ -90,8 +95,12 @@ void PEManager::stop_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
-    ctx->stop_vpe(vpe);
+    if(ctx)
+        ctx->stop_vpe(vpe);
+    else {
+        DTU::get().unset_vpeid(vpe->desc());
+        vpe->_state = VPE::SUSPENDED;
+    }
 
     update_report(global);
 }
@@ -104,7 +113,8 @@ bool PEManager::migrate_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
+    if(!ctx)
+        return false;
     ctx->remove_vpe(vpe);
 
     vpe->set_pe(npe);
@@ -167,13 +177,12 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
     for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(!_ctxswitcher[i] ||
-            i == except ||
-            Platform::pe(i).isa() != pe.isa() ||
-            Platform::pe(i).type() != pe.type())
+        if(i == except ||
+           Platform::pe(i).isa() != pe.isa() ||
+           Platform::pe(i).type() != pe.type())
             continue;
 
-        if(_ctxswitcher[i]->count() == 0)
+        if(!_ctxswitcher[i] || _ctxswitcher[i]->count() == 0)
             return i;
 
         // TODO temporary

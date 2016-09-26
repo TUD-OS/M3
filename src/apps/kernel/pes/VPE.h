@@ -35,11 +35,13 @@
 namespace kernel {
 
 class ContextSwitcher;
+class PEManager;
 class VPECapability;
 class VPEManager;
 
 class VPE : public m3::SListItem, public SlabObject<VPE> {
     friend class ContextSwitcher;
+    friend class PEManager;
     friend class VPECapability;
     friend class VPEManager;
 
