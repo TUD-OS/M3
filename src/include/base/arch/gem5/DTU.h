@@ -48,7 +48,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 10;
+    static const size_t DTU_REGS            = 9;
     static const size_t CMD_REGS            = 7;
     static const size_t EP_REGS             = 3;
 
@@ -59,13 +59,12 @@ private:
         FEATURES            = 0,
         ROOT_PT             = 1,
         PF_EP               = 2,
-        LAST_PF             = 3,
-        RW_BARRIER          = 4,
-        VPE_ID              = 5,
-        CUR_TIME            = 6,
-        IDLE_TIME           = 7,
-        MSG_CNT             = 8,
-        EXT_CMD             = 9,
+        RW_BARRIER          = 3,
+        VPE_ID              = 4,
+        CUR_TIME            = 5,
+        IDLE_TIME           = 6,
+        MSG_CNT             = 7,
+        EXT_CMD             = 8,
     };
 
     enum class CmdRegs {
@@ -205,10 +204,6 @@ public:
     }
     static uint64_t build_noc_addr(int pe, uintptr_t virt) {
         return (static_cast<uintptr_t>(0x80 + pe) << 52) | virt;
-    }
-
-    uintptr_t get_last_pf() const {
-        return read_reg(DtuRegs::LAST_PF);
     }
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);

@@ -60,15 +60,11 @@ void Exceptions::handler(State *state) {
     ser << "Interruption @ " << fmt(state->rip, "p");
     if(state->intrptNo == 0xe)
         ser << " for address " << fmt(getCR2(), "p");
-    else if(state->intrptNo == 65)
-        ser << " for address " << fmt(DTU::get().get_last_pf(), "p");
     ser << "\n  irq: ";
     if(state->intrptNo < ARRAY_SIZE(exNames))
         ser << exNames[state->intrptNo];
     else if(state->intrptNo == 64)
         ser << "DTU (" << state->intrptNo << ")";
-    else if(state->intrptNo == 65)
-        ser << "DTUPF (" << state->intrptNo << ")";
     else
         ser << "<unknown> (" << state->intrptNo << ")";
     ser << "\n";
