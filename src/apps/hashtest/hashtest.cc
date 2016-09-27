@@ -16,8 +16,9 @@
 
 #include <base/Common.h>
 
-#include <m3/session/Hash.h>
 #include <m3/stream/Standard.h>
+
+#include <hash/Hash.h>
 
 using namespace m3;
 
@@ -28,14 +29,14 @@ static const char *names[] = {
 static char buffer[512];
 
 int main() {
-    Hash hash("hash");
+    hash::Hash accel;
 
     for(size_t j = 0; j < sizeof(buffer); ++j)
         buffer[j] = j;
 
-    for(int i = 0; i < Hash::COUNT; ++i) {
+    for(int i = 0; i < hash::Hash::COUNT; ++i) {
         uint8_t result[64];
-        size_t len = hash.get(static_cast<Hash::Algorithm>(i), buffer, sizeof(buffer),
+        size_t len = accel.get(static_cast<hash::Hash::Algorithm>(i), buffer, sizeof(buffer),
             result, sizeof(result));
 
         if(len == 0)

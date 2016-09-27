@@ -1,0 +1,6 @@
+Import('env')
+lib = env.StaticLibrary(
+    target = 'hash',
+    source = env.Glob('*.cc')
+)
+env.Install(env['LIBDIR'], lib)
