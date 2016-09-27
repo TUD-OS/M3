@@ -97,7 +97,7 @@ if(VERBOSE)     cout << "Mounting filesystem...\n";
         int res;
         GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
         reply >> res;
-        if(VERBOSE) cout << "Got " << res << " from " << name[no] << "\n";
+        cout << "Got " << res << " from " << name[no] << "\n";
     }
 
     if(VERBOSE) cout << "Test finished.\n";
