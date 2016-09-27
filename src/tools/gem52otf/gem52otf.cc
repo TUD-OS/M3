@@ -38,10 +38,7 @@
 
 #include "Symbols.h"
 
-#ifndef VERBOSE
-#   define VERBOSE 0
-#endif
-
+static bool verbose = 0;
 static const uint64_t GEM5_TICKS_PER_SEC    = 1000000000;
 static const int GEM5_MAX_PES               = 64;
 static const int GEM5_MAX_VPES              = 1024 + 1;
@@ -410,7 +407,7 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
 
         timestamp = event->timestamp;
 
-        if(VERBOSE)
+        if(verbose)
             std::cout << *event << "\n";
 
         switch(event->type) {
@@ -605,7 +602,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
         unsigned vpe = cur_vpe[event->pe];
         unsigned remote_vpe = cur_vpe[event->remote];
 
-        if(VERBOSE) {
+        if(verbose) {
             unsigned pe = event->pe;
             unsigned remote = event->remote;
             event->pe = vpe;
@@ -766,7 +763,8 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
 }
 
 static void usage(const char *name) {
-    fprintf(stderr, "Usage: %s (pes|vpes) <file> [<binary>...]\n", name);
+    fprintf(stderr, "Usage: %s [-v] (pes|vpes) <file> [<binary>...]\n", name);
+    fprintf(stderr, "  -v:            be verbose\n");
     fprintf(stderr, "  (pes|vpes):    the mode\n");
     fprintf(stderr, "  <file>:        the gem5 log file\n");
     fprintf(stderr, "  [<binary>...]: optionally a list of binaries for profiling\n");
@@ -788,22 +786,28 @@ int main(int argc,char **argv) {
     if(argc < 3)
         usage(argv[0]);
 
+    int argstart = 1;
     Mode mode = MODE_PES;
-    if(strcmp(argv[1], "pes") == 0)
+    if(strcmp(argv[1], "-v") == 0) {
+        verbose = 1;
+        argstart++;
+    }
+
+    if(strcmp(argv[argstart], "pes") == 0)
         mode = MODE_PES;
-    else if(strcmp(argv[1], "vpes") == 0)
+    else if(strcmp(argv[argstart], "vpes") == 0)
         mode = MODE_VPES;
     else
         usage(argv[0]);
 
     if(mode == MODE_VPES) {
-        for(int i = 3; i < argc; ++i)
+        for(int i = argstart + 2; i < argc; ++i)
             syms.addFile(argv[i]);
     }
 
     std::vector<Event> trace_buf;
 
-    int pe_count = read_trace_file(argv[2], mode, trace_buf);
+    int pe_count = read_trace_file(argv[argstart + 1], mode, trace_buf);
 
     // now sort the trace buffer according to timestamps
     printf( "sorting %zu events\n", trace_buf.size());
@@ -833,7 +837,7 @@ int main(int argc,char **argv) {
     if(mode == MODE_PES)
         gen_pe_events(writer, stats, trace_buf, pe_count);
     else
-        gen_vpe_events(writer, stats, trace_buf, pe_count, argc - 3, argv + 3);
+        gen_vpe_events(writer, stats, trace_buf, pe_count, argc - (argstart + 2), argv + argstart + 2);
 
     if(stats.send != stats.recv) {
         printf("WARNING: #send != #recv\n");
