@@ -402,8 +402,8 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
     // finally loop over events and write OTF
     for(auto event = trace_buf.begin(); event != trace_buf.end(); ++event) {
         // don't use the same timestamp twice
-        if(event->timestamp == timestamp)
-            event->timestamp++;
+        if(event->timestamp <= timestamp)
+            event->timestamp = timestamp + 1;
 
         timestamp = event->timestamp;
 
@@ -595,8 +595,8 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
     // finally loop over events and write OTF
     for(auto event = trace_buf.begin(); event != trace_buf.end(); ++event) {
         // don't use the same timestamp twice
-        if(event->timestamp == timestamp)
-            event->timestamp++;
+        if(event->timestamp <= timestamp)
+            event->timestamp = timestamp + 1;
 
         timestamp = event->timestamp;
         unsigned vpe = cur_vpe[event->pe];
