@@ -282,6 +282,11 @@ void VPE::init_memory() {
 
     if(Platform::pe(pe()).is_programmable())
         map_idle(*this);
+    // PEs with virtual memory still need the rctmux flags
+    else if(vm) {
+        uintptr_t phys = alloc_mem(PAGE_SIZE);
+        map_segment(*this, phys, RCTMUX_FLAGS & ~PAGE_MASK, PAGE_SIZE, m3::DTU::PTE_RW);
+    }
 
     if(vm) {
         // map receive buffer

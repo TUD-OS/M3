@@ -29,9 +29,9 @@ namespace kernel {
 PEManager *PEManager::_inst;
 
 PEManager::PEManager()
-    :  _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
+    : _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(Platform::pe(i).is_programmable())
+        if(Platform::pe(i).supports_ctxsw())
             _ctxswitcher[i] = new ContextSwitcher(i);
         else
             _ctxswitcher[i] = nullptr;
@@ -82,11 +82,6 @@ void PEManager::start_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx)
         ctx->start_vpe(vpe);
-    else {
-        vpe->_dtustate.restore(VPEDesc(vpe->pe(), VPE::INVALID_ID), vpe->id());
-        vpe->_state = VPE::RUNNING;
-        vpe->init_memory();
-    }
 
     update_report(global);
 }
@@ -97,10 +92,6 @@ void PEManager::stop_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx)
         ctx->stop_vpe(vpe);
-    else {
-        DTU::get().unset_vpeid(vpe->desc());
-        vpe->_state = VPE::SUSPENDED;
-    }
 
     update_report(global);
 }

@@ -26,11 +26,11 @@ using namespace m3;
 namespace hash {
 
 Hash::AccelIMem::AccelIMem()
-    : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH)) {
+    : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH), nullptr, true) {
 }
 
 Hash::AccelEMem::AccelEMem()
-    : _vpe("acc", PEDesc(PEType::COMP_EMEM, PEISA::ACCEL_HASH), "pager") {
+    : _vpe("acc", PEDesc(PEType::COMP_EMEM, PEISA::ACCEL_HASH), "pager", true) {
     if(_vpe.pager()) {
         uintptr_t virt = BUF_ADDR;
         _vpe.pager()->map_anon(&virt, BUF_SIZE, Pager::Prot::READ | Pager::Prot::WRITE, 0);

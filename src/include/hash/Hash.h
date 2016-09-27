@@ -63,7 +63,7 @@ class Hash {
 
 public:
     static const size_t BUF_SIZE    = 4096;
-    static const size_t BUF_ADDR    = PAGE_SIZE;
+    static const size_t BUF_ADDR    = 0x3000;
 
     enum Algorithm {
         SHA1,

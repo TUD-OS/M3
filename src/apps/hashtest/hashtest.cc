@@ -34,18 +34,20 @@ int main() {
     for(size_t j = 0; j < sizeof(buffer); ++j)
         buffer[j] = j;
 
-    for(int i = 0; i < hash::Hash::COUNT; ++i) {
-        uint8_t result[64];
-        size_t len = accel.get(static_cast<hash::Hash::Algorithm>(i), buffer, sizeof(buffer),
-            result, sizeof(result));
+    for(int j = 0; j < 20; ++j) {
+        for(int i = 0; i < hash::Hash::COUNT; ++i) {
+            uint8_t result[64];
+            size_t len = accel.get(static_cast<hash::Hash::Algorithm>(i), buffer, sizeof(buffer),
+                result, sizeof(result));
 
-        if(len == 0)
-            cout << "Error\n";
-        else {
-            cout << names[i] << " hash: ";
-            for(size_t i = 0; i < len; ++i)
-                cout << fmt(result[i], "0x", 2);
-            cout << "\n";
+            if(len == 0)
+                cout << "Error\n";
+            else {
+                cout << names[i] << " hash: ";
+                for(size_t i = 0; i < len; ++i)
+                    cout << fmt(result[i], "0x", 2);
+                cout << "\n";
+            }
         }
     }
     return 0;

@@ -92,6 +92,19 @@ struct PEDesc {
     }
 
     /**
+     * @return if the PE supports multiple contexts
+     */
+    bool supports_multictx() const {
+        return isa() == PEISA::ACCEL_HASH || has_cache();
+    }
+    /**
+     * @return if the PE supports the context switching protocol
+     */
+    bool supports_ctxsw() const {
+        return type() != PEType::MEM;
+    }
+
+    /**
      * @return the memory size (for type() == COMP_IMEM | MEM)
      */
     size_t mem_size() const {
