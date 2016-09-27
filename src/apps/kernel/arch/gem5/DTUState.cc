@@ -36,11 +36,12 @@ void *DTUState::get_ep(epid_t ep) {
 }
 
 void DTUState::save(const VPEDesc &vpe) {
-    DTU::get().read_mem(VPEDesc(vpe.pe, VPE::INVALID_ID), m3::DTU::BASE_ADDR, this, sizeof(*this));
+    DTU::get().read_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
 
 void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
+    // and unset COM_DISABLED
     m3::DTU::reg_t features = 0;
     if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<m3::DTU::reg_t>(-1))
         features = m3::DTU::StatusFlags::PAGEFAULTS;

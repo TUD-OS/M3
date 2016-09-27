@@ -261,8 +261,7 @@ void ContextSwitcher::continue_switch() {
     assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
 
     uint64_t flags = 0;
-    // rctmux is expected to invalidate the VPE id after we've injected the IRQ
-    recv_flags(_state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id(), &flags);
+    recv_flags(_cur->id(), &flags);
 
     if(~flags & m3::RCTMuxCtrl::SIGNAL) {
         assert(_wait_time > 0);
@@ -332,6 +331,7 @@ retry:
         }
 
         case S_SWITCH: {
+            vpeid_t old = _cur ? _cur->id() : VPE::INVALID_ID;
             _cur = schedule();
 
             // make it running here, so that the PTEs are sent to the PE, if F_INIT is set
@@ -340,8 +340,7 @@ retry:
 
             _cur->_dtustate.reset(RCTMUX_ENTRY);
 
-            VPEDesc vpe(_pe, VPE::INVALID_ID);
-            _cur->_dtustate.restore(vpe, _cur->id());
+            _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->id());
 
             if(_cur->flags() & VPE::F_INIT)
                 _cur->init_memory();
@@ -399,10 +398,8 @@ retry:
         PEManager::get().unblock_vpe(migvpe, false);
 
     if(_wait_time) {
-        // rctmux is expected to invalidate the VPE id after we've injected the IRQ
-        vpeid_t vpeid = _state == S_STORE_DONE ? VPE::INVALID_ID : _cur->id();
         for(int i = 0; i < SIGNAL_WAIT_COUNT; ++i) {
-            recv_flags(vpeid, &flags);
+            recv_flags(_cur->id(), &flags);
             if(flags & m3::RCTMuxCtrl::SIGNAL)
                 goto retry;
         }
