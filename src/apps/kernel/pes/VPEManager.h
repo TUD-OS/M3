@@ -32,13 +32,10 @@ class VPEManager {
     friend class ContextSwitcher;
 
     struct Pending : public m3::SListItem {
-        explicit Pending(VPE *_vpe, int _argc, char **_argv)
-            : vpe(_vpe), argc(_argc), argv(_argv) {
+        explicit Pending(VPE *_vpe) : vpe(_vpe) {
         }
 
         VPE *vpe;
-        int argc;
-        char **argv;
     };
 
 public:

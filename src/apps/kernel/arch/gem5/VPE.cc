@@ -40,7 +40,7 @@ static uint64_t loaded = 0;
 static BootModule *idles[Platform::MAX_PES];
 static char buffer[4096];
 
-static BootModule *get_mod(const char *name, bool *first) {
+static BootModule *get_mod(size_t argc, char **argv, bool *first) {
     static_assert(sizeof(loaded) * 8 >= Platform::MAX_MODS, "Too few bits for modules");
 
     if(count == 0) {
@@ -66,14 +66,19 @@ static BootModule *get_mod(const char *name, bool *first) {
         }
     }
 
-    size_t len = strlen(name);
+    char buf[128];
+    m3::OStringStream os(buf, sizeof(buf));
+    for(size_t i = 0; i < argc; ++i) {
+        os << argv[i];
+        if(i + 1 < argc)
+            os << ' ';
+    }
+
     for(size_t i = 0; i < count; ++i) {
-        if(mods[i].name[len] == ' ' || mods[i].name[len] == '\0') {
-            if(strncmp(name, mods[i].name, len) == 0) {
-                *first = (loaded & (1 << i)) == 0;
-                loaded |= 1 << i;
-                return mods + i;
-            }
+        if(strcmp(mods[i].name, os.str()) == 0) {
+            *first = (loaded & (1 << i)) == 0;
+            loaded |= 1 << i;
+            return mods + i;
         }
     }
     return nullptr;
@@ -190,7 +195,8 @@ static uintptr_t map_idle(VPE &vpe) {
     BootModule *idle = idles[vpe.pe()];
     if(!idle) {
         bool first;
-        BootModule *tmp = get_mod("rctmux", &first);
+        char *args[] = {const_cast<char*>("rctmux")};
+        BootModule *tmp = get_mod(1, args, &first);
         idle = new BootModule;
 
         // copy the ELF file
@@ -211,13 +217,14 @@ static uintptr_t map_idle(VPE &vpe) {
     return load_mod(vpe, idle, false, false);
 }
 
-void VPE::load_app(const char *name) {
+void VPE::load_app() {
     assert(_flags & F_BOOTMOD);
+    assert(_argc > 0 && _argv);
 
     bool appFirst;
-    BootModule *mod = get_mod(name, &appFirst);
+    BootModule *mod = get_mod(_argc, _argv, &appFirst);
     if(!mod)
-        PANIC("Unable to find boot module '" << name << "'");
+        PANIC("Unable to find boot module '" << _argv[0] << "'");
 
     KLOG(KENV, "Loading mod '" << mod->name << "':");
 
@@ -300,7 +307,7 @@ void VPE::init_memory() {
 
     // boot modules are started implicitly
     if(_flags & F_BOOTMOD)
-        load_app(_name.c_str());
+        load_app();
 }
 
 }

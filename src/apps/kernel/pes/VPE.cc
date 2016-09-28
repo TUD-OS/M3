@@ -46,6 +46,8 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _upcqueue(*this),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
+      _argc(),
+      _argv(),
       _exitsubscr(),
       _resumesubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));

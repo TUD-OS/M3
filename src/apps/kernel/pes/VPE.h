@@ -179,6 +179,11 @@ public:
         return _flags & F_HASAPP;
     }
 
+    void set_args(size_t argc, char **argv) {
+        _argc = argc;
+        _argv = argv;
+    }
+
     void start_app();
     void stop_app();
     void exit_app(int exitcode);
@@ -210,7 +215,7 @@ private:
 
     void init();
     void init_memory();
-    void load_app(const char *name);
+    void load_app();
 
     void update_ep(epid_t ep);
 
@@ -238,6 +243,8 @@ private:
     RecvBufs _rbufs;
     AddrSpace *_as;
     m3::SList<ServName> _requires;
+    size_t _argc;
+    char **_argv;
     m3::Subscriptions<int> _exitsubscr;
     m3::Subscriptions<bool> _resumesubscr;
 };
