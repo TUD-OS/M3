@@ -50,7 +50,7 @@ int main() {
         return 0;
     });
 
-    VPE::self().pager()->map_anon(&virt, 0x2000, Pager::Prot::READ | Pager::Prot::WRITE, 0);
+    VPE::self().pager()->map_anon(&virt, 0x2000, Pager::Prot::RW, 0);
 
     volatile int *nums = reinterpret_cast<volatile int*>(virt);
     nums[0] = 0;

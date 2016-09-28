@@ -41,6 +41,8 @@ public:
         READ    = MemGate::R,
         WRITE   = MemGate::W,
         EXEC    = MemGate::X,
+        RW      = READ | WRITE,
+        RWX     = READ | WRITE | EXEC,
     };
 
     explicit Pager(capsel_t sess, capsel_t gate)
