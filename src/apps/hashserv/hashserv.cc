@@ -79,7 +79,7 @@ public:
         : RequestHandler(),
           _rgate(RecvGate::create(&RecvBuf::def())),
           _buf(),
-          _mem(accel->get().mem().derive(BUF_ADDR, hash::Accel::BUF_SIZE, MemGate::W)),
+          _mem(accel->get().mem().derive(ACC_BUFS, hash::Accel::BUF_SIZE, MemGate::W)),
           _accel(accel) {
         if(!_accel->get().pe().has_virtmem()) {
             _buf = new MemGate(MemGate::create_global(
