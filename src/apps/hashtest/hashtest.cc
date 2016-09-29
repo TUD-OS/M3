@@ -55,12 +55,8 @@ int main(int argc, char **argv) {
     uint8_t result[64];
     if(service) {
         m3::Hash accel(service);
-        m3::Hash accel2(service);
 
         size_t len = accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-        print(Hash::Algorithm::SHA256, result, len);
-
-        len = accel2.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
         print(Hash::Algorithm::SHA256, result, len);
 
         for(int j = 0; j < WARMUP; ++j)
