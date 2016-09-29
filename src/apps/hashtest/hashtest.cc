@@ -15,8 +15,11 @@
  */
 
 #include <base/Common.h>
+#include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
+#include <m3/session/Hash.h>
+#include <m3/vfs/Executable.h>
 
 #include <hash/Hash.h>
 
@@ -26,29 +29,59 @@ static const char *names[] = {
     "sha1", "sha224", "sha256", "sha384", "sha512"
 };
 
-static char buffer[512];
+static const int WARMUP    = 10;
 
-int main() {
-    hash::Hash accel;
+static char buffer[4096];
+
+static void print(size_t algo, uint8_t *result, size_t len) {
+    if(len == 0)
+        cout << "Error\n";
+    else {
+        cout << names[algo] << " hash: ";
+        for(size_t i = 0; i < len; ++i)
+            cout << fmt(result[i], "0x", 2);
+        cout << "\n";
+    }
+}
+
+int main(int argc, char **argv) {
+    const char *service = nullptr;
+    if(argc > 1)
+        service = argv[1];
 
     for(size_t j = 0; j < sizeof(buffer); ++j)
         buffer[j] = j;
 
-    for(int j = 0; j < 20; ++j) {
-        for(int i = 0; i < hash::Hash::COUNT; ++i) {
-            uint8_t result[64];
-            size_t len = accel.get(static_cast<hash::Hash::Algorithm>(i), buffer, sizeof(buffer),
-                result, sizeof(result));
+    uint8_t result[64];
+    if(service) {
+        m3::Hash accel(service);
+        m3::Hash accel2(service);
 
-            if(len == 0)
-                cout << "Error\n";
-            else {
-                cout << names[i] << " hash: ";
-                for(size_t i = 0; i < len; ++i)
-                    cout << fmt(result[i], "0x", 2);
-                cout << "\n";
-            }
-        }
+        size_t len = accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        print(Hash::Algorithm::SHA256, result, len);
+
+        len = accel2.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        print(Hash::Algorithm::SHA256, result, len);
+
+        for(int j = 0; j < WARMUP; ++j)
+            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+
+        Profile::start(0x1234);
+        accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        Profile::stop(0x1234);
+    }
+    else {
+        hash::Hash accel;
+
+        size_t len = accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        print(Hash::Algorithm::SHA256, result, len);
+
+        for(int j = 0; j < WARMUP; ++j)
+            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+
+        Profile::start(0x1234);
+        accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        Profile::stop(0x1234);
     }
     return 0;
 }

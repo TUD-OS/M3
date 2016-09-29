@@ -15,8 +15,8 @@
  */
 
 #include <m3/com/GateStream.h>
-#include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
+#include <m3/session/Pager.h>
 #include <m3/Syscalls.h>
 
 #include <hash/Hash.h>
@@ -25,35 +25,21 @@ using namespace m3;
 
 namespace hash {
 
-Hash::AccelIMem::AccelIMem()
-    : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH), nullptr, true) {
-}
-
-Hash::AccelEMem::AccelEMem()
-    : _vpe("acc", PEDesc(PEType::COMP_EMEM, PEISA::ACCEL_HASH), "pager", true) {
-    if(_vpe.pager()) {
-        uintptr_t virt = BUF_ADDR;
-        _vpe.pager()->map_anon(&virt, BUF_SIZE, Pager::Prot::READ | Pager::Prot::WRITE, 0);
-    }
-}
-
-uintptr_t Hash::AccelIMem::getRBAddr() {
-    return _vpe.pe().mem_size() - RECVBUF_SIZE_SPM + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
-}
-
-uintptr_t Hash::AccelEMem::getRBAddr() {
-    return RECVBUF_SPACE + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
-}
-
 Hash::Hash()
-    : _accel(get_accel()),
+    : _accel(Accel::create()),
       _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val, 0)),
       _rgate(RecvGate::create(&_rbuf)),
-      _send(SendGate::create_for(_accel->get(), EPID, 0, 256, &_rgate)) {
+      _send(SendGate::create_for(_accel->get(), Accel::EPID, Accel::BUF_ADDR, 256, &_rgate)) {
+    if(_accel->get().pager()) {
+        uintptr_t virt = BUF_ADDR;
+        _accel->get().pager()->map_anon(&virt, Accel::BUF_SIZE, Pager::Prot::RW, 0);
+    }
+
     _accel->get().start();
 
-    Errors::Code res = Syscalls::get().attachrb(_accel->get().sel(), EPID,
-        _accel->getRBAddr(), getnextlog2(RB_SIZE), getnextlog2(RB_SIZE), 0);
+    Errors::Code res = Syscalls::get().attachrb(_accel->get().sel(), Accel::EPID,
+        _accel->getRBAddr(), getnextlog2(Accel::RB_SIZE),
+        getnextlog2(Accel::RB_SIZE), 0);
     if(res != Errors::NO_ERROR)
         exitmsg("Unable to attach receive buffer on accelerator");
 }
@@ -62,26 +48,16 @@ Hash::~Hash() {
     delete _accel;
 }
 
-Hash::Accel *Hash::get_accel() {
-    Accel *acc = new AccelIMem();
-    if(Errors::last != Errors::NO_ERROR) {
-        delete acc;
-        acc = new AccelEMem();
-        if(Errors::last != Errors::NO_ERROR)
-            exitmsg("Unable to find accelerator");
-    }
-    return acc;
-}
-
 size_t Hash::get(Algorithm algo, const void *data, size_t len, void *res, size_t max) {
-    assert(len <= BUF_SIZE);
+    assert(len <= Accel::BUF_SIZE);
     _accel->get().mem().write_sync(data, len, BUF_ADDR);
 
+    Accel::Request req;
+    req.algo = algo;
+    req.len = len;
+    GateIStream is = send_receive_msg(_send, &req, sizeof(req));
+
     uint64_t count;
-    GateIStream is = send_receive_vmsg(_send,
-        static_cast<uint64_t>(algo),
-        static_cast<uint64_t>(len)
-    );
     is >> count;
 
     if(count == 0)

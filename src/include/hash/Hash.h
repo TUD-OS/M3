@@ -16,63 +16,18 @@
 
 #pragma once
 
-#include <m3/session/Session.h>
-#include <m3/com/MemGate.h>
+#include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
+
+#include <hash/Accel.h>
 
 namespace hash {
 
 class Hash {
-    class Accel {
-    public:
-        virtual ~Accel() {
-        }
-
-        virtual m3::VPE &get() = 0;
-        virtual uintptr_t getRBAddr() = 0;
-    };
-
-    class AccelIMem : public Accel {
-    public:
-        explicit AccelIMem();
-
-        m3::VPE &get() override {
-            return _vpe;
-        }
-        uintptr_t getRBAddr() override;
-
-    private:
-        m3::VPE _vpe;
-    };
-
-    class AccelEMem : public Accel {
-    public:
-        explicit AccelEMem();
-
-        m3::VPE &get() override {
-            return _vpe;
-        }
-        uintptr_t getRBAddr() override;
-
-    private:
-        m3::VPE _vpe;
-    };
-
-    static const uint EPID          = 7;
-    static const size_t RB_SIZE     = 1024;
+    static const uintptr_t BUF_ADDR     = 0x3000;
 
 public:
-    static const size_t BUF_SIZE    = 4096;
-    static const size_t BUF_ADDR    = 0x3000;
-
-    enum Algorithm {
-        SHA1,
-        SHA224,
-        SHA256,
-        SHA384,
-        SHA512,
-        COUNT
-    };
+    typedef Accel::Algorithm Algorithm;
 
     explicit Hash();
     ~Hash();
@@ -80,8 +35,6 @@ public:
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max);
 
 private:
-    static Accel *get_accel();
-
     Accel *_accel;
     m3::RecvBuf _rbuf;
     m3::RecvGate _rgate;
