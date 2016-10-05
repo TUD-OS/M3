@@ -36,7 +36,9 @@ static uint32_t occupied            = 0;
 
 class HashSessionData : public RequestSessionData {
 public:
-    explicit HashSessionData(); // unused
+    // unused
+    explicit HashSessionData() {
+    }
     explicit HashSessionData(size_t _id) : RequestSessionData(), id(_id), mem(), sgate() {
         occupied |= 1 << id;
     }
