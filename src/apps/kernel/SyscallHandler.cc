@@ -579,7 +579,7 @@ void SyscallHandler::vpectrl(GateIStream &is) {
     VPECapability *vpecap = static_cast<VPECapability*>(
             vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(vpecap == nullptr)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid VPE cap");
     if(vpe == vpecap->vpe)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE can't ctrl itself");
 
@@ -877,8 +877,10 @@ void SyscallHandler::forwardmsg(GateIStream &is) {
         << ", rep=" << rep << ", rlabel=" << m3::fmt(rlabel, "0x") << ", event=" << event << ")");
 
     MsgCapability *capobj = static_cast<MsgCapability*>(vpe->objcaps().get(cap, Capability::MSG));
-    if(capobj == nullptr || capobj->localepid == (epid_t)-1)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+    if(capobj == nullptr)
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid msg cap");
+    if(capobj->localepid == (epid_t)-1)
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Msg cap is not activated");
     if(!vpe->can_forward_msg(capobj->localepid))
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Send did not fail");
 
@@ -922,7 +924,7 @@ void SyscallHandler::forwardmem(GateIStream &is) {
 
     MemCapability *capobj = static_cast<MemCapability*>(vpe->objcaps().get(cap, Capability::MEM));
     if(capobj == nullptr || capobj->localepid == (epid_t)-1)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid memory cap");
     if(capobj->addr() + offset < offset || offset >= capobj->size() ||
        offset + len < offset || offset + len > capobj->size())
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid offset/length");
