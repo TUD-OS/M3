@@ -22,7 +22,7 @@ namespace m3 {
 
 ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     size_t pos = 0;
-    Errors::Code res = _pipe.write(&pos, count, &_lastid);
+    Errors::Code res = _pipe->write(&pos, count, &_lastid);
     assert((pos % DTU_PKG_SIZE) == 0);
     if(res != Errors::NO_ERROR)
         return -1;
@@ -35,8 +35,8 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
 
 void IndirectPipeWriter::delegate(VPE &vpe) {
     IndirectPipeFile::delegate(vpe);
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.write_gate().sel(), 1));
-    _pipe.attach(false);
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->write_gate().sel(), 1));
+    _pipe->attach(false);
 }
 
 File *IndirectPipeWriter::unserialize(Unmarshaller &um) {

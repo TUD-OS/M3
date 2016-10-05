@@ -24,10 +24,8 @@ namespace m3 {
 
 IndirectPipe::IndirectPipe(size_t memsize)
     : _mem(MemGate::create_global(memsize, MemGate::RW)), _pipe("pipe", memsize),
-      _rdfd(VPE::self().fds()->alloc(new IndirectPipeReader(_mem.sel(), _pipe.sel(),
-            _pipe.meta_gate().sel(), _pipe.read_gate().sel(), _pipe.write_gate().sel()))),
-      _wrfd(VPE::self().fds()->alloc(new IndirectPipeWriter(_mem.sel(), _pipe.sel(),
-            _pipe.meta_gate().sel(), _pipe.read_gate().sel(), _pipe.write_gate().sel()))) {
+      _rdfd(VPE::self().fds()->alloc(new IndirectPipeReader(_mem.sel(), &_pipe))),
+      _wrfd(VPE::self().fds()->alloc(new IndirectPipeWriter(_mem.sel(), &_pipe))) {
 }
 
 IndirectPipe::~IndirectPipe() {
@@ -48,14 +46,14 @@ size_t IndirectPipeFile::serialize_length() {
 }
 
 void IndirectPipeFile::serialize(Marshaller &m) {
-    m << _mem.sel() << _pipe.sel() << _pipe.meta_gate().sel();
-    m << _pipe.read_gate().sel() << _pipe.write_gate().sel();
+    m << _mem.sel() << _pipe->sel() << _pipe->meta_gate().sel();
+    m << _pipe->read_gate().sel() << _pipe->write_gate().sel();
 }
 
 void IndirectPipeFile::delegate(VPE &vpe) {
     vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _mem.sel(), 1));
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.sel(), 1));
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.meta_gate().sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->sel(), 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->meta_gate().sel(), 1));
 }
 
 }

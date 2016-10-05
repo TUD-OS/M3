@@ -26,13 +26,19 @@ namespace m3 {
  * Writes into a previously constructed pipe.
  */
 class IndirectPipeWriter : public IndirectPipeFile {
+    friend class IndirectPipe;
+
+    explicit IndirectPipeWriter(capsel_t mem, Pipe *pipe)
+        : IndirectPipeFile(mem, pipe) {
+    }
+
 public:
     explicit IndirectPipeWriter(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
         : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate) {
     }
     ~IndirectPipeWriter() {
-        _pipe.close(false, _lastid);
+        _pipe->close(false, _lastid);
     }
 
     virtual ssize_t read(void *, size_t) override {

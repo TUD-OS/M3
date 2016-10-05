@@ -22,7 +22,7 @@ namespace m3 {
 
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     size_t pos;
-    Errors::Code res = _pipe.read(&pos, &count, &_lastid);
+    Errors::Code res = _pipe->read(&pos, &count, &_lastid);
     if(res != Errors::NO_ERROR)
         return -1;
     if(count == 0)
@@ -61,8 +61,8 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
 
 void IndirectPipeReader::delegate(VPE &vpe) {
     IndirectPipeFile::delegate(vpe);
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe.read_gate().sel(), 1));
-    _pipe.attach(true);
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->read_gate().sel(), 1));
+    _pipe->attach(true);
 }
 
 File *IndirectPipeReader::unserialize(Unmarshaller &um) {

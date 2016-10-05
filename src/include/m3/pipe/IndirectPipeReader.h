@@ -21,13 +21,19 @@
 namespace m3 {
 
 class IndirectPipeReader : public IndirectPipeFile {
+    friend class IndirectPipe;
+
+    explicit IndirectPipeReader(capsel_t mem, Pipe *pipe)
+        : IndirectPipeFile(mem, pipe) {
+    }
+
 public:
     explicit IndirectPipeReader(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
         : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate) {
     }
     ~IndirectPipeReader() {
-        _pipe.close(true, _lastid);
+        _pipe->close(true, _lastid);
     }
 
     virtual ssize_t read(void *, size_t) override;

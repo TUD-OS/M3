@@ -59,10 +59,20 @@ private:
 class IndirectPipeFile : public File {
     friend class IndirectPipe;
 
+protected:
+    explicit IndirectPipeFile(capsel_t mem, Pipe *pipe)
+        : _lastid(), _mem(MemGate::bind(mem)), _pipe(pipe), _destroy(false) {
+    }
+
 public:
     explicit IndirectPipeFile(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
-        : _lastid(), _mem(MemGate::bind(mem)), _pipe(sess, metagate, rdgate, wrgate) {
+        : _lastid(), _mem(MemGate::bind(mem)), _pipe(new Pipe(sess, metagate, rdgate, wrgate)),
+          _destroy(true) {
+    }
+    ~IndirectPipeFile() {
+        if(_destroy)
+            delete _pipe;
     }
 
     virtual Buffer *create_buf(size_t size) override {
@@ -91,7 +101,8 @@ private:
 protected:
     int _lastid;
     MemGate _mem;
-    Pipe _pipe;
+    Pipe *_pipe;
+    bool _destroy;
 };
 
 }
