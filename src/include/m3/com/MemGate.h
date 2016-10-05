@@ -158,6 +158,8 @@ public:
 #endif
 
 private:
+    Errors::Code forward(void *&data, size_t &len, size_t &offset, uint flags);
+
     uint _cmdflags;
 };
 

@@ -135,7 +135,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 
     buford = m3::getnextlog2(Platform::pe_count()) + VPE::NOTIFY_MSGSIZE_ORD;
     bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().recv_msgs(m3::DTU::NOTIFY_EP, reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+    DTU::get().recv_msgs(m3::DTU::NOTIFY_SEP, reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::NOTIFY_MSGSIZE_ORD, 0);
 
     buford = m3::nextlog2<1024>::val;
@@ -162,7 +162,9 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::DELEGATE, &SyscallHandler::delegate);
     add_operation(m3::KIF::Syscall::OBTAIN, &SyscallHandler::obtain);
     add_operation(m3::KIF::Syscall::ACTIVATE, &SyscallHandler::activate);
-    add_operation(m3::KIF::Syscall::ACTIVATEREPLY, &SyscallHandler::activatereply);
+    add_operation(m3::KIF::Syscall::FORWARDMSG, &SyscallHandler::forwardmsg);
+    add_operation(m3::KIF::Syscall::FORWARDMEM, &SyscallHandler::forwardmem);
+    add_operation(m3::KIF::Syscall::FORWARDREPLY, &SyscallHandler::forwardreply);
     add_operation(m3::KIF::Syscall::REQMEM, &SyscallHandler::reqmem);
     add_operation(m3::KIF::Syscall::DERIVEMEM, &SyscallHandler::derivemem);
     add_operation(m3::KIF::Syscall::REVOKE, &SyscallHandler::revoke);
@@ -805,10 +807,9 @@ void SyscallHandler::activate(GateIStream &is) {
     epid_t epid = req->ep;
     capsel_t oldcap = req->old_sel;
     capsel_t newcap = req->new_sel;
-    word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::activate", "(ep=" << epid << ", old=" <<
-        oldcap << ", new=" << newcap << ", event=" << m3::fmt(event, "0x") << ")");
+        oldcap << ", new=" << newcap << ")");
 
     MsgCapability *ocap = oldcap == m3::KIF::INV_SEL ? nullptr : static_cast<MsgCapability*>(
             vpe->objcaps().get(oldcap, Capability::MSG | Capability::MEM));
@@ -820,87 +821,151 @@ void SyscallHandler::activate(GateIStream &is) {
             << ", new=" << newcap << "," << ncap << ")");
     }
 
-    bool sent_reply = false;
-    m3::Errors::Code res = m3::Errors::NO_ERROR;
-
     if(ncap && ncap->obj->vpe != VPE::INVALID_ID) {
         VPE &tvpe = VPEManager::get().vpe(ncap->obj->vpe);
 
         vpe->start_wait();
 
-        // if we have waited for one of these conditions, the other might be no longer true again
-        bool done = false;
-        while(!done) {
-            done = true;
+        if(ncap->type == Capability::MSG && !tvpe.rbufs().is_attached(ncap->obj->epid)) {
+            LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
+                << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
 
-            if(ncap->type == Capability::MSG && !tvpe.rbufs().is_attached(ncap->obj->epid)) {
-                done = false;
-
-                LOG_SYS(vpe, ": syscall::activate", ": waiting for receive buffer "
-                    << ncap->obj->pe << ":" << ncap->obj->epid << " to get attached");
-
-                if(event) {
-                    kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
-                    sent_reply = true;
-                }
-
-                tvpe.rbufs().wait_for(ncap->obj->epid);
-            }
-
-            if(tvpe.state() != VPE::RUNNING) {
-                done = false;
-
-                if(tvpe.pe() == vpe->pe())
-                    tvpe.migrate();
-
-                LOG_SYS(vpe, ": syscall::activate", ": waiting for VPE "
-                    << tvpe.id() << " at " << tvpe.pe());
-
-                if(!sent_reply && event) {
-                    kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
-                    sent_reply = true;
-                }
-
-                if(!tvpe.resume(false)) {
-                    res = m3::Errors::VPE_GONE;
-                    break;
-                }
-            }
+            tvpe.rbufs().wait_for(ncap->obj->epid);
         }
 
         vpe->stop_wait();
-
-        // update PE id in case it changed
-        if(oldcap == newcap)
-            ncap->obj->pe = tvpe.pe();
     }
 
-    if(res == m3::Errors::NO_ERROR)
-        res = do_activate(vpe, epid, ocap, ncap);
+    m3::Errors::Code res = do_activate(vpe, epid, ocap, ncap);
     if(res != m3::Errors::NO_ERROR)
         LOG_ERROR(vpe, res, ": activate failed");
 
-    if(event && sent_reply) {
-        m3::KIF::Upcall::Notify msg;
-        msg.opcode = m3::KIF::Upcall::NOTIFY;
-        msg.error = res;
-        msg.event = event;
-        KLOG(UPCALLS, "Sending upcall NOTIFY (error=" << res << ", event="
-            << (void*)event << ") to VPE " << vpe->id());
-        vpe->upcall(&msg, sizeof(msg), false);
+    kreply_result(vpe, is, res);
+}
+
+m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur) {
+    m3::Errors::Code res = m3::Errors::NO_ERROR;
+    if(tvpe.state() != VPE::RUNNING) {
+        cur->start_wait();
+
+        // TODO not required anymore
+        if(tvpe.pe() == cur->pe())
+            tvpe.migrate();
+
+        LOG_SYS(cur, name, ": waiting for VPE " << tvpe.id() << " at " << tvpe.pe());
+
+        if(!tvpe.resume(false))
+            res = m3::Errors::VPE_GONE;
+
+        cur->stop_wait();
     }
+    return res;
+}
+
+void SyscallHandler::forwardmsg(GateIStream &is) {
+    EVENT_TRACER_Syscall_forwardmsg();
+    VPE *vpe = is.gate().session<VPE>();
+
+    auto *req = get_message<m3::KIF::Syscall::ForwardMsg>(is);
+    capsel_t cap = req->cap;
+    size_t len = req->len;
+    epid_t rep = req->repid;
+    label_t rlabel = req->rlabel;
+    word_t event = req->event;
+
+    LOG_SYS(vpe, ": syscall::forwardmsg", "(cap=" << cap << ", len=" << len
+        << ", rep=" << rep << ", rlabel=" << m3::fmt(rlabel, "0x") << ", event=" << event << ")");
+
+    MsgCapability *capobj = static_cast<MsgCapability*>(vpe->objcaps().get(cap, Capability::MSG));
+    if(capobj == nullptr || capobj->localepid == (epid_t)-1)
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+    if(!vpe->can_forward_msg(capobj->localepid))
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Send did not fail");
+
+    // TODO if we do that asynchronously, we need to buffer the message somewhere, because the
+    // VPE might want to do other system calls in the meantime. probably, VPEs need to allocate
+    // the memory beforehand and the kernel will simply use it afterwards.
+    VPE &tvpe = VPEManager::get().vpe(capobj->obj->vpe);
+    bool async = tvpe.state() != VPE::RUNNING && event;
+    if(async)
+        kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
+
+    m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe);
+
+    if(res == m3::Errors::NO_ERROR) {
+        uint32_t sender = vpe->pe() | (vpe->id() << 8);
+        DTU::get().send_to(tvpe.desc(), capobj->obj->epid, capobj->obj->label, req->msg, req->len,
+            req->rlabel, req->repid, sender);
+
+        vpe->forward_msg(capobj->localepid, tvpe.pe(), tvpe.id());
+    }
+
+    if(async)
+        vpe->upcall_notify(res, event);
     else
         kreply_result(vpe, is, res);
 }
 
-void SyscallHandler::activatereply(GateIStream &is) {
-    EVENT_TRACER_Syscall_activaterp();
+void SyscallHandler::forwardmem(GateIStream &is) {
+    EVENT_TRACER_Syscall_forwardmem();
     VPE *vpe = is.gate().session<VPE>();
 
-    auto *req = get_message<m3::KIF::Syscall::ActivateReply>(is);
-    epid_t epid = req->ep;
-    uintptr_t msgaddr = req->msg_addr;
+    auto *req = get_message<m3::KIF::Syscall::ForwardMem>(is);
+    capsel_t cap = req->cap;
+    size_t len = m3::Math::min(sizeof(req->data), req->len);
+    size_t offset = req->offset;
+    uint flags = req->flags;
     word_t event = req->event;
+
+    LOG_SYS(vpe, ": syscall::forwardmem", "(cap=" << cap << ", len=" << len
+        << ", offset=" << offset << ", flags=" << m3::fmt(flags, "0x") << ", event=" << event << ")");
+
+    MemCapability *capobj = static_cast<MemCapability*>(vpe->objcaps().get(cap, Capability::MEM));
+    if(capobj == nullptr || capobj->localepid == (epid_t)-1)
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
+    if(capobj->addr() + offset < offset || offset >= capobj->size() ||
+       offset + len < offset || offset + len > capobj->size())
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid offset/length");
+    if((flags & m3::KIF::Syscall::ForwardMem::WRITE) && !(capobj->perms() & m3::KIF::Perm::W))
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "No write permission");
+    if((~flags & m3::KIF::Syscall::ForwardMem::WRITE) && !(capobj->perms() & m3::KIF::Perm::R))
+        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "No read permission");
+
+    VPE &tvpe = VPEManager::get().vpe(capobj->obj->vpe);
+    bool async = tvpe.state() != VPE::RUNNING && event;
+    if(async)
+        kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
+
+    m3::Errors::Code res = wait_for(": syscall::forwardmem", tvpe, vpe);
+
+    m3::KIF::Syscall::ForwardMemReply reply;
+    reply.error = res;
+
+    if(res == m3::Errors::NO_ERROR) {
+        if(flags & m3::KIF::Syscall::ForwardMem::WRITE)
+            res = DTU::get().try_write_mem(tvpe.desc(), capobj->addr() + offset, req->data, len);
+        else
+            res = DTU::get().try_read_mem(tvpe.desc(), capobj->addr() + offset, reply.data, len);
+    }
+
+    if(async)
+        vpe->upcall_notify(res, event);
+    else
+        kreply_result(vpe, is, res);
+}
+
+void SyscallHandler::forwardreply(GateIStream &is) {
+    EVENT_TRACER_Syscall_forwardreply();
+    VPE *vpe = is.gate().session<VPE>();
+
+    auto *req = get_message<m3::KIF::Syscall::ForwardReply>(is);
+    epid_t epid = req->epid;
+    uintptr_t msgaddr = req->msgaddr;
+    size_t len = m3::Math::min(sizeof(req->msg), req->len);
+    word_t event = req->event;
+
+    LOG_SYS(vpe, ": syscall::forwardreply", "(ep=" << epid << ", len=" << len
+        << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
 
     // ensure that the VPE is running, because we need to access it's address space
     if(vpe->state() != VPE::RUNNING) {
@@ -908,58 +973,33 @@ void SyscallHandler::activatereply(GateIStream &is) {
             return;
     }
 
-    LOG_SYS(vpe, ": syscall::activatereply", "(ep=" << epid << ", msgaddr="
-        << (void*)msgaddr << ", event=" << m3::fmt(event, "0x") << ")");
-
-    vpeid_t id;
-    m3::Errors::Code res = vpe->rbufs().reply_target(*vpe, epid, msgaddr, &id);
-    if(res != m3::Errors::NO_ERROR)
+    m3::DTU::Header head;
+    m3::Errors::Code res = vpe->rbufs().get_header(*vpe, epid, msgaddr, head);
+    if(res != m3::Errors::NO_ERROR || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
         SYS_ERROR(vpe, is, res, "Invalid arguments");
 
-    bool sent_reply = false;
+    VPE &tvpe = VPEManager::get().vpe(head.senderVpeId);
+    bool async = tvpe.state() != VPE::RUNNING && event;
+    if(async)
+        kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
 
-    VPE &tvpe = VPEManager::get().vpe(id);
-    if(tvpe.state() != VPE::RUNNING) {
-        vpe->start_wait();
-
-        if(tvpe.pe() == vpe->pe())
-            tvpe.migrate();
-
-        LOG_SYS(vpe, ": syscall::activatereply", ": waiting for VPE "
-            << tvpe.id() << " at " << tvpe.pe());
-
-        if(event) {
-            kreply_result(vpe, is, m3::Errors::UPCALL_REPLY);
-            sent_reply = true;
-        }
-
-        if(!tvpe.resume())
-            res = m3::Errors::VPE_GONE;
-
-        vpe->stop_wait();
-    }
+    res = wait_for(": syscall::forwardreply", tvpe, vpe);
 
     if(res == m3::Errors::NO_ERROR) {
-        // it might be suspended again
+        DTU::get().reply_to(tvpe.desc(), head.replyEpId, head.senderEpId, head.length,
+            head.replylabel, req->msg, len);
+
         if(vpe->state() != VPE::RUNNING) {
             if(!vpe->resume())
                 return;
         }
 
-        res = vpe->rbufs().activate_reply(*vpe, tvpe, epid, msgaddr);
+        head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
+        res = vpe->rbufs().set_header(*vpe, epid, msgaddr, head);
     }
-    if(res != m3::Errors::NO_ERROR)
-        LOG_ERROR(vpe, res, "Activating reply failed");
 
-    if(event && sent_reply) {
-        m3::KIF::Upcall::Notify msg;
-        msg.opcode = m3::KIF::Upcall::NOTIFY;
-        msg.error = res;
-        msg.event = event;
-        KLOG(UPCALLS, "Sending upcall NOTIFY (error=" << res << ", event="
-            << (void*)event << ") to VPE " << vpe->id());
-        vpe->upcall(&msg, sizeof(msg), false);
-    }
+    if(async)
+        vpe->upcall_notify(res, event);
     else
         kreply_result(vpe, is, res);
 }

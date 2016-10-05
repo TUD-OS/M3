@@ -31,11 +31,11 @@ AccelEMem::AccelEMem(bool muxable)
 }
 
 uintptr_t AccelIMem::getRBAddr() {
-    return _vpe.pe().mem_size() - RECVBUF_SIZE_SPM + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
+    return _vpe.pe().mem_size() - RECVBUF_SIZE_SPM + SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE;
 }
 
 uintptr_t AccelEMem::getRBAddr() {
-    return RECVBUF_SPACE + DEF_RCVBUF_SIZE + UPCALL_RBUF_SIZE;
+    return RECVBUF_SPACE + SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE;
 }
 
 Accel *Accel::create() {

@@ -66,6 +66,24 @@ void DTUState::invalidate_eps(epid_t first) {
     memset(get_ep(first), 0, total);
 }
 
+bool DTUState::can_forward_msg(epid_t ep) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+    return ((r[0] >> 16) & 0xFFFF) == VPE::INVALID_ID;
+}
+
+void DTUState::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+    r[0] &= ~(static_cast<m3::DTU::reg_t>(0xFFFF) << 16);
+    r[0] |= vpe << 16;
+    r[1] &= ~(static_cast<m3::DTU::reg_t>(0xFF) << 24);
+    r[1] |= pe << 24;
+    // TODO reduce credits
+}
+
+void DTUState::read_ep(const VPEDesc &vpe, epid_t ep) {
+    DTU::get().read_ep_remote(vpe, ep, get_ep(ep));
+}
+
 void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder, int) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     m3::DTU::reg_t bufSize = static_cast<m3::DTU::reg_t>(1) << (order - msgorder);

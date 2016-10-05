@@ -155,6 +155,7 @@ public:
             FL_GRANT_CREDITS    = 1 << 1,
             FL_REPLY_ENABLED    = 1 << 2,
             FL_PAGEFAULT        = 1 << 3,
+            FL_REPLY_FAILED     = 1 << 4,
         };
 
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
@@ -187,11 +188,12 @@ public:
     static const int FLAG_NO_HEADER         = 1;
 
     static const int MEM_EP                 = 0;    // unused
-    static const int SYSC_EP                = 0;
-    static const int NOTIFY_EP              = 1;
-    static const int DEF_RECVEP             = 2;
-    static const int UPCALL_EP              = 3;
-    static const int FIRST_FREE_EP          = 4;
+    static const int SYSC_SEP               = 0;
+    static const int NOTIFY_SEP             = 1;
+    static const int SYSC_REP               = 2;
+    static const int UPCALL_REP             = 3;
+    static const int DEF_REP                = 4;
+    static const int FIRST_FREE_EP          = 5;
 
     static DTU &get() {
         return inst;

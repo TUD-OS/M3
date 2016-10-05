@@ -26,17 +26,19 @@
 
 namespace m3 {
 
-INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
+INIT_PRIO_RECVBUF RecvBuf RecvBuf::_syscall (
 #if defined(__host__) || defined(__gem5__)
-    RecvBuf::create(DTU::DEF_RECVEP, DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0)
+    RecvBuf::create(DTU::SYSC_REP, m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0)
 #else
-    RecvBuf::bindto(DTU::DEF_RECVEP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_ORDER, 0)
+    RecvBuf::bindto(DTU::SYSC_REP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_MSGORDER, 0)
 #endif
 );
 
 INIT_PRIO_RECVBUF RecvBuf RecvBuf::_upcall (
-    RecvBuf::create(DTU::UPCALL_EP, UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER, 0)
+    RecvBuf::create(DTU::UPCALL_REP, UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER, 0)
 );
+
+RecvBuf *RecvBuf::_default = nullptr;
 
 void RecvBuf::UpcallWorkItem::work() {
     DTU &dtu = DTU::get();
@@ -75,7 +77,7 @@ void RecvBuf::attach(size_t i) {
             msgorder(), flags());
 #endif
 
-        if(epid() > DTU::UPCALL_EP) {
+        if(epid() > DTU::UPCALL_REP) {
             Errors::Code res = Syscalls::get().attachrb(VPE::self().sel(), epid(),
                 reinterpret_cast<word_t>(addr()), order(), msgorder(), flags());
             if(res != Errors::NO_ERROR)
@@ -83,14 +85,14 @@ void RecvBuf::attach(size_t i) {
         }
 
         // if we may receive messages from the endpoint, create a worker for it
-        if(i == DTU::UPCALL_EP)
+        if(i == DTU::UPCALL_REP)
             env()->workloop()->add(new UpcallWorkItem(), true);
         // TODO hack for host: we don't want to do that for MEM_EP but know that only afterwards
         // because the EPs are not initialized yet
         else if(i != DTU::MEM_EP && (~_flags & DTU::FLAG_NO_HEADER)) {
             if(_workitem == nullptr) {
                 _workitem = new RecvBufWorkItem(i);
-                bool permanent = i == DTU::MEM_EP || i == DTU::DEF_RECVEP || i == DTU::UPCALL_EP;
+                bool permanent = i < DTU::FIRST_FREE_EP;
                 env()->workloop()->add(_workitem, permanent);
             }
             else
@@ -111,7 +113,7 @@ void RecvBuf::disable() {
 }
 
 void RecvBuf::detach() {
-    if(epid() > DTU::UPCALL_EP && epid() != RecvBuf::UNBOUND)
+    if(epid() > DTU::UPCALL_REP && epid() != RecvBuf::UNBOUND)
         Syscalls::get().detachrb(VPE::self().sel(), epid());
     _epid = UNBOUND;
 

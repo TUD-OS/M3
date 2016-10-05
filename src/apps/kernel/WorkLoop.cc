@@ -70,7 +70,7 @@ void WorkLoop::run() {
     m3::DTU &dtu = m3::DTU::get();
     SyscallHandler &sysch = SyscallHandler::get();
     epid_t sysep = sysch.epid();
-    epid_t notifyep = m3::DTU::NOTIFY_EP;
+    epid_t notifyep = m3::DTU::NOTIFY_SEP;
     epid_t srvep = sysch.srvepid();
     const m3::DTU::Message *msg;
     while(has_items()) {

@@ -39,6 +39,11 @@ struct KIF {
     static const word_t UNLIM_CREDITS   = -1;
 
     /**
+     * The maximum message length that can be used
+     */
+    static const word_t MAX_MSG_SIZE    = 440;
+
+    /**
      * The permissions for MemGate
      */
     struct Perm {
@@ -118,7 +123,9 @@ struct KIF {
             DELEGATE,
             OBTAIN,
             ACTIVATE,
-            ACTIVATEREPLY,
+            FORWARDMSG,
+            FORWARDMEM,
+            FORWARDREPLY,
             REQMEM,
             DERIVEMEM,
             REVOKE,
@@ -143,14 +150,42 @@ struct KIF {
             word_t ep;
             word_t old_sel;
             word_t new_sel;
-            word_t event;
         } PACKED;
 
-        struct ActivateReply : public DefaultRequest {
-            word_t ep;
-            word_t msg_addr;
+        struct ForwardMsg : public DefaultRequest {
+            word_t cap;
+            word_t len;
+            word_t repid;
+            word_t rlabel;
             word_t event;
-        } PACKED;
+            char msg[MAX_MSG_SIZE];
+        };
+
+        struct ForwardMem : public DefaultRequest {
+            enum Flags {
+                NOPF    = 1,
+                WRITE   = 2,
+            };
+
+            word_t cap;
+            word_t len;
+            word_t offset;
+            word_t flags;
+            word_t event;
+            char data[MAX_MSG_SIZE];
+        };
+
+        struct ForwardMemReply : public DefaultReply {
+            char data[MAX_MSG_SIZE];
+        };
+
+        struct ForwardReply : public DefaultRequest {
+            word_t epid;
+            word_t msgaddr;
+            word_t len;
+            word_t event;
+            char msg[MAX_MSG_SIZE];
+        };
 
         struct CreateSrv : public DefaultRequest {
             word_t srv;

@@ -59,6 +59,8 @@ public:
     };
 
 private:
+    static const int DEF_RBUF_ORDER     = 8;
+
     explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, unsigned flags)
         : _buf(reinterpret_cast<uint8_t*>(addr)), _order(order), _msgorder(msgorder),
           _epid(epid), _flags(flags), _workitem() {
@@ -71,11 +73,16 @@ private:
     }
 
 public:
-    static RecvBuf &def() {
-        return _default;
+    static RecvBuf &syscall() {
+        return _syscall;
     }
     static RecvBuf &upcall() {
         return _upcall;
+    }
+    static RecvBuf &def() {
+        if(_default == nullptr)
+            _default = new RecvBuf(RecvBuf::create(DTU::DEF_REP, DEF_RBUF_ORDER, DEF_RBUF_ORDER, 0));
+        return *_default;
     }
 
 #if defined(__t2__)
@@ -152,8 +159,9 @@ private:
     size_t _epid;
     unsigned _flags;
     RecvBufWorkItem *_workitem;
-    static RecvBuf _default;
+    static RecvBuf _syscall;
     static RecvBuf _upcall;
+    static RecvBuf *_default;
 };
 
 }

@@ -27,7 +27,7 @@
 #define APP_HEAP_SIZE       (64 * 1024 * 1024)
 
 #define HEAP_SIZE           0x20000
-#define EP_COUNT            8
+#define EP_COUNT            12
 
 #define RT_START            0x6000
 #define RT_SIZE             0x2000
@@ -47,12 +47,13 @@
 #define RECVBUF_SIZE        (4 * PAGE_SIZE)
 #define RECVBUF_SIZE_SPM    16384
 
-#define DEF_RCVBUF_ORDER    8
-#define DEF_RCVBUF_SIZE     (1 << DEF_RCVBUF_ORDER)
-#define DEF_RCVBUF          RECVBUF_SPACE
+// this has to be large enough for forwarded memory reads
+#define SYSC_RBUF_ORDER     9
+#define SYSC_RBUF_SIZE      (1 << SYSC_RBUF_ORDER)
+#define SYSC_RBUF           RECVBUF_SPACE
 
 #define UPCALL_RBUF_ORDER   8
 #define UPCALL_RBUF_SIZE    (1 << UPCALL_RBUF_ORDER)
-#define UPCALL_RBUF         (RECVBUF_SPACE + DEF_RCVBUF_SIZE)
+#define UPCALL_RBUF         (SYSC_RBUF + SYSC_RBUF_SIZE)
 
 #define MEMCAP_END          RECVBUF_SPACE

@@ -278,6 +278,11 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     // TODO remove pagetables on demand
 }
 
+void DTU::read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
+    m3::Sync::compiler_barrier();
+    read_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
+}
+
 void DTU::write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
     m3::Sync::compiler_barrier();
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
@@ -295,12 +300,23 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int fla
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep) {
+        label_t replylbl, epid_t replyep, uint32_t sender) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, msgsize);
     write_ep_local(_ep);
 
-    m3::Errors::Code res = m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_SIZE, size);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_LABEL, replylbl);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_EP, replyep);
+    if(sender == static_cast<uint32_t>(-1))
+        sender = Platform::kernel_pe() | (VPEManager::MAX_VPES << 8);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::OFFSET, sender);
+    m3::Sync::compiler_barrier();
+    m3::DTU::reg_t cmd = m3::DTU::get().buildCommand(_ep, m3::DTU::CmdOpCode::SEND);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::COMMAND, cmd);
+
+    m3::Errors::Code res = m3::DTU::get().get_error();
     if(res != m3::Errors::NO_ERROR)
         PANIC("Send failed");
 }
@@ -327,22 +343,28 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label,
 }
 
 void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+    if(try_write_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
+        PANIC("write failed");
+}
+
+void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+    if(try_read_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
+        PANIC("read failed");
+}
+
+m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::W);
     write_ep_local(_ep);
 
     // the kernel can never cause pagefaults with reads/writes
-    m3::Errors::Code res = m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
-    if(res != m3::Errors::NO_ERROR)
-        PANIC("Write failed");
+    return m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
 }
 
-void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::R);
     write_ep_local(_ep);
 
-    m3::Errors::Code res = m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
-    if(res != m3::Errors::NO_ERROR)
-        PANIC("read failed");
+    return m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
 }
 
 }

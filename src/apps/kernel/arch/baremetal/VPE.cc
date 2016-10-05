@@ -26,25 +26,26 @@
 namespace kernel {
 
 void VPE::init() {
-    // attach default receive endpoint
-    UNUSED m3::Errors::Code res = rbufs().attach(*this, m3::DTU::DEF_RECVEP,
-        Platform::def_recvbuf(pe()), DEF_RCVBUF_ORDER, DEF_RCVBUF_ORDER, 0);
+    // attach syscall receive endpoint
+    UNUSED m3::Errors::Code res = rbufs().attach(*this, m3::DTU::SYSC_REP,
+        Platform::def_recvbuf(pe()), m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0);
     assert(res == m3::Errors::NO_ERROR);
 
     // attach upcall receive endpoint
-    res = rbufs().attach(*this, m3::DTU::UPCALL_EP,
-        Platform::def_recvbuf(pe()) + DEF_RCVBUF_SIZE, UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER, 0);
+    res = rbufs().attach(*this, m3::DTU::UPCALL_REP,
+        Platform::def_recvbuf(pe()) + SYSC_RBUF_SIZE,
+        m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0);
     assert(res == m3::Errors::NO_ERROR);
 
     // configure syscall endpoint
-    config_snd_ep(m3::DTU::SYSC_EP, reinterpret_cast<label_t>(&syscall_gate()),
+    config_snd_ep(m3::DTU::SYSC_SEP, reinterpret_cast<label_t>(&syscall_gate()),
         Platform::kernel_pe(), VPEManager::MAX_VPES,
-        m3::DTU::SYSC_EP, 1 << SYSC_MSGSIZE_ORD, 1 << SYSC_CREDIT_ORD);
+        m3::DTU::SYSC_SEP, 1 << SYSC_MSGSIZE_ORD, 1 << SYSC_CREDIT_ORD);
 
     // configure notify endpoint
-    config_snd_ep(m3::DTU::NOTIFY_EP, reinterpret_cast<label_t>(&syscall_gate()),
+    config_snd_ep(m3::DTU::NOTIFY_SEP, reinterpret_cast<label_t>(&syscall_gate()),
         Platform::kernel_pe(), VPEManager::MAX_VPES,
-        m3::DTU::NOTIFY_EP, 1 << NOTIFY_MSGSIZE_ORD, m3::DTU::CREDITS_UNLIM);
+        m3::DTU::NOTIFY_SEP, 1 << NOTIFY_MSGSIZE_ORD, m3::DTU::CREDITS_UNLIM);
 }
 
 void VPE::activate_sysc_ep(void *) {

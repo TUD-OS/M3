@@ -56,29 +56,69 @@ Errors::Code Syscalls::noop() {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap, void *event) {
-    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap
-        << ", event=" << event << ")");
+Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
+    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
 
     KIF::Syscall::Activate req;
     req.opcode = KIF::Syscall::ACTIVATE;
     req.ep = ep;
     req.old_sel = oldcap;
     req.new_sel = newcap;
-    req.event = reinterpret_cast<word_t>(event);
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activatereply(size_t ep, uintptr_t msgaddr, void *event) {
-    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << (void*)msgaddr
-        << ", event=" << event << ")");
+Errors::Code Syscalls::forwardmsg(capsel_t cap, const void *msg, size_t len, size_t rep, label_t rlabel, void *event) {
+    LLOG(SYSC, "forwardmsg(cap=" << cap << ", msg=" << msg << ", len=" << len << ", rep=" << rep
+        << ", rlabel=" << fmt(rlabel, "0x") << ", event=" << event << ")");
 
-    KIF::Syscall::ActivateReply req;
-    req.opcode = KIF::Syscall::ACTIVATEREPLY;
-    req.ep = ep;
-    req.msg_addr = msgaddr;
+    KIF::Syscall::ForwardMsg req;
+    req.opcode = KIF::Syscall::FORWARDMSG;
+    req.cap = cap;
+    req.repid = rep;
+    req.rlabel = rlabel;
     req.event = reinterpret_cast<word_t>(event);
-    return send_receive_result(&req, sizeof(req));
+    req.len = len;
+    memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
+    return send_receive_result(&req, sizeof(req) - sizeof(req.msg) + req.len);
+}
+
+Errors::Code Syscalls::forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event) {
+    LLOG(SYSC, "forwardmem(cap=" << cap << ", data=" << data << ", len=" << len
+        << ", offset=" << offset << ", flags=" << fmt(flags, "0x") << ", event=" << event << ")");
+
+    KIF::Syscall::ForwardMem req;
+    req.opcode = KIF::Syscall::FORWARDMEM;
+    req.cap = cap;
+    req.offset = offset;
+    req.flags = flags;
+    req.event = reinterpret_cast<word_t>(event);
+    req.len = len;
+    if(flags & KIF::Syscall::ForwardMem::WRITE)
+        memcpy(req.data, data, Math::min(sizeof(req.data), len));
+
+    DTU::Message *msg = send_receive(&req, sizeof(req) - sizeof(req.data) + req.len);
+    auto *reply = reinterpret_cast<KIF::Syscall::ForwardMemReply*>(msg->data);
+
+    Errors::last = static_cast<Errors::Code>(reply->error);
+    if(Errors::last == Errors::NO_ERROR && (~flags & KIF::Syscall::ForwardMem::WRITE))
+        memcpy(data, reply->data, len);
+
+    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    return Errors::last;
+}
+
+Errors::Code Syscalls::forwardreply(size_t ep, const void *msg, size_t len, uintptr_t msgaddr, void *event) {
+    LLOG(SYSC, "forwardreply(ep=" << ep << ", msg=" << msg << ", len=" << len
+        << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
+
+    KIF::Syscall::ForwardReply req;
+    req.opcode = KIF::Syscall::FORWARDREPLY;
+    req.epid = ep;
+    req.msgaddr = msgaddr;
+    req.event = reinterpret_cast<word_t>(event);
+    req.len = len;
+    memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
+    return send_receive_result(&req, sizeof(req) - sizeof(req.msg) + req.len);
 }
 
 Errors::Code Syscalls::createsrv(capsel_t srv, label_t label, const String &name) {

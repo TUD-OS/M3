@@ -18,6 +18,8 @@
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+#include <thread/ThreadManager.h>
+
 #include <assert.h>
 
 namespace m3 {
@@ -46,13 +48,18 @@ SendGate SendGate::create_for(const VPE &vpe, size_t dstep, label_t label, word_
 Errors::Code SendGate::send(const void *data, size_t len) {
     ensure_activated();
 
-retry:
     Errors::Code res = DTU::get().send(epid(), data, len, _rcvgate->label(), _rcvgate->epid());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        res = reactivate();
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
+        void *event = ThreadManager::get().get_wait_event();
+        res = Syscalls::get().forwardmsg(sel(), data, len, _rcvgate->epid(), _rcvgate->label(), event);
+
+        // if this has been done, go to sleep and wait until the kernel sends us the upcall
+        if(res == Errors::UPCALL_REPLY) {
+            ThreadManager::get().wait_for(event);
+            auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
+                ThreadManager::get().get_current_msg());
+            res = static_cast<Errors::Code>(msg->error);
+        }
     }
 
     return res;

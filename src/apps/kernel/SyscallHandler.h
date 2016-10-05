@@ -43,7 +43,7 @@ public:
 
     epid_t epid() const {
         // we can use it here because we won't issue syscalls ourself
-        return m3::DTU::SYSC_EP;
+        return m3::DTU::SYSC_SEP;
     }
     epid_t srvepid() const {
         return _serv_ep;
@@ -67,7 +67,9 @@ public:
     void delegate(GateIStream &is);
     void obtain(GateIStream &is);
     void activate(GateIStream &is);
-    void activatereply(GateIStream &is);
+    void forwardmsg(GateIStream &is);
+    void forwardmem(GateIStream &is);
+    void forwardreply(GateIStream &is);
     void reqmem(GateIStream &is);
     void derivemem(GateIStream &is);
     void revoke(GateIStream &is);
@@ -80,6 +82,7 @@ public:
 #endif
 
 private:
+    m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur);
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
         const m3::KIF::CapRngDesc &c2, bool obtain);
     void exchange_over_sess(GateIStream &is, bool obtain);

@@ -21,6 +21,8 @@
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+#include <thread/ThreadManager.h>
+
 #include <assert.h>
 
 namespace m3 {
@@ -46,6 +48,27 @@ MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) con
     return MemGate(ObjCap::KEEP_SEL, cap);
 }
 
+Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint flags) {
+    void *event = ThreadManager::get().get_wait_event();
+    size_t amount = Math::min(KIF::MAX_MSG_SIZE, len);
+    Errors::Code res = Syscalls::get().forwardmem(sel(), data, amount, offset, flags, event);
+
+    // if this has been done, go to sleep and wait until the kernel sends us the upcall
+    if(res == Errors::UPCALL_REPLY) {
+        ThreadManager::get().wait_for(event);
+        auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
+            ThreadManager::get().get_current_msg());
+        res = static_cast<Errors::Code>(msg->error);
+    }
+
+    if(res == Errors::NO_ERROR) {
+        len -= amount;
+        offset += amount;
+        data = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(data) + amount);
+    }
+    return res;
+}
+
 Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_read_sync();
     ensure_activated();
@@ -53,10 +76,9 @@ Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
 retry:
     Errors::Code res = DTU::get().read(epid(), data, len, offset, _cmdflags);
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        res = reactivate();
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
+        res = forward(data, len, offset, _cmdflags);
+        if(len > 0 || res != m3::Errors::NO_ERROR)
+            goto retry;
     }
 
     return res;
@@ -69,10 +91,10 @@ Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
 retry:
     Errors::Code res = DTU::get().write(epid(), data, len, offset, _cmdflags);
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        res = reactivate();
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
+        res = forward(const_cast<void*&>(data), len, offset,
+            _cmdflags | KIF::Syscall::ForwardMem::WRITE);
+        if(len > 0 || res != m3::Errors::NO_ERROR)
+            goto retry;
     }
 
     return res;
@@ -83,16 +105,7 @@ Errors::Code MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_cmpxchg_sync();
     ensure_activated();
 
-retry:
-    Errors::Code res = DTU::get().cmpxchg(epid(), data, len, offset, len / 2);
-    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        res = reactivate();
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
-    }
-
-    return res;
+    return DTU::get().cmpxchg(epid(), data, len, offset, len / 2);
 }
 #endif
 

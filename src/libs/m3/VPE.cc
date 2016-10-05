@@ -105,11 +105,12 @@ VPE::~VPE() {
 void VPE::init() {
     _caps->set(0);
     _caps->set(1);
-    _eps->set(DTU::SYSC_EP);
-    _eps->set(DTU::NOTIFY_EP);
     _eps->set(DTU::MEM_EP);
-    _eps->set(DTU::DEF_RECVEP);
-    _eps->set(DTU::UPCALL_EP);
+    _eps->set(DTU::SYSC_SEP);
+    _eps->set(DTU::SYSC_REP);
+    _eps->set(DTU::NOTIFY_SEP);
+    _eps->set(DTU::DEF_REP);
+    _eps->set(DTU::UPCALL_REP);
 }
 
 capsel_t VPE::alloc_caps(uint count) {

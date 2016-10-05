@@ -60,6 +60,7 @@ public:
     void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
+    void read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);
 
@@ -68,9 +69,12 @@ public:
     void reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
 
     void send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep);
+        label_t replylbl, epid_t replyep, uint32_t sender = -1);
     void reply_to(const VPEDesc &vpe, epid_t ep, epid_t crdep, word_t credits, label_t label,
         const void *msg, size_t size);
+
+    m3::Errors::Code try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
+    m3::Errors::Code try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);
 
     void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
     void read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);

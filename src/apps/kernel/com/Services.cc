@@ -26,7 +26,7 @@ ServiceList ServiceList::_inst;
 
 Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label)
     : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-      _sgate(vpe, m3::DTU::UPCALL_EP, label) {
+      _sgate(vpe, m3::DTU::UPCALL_REP, label) {
 }
 
 Service::~Service() {

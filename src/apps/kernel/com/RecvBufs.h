@@ -69,14 +69,16 @@ public:
         m3::ThreadManager::get().wait_for(get_event(epid));
     }
 
-    m3::Errors::Code reply_target(VPE &vpe, epid_t epid, uintptr_t msgaddr, vpeid_t *id);
-    m3::Errors::Code activate_reply(VPE &vpe, VPE &dest, epid_t epid, uintptr_t msgaddr);
+    m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
+    m3::Errors::Code set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, const m3::DTU::Header &head);
 
     m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags);
     void detach(VPE &vpe, epid_t epid);
     void detach_all(VPE &vpe, epid_t except);
 
 private:
+    uintptr_t get_msgaddr(RBuf *rbuf, uintptr_t msgaddr);
+
     void *get_event(epid_t epid) {
         // TODO in theory, the pointer could need more than 32 bits
         word_t event = reinterpret_cast<word_t>(this) | (epid << 32);
@@ -86,8 +88,6 @@ private:
     void notify(epid_t epid) {
         m3::ThreadManager::get().notify(get_event(epid));
     }
-
-    m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
 
     const RBuf *get(epid_t epid) const {
         return const_cast<RecvBufs*>(this)->get(epid);

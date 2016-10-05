@@ -42,13 +42,15 @@ public:
 
 private:
     explicit Syscalls()
-        : _gate(ObjCap::INVALID, 0, nullptr, DTU::SYSC_EP), _rlabel(_gate.receive_gate()->label()),
+        : _gate(ObjCap::INVALID, 0, &RecvGate::syscall(), DTU::SYSC_SEP), _rlabel(_gate.receive_gate()->label()),
           _rep(_gate.receive_gate()->epid()) {
     }
 
 public:
-    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap, void *event);
-    Errors::Code activatereply(size_t ep, uintptr_t msgaddr, void *event);
+    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
+    Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, size_t rep, label_t rlabel, void *event);
+    Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
+    Errors::Code forwardreply(size_t ep, const void *msg, size_t len, uintptr_t msgaddr, void *event);
     Errors::Code createsrv(capsel_t srv, label_t label, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);

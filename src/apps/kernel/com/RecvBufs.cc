@@ -19,44 +19,37 @@
 
 namespace kernel {
 
+uintptr_t RecvBufs::get_msgaddr(RBuf *rbuf, uintptr_t msgaddr) {
+    // the message has to be within the receive buffer
+    if(!(msgaddr >= rbuf->addr && msgaddr < rbuf->addr + rbuf->size()))
+        return 0;
+
+    // ensure that we start at a message boundary
+    size_t idx = (msgaddr - rbuf->addr) >> rbuf->msgorder;
+    return rbuf->addr + (idx << rbuf->msgorder);
+}
+
 m3::Errors::Code RecvBufs::get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head) {
     RBuf *rbuf = get(epid);
     if(!rbuf)
         return m3::Errors::EP_INVALID;
 
-    // the message has to be within the receive buffer
-    if(!(msgaddr >= rbuf->addr && msgaddr < rbuf->addr + rbuf->size()))
+    msgaddr = get_msgaddr(rbuf, msgaddr);
+    if(!msgaddr)
         return m3::Errors::INV_ARGS;
-
-    // ensure that we start at a message boundary
-    size_t idx = (msgaddr - rbuf->addr) >> rbuf->msgorder;
-    msgaddr = rbuf->addr + (idx << rbuf->msgorder);
 
     DTU::get().read_mem(vpe.desc(), msgaddr, &head, sizeof(head));
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code RecvBufs::reply_target(VPE &vpe, epid_t epid, uintptr_t msgaddr, vpeid_t *id) {
-    m3::DTU::Header head;
-    m3::Errors::Code res = get_header(vpe, epid, msgaddr, head);
-    if(res != m3::Errors::NO_ERROR)
-        return res;
+m3::Errors::Code RecvBufs::set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, const m3::DTU::Header &head) {
+    RBuf *rbuf = get(epid);
+    if(!rbuf)
+        return m3::Errors::EP_INVALID;
 
-    *id = head.senderVpeId;
-    return m3::Errors::NO_ERROR;
-}
-
-m3::Errors::Code RecvBufs::activate_reply(VPE &vpe, VPE &dest, epid_t epid, uintptr_t msgaddr) {
-    m3::DTU::Header head;
-    m3::Errors::Code res = get_header(vpe, epid, msgaddr, head);
-    if(res != m3::Errors::NO_ERROR)
-        return res;
-
-    // re-enable replies
-    head.flags |= m3::DTU::Header::FL_REPLY_ENABLED;
-
-    // set new destination
-    head.senderCoreId = dest.pe();
+    msgaddr = get_msgaddr(rbuf, msgaddr);
+    if(!msgaddr)
+        return m3::Errors::INV_ARGS;
 
     DTU::get().write_mem(vpe.desc(), msgaddr, &head, sizeof(head));
     return m3::Errors::NO_ERROR;

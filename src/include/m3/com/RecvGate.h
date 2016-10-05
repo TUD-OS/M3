@@ -47,8 +47,13 @@ class RecvGate : public Gate, public Subscriptions<GateIStream&> {
     }
 
 public:
+    static RecvGate &syscall() {
+        return _syscall;
+    }
     static RecvGate &def() {
-        return _default;
+        if(_default == nullptr)
+            _default = new RecvGate(create(&RecvBuf::def()));
+        return *_default;
     }
     static RecvGate &upcall() {
         return _upcall;
@@ -123,8 +128,9 @@ public:
 private:
     RecvBuf *_rcvbuf;
     void *_sess;
-    static RecvGate _default;
+    static RecvGate _syscall;
     static RecvGate _upcall;
+    static RecvGate *_default;
 };
 
 }

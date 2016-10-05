@@ -24,8 +24,10 @@
 
 namespace m3 {
 
-INIT_PRIO_RECVGATE RecvGate RecvGate::_default (RecvGate::create(&RecvBuf::def()));
+INIT_PRIO_RECVGATE RecvGate RecvGate::_syscall (RecvGate::create(&RecvBuf::syscall()));
 INIT_PRIO_RECVGATE RecvGate RecvGate::_upcall (RecvGate::create(&RecvBuf::upcall()));
+
+RecvGate *RecvGate::_default = nullptr;
 
 Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     // TODO hack to fix the race-condition on T2. as soon as we've replied to the other core, he
@@ -35,15 +37,11 @@ Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     DTU::get().mark_read(epid(), msgidx);
 #endif
 
-retry:
     Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
 
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        // TODO note that we do not use Gate::reactivate here, because putting them together
-        // increases the runtime for the bench-fileread by 10%. not sure why
-
         void *event = ThreadManager::get().get_wait_event();
-        Errors::Code res = Syscalls::get().activatereply(epid(), msgidx, event);
+        res = Syscalls::get().forwardreply(epid(), data, len, msgidx, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {
@@ -52,10 +50,6 @@ retry:
                 ThreadManager::get().get_current_msg());
             res = static_cast<Errors::Code>(msg->error);
         }
-
-        if(res != Errors::NO_ERROR)
-            return res;
-        goto retry;
     }
 
     return res;
@@ -71,7 +65,7 @@ Errors::Code RecvGate::wait(SendGate *sgate, DTU::Message **msg) const {
             return Errors::EP_INVALID;
 
         // don't report idles if we wait for a syscall reply
-        DTU::get().try_sleep(!sgate || sgate->epid() != m3::DTU::SYSC_EP);
+        DTU::get().try_sleep(!sgate || sgate->epid() != m3::DTU::SYSC_SEP);
     }
     UNREACHED;
 }

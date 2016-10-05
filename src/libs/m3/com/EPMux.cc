@@ -110,7 +110,7 @@ size_t EPMux::select_victim() {
 }
 
 void EPMux::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
-    if(Syscalls::get().activate(victim, oldcap, newcap, nullptr) != Errors::NO_ERROR) {
+    if(Syscalls::get().activate(victim, oldcap, newcap) != Errors::NO_ERROR) {
         // if we wanted to deactivate a cap, we can ignore the failure
         if(newcap != ObjCap::INVALID)
             PANIC("Unable to arm SEP " << victim << ": " << Errors::last);

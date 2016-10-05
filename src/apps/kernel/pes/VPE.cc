@@ -42,7 +42,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _lastsched(),
       _dtustate(),
       _syscgate(SyscallHandler::get().create_gate(this)),
-      _upcsgate(*this, m3::DTU::UPCALL_EP, 0),
+      _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
@@ -105,7 +105,7 @@ void VPE::stop_app() {
 void VPE::exit_app(int exitcode) {
     // no update on the PE here, since we don't save the state anyway
     _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
-    rbufs().detach_all(*this, m3::DTU::DEF_RECVEP);
+    rbufs().detach_all(*this, m3::DTU::DEF_REP);
 
     _exitcode = exitcode;
 
@@ -181,8 +181,29 @@ void VPE::free_reqs() {
     }
 }
 
+void VPE::upcall_notify(m3::Errors::Code res, word_t event) {
+    m3::KIF::Upcall::Notify msg;
+    msg.opcode = m3::KIF::Upcall::NOTIFY;
+    msg.error = res;
+    msg.event = event;
+    KLOG(UPCALLS, "Sending upcall NOTIFY (error=" << res << ", event="
+        << (void*)event << ") to VPE " << id());
+    upcall(&msg, sizeof(msg), false);
+}
+
 void VPE::invalidate_ep(epid_t ep) {
     _dtustate.invalidate(ep);
+    update_ep(ep);
+}
+
+bool VPE::can_forward_msg(epid_t ep) {
+    if(state() == VPE::RUNNING)
+        _dtustate.read_ep(desc(), ep);
+    return _dtustate.can_forward_msg(ep);
+}
+
+void VPE::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
+    _dtustate.forward_msg(ep, pe, vpe);
     update_ep(ep);
 }
 

@@ -174,6 +174,7 @@ public:
     void upcall(const void *msg, size_t size, bool onheap) {
         _upcqueue.send(&_upcsgate, msg, size, onheap);
     }
+    void upcall_notify(m3::Errors::Code res, word_t event);
 
     bool has_app() const {
         return _flags & F_HASAPP;
@@ -199,6 +200,9 @@ public:
     m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
 
     void invalidate_ep(epid_t ep);
+
+    bool can_forward_msg(epid_t ep);
+    void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
 
     void config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);

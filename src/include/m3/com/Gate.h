@@ -97,8 +97,6 @@ protected:
             EPMux::get().switch_to(this);
     }
 
-    Errors::Code reactivate();
-
 private:
     size_t _epid;
 };
