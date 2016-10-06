@@ -20,7 +20,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static char buffer[1024];
+alignas(DTU_PKG_SIZE) static char buffer[4096];
 
 static void copy(FStream &in, FStream &out) {
     size_t res;
