@@ -21,7 +21,7 @@
 
 using namespace m3;
 
-#define BUFFER_SIZE     4096
+#define BUFFER_SIZE     (4096 * 4)
 #define EL_COUNT        (BUFFER_SIZE / sizeof(rand_type))
 
 typedef uchar rand_type;
