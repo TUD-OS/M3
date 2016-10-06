@@ -27,18 +27,11 @@ INIT_PRIO_DTU DTU DTU::inst;
 static const uint64_t TIME_UNTIL_REPORT     = 20000;
 
 void DTU::try_sleep(bool report, uint64_t cycles) {
-    // report_idle() calls us again
-    if(m3::env()->idle_active)
-        return;
-
     // check for messages a few times
     for(int i = 0; i < 100; ++i) {
         if(read_reg(DtuRegs::MSG_CNT) > 0)
             return;
     }
-
-    // remember that we idle in case we should switch context
-    m3::env()->idle_active = 1;
 
     if(report && *reinterpret_cast<uint64_t*>(RCTMUX_REPORT)) {
         // if we want to wait longer than our report time, sleep first for a while until we report
@@ -51,18 +44,14 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
             uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
 
             // if we were waked up early, there is something to do
-            if(sleep_time < TIME_UNTIL_REPORT) {
-                m3::env()->idle_active = 0;
+            if(sleep_time < TIME_UNTIL_REPORT)
                 return;
-            }
 
             // adjust the remaining sleep time
             if(cycles >= sleep_time)
                 cycles -= sleep_time;
-            else if(cycles) {
-                m3::env()->idle_active = 0;
+            else if(cycles)
                 return;
-            }
         }
 
         // if we still want to sleep, report that
@@ -72,7 +61,6 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
     // note that the DTU checks again whether there actually are no messages, because we might
     // have received something after the check above
     sleep(cycles);
-    m3::env()->idle_active = 0;
 }
 
 Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {

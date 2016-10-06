@@ -62,18 +62,11 @@ EXTERN_C void _save(void *s) {
     assert(flags_get() & m3::STORE);
     assert(flags_get() & m3::WAITING);
 
-    // don't access the environment if there is no application
-    bool idle_active = state && m3::env()->idle_active;
-    m3::Sync::compiler_barrier();
-
     save();
 
     state = s;
 
-    uint64_t flags = m3::SIGNAL;
-    if (idle_active)
-        flags |= m3::BLOCK;
-    flags_set(flags);
+    flags_set(m3::SIGNAL);
 }
 
 static void *restore() {

@@ -306,9 +306,7 @@ retry:
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
-            bool blocked = (flags & m3::RCTMuxCtrl::BLOCK) &&
-                _cur->_dtustate.get_msg_count() == 0 &&
-                (_cur->_flags & VPE::F_HASAPP);
+            bool blocked = (_cur->_flags & VPE::F_HASAPP) && _cur->_dtustate.was_idling();
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: saved VPE " << _cur->id() << " (idled "
                 << cycles << " of " << total << " cycles)");

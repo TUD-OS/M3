@@ -86,6 +86,7 @@ private:
         PRIV                = 1 << 0,
         PAGEFAULTS          = 1 << 1,
         COM_DISABLED        = 1 << 2,
+        IRQ_WAKEUP          = 1 << 3,
     };
 
     enum class EpType {

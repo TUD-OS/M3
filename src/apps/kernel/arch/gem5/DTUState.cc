@@ -23,12 +23,13 @@
 
 namespace kernel {
 
-cycles_t DTUState::get_idle_time() const {
-    return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
+bool DTUState::was_idling() const {
+    return _regs.get(m3::DTU::DtuRegs::MSG_CNT) == 0 &&
+        (_regs.get(m3::DTU::DtuRegs::FEATURES) & m3::DTU::IRQ_WAKEUP);
 }
 
-uint DTUState::get_msg_count() const {
-    return _regs.get(m3::DTU::DtuRegs::MSG_CNT);
+cycles_t DTUState::get_idle_time() const {
+    return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
 }
 
 void *DTUState::get_ep(epid_t ep) {
@@ -41,7 +42,7 @@ void DTUState::save(const VPEDesc &vpe) {
 
 void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
-    // and unset COM_DISABLED
+    // and unset COM_DISABLED and IRQ_WAKEUP
     m3::DTU::reg_t features = 0;
     if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<m3::DTU::reg_t>(-1))
         features = m3::DTU::StatusFlags::PAGEFAULTS;
