@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
             ;
     }
 
-    IndirectPipe pipe(64 * 1024);
+    IndirectPipe pipe(128 * 1024);
 
     if(VERBOSE) cout << "Starting reader and writer...\n";
 
