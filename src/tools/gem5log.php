@@ -15,16 +15,23 @@ function bchexdec($hex) {
     }
 }
 
-function addr2func($funcs, $addr) {
+function addr2func($addr) {
+    global $funcs;
+    static $last = null;
+    if($last !== null && bccomp($addr,$last[0]) >= 0 && bccomp($addr,$last[0] + $last[1]) <= 0)
+        return $last;
+
     foreach($funcs as $f) {
-        if(bccomp($addr,$f[0]) >= 0 && bccomp($addr,$f[0] + $f[1]) <= 0)
+        if(bccomp($addr,$f[0]) >= 0 && bccomp($addr,$f[0] + $f[1]) <= 0) {
+            $last = $f;
             return $f;
+        }
     }
     return false;
 }
 
-function funcname($funcs, $addr) {
-    $f = addr2func($funcs, $addr);
+function funcname($addr) {
+    $f = addr2func($addr);
     if($f !== false) {
         return sprintf("\033[1m%s\033[0m @ %s+0x%x",
             basename($f[3]),strtok($f[2],"("),bcsub($addr,$f[0]));
@@ -63,7 +70,7 @@ if(!$f)
 if($mode == 'trace') {
     while(($line = fgets($f)) !== false) {
         if(preg_match('/(\d+): (pe\d+\.cpu) (\S+) : 0x([a-f0-9]+)\s*@\s*.*?  :   (.*)$/', $line, $match)) {
-            $func = funcname($funcs,bchexdec($match[4]));
+            $func = funcname(bchexdec($match[4]));
             printf("%7s: %s: %s : %s\n", $match[1], $match[2], $func, $match[5]);
         }
         else
@@ -75,7 +82,7 @@ else {
     while(($line = fgets($f)) !== false) {
         if(preg_match('/(\d+): (pe(\d+)\.cpu) (\S+) : 0x([a-f0-9]+)/', $line, $match)) {
             $addr = bchexdec($match[5]);
-            $func = addr2func($funcs, $addr);
+            $func = addr2func($addr);
             if($func === false)
                 $func = array($addr, $addr, sprintf('%08x', $addr), '<Unknown>');
             $pe = $match[3];
