@@ -185,6 +185,13 @@ public:
         _argv = argv;
     }
 
+    void add_forward() {
+        _pending_fwds++;
+    }
+    void rem_forward() {
+        _pending_fwds--;
+    }
+
     void start_app();
     void stop_app();
     void exit_app(int exitcode);
@@ -236,6 +243,7 @@ private:
     int _pid;
     int _state;
     int _exitcode;
+    uint _pending_fwds;
     m3::String _name;
     CapTable _objcaps;
     CapTable _mapcaps;

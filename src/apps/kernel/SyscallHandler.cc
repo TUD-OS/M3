@@ -847,6 +847,7 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur)
     m3::Errors::Code res = m3::Errors::NO_ERROR;
     if(tvpe.state() != VPE::RUNNING) {
         cur->start_wait();
+        tvpe.add_forward();
 
         // TODO not required anymore
         if(tvpe.pe() == cur->pe())
@@ -857,6 +858,7 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur)
         if(!tvpe.resume(false))
             res = m3::Errors::VPE_GONE;
 
+        tvpe.rem_forward();
         cur->stop_wait();
     }
     return res;
