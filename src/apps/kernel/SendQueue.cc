@@ -60,7 +60,7 @@ void SendQueue::send_pending() {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: found pending message");
 
     // ensure that the VPE is running
-    if(_vpe.state() != VPE::RUNNING) {
+    while(_vpe.state() != VPE::RUNNING) {
         // if it died, just drop the pending message
         if(!_vpe.resume()) {
             delete e;

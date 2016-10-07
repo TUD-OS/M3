@@ -70,7 +70,7 @@ struct ReplyInfo {
 
 static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_t size) {
     // to send a reply, the VPE has to be running on a PE
-    if(vpe->state() != VPE::RUNNING) {
+    while(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
             return;
     }
@@ -79,7 +79,7 @@ static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_
 }
 
 static inline void kreply_msg(VPE *vpe, GateIStream &is, const void *msg, size_t size) {
-    if(vpe->state() != VPE::RUNNING) {
+    while(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
             return;
     }
@@ -279,9 +279,8 @@ void SyscallHandler::createsess(GateIStream &is) {
 
     m3::Reference<Service> rsrv(s);
 
-    vpe->start_wait();
-
-    if(s->vpe().state() != VPE::RUNNING) {
+    while(s->vpe().state() != VPE::RUNNING) {
+        vpe->start_wait();
         if(!s->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
@@ -753,9 +752,8 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
 
-    vpe->start_wait();
-
-    if(rsrv->vpe().state() != VPE::RUNNING) {
+    while(rsrv->vpe().state() != VPE::RUNNING) {
+        vpe->start_wait();
         if(!rsrv->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
@@ -845,7 +843,7 @@ void SyscallHandler::activate(GateIStream &is) {
 
 m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur) {
     m3::Errors::Code res = m3::Errors::NO_ERROR;
-    if(tvpe.state() != VPE::RUNNING) {
+    while(tvpe.state() != VPE::RUNNING) {
         cur->start_wait();
         tvpe.add_forward();
 
@@ -972,7 +970,7 @@ void SyscallHandler::forwardreply(GateIStream &is) {
         << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
 
     // ensure that the VPE is running, because we need to access it's address space
-    if(vpe->state() != VPE::RUNNING) {
+    while(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
             return;
     }
@@ -993,7 +991,7 @@ void SyscallHandler::forwardreply(GateIStream &is) {
         DTU::get().reply_to(tvpe.desc(), head.replyEpId, head.senderEpId, head.length,
             head.replylabel, req->msg, len);
 
-        if(vpe->state() != VPE::RUNNING) {
+        while(vpe->state() != VPE::RUNNING) {
             if(!vpe->resume())
                 return;
         }
