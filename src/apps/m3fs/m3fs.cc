@@ -443,12 +443,13 @@ private:
 
 int main(int argc, char *argv[]) {
     if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <size>\n";
+        Serial::get() << "Usage: " << argv[0] << " <size> [<name>]\n";
         return 1;
     }
 
+    const char *name = argc > 2 ? argv[2] : "m3fs";
     int size = IStringStream::read_from<int>(argv[1]);
-    Server<M3FSRequestHandler> srv("m3fs", new M3FSRequestHandler(size));
+    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size));
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();
