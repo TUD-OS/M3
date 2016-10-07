@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
     App *apps[4];
 
     const char *pipeserv[] = {"/bin/pipeserv"};
+    const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
     if(mode < 2) {
         apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 1);
         apps[1] = nullptr;
@@ -85,7 +86,6 @@ int main(int argc, char **argv) {
         apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, mode == 1);
     }
     else {
-        const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
         apps[2] = create(1, rargs, argv + 3, false);
         apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, false);
         apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 3);
