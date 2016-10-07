@@ -43,9 +43,25 @@ struct App {
     VPE vpe;
 };
 
+static App *create(int no, int argc, char **argv, bool muxable) {
+    if(VERBOSE) cout << "VPE" << no << ": ";
+    const char **args2 = new const char*[argc];
+    for(int i = 0; i < argc; ++i) {
+        args2[i] = argv[i];
+        if(VERBOSE) cout << args2[i] << " ";
+    }
+    if(VERBOSE) cout << "\n";
+    return new App(argc, args2, muxable);
+}
+
 int main(int argc, char **argv) {
     if(argc < 3) {
-        cerr << "Usage: " << argv[0] << " 1|0 <rargs> ...\n";
+        cerr << "Usage: " << argv[0] << " <mode> <rargs> ...\n";
+        cerr << " <mode> can be:\n";
+        cerr << " 0: not muxable\n";
+        cerr << " 1: all muxable\n";
+        cerr << " 2: m3fs with pipe\n";
+        cerr << " 3: mux m3fs with pipe\n";
         return 1;
     }
 
@@ -56,32 +72,25 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Creating VPEs...\n";
 
-    bool muxed = strcmp(argv[1], "1") == 0;
+    int mode = IStringStream::read_from<int>(argv[1]);
     size_t rargs = IStringStream::read_from<size_t>(argv[2]);
 
-    App *apps[3];
+    App *apps[4];
 
-    const char *args1[] = {"/bin/pipeserv"};
-    apps[0] = new App(ARRAY_SIZE(args1), args1, muxed);
-    if(VERBOSE) cout << "VPE1: " << args1[0] << "\n";
-
-    if(VERBOSE) cout << "VPE2: ";
-    const char **args2 = new const char*[rargs];
-    for(size_t i = 0; i < rargs; ++i) {
-        args2[i] = argv[3 + i];
-        if(VERBOSE) cout << args2[i] << " ";
+    const char *pipeserv[] = {"/bin/pipeserv"};
+    if(mode < 2) {
+        apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 1);
+        apps[1] = nullptr;
+        apps[2] = create(1, rargs, argv + 3, mode == 1);
+        apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, mode == 1);
     }
-    if(VERBOSE) cout << "\n";
-    apps[1] = new App(rargs, args2, muxed);
-
-    if(VERBOSE) cout << "VPE3: ";
-    const char **args3 = new const char*[argc - (3 + rargs)];
-    for(int i = 3 + rargs; i < argc; ++i) {
-        args3[i - (3 + rargs)] = argv[i];
-        if(VERBOSE) cout << argv[i] << " ";
+    else {
+        const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
+        apps[2] = create(1, rargs, argv + 3, false);
+        apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, false);
+        apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 3);
+        apps[1] = create(3, 3, const_cast<char**>(m3fs), mode == 3);
     }
-    if(VERBOSE) cout << "\n";
-    apps[2] = new App(argc - (3 + rargs), args3, muxed);
 
     if(VERBOSE) cout << "Starting service...\n";
 
@@ -90,50 +99,69 @@ int main(int argc, char **argv) {
     if(res != Errors::NO_ERROR)
         PANIC("Cannot execute " << apps[0]->exec.argv()[0] << ": " << Errors::to_string(res));
 
+    if(apps[1]) {
+        res = apps[1]->vpe.exec(apps[1]->exec);
+        if(res != Errors::NO_ERROR)
+            PANIC("Cannot execute " << apps[1]->exec.argv()[0] << ": " << Errors::to_string(res));
+    }
+
     if(VERBOSE) cout << "Waiting for service...\n";
 
     // the kernel does not block us atm until the service is available
     // so try to connect until it's available
-    while(1) {
-        Session *sess = new Session("pipe");
-        if(sess->is_connected()) {
-            delete sess;
-            break;
-        }
-
+    int rem = 1 + (apps[1] ? 1 : 0);
+    while(rem > 0) {
         for(volatile int x = 0; x < 10000; ++x)
             ;
+
+        Session *sess = new Session("pipe");
+        if(sess->is_connected()) {
+            rem--;
+            delete sess;
+        }
+        if(apps[1]) {
+            sess = new Session("m3fs2");
+            if(sess->is_connected()) {
+                rem--;
+                delete sess;
+            }
+        }
     }
 
     IndirectPipe pipe(128 * 1024);
 
     if(VERBOSE) cout << "Starting reader and writer...\n";
 
+    if(apps[1]) {
+        if(VFS::mount("/foo", new M3FS("m3fs2")) < 0)
+            PANIC("Cannot mount root fs");
+    }
+
     cycles_t start = Profile::start(0x1234);
 
     // start writer
-    apps[1]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
-    apps[1]->vpe.obtain_fds();
-    apps[1]->vpe.mountspace(*VPE::self().mountspace());
-    apps[1]->vpe.obtain_mountspace();
-    res = apps[1]->vpe.exec(apps[1]->exec);
-    if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << apps[1]->exec.argv()[0] << ": " << Errors::to_string(res));
-
-    // start reader
-    apps[2]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
+    apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     apps[2]->vpe.obtain_fds();
+    apps[2]->vpe.mountspace(*VPE::self().mountspace());
+    apps[2]->vpe.obtain_mountspace();
     res = apps[2]->vpe.exec(apps[2]->exec);
     if(res != Errors::NO_ERROR)
         PANIC("Cannot execute " << apps[2]->exec.argv()[0] << ": " << Errors::to_string(res));
+
+    // start reader
+    apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
+    apps[3]->vpe.obtain_fds();
+    res = apps[3]->vpe.exec(apps[3]->exec);
+    if(res != Errors::NO_ERROR)
+        PANIC("Cannot execute " << apps[3]->exec.argv()[0] << ": " << Errors::to_string(res));
 
     pipe.close_writer();
     pipe.close_reader();
 
     if(VERBOSE) cout << "Waiting for VPEs...\n";
 
-    // don't wait for the service
-    for(size_t i = 1; i < ARRAY_SIZE(apps); ++i) {
+    // don't wait for the services
+    for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
         int res = apps[i]->vpe.wait();
         if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
     }
