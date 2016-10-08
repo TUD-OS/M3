@@ -29,7 +29,7 @@
 namespace kernel {
 
 struct BootModule {
-    char name[128];
+    char name[256];
     uint64_t addr;
     uint64_t size;
 } PACKED;
