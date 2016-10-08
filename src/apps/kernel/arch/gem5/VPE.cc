@@ -66,7 +66,7 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
         }
     }
 
-    char buf[128];
+    char buf[256];
     m3::OStringStream os(buf, sizeof(buf));
     for(size_t i = 0; i < argc; ++i) {
         os << argv[i];
