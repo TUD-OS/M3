@@ -72,6 +72,11 @@ thread_resume:
     mov     8(%rdi),%rbx
     mov     0(%rdi),%rax
     pushq   128(%rdi)
+    mfence                              # TODO unnecessary, but fixes a bug in gem5
+    # it looks like a similar problem I already had with pagefaults. if a store is
+    # followed by a load and the store takes a bit longer, gem5 does not always
+    # fetch the value from the store buffer for the load, but from the cache.
+    # I have no idea why this occurs that seldom, but this seems to fix it for us
     popfq                            	# load eflags
     mov     40(%rdi),%rdi               # load rdi (necessary for startup)
 
