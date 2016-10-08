@@ -149,6 +149,8 @@ int main(int argc, char **argv) {
     // start reader
     apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
     apps[3]->vpe.obtain_fds();
+    apps[3]->vpe.mountspace(*VPE::self().mountspace());
+    apps[3]->vpe.obtain_mountspace();
     res = apps[3]->vpe.exec(apps[3]->exec);
     if(res != Errors::NO_ERROR)
         PANIC("Cannot execute " << apps[3]->exec.argv()[0] << ": " << Errors::to_string(res));
