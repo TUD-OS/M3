@@ -42,6 +42,7 @@ EXTERN_C void *_start_app() {
         return restore();
 
     if(flags & m3::WAITING) {
+        m3::Sync::memory_barrier();
         flags_set(m3::SIGNAL);
 
         // no application anymore; only reset that if the kernel actually requested that
@@ -66,6 +67,7 @@ EXTERN_C void _save(void *s) {
 
     state = s;
 
+    m3::Sync::memory_barrier();
     flags_set(m3::SIGNAL);
 }
 
@@ -92,6 +94,7 @@ static void *restore() {
         resume();
 
     // tell the kernel that we are ready
+    m3::Sync::memory_barrier();
     flags_set(m3::SIGNAL);
 
     return state;
