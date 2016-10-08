@@ -54,6 +54,19 @@ static App *create(int no, int argc, char **argv, bool muxable) {
     return new App(argc, args2, muxable);
 }
 
+static void wait_for(const char *service) {
+    while(1) {
+        for(volatile int x = 0; x < 10000; ++x)
+            ;
+
+        Session *sess = new Session(service);
+        if(sess->is_connected()) {
+            delete sess;
+            break;
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     if(argc < 3) {
         cerr << "Usage: " << argv[0] << " <mode> <rargs> ...\n";
@@ -109,24 +122,9 @@ int main(int argc, char **argv) {
 
     // the kernel does not block us atm until the service is available
     // so try to connect until it's available
-    int rem = 1 + (apps[1] ? 1 : 0);
-    while(rem > 0) {
-        for(volatile int x = 0; x < 10000; ++x)
-            ;
-
-        Session *sess = new Session("pipe");
-        if(sess->is_connected()) {
-            rem--;
-            delete sess;
-        }
-        if(apps[1]) {
-            sess = new Session("m3fs2");
-            if(sess->is_connected()) {
-                rem--;
-                delete sess;
-            }
-        }
-    }
+    wait_for("pipe");
+    if(apps[1])
+        wait_for("m3fs2");
 
     IndirectPipe pipe(128 * 1024);
 
