@@ -34,10 +34,6 @@ static void *state = nullptr;
 
 EXTERN_C void *_start_app() {
     uint64_t flags = flags_get();
-    // it might happen that IRQs are issued late, so that, if we're idling, the STORE flag is set
-    // when we get here. just wait until the IRQ is issued.
-    if(flags & m3::STORE)
-        return nullptr;
 
     // if we're here for the first time, setup exception handling
     if(flags & m3::INIT)
@@ -61,7 +57,14 @@ EXTERN_C void *_start_app() {
 }
 
 EXTERN_C void _sleep() {
+    m3::Sync::memory_barrier();
     sleep();
+
+    // it might happen that IRQs are issued late, so that, if we're idling, the STORE flag is set
+    // when we get here. just wait until the IRQ is issued.
+    m3::Sync::memory_barrier();
+    while(flags_get() & m3::STORE)
+        ;
 }
 
 EXTERN_C void _save(void *s) {
