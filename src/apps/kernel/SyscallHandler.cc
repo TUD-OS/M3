@@ -279,8 +279,8 @@ void SyscallHandler::createsess(GateIStream &is) {
 
     m3::Reference<Service> rsrv(s);
 
+    vpe->start_wait();
     while(s->vpe().state() != VPE::RUNNING) {
-        vpe->start_wait();
         if(!s->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
@@ -752,8 +752,8 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
 
+    vpe->start_wait();
     while(rsrv->vpe().state() != VPE::RUNNING) {
-        vpe->start_wait();
         if(!rsrv->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, is, m3::Errors::VPE_GONE, "VPE does no longer exist");
