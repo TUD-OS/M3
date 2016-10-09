@@ -227,7 +227,8 @@ void ContextSwitcher::update_report() {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating report=" << report);
 
         // update idle_report and wake him up in case he was idling
-        uint64_t val = _set_report = !!report;
+        _set_report = report;
+        uint64_t val = report ? REPORT_TIME : 0;
         DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
         if(report)
             DTU::get().wakeup(_cur->desc());
