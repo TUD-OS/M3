@@ -227,7 +227,7 @@ void ContextSwitcher::update_report() {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating report=" << report);
 
         // update idle_report and wake him up in case he was idling
-        uint64_t val = _set_report = report;
+        uint64_t val = _set_report = !!report;
         DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
         if(report)
             DTU::get().wakeup(_cur->desc());
@@ -349,7 +349,7 @@ retry:
         case S_RESTORE_WAIT: {
             uint64_t vals[2];
             // let the VPE report idle times if there are other VPEs
-            vals[0] = _set_report = migvpe || _global_ready > 0;
+            vals[0] = (_set_report = migvpe || _global_ready > 0) ? REPORT_TIME : 0;
             vals[1] = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & VPE::F_INIT)

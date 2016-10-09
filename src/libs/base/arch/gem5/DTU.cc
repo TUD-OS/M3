@@ -24,8 +24,6 @@ namespace m3 {
 
 INIT_PRIO_DTU DTU DTU::inst;
 
-static const uint64_t TIME_UNTIL_REPORT     = 20000;
-
 void DTU::try_sleep(bool report, uint64_t cycles) {
     // check for messages a few times
     for(int i = 0; i < 100; ++i) {
@@ -33,18 +31,19 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
             return;
     }
 
-    if(report && *reinterpret_cast<uint64_t*>(RCTMUX_REPORT)) {
+    uint64_t report_time = *reinterpret_cast<uint64_t*>(RCTMUX_REPORT);
+    if(report && report_time > 0) {
         // if we want to wait longer than our report time, sleep first for a while until we report
-        if(cycles == 0 || cycles > TIME_UNTIL_REPORT) {
+        if(cycles == 0 || cycles > report_time) {
             // sleep a bit
             uint64_t now = read_reg(DtuRegs::CUR_TIME);
             Sync::memory_barrier();
-            sleep(TIME_UNTIL_REPORT);
+            sleep(report_time);
             Sync::memory_barrier();
             uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
 
             // if we were waked up early, there is something to do
-            if(sleep_time < TIME_UNTIL_REPORT)
+            if(sleep_time < report_time)
                 return;
 
             // adjust the remaining sleep time
