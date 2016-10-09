@@ -37,8 +37,10 @@ static void start(VPE &v, Executable &e) {
         PANIC("Cannot execute " << e.argv()[0] << ": " << Errors::to_string(res));
 }
 
-int main() {
-if(VERBOSE)     cout << "Mounting filesystem...\n";
+int main(int argc, char **argv) {
+    bool muxable = argc > 1 && strcmp(argv[1], "1") == 0;
+
+    if(VERBOSE) cout << "Mounting filesystem...\n";
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
@@ -46,13 +48,13 @@ if(VERBOSE)     cout << "Mounting filesystem...\n";
 
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
     Executable exec1(ARRAY_SIZE(args1), args1);
-    VPE s1(args1[0], VPE::self().pe(), "pager", true);
+    VPE s1(args1[0], VPE::self().pe(), "pager", muxable);
     if(Errors::last != Errors::NO_ERROR)
         exitmsg("Unable to create VPE");
 
     const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
     Executable exec2(ARRAY_SIZE(args2), args2);
-    VPE s2(args2[0], VPE::self().pe(), "pager", true);
+    VPE s2(args2[0], VPE::self().pe(), "pager", muxable);
     if(Errors::last != Errors::NO_ERROR)
         exitmsg("Unable to create VPE");
 
@@ -94,10 +96,14 @@ if(VERBOSE)     cout << "Mounting filesystem...\n";
 
     for(int i = 0; i < 20; ++i) {
         size_t no = i % 2;
-        int res;
+
+        cycles_t start = Profile::start(0x1234);
         GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
+        cycles_t end = Profile::stop(0x1234);
+
+        int res;
         reply >> res;
-        cout << "Got " << res << " from " << name[no] << "\n";
+        cout << "Got " << res << " from " << name[no] << " (" << (end - start) << " cycles)\n";
     }
 
     if(VERBOSE) cout << "Test finished.\n";
