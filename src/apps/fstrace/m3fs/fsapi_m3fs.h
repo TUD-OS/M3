@@ -71,9 +71,9 @@ public:
         while(rem > 0)
             asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
 #elif defined(__gem5__)
-        cycles_t finish = rdtsc() + args->timestamp;
-        while(rdtsc() < finish)
-            ;
+        int rem = (4 * args->timestamp) / 10;
+        while(rem > 0)
+            asm volatile ("dec %0" : "+r"(rem));
 #endif
     }
 
