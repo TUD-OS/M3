@@ -29,6 +29,9 @@ using namespace m3;
 
 #define VERBOSE     0
 
+static const int WARMUP = 10;
+static const int REPEAT = 10;
+
 static void start(VPE &v, Executable &e) {
     v.mountspace(*VPE::self().mountspace());
     v.obtain_mountspace();
@@ -94,7 +97,16 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Starting test...\n";
 
-    for(int i = 0; i < 20; ++i) {
+    for(int i = 0; i < WARMUP; ++i) {
+        size_t no = i % 2;
+        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
+
+        int res;
+        reply >> res;
+        cout << "Got " << res << " from " << name[no] << "\n";
+    }
+
+    for(int i = 0; i < REPEAT; ++i) {
         size_t no = i % 2;
 
         cycles_t start = Profile::start(0x1234);

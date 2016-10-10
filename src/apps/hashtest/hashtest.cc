@@ -30,6 +30,7 @@ static const char *names[] = {
 };
 
 static const int WARMUP    = 10;
+static const int REPEATS   = 10;
 
 static char buffer[4096];
 
@@ -62,9 +63,11 @@ int main(int argc, char **argv) {
         for(int j = 0; j < WARMUP; ++j)
             accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
 
-        Profile::start(0x1234);
-        accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-        Profile::stop(0x1234);
+        for(int j = 0; j < REPEATS; ++j) {
+            Profile::start(0x1234);
+            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+            Profile::stop(0x1234);
+        }
     }
     else {
         hash::Hash accel;
@@ -75,9 +78,11 @@ int main(int argc, char **argv) {
         for(int j = 0; j < WARMUP; ++j)
             accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
 
-        Profile::start(0x1234);
-        accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-        Profile::stop(0x1234);
+        for(int j = 0; j < REPEATS; ++j) {
+            Profile::start(0x1234);
+            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+            Profile::stop(0x1234);
+        }
     }
     return 0;
 }
