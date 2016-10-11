@@ -81,6 +81,12 @@ void DTUState::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
     // TODO reduce credits
 }
 
+void DTUState::forward_mem(epid_t ep, peid_t pe) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+    r[2] &= ~(static_cast<m3::DTU::reg_t>(0xFF) << 4);
+    r[2] |= pe << 4;
+}
+
 void DTUState::read_ep(const VPEDesc &vpe, epid_t ep) {
     DTU::get().read_ep_remote(vpe, ep, get_ep(ep));
 }

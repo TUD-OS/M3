@@ -45,6 +45,7 @@ public:
 
     bool can_forward_msg(epid_t ep);
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
+    void forward_mem(epid_t ep, peid_t pe);
 
     void read_ep(const VPEDesc &vpe, epid_t ep);
 

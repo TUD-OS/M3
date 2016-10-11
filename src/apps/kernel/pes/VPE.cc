@@ -209,6 +209,11 @@ void VPE::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
     update_ep(ep);
 }
 
+void VPE::forward_mem(epid_t ep, peid_t pe) {
+    _dtustate.forward_mem(ep, pe);
+    update_ep(ep);
+}
+
 void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
     _dtustate.config_send(ep, lbl, pe, vpe, dstep, msgsize, crd);
     update_ep(ep);

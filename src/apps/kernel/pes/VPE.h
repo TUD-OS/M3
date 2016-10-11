@@ -210,6 +210,7 @@ public:
 
     bool can_forward_msg(epid_t ep);
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
+    void forward_mem(epid_t ep, peid_t pe);
 
     void config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);

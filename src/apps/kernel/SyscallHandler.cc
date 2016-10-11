@@ -948,6 +948,8 @@ void SyscallHandler::forwardmem(GateIStream &is) {
             res = DTU::get().try_write_mem(tvpe.desc(), capobj->addr() + offset, req->data, len);
         else
             res = DTU::get().try_read_mem(tvpe.desc(), capobj->addr() + offset, reply.data, len);
+
+        vpe->forward_mem(capobj->localepid, tvpe.pe());
     }
 
     if(async)
