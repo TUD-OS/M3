@@ -901,6 +901,8 @@ void SyscallHandler::forwardmsg(GateIStream &is) {
 
         vpe->forward_msg(capobj->localepid, tvpe.pe(), tvpe.id());
     }
+    else
+        LOG_ERROR(vpe, res, "forwardmsg failed");
 
     if(async)
         vpe->upcall_notify(res, event);
@@ -951,6 +953,8 @@ void SyscallHandler::forwardmem(GateIStream &is) {
 
         vpe->forward_mem(capobj->localepid, tvpe.pe());
     }
+    if(res != m3::Errors::NO_ERROR && res != m3::Errors::PAGEFAULT)
+        LOG_ERROR(vpe, res, "forwardmem failed");
 
     if(async)
         vpe->upcall_notify(res, event);
@@ -1001,6 +1005,8 @@ void SyscallHandler::forwardreply(GateIStream &is) {
         head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
         res = vpe->rbufs().set_header(*vpe, epid, msgaddr, head);
     }
+    if(res != m3::Errors::NO_ERROR)
+        LOG_ERROR(vpe, res, "forwardreply failed");
 
     if(async)
         vpe->upcall_notify(res, event);
