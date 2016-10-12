@@ -220,9 +220,12 @@ public:
     }
 
     void abort(uint flags, reg_t *cmdreg) {
+        // save the old value before aborting
         *cmdreg = read_reg(CmdRegs::COMMAND);
         write_reg(CmdRegs::ABORT, flags);
-        if(get_error() != Errors::ABORT)
+        // wait until the abort is finished. if a command was running and was aborted, we want to
+        // retry it later. if no command was running, we want to keep the error code though.
+        if(get_error() != Errors::ABORT && (*cmdreg & 0xF) != static_cast<reg_t>(CmdOpCode::IDLE))
             *cmdreg = static_cast<reg_t>(CmdOpCode::IDLE);
     }
     void retry(reg_t cmd) {
