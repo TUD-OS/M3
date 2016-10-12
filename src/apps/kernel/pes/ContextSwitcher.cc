@@ -353,7 +353,7 @@ retry:
         case S_RESTORE_WAIT: {
             uint64_t vals[2];
             // let the VPE report idle times if there are other VPEs
-            vals[0] = (_set_report = migvpe || _global_ready > 0) ? REPORT_TIME : 0;
+            vals[0] = (can_mux() && (_set_report = migvpe || _global_ready > 0)) ? REPORT_TIME : 0;
             vals[1] = m3::RCTMuxCtrl::WAITING;
             // it's the first start if we are initializing or starting
             if(_cur->flags() & VPE::F_INIT)
