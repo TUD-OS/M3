@@ -31,7 +31,7 @@
 using namespace m3;
 
 #define VERBOSE         0
-#define REPEATS         4
+#define REPEATS         8
 #define MAX_TMP_DIRS    4
 #define MAX_TMP_FILES   16
 
