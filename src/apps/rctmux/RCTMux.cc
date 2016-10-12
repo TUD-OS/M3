@@ -27,17 +27,24 @@ EXTERN_C void _start();
 
 namespace RCTMux {
 
+enum Status {
+    INITIALIZED = 1,
+    STARTED     = 2,
+};
+
 static void *restore();
 
-static bool started = false;
+static uint status = 0;
 static void *state = nullptr;
 
 EXTERN_C void *_start_app() {
     uint64_t flags = flags_get();
 
     // if we're here for the first time, setup exception handling
-    if(flags & m3::INIT)
+    if(!(status & INITIALIZED)) {
         init();
+        status |= INITIALIZED;
+    }
 
     if(flags & m3::RESTORE)
         return restore();
@@ -49,7 +56,7 @@ EXTERN_C void *_start_app() {
         // no application anymore; only reset that if the kernel actually requested that
         // because it might happen that we are waked up by a message before the kernel has written
         // the flags register. in this case, we don't want to lose the application.
-        started = false;
+        status &= ~STARTED;
         state = nullptr;
     }
 
@@ -87,7 +94,7 @@ static void *restore() {
     // remember the current core id (might have changed since last switch)
     senv->coreid = flags >> 32;
 
-    if(!started) {
+    if(!(status & STARTED)) {
         // if we get here, there is an application to jump to
         assert(senv->entry != 0);
 
@@ -96,7 +103,7 @@ static void *restore() {
 
         // initialize the state to be able to resume from it
         state = init_state();
-        started = true;
+        status |= STARTED;
     }
     else
         resume();

@@ -355,9 +355,6 @@ retry:
             // let the VPE report idle times if there are other VPEs
             vals[0] = (can_mux() && (_set_report = migvpe || _global_ready > 0)) ? REPORT_TIME : 0;
             vals[1] = m3::RCTMuxCtrl::WAITING;
-            // it's the first start if we are initializing or starting
-            if(_cur->flags() & VPE::F_INIT)
-                vals[1] |= m3::RCTMuxCtrl::INIT;
 
             // tell rctmux whether there is an application and the PE id
             if(_cur->flags() & VPE::F_HASAPP)

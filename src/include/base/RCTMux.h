@@ -29,11 +29,10 @@ namespace m3 {
  */
 enum RCTMuxCtrl {
     NONE                = 0,
-    INIT                = 1 << 0, // set during first restore
-    STORE               = 1 << 1, // store operation required
-    RESTORE             = 1 << 2, // restore operation required
-    WAITING             = 1 << 3, // set by the kernel if a signal is required
-    SIGNAL              = 1 << 4, // used to signal completion to the kernel
+    STORE               = 1 << 0, // store operation required
+    RESTORE             = 1 << 1, // restore operation required
+    WAITING             = 1 << 2, // set by the kernel if a signal is required
+    SIGNAL              = 1 << 3, // used to signal completion to the kernel
 };
 
 }
