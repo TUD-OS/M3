@@ -240,6 +240,9 @@ bool ContextSwitcher::start_switch(bool timedout) {
         Timeouts::get().cancel(_timeout);
     _timeout = nullptr;
 
+    // if there is nobody to switch to, just ignore it
+    if(_cur && _ready.length() == 0)
+        return false;
     // if there is a switch running, do nothing
     if(_state != S_IDLE)
         return false;
