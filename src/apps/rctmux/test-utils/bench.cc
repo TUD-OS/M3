@@ -129,6 +129,8 @@ int main(int argc, char **argv) {
             size_t x = 0;
             String *entries[MAX_TMP_FILES];
 
+            if(VERBOSE) cout << "Collecting files in " << os.str() << "\n";
+
             // remove all entries; we assume here that they are files
             Dir::Entry e;
             while(dir.readdir(e)) {
@@ -143,6 +145,7 @@ int main(int argc, char **argv) {
             }
 
             for(; x > 0; --x) {
+                if(VERBOSE) cout << "Unlinking " << *(entries[x - 1]) << "\n";
                 VFS::unlink(entries[x - 1]->c_str());
                 delete entries[x - 1];
             }
