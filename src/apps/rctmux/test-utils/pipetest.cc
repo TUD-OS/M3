@@ -31,6 +31,8 @@ using namespace m3;
 
 #define VERBOSE     0
 
+static const int REPEATS    = 4;
+
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)
         : exec(argc, argv),
@@ -83,97 +85,104 @@ int main(int argc, char **argv) {
     if(VFS::mount("/", new M3FS("m3fs")) < 0)
         PANIC("Cannot mount root fs");
 
-    if(VERBOSE) cout << "Creating VPEs...\n";
-
     int mode = IStringStream::read_from<int>(argv[1]);
     size_t rargs = IStringStream::read_from<size_t>(argv[2]);
 
-    App *apps[4];
+    for(int j = 0; j < REPEATS; ++j) {
+        App *apps[4];
 
-    const char *pipeserv[] = {"/bin/pipeserv"};
-    const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
-    if(mode < 2) {
-        apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 1);
-        apps[1] = nullptr;
-        apps[2] = create(1, rargs, argv + 3, mode == 1);
-        apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, mode == 1);
-    }
-    else {
-        apps[2] = create(1, rargs, argv + 3, false);
-        apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, false);
-        apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 3);
-        apps[1] = create(3, 3, const_cast<char**>(m3fs), mode == 3);
-    }
+        if(VERBOSE) cout << "Creating VPEs...\n";
 
-    if(VERBOSE) cout << "Starting service...\n";
+        const char *pipeserv[] = {"/bin/pipeserv"};
+        const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
+        if(mode < 2) {
+            apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 1);
+            apps[1] = nullptr;
+            apps[2] = create(1, rargs, argv + 3, mode == 1);
+            apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, mode == 1);
+        }
+        else {
+            apps[2] = create(1, rargs, argv + 3, false);
+            apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, false);
+            apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 3);
+            apps[1] = create(3, 3, const_cast<char**>(m3fs), mode == 3);
+        }
 
-    // start service
-    Errors::Code res = apps[0]->vpe.exec(apps[0]->exec);
-    if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << apps[0]->exec.argv()[0] << ": " << Errors::to_string(res));
+        if(VERBOSE) cout << "Starting service...\n";
 
-    if(apps[1]) {
-        res = apps[1]->vpe.exec(apps[1]->exec);
+        // start service
+        Errors::Code res = apps[0]->vpe.exec(apps[0]->exec);
         if(res != Errors::NO_ERROR)
-            PANIC("Cannot execute " << apps[1]->exec.argv()[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << apps[0]->exec.argv()[0] << ": " << Errors::to_string(res));
+
+        if(apps[1]) {
+            res = apps[1]->vpe.exec(apps[1]->exec);
+            if(res != Errors::NO_ERROR)
+                PANIC("Cannot execute " << apps[1]->exec.argv()[0] << ": " << Errors::to_string(res));
+        }
+
+        if(VERBOSE) cout << "Waiting for service...\n";
+
+        // the kernel does not block us atm until the service is available
+        // so try to connect until it's available
+        wait_for("pipe");
+        if(apps[1])
+            wait_for("m3fs2");
+
+        IndirectPipe pipe(128 * 1024);
+
+        if(VERBOSE) cout << "Starting reader and writer...\n";
+
+        if(apps[1]) {
+            if(VFS::mount("/foo", new M3FS("m3fs2")) < 0)
+                PANIC("Cannot mount root fs");
+        }
+
+        cycles_t start = Profile::start(0x1234);
+
+        // start writer
+        apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
+        apps[2]->vpe.obtain_fds();
+        apps[2]->vpe.mountspace(*VPE::self().mountspace());
+        apps[2]->vpe.obtain_mountspace();
+        res = apps[2]->vpe.exec(apps[2]->exec);
+        if(res != Errors::NO_ERROR)
+            PANIC("Cannot execute " << apps[2]->exec.argv()[0] << ": " << Errors::to_string(res));
+
+        // start reader
+        apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
+        apps[3]->vpe.obtain_fds();
+        apps[3]->vpe.mountspace(*VPE::self().mountspace());
+        apps[3]->vpe.obtain_mountspace();
+        res = apps[3]->vpe.exec(apps[3]->exec);
+        if(res != Errors::NO_ERROR)
+            PANIC("Cannot execute " << apps[3]->exec.argv()[0] << ": " << Errors::to_string(res));
+
+        pipe.close_writer();
+        pipe.close_reader();
+
+        if(VERBOSE) cout << "Waiting for VPEs...\n";
+
+        // don't wait for the services
+        for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
+            int res = apps[i]->vpe.wait();
+            if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
+        }
+
+        cycles_t end = Profile::stop(0x1234);
+        cout << "Time: " << (end - start) << "\n";
+
+        if(VERBOSE) cout << "Deleting VPEs...\n";
+
+        if(apps[1])
+            VFS::unmount("/foo");
+
+        for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
+            delete apps[i];
+
+
+
+        if(VERBOSE) cout << "Done\n";
     }
-
-    if(VERBOSE) cout << "Waiting for service...\n";
-
-    // the kernel does not block us atm until the service is available
-    // so try to connect until it's available
-    wait_for("pipe");
-    if(apps[1])
-        wait_for("m3fs2");
-
-    IndirectPipe pipe(128 * 1024);
-
-    if(VERBOSE) cout << "Starting reader and writer...\n";
-
-    if(apps[1]) {
-        if(VFS::mount("/foo", new M3FS("m3fs2")) < 0)
-            PANIC("Cannot mount root fs");
-    }
-
-    cycles_t start = Profile::start(0x1234);
-
-    // start writer
-    apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
-    apps[2]->vpe.obtain_fds();
-    apps[2]->vpe.mountspace(*VPE::self().mountspace());
-    apps[2]->vpe.obtain_mountspace();
-    res = apps[2]->vpe.exec(apps[2]->exec);
-    if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << apps[2]->exec.argv()[0] << ": " << Errors::to_string(res));
-
-    // start reader
-    apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
-    apps[3]->vpe.obtain_fds();
-    apps[3]->vpe.mountspace(*VPE::self().mountspace());
-    apps[3]->vpe.obtain_mountspace();
-    res = apps[3]->vpe.exec(apps[3]->exec);
-    if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << apps[3]->exec.argv()[0] << ": " << Errors::to_string(res));
-
-    pipe.close_writer();
-    pipe.close_reader();
-
-    if(VERBOSE) cout << "Waiting for VPEs...\n";
-
-    // don't wait for the services
-    for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
-        int res = apps[i]->vpe.wait();
-        if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
-    }
-
-    cycles_t end = Profile::stop(0x1234);
-    cout << "Time: " << (end - start) << "\n";
-
-    if(VERBOSE) cout << "Deleting VPEs...\n";
-
-    for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
-        delete apps[i];
-
-    if(VERBOSE) cout << "Done\n";
     return 0;
 }
