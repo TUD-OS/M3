@@ -136,7 +136,7 @@ void Exceptions::setIDT(size_t number, entry_func handler, uint8_t dpl) {
     Desc64 *e = idt + number;
     e->type = Desc::SYS_INTR_GATE;
     e->dpl = dpl;
-    e->present = number != INTEL_RES1 && number != INTEL_RES2;
+    e->present = number != 2 && number != 15; /* reserved by intel */
     e->addrLow = SEG_CODE << 3;
     e->addrHigh = (reinterpret_cast<uintptr_t>(handler) >> 16) & 0xFFFF;
     e->limitLow = reinterpret_cast<uintptr_t>(handler) & 0xFFFF;
@@ -144,7 +144,9 @@ void Exceptions::setIDT(size_t number, entry_func handler, uint8_t dpl) {
 }
 
 void Exceptions::setTSS(Desc *gdt, TSS *tss, uintptr_t kstack) {
-    tss->setSP(kstack);
+    /* an invalid offset for the io-bitmap => not loaded yet */
+    tss->ioMapOffset = 104 + 16;
+    tss->rsp0 = kstack;
     setDesc64(gdt + SEG_TSS, reinterpret_cast<uintptr_t>(tss), sizeof(TSS) - 1,
         Desc::GRANU_BYTES, Desc::SYS_TSS, Desc::DPL_KERNEL);
 }
