@@ -145,7 +145,6 @@ BUILD_ERR_ISR 14
 BUILD_DEF_ISR 15
 BUILD_DEF_ISR 16
 BUILD_DEF_ISR 64
-BUILD_DEF_ISR 65
 
 .global isrNull
 .type   isrNull, @function

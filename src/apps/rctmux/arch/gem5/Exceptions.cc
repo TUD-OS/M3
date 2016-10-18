@@ -40,7 +40,6 @@ EXTERN_C void isr15();
 EXTERN_C void isr16();
 // for the DTU
 EXTERN_C void isr64();
-EXTERN_C void isr65();
 // the handler for a other interrupts
 EXTERN_C void isrNull();
 
@@ -106,7 +105,6 @@ void Exceptions::init() {
 
     // DTU interrupts
     setIDT(64, isr64, Desc::DPL_KERNEL);
-    setIDT(65, isr65, Desc::DPL_KERNEL);
 
     for(size_t i = 0; i < IDT_COUNT; ++i)
         isrs[i] = null_handler;
