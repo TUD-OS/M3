@@ -23,53 +23,58 @@
 #include <cstring>
 #include <cerrno>
 
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "SyscallHandler.h"
 
 namespace kernel {
 
 void VPE::init() {
+    if(eps() == 0)
+        return;
+
+    // configure notify endpoint
+    config_snd_ep(m3::DTU::NOTIFY_SEP, reinterpret_cast<label_t>(&syscall_gate()),
+        Platform::kernel_pe(), VPEManager::MAX_VPES,
+        m3::DTU::NOTIFY_SEP, 1 << NOTIFY_MSGSIZE_ORD, -1);
 }
 
-void VPE::start(int argc, char **argv, int pid) {
-    // when exiting, the program will release one reference
-    ref();
-    _state = RUNNING;
-    if(pid == 0) {
+void VPE::load_app() {
+    if(_pid == 0) {
         _pid = fork();
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
             write_env_file(getpid(), reinterpret_cast<label_t>(&_syscgate),
                 SyscallHandler::get().epid());
-            char **childargs = new char*[argc + 1];
-            int i = 0, j = 0;
-            for(; i < argc; ++i) {
-                if(strncmp(argv[i], "pe=", 5) == 0)
+            char **childargs = new char*[_argc + 1];
+            size_t i = 0, j = 0;
+            for(; i < _argc; ++i) {
+                if(strncmp(_argv[i], "pe=", 5) == 0)
                     continue;
-                else if(strcmp(argv[i], "daemon") == 0)
+                else if(strcmp(_argv[i], "daemon") == 0)
                     continue;
-                else if(strncmp(argv[i], "requires=", sizeof("requires=") - 1) == 0)
+                else if(strncmp(_argv[i], "requires=", sizeof("requires=") - 1) == 0)
                     continue;
 
-                childargs[j++] = argv[i];
+                childargs[j++] = _argv[i];
             }
             childargs[j] = nullptr;
             execv(childargs[0], childargs);
             KLOG(VPES, "VPE creation failed: " << strerror(errno));
+            exit(1);
         }
-        else
-            KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
     }
     else {
-        _pid = pid;
-        write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate), SyscallHandler::get().epid());
-        KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
+        write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate),
+            SyscallHandler::get().epid());
     }
+
+    KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
 }
 
-void VPE::activate_sysc_ep(void *addr) {
-    _eps = addr;
+void VPE::init_memory() {
+    load_app();
 }
 
 void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
@@ -84,6 +89,10 @@ void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
 }
 
 m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
+    // there is no point in writing to the EPs, if we are already destructing the VPE
+    if(_state == DEAD)
+        return m3::Errors::NO_ERROR;
+
     // set registers for caps
     word_t regs[m3::DTU::EPS_RCNT * 2];
     memset(regs, 0, sizeof(regs));
@@ -113,10 +122,8 @@ m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *oldcapobj, MsgCapabili
 
 VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    DTU::get().invalidate_eps(desc());
-    detach_rbufs(true);
+    _state = DEAD;
     free_reqs();
-
     // revoke all caps first because we might need the sepsgate for that
     _objcaps.revoke_all();
 }

@@ -45,13 +45,6 @@ void MsgBackend::destroy() {
         msgctl(_ids[i], IPC_RMID, nullptr);
 }
 
-
-void MsgBackend::reset() {
-    // reset all msgqids because might have changed due to a different core we're running on
-    for(int i = 0; i < EP_COUNT; ++i)
-        DTU::get().set_ep(i, DTU::EP_BUF_MSGQID, 0);
-}
-
 void MsgBackend::send(int core, int ep, const DTU::Buffer *buf) {
     int msgqid = msgget(get_msgkey(core, ep), 0);
     // send it
@@ -109,6 +102,11 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
         if(bind(_localsocks[epid], (struct sockaddr*)ep, sizeof(*ep)) == -1)
             PANIC("Binding socket for ep " << epid << " failed: " << strerror(errno));
     }
+}
+
+SocketBackend::~SocketBackend() {
+    for(int epid = 0; epid < EP_COUNT; ++epid)
+        close(_localsocks[epid]);
 }
 
 void SocketBackend::send(int core, int ep, const DTU::Buffer *buf) {

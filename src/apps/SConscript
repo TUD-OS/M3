@@ -4,7 +4,7 @@ Import('env', 'hostenv')
 dirs = [
     'arithserv', 'hello', 'clisrv', 'kernel', 'rdwr', 'unittests', 'shell', 'coreutils',
     'm3fs', 'parchksum', 'filterchain', 'noop', 'float', 'srvtest', 'bench', 'pipe', 'execpipe',
-    'fstrace', 'fdtest', 'fdchild', 'pipeserv'
+    'fstrace', 'fdtest', 'fdchild', 'pipeserv', 'init'
 ]
 
 # architecture / machine specific apps
@@ -15,10 +15,10 @@ elif env['ARCH'] == 't3':
 elif env['ARCH'] == 'host':
     dirs += [
         'asciiplay', 'intserver', 'keyb', 'plasma',
-        'queue', 'stream', 'timer', 'vga'
+        'queue', 'timer', 'vga'
     ]
 elif env['ARCH'] == 'gem5':
-    dirs += ['rctmux', 'pager', 'init', 'pgchild', 'hashserv', 'hashtest', 'cctest']
+    dirs += ['rctmux', 'pager', 'pgchild', 'hashserv', 'hashtest', 'cctest']
 
 for d in dirs:
     env.SConscript(env.Glob(d + '/SConscript'), exports = ['env', 'hostenv'])

@@ -66,9 +66,15 @@ void DTU::start() {
 }
 
 void DTU::reset() {
-    memset(ep_regs(), 0, EPS_RCNT * EP_COUNT * sizeof(word_t));
+    // TODO this is a hack; we cannot leave the recv EPs here in all cases. sometimes the REPs are
+    // not inherited so that the child might want to reuse the EP for something else, which does
+    // not work, because the cmpxchg fails.
+    for(int i = 0; i < EP_COUNT; ++i) {
+        if(get_ep(i, EP_BUF_ADDR) == 0)
+            memset(ep_regs() + i * EPS_RCNT, 0, EPS_RCNT * sizeof(word_t));
+    }
 
-    _backend->reset();
+    delete _backend;
 }
 
 void DTU::try_sleep(bool, uint64_t) const {
@@ -272,8 +278,7 @@ int DTU::prepare_fetchmsg(int epid) {
     assert(false);
 
 found:
-    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
-    assert(is_occupied(occupied, i));
+    assert(is_occupied(get_ep(epid, EP_BUF_OCCUPIED), i));
 
     set_unread(unread, i, false);
     msgs--;

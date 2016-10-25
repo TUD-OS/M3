@@ -41,6 +41,10 @@ public:
         return _next_ep++;
     }
 
+    DTUState &state() {
+        return _state;
+    }
+
     void init();
 
     peid_t log_to_phys(peid_t pe);

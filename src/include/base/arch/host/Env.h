@@ -78,9 +78,6 @@ public:
         return backend->_workloop;
     }
 
-    RecvGate *mem_rcvgate() {
-        return _mem_recvgate;
-    }
     bool is_kernel() const {
         return coreid == 0;
     }
@@ -114,8 +111,6 @@ public:
     }
 
 private:
-    void init_syscall(void *sepregs);
-
     static int set_inst(Env *e) {
         _inst = e;
         // coreid
@@ -135,8 +130,6 @@ private:
     size_t _sysc_epid;
     word_t _sysc_credits;
     pthread_mutex_t _log_mutex;
-    RecvBuf _mem_recvbuf;
-    RecvGate *_mem_recvgate;
 
     static const char *_exec_short_ptr;
     static char _exec[];

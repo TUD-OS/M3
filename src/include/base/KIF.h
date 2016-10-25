@@ -132,6 +132,7 @@ struct KIF {
             EXIT,
             NOOP,
             IDLE,
+            INIT,
             COUNT
         };
 
@@ -309,6 +310,10 @@ struct KIF {
         } PACKED;
 
         struct Noop : public DefaultRequest {
+        } PACKED;
+
+        struct Init : public DefaultRequest {
+            word_t eps;
         } PACKED;
     };
 

@@ -367,4 +367,15 @@ USED void Syscalls::exit(int exitcode) {
     DTU::get().send(_gate.epid(), &req, sizeof(req), _rlabel, _rep);
 }
 
+#if defined(__host__)
+Errors::Code Syscalls::init(void *eps) {
+    LLOG(SYSC, "init(eps=" << eps << ")");
+
+    KIF::Syscall::Init req;
+    req.opcode = KIF::Syscall::INIT;
+    req.eps = reinterpret_cast<word_t>(eps);
+    return send_receive_result(&req, sizeof(req));
+}
+#endif
+
 }

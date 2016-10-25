@@ -172,7 +172,9 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::EXIT, &SyscallHandler::exit);
     add_operation(m3::KIF::Syscall::NOOP, &SyscallHandler::noop);
 #if defined(__host__)
-    add_operation(m3::KIF::Syscall::COUNT, &SyscallHandler::init);
+    add_operation(m3::KIF::Syscall::INIT, &SyscallHandler::init);
+#else
+    add_operation(m3::KIF::Syscall::INIT, &SyscallHandler::noop);
 #endif
 }
 
@@ -580,6 +582,10 @@ void SyscallHandler::vpectrl(GateIStream &is) {
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid VPE cap");
     if(vpe == vpecap->vpe)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE can't ctrl itself");
+
+#if defined(__host__)
+    vpecap->vpe->set_pid(pid);
+#endif
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_START: {
@@ -1084,10 +1090,13 @@ void SyscallHandler::noop(GateIStream &is) {
 #if defined(__host__)
 void SyscallHandler::init(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
-    void *addr;
-    is >> addr;
-    vpe->activate_sysc_ep(addr);
-    LOG_SYS(vpe, "syscall::init", "(" << addr << ")");
+
+    auto *req = get_message<m3::KIF::Syscall::Init>(is);
+    uintptr_t addr = req->eps;
+
+    LOG_SYS(vpe, ": syscall::init", "(" << (void*)addr << ")");
+
+    vpe->set_eps(addr);
 
     kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }

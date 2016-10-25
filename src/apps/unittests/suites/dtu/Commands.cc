@@ -27,7 +27,7 @@
 using namespace m3;
 
 static void *map_page() {
-    void *addr = mmap(0, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON,-1,0);
+    void *addr = mmap(0, 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
     if(addr == MAP_FAILED) {
         exitmsg("mmap failed. Skipping test.");
         return nullptr;
@@ -42,9 +42,6 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     const size_t rcvepid = VPE::self().alloc_ep();
     const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<256>::val, nextlog2<128>::val);
-    // only necessary to set the msgqid
-    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -99,9 +96,6 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     const size_t rcvepid = VPE::self().alloc_ep();
     const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<64>::val, nextlog2<32>::val);
-    // only necessary to set the msgqid
-    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -125,7 +119,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
 
         dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::WRITE);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
-        const word_t *words = reinterpret_cast<const word_t*>(addr);
+        volatile const word_t *words = reinterpret_cast<const word_t*>(addr);
         // TODO we do current not know when this is finished
         while(words[0] == 0)
             ;
@@ -143,9 +137,6 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     const size_t rcvepid = VPE::self().alloc_ep();
     const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<128>::val, nextlog2<64>::val);
-    // only necessary to set the msgqid
-    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<1>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)

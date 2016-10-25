@@ -113,11 +113,15 @@ int main(int argc, char *argv[]) {
 
     KLOG(MEM, MainMemory::get());
 
+    // create some worker threads
+    m3::env()->workloop()->multithreaded(8);
+
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
     PEManager::create();
     VPEManager::create();
-    VPEManager::get().load(argc - argstart - 1, argv + argstart + 1);
+    VPEManager::get().init(argc - argstart - 1, argv + argstart + 1);
+    PEManager::get().init();
 
     KLOG(INFO, "Kernel is ready");
 

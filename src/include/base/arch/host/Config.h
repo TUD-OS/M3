@@ -23,11 +23,24 @@
 #define FS_IMG_OFFSET       0
 
 #define PAGE_BITS           0
-#define PAGE_SIZE           0
+#define PAGE_SIZE           1   // shouldn't be 0 because of the alignment in reqmem
 #define PAGE_MASK           0
 
 #define STACK_SIZE          0x1000
 
-#define RECVBUF_SPACE       1                       // no limit here
+#define RECVBUF_SPACE       1   // no limit here
+
+#define MAX_RB_SIZE         32
+
+#define RCTMUX_ENTRY        0   // unused
+#define RCTMUX_REPORT       0   // unused
+#define RCTMUX_FLAGS        0   // unused
+
+// this has to be large enough for forwarded memory reads
+#define SYSC_RBUF_ORDER     9
+#define SYSC_RBUF_SIZE      (1 << SYSC_RBUF_ORDER)
+
+#define UPCALL_RBUF_ORDER   8
+#define UPCALL_RBUF_SIZE    (1 << UPCALL_RBUF_ORDER)
 
 #define MEMCAP_END          0xFFFFFFFFFFFFFFFF

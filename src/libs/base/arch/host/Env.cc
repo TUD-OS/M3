@@ -23,6 +23,7 @@
 
 #include <m3/com/RecvGate.h>
 #include <m3/Syscalls.h>
+#include <m3/UserWorkLoop.h>
 
 #include <fstream>
 #include <unistd.h>
@@ -79,7 +80,7 @@ EXTERN_C WEAK void init_env() {
 }
 
 HostEnvBackend::HostEnvBackend() {
-    _workloop = new WorkLoop();
+    _workloop = new UserWorkLoop();
 }
 
 HostEnvBackend::~HostEnvBackend() {
@@ -111,12 +112,7 @@ Env::Init::~Init() {
 Env::PostInit::PostInit() {
     _inst->init_dtu();
     if(!env()->is_kernel())
-        env()->init_syscall(DTU::get().ep_regs());
-}
-
-void Env::init_syscall(void *sepregs) {
-    LLOG(SYSC, "init(addr=" << sepregs << ")");
-    send_receive_vmsg(Syscalls::get()._gate, KIF::Syscall::COUNT, sepregs);
+        Syscalls::get().init(DTU::get().ep_regs());
 }
 
 void Env::reset() {
@@ -130,17 +126,13 @@ void Env::reset() {
     init_dtu();
 
     // we have to call init for this VPE in case we hadn't done that yet
-    init_syscall(DTU::get().ep_regs());
+    Syscalls::get().init(DTU::get().ep_regs());
 }
 
 Env::Env(EnvBackend *backend, int logfd)
         : coreid(set_inst(this)), backend(backend), _logfd(logfd), _shm_prefix(),
           _sysc_label(), _sysc_epid(), _sysc_credits(),
-          _log_mutex(PTHREAD_MUTEX_INITIALIZER),
-          // the memory receive buffer is required to let others access our memory via DTU
-          _mem_recvbuf(RecvBuf::bindto(DTU::MEM_EP, 0, sizeof(word_t) * 8 - 1,
-                           RecvBuf::NO_HEADER | RecvBuf::NO_RINGBUF)),
-          _mem_recvgate(new RecvGate(RecvGate::create(&_mem_recvbuf))) {
+          _log_mutex(PTHREAD_MUTEX_INITIALIZER) {
 }
 
 void Env::init_executable() {
@@ -156,15 +148,15 @@ void Env::init_executable() {
 }
 
 void Env::init_dtu() {
-    // we have to init that here, too, because the kernel doesn't know where it is
-    DTU::get().configure_recv(DTU::MEM_EP, reinterpret_cast<uintptr_t>(_mem_recvbuf.addr()),
-        _mem_recvbuf.order(), _mem_recvbuf.msgorder(), _mem_recvbuf.flags());
+    RecvBuf &sysc = RecvBuf::syscall();
+    DTU::get().configure_recv(DTU::SYSC_REP, reinterpret_cast<uintptr_t>(sysc.addr()),
+        sysc.order(), sysc.msgorder());
 
-    RecvBuf &def = RecvBuf::def();
-    DTU::get().configure_recv(DTU::DEF_RECVEP, reinterpret_cast<uintptr_t>(def.addr()),
-        def.order(), def.msgorder(), def.flags());
+    RecvBuf &upc = RecvBuf::upcall();
+    DTU::get().configure_recv(DTU::UPCALL_REP, reinterpret_cast<uintptr_t>(upc.addr()),
+        upc.order(), upc.msgorder());
 
-    DTU::get().configure(DTU::SYSC_EP, _sysc_label, 0, _sysc_epid, _sysc_credits);
+    DTU::get().configure(DTU::SYSC_SEP, _sysc_label, 0, _sysc_epid, _sysc_credits);
 
     DTU::get().start();
 }
@@ -183,7 +175,6 @@ void Env::print() const {
 }
 
 Env::~Env() {
-    delete _mem_recvgate;
     delete backend;
     if(is_kernel())
         stop_dtu();

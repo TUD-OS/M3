@@ -41,8 +41,6 @@ Platform::KEnv::KEnv() {
     // create memory
     uintptr_t base = reinterpret_cast<uintptr_t>(
         mmap(0, TOTAL_MEM, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0));
-    DTU::get().config_recv_local(m3::DTU::MEM_EP, 0, 0, 0,
-        m3::DTU::FLAG_NO_HEADER | m3::DTU::FLAG_NO_RINGBUF);
 
     MainMemory &mem = MainMemory::get();
     mem.add(new MemoryModule(false, 0, base, FS_MAX_SIZE));

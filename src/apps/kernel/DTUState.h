@@ -18,6 +18,8 @@
 
 #if defined(__gem5__)
 #   include "arch/gem5/DTURegs.h"
+#elif defined(__host__)
+#   include "arch/host/DTURegs.h"
 #endif
 
 #include "Types.h"

@@ -89,13 +89,15 @@ VPE* ContextSwitcher::schedule() {
 void ContextSwitcher::init() {
     assert(_idle == nullptr);
 
+#if !defined(__host__)
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
 
     KLOG(CTXSW, "CTXSW[" << _pe << "] initialized (idle="
         << _idle->id() << ", muxable=" << _muxable << ")");
+#endif
 
-    if(_cur == nullptr)
+    if(_idle && _cur == nullptr)
         start_switch();
 }
 
@@ -326,6 +328,10 @@ retry:
         case S_SWITCH: {
             vpeid_t old = _cur ? _cur->id() : VPE::INVALID_ID;
             _cur = schedule();
+            if(_cur == nullptr) {
+                _state = S_IDLE;
+                return true;
+            }
 
             // make it running here, so that the PTEs are sent to the PE, if F_INIT is set
             _cur->_state = VPE::RUNNING;
@@ -363,7 +369,9 @@ retry:
 
         case S_RESTORE_DONE: {
             // we have finished the init phase (if it was set)
+#if !defined(__host__)
             _cur->_flags &= ~VPE::F_INIT;
+#endif
             _cur->notify_resume();
 
             DTU::get().write_swflags(_cur->desc(), 0);

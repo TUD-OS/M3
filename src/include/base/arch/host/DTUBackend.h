@@ -29,7 +29,6 @@ class MsgBackend : public DTU::Backend {
 public:
     virtual void create() override;
     virtual void destroy() override;
-    virtual void reset() override;
     virtual void send(int core, int ep, const DTU::Buffer *buf) override;
     virtual ssize_t recv(int ep, DTU::Buffer *buf) override;
 
@@ -44,11 +43,10 @@ private:
 class SocketBackend : public DTU::Backend {
 public:
     explicit SocketBackend();
+    ~SocketBackend();
     virtual void create() override {
     }
     virtual void destroy() override {
-    }
-    virtual void reset() override {
     }
     virtual void send(int core, int ep, const DTU::Buffer *buf) override;
     virtual ssize_t recv(int ep, DTU::Buffer *buf) override;

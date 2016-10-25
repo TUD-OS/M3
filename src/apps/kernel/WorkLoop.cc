@@ -23,6 +23,7 @@
 
 #include "pes/PEManager.h"
 #include "pes/Timeouts.h"
+#include "pes/VPEManager.h"
 #include "SyscallHandler.h"
 #include "WorkLoop.h"
 
@@ -32,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+static bool initialized = false;
 static int sigchilds = 0;
 
 static void sigchild(int) {
@@ -51,6 +53,10 @@ static void check_childs() {
             if(WCOREDUMP(status))
                 KLOG(VPES, "Child " << pid << " core dumped");
         }
+
+        kernel::VPE *vpe = kernel::VPEManager::get().vpe_by_pid(pid);
+        if(vpe)
+            vpe->stop_app();
     }
 }
 #endif
@@ -64,7 +70,10 @@ void WorkLoop::multithreaded(uint count) {
 
 void WorkLoop::run() {
 #if defined(__host__)
-    signal(SIGCHLD, sigchild);
+    if(!initialized) {
+        signal(SIGCHLD, sigchild);
+        initialized = true;
+    }
 #endif
 
     m3::DTU &dtu = m3::DTU::get();

@@ -14,33 +14,20 @@
  * General Public License version 2 for more details.
  */
 
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sstream>
-#include <csignal>
-#include <unistd.h>
+#pragma once
 
-#include "pes/VPEManager.h"
-#include "Platform.h"
+#include <base/Common.h>
+#include <base/DTU.h>
 
 namespace kernel {
 
-VPEManager::~VPEManager() {
-    for(size_t i = 0; i < MAX_VPES; ++i) {
-        if(_vpes[i]) {
-            kill(_vpes[i]->pid(), SIGTERM);
-            waitpid(_vpes[i]->pid(), nullptr, 0);
-            _vpes[i]->unref();
-        }
+class DTURegs {
+public:
+    explicit DTURegs() : _cmd(), _eps() {
     }
-}
 
-VPE *VPEManager::vpe_by_pid(int pid) {
-    for(vpeid_t i = 0; i < MAX_VPES; ++i) {
-        if(_vpes[i] && _vpes[i]->pid() == pid)
-            return _vpes[i];
-    }
-    return nullptr;
-}
+    word_t _cmd[m3::DTU::CMDS_RCNT];
+    word_t _eps[m3::DTU::EPS_RCNT * EP_COUNT];
+};
 
 }

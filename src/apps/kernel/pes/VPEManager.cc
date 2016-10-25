@@ -78,8 +78,13 @@ void VPEManager::init(int argc, char **argv) {
                 karg = true;
             }
             else if(strncmp(argv[j], "requires=", sizeof("requires=") - 1) == 0) {
-                 _vpes[id]->add_requirement(argv[j] + sizeof("requires=") - 1);
+                const char *req = argv[j] + sizeof("requires=") - 1;
                 karg = true;
+#if !defined(__gem5__)
+                if(strcmp(req, "pager") == 0)
+                    continue;
+#endif
+                _vpes[id]->add_requirement(req);
             }
             else if(strcmp(argv[j], "--") == 0)
                 break;
@@ -204,10 +209,8 @@ void VPEManager::remove(VPE *vpe) {
     _count--;
 
     // if there are no VPEs left, we can stop everything
-    if(used() == 0) {
-        destroy();
+    if(used() == 0)
         m3::env()->workloop()->stop();
-    }
     // if there are only daemons left, start the shutdown-procedure
     else if(used() == daemons())
         shutdown();

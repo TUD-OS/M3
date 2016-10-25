@@ -75,6 +75,10 @@ public:
     void exit(int exitcode);
     Errors::Code noop();
 
+#if defined(__host__)
+    Errors::Code init(void *eps);
+#endif
+
 private:
     DTU::Message *send_receive(const void *msg, size_t size);
     Errors::Code send_receive_result(const void *msg, size_t size);

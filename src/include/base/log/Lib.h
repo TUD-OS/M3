@@ -40,7 +40,7 @@ public:
         THREAD      = 1 << 10,
     };
 
-    static const int level = 0;
+    static const int level = DTUERR;
 };
 
 }

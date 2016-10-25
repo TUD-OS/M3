@@ -14,33 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sstream>
-#include <csignal>
-#include <unistd.h>
+#include <m3/UserWorkLoop.h>
 
-#include "pes/VPEManager.h"
-#include "Platform.h"
+namespace m3 {
 
-namespace kernel {
-
-VPEManager::~VPEManager() {
-    for(size_t i = 0; i < MAX_VPES; ++i) {
-        if(_vpes[i]) {
-            kill(_vpes[i]->pid(), SIGTERM);
-            waitpid(_vpes[i]->pid(), nullptr, 0);
-            _vpes[i]->unref();
-        }
-    }
-}
-
-VPE *VPEManager::vpe_by_pid(int pid) {
-    for(vpeid_t i = 0; i < MAX_VPES; ++i) {
-        if(_vpes[i] && _vpes[i]->pid() == pid)
-            return _vpes[i];
-    }
-    return nullptr;
+void UserWorkLoop::multithreaded(uint) {
 }
 
 }

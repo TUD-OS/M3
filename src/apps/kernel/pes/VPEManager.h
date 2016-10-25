@@ -82,13 +82,13 @@ public:
         return *_vpes[id];
     }
 
+    VPE *vpe_by_pid(int pid);
+
 private:
     vpeid_t get_id();
 
     void add(VPE *vpe);
     void remove(VPE *vpe);
-
-    static m3::String fork_name(const m3::String &name);
 
     vpeid_t _next_id;
     VPE **_vpes;

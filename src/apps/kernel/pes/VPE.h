@@ -89,14 +89,18 @@ public:
     vpeid_t id() const {
         return desc().id;
     }
-    int pid() const {
-        return _pid;
-    }
     peid_t pe() const {
         return desc().pe;
     }
     const m3::String &name() const {
         return _name;
+    }
+
+    int pid() const {
+        return _pid;
+    }
+    void set_pid(int pid) {
+        _pid = pid;
     }
 
     void set_pe(peid_t pe) {
@@ -115,6 +119,13 @@ public:
     }
     RecvBufs &rbufs() {
         return _rbufs;
+    }
+    uintptr_t eps() const {
+        return _eps;
+    }
+    void set_eps(uintptr_t addr) {
+        _eps = addr;
+        init();
     }
 
     int exitcode() const {
@@ -258,6 +269,7 @@ private:
     m3::SList<ServName> _requires;
     size_t _argc;
     char **_argv;
+    uintptr_t _eps;
     m3::Subscriptions<int> _exitsubscr;
     m3::Subscriptions<bool> _resumesubscr;
 };
