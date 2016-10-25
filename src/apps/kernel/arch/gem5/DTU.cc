@@ -342,16 +342,6 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label,
     send_to(vpe, ep, label, msg, size, 0, 0);
 }
 
-void DTU::write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
-    if(try_write_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
-        PANIC("write failed");
-}
-
-void DTU::read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
-    if(try_read_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
-        PANIC("read failed");
-}
-
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::W);
     write_ep_local(_ep);

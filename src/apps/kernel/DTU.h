@@ -18,6 +18,7 @@
 
 #include <base/Common.h>
 #include <base/DTU.h>
+#include <base/Panic.h>
 
 #include "DTUState.h"
 
@@ -76,8 +77,14 @@ public:
     m3::Errors::Code try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
     m3::Errors::Code try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);
 
-    void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
-    void read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);
+    void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+        if(try_write_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
+            PANIC("write failed");
+    }
+    void read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+        if(try_read_mem(vpe, addr, data, size) != m3::Errors::NO_ERROR)
+            PANIC("read failed");
+    }
 
     void cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
         size_t off, size_t size);
