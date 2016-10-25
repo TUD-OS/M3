@@ -20,10 +20,10 @@
 #include <base/col/SList.h>
 #include <base/util/String.h>
 
-#if defined(__gem5__)
-#   include <thread/arch/gem5/Thread.h>
+#if defined(__x86_64__)
+#   include <thread/isa/x86_64/Thread.h>
 #else
-#   error "Unsupported target"
+#   error "Unsupported ISA"
 #endif
 
 namespace m3 {

@@ -1,7 +1,7 @@
 Import('env')
 
 if env['ARCH'] == 'host':
-    dirs = ['base', 'm3', 'test']
+    dirs = ['base', 'm3', 'test', 'thread']
 else:
     dirs = ['c', 'base', 'm3', 'support', 'test', 'thread', 'hash']
 

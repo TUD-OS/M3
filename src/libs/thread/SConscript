@@ -1,7 +1,7 @@
 Import('env')
 sources = [
     env.Glob('*.cc'), env.Glob('*/*.cc'),
-    env.Glob('arch/$ARCH/*.S'), env.Glob('arch/$ARCH/*.cc')
+    env.Glob('isa/$ISA/*.S'), env.Glob('isa/$ISA/*.cc')
 ]
 
 lib = env.StaticLibrary(

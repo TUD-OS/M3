@@ -13,6 +13,7 @@ if target == 't2' or target == 't3':
     config = ConfigParser.RawConfigParser()
     config.readfp(StringIO.StringIO(ini_str))
 
+    isa = 'xtensa'
     cross = 'xtensa-buildroot-linux-uclibc'
     crossdir = Dir(config.get('root', 'buildroot')).abspath + '/host/usr/'
     crossver = '5.3.0'
@@ -22,10 +23,12 @@ if target == 't2' or target == 't3':
     tooldir = Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/bin')
     crtdir = crossdir + '/lib/gcc/' + cross + '/' + crossver
 elif target == 'gem5':
+    isa = 'x86_64'
     cross = ''
     configpath = Dir('.')
 else:
     # build for host by default
+    isa = os.popen("uname -m").read().strip()
     target = 'host'
     cross = ''
     configpath = Dir('.')
@@ -176,6 +179,7 @@ else:
 env.Append(
     CROSS = cross,
     ARCH = target,
+    ISA = isa,
     ARCHTYPE = archtype,
     CORE = core,
     BUILD = btype,
@@ -301,7 +305,7 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
     else:
         prog = myenv.Program(
             target, source,
-            LIBS = ['base', 'm3', 'pthread'] + libs,
+            LIBS = m3libs + ['m3', 'pthread'] + libs,
             LIBPATH = [myenv['LIBDIR']] + libpaths
         )
 

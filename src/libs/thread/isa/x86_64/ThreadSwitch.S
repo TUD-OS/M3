@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <thread/arch/gem5/Thread.h>
+#include <thread/isa/x86_64/Thread.h>
 
 .global thread_save
 .global thread_resume
