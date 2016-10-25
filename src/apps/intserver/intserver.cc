@@ -29,6 +29,9 @@ using namespace m3;
 
 class IntSessionData : public EventSessionData {
 public:
+    explicit IntSessionData() {
+        // UNUSED
+    }
     explicit IntSessionData(HWInterrupts::IRQ irq) : EventSessionData(), irq(irq) {
     }
 
