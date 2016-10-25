@@ -74,15 +74,6 @@ ContextSwitcher::ContextSwitcher(size_t pe)
     assert(pe > 0);
 }
 
-void ContextSwitcher::send_flags(vpeid_t vpeid, uint64_t flags) {
-    alignas(DTU_PKG_SIZE) uint64_t ctrl = flags;
-    DTU::get().write_mem(VPEDesc(_pe, vpeid), RCTMUX_FLAGS, &ctrl, sizeof(ctrl));
-}
-
-void ContextSwitcher::recv_flags(vpeid_t vpeid, uint64_t *flags) {
-    DTU::get().read_mem(VPEDesc(_pe, vpeid), RCTMUX_FLAGS, flags, sizeof(*flags));
-}
-
 VPE* ContextSwitcher::schedule() {
     if (_ready.length() > 0) {
         VPE *vpe = _ready.remove_first();
@@ -265,7 +256,7 @@ void ContextSwitcher::continue_switch() {
     assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
 
     uint64_t flags = 0;
-    recv_flags(_cur->id(), &flags);
+    DTU::get().read_swflags(_cur->desc(), &flags);
 
     if(~flags & m3::RCTMuxCtrl::SIGNAL) {
         assert(_wait_time > 0);
@@ -295,7 +286,7 @@ retry:
             break;
 
         case S_STORE_WAIT: {
-            send_flags(_cur->id(), m3::RCTMuxCtrl::STORE | m3::RCTMuxCtrl::WAITING);
+            DTU::get().write_swflags(_cur->desc(), m3::RCTMuxCtrl::STORE | m3::RCTMuxCtrl::WAITING);
             DTU::get().injectIRQ(_cur->desc());
 
             _state = S_STORE_DONE;
@@ -351,19 +342,18 @@ retry:
         }
 
         case S_RESTORE_WAIT: {
-            uint64_t vals[2];
             // let the VPE report idle times if there are other VPEs
-            vals[0] = (can_mux() && (_set_report = migvpe || _global_ready > 0)) ? REPORT_TIME : 0;
-            vals[1] = m3::RCTMuxCtrl::WAITING;
+            uint64_t report = (can_mux() && (_set_report = migvpe || _global_ready > 0)) ? REPORT_TIME : 0;
+            uint64_t flags = m3::RCTMuxCtrl::WAITING;
 
             // tell rctmux whether there is an application and the PE id
             if(_cur->flags() & VPE::F_HASAPP)
-                vals[1] |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
+                flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: restoring VPE " << _cur->id() << " with report="
-                << vals[0] << " flags=" << m3::fmt(vals[1], "#x"));
+                << report << " flags=" << m3::fmt(flags, "#x"));
 
-            DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, vals, sizeof(vals));
+            DTU::get().write_swstate(_cur->desc(), flags, report);
             DTU::get().wakeup(_cur->desc());
             _state = S_RESTORE_DONE;
 
@@ -376,7 +366,7 @@ retry:
             _cur->_flags &= ~VPE::F_INIT;
             _cur->notify_resume();
 
-            send_flags(_cur->id(), 0);
+            DTU::get().write_swflags(_cur->desc(), 0);
             _state = S_IDLE;
 
             // if we are starting a VPE, we might already have a timeout for it
@@ -398,7 +388,7 @@ retry:
 
     if(_wait_time) {
         for(int i = 0; i < SIGNAL_WAIT_COUNT; ++i) {
-            recv_flags(_cur->id(), &flags);
+            DTU::get().read_swflags(_cur->desc(), &flags);
             if(flags & m3::RCTMuxCtrl::SIGNAL)
                 goto retry;
         }

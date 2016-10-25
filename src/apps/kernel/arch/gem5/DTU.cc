@@ -357,4 +357,17 @@ m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *dat
     return m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
 }
 
+void DTU::write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify) {
+    uint64_t vals[2] = {notify, flags};
+    write_mem(vpe, RCTMUX_REPORT, &vals, sizeof(vals));
+}
+
+void DTU::write_swflags(const VPEDesc &vpe, uint64_t flags) {
+    write_mem(vpe, RCTMUX_FLAGS, &flags, sizeof(flags));
+}
+
+void DTU::read_swflags(const VPEDesc &vpe, uint64_t *flags) {
+    read_mem(vpe, RCTMUX_FLAGS, flags, sizeof(*flags));
+}
+
 }

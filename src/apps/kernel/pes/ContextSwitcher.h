@@ -94,9 +94,6 @@ private:
 
     bool next_state(uint64_t flags);
 
-    void send_flags(vpeid_t vpeid, uint64_t flags);
-    void recv_flags(vpeid_t vpeid, uint64_t *flags);
-
 private:
     bool _muxable;
     peid_t _pe;

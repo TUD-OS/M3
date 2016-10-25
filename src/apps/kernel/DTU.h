@@ -89,6 +89,10 @@ public:
     void cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
         size_t off, size_t size);
 
+    void write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify);
+    void write_swflags(const VPEDesc &vpe, uint64_t flags);
+    void read_swflags(const VPEDesc &vpe, uint64_t *flags);
+
 private:
 #if defined(__gem5__)
     bool create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
