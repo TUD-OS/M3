@@ -35,7 +35,7 @@ int main() {
     SendGate sg = SendGate::create_for(cc, ep, 0, 64);
 
     cc.run([ep, virt] {
-        RecvBuf rbuf = RecvBuf::create(ep, nextlog2<512>::val, nextlog2<64>::val, 0);
+        RecvBuf rbuf = RecvBuf::create(ep, nextlog2<512>::val, nextlog2<64>::val);
         RecvGate rgate = RecvGate::create(&rbuf);
 
         int val;

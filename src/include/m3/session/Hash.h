@@ -37,7 +37,7 @@ public:
 
     explicit Hash(const String &service)
         : Session(service),
-          _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val, 0)),
+          _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val)),
           _rgate(RecvGate::create(&_rbuf)),
           _send(SendGate::bind(obtain(1).start(), &_rgate)),
           _mem(MemGate::bind(obtain(1).start())) {

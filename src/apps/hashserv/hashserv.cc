@@ -99,7 +99,7 @@ public:
 
         Errors::Code res = Syscalls::get().attachrb(
             _accel->get().sel(), hash::Accel::EPID, _accel->getRBAddr(),
-            getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE), 0);
+            getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE));
         if(res != Errors::NO_ERROR)
             PANIC("Unable to attach receive buffer on accelerator");
 

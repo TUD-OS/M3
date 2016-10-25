@@ -131,17 +131,17 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_MSGSIZE_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, VPE::SYSC_MSGSIZE_ORD, 0);
+        buford, VPE::SYSC_MSGSIZE_ORD);
 
     buford = m3::getnextlog2(Platform::pe_count()) + VPE::NOTIFY_MSGSIZE_ORD;
     bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(m3::DTU::NOTIFY_SEP, reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, VPE::NOTIFY_MSGSIZE_ORD, 0);
+        buford, VPE::NOTIFY_MSGSIZE_ORD);
 
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, m3::nextlog2<256>::val, 0);
+        buford, m3::nextlog2<256>::val);
 #endif
 
     // add a dummy item to workloop; we handle everything manually anyway
@@ -495,11 +495,10 @@ void SyscallHandler::attachrb(GateIStream &is) {
     epid_t ep = req->ep;
     int order = req->order;
     int msgorder = req->msgorder;
-    uint flags = req->flags;
 
     LOG_SYS(vpe, ": syscall::attachrb", "(vpe=" << tcap << ", ep=" << ep
         << ", addr=" << m3::fmt(addr, "p") << ", size=" << m3::fmt(1UL << order, "#x")
-        << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ", flags=" << m3::fmt(flags, "#x") << ")");
+        << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ")");
 
     VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(tcapobj == nullptr)
@@ -512,7 +511,7 @@ void SyscallHandler::attachrb(GateIStream &is) {
     if(addr < Platform::rw_barrier(tcapobj->vpe->pe()))
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Not in receive buffer space");
 
-    m3::Errors::Code res = tcapobj->vpe->rbufs().attach(*tcapobj->vpe, ep, addr, order, msgorder, flags);
+    m3::Errors::Code res = tcapobj->vpe->rbufs().attach(*tcapobj->vpe, ep, addr, order, msgorder);
     if(res != m3::Errors::NO_ERROR)
         SYS_ERROR(vpe, is, res, "Unable to attach receive buffer");
 

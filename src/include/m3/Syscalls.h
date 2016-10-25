@@ -57,7 +57,7 @@ public:
     Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
-    Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags);
+    Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder);
     Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host

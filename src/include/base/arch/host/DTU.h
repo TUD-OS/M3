@@ -30,7 +30,7 @@
 
 // we have no alignment or size requirements here
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
-#define EP_COUNT          16
+#define EP_COUNT            16
 
 #define USE_MSGBACKEND      0
 
@@ -51,7 +51,7 @@ class DTU {
 #else
     static constexpr size_t MAX_DATA_SIZE   = HEAP_SIZE;
 #endif
-
+public:
     struct Header {
         long int length;        // = mtype -> has to be non-zero
         unsigned char opcode;   // should actually be part of length but causes trouble in msgsnd
@@ -71,7 +71,6 @@ class DTU {
         char data[MAX_DATA_SIZE];
     };
 
-public:
     struct Message : public Header {
         int send_epid() const {
             return snd_epid;
@@ -89,7 +88,6 @@ public:
         }
         virtual void create() = 0;
         virtual void destroy() = 0;
-        virtual void reset() = 0;
         virtual void send(int core, int ep, const DTU::Buffer *buf) = 0;
         virtual ssize_t recv(int ep, DTU::Buffer *buf) = 0;
     };
@@ -119,45 +117,48 @@ public:
     static constexpr size_t EP_BUF_WOFF         = 4;
     static constexpr size_t EP_BUF_MSGCNT       = 5;
     static constexpr size_t EP_BUF_MSGQID       = 6;
-    static constexpr size_t EP_BUF_FLAGS        = 7;
+    static constexpr size_t EP_BUF_UNREAD       = 7;
+    static constexpr size_t EP_BUF_OCCUPIED     = 8;
 
     // for sending message and accessing memory
-    static constexpr size_t EP_COREID           = 8;
-    static constexpr size_t EP_EPID             = 9;
-    static constexpr size_t EP_LABEL            = 10;
-    static constexpr size_t EP_CREDITS          = 11;
-
-    // bits in EP_BUF_FLAGS register
-    static constexpr word_t FLAG_NO_RINGBUF     = 0x1;
-    static constexpr word_t FLAG_NO_HEADER      = 0x2;
+    static constexpr size_t EP_COREID           = 9;
+    static constexpr size_t EP_EPID             = 10;
+    static constexpr size_t EP_LABEL            = 11;
+    static constexpr size_t EP_CREDITS          = 12;
 
     // bits in ctrl register
     static constexpr word_t CTRL_START          = 0x1;
     static constexpr word_t CTRL_DEL_REPLY_CAP  = 0x2;
     static constexpr word_t CTRL_ERROR          = 0x4;
 
+    static constexpr size_t OPCODE_SHIFT        = 3;
+
     // register counts (cont.)
     static constexpr size_t EPS_RCNT            = 1 + EP_CREDITS;
 
     enum CmdFlags {
-        NOPF    = 1,
+        NOPF                                    = 1,
     };
 
     enum Op {
-        READ    = 0,
-        WRITE   = 1,
-        CMPXCHG = 2,
-        SEND    = 3,
-        REPLY   = 4,
-        RESP    = 5,
-        SENDCRD = 6,
-        ACKMSG  = 7,
+        READ                                    = 0,
+        WRITE                                   = 1,
+        CMPXCHG                                 = 2,
+        SEND                                    = 3,
+        REPLY                                   = 4,
+        RESP                                    = 5,
+        SENDCRD                                 = 6,
+        FETCHMSG                                = 7,
+        ACKMSG                                  = 8,
     };
 
-    static const int MEM_EP         = 0;
-    static const int SYSC_EP        = 1;
-    static const int DEF_RECVEP     = 2;
-    static const int FIRST_FREE_EP  = 3;
+    static const int MEM_EP                     = 0;
+    static const int SYSC_SEP                   = 0;
+    static const int NOTIFY_SEP                 = 1;
+    static const int SYSC_REP                   = 2;
+    static const int UPCALL_REP                 = 3;
+    static const int DEF_REP                    = 4;
+    static const int FIRST_FREE_EP              = 5;
 
     static DTU &get() {
         return inst;
@@ -203,7 +204,7 @@ public:
         eps[i * EPS_RCNT + EP_CREDITS] = credits;
     }
 
-    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder);
 
     Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int replyep) {
         return fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
@@ -212,63 +213,50 @@ public:
         return fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
     }
     Errors::Code read(int ep, void *msg, size_t size, size_t off, uint) {
-        return fire(ep, READ, msg, size, off, size, label_t(), 0);
+        Errors::Code res = fire(ep, READ, msg, size, off, size, label_t(), 0);
+        wait_for_mem_cmd();
+        return res;
     }
     Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
     }
     Errors::Code cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {
-        return fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
+        Errors::Code res = fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
+        wait_for_mem_cmd();
+        return res;
     }
     void sendcrd(int ep, int crdep, size_t size) {
         set_cmd(CMD_EPID, ep);
         set_cmd(CMD_SIZE, size);
         set_cmd(CMD_OFFSET, crdep);
-        set_cmd(CMD_CTRL, (SENDCRD << 3) | CTRL_START);
+        set_cmd(CMD_CTRL, (SENDCRD << OPCODE_SHIFT) | CTRL_START);
+        wait_until_ready(ep);
     }
 
     bool is_valid(int) const {
         // TODO not supported
         return true;
     }
-    bool fetch_msg(int ep) const {
-        return get_ep(ep, EP_BUF_MSGCNT) - _unack[ep] > 0;
+
+    Message *fetch_msg(int epid) {
+        if(get_ep(epid, EP_BUF_MSGCNT) == 0)
+            return nullptr;
+
+        set_cmd(CMD_EPID, epid);
+        set_cmd(CMD_CTRL, (FETCHMSG << OPCODE_SHIFT) | CTRL_START);
+        wait_until_ready(epid);
+        return reinterpret_cast<Message*>(get_cmd(CMD_OFFSET));
     }
 
-    DTU::Message *message(int ep) const {
-        size_t off = get_ep(ep, EP_BUF_ROFF);
-        word_t addr = get_ep(ep, EP_BUF_ADDR);
-        size_t ord = get_ep(ep, EP_BUF_ORDER);
-        size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
-        off += _unack[ep] * (1UL << msgord);
-        addr += off & ((1UL << ord) - 1);
-        return reinterpret_cast<Message*>(addr);
-    }
-    Message *message_at(int ep, size_t msgidx) const {
-        word_t addr = get_ep(ep, EP_BUF_ADDR);
-        size_t ord = get_ep(ep, EP_BUF_ORDER);
-        size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
-        return reinterpret_cast<Message*>(addr + ((msgidx << msgord) & ((1UL << ord) - 1)));
+    size_t get_msgoff(int, const Message *msg) const {
+        return reinterpret_cast<size_t>(msg);
     }
 
-    size_t get_msgoff(int ep) const {
-        return get_msgoff(ep, message(ep));
-    }
-    size_t get_msgoff(int ep, const Message *msg) const {
-        word_t addr = get_ep(ep, EP_BUF_ADDR);
-        size_t ord = get_ep(ep, EP_BUF_MSGORDER);
-        return (reinterpret_cast<word_t>(msg) - addr) >> ord;
-    }
-
-    void mark_read(int ep, bool ack = true) {
-        if(ack)
-            do_ack(ep);
-        else
-            _unack[ep]++;
-    }
-    void mark_acked(int ep) {
-        _unack[ep]--;
-        do_ack(ep);
+    void mark_read(int ep, size_t addr) {
+        set_cmd(CMD_EPID, ep);
+        set_cmd(CMD_OFFSET, addr);
+        set_cmd(CMD_CTRL, (ACKMSG << OPCODE_SHIFT) | CTRL_START);
+        wait_until_ready(ep);
     }
 
     bool is_ready() const {
@@ -276,12 +264,12 @@ public:
     }
     bool wait_for_mem_cmd() const {
         while((get_cmd(CMD_CTRL) & CTRL_ERROR) == 0 && get_cmd(CMD_SIZE) > 0)
-            wait();
+            try_sleep();
         return (get_cmd(CMD_CTRL) & CTRL_ERROR) == 0;
     }
     void wait_until_ready(int) const {
         while(!is_ready())
-            wait();
+            try_sleep();
     }
 
     Errors::Code fire(int ep, int op, const void *msg, size_t size, size_t offset, size_t len,
@@ -296,9 +284,10 @@ public:
         set_cmd(CMD_REPLYLBL, replylbl);
         set_cmd(CMD_REPLY_EPID, replyep);
         if(op == REPLY)
-            set_cmd(CMD_CTRL, (op << 3) | CTRL_START);
+            set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START);
         else
-            set_cmd(CMD_CTRL, (op << 3) | CTRL_START | CTRL_DEL_REPLY_CAP);
+            set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START | CTRL_DEL_REPLY_CAP);
+        wait_until_ready(ep);
         // TODO report errors here
         return Errors::NO_ERROR;
     }
@@ -310,13 +299,27 @@ public:
     pthread_t tid() const {
         return _tid;
     }
-    bool wait() const;
+    void try_sleep(bool report = true, uint64_t cycles = 0) const;
 
 private:
-    void do_ack(int ep) {
-        set_cmd(CMD_EPID, ep);
-        set_cmd(CMD_CTRL, (ACKMSG << 3) | CTRL_START);
-        wait_until_ready(ep);
+    bool is_unread(word_t unread, int idx) const {
+        return unread & (static_cast<word_t>(1) << idx);
+    }
+    void set_unread(word_t &unread, int idx, bool unr) {
+        if(unr)
+            unread |= static_cast<word_t>(1) << idx;
+        else
+            unread &= ~(static_cast<word_t>(1) << idx);
+    }
+
+    bool is_occupied(word_t occupied, int idx) const {
+        return occupied & (static_cast<word_t>(1) << idx);
+    }
+    void set_occupied(word_t &occupied, int idx, bool occ) {
+        if(occ)
+            occupied |= static_cast<word_t>(1) << idx;
+        else
+            occupied &= ~(static_cast<word_t>(1) << idx);
     }
 
     int prepare_reply(int epid, int &dstcore, int &dstep);
@@ -325,6 +328,7 @@ private:
     int prepare_write(int epid, int &dstcore, int &dstep);
     int prepare_cmpxchg(int epid, int &dstcore, int &dstep);
     int prepare_sendcrd(int epid, int &dstcore, int &dstep);
+    int prepare_fetchmsg(int epid);
     int prepare_ackmsg(int epid);
 
     void send_msg(int epid, int dstcoreid, int dstepid, bool isreply);
@@ -333,6 +337,7 @@ private:
     void handle_resp_cmd();
     void handle_cmpxchg_cmd(int epid);
     void handle_command(int core);
+    void handle_msg(size_t len, int i);
     void handle_receive(int i);
 
     static int check_cmd(int ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
@@ -344,7 +349,6 @@ private:
     alignas(8) volatile word_t _epregs[EPS_RCNT * EP_COUNT];
     Backend *_backend;
     pthread_t _tid;
-    int _unack[EP_COUNT];
     static Buffer _buf;
     static DTU inst;
 };

@@ -40,7 +40,7 @@ public:
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
           _epid(VPE::self().alloc_ep()),
           // TODO we do not always need a receive buffer for clients
-          _rcvbuf(RecvBuf::create(_epid, buford, msgord, 0)),
+          _rcvbuf(RecvBuf::create(_epid, buford, msgord)),
           _ctrl_rgate(RecvGate::create(&RecvBuf::upcall())) {
         LLOG(SERV, "create(" << name << ")");
         Syscalls::get().createsrv(sel(), _ctrl_rgate.label(), name);

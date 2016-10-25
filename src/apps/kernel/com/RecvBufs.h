@@ -35,8 +35,8 @@ namespace kernel {
 
 class RecvBufs {
     struct RBuf : public m3::SListItem {
-        explicit RBuf(epid_t _epid, uintptr_t _addr, int _order, int _msgorder, uint _flags)
-            : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder), flags(_flags) {
+        explicit RBuf(epid_t _epid, uintptr_t _addr, int _order, int _msgorder)
+            : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder) {
         }
 
         size_t size() const {
@@ -49,7 +49,6 @@ class RecvBufs {
         uintptr_t addr;
         int order;
         int msgorder;
-        int flags;
     };
 
 public:
@@ -72,7 +71,7 @@ public:
     m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
     m3::Errors::Code set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, const m3::DTU::Header &head);
 
-    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags);
+    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder);
     void detach(VPE &vpe, epid_t epid);
     void detach_all(VPE &vpe, epid_t except);
 

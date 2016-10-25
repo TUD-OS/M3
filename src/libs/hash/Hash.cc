@@ -27,7 +27,7 @@ namespace hash {
 
 Hash::Hash()
     : _accel(Accel::create()),
-      _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val, 0)),
+      _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val)),
       _rgate(RecvGate::create(&_rbuf)),
       _send(SendGate::create_for(_accel->get(), Accel::EPID, Accel::BUF_ADDR, 256, &_rgate)) {
     if(_accel->get().pager()) {
@@ -38,8 +38,7 @@ Hash::Hash()
     _accel->get().start();
 
     Errors::Code res = Syscalls::get().attachrb(_accel->get().sel(), Accel::EPID,
-        _accel->getRBAddr(), getnextlog2(Accel::RB_SIZE),
-        getnextlog2(Accel::RB_SIZE), 0);
+        _accel->getRBAddr(), getnextlog2(Accel::RB_SIZE), getnextlog2(Accel::RB_SIZE));
     if(res != Errors::NO_ERROR)
         exitmsg("Unable to attach receive buffer on accelerator");
 }

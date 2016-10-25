@@ -55,7 +55,7 @@ m3::Errors::Code RecvBufs::set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr,
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder, uint flags) {
+m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder) {
     RBuf *rbuf = get(epid);
     if(rbuf)
         return m3::Errors::EXISTS;
@@ -68,7 +68,7 @@ m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int ord
             return m3::Errors::INV_ARGS;
     }
 
-    rbuf = new RBuf(epid, addr, order, msgorder, flags);
+    rbuf = new RBuf(epid, addr, order, msgorder);
     rbuf->configure(vpe, true);
     _rbufs.append(rbuf);
     notify(epid);
@@ -97,7 +97,7 @@ void RecvBufs::detach_all(VPE &vpe, epid_t except) {
 
 void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
     if(attach)
-        vpe.config_rcv_ep(epid, addr, order, msgorder, flags);
+        vpe.config_rcv_ep(epid, addr, order, msgorder);
     else
         vpe.invalidate_ep(epid);
 }

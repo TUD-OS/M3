@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     t2.fds(*VPE::self().fds());
     t2.obtain_fds();
     t2.run([rep] {
-        RecvBuf rbuf = RecvBuf::create(rep, nextlog2<512>::val, nextlog2<64>::val, 0);
+        RecvBuf rbuf = RecvBuf::create(rep, nextlog2<512>::val, nextlog2<64>::val);
         RecvGate rcvgate = RecvGate::create(&rbuf);
         size_t count, total = 0;
         int finished = 0;

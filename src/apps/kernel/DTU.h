@@ -65,7 +65,7 @@ public:
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);
 
-    void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder);
 
     void reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
 

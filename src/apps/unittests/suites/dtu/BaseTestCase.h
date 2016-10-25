@@ -37,8 +37,7 @@ protected:
         dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (op << 3) | m3::DTU::CTRL_START |
                 m3::DTU::CTRL_DEL_REPLY_CAP);
-        while(dtu.get_cmd(m3::DTU::CMD_CTRL) & m3::DTU::CTRL_START)
-            dtu.wait();
+        dtu.wait_until_ready(epid);
     }
 
     void dmasend(const void *data, size_t len, size_t epid) {
@@ -49,21 +48,6 @@ protected:
         dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
         dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (m3::DTU::SEND << 3) | m3::DTU::CTRL_START);
-        while(dtu.get_cmd(m3::DTU::CMD_CTRL) & m3::DTU::CTRL_START)
-            dtu.wait();
-    }
-
-    m3::DTU::Message *getmsg(size_t epid, size_t cnt) {
-        m3::DTU &dtu = m3::DTU::get();
-        while(dtu.get_ep(epid, m3::DTU::EP_BUF_MSGCNT) != cnt)
-            dtu.wait();
-        return m3::DTU::get().message(epid);
-    }
-
-    m3::DTU::Message *getmsgat(size_t epid, size_t cnt, size_t idx) {
-        m3::DTU &dtu = m3::DTU::get();
-        while(dtu.get_ep(epid, m3::DTU::EP_BUF_MSGCNT) != cnt)
-            dtu.wait();
-        return m3::DTU::get().message_at(epid, idx);
+        dtu.wait_until_ready(epid);
     }
 };

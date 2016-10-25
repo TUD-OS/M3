@@ -18,13 +18,11 @@
 
 #include <test/TestSuiteContainer.h>
 
-#include "suites/dtu/Ringbuffer.h"
 #include "suites/dtu/Commands.h"
 #include "suites/dtu/Memory.h"
 
 int main() {
     test::TestSuiteContainer con;
-    con.add(new RingbufferTestSuite());
     con.add(new CommandsTestSuite());
     con.add(new MemoryTestSuite());
     return con.run();

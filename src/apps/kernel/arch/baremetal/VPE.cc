@@ -28,13 +28,13 @@ namespace kernel {
 void VPE::init() {
     // attach syscall receive endpoint
     UNUSED m3::Errors::Code res = rbufs().attach(*this, m3::DTU::SYSC_REP,
-        Platform::def_recvbuf(pe()), m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0);
+        Platform::def_recvbuf(pe()), m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER);
     assert(res == m3::Errors::NO_ERROR);
 
     // attach upcall receive endpoint
     res = rbufs().attach(*this, m3::DTU::UPCALL_REP,
         Platform::def_recvbuf(pe()) + SYSC_RBUF_SIZE,
-        m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0);
+        m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER);
     assert(res == m3::Errors::NO_ERROR);
 
     // configure syscall endpoint

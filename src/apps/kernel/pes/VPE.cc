@@ -219,8 +219,8 @@ void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t d
     update_ep(ep);
 }
 
-void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
-    _dtustate.config_recv(ep, buf, order, msgorder, flags);
+void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+    _dtustate.config_recv(ep, buf, order, msgorder);
     update_ep(ep);
 }
 

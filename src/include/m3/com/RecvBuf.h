@@ -31,13 +31,6 @@ class RecvBuf {
 public:
     static const size_t UNBOUND         = -1;
 
-    enum {
-        NONE        = 0,
-        NO_RINGBUF  = DTU::FLAG_NO_RINGBUF,
-        NO_HEADER   = DTU::FLAG_NO_HEADER,
-        DELETE_BUF  = 1UL << (sizeof(unsigned) * 8 - 1) // internal
-    };
-
     class RecvBufWorkItem : public WorkItem {
     public:
         explicit RecvBufWorkItem(size_t epid) : _epid(epid) {
@@ -61,15 +54,15 @@ public:
 private:
     static const int DEF_RBUF_ORDER     = 8;
 
-    explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, unsigned flags)
+    explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, bool del)
         : _buf(reinterpret_cast<uint8_t*>(addr)), _order(order), _msgorder(msgorder),
-          _epid(epid), _flags(flags), _workitem() {
+          _epid(epid), _del(del), _workitem() {
         if(epid != UNBOUND)
             attach(epid);
     }
 
-    static RecvBuf bindto(size_t epid, void *addr, int order, unsigned flags) {
-        return RecvBuf(epid, addr, order, order, flags);
+    static RecvBuf bindto(size_t epid, void *addr, int order) {
+        return RecvBuf(epid, addr, order, order, false);
     }
 
 public:
@@ -81,7 +74,7 @@ public:
     }
     static RecvBuf &def() {
         if(_default == nullptr)
-            _default = new RecvBuf(RecvBuf::create(DTU::DEF_REP, DEF_RBUF_ORDER, DEF_RBUF_ORDER, 0));
+            _default = new RecvBuf(RecvBuf::create(DTU::DEF_REP, DEF_RBUF_ORDER, DEF_RBUF_ORDER));
         return *_default;
     }
 
@@ -98,24 +91,24 @@ public:
             nextlog2<RECV_BUF_MSGSIZE>::val, nextlog2<RECV_BUF_MSGSIZE>::val, NONE);
     }
 #else
-    static RecvBuf create(size_t epid, int order, unsigned flags) {
-        return RecvBuf(epid, allocate(1UL << order), order, order, flags | DELETE_BUF);
+    static RecvBuf create(size_t epid, int order) {
+        return RecvBuf(epid, allocate(1UL << order), order, order, true);
     }
-    static RecvBuf create(size_t epid, int order, int msgorder, unsigned flags) {
-        return RecvBuf(epid, allocate(1UL << order), order, msgorder, flags | DELETE_BUF);
+    static RecvBuf create(size_t epid, int order, int msgorder) {
+        return RecvBuf(epid, allocate(1UL << order), order, msgorder, true);
     }
 #endif
 
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
     RecvBuf(RecvBuf &&r) : _buf(r._buf), _order(r._order), _msgorder(r._msgorder),
-            _epid(r._epid), _flags(r._flags), _workitem(r._workitem) {
-        r._flags &= ~DELETE_BUF;
+            _epid(r._epid), _del(r._del), _workitem(r._workitem) {
+        r._del = false;
         r._epid = UNBOUND;
         r._workitem = nullptr;
     }
     ~RecvBuf() {
-        if(_flags & DELETE_BUF)
+        if(_del)
             free(_buf);
         detach();
     }
@@ -131,9 +124,6 @@ public:
     }
     size_t epid() const {
         return _epid;
-    }
-    unsigned flags() const {
-        return _flags & ~DELETE_BUF;
     }
 
 #if !defined(__t2__)
@@ -157,7 +147,7 @@ private:
     int _order;
     int _msgorder;
     size_t _epid;
-    unsigned _flags;
+    bool _del;
     RecvBufWorkItem *_workitem;
     static RecvBuf _syscall;
     static RecvBuf _upcall;

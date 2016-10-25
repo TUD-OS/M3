@@ -213,7 +213,7 @@ public:
     void forward_mem(epid_t ep, peid_t pe);
 
     void config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
-    void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder);
     void config_mem_ep(epid_t ep, peid_t dstpe, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
 
 private:

@@ -219,10 +219,9 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     return Errors::last;
 }
 
-Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder, uint flags) {
+Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder) {
     LLOG(SYSC, "attachrb(vpe=" << vpe << ", ep=" << ep << ", addr=" << fmt(addr, "p")
-        << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x")
-        << ", flags=" << fmt(flags, "x") << ")");
+        << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x") << ")");
 
     KIF::Syscall::AttachRB req;
     req.opcode = KIF::Syscall::ATTACHRB;
@@ -231,7 +230,6 @@ Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int ord
     req.addr = addr;
     req.order = order;
     req.msgorder = msgorder;
-    req.flags = flags;
     return send_receive_result(&req, sizeof(req));
 }
 

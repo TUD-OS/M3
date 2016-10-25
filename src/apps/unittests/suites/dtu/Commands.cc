@@ -39,12 +39,12 @@ static void unmap_page(void *addr) {
 }
 
 void CommandsTestSuite::ReadCmdTestCase::run() {
-    const size_t rcvepid = 3;
-    const size_t sndepid = 4;
+    const size_t rcvepid = VPE::self().alloc_ep();
+    const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<256>::val, nextlog2<128>::val, 0);
+    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<256>::val, nextlog2<128>::val);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
+    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -91,15 +91,17 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     unmap_page(addr);
     dtu.configure(sndepid, 0, 0, 0, 0);
+    VPE::self().free_ep(sndepid);
+    VPE::self().free_ep(rcvepid);
 }
 
 void CommandsTestSuite::WriteCmdTestCase::run() {
-    const size_t rcvepid = 3;
-    const size_t sndepid = 4;
+    const size_t rcvepid = VPE::self().alloc_ep();
+    const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<64>::val, nextlog2<32>::val, 0);
+    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<64>::val, nextlog2<32>::val);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
+    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<64>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -123,23 +125,27 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
 
         dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::WRITE);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
-        getmsg(rcvepid, 1);
+        const word_t *words = reinterpret_cast<const word_t*>(addr);
+        // TODO we do current not know when this is finished
+        while(words[0] == 0)
+            ;
         for(size_t i = 0; i < sizeof(data) / sizeof(data[0]); ++i)
-            assert_word(reinterpret_cast<word_t*>(addr)[i], data[i]);
-        dtu.mark_read(rcvepid);
+            assert_word(words[i], data[i]);
     }
 
     unmap_page(addr);
     dtu.configure(sndepid, 0, 0, 0, 0);
+    VPE::self().free_ep(sndepid);
+    VPE::self().free_ep(rcvepid);
 }
 
 void CommandsTestSuite::CmpxchgCmdTestCase::run() {
-    const size_t rcvepid = 3;
-    const size_t sndepid = 4;
+    const size_t rcvepid = VPE::self().alloc_ep();
+    const size_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
-    RecvBuf buf = RecvBuf::create(sndepid, nextlog2<128>::val, nextlog2<64>::val, 0);
+    // RecvBuf buf = RecvBuf::create(sndepid, nextlog2<128>::val, nextlog2<64>::val);
     // only necessary to set the msgqid
-    RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<1>::val, RecvBuf::NO_RINGBUF);
+    // RecvBuf rbuf = RecvBuf::create(rcvepid, nextlog2<1>::val, RecvBuf::NO_RINGBUF);
 
     void *addr = map_page();
     if(!addr)
@@ -201,4 +207,6 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
 
     unmap_page(addr);
     dtu.configure(sndepid, 0, 0, 0, 0);
+    VPE::self().free_ep(sndepid);
+    VPE::self().free_ep(rcvepid);
 }

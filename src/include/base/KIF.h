@@ -246,7 +246,6 @@ struct KIF {
             word_t ep;
             word_t order;
             word_t msgorder;
-            word_t flags;
         } PACKED;
 
         struct DetachRB : public DefaultRequest {

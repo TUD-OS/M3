@@ -79,7 +79,7 @@ public:
     explicit PipeHandler(PipeSessionData *sess)
         : refs(1),
           _rbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(), m3::nextlog2<BUFSIZE>::val,
-            m3::nextlog2<MSGSIZE>::val, 0)),
+            m3::nextlog2<MSGSIZE>::val)),
           _rgate(m3::RecvGate::create(&_rbuf, sess)),
           _sgate(m3::SendGate::create(MSGSIZE, &_rgate)),
           _lastid(),

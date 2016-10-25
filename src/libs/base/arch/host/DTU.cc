@@ -48,7 +48,7 @@ static void dumpBytes(uint8_t *bytes, size_t length) {
 INIT_PRIO_DTU DTU DTU::inst;
 INIT_PRIO_DTU DTU::Buffer DTU::_buf;
 
-DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid(), _unack() {
+DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid() {
 }
 
 void DTU::start() {
@@ -71,19 +71,20 @@ void DTU::reset() {
     _backend->reset();
 }
 
-bool DTU::wait() const {
+void DTU::try_sleep(bool, uint64_t) const {
     usleep(1);
-    return _run;
 }
 
-void DTU::configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::configure_recv(int ep, uintptr_t buf, uint order, uint msgorder) {
     set_ep(ep, EP_BUF_ADDR, buf);
     set_ep(ep, EP_BUF_ORDER, order);
     set_ep(ep, EP_BUF_MSGORDER, msgorder);
     set_ep(ep, EP_BUF_ROFF, 0);
     set_ep(ep, EP_BUF_WOFF, 0);
     set_ep(ep, EP_BUF_MSGCNT, 0);
-    set_ep(ep, EP_BUF_FLAGS, flags);
+    set_ep(ep, EP_BUF_UNREAD, 0);
+    set_ep(ep, EP_BUF_OCCUPIED, 0);
+    assert((1UL << (order - msgorder)) <= sizeof(word_t) * 8);
 }
 
 int DTU::check_cmd(int ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
@@ -107,19 +108,21 @@ int DTU::prepare_reply(int epid,int &dstcore,int &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     const size_t reply = get_cmd(CMD_OFFSET);
+    const word_t bufaddr = get_ep(epid, EP_BUF_ADDR);
+    const word_t ord = get_ep(epid, EP_BUF_ORDER);
+    const word_t msgord = get_ep(epid, EP_BUF_MSGORDER);
 
-    if(get_ep(epid, EP_BUF_FLAGS) & FLAG_NO_HEADER) {
-        LLOG(DTUERR, "DMA-error: want to reply, but header is disabled");
+    size_t idx = (reply - bufaddr) >> msgord;
+    if(idx >= (1UL << (ord - msgord))) {
+        LLOG(DTUERR, "DMA-error: EP" << epid << ": invalid message addr " << (void*)reply);
         return CTRL_ERROR;
     }
 
-    const word_t msgord = get_ep(epid, EP_BUF_MSGORDER);
-    const word_t ringbuf = get_ep(epid, EP_BUF_ADDR);
-    Buffer *buf = reinterpret_cast<Buffer*>(ringbuf + (reply << msgord));
+    Buffer *buf = reinterpret_cast<Buffer*>(reply);
     assert(buf->has_replycap);
 
-    if(reply >= MAX_MSGS || !buf->has_replycap) {
-        LLOG(DTUERR, "DMA-error: invalid reply index (idx=" << reply << ", ep=" << epid << ")");
+    if(!buf->has_replycap) {
+        LLOG(DTUERR, "DMA-error: EP" << epid << ": double-reply for msg " << (void*)reply);
         return CTRL_ERROR;
     }
 
@@ -224,28 +227,67 @@ int DTU::prepare_sendcrd(int epid, int &dstcore, int &dstep) {
 }
 
 int DTU::prepare_ackmsg(int epid) {
-    word_t flags = get_ep(epid, EP_BUF_FLAGS);
-    size_t roff = get_ep(epid, EP_BUF_ROFF);
+    const word_t addr = get_cmd(CMD_OFFSET);
+    size_t bufaddr = get_ep(epid, EP_BUF_ADDR);
+    size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+    size_t ord = get_ep(epid, EP_BUF_ORDER);
 
-    // increase read offset
-    if(~flags & FLAG_NO_RINGBUF) {
-        size_t ord = get_ep(epid, EP_BUF_ORDER);
-        size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
-        roff = (roff + (1UL << msgord)) & ((1UL << (ord + 1)) - 1);
-        set_ep(epid, EP_BUF_ROFF, roff);
-    }
-
-    // decrease message count
-    word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
-    if(msgs == 0) {
-        LLOG(DTUERR, "DMA-error: Unable to ack message: message count in EP" << epid << " is 0");
+    size_t idx = (addr - bufaddr) >> msgord;
+    if(idx >= (1UL << (ord - msgord))) {
+        LLOG(DTUERR, "DMA-error: EP" << epid << ": invalid message addr " << (void*)addr);
         return CTRL_ERROR;
     }
+
+    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
+    assert(is_occupied(occupied, idx));
+    set_occupied(occupied, idx, false);
+    set_ep(epid, EP_BUF_OCCUPIED, occupied);
+
+    LLOG(DTU, "EP" << epid << ": acked message at index " << idx);
+    return 0;
+}
+
+int DTU::prepare_fetchmsg(int epid) {
+    word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
+    if(msgs == 0)
+        return CTRL_ERROR;
+
+    size_t roff = get_ep(epid, EP_BUF_ROFF);
+    word_t unread = get_ep(epid, EP_BUF_OCCUPIED);
+    size_t ord = get_ep(epid, EP_BUF_ORDER);
+    size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+    size_t size = 1UL << (ord - msgord);
+
+    size_t i;
+    for(i = roff; i < size; ++i) {
+        if(is_unread(unread, i))
+            goto found;
+    }
+    for(i = 0; i < roff; ++i) {
+        if(is_unread(unread, i))
+            goto found;
+    }
+
+    // should not get here
+    assert(false);
+
+found:
+    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
+    assert(is_occupied(occupied, i));
+
+    set_unread(unread, i, false);
     msgs--;
+    roff = i + 1;
+
+    LLOG(DTU, "EP" << epid << ": fetched message at index " << i << " (count=" << msgs << ")");
+
+    set_ep(epid, EP_BUF_UNREAD, unread);
+    set_ep(epid, EP_BUF_ROFF, roff);
     set_ep(epid, EP_BUF_MSGCNT, msgs);
 
-    LLOG(DTU, "EP" << epid << ": acked message"
-        << " (msgcnt=" << msgs << ", roff=#" << fmt(roff, "x") << ")");
+    size_t addr = get_ep(epid, EP_BUF_ADDR);
+    set_cmd(CMD_OFFSET, addr + i * (1UL << msgord));
+
     return 0;
 }
 
@@ -260,7 +302,7 @@ void DTU::handle_command(int core) {
     const int epid = get_cmd(CMD_EPID);
     const int reply_epid = get_cmd(CMD_REPLY_EPID);
     const word_t ctrl = get_cmd(CMD_CTRL);
-    int op = (ctrl >> 3) & 0x7;
+    int op = (ctrl >> OPCODE_SHIFT) & 0xF;
     if(epid >= EP_COUNT) {
         LLOG(DTUERR, "DMA-error: invalid ep-id (" << epid << ")");
         newctrl |= CTRL_ERROR;
@@ -288,6 +330,10 @@ void DTU::handle_command(int core) {
         case SENDCRD:
             newctrl |= prepare_sendcrd(epid, dstcoreid, dstepid);
             break;
+        case FETCHMSG:
+            newctrl |= prepare_fetchmsg(epid);
+            set_cmd(CMD_CTRL, newctrl);
+            return;
         case ACKMSG:
             newctrl |= prepare_ackmsg(epid);
             set_cmd(CMD_CTRL, newctrl);
@@ -317,8 +363,9 @@ error:
 void DTU::send_msg(int epid, int dstcoreid, int dstepid, bool isreply) {
     LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-            << " over " << epid << " to c:ch=" << dstcoreid << ":" << dstepid
-            << " (crd=#" << fmt((long)get_ep(dstepid, EP_CREDITS), "x") << ")");
+            << " over " << epid << " to pe:ep=" << dstcoreid << ":" << dstepid
+            << " (crd=#" << fmt((long)get_ep(dstepid, EP_CREDITS), "x")
+            << " rep=" << _buf.rpl_epid << ")");
 
     _backend->send(dstcoreid, dstepid, &_buf);
 }
@@ -406,103 +453,78 @@ void DTU::handle_cmpxchg_cmd(int epid) {
     send_msg(epid, dstcoreid, dstepid, true);
 }
 
-void DTU::handle_receive(int i) {
-    const size_t size = 1UL << get_ep(i, EP_BUF_ORDER);
-    const size_t roffraw = get_ep(i, EP_BUF_ROFF);
-    size_t woffraw = get_ep(i, EP_BUF_WOFF);
-    size_t roff = roffraw & (size - 1);
-    size_t woff = woffraw & (size - 1);
-    const size_t maxmsgord = get_ep(i, EP_BUF_MSGORDER);
-    const size_t maxmsgsize = 1UL << maxmsgord;
-    const word_t flags = get_ep(i, EP_BUF_FLAGS);
-
-    // without ringbuffer, we can always overwrite the whole buffer
-    size_t avail = size;
-    if(~flags & FLAG_NO_RINGBUF) {
-        // completely full?
-        if(woffraw == (roffraw ^ size))
-            avail = 0;
-        else if(woff >= roff)
-            avail = (size - woff) + roff;
-        else
-            avail = roff - woff;
-        // with header, it can't be more than maxmsgsize
-        if(~flags & FLAG_NO_HEADER)
-            avail = std::min<size_t>(avail, maxmsgsize);
+void DTU::handle_msg(size_t len, int epid) {
+    const size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+    const size_t msgsize = 1UL << msgord;
+    if(len > msgsize) {
+        LLOG(DTUERR, "DMA-error: dropping message because space is not sufficient"
+                << " (required: " << len << ", available: " << msgsize << ")");
+        return;
     }
-    // if we don't store the header, we can receive more
-    if(flags & FLAG_NO_HEADER)
-        avail += HEADER_SIZE;
 
+    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
+    word_t unread = get_ep(epid, EP_BUF_UNREAD);
+    word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
+    size_t woff = get_ep(epid, EP_BUF_WOFF);
+    size_t ord = get_ep(epid, EP_BUF_ORDER);
+    size_t size = 1UL << (ord - msgord);
+
+    size_t i;
+    for (i = woff; i < size; ++i)
+    {
+        if (!is_occupied(occupied, i))
+            goto found;
+    }
+    for (i = 0; i < woff; ++i)
+    {
+        if (!is_occupied(occupied, i))
+            goto found;
+    }
+
+    LLOG(DTUERR, "EP" << epid << ": dropping message because no slot is free");
+    return;
+
+found:
+    set_occupied(occupied, i, true);
+    set_unread(unread, i, true);
+    msgs++;
+    woff = i + 1;
+
+    LLOG(DTU, "EP" << epid << ": put message at index " << i << " (count=" << msgs << ")");
+
+    set_ep(epid, EP_BUF_OCCUPIED, occupied);
+    set_ep(epid, EP_BUF_UNREAD, unread);
+    set_ep(epid, EP_BUF_MSGCNT, msgs);
+    set_ep(epid, EP_BUF_WOFF, woff);
+
+    size_t addr = get_ep(epid, EP_BUF_ADDR);
+    memcpy(reinterpret_cast<void*>(addr + i * (1UL << msgord)), &_buf, len);
+}
+
+void DTU::handle_receive(int i) {
     ssize_t res = _backend->recv(i, &_buf);
     if(res == -1)
         return;
+
     const int op = _buf.opcode;
-    const bool store = (~flags & FLAG_NO_RINGBUF) || op == SEND;
-
-    if(store && (size_t)res > avail) {
-        if((~flags & FLAG_NO_HEADER) || avail - HEADER_SIZE == 0) {
-            LLOG(DTUERR, "DMA-error: dropping message because space is not sufficient"
-                    << " (required: " << res << ", available: " << avail << ")");
-            return;
-        }
-        LLOG(DTUERR, "DMA-warning: cropping message from " << res << " to " << avail << " bytes");
-        res = avail;
+    switch(op) {
+        case READ:
+            handle_read_cmd(i);
+            break;
+        case RESP:
+            handle_resp_cmd();
+            break;
+        case WRITE:
+            handle_write_cmd(i);
+            break;
+        case CMPXCHG:
+            handle_cmpxchg_cmd(i);
+            break;
+        case SEND:
+        case REPLY:
+            handle_msg(res, i);
+            break;
     }
-
-    char *const addr = reinterpret_cast<char*>(get_ep(i, EP_BUF_ADDR));
-    const size_t msgsize = (flags & FLAG_NO_HEADER) ? res - HEADER_SIZE : res;
-    const char *src = (flags & FLAG_NO_HEADER) ? _buf.data : (char*)&_buf;
-
-    if(store && (~flags & FLAG_NO_HEADER) && msgsize > maxmsgsize) {
-        LLOG(DTUERR, "DMA-error: message too large (" << msgsize << " vs. " << maxmsgsize << ")");
-        return;
-    }
-
-    // put message into receive buffer
-    if((op != SEND && op != REPLY) || (flags & FLAG_NO_RINGBUF)) {
-        switch(op) {
-            case READ:
-                handle_read_cmd(i);
-                break;
-            case RESP:
-                handle_resp_cmd();
-                break;
-            case WRITE:
-                handle_write_cmd(i);
-                break;
-            case CMPXCHG:
-                handle_cmpxchg_cmd(i);
-                break;
-            case SEND:
-                memcpy(addr, src, msgsize);
-                break;
-        }
-    }
-    else if(flags & FLAG_NO_HEADER) {
-        size_t cpysize = msgsize;
-        // starting writing til the end, if possible
-        if(woff >= roff) {
-            size_t rem = std::min<size_t>(cpysize, size - woff);
-            memcpy(addr + woff, src, rem);
-            if(cpysize > rem) {
-                src += rem;
-                cpysize -= rem;
-                woff = 0;
-            }
-        }
-        // continue at the beginning
-        if(cpysize)
-            memcpy(addr + woff, src, cpysize);
-        set_ep(i, EP_BUF_WOFF, (woffraw + msgsize) & ((size << 1) - 1));
-    }
-    else {
-        memcpy(addr + woff, src, msgsize);
-        set_ep(i, EP_BUF_WOFF, (woffraw + maxmsgsize) & ((size << 1) - 1));
-    }
-
-    if(op != SENDCRD)
-        set_ep(i, EP_BUF_MSGCNT, get_ep(i, EP_BUF_MSGCNT) + 1);
 
     // refill credits
     if(_buf.crd_ep >= EP_COUNT)
@@ -516,15 +538,12 @@ void DTU::handle_receive(int i) {
         }
     }
 
-    if(store && op != SENDCRD) {
+    if(op != SENDCRD) {
         LLOG(DTU, "<- " << fmt(res - HEADER_SIZE, 3)
                 << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-                << " ch=" << i
-                << " (" << "roff=#" << fmt(roff, "x") << ",woff=#"
-                << fmt(get_ep(i, EP_BUF_WOFF) & (size - 1), "x") << ",cnt=#"
-                << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ",crd=#"
-                << fmt((long)get_ep(i, EP_CREDITS), "x")
-                << ")");
+                << " ep=" << i
+                << " (cnt=#" << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ","
+                << "crd=#" << fmt((long)get_ep(i, EP_CREDITS), "x") << ")");
     }
 }
 
@@ -543,7 +562,7 @@ void *DTU::thread(void *arg) {
         for(int i = 0; i < EP_COUNT; ++i)
             dma->handle_receive(i);
 
-        dma->wait();
+        dma->try_sleep();
     }
 
     if(env()->is_kernel())

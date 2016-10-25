@@ -294,8 +294,8 @@ void DTU::write_ep_local(epid_t ep) {
            sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
-void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
-    _state.config_recv(ep, buf, order, msgorder, flags);
+void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+    _state.config_recv(ep, buf, order, msgorder);
     write_ep_local(ep);
 }
 
