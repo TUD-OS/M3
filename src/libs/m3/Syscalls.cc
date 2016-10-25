@@ -79,7 +79,8 @@ Errors::Code Syscalls::forwardmsg(capsel_t cap, const void *msg, size_t len, siz
     req.event = reinterpret_cast<word_t>(event);
     req.len = len;
     memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
-    return send_receive_result(&req, sizeof(req) - sizeof(req.msg) + req.len);
+    size_t msgsize = sizeof(req) - sizeof(req.msg) + req.len;
+    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
 Errors::Code Syscalls::forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event) {
@@ -118,7 +119,8 @@ Errors::Code Syscalls::forwardreply(size_t ep, const void *msg, size_t len, uint
     req.event = reinterpret_cast<word_t>(event);
     req.len = len;
     memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
-    return send_receive_result(&req, sizeof(req) - sizeof(req.msg) + req.len);
+    size_t msgsize = sizeof(req) - sizeof(req.msg) + req.len;
+    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
 Errors::Code Syscalls::createsrv(capsel_t srv, label_t label, const String &name) {
@@ -130,7 +132,8 @@ Errors::Code Syscalls::createsrv(capsel_t srv, label_t label, const String &name
     req.label = label;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
-    return send_receive_result(&req, sizeof(req) - sizeof(req.name) + req.namelen);
+    size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
+    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
 Errors::Code Syscalls::createsessat(capsel_t srv, capsel_t sess, word_t ident) {
@@ -155,7 +158,8 @@ Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name
     req.arg = arg;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
-    return send_receive_result(&req, sizeof(req) - sizeof(req.name) + req.namelen);
+    size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
+    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
 Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits) {
@@ -203,7 +207,8 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
 
-    DTU::Message *msg = send_receive(&req, sizeof(req) - sizeof(req.name) + req.namelen);
+    size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
+    DTU::Message *msg = send_receive(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
     auto *reply = reinterpret_cast<KIF::Syscall::CreateVPEReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
