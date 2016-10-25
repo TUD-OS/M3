@@ -221,10 +221,10 @@ void SyscallHandler::createsrv(GateIStream &is) {
 }
 
 void SyscallHandler::pagefault(UNUSED GateIStream &is) {
-#if defined(__gem5__)
     EVENT_TRACER_Syscall_pagefault();
     VPE *vpe = is.gate().session<VPE>();
 
+#if defined(__gem5__)
     auto req = get_message<m3::KIF::Syscall::Pagefault>(is);
     uint64_t virt = req->virt;
     uint access = req->access;
@@ -431,10 +431,10 @@ void SyscallHandler::createvpe(GateIStream &is) {
 }
 
 void SyscallHandler::createmap(UNUSED GateIStream &is) {
-#if defined(__gem5__)
     EVENT_TRACER_Syscall_createmap();
     VPE *vpe = is.gate().session<VPE>();
 
+#if defined(__gem5__)
     auto req = get_message<m3::KIF::Syscall::CreateMap>(is);
     capsel_t tcap = req->vpe;
     capsel_t mcap = req->mem;
@@ -866,6 +866,9 @@ void SyscallHandler::forwardmsg(GateIStream &is) {
     EVENT_TRACER_Syscall_forwardmsg();
     VPE *vpe = is.gate().session<VPE>();
 
+#if !defined(__gem5__)
+    kreply_result(vpe, is, m3::Errors::NOT_SUP);
+#else
     auto *req = get_message<m3::KIF::Syscall::ForwardMsg>(is);
     capsel_t cap = req->cap;
     size_t len = req->len;
@@ -908,12 +911,16 @@ void SyscallHandler::forwardmsg(GateIStream &is) {
         vpe->upcall_notify(res, event);
     else
         kreply_result(vpe, is, res);
+#endif
 }
 
 void SyscallHandler::forwardmem(GateIStream &is) {
     EVENT_TRACER_Syscall_forwardmem();
     VPE *vpe = is.gate().session<VPE>();
 
+#if !defined(__gem5__)
+    kreply_result(vpe, is, m3::Errors::NOT_SUP);
+#else
     auto *req = get_message<m3::KIF::Syscall::ForwardMem>(is);
     capsel_t cap = req->cap;
     size_t len = m3::Math::min(sizeof(req->data), req->len);
@@ -960,12 +967,16 @@ void SyscallHandler::forwardmem(GateIStream &is) {
         vpe->upcall_notify(res, event);
     else
         kreply_result(vpe, is, res);
+#endif
 }
 
 void SyscallHandler::forwardreply(GateIStream &is) {
     EVENT_TRACER_Syscall_forwardreply();
     VPE *vpe = is.gate().session<VPE>();
 
+#if !defined(__gem5__)
+    kreply_result(vpe, is, m3::Errors::NOT_SUP);
+#else
     auto *req = get_message<m3::KIF::Syscall::ForwardReply>(is);
     epid_t epid = req->epid;
     uintptr_t msgaddr = req->msgaddr;
@@ -1012,6 +1023,7 @@ void SyscallHandler::forwardreply(GateIStream &is) {
         vpe->upcall_notify(res, event);
     else
         kreply_result(vpe, is, res);
+#endif
 }
 
 void SyscallHandler::revoke(GateIStream &is) {
