@@ -56,14 +56,13 @@ Errors::Code Syscalls::noop() {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activate(size_t ep, capsel_t oldcap, capsel_t newcap) {
-    LLOG(SYSC, "activate(ep=" << ep << ", oldcap=" << oldcap << ", newcap=" << newcap << ")");
+Errors::Code Syscalls::activate(size_t ep, capsel_t cap) {
+    LLOG(SYSC, "activate(ep=" << ep << ", cap=" << cap << ")");
 
     KIF::Syscall::Activate req;
     req.opcode = KIF::Syscall::ACTIVATE;
     req.ep = ep;
-    req.old_sel = oldcap;
-    req.new_sel = newcap;
+    req.cap = cap;
     return send_receive_result(&req, sizeof(req));
 }
 

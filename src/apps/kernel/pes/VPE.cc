@@ -41,6 +41,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _lastsched(),
+      _epcaps(),
       _dtustate(),
       _syscgate(SyscallHandler::get().create_gate(this)),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
@@ -194,6 +195,8 @@ void VPE::upcall_notify(m3::Errors::Code res, word_t event) {
 }
 
 void VPE::invalidate_ep(epid_t ep) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = invalid");
+
     _dtustate.invalidate(ep);
     update_ep(ep);
 }
@@ -205,27 +208,52 @@ bool VPE::can_forward_msg(epid_t ep) {
 }
 
 void VPE::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] forward message");
+
     _dtustate.forward_msg(ep, pe, vpe);
     update_ep(ep);
 }
 
 void VPE::forward_mem(epid_t ep, peid_t pe) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] forward mem");
+
     _dtustate.forward_mem(ep, pe);
     update_ep(ep);
 }
 
-void VPE::config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd) {
-    _dtustate.config_send(ep, lbl, pe, vpe, dstep, msgsize, crd);
-    update_ep(ep);
-}
-
 void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
+        "RBuf[addr=#" << m3::fmt(buf, "x")
+        << ", order=" << order
+        << ", msgorder=" << msgorder << "]");
+
     _dtustate.config_recv(ep, buf, order, msgorder);
     update_ep(ep);
 }
 
-void VPE::config_mem_ep(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm) {
-    _dtustate.config_mem(ep, pe, vpe, addr, size, perm);
+void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
+        "Send[vpe=" << obj.vpe
+        << ", pe=" << obj.pe
+        << ", ep=" << obj.epid
+        << ", label=#" << m3::fmt(obj.label, "x")
+        << ", msgsize=" << obj.msgsize << ", crd=" << obj.credits);
+
+    _dtustate.config_send(ep, obj.label, obj.pe, obj.vpe, obj.epid, obj.msgsize, obj.credits);
+    update_ep(ep);
+}
+
+void VPE::config_mem_ep(epid_t ep, const MsgObject &obj) {
+    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
+        "Mem [vpe=" << obj.vpe
+        << ", pe=" << obj.pe
+        << ", addr=#" << m3::fmt(obj.label & ~m3::KIF::Perm::RWX, "x")
+        << ", size=#" << m3::fmt(obj.credits, "x")
+        << ", perms=#" << m3::fmt(obj.label & m3::KIF::Perm::RWX, "x") << "]");
+
+    // TODO
+    _dtustate.config_mem(ep, obj.pe, obj.vpe, obj.label & ~m3::KIF::Perm::RWX,
+        obj.credits, obj.label & m3::KIF::Perm::RWX);
     update_ep(ep);
 }
 

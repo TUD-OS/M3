@@ -110,8 +110,8 @@ private:
 
 class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(label_t _label, peid_t _pe, vpeid_t _vpe, epid_t _epid, word_t _credits)
-        : RefCounted(), label(_label), pe(_pe), vpe(_vpe), epid(_epid), credits(_credits),
+    explicit MsgObject(label_t _lbl, peid_t _pe, vpeid_t _vpe, epid_t _ep, word_t _msize, word_t _crd)
+        : RefCounted(), label(_lbl), pe(_pe), vpe(_vpe), epid(_ep), msgsize(_msize), credits(_crd),
           derived(false) {
     }
     virtual ~MsgObject() {
@@ -121,6 +121,7 @@ public:
     peid_t pe;
     vpeid_t vpe;
     epid_t epid;
+    word_t msgsize;
     word_t credits;
     bool derived;
 };
@@ -128,7 +129,7 @@ public:
 class MemObject : public MsgObject {
 public:
     explicit MemObject(uintptr_t addr, size_t size, uint perms, peid_t pe, vpeid_t vpe, epid_t epid)
-        : MsgObject(addr | perms, pe, vpe, epid, size) {
+        : MsgObject(addr | perms, pe, vpe, epid, 0, size) {
         assert((addr & m3::KIF::Perm::RWX) == 0);
     }
     virtual ~MemObject();
@@ -151,13 +152,13 @@ public:
 class MsgCapability : public SlabObject<MsgCapability>, public Capability {
 protected:
     explicit MsgCapability(CapTable *tbl, capsel_t sel, unsigned type, MsgObject *_obj)
-        : Capability(tbl, sel, type), localepid(-1), obj(_obj) {
+        : Capability(tbl, sel, type), obj(_obj) {
     }
 
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t pe, vpeid_t vpe, epid_t epid,
-        word_t credits)
-        : MsgCapability(tbl, sel, MSG, new MsgObject(label, pe, vpe, epid, credits)) {
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t pe, vpeid_t vpe,
+            epid_t epid, word_t msgsize, word_t credits)
+        : MsgCapability(tbl, sel, MSG, new MsgObject(label, pe, vpe, epid, msgsize, credits)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -167,12 +168,10 @@ protected:
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MsgCapability *c = new MsgCapability(*this);
         c->put(tbl, sel);
-        c->localepid = -1;
         return c;
     }
 
 public:
-    epid_t localepid;
     m3::Reference<MsgObject> obj;
 };
 
@@ -199,7 +198,6 @@ private:
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MemCapability *c = new MemCapability(*this);
         c->put(tbl, sel);
-        c->localepid = -1;
         return c;
     }
 };

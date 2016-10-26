@@ -106,7 +106,10 @@ void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((vpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);
     // TODO hand out "unlimited" credits atm
-    r[1] = ((pe & 0xFF) << 24) | ((dstep & 0xFF) << 16) | m3::DTU::CREDITS_UNLIM;
+    r[1] = (static_cast<m3::DTU::reg_t>(pe & 0xFF) << 40) |
+            (static_cast<m3::DTU::reg_t>(dstep & 0xFF) << 32) |
+            (m3::DTU::CREDITS_UNLIM << 16) |
+            m3::DTU::CREDITS_UNLIM;
     r[2] = lbl;
 }
 

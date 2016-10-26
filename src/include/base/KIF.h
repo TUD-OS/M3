@@ -149,8 +149,7 @@ struct KIF {
 
         struct Activate : public DefaultRequest {
             word_t ep;
-            word_t old_sel;
-            word_t new_sel;
+            word_t cap;
         } PACKED;
 
         struct ForwardMsg : public DefaultRequest {

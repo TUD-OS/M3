@@ -65,6 +65,7 @@ public:
     void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
+    m3::Errors::Code inval_ep_remote(const VPEDesc &vpe, epid_t ep);
     void read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);

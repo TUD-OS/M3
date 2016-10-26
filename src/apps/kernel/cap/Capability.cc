@@ -53,9 +53,10 @@ SessionObject::~SessionObject() {
 }
 
 m3::Errors::Code MsgCapability::revoke() {
-    if(localepid != static_cast<epid_t>(-1)) {
-        VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
-        vpe.xchg_ep(localepid, nullptr, nullptr);
+    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
+    epid_t ep = vpe.cap_ep(this);
+    if(ep != 0) {
+        vpe.invalidate_ep(ep);
         // wakeup the pe to give him the chance to notice that the endpoint was invalidated
         vpe.wakeup();
     }
@@ -122,7 +123,6 @@ void Capability::print(m3::OStream &os) const {
 
 void MsgCapability::printInfo(m3::OStream &os) const {
     os << ": mesg[refs=" << obj->refcount()
-       << ", curep=" << localepid
        << ", dst=" << obj->pe << ":" << obj->epid
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
@@ -130,7 +130,6 @@ void MsgCapability::printInfo(m3::OStream &os) const {
 
 void MemCapability::printInfo(m3::OStream &os) const {
     os << ": mem [refs=" << obj->refcount()
-       << ", curep=" << localepid
        << ", dst=" << obj->pe << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }

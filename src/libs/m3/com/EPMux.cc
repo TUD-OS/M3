@@ -37,7 +37,7 @@ EPMux::EPMux()
 void EPMux::reserve(size_t ep) {
     // take care that some non-fixed gate could already use that endpoint
     if(_gates[ep]) {
-        switch_ep(ep, _gates[ep]->sel(), ObjCap::INVALID);
+        activate(ep, ObjCap::INVALID);
         _gates[ep]->_epid = Gate::UNBOUND;
         if(_gates[ep]->type() == ObjCap::RECV_GATE) {
             RecvGate *rgate = static_cast<RecvGate*>(_gates[ep]);
@@ -49,14 +49,14 @@ void EPMux::reserve(size_t ep) {
 
 void EPMux::switch_to(Gate *gate) {
     size_t victim = select_victim();
-    switch_ep(victim, _gates[victim] ? _gates[victim]->sel() : ObjCap::INVALID, gate->sel());
+    activate(victim, gate->sel());
     _gates[victim] = gate;
     gate->_epid = victim;
 }
 
 void EPMux::switch_cap(Gate *gate, capsel_t newcap) {
     if(gate->epid() != Gate::UNBOUND) {
-        switch_ep(gate->epid(), gate->sel(), newcap);
+        activate(gate->epid(), newcap);
         if(newcap == ObjCap::INVALID) {
             _gates[gate->epid()] = nullptr;
             gate->_epid = Gate::UNBOUND;
@@ -73,7 +73,7 @@ void EPMux::remove(Gate *gate, bool invalidate) {
             // note that the kernel has to validate that it is 0 for "unused endpoints" because otherwise
             // we could just specify that our endpoint is unused and the kernel won't check it and thereby
             // trick the whole system.
-            switch_ep(gate->_epid, gate->sel(), ObjCap::INVALID);
+            activate(gate->_epid, ObjCap::INVALID);
         }
         _gates[gate->_epid] = nullptr;
         gate->_epid = Gate::UNBOUND;
@@ -109,11 +109,11 @@ size_t EPMux::select_victim() {
     return victim;
 }
 
-void EPMux::switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap) {
-    if(Syscalls::get().activate(victim, oldcap, newcap) != Errors::NO_ERROR) {
+void EPMux::activate(size_t epid, capsel_t newcap) {
+    if(Syscalls::get().activate(epid, newcap) != Errors::NO_ERROR) {
         // if we wanted to deactivate a cap, we can ignore the failure
         if(newcap != ObjCap::INVALID)
-            PANIC("Unable to arm SEP " << victim << ": " << Errors::last);
+            PANIC("Unable to arm SEP " << epid << ": " << Errors::last);
     }
 }
 

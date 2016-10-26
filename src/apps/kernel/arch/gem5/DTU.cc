@@ -278,6 +278,14 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     // TODO remove pagetables on demand
 }
 
+m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
+        static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_EP) | (ep << 3);
+    m3::Sync::compiler_barrier();
+    uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD);
+    return try_write_mem(vpe, addr, &reg, sizeof(reg));
+}
+
 void DTU::read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
     m3::Sync::compiler_barrier();
     read_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);

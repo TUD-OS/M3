@@ -120,12 +120,26 @@ public:
     RecvBufs &rbufs() {
         return _rbufs;
     }
-    uintptr_t eps() const {
-        return _eps;
+    uintptr_t ep_addr() const {
+        return _epaddr;
     }
-    void set_eps(uintptr_t addr) {
-        _eps = addr;
+    void set_ep_addr(uintptr_t addr) {
+        _epaddr = addr;
         init();
+    }
+
+    Capability *ep_cap(epid_t ep) {
+        return _epcaps[ep - m3::DTU::FIRST_FREE_EP];
+    }
+    void ep_cap(epid_t ep, Capability *cap) {
+        _epcaps[ep - m3::DTU::FIRST_FREE_EP] = cap;
+    }
+    epid_t cap_ep(Capability *cap) {
+        for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
+            if(_epcaps[i] == cap)
+                return i + m3::DTU::FIRST_FREE_EP;
+        }
+        return 0;
     }
 
     int exitcode() const {
@@ -215,17 +229,15 @@ public:
 
     void make_daemon();
 
-    m3::Errors::Code xchg_ep(size_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj);
-
     void invalidate_ep(epid_t ep);
 
     bool can_forward_msg(epid_t ep);
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
     void forward_mem(epid_t ep, peid_t pe);
 
-    void config_snd_ep(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder);
-    void config_mem_ep(epid_t ep, peid_t dstpe, vpeid_t dstvpe, uintptr_t addr, size_t size, int perm);
+    void config_snd_ep(epid_t ep, const MsgObject &obj);
+    void config_mem_ep(epid_t ep, const MsgObject &obj);
 
 private:
     int refcount() const {
@@ -260,6 +272,7 @@ private:
     CapTable _objcaps;
     CapTable _mapcaps;
     uint64_t _lastsched;
+    Capability *_epcaps[EP_COUNT - m3::DTU::FIRST_FREE_EP];
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     RecvGate _syscgate;
     SendGate _upcsgate;
@@ -269,7 +282,7 @@ private:
     m3::SList<ServName> _requires;
     size_t _argc;
     char **_argv;
-    uintptr_t _eps;
+    uintptr_t _epaddr;
     m3::Subscriptions<int> _exitsubscr;
     m3::Subscriptions<bool> _resumesubscr;
 };

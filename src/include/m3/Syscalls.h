@@ -47,7 +47,7 @@ private:
     }
 
 public:
-    Errors::Code activate(size_t ep, capsel_t oldcap, capsel_t newcap);
+    Errors::Code activate(size_t ep, capsel_t cap);
     Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, size_t rep, label_t rlabel, void *event);
     Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
     Errors::Code forwardreply(size_t ep, const void *msg, size_t len, uintptr_t msgaddr, void *event);

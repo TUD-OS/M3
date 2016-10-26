@@ -30,13 +30,14 @@
 namespace kernel {
 
 void VPE::init() {
-    if(eps() == 0)
+    if(ep_addr() == 0)
         return;
 
     // configure notify endpoint
-    config_snd_ep(m3::DTU::NOTIFY_SEP, reinterpret_cast<label_t>(&syscall_gate()),
-        Platform::kernel_pe(), VPEManager::MAX_VPES,
-        m3::DTU::NOTIFY_SEP, 1 << NOTIFY_MSGSIZE_ORD, -1);
+    MsgObject mobj(reinterpret_cast<label_t>(&syscall_gate()),
+        Platform::kernel_pe(), VPEManager::MAX_VPES, m3::DTU::SYSC_SEP,
+        1 << SYSC_MSGSIZE_ORD, 1 << SYSC_MSGSIZE_ORD);
+    config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 
 void VPE::load_app() {
@@ -86,38 +87,6 @@ void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
     of << label << "\n";
     of << epid << "\n";
     of << (1 << SYSC_CREDIT_ORD) << "\n";
-}
-
-m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *oldcapobj, MsgCapability *newcapobj) {
-    // there is no point in writing to the EPs, if we are already destructing the VPE
-    if(_state == DEAD)
-        return m3::Errors::NO_ERROR;
-
-    // set registers for caps
-    word_t regs[m3::DTU::EPS_RCNT * 2];
-    memset(regs, 0, sizeof(regs));
-    MsgCapability *co[] = {oldcapobj, newcapobj};
-    for(size_t i = 0; i < 2; ++i) {
-        if(co[i]) {
-            m3::DTU::get().configure(regs, i, co[i]->obj->label, co[i]->obj->pe,
-                co[i]->obj->epid, co[i]->obj->credits);
-        }
-    }
-
-    KLOG(EPS, "Setting ep " << epid << " of VPE " << id() << " to "
-        << (newcapobj ? newcapobj->sel() : -1));
-
-    if(newcapobj) {
-        // now do the compare-exchange
-        DTU::get().cmpxchg_mem(desc(), reinterpret_cast<uintptr_t>(_eps), regs, sizeof(regs),
-            epid * m3::DTU::EPS_RCNT * sizeof(word_t), sizeof(regs) / 2);
-        return m3::Errors::NO_ERROR;
-    }
-
-    // if we should just invalidate it, we don't have to do a cmpxchg
-    uintptr_t addr = reinterpret_cast<uintptr_t>(_eps) + epid * m3::DTU::EPS_RCNT * sizeof(word_t);
-    DTU::get().write_mem(desc(), addr, regs + m3::DTU::EPS_RCNT, sizeof(regs) / 2);
-    return m3::Errors::NO_ERROR;
 }
 
 VPE::~VPE() {

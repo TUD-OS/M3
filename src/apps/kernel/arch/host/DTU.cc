@@ -75,14 +75,22 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
     // unsupported
 }
 
+m3::Errors::Code DTU::inval_ep_remote(const VPEDesc &vpe, epid_t ep) {
+    word_t regs[m3::DTU::EPS_RCNT];
+    memset(regs, 0, sizeof(regs));
+    // TODO detect if credits are outstanding
+    write_ep_remote(vpe, ep, regs);
+    return m3::Errors::NO_ERROR;
+}
+
 void DTU::read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
-    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).eps());
+    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).ep_addr());
     uintptr_t addr = eps + ep * m3::DTU::EPS_RCNT * sizeof(word_t);
     read_mem(vpe, addr, regs, m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
 void DTU::write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
-    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).eps());
+    uintptr_t eps = reinterpret_cast<uintptr_t>(VPEManager::get().vpe(vpe.id).ep_addr());
     uintptr_t addr = eps + ep * m3::DTU::EPS_RCNT * sizeof(word_t);
     write_mem(vpe, addr, regs, m3::DTU::EPS_RCNT * sizeof(word_t));
 }

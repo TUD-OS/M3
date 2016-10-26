@@ -89,9 +89,13 @@ void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t, epid_t ds
     regs[m3::DTU::EP_CREDITS]       = credits;
 }
 
-void DTUState::config_mem(epid_t, peid_t, vpeid_t, uintptr_t, size_t, int) {
-    // unused
-    assert(false);
+void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t size, int perms) {
+    word_t *regs = reinterpret_cast<word_t*>(get_ep(ep));
+    assert((addr & perms) == 0);
+    regs[m3::DTU::EP_LABEL]         = addr | perms;
+    regs[m3::DTU::EP_COREID]        = pe;
+    regs[m3::DTU::EP_EPID]          = 0;
+    regs[m3::DTU::EP_CREDITS]       = size;
 }
 
 void DTUState::config_rwb(uintptr_t) {

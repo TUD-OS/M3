@@ -81,7 +81,7 @@ public:
 
 private:
     size_t select_victim();
-    void switch_ep(size_t victim, capsel_t oldcap, capsel_t newcap);
+    void activate(size_t epid, capsel_t newcap);
 
     size_t _next_victim;
     Gate *_gates[EP_COUNT];

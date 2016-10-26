@@ -26,6 +26,18 @@
 namespace kernel {
 
 void VPE::init() {
+    // configure syscall endpoint
+    MsgObject mobj(reinterpret_cast<label_t>(&syscall_gate()),
+        Platform::kernel_pe(), VPEManager::MAX_VPES, m3::DTU::SYSC_SEP,
+        1 << SYSC_MSGSIZE_ORD, 1 << SYSC_MSGSIZE_ORD);
+    config_snd_ep(m3::DTU::SYSC_SEP, mobj);
+
+    // configure notify endpoint
+    mobj.epid = m3::DTU::NOTIFY_SEP;
+    mobj.msgsize = 1 << NOTIFY_MSGSIZE_ORD;
+    mobj.credits = m3::DTU::CREDITS_UNLIM;
+    config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
+
     // attach syscall receive endpoint
     UNUSED m3::Errors::Code res = rbufs().attach(*this, m3::DTU::SYSC_REP,
         Platform::def_recvbuf(pe()), m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER);
@@ -36,43 +48,9 @@ void VPE::init() {
         Platform::def_recvbuf(pe()) + SYSC_RBUF_SIZE,
         m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER);
     assert(res == m3::Errors::NO_ERROR);
-
-    // configure syscall endpoint
-    config_snd_ep(m3::DTU::SYSC_SEP, reinterpret_cast<label_t>(&syscall_gate()),
-        Platform::kernel_pe(), VPEManager::MAX_VPES,
-        m3::DTU::SYSC_SEP, 1 << SYSC_MSGSIZE_ORD, 1 << SYSC_CREDIT_ORD);
-
-    // configure notify endpoint
-    config_snd_ep(m3::DTU::NOTIFY_SEP, reinterpret_cast<label_t>(&syscall_gate()),
-        Platform::kernel_pe(), VPEManager::MAX_VPES,
-        m3::DTU::NOTIFY_SEP, 1 << NOTIFY_MSGSIZE_ORD, m3::DTU::CREDITS_UNLIM);
 }
 
 void VPE::activate_sysc_ep(void *) {
-}
-
-m3::Errors::Code VPE::xchg_ep(epid_t epid, MsgCapability *, MsgCapability *n) {
-    KLOG(EPS, "Setting ep " << epid << " of VPE " << id() << " to " << (n ? n->sel() : -1));
-
-    if(n) {
-        if(n->type & Capability::MEM) {
-            uintptr_t addr = n->obj->label & ~m3::KIF::Perm::RWX;
-            int perm = n->obj->label & m3::KIF::Perm::RWX;
-            config_mem_ep(epid, n->obj->pe, n->obj->vpe, addr, n->obj->credits, perm);
-        }
-        else {
-            // TODO we could use a logical ep id for receiving credits
-            // TODO but we still need to make sure that one can't just activate the cap again to
-            // immediately regain the credits
-            // TODO we need the max-msg size here
-            config_snd_ep(epid,
-                n->obj->label, n->obj->pe, n->obj->vpe, n->obj->epid,
-                n->obj->credits, n->obj->credits);
-        }
-    }
-    else
-        invalidate_ep(epid);
-    return m3::Errors::NO_ERROR;
 }
 
 VPE::~VPE() {
