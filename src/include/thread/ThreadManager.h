@@ -57,7 +57,7 @@ public:
 
     void init(uint threads);
 
-    void wait_for(void *event) {
+    void wait_for(const void *event) {
         assert(_sleep.length() > 0);
         _current->subscribe(event);
         _blocked.append(_current);
@@ -75,7 +75,7 @@ public:
         }
     }
 
-    void notify(void *event, const void *msg = nullptr, size_t size = 0) {
+    void notify(const void *event, const void *msg = nullptr, size_t size = 0) {
         assert(size <= Thread::MAX_MSG_SIZE);
         for(auto it = _blocked.begin(); it != _blocked.end(); ) {
             auto old = it++;

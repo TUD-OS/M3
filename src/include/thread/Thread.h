@@ -55,10 +55,10 @@ private:
         return thread_resume(&_regs);
     }
 
-    void subscribe(void *event) {
+    void subscribe(const void *event) {
         _event = event;
     }
-    void unsubscribe(void *event) {
+    void unsubscribe(const void *event) {
         if(_event == event)
             _event = nullptr;
     }
@@ -75,7 +75,7 @@ public:
     const Regs &regs() const {
         return _regs;
     }
-    inline bool trigger_event(void* event) const {
+    inline bool trigger_event(const void *event) const {
         return _event == event;
     }
     const unsigned char *get_msg() const {
@@ -86,7 +86,7 @@ private:
     int _id;
     Regs _regs;
     word_t *_stack;
-    void* _event;
+    const void *_event;
     bool _content;
     unsigned char _msg[MAX_MSG_SIZE];
     static int _next_id;
