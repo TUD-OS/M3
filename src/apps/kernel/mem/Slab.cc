@@ -76,6 +76,10 @@ void Slab::free(void *addr) {
     Pool *p = reinterpret_cast<Pool*>(ptr[0]);
     p->free++;
 
+    // the object should be somewhere in its pool
+    assert(ptr >= p->mem && ptr < (void**)p->mem + (_objsize * STEP_SIZE) / sizeof(void*));
+    assert(p->free <= p->total);
+
     // don't free pools for now. otherwise we shrink and extend back and forth.
     // TODO maybe we should do that only on memory pressure or so
 #if 0
