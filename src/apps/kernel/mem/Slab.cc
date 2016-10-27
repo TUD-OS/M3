@@ -73,11 +73,13 @@ void *Slab::alloc() {
 void Slab::free(void *addr) {
     void **ptr = reinterpret_cast<void**>(addr) - 1;
 
+    Pool *p = reinterpret_cast<Pool*>(ptr[0]);
+    p->free++;
+
     // don't free pools for now. otherwise we shrink and extend back and forth.
     // TODO maybe we should do that only on memory pressure or so
 #if 0
-    Pool *p = reinterpret_cast<Pool*>(ptr[0]);
-    if(EXPECT_FALSE(++p->free == p->total)) {
+    if(EXPECT_FALSE(p->free == p->total)) {
         KLOG(SLAB, "Shrinking " << _objsize << "B slab by " << (p->total * _objsize) << "B");
 
         // remove all objects in the pool from the freelist
