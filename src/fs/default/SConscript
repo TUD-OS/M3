@@ -4,7 +4,7 @@ Import('env')
 env.InstallFiles('$FSDIR/default', '.', scan=1)
 
 for f in env.Glob('$BINARYDIR/*'):
-    if not f.abspath.endswith('.a'):
+    if not f.abspath.endswith('kernel') and not f.abspath.endswith('.a'):
         env.M3Strip('$FSDIR/default/bin/${SOURCE.file}', f)
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
