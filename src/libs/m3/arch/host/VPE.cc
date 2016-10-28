@@ -89,10 +89,12 @@ void VPE::init_fs() {
 
     size_t len = STATE_BUF_SIZE;
     char *buf = new char[len];
+    memset(buf, 0, len);
     read_from("ms", buf, len);
     _ms = MountSpace::unserialize(buf, len);
 
     len = STATE_BUF_SIZE;
+    memset(buf, 0, len);
     read_from("fds", buf, len);
     _fds = FileTable::unserialize(buf, len);
     delete[] buf;
