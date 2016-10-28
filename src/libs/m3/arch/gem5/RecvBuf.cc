@@ -23,7 +23,7 @@
 
 namespace m3 {
 
-uint8_t *RecvBuf::allocate(size_t size) {
+void *RecvBuf::allocate(size_t, size_t size) {
     // TODO this assumes that we don't VPE::run between SPM and non-SPM PEs
     static uintptr_t nextbuf = 0;
     static size_t total = 0;
@@ -49,7 +49,7 @@ uint8_t *RecvBuf::allocate(size_t size) {
     return res;
 }
 
-void RecvBuf::free(uint8_t *) {
+void RecvBuf::free(void *) {
     // TODO implement me
 }
 

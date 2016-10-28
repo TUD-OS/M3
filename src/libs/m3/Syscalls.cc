@@ -56,13 +56,15 @@ Errors::Code Syscalls::noop() {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activate(size_t ep, capsel_t cap) {
-    LLOG(SYSC, "activate(ep=" << ep << ", cap=" << cap << ")");
+Errors::Code Syscalls::activate(capsel_t vpe, size_t ep, capsel_t cap, uintptr_t addr) {
+    LLOG(SYSC, "activate(vpe=" << vpe << ", ep=" << ep << ", cap=" << cap << ")");
 
     KIF::Syscall::Activate req;
     req.opcode = KIF::Syscall::ACTIVATE;
+    req.vpe = vpe;
     req.ep = ep;
     req.cap = cap;
+    req.addr = addr;
     return send_receive_result(&req, sizeof(req));
 }
 
@@ -107,13 +109,13 @@ Errors::Code Syscalls::forwardmem(capsel_t cap, void *data, size_t len, size_t o
     return Errors::last;
 }
 
-Errors::Code Syscalls::forwardreply(size_t ep, const void *msg, size_t len, uintptr_t msgaddr, void *event) {
-    LLOG(SYSC, "forwardreply(ep=" << ep << ", msg=" << msg << ", len=" << len
+Errors::Code Syscalls::forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event) {
+    LLOG(SYSC, "forwardreply(cap=" << cap << ", msg=" << msg << ", len=" << len
         << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
 
     KIF::Syscall::ForwardReply req;
     req.opcode = KIF::Syscall::FORWARDREPLY;
-    req.epid = ep;
+    req.cap = cap;
     req.msgaddr = msgaddr;
     req.event = reinterpret_cast<word_t>(event);
     req.len = len;
@@ -161,16 +163,28 @@ Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits) {
-    LLOG(SYSC, "creategate(vpe=" << vpe << ", dst=" << dst << ", label=" << fmt(label, "#x")
-        << ", ep=" << ep << ", credits=" << credits << ")");
+Errors::Code Syscalls::createrbuf(capsel_t rbuf, int order, int msgorder) {
+    LLOG(SYSC, "createrbuf(rbuf=" << rbuf << ", size=" << fmt(1UL << order, "x")
+        << ", msgsize=" << fmt(1UL << msgorder, "x") << ")");
+
+    KIF::Syscall::CreateRBuf req;
+    req.opcode = KIF::Syscall::CREATERBUF;
+    req.rbuf = rbuf;
+    req.order = order;
+    req.msgorder = msgorder;
+    return send_receive_result(&req, sizeof(req));
+}
+
+Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t rbuf, capsel_t dst, label_t label, word_t credits) {
+    LLOG(SYSC, "creategate(vpe=" << vpe << ", rbuf=" << rbuf << ", dst=" << dst
+        << ", label=" << fmt(label, "#x") << ", credits=" << credits << ")");
 
     KIF::Syscall::CreateGate req;
     req.opcode = KIF::Syscall::CREATEGATE;
     req.vpe = vpe;
+    req.rbuf = rbuf;
     req.gate = dst;
     req.label = label;
-    req.ep = ep;
     req.credits = credits;
     return send_receive_result(&req, sizeof(req));
 }
@@ -216,30 +230,6 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
 
     DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
     return Errors::last;
-}
-
-Errors::Code Syscalls::attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder) {
-    LLOG(SYSC, "attachrb(vpe=" << vpe << ", ep=" << ep << ", addr=" << fmt(addr, "p")
-        << ", size=" << fmt(1UL << order, "x") << ", msgsize=" << fmt(1UL << msgorder, "x") << ")");
-
-    KIF::Syscall::AttachRB req;
-    req.opcode = KIF::Syscall::ATTACHRB;
-    req.vpe = vpe;
-    req.ep = ep;
-    req.addr = addr;
-    req.order = order;
-    req.msgorder = msgorder;
-    return send_receive_result(&req, sizeof(req));
-}
-
-Errors::Code Syscalls::detachrb(capsel_t vpe, size_t ep) {
-    LLOG(SYSC, "detachrb(vpe=" << vpe << ", ep=" << ep << ")");
-
-    KIF::Syscall::DetachRB req;
-    req.opcode = KIF::Syscall::DETACHRB;
-    req.vpe = vpe;
-    req.ep = ep;
-    return send_receive_result(&req, sizeof(req));
 }
 
 Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain) {

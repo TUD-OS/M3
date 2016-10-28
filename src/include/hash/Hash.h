@@ -36,7 +36,8 @@ public:
 
 private:
     Accel *_accel;
-    m3::RecvBuf _rbuf;
+    m3::RecvBuf _srbuf;
+    m3::RecvBuf _crbuf;
     m3::RecvGate _rgate;
     m3::SendGate _send;
 };

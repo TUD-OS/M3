@@ -34,9 +34,12 @@ void VPE::init() {
         return;
 
     // configure notify endpoint
-    MsgObject mobj(reinterpret_cast<label_t>(&syscall_gate()),
-        Platform::kernel_pe(), VPEManager::MAX_VPES, m3::DTU::SYSC_SEP,
-        1 << SYSC_MSGSIZE_ORD, 1 << SYSC_MSGSIZE_ORD);
+    RBufObject rbuf(NOTIFY_MSGSIZE_ORD, NOTIFY_MSGSIZE_ORD);
+    rbuf.vpe = VPEManager::MAX_VPES;
+    rbuf.addr = 1;  // has to be non-zero
+    rbuf.ep = m3::DTU::NOTIFY_SEP;
+    rbuf.add_ref(); // don't free this
+    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(&syscall_gate()), 1 << NOTIFY_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 
@@ -78,6 +81,7 @@ void VPE::init_memory() {
     load_app();
 }
 
+// TODO make that file-local
 void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);

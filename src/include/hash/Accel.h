@@ -22,6 +22,7 @@ namespace hash {
 
 class Accel {
 public:
+    static const uint RBUF          = 2;
     static const uint EPID          = 7;
     static const size_t RB_SIZE     = 1024;
 

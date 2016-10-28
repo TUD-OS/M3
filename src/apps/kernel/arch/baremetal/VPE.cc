@@ -26,28 +26,39 @@
 namespace kernel {
 
 void VPE::init() {
+    RBufObject rbuf(SYSC_MSGSIZE_ORD, SYSC_MSGSIZE_ORD);
+    rbuf.vpe = VPEManager::MAX_VPES;
+    rbuf.addr = 1;  // has to be non-zero
+    rbuf.ep = m3::DTU::SYSC_SEP;
+    rbuf.add_ref(); // don't free this
+
     // configure syscall endpoint
-    MsgObject mobj(reinterpret_cast<label_t>(&syscall_gate()),
-        Platform::kernel_pe(), VPEManager::MAX_VPES, m3::DTU::SYSC_SEP,
-        1 << SYSC_MSGSIZE_ORD, 1 << SYSC_MSGSIZE_ORD);
+    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(&syscall_gate()), 1 << SYSC_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::SYSC_SEP, mobj);
 
     // configure notify endpoint
-    mobj.epid = m3::DTU::NOTIFY_SEP;
-    mobj.msgsize = 1 << NOTIFY_MSGSIZE_ORD;
+    rbuf.ep = m3::DTU::NOTIFY_SEP;
+    rbuf.msgorder = rbuf.order = NOTIFY_MSGSIZE_ORD;
     mobj.credits = m3::DTU::CREDITS_UNLIM;
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 
     // attach syscall receive endpoint
-    UNUSED m3::Errors::Code res = rbufs().attach(*this, m3::DTU::SYSC_REP,
-        Platform::def_recvbuf(pe()), m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER);
-    assert(res == m3::Errors::NO_ERROR);
+    rbuf.order = m3::nextlog2<SYSC_RBUF_SIZE>::val;
+    rbuf.msgorder = SYSC_RBUF_ORDER;
+    rbuf.addr = Platform::def_recvbuf(pe());
+    config_rcv_ep(m3::DTU::SYSC_REP, rbuf);
 
     // attach upcall receive endpoint
-    res = rbufs().attach(*this, m3::DTU::UPCALL_REP,
-        Platform::def_recvbuf(pe()) + SYSC_RBUF_SIZE,
-        m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER);
-    assert(res == m3::Errors::NO_ERROR);
+    rbuf.order = m3::nextlog2<UPCALL_RBUF_SIZE>::val;
+    rbuf.msgorder = UPCALL_RBUF_ORDER;
+    rbuf.addr += SYSC_RBUF_SIZE;
+    config_rcv_ep(m3::DTU::UPCALL_REP, rbuf);
+
+    // attach default receive endpoint
+    rbuf.order = m3::nextlog2<DEF_RBUF_SIZE>::val;
+    rbuf.msgorder = DEF_RBUF_ORDER;
+    rbuf.addr += UPCALL_RBUF_SIZE;
+    config_rcv_ep(m3::DTU::DEF_REP, rbuf);
 }
 
 void VPE::activate_sysc_ep(void *) {

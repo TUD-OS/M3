@@ -57,11 +57,10 @@ public:
     void createsrv(GateIStream &is);
     void createsess(GateIStream &is);
     void createsessat(GateIStream &is);
+    void createrbuf(GateIStream &is);
     void creategate(GateIStream &is);
     void createvpe(GateIStream &is);
     void createmap(GateIStream &is);
-    void attachrb(GateIStream &is);
-    void detachrb(GateIStream &is);
     void exchange(GateIStream &is);
     void vpectrl(GateIStream &is);
     void delegate(GateIStream &is);

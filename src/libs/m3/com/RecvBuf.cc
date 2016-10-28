@@ -28,17 +28,20 @@ namespace m3 {
 
 INIT_PRIO_RECVBUF RecvBuf RecvBuf::_syscall (
 #if defined(__host__) || defined(__gem5__)
-    RecvBuf::create(DTU::SYSC_REP, m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER)
+    VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, nullptr, m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0
 #else
-    RecvBuf::bindto(DTU::SYSC_REP, reinterpret_cast<void*>(DEF_RCVBUF), DEF_RCVBUF_MSGORDER)
+    VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, reinterpret_cast<void*>(DEF_RCVBUF),
+        DEF_RCVBUF_MSGORDER, DEF_RCVBUF_MSGORDER, 0
 #endif
 );
 
 INIT_PRIO_RECVBUF RecvBuf RecvBuf::_upcall (
-    RecvBuf::create(DTU::UPCALL_REP, UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER)
+    VPE::self(), ObjCap::INVALID, DTU::UPCALL_REP, nullptr, m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0
 );
 
-RecvBuf *RecvBuf::_default = nullptr;
+INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
+    VPE::self(), ObjCap::INVALID, DTU::DEF_REP, nullptr, m3::nextlog2<DEF_RBUF_SIZE>::val, DEF_RBUF_ORDER, 0
+);
 
 void RecvBuf::UpcallWorkItem::work() {
     DTU &dtu = DTU::get();
@@ -65,41 +68,103 @@ void RecvBuf::RecvBufWorkItem::work() {
     }
 }
 
-void RecvBuf::attach(size_t i) {
-    _epid = i;
-    if(i != UNBOUND) {
-        // first reserve the endpoint; we might need to invalidate it
-        EPMux::get().reserve(i);
+RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, size_t epid, void *buf, int order, int msgorder, uint flags)
+    : ObjCap(RECV_BUF, cap, flags),
+      _vpe(vpe),
+      _buf(buf),
+      _order(order),
+      _epid(UNBOUND),
+      _free(0),
+      _workitem() {
+    if(sel() != ObjCap::INVALID) {
+        Errors::Code res = Syscalls::get().createrbuf(sel(), order, msgorder);
+        if(res != Errors::NO_ERROR)
+            PANIC("Creating recvbuf failed: " << Errors::to_string(res));
+    }
 
-#if defined(__t3__)
-        // required for t3 because one can't write to these registers externally
-        DTU::get().configure_recv(epid(), reinterpret_cast<word_t>(addr()), order(),
-            msgorder(), flags());
-#endif
+    if(epid != UNBOUND)
+        activate(epid);
+}
 
-        if(epid() > DTU::UPCALL_REP) {
-            Errors::Code res = Syscalls::get().attachrb(VPE::self().sel(), epid(),
-                reinterpret_cast<word_t>(addr()), order(), msgorder());
-            if(res != Errors::NO_ERROR)
-                PANIC("Attaching recvbuf to " << epid() << " failed: " << Errors::to_string(res));
+RecvBuf RecvBuf::create(int order, int msgorder) {
+    return create_for(VPE::self(), order, msgorder);
+}
+
+RecvBuf RecvBuf::create(capsel_t cap, int order, int msgorder) {
+    return create_for(VPE::self(), cap, order, msgorder);
+}
+
+RecvBuf RecvBuf::create_for(VPE &vpe, int order, int msgorder) {
+    return RecvBuf(vpe, VPE::self().alloc_cap(), UNBOUND, nullptr, order, msgorder, 0);
+}
+
+RecvBuf RecvBuf::create_for(VPE &vpe, capsel_t cap, int order, int msgorder) {
+    return RecvBuf(vpe, cap, UNBOUND, nullptr, order, msgorder, KEEP_SEL);
+}
+
+RecvBuf RecvBuf::bind(capsel_t cap, int order) {
+    return RecvBuf(VPE::self(), cap, order, KEEP_SEL | KEEP_CAP);
+}
+
+RecvBuf::~RecvBuf() {
+    if(_free & FREE_BUF)
+        free(_buf);
+    deactivate();
+}
+
+void RecvBuf::activate() {
+    if(_epid == UNBOUND) {
+        size_t epid = _vpe.alloc_ep();
+        _free |= FREE_EP;
+        activate(epid);
+    }
+}
+
+void RecvBuf::activate(size_t epid) {
+    if(_epid == UNBOUND) {
+        if(_buf == nullptr) {
+            _buf = allocate(epid, 1UL << _order);
+            _free |= FREE_BUF;
         }
 
+        activate(epid, reinterpret_cast<uintptr_t>(_buf));
+    }
+}
+
+void RecvBuf::activate(size_t epid, uintptr_t addr) {
+    assert(_epid == UNBOUND);
+
+    _epid = epid;
+
+    // first reserve the endpoint; we might need to invalidate it
+    if(&_vpe == &VPE::self())
+        EPMux::get().reserve(_epid);
+
+#if defined(__t3__)
+    // required for t3 because one can't write to these registers externally
+    DTU::get().configure_recv(_epid, addr, order(), msgorder(), flags());
+#endif
+
+    if(sel() != ObjCap::INVALID) {
+        Errors::Code res = Syscalls::get().activate(_vpe.sel(), _epid, sel(), addr);
+        if(res != Errors::NO_ERROR)
+            PANIC("Attaching recvbuf to " << _epid << " failed: " << Errors::to_string(res));
+    }
+
+    if(&_vpe == &VPE::self()) {
         // if we may receive messages from the endpoint, create a worker for it
-        if(i == DTU::UPCALL_REP)
+        if(_epid == DTU::UPCALL_REP)
             env()->workloop()->add(new UpcallWorkItem(), true);
         else {
             if(_workitem == nullptr) {
-                _workitem = new RecvBufWorkItem(i);
-                bool permanent = i < DTU::FIRST_FREE_EP;
+                _workitem = new RecvBufWorkItem(_epid);
+                bool permanent = _epid < DTU::FIRST_FREE_EP;
                 env()->workloop()->add(_workitem, permanent);
             }
             else
-                _workitem->epid(i);
+                _workitem->epid(_epid);
         }
     }
-    // if it's UNBOUND now, don't use the worker again, if there is any
-    else if(_workitem)
-        detach();
 }
 
 void RecvBuf::disable() {
@@ -110,9 +175,9 @@ void RecvBuf::disable() {
     }
 }
 
-void RecvBuf::detach() {
-    if(epid() > DTU::UPCALL_REP && epid() != RecvBuf::UNBOUND)
-        Syscalls::get().detachrb(VPE::self().sel(), epid());
+void RecvBuf::deactivate() {
+    if(_free & FREE_EP)
+        _vpe.free_ep(_epid);
     _epid = UNBOUND;
 
     disable();

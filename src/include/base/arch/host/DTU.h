@@ -152,7 +152,6 @@ public:
         ACKMSG                                  = 8,
     };
 
-    static const int MEM_EP                     = 0;
     static const int SYSC_SEP                   = 0;
     static const int NOTIFY_SEP                 = 1;
     static const int SYSC_REP                   = 2;

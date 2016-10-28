@@ -150,11 +150,15 @@ void Env::init_executable() {
 void Env::init_dtu() {
     RecvBuf &sysc = RecvBuf::syscall();
     DTU::get().configure_recv(DTU::SYSC_REP, reinterpret_cast<uintptr_t>(sysc.addr()),
-        sysc.order(), sysc.msgorder());
+        SYSC_RBUF_ORDER, SYSC_RBUF_ORDER);
 
     RecvBuf &upc = RecvBuf::upcall();
     DTU::get().configure_recv(DTU::UPCALL_REP, reinterpret_cast<uintptr_t>(upc.addr()),
-        upc.order(), upc.msgorder());
+        UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER);
+
+    RecvBuf &def = RecvBuf::upcall();
+    DTU::get().configure_recv(DTU::DEF_REP, reinterpret_cast<uintptr_t>(def.addr()),
+        DEF_RBUF_ORDER, DEF_RBUF_ORDER);
 
     DTU::get().configure(DTU::SYSC_SEP, _sysc_label, 0, _sysc_epid, _sysc_credits);
 

@@ -78,8 +78,7 @@ public:
 
     explicit PipeHandler(PipeSessionData *sess)
         : refs(1),
-          _rbuf(m3::RecvBuf::create(m3::VPE::self().alloc_ep(), m3::nextlog2<BUFSIZE>::val,
-            m3::nextlog2<MSGSIZE>::val)),
+          _rbuf(m3::RecvBuf::create(m3::nextlog2<BUFSIZE>::val, m3::nextlog2<MSGSIZE>::val)),
           _rgate(m3::RecvGate::create(&_rbuf, sess)),
           _sgate(m3::SendGate::create(MSGSIZE, &_rgate)),
           _lastid(),
@@ -88,9 +87,6 @@ public:
         using std::placeholders::_1;
         using std::placeholders::_2;
         _rgate.subscribe(std::bind(&PipeHandler<SUB>::handle_message, this, _1, _2));
-    }
-    ~PipeHandler() {
-        m3::VPE::self().free_ep(_rbuf.epid());
     }
 
     m3::SendGate &sendgate() {

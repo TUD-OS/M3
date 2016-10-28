@@ -32,7 +32,7 @@ class DirectPipeReader : public File {
     friend class DirectPipe;
 
     struct State {
-        explicit State(capsel_t caps, size_t rep);
+        explicit State(capsel_t caps);
 
         MemGate _mgate;
         RecvBuf _rbuf;
@@ -44,7 +44,7 @@ class DirectPipeReader : public File {
         GateIStream _is;
     };
 
-    explicit DirectPipeReader(capsel_t caps, size_t rep, State *state);
+    explicit DirectPipeReader(capsel_t caps, State *state);
 
 public:
     /**
@@ -87,7 +87,6 @@ private:
 
     bool _noeof;
     capsel_t _caps;
-    size_t _rep;
     State *_state;
 };
 

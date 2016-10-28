@@ -21,11 +21,14 @@
 #include <base/WorkLoop.h>
 #include <base/DTU.h>
 
+#include <m3/ObjCap.h>
+
 namespace m3 {
 
 class Env;
+class VPE;
 
-class RecvBuf {
+class RecvBuf : public ObjCap {
     friend class Env;
 
 public:
@@ -52,18 +55,21 @@ public:
     };
 
 private:
-    static const int DEF_RBUF_ORDER     = 8;
+    enum {
+        FREE_BUF    = 1,
+        FREE_EP     = 2,
+    };
 
-    explicit RecvBuf(size_t epid, void *addr, int order, int msgorder, bool del)
-        : _buf(reinterpret_cast<uint8_t*>(addr)), _order(order), _msgorder(msgorder),
-          _epid(epid), _del(del), _workitem() {
-        if(epid != UNBOUND)
-            attach(epid);
+    explicit RecvBuf(VPE &vpe, capsel_t cap, int order, uint flags)
+        : ObjCap(RECV_BUF, cap, flags),
+          _vpe(vpe),
+          _buf(),
+          _order(order),
+          _epid(UNBOUND),
+          _free(FREE_BUF),
+          _workitem() {
     }
-
-    static RecvBuf bindto(size_t epid, void *addr, int order) {
-        return RecvBuf(epid, addr, order, order, false);
-    }
+    explicit RecvBuf(VPE &vpe, capsel_t cap, size_t epid, void *buf, int order, int msgorder, uint flags);
 
 public:
     static RecvBuf &syscall() {
@@ -73,85 +79,54 @@ public:
         return _upcall;
     }
     static RecvBuf &def() {
-        if(_default == nullptr)
-            _default = new RecvBuf(RecvBuf::create(DTU::DEF_REP, DEF_RBUF_ORDER, DEF_RBUF_ORDER));
-        return *_default;
+        return _default;
     }
 
-#if defined(__t2__)
-    static RecvBuf create(size_t epid, int, unsigned) {
-        return create(epid);
-    }
-    static RecvBuf create(size_t epid, int, int, unsigned) {
-        return create(epid);
-    }
-    static RecvBuf create(size_t epid) {
-        return RecvBuf(epid, reinterpret_cast<void*>(
-            RECV_BUF_LOCAL + DTU::get().recvbuf_offset(env()->coreid, epid)),
-            nextlog2<RECV_BUF_MSGSIZE>::val, nextlog2<RECV_BUF_MSGSIZE>::val, NONE);
-    }
-#else
-    static RecvBuf create(size_t epid, int order) {
-        return RecvBuf(epid, allocate(1UL << order), order, order, true);
-    }
-    static RecvBuf create(size_t epid, int order, int msgorder) {
-        return RecvBuf(epid, allocate(1UL << order), order, msgorder, true);
-    }
-#endif
+    static RecvBuf create(int order, int msgorder);
+    static RecvBuf create(capsel_t cap, int order, int msgorder);
+
+    static RecvBuf create_for(VPE &vpe, int order, int msgorder);
+    static RecvBuf create_for(VPE &vpe, capsel_t cap, int order, int msgorder);
+
+    static RecvBuf bind(capsel_t cap, int order);
 
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
-    RecvBuf(RecvBuf &&r) : _buf(r._buf), _order(r._order), _msgorder(r._msgorder),
-            _epid(r._epid), _del(r._del), _workitem(r._workitem) {
-        r._del = false;
+    RecvBuf(RecvBuf &&r)
+            : ObjCap(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order), _epid(r._epid),
+              _free(r._free), _workitem(r._workitem) {
+        r._free = 0;
         r._epid = UNBOUND;
         r._workitem = nullptr;
     }
-    ~RecvBuf() {
-        if(_del)
-            free(_buf);
-        detach();
-    }
+    ~RecvBuf();
 
-    void *addr() const {
+    const void *addr() const {
         return _buf;
-    }
-    int order() const {
-        return _order;
-    }
-    int msgorder() const {
-        return _msgorder;
     }
     size_t epid() const {
         return _epid;
     }
 
-#if !defined(__t2__)
-    void setbuffer(void *addr, int order) {
-        _buf = reinterpret_cast<uint8_t*>(addr);
-        _order = order;
-        if(_epid != UNBOUND)
-            attach(_epid);
-    }
-#endif
-
-    void attach(size_t i);
+    void activate();
+    void activate(size_t epid);
+    void activate(size_t epid, uintptr_t addr);
     void disable();
-    void detach();
+    void deactivate();
 
 private:
-    static uint8_t *allocate(size_t size);
-    static void free(uint8_t *);
+    static void *allocate(size_t epid, size_t size);
+    static void free(void *);
 
-    uint8_t *_buf;
+    VPE &_vpe;
+    void *_buf;
     int _order;
-    int _msgorder;
     size_t _epid;
-    bool _del;
+    uint _free;
     RecvBufWorkItem *_workitem;
     static RecvBuf _syscall;
     static RecvBuf _upcall;
-    static RecvBuf *_default;
+    static RecvBuf _default;
 };
 
 }

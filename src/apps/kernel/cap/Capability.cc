@@ -29,10 +29,8 @@ m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
 
 MemObject::~MemObject() {
     // if it's not derived, it's always memory from mem-PEs
-    if(!derived) {
-        uintptr_t addr = label & ~m3::KIF::Perm::RWX;
-        MainMemory::get().free(pe, addr, credits);
-    }
+    if(!derived)
+        MainMemory::get().free(pe, addr, size);
 }
 
 void SessionObject::close() {
@@ -52,14 +50,32 @@ SessionObject::~SessionObject() {
         close();
 }
 
-m3::Errors::Code MsgCapability::revoke() {
-    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
-    epid_t ep = vpe.cap_ep(this);
+static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
+    VPE &vpe = VPEManager::get().vpe(vpeid);
+    epid_t ep = vpe.cap_ep(cap);
     if(ep != 0) {
+        vpe.ep_cap(ep, nullptr);
         vpe.invalidate_ep(ep);
         // wakeup the pe to give him the chance to notice that the endpoint was invalidated
         vpe.wakeup();
     }
+}
+
+m3::Errors::Code RBufCapability::revoke() {
+    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
+    vpe.rbufs().detach(vpe, &*obj);
+    obj.unref();
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code MsgCapability::revoke() {
+    invalidate_ep(table()->id() - 1, this);
+    obj.unref();
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code MemCapability::revoke() {
+    invalidate_ep(table()->id() - 1, this);
     obj.unref();
     return m3::Errors::NO_ERROR;
 }
@@ -121,17 +137,27 @@ void Capability::print(m3::OStream &os) const {
     child()->printChilds(os);
 }
 
+void RBufCapability::printInfo(m3::OStream &os) const {
+    os << ": rbuf[refs=" << obj->refcount()
+       << ", ep=" << obj->ep
+       << ", addr=#" << m3::fmt(obj->addr, "0x", sizeof(label_t) * 2)
+       << ", order=" << obj->order
+       << ", msgorder=" << obj->msgorder << "]";
+}
+
 void MsgCapability::printInfo(m3::OStream &os) const {
     os << ": mesg[refs=" << obj->refcount()
-       << ", dst=" << obj->pe << ":" << obj->epid
+       << ", dst=" << obj->rbuf->vpe << ":" << obj->rbuf->ep
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
 
 void MemCapability::printInfo(m3::OStream &os) const {
     os << ": mem [refs=" << obj->refcount()
-       << ", dst=" << obj->pe << ":" << obj->epid << ", lbl=" << m3::fmt(obj->label, "#x")
-       << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
+       << ", dst=" << obj->vpe << "@" << obj->pe
+       << ", addr=" << m3::fmt(obj->addr, "#0x", sizeof(label_t) * 2)
+       << ", size=" << m3::fmt(obj->size, "#0x", sizeof(label_t) * 2)
+       << ", perms=#" << m3::fmt(obj->perms, "x") << "]";
 }
 
 void MapCapability::printInfo(m3::OStream &os) const {

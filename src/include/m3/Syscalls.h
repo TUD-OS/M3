@@ -47,18 +47,17 @@ private:
     }
 
 public:
-    Errors::Code activate(size_t ep, capsel_t cap);
+    Errors::Code activate(capsel_t vpe, size_t ep, capsel_t cap, uintptr_t addr);
     Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, size_t rep, label_t rlabel, void *event);
     Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
-    Errors::Code forwardreply(size_t ep, const void *msg, size_t len, uintptr_t msgaddr, void *event);
+    Errors::Code forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event);
     Errors::Code createsrv(capsel_t srv, label_t label, const String &name);
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
-    Errors::Code creategate(capsel_t vpe, capsel_t dst, label_t label, size_t ep, word_t credits);
+    Errors::Code createrbuf(capsel_t rbuf, int order, int msgorder);
+    Errors::Code creategate(capsel_t vpe, capsel_t rbuf, capsel_t dst, label_t label, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
-    Errors::Code attachrb(capsel_t vpe, size_t ep, uintptr_t addr, int order, int msgorder);
-    Errors::Code detachrb(capsel_t vpe, size_t ep);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, int pid, int *exitcode);

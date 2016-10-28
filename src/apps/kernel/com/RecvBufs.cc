@@ -21,16 +21,16 @@ namespace kernel {
 
 uintptr_t RecvBufs::get_msgaddr(RBuf *rbuf, uintptr_t msgaddr) {
     // the message has to be within the receive buffer
-    if(!(msgaddr >= rbuf->addr && msgaddr < rbuf->addr + rbuf->size()))
+    if(!(msgaddr >= rbuf->obj->addr && msgaddr < rbuf->obj->addr + rbuf->size()))
         return 0;
 
     // ensure that we start at a message boundary
-    size_t idx = (msgaddr - rbuf->addr) >> rbuf->msgorder;
-    return rbuf->addr + (idx << rbuf->msgorder);
+    size_t idx = (msgaddr - rbuf->obj->addr) >> rbuf->obj->msgorder;
+    return rbuf->obj->addr + (idx << rbuf->obj->msgorder);
 }
 
-m3::Errors::Code RecvBufs::get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head) {
-    RBuf *rbuf = get(epid);
+m3::Errors::Code RecvBufs::get_header(VPE &vpe, const RBufObject *obj, uintptr_t &msgaddr, m3::DTU::Header &head) {
+    RBuf *rbuf = get(obj);
     if(!rbuf)
         return m3::Errors::EP_INVALID;
 
@@ -42,8 +42,8 @@ m3::Errors::Code RecvBufs::get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr,
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code RecvBufs::set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, const m3::DTU::Header &head) {
-    RBuf *rbuf = get(epid);
+m3::Errors::Code RecvBufs::set_header(VPE &vpe, const RBufObject *obj, uintptr_t &msgaddr, const m3::DTU::Header &head) {
+    RBuf *rbuf = get(obj);
     if(!rbuf)
         return m3::Errors::EP_INVALID;
 
@@ -55,51 +55,39 @@ m3::Errors::Code RecvBufs::set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr,
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code RecvBufs::attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder) {
-    RBuf *rbuf = get(epid);
+m3::Errors::Code RecvBufs::attach(VPE &vpe, const RBufObject *obj) {
+    RBuf *rbuf = get(obj);
     if(rbuf)
         return m3::Errors::EXISTS;
 
     for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
-        if(it->epid == epid)
-            return m3::Errors::EXISTS;
-
-        if(m3::Math::overlap(it->addr, it->addr + it->size(), addr, addr + it->size()))
+        if(m3::Math::overlap(it->obj->addr, it->obj->addr + it->size(), obj->addr, obj->addr + it->size()))
             return m3::Errors::INV_ARGS;
     }
 
-    rbuf = new RBuf(epid, addr, order, msgorder);
+    rbuf = new RBuf(obj);
     rbuf->configure(vpe, true);
     _rbufs.append(rbuf);
-    notify(epid);
+    notify(obj);
     return m3::Errors::NO_ERROR;
 }
 
-void RecvBufs::detach(VPE &vpe, epid_t epid) {
-    RBuf *rbuf = get(epid);
+void RecvBufs::detach(VPE &vpe, const RBufObject *obj) {
+    RBuf *rbuf = get(obj);
     if(!rbuf)
         return;
 
     rbuf->configure(vpe, false);
-    notify(epid);
+    notify(obj);
     _rbufs.remove(rbuf);
     delete rbuf;
 }
 
-void RecvBufs::detach_all(VPE &vpe, epid_t except) {
-    // TODO not nice
-    for(epid_t i = 0; i < EP_COUNT; ++i) {
-        if(i == except)
-            continue;
-        detach(vpe, i);
-    }
-}
-
 void RecvBufs::RBuf::configure(VPE &vpe, bool attach) {
     if(attach)
-        vpe.config_rcv_ep(epid, addr, order, msgorder);
+        vpe.config_rcv_ep(obj->ep, *obj);
     else
-        vpe.invalidate_ep(epid);
+        vpe.invalidate_ep(obj->ep);
 }
 
 }

@@ -27,20 +27,18 @@ namespace hash {
 
 Hash::Hash()
     : _accel(Accel::create()),
-      _rbuf(RecvBuf::create(VPE::self().alloc_ep(), nextlog2<256>::val)),
-      _rgate(RecvGate::create(&_rbuf)),
-      _send(SendGate::create_for(_accel->get(), Accel::EPID, Accel::BUF_ADDR, 256, &_rgate)) {
+      _srbuf(RecvBuf::create_for(_accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
+      _crbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
+      _rgate(RecvGate::create(&_crbuf)),
+      _send(SendGate::create_for(_accel->get(), &_srbuf, Accel::BUF_ADDR, 256, &_rgate)) {
     if(_accel->get().pager()) {
         uintptr_t virt = BUF_ADDR;
         _accel->get().pager()->map_anon(&virt, Accel::BUF_SIZE, Pager::Prot::RW, 0);
     }
 
+    _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srbuf.sel(), 1), hash::Accel::RBUF);
+    _srbuf.activate(hash::Accel::EPID, _accel->getRBAddr());
     _accel->get().start();
-
-    Errors::Code res = Syscalls::get().attachrb(_accel->get().sel(), Accel::EPID,
-        _accel->getRBAddr(), getnextlog2(Accel::RB_SIZE), getnextlog2(Accel::RB_SIZE));
-    if(res != Errors::NO_ERROR)
-        exitmsg("Unable to attach receive buffer on accelerator");
 }
 
 Hash::~Hash() {

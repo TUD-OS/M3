@@ -64,13 +64,13 @@ public:
      * of the given VPE.
      *
      * @param vpe the VPE for whose endpoints the gate should be created
-     * @param dstep the destination endpoint id
+     * @param rbuf the destination receive buffer
      * @param label the label
      * @param credits the credits to assign to this gate
      * @param rcvgate the receive-gate to which the replies should be sent
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
-    static SendGate create_for(const VPE &vpe, size_t dstep, label_t label = 0,
+    static SendGate create_for(const VPE &vpe, RecvBuf *rbuf, label_t label = 0,
         word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
 
     /**

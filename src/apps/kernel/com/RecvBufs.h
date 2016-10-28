@@ -25,7 +25,7 @@
 
 #include <thread/ThreadManager.h>
 
-#include "com/RBuf.h"
+#include "cap/Capability.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -35,20 +35,17 @@ namespace kernel {
 
 class RecvBufs {
     struct RBuf : public m3::SListItem {
-        explicit RBuf(epid_t _epid, uintptr_t _addr, int _order, int _msgorder)
-            : epid(_epid), addr(_addr), order(_order), msgorder(_msgorder) {
+        explicit RBuf(const RBufObject *_obj)
+            : obj(_obj) {
         }
 
         size_t size() const {
-            return 1UL << order;
+            return 1UL << obj->order;
         }
 
         void configure(VPE &vpe, bool attach);
 
-        epid_t epid;
-        uintptr_t addr;
-        int order;
-        int msgorder;
+        const RBufObject *obj;
     };
 
 public:
@@ -60,40 +57,25 @@ public:
             delete _rbufs.remove_first();
     }
 
-    bool is_attached(epid_t epid) {
-        return get(epid) != nullptr;
-    }
+    m3::Errors::Code get_header(VPE &vpe, const RBufObject *obj, uintptr_t &msgaddr, m3::DTU::Header &head);
+    m3::Errors::Code set_header(VPE &vpe, const RBufObject *obj, uintptr_t &msgaddr, const m3::DTU::Header &head);
 
-    void wait_for(epid_t epid) {
-        m3::ThreadManager::get().wait_for(get_event(epid));
-    }
-
-    m3::Errors::Code get_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, m3::DTU::Header &head);
-    m3::Errors::Code set_header(VPE &vpe, epid_t epid, uintptr_t &msgaddr, const m3::DTU::Header &head);
-
-    m3::Errors::Code attach(VPE &vpe, epid_t epid, uintptr_t addr, int order, int msgorder);
-    void detach(VPE &vpe, epid_t epid);
-    void detach_all(VPE &vpe, epid_t except);
+    m3::Errors::Code attach(VPE &vpe, const RBufObject *obj);
+    void detach(VPE &vpe, const RBufObject *obj);
 
 private:
     uintptr_t get_msgaddr(RBuf *rbuf, uintptr_t msgaddr);
 
-    void *get_event(epid_t epid) {
-        // TODO in theory, the pointer could need more than 32 bits
-        word_t event = reinterpret_cast<word_t>(this) | (epid << 32);
-        return reinterpret_cast<void*>(event);
+    void notify(const RBufObject *obj) {
+        m3::ThreadManager::get().notify(obj);
     }
 
-    void notify(epid_t epid) {
-        m3::ThreadManager::get().notify(get_event(epid));
+    const RBuf *get(const RBufObject *obj) const {
+        return const_cast<RecvBufs*>(this)->get(obj);
     }
-
-    const RBuf *get(epid_t epid) const {
-        return const_cast<RecvBufs*>(this)->get(epid);
-    }
-    RBuf *get(epid_t epid) {
+    RBuf *get(const RBufObject *obj) {
         for(auto it = _rbufs.begin(); it != _rbufs.end(); ++it) {
-            if(it->epid == epid)
+            if(it->obj == obj)
                 return &*it;
         }
         return nullptr;

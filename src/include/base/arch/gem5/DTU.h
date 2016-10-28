@@ -189,7 +189,6 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 1;
 
-    static const int MEM_EP                 = 0;    // unused
     static const int SYSC_SEP               = 0;
     static const int NOTIFY_SEP             = 1;
     static const int SYSC_REP               = 2;

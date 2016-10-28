@@ -119,13 +119,7 @@ public:
      * @return the capabilities (memory and gate)
      */
     capsel_t caps() const {
-        return _mem.sel();
-    }
-    /**
-     * @return the receive endpoint
-     */
-    size_t receive_ep() const {
-        return _recvep;
+        return _rbuf.sel();
     }
     /**
      * @return the size of the shared memory area
@@ -159,8 +153,8 @@ public:
 private:
     VPE &_rd;
     VPE &_wr;
-    size_t _recvep;
     size_t _size;
+    RecvBuf _rbuf;
     MemGate _mem;
     SendGate _sgate;
     fd_t _rdfd;

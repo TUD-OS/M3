@@ -18,12 +18,12 @@
 
 namespace m3 {
 
-uint8_t *RecvBuf::allocate(size_t size) {
+void *RecvBuf::allocate(size_t, size_t size) {
     return new uint8_t[size];
 }
 
-void RecvBuf::free(uint8_t *ptr) {
-    delete[] ptr;
+void RecvBuf::free(void *ptr) {
+    delete[] static_cast<uint8_t*>(ptr);
 }
 
 }

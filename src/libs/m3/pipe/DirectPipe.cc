@@ -22,23 +22,24 @@
 namespace m3 {
 
 DirectPipe::DirectPipe(VPE &rd, VPE &wr, size_t size)
-    : _rd(rd), _wr(wr), _recvep(rd.alloc_ep()), _size(size),
-      _mem(MemGate::create_global(size, MemGate::RW, VPE::self().alloc_caps(2))),
-      _sgate(SendGate::create_for(rd, _recvep, 0, CREDITS, nullptr, _mem.sel() + 1)),
+    : _rd(rd), _wr(wr), _size(size),
+      _rbuf(RecvBuf::create(VPE::self().alloc_caps(3), nextlog2<MSG_BUF_SIZE>::val, nextlog2<MSG_SIZE>::val)),
+      _mem(MemGate::create_global(size, MemGate::RW, _rbuf.sel() + 1)),
+      _sgate(SendGate::create_for(rd, &_rbuf, 0, CREDITS, nullptr, _rbuf.sel() + 2)),
       _rdfd(), _wrfd() {
     assert(Math::is_aligned(size, DTU_PKG_SIZE));
 
-    DirectPipeReader::State *rstate = &rd == &VPE::self() ? new DirectPipeReader::State(caps(), _recvep) : nullptr;
-    _rdfd = VPE::self().fds()->alloc(new DirectPipeReader(caps(), _recvep, rstate));
+    DirectPipeReader::State *rstate = &rd == &VPE::self() ? new DirectPipeReader::State(caps()) : nullptr;
+    _rdfd = VPE::self().fds()->alloc(new DirectPipeReader(caps(), rstate));
 
-    DirectPipeWriter::State *wstate = &wr == &VPE::self() ? new DirectPipeWriter::State(caps(), _size) : nullptr;
-    _wrfd = VPE::self().fds()->alloc(new DirectPipeWriter(caps(), _size, wstate));
+    DirectPipeWriter::State *wstate = &wr == &VPE::self() ? new DirectPipeWriter::State(caps() + 1, _size) : nullptr;
+    _wrfd = VPE::self().fds()->alloc(new DirectPipeWriter(caps() + 1, _size, wstate));
 }
 
 DirectPipe::~DirectPipe() {
     close_writer();
     close_reader();
-    _rd.free_ep(_recvep);
+    VPE::self().free_caps(caps(), 3);
 }
 
 void DirectPipe::close_reader() {

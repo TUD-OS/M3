@@ -41,7 +41,7 @@ void EPMux::reserve(size_t ep) {
         _gates[ep]->_epid = Gate::UNBOUND;
         if(_gates[ep]->type() == ObjCap::RECV_GATE) {
             RecvGate *rgate = static_cast<RecvGate*>(_gates[ep]);
-            rgate->buffer()->attach(Gate::UNBOUND);
+            rgate->buffer()->deactivate();
         }
         _gates[ep] = nullptr;
     }
@@ -110,7 +110,7 @@ size_t EPMux::select_victim() {
 }
 
 void EPMux::activate(size_t epid, capsel_t newcap) {
-    if(Syscalls::get().activate(epid, newcap) != Errors::NO_ERROR) {
+    if(Syscalls::get().activate(VPE::self().sel(), epid, newcap, 0) != Errors::NO_ERROR) {
         // if we wanted to deactivate a cap, we can ignore the failure
         if(newcap != ObjCap::INVALID)
             PANIC("Unable to arm SEP " << epid << ": " << Errors::last);

@@ -53,7 +53,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _exitsubscr(),
       _resumesubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, 0, MEMCAP_END, m3::KIF::Perm::RWX, pe(), id, 0));
+    _objcaps.set(1, new MemCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
 
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get().add(this);
@@ -107,7 +107,6 @@ void VPE::stop_app() {
 void VPE::exit_app(int exitcode) {
     // no update on the PE here, since we don't save the state anyway
     _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
-    rbufs().detach_all(*this, m3::DTU::DEF_REP);
 
     _exitcode = exitcode;
 
@@ -195,7 +194,7 @@ void VPE::upcall_notify(m3::Errors::Code res, word_t event) {
 }
 
 void VPE::invalidate_ep(epid_t ep) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = invalid");
+    KLOG(EPS, "VPE" << id() << ": EP" << ep << " = invalid");
 
     _dtustate.invalidate(ep);
     update_ep(ep);
@@ -208,52 +207,54 @@ bool VPE::can_forward_msg(epid_t ep) {
 }
 
 void VPE::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] forward message");
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " forward message");
 
     _dtustate.forward_msg(ep, pe, vpe);
     update_ep(ep);
 }
 
 void VPE::forward_mem(epid_t ep, peid_t pe) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] forward mem");
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " forward mem");
 
     _dtustate.forward_mem(ep, pe);
     update_ep(ep);
 }
 
-void VPE::config_rcv_ep(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
-        "RBuf[addr=#" << m3::fmt(buf, "x")
-        << ", order=" << order
-        << ", msgorder=" << msgorder << "]");
+void VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
+        "RBuf[addr=#" << m3::fmt(obj.addr, "x")
+        << ", order=" << obj.order
+        << ", msgorder=" << obj.msgorder << "]");
 
-    _dtustate.config_recv(ep, buf, order, msgorder);
+    _dtustate.config_recv(ep, obj.addr, obj.order, obj.msgorder);
     update_ep(ep);
 }
 
 void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
-        "Send[vpe=" << obj.vpe
-        << ", pe=" << obj.pe
-        << ", ep=" << obj.epid
+    assert(obj.rbuf->addr != 0);
+    peid_t pe = VPEManager::get().peof(obj.rbuf->vpe);
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
+        "Send[vpe=" << obj.rbuf->vpe
+        << ", pe=" << pe
+        << ", ep=" << obj.rbuf->ep
         << ", label=#" << m3::fmt(obj.label, "x")
-        << ", msgsize=" << obj.msgsize << ", crd=" << obj.credits);
+        << ", msgsize=" << obj.rbuf->msgorder << ", crd=" << obj.credits << "]");
 
-    _dtustate.config_send(ep, obj.label, obj.pe, obj.vpe, obj.epid, obj.msgsize, obj.credits);
+    _dtustate.config_send(ep, obj.label, pe, obj.rbuf->vpe,
+        obj.rbuf->ep, 1UL << obj.rbuf->msgorder, obj.credits);
     update_ep(ep);
 }
 
-void VPE::config_mem_ep(epid_t ep, const MsgObject &obj) {
-    KLOG(EPS, "VPE" << id() << ": EP[" << ep << "] = "
+void VPE::config_mem_ep(epid_t ep, const MemObject &obj) {
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "Mem [vpe=" << obj.vpe
         << ", pe=" << obj.pe
-        << ", addr=#" << m3::fmt(obj.label & ~m3::KIF::Perm::RWX, "x")
-        << ", size=#" << m3::fmt(obj.credits, "x")
-        << ", perms=#" << m3::fmt(obj.label & m3::KIF::Perm::RWX, "x") << "]");
+        << ", addr=#" << m3::fmt(obj.addr, "x")
+        << ", size=#" << m3::fmt(obj.size, "x")
+        << ", perms=#" << m3::fmt(obj.perms, "x") << "]");
 
     // TODO
-    _dtustate.config_mem(ep, obj.pe, obj.vpe, obj.label & ~m3::KIF::Perm::RWX,
-        obj.credits, obj.label & m3::KIF::Perm::RWX);
+    _dtustate.config_mem(ep, obj.pe, obj.vpe, obj.addr, obj.size, obj.perms);
     update_ep(ep);
 }
 

@@ -48,6 +48,7 @@ public:
         MEM     = 0x08,
         MAP     = 0x10,
         VIRTPE  = 0x20,
+        RBUF    = 0x40,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
@@ -108,31 +109,47 @@ private:
     Capability *_prev;
 };
 
+class RBufObject : public SlabObject<RBufObject>, public m3::RefCounted {
+public:
+    explicit RBufObject(int _order, int _msgorder)
+        : RefCounted(), vpe(), ep(), addr(), order(_order), msgorder(_msgorder) {
+    }
+    virtual ~RBufObject() {
+    }
+
+    vpeid_t vpe;
+    epid_t ep;
+    uintptr_t addr;
+    int order;
+    int msgorder;
+};
+
 class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(label_t _lbl, peid_t _pe, vpeid_t _vpe, epid_t _ep, word_t _msize, word_t _crd)
-        : RefCounted(), label(_lbl), pe(_pe), vpe(_vpe), epid(_ep), msgsize(_msize), credits(_crd),
-          derived(false) {
+    explicit MsgObject(RBufObject *_rbuf, label_t _label, word_t _credits)
+        : RefCounted(), rbuf(_rbuf), label(_label), credits(_credits) {
     }
     virtual ~MsgObject() {
     }
 
+    m3::Reference<RBufObject> rbuf;
     label_t label;
-    peid_t pe;
-    vpeid_t vpe;
-    epid_t epid;
-    word_t msgsize;
     word_t credits;
-    bool derived;
 };
 
-class MemObject : public MsgObject {
+class MemObject : public SlabObject<MemObject>, public m3::RefCounted {
 public:
-    explicit MemObject(uintptr_t addr, size_t size, uint perms, peid_t pe, vpeid_t vpe, epid_t epid)
-        : MsgObject(addr | perms, pe, vpe, epid, 0, size) {
-        assert((addr & m3::KIF::Perm::RWX) == 0);
+    explicit MemObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, uint _perms)
+        : RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size), perms(_perms), derived(false) {
     }
     virtual ~MemObject();
+
+    peid_t pe;
+    vpeid_t vpe;
+    uintptr_t addr;
+    size_t size;
+    uint perms;
+    bool derived;
 };
 
 class SessionObject : public SlabObject<SessionObject>, public m3::RefCounted {
@@ -149,16 +166,30 @@ public:
     m3::Reference<Service> srv;
 };
 
-class MsgCapability : public SlabObject<MsgCapability>, public Capability {
+class RBufCapability : public SlabObject<RBufCapability>, public Capability {
+public:
+    explicit RBufCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
+        : Capability(tbl, sel, RBUF), obj(new RBufObject(order, msgorder)) {
+    }
+
+    void printInfo(m3::OStream &os) const override;
+
 protected:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, unsigned type, MsgObject *_obj)
-        : Capability(tbl, sel, type), obj(_obj) {
+    virtual m3::Errors::Code revoke() override;
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        RBufCapability *c = new RBufCapability(*this);
+        c->put(tbl, sel);
+        return c;
     }
 
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, label_t label, peid_t pe, vpeid_t vpe,
-            epid_t epid, word_t msgsize, word_t credits)
-        : MsgCapability(tbl, sel, MSG, new MsgObject(label, pe, vpe, epid, msgsize, credits)) {
+    m3::Reference<RBufObject> obj;
+};
+
+class MsgCapability : public SlabObject<MsgCapability>, public Capability {
+public:
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, RBufObject *rbuf, label_t label, word_t credits)
+        : Capability(tbl, sel, MSG), obj(new MsgObject(rbuf, label, credits)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -175,31 +206,25 @@ public:
     m3::Reference<MsgObject> obj;
 };
 
-class MemCapability : public MsgCapability {
+class MemCapability : public SlabObject<MemCapability>, public Capability {
 public:
-    explicit MemCapability(CapTable *tbl, capsel_t sel, uintptr_t addr, size_t size, uint perms,
-            peid_t pe, vpeid_t vpe, epid_t epid)
-        : MsgCapability(tbl, sel, MEM | MSG, new MemObject(addr, size, perms, pe, vpe, epid)) {
+    explicit MemCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, uintptr_t addr,
+        size_t size, uint perms)
+        : Capability(tbl, sel, MEM), obj(new MemObject(pe, vpe, addr, size, perms)) {
     }
 
     void printInfo(m3::OStream &os) const override;
 
-    uintptr_t addr() const {
-        return obj->label & ~m3::KIF::Perm::RWX;
-    }
-    size_t size() const {
-        return obj->credits;
-    }
-    uint perms() const {
-        return obj->label & m3::KIF::Perm::RWX;
-    }
-
 private:
+    virtual m3::Errors::Code revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MemCapability *c = new MemCapability(*this);
         c->put(tbl, sel);
         return c;
     }
+
+public:
+    m3::Reference<MemObject> obj;
 };
 
 class MapCapability : public SlabObject<MapCapability>, public Capability {

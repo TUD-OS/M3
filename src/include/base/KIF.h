@@ -113,11 +113,10 @@ struct KIF {
             CREATESRV,
             CREATESESS,
             CREATESESSAT,
+            CREATERBUF,
             CREATEGATE,
             CREATEVPE,
             CREATEMAP,
-            ATTACHRB,
-            DETACHRB,
             EXCHANGE,
             VPECTRL,
             DELEGATE,
@@ -148,8 +147,10 @@ struct KIF {
         } PACKED;
 
         struct Activate : public DefaultRequest {
+            word_t vpe;
             word_t ep;
             word_t cap;
+            word_t addr;
         } PACKED;
 
         struct ForwardMsg : public DefaultRequest {
@@ -180,7 +181,7 @@ struct KIF {
         };
 
         struct ForwardReply : public DefaultRequest {
-            word_t epid;
+            word_t cap;
             word_t msgaddr;
             word_t len;
             word_t event;
@@ -208,11 +209,17 @@ struct KIF {
             word_t ident;
         } PACKED;
 
+        struct CreateRBuf : public DefaultRequest {
+            word_t rbuf;
+            word_t order;
+            word_t msgorder;
+        } PACKED;
+
         struct CreateGate : public DefaultRequest {
             word_t vpe;
+            word_t rbuf;
             word_t gate;
             word_t label;
-            word_t ep;
             word_t credits;
         } PACKED;
 
@@ -238,19 +245,6 @@ struct KIF {
             word_t pages;
             word_t dest;
             word_t perms;
-        } PACKED;
-
-        struct AttachRB : public DefaultRequest {
-            word_t vpe;
-            word_t addr;
-            word_t ep;
-            word_t order;
-            word_t msgorder;
-        } PACKED;
-
-        struct DetachRB : public DefaultRequest {
-            word_t vpe;
-            word_t ep;
         } PACKED;
 
         struct VPECtrl : public DefaultRequest {

@@ -14,19 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
+#include <m3/com/RecvBuf.h>
 
-#include <base/Common.h>
-#include <base/util/Subscriber.h>
+namespace m3 {
 
-namespace kernel {
+void *RecvBuf::allocate(size_t epid, size_t size) {
+    uintptr_t offset = DTU::get().recvbuf_offset(env()->coreid, epid);
+    return reinterpret_cast<void*>(RECV_BUF_LOCAL + offset);
+}
 
-struct RBuf {
-    uintptr_t addr;
-    int order;
-    int msgorder;
-    int flags;
-    m3::Subscriptions<bool> waitlist;
-};
+void RecvBuf::free(void *) {
+}
 
 }

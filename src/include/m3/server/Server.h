@@ -38,10 +38,12 @@ public:
     explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
                     int msgord = nextlog2<DEF_MSGSIZE>::val)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
-          _epid(VPE::self().alloc_ep()),
           // TODO we do not always need a receive buffer for clients
-          _rcvbuf(RecvBuf::create(_epid, buford, msgord)),
+          _rcvbuf(RecvBuf::create(buford, msgord)),
           _ctrl_rgate(RecvGate::create(&RecvBuf::upcall())) {
+        // in this case, we activate it manually in order to create the workloop item
+        _rcvbuf.activate();
+
         LLOG(SERV, "create(" << name << ")");
         Syscalls::get().createsrv(sel(), _ctrl_rgate.label(), name);
 
@@ -71,8 +73,6 @@ public:
         }
         // don't revoke it again
         flags(ObjCap::KEEP_CAP);
-        // free endpoint
-        VPE::self().free_ep(_epid);
     }
 
     void shutdown() {
@@ -174,8 +174,6 @@ private:
 protected:
     HDL *_handler;
     handler_func _ctrl_handler[5];
-    // store a copy of the endpoint-id. the RecvBuf sets it to UNBOUND on detach().
-    size_t _epid;
     RecvBuf _rcvbuf;
     RecvGate _ctrl_rgate;
 };

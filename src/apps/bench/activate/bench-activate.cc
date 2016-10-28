@@ -33,7 +33,7 @@ int main() {
     cycles_t total = 0;
     for(int i = 0; i < COUNT; ++i) {
         cycles_t start = Profile::start(0);
-        Syscalls::get().activate(mem.epid(), mem.sel());
+        Syscalls::get().activate(VPE::self().sel(), mem.epid(), mem.sel(), 0);
         cycles_t end = Profile::stop(0);
         total += end - start;
     }

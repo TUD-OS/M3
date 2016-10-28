@@ -67,8 +67,8 @@ public:
      */
     static RecvGate create(RecvBuf *rcvbuf, void *sess = nullptr) {
         assert(rcvbuf != nullptr);
-        assert(rcvbuf->epid() != UNBOUND);
-        return RecvGate(rcvbuf,sess);
+        rcvbuf->activate();
+        return RecvGate(rcvbuf, sess);
     }
 
     RecvGate(RecvGate &&g)

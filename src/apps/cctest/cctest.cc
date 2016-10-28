@@ -31,11 +31,10 @@ int main() {
     cc.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
     cc.obtain_fds();
 
-    size_t ep = cc.alloc_ep();
-    SendGate sg = SendGate::create_for(cc, ep, 0, 64);
+    RecvBuf rbuf = RecvBuf::create(nextlog2<512>::val, nextlog2<64>::val);
+    SendGate sg = SendGate::create_for(cc, &rbuf, 0, 64);
 
-    cc.run([ep, virt] {
-        RecvBuf rbuf = RecvBuf::create(ep, nextlog2<512>::val, nextlog2<64>::val);
+    cc.run([&rbuf, virt] {
         RecvGate rgate = RecvGate::create(&rbuf);
 
         int val;

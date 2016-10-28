@@ -43,4 +43,7 @@
 #define UPCALL_RBUF_ORDER   8
 #define UPCALL_RBUF_SIZE    (1 << UPCALL_RBUF_ORDER)
 
+#define DEF_RBUF_ORDER      8
+#define DEF_RBUF_SIZE       (1 << DEF_RBUF_ORDER)
+
 #define MEMCAP_END          0xFFFFFFFFFFFFFFFF

@@ -21,16 +21,15 @@
 
 namespace m3 {
 
-DirectPipeReader::State::State(capsel_t caps, size_t rep)
-    : _mgate(MemGate::bind(caps)),
-      _rbuf(RecvBuf::create(rep,
-        nextlog2<DirectPipe::MSG_BUF_SIZE>::val, nextlog2<DirectPipe::MSG_SIZE>::val)),
+DirectPipeReader::State::State(capsel_t caps)
+    : _mgate(MemGate::bind(caps + 1)),
+      _rbuf(RecvBuf::bind(caps + 0, nextlog2<DirectPipe::MSG_BUF_SIZE>::val)),
       _rgate(RecvGate::create(&_rbuf)),
       _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate, nullptr) {
 }
 
-DirectPipeReader::DirectPipeReader(capsel_t caps, size_t rep, State *state)
-    : _noeof(), _caps(caps), _rep(rep), _state(state) {
+DirectPipeReader::DirectPipeReader(capsel_t caps, State *state)
+    : _noeof(), _caps(caps), _state(state) {
 }
 
 DirectPipeReader::~DirectPipeReader() {
@@ -43,7 +42,7 @@ void DirectPipeReader::send_eof() {
         return;
 
     if(!_state)
-        _state = new State(_caps, _rep);
+        _state = new State(_caps);
     if(~_state->_eof & DirectPipe::READ_EOF) {
         // if we have not fetched a message yet, do so now
         if(_state->_pkglen == static_cast<size_t>(-1))
@@ -56,7 +55,7 @@ void DirectPipeReader::send_eof() {
 
 ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     if(!_state)
-        _state = new State(_caps, _rep);
+        _state = new State(_caps);
     if(_state->_eof)
         return 0;
 
@@ -92,19 +91,18 @@ size_t DirectPipeReader::serialize_length() {
 }
 
 void DirectPipeReader::delegate(VPE &vpe) {
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 1));
+    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
 }
 
 void DirectPipeReader::serialize(Marshaller &m) {
     // we can't share the reader between two VPEs atm anyway, so don't serialize the current state
-    m << _caps << _rep;
+    m << _caps;
 }
 
 File *DirectPipeReader::unserialize(Unmarshaller &um) {
     capsel_t caps;
-    size_t rep;
-    um >> caps >> rep;
-    return new DirectPipeReader(caps, rep, nullptr);
+    um >> caps;
+    return new DirectPipeReader(caps, nullptr);
 }
 
 }
