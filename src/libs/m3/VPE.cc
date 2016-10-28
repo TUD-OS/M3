@@ -166,12 +166,13 @@ void VPE::obtain_fds() {
     _fds->delegate(*this);
 }
 
-Errors::Code VPE::delegate(const KIF::CapRngDesc &crd) {
-    Errors::Code res = Syscalls::get().exchange(sel(), crd, crd, false);
+Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {
+    KIF::CapRngDesc destcrd(crd.type(), dest, crd.count());
+    Errors::Code res = Syscalls::get().exchange(sel(), crd, destcrd, false);
     if(res == Errors::NO_ERROR) {
-        for(capsel_t sel = crd.start(); sel != crd.start() + crd.count(); ++sel) {
-            if(!VPE::self().is_cap_free(sel))
-                _caps->set(sel);
+        for(capsel_t sel = 0; sel < crd.count(); ++sel) {
+            if(!VPE::self().is_cap_free(sel + crd.start()))
+                _caps->set(dest + sel);
         }
     }
     return res;

@@ -51,11 +51,17 @@ class VPE : public ObjCap {
     friend class CapRngDesc;
     friend class VFS;
 
-    static constexpr uint SEL_START     = 2;
-    static constexpr uint SEL_COUNT     = CAP_TOTAL - SEL_START;
     static const size_t BUF_SIZE;
 
 public:
+    /**
+     * The first available selector
+     */
+    static constexpr uint SEL_START     = 2;
+    /**
+     * The number of usable selectors
+     */
+    static constexpr uint SEL_COUNT     = CAP_TOTAL - SEL_START;
     /**
      * The total number of selectors, i.e. starting at 0
      */
@@ -225,7 +231,18 @@ public:
      * @param crd the capabilities of your to VPE to delegate to this VPE
      * @return the error code
      */
-    Errors::Code delegate(const KIF::CapRngDesc &crd);
+    Errors::Code delegate(const KIF::CapRngDesc &crd) {
+        return delegate(crd, crd.start());
+    }
+
+    /**
+     * Delegates the given range of capabilities to this VPE at position <dest>.
+     *
+     * @param crd the capabilities of your to VPE to delegate to this VPE
+     * @param dest the destination in this VPE
+     * @return the error code
+     */
+    Errors::Code delegate(const KIF::CapRngDesc &crd, capsel_t dest);
 
     /**
      * Obtains the given range of capabilities from this VPE to your VPE. The selectors are
