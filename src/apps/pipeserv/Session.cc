@@ -131,6 +131,9 @@ void PipeReadHandler::append_request(PipeSessionData *sess, GateIStream &is, siz
 }
 
 void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
+    if(lastread)
+        return;
+
     while(_pending.length() > 0) {
         RdWrRequest *req = &*_pending.begin();
         size_t ramount = req->amount;
@@ -230,6 +233,9 @@ void PipeWriteHandler::append_request(PipeSessionData *sess, GateIStream &is, si
 }
 
 void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
+    if(lastwrite)
+        return;
+
     if(sess->flags & READ_EOF) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
         while(_pending.length() > 0) {
