@@ -18,7 +18,6 @@
 
 #include <base/Common.h>
 #include <base/com/GateStream.h>
-#include <base/util/Subscriber.h>
 #include <base/Errors.h>
 
 #include "mem/SlabCache.h"
@@ -36,9 +35,9 @@ using StaticGateOStream = m3::BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
 using AutoGateOStream = m3::BaseAutoGateOStream<RecvGate, SendGate>;
 using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
 
-class RecvGate : public SlabObject<RecvGate>, public m3::Subscriptions<GateIStream&> {
+class RecvGate : public SlabObject<RecvGate> {
 public:
-    explicit RecvGate(epid_t ep, void *sess) : m3::Subscriptions<GateIStream&>(), _ep(ep), _sess(sess) {
+    explicit RecvGate(epid_t ep, void *sess) : _ep(ep), _sess(sess) {
     }
 
     epid_t epid() const {
@@ -47,13 +46,6 @@ public:
     template<class T>
     T *session() {
         return static_cast<T*>(_sess);
-    }
-
-    void notify_all(GateIStream &is) {
-        for(auto it = _list.begin(); it != _list.end(); ) {
-            auto old = it++;
-            old->callback(is, &*old);
-        }
     }
 
     m3::Errors::Code reply(const void *data, size_t len, size_t msgidx) {

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/col/SList.h>
+#include <base/util/Subscriber.h>
 #include <base/KIF.h>
 
 #include <thread/ThreadManager.h>
