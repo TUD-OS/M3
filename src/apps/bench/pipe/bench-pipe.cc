@@ -32,7 +32,9 @@ enum {
 alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
 
 template<class PIPE>
-static void run_bench(VPE &writer, PIPE &pipe) {
+static void child_to_parent(const char *name, VPE &writer, PIPE &pipe) {
+    cycles_t start = Profile::start(0);
+
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
 
@@ -51,6 +53,38 @@ static void run_bench(VPE &writer, PIPE &pipe) {
 
     pipe.close_reader();
     writer.wait();
+
+    cycles_t end = Profile::stop(0);
+    cout << "[" << name << "] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+    cout << (end - start) << " cycles\n";
+}
+
+template<class PIPE>
+static void parent_to_child(const char *name, VPE &reader, PIPE &pipe) {
+    cycles_t start = Profile::start(0);
+
+    reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
+    reader.obtain_fds();
+
+    reader.run([] {
+        File *in = VPE::self().fds()->get(STDIN_FD);
+        while(in->read(buffer, sizeof(buffer)) > 0)
+            ;
+        return 0;
+    });
+
+    pipe.close_reader();
+
+    File *out = VPE::self().fds()->get(pipe.writer_fd());
+    for(size_t i = 0; i < COUNT; ++i)
+        out->write(buffer, sizeof(buffer));
+
+    pipe.close_writer();
+    reader.wait();
+
+    cycles_t end = Profile::stop(0);
+    cout << "[" << name << "] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
+    cout << (end - start) << " cycles\n";
 }
 
 int main(int argc, char **argv) {
@@ -62,27 +96,31 @@ int main(int argc, char **argv) {
     }
 
     if(direct) {
-        cycles_t start = Profile::start(0);
+        {
+            VPE writer("writer");
+            DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
+            child_to_parent("  dir:c->p", writer, pipe);
+        }
 
-        VPE writer("writer");
-        DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
-        run_bench(writer, pipe);
-
-        cycles_t end = Profile::stop(0);
-        cout << "[  direct] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
-        cout << (end - start) << " cycles\n";
+        {
+            VPE reader("reader");
+            DirectPipe pipe(reader, VPE::self(), MEM_SIZE);
+            parent_to_child("  dir:p->c", reader, pipe);
+        }
     }
 
     if(indirect) {
-        cycles_t start = Profile::start(0);
+        {
+            VPE writer("writer");
+            IndirectPipe pipe(MEM_SIZE);
+            child_to_parent("indir:c->p", writer, pipe);
+        }
 
-        VPE writer("writer");
-        IndirectPipe pipe(MEM_SIZE);
-        run_bench(writer, pipe);
-
-        cycles_t end = Profile::stop(0);
-        cout << "[indirect] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
-        cout << (end - start) << " cycles\n";
+        {
+            VPE reader("reader");
+            IndirectPipe pipe(MEM_SIZE);
+            parent_to_child("indir:p->c", reader, pipe);
+        }
     }
     return 0;
 }
