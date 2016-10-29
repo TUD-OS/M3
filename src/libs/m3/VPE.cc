@@ -166,8 +166,7 @@ void VPE::obtain_fds() {
 }
 
 Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {
-    KIF::CapRngDesc destcrd(crd.type(), dest, crd.count());
-    Errors::Code res = Syscalls::get().exchange(sel(), crd, destcrd, false);
+    Errors::Code res = Syscalls::get().exchange(sel(), crd, dest, false);
     if(res == Errors::NO_ERROR) {
         for(capsel_t sel = 0; sel < crd.count(); ++sel) {
             if(!VPE::self().is_cap_free(sel + crd.start()))
@@ -182,7 +181,8 @@ Errors::Code VPE::obtain(const KIF::CapRngDesc &crd) {
 }
 
 Errors::Code VPE::obtain(const KIF::CapRngDesc &crd, capsel_t dest) {
-    return Syscalls::get().exchange(sel(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, dest, crd.count()), crd, true);
+    KIF::CapRngDesc own(crd.type(), dest, crd.count());
+    return Syscalls::get().exchange(sel(), own, crd.start(), true);
 }
 
 Errors::Code VPE::revoke(const KIF::CapRngDesc &crd, bool delonly) {

@@ -229,7 +229,7 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     return Errors::last;
 }
 
-Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain) {
+Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain) {
     LLOG(SYSC, "exchange(vpe=" << vpe << ", own=" << own << ", other=" << other
         << ", obtain=" << obtain << ")");
 
@@ -237,7 +237,7 @@ Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, const 
     req.opcode = KIF::Syscall::EXCHANGE;
     req.vpe = vpe;
     req.own = own.value();
-    req.other = other.value();
+    req.other = other;
     req.obtain = obtain;
     return send_receive_result(&req, sizeof(req));
 }

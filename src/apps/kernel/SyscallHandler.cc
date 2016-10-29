@@ -487,7 +487,7 @@ void SyscallHandler::exchange(GateIStream &is) {
     auto req = get_message<m3::KIF::Syscall::Exchange>(is);
     capsel_t tcap = req->vpe;
     m3::KIF::CapRngDesc own(req->own);
-    m3::KIF::CapRngDesc other(req->other);
+    m3::KIF::CapRngDesc other(own.type(), req->other, own.count());
     bool obtain = req->obtain;
 
     LOG_SYS(vpe, ": syscall::exchange", "(vpe=" << tcap << ", own=" << own
