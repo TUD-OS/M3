@@ -148,13 +148,11 @@ Errors::Code Syscalls::createsessat(capsel_t srv, capsel_t sess, word_t ident) {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createsess(capsel_t vpe, capsel_t cap, const String &name, word_t arg) {
-    LLOG(SYSC, "createsess(vpe=" << vpe << ", cap=" << cap << ", name=" << name
-        << ", arg=" << arg << ")");
+Errors::Code Syscalls::createsess(capsel_t cap, const String &name, word_t arg) {
+    LLOG(SYSC, "createsess(cap=" << cap << ", name=" << name << ", arg=" << arg << ")");
 
     KIF::Syscall::CreateSess req;
     req.opcode = KIF::Syscall::CREATESESS;
-    req.vpe = vpe;
     req.sess = cap;
     req.arg = arg;
     req.namelen = Math::min(name.length(), sizeof(req.name));

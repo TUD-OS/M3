@@ -196,7 +196,6 @@ struct KIF {
         } PACKED;
 
         struct CreateSess : public DefaultRequest {
-            word_t vpe;
             word_t sess;
             word_t arg;
             word_t namelen;

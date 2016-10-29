@@ -42,20 +42,7 @@ public:
      * @param arg the argument
      */
     explicit Session(const String &name, word_t arg = 0)
-        : ObjCap(SESSION), _vpe(VPE::self()) {
-        connect(name, arg);
-    }
-
-    /**
-     * Creates a session for <vpe> at service <name>, sending him <args> as arguments
-     * to the OPEN event.
-     *
-     * @param vpe the VPE to create the session for
-     * @param name the service name
-     * @param args the arguments
-     */
-    explicit Session(VPE &vpe, const String &name, word_t arg = 0)
-        : ObjCap(SESSION), _vpe(vpe) {
+        : ObjCap(SESSION) {
         connect(name, arg);
     }
 
@@ -66,7 +53,7 @@ public:
      * @param flags whether capabilitly/selector should be kept on destruction or not
      */
     explicit Session(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL)
-        : ObjCap(SESSION, sel, flags), _vpe(VPE::self()) {
+        : ObjCap(SESSION, sel, flags) {
     }
 
     /**
@@ -109,8 +96,6 @@ public:
 
 private:
     void connect(const String &name, word_t arg);
-
-    VPE &_vpe;
 };
 
 }

@@ -236,19 +236,14 @@ void SyscallHandler::createsess(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
 
     auto req = get_message<m3::KIF::Syscall::CreateSess>(is);
-    capsel_t tvpe = req->vpe;
     capsel_t cap = req->sess;
     word_t arg = req->arg;
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createsess",
-        "(vpe=" << tvpe << ", name=" << name << ", cap=" << cap << ", arg=" << arg << ")");
+        "(name=" << name << ", cap=" << cap << ", arg=" << arg << ")");
 
-    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
-    if(tvpeobj == nullptr)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
-
-    if(!tvpeobj->vpe->objcaps().unused(cap))
+    if(!vpe->objcaps().unused(cap))
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid cap");
 
     Service *s = ServiceList::get().find(name);
@@ -287,9 +282,9 @@ void SyscallHandler::createsess(GateIStream &is) {
         Capability *srvcap = rsrv->vpe().objcaps().get(rsrv->selector(), Capability::SERVICE);
         assert(srvcap != nullptr);
         SessionCapability *sesscap = new SessionCapability(
-            &tvpeobj->vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
-        tvpeobj->vpe->objcaps().inherit(srvcap, sesscap);
-        tvpeobj->vpe->objcaps().set(cap, sesscap);
+            &vpe->objcaps(), cap, const_cast<Service*>(&*rsrv), reply->sess);
+        vpe->objcaps().inherit(srvcap, sesscap);
+        vpe->objcaps().set(cap, sesscap);
     }
 
     kreply_result(vpe, is, res);
