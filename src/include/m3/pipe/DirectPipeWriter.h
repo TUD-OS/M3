@@ -32,7 +32,6 @@ class DirectPipeWriter : public File {
 
     struct State {
         explicit State(capsel_t caps, size_t size);
-        ~State();
 
         size_t find_spot(size_t *len);
         void read_replies();

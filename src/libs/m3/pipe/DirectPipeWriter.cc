@@ -30,10 +30,6 @@ DirectPipeWriter::State::State(capsel_t caps, size_t size)
       _capacity(DirectPipe::MSG_BUF_SIZE / DirectPipe::MSG_SIZE), _eof() {
 }
 
-DirectPipeWriter::State::~State() {
-    VPE::self().free_ep(_rbuf.ep());
-}
-
 size_t DirectPipeWriter::State::find_spot(size_t *len) {
     if(_free == 0)
         return -1;
