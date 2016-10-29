@@ -17,6 +17,7 @@
 #include <base/arch/host/HWInterrupts.h>
 #include <base/arch/host/DTUBackend.h>
 #include <base/log/Lib.h>
+#include <base/util/Math.h>
 #include <base/DTU.h>
 #include <base/Env.h>
 #include <base/Init.h>
@@ -283,6 +284,7 @@ found:
     set_unread(unread, i, false);
     msgs--;
     roff = i + 1;
+    assert(Math::bits_set(unread) == msgs);
 
     LLOG(DTU, "EP" << ep << ": fetched message at index " << i << " (count=" << msgs << ")");
 
@@ -495,6 +497,7 @@ found:
     set_unread(unread, i, true);
     msgs++;
     woff = i + 1;
+    assert(Math::bits_set(unread) == msgs);
 
     LLOG(DTU, "EP" << ep << ": put message at index " << i << " (count=" << msgs << ")");
 

@@ -41,6 +41,16 @@ public:
         return a < b ? b : a;
     }
 
+    template<typename T>
+    static uint bits_set(T value) {
+        uint count = 0;
+        for(size_t i = 0; i < sizeof(value) * 8; ++i) {
+            if(value & (1UL << i))
+                count++;
+        }
+        return count;
+    }
+
     /**
      * Assuming that <startx> < <endx> and <endx> is not included (that means with start=0 and end=10
      * 0 .. 9 is used), the macro determines whether the two ranges overlap anywhere.
