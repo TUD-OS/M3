@@ -46,7 +46,7 @@ INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
 void RecvBuf::UpcallWorkItem::work() {
     DTU &dtu = DTU::get();
     RecvGate &upcall = RecvGate::upcall();
-    size_t epid = upcall.epid();
+    epid_t epid = upcall.epid();
     DTU::Message *msg = dtu.fetch_msg(epid);
     if(msg) {
         LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << epid);
@@ -68,7 +68,7 @@ void RecvBuf::RecvBufWorkItem::work() {
     }
 }
 
-RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, size_t epid, void *buf, int order, int msgorder, uint flags)
+RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t epid, void *buf, int order, int msgorder, uint flags)
     : ObjCap(RECV_BUF, cap, flags),
       _vpe(vpe),
       _buf(buf),
@@ -114,13 +114,13 @@ RecvBuf::~RecvBuf() {
 
 void RecvBuf::activate() {
     if(_epid == UNBOUND) {
-        size_t epid = _vpe.alloc_ep();
+        epid_t epid = _vpe.alloc_ep();
         _free |= FREE_EP;
         activate(epid);
     }
 }
 
-void RecvBuf::activate(size_t epid) {
+void RecvBuf::activate(epid_t epid) {
     if(_epid == UNBOUND) {
         if(_buf == nullptr) {
             _buf = allocate(epid, 1UL << _order);
@@ -131,7 +131,7 @@ void RecvBuf::activate(size_t epid) {
     }
 }
 
-void RecvBuf::activate(size_t epid, uintptr_t addr) {
+void RecvBuf::activate(epid_t epid, uintptr_t addr) {
     assert(_epid == UNBOUND);
 
     _epid = epid;

@@ -186,13 +186,13 @@ public:
      *
      * @return the endpoint id
      */
-    size_t alloc_ep();
+    epid_t alloc_ep();
 
     /**
      * @param id the endpoint id
      * @return true if the endpoint is free
      */
-    bool is_ep_free(size_t id) {
+    bool is_ep_free(epid_t id) {
         return !_eps->is_set(id);
     }
 
@@ -201,7 +201,7 @@ public:
      *
      * @param id the endpoint id
      */
-    void free_ep(size_t id) {
+    void free_ep(epid_t id) {
         _eps->clear(id);
     }
 

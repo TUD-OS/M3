@@ -34,7 +34,7 @@ EPMux::EPMux()
     : _next_victim(1), _gates() {
 }
 
-void EPMux::reserve(size_t ep) {
+void EPMux::reserve(epid_t ep) {
     // take care that some non-fixed gate could already use that endpoint
     if(_gates[ep]) {
         activate(ep, ObjCap::INVALID);
@@ -48,7 +48,7 @@ void EPMux::reserve(size_t ep) {
 }
 
 void EPMux::switch_to(Gate *gate) {
-    size_t victim = select_victim();
+    epid_t victim = select_victim();
     activate(victim, gate->sel());
     _gates[victim] = gate;
     gate->_epid = victim;
@@ -88,9 +88,9 @@ void EPMux::reset() {
     }
 }
 
-size_t EPMux::select_victim() {
+epid_t EPMux::select_victim() {
     size_t count = 0;
-    size_t victim = _next_victim;
+    epid_t victim = _next_victim;
     while(!VPE::self().is_ep_free(victim) && count++ < EP_COUNT) {
         // victim = (victim + 1) % EP_COUNT
         long rem;
@@ -109,7 +109,7 @@ size_t EPMux::select_victim() {
     return victim;
 }
 
-void EPMux::activate(size_t epid, capsel_t newcap) {
+void EPMux::activate(epid_t epid, capsel_t newcap) {
     if(Syscalls::get().activate(VPE::self().sel(), epid, newcap, 0) != Errors::NO_ERROR) {
         // if we wanted to deactivate a cap, we can ignore the failure
         if(newcap != ObjCap::INVALID)

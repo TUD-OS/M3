@@ -54,7 +54,7 @@ void DTU::reset() {
     memset(_last, 0, sizeof(_last));
 }
 
-bool DTU::fetch_msg(int ep) {
+bool DTU::fetch_msg(epid_t ep) {
     // simple way to achieve fairness here. otherwise we might choose the same client all the time
     int end = MAX_CORES;
 retry:
@@ -79,7 +79,7 @@ retry:
     return false;
 }
 
-Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, cfg->dstep);
@@ -109,7 +109,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
+Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     DTU::Message *orgmsg = message_at(ep, msgidx);
     uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, orgmsg->epid);
     LLOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
@@ -149,7 +149,7 @@ Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
+Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;
@@ -184,7 +184,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint) {
+Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
     EPConf *cfg = conf(ep);
     assert(cfg->valid);
     uintptr_t base = cfg->label & ~KIF::Perm::RWX;

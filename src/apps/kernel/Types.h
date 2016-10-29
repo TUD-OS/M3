@@ -20,4 +20,3 @@
 
 typedef ulong vpeid_t;
 typedef ulong peid_t;
-typedef ulong epid_t;

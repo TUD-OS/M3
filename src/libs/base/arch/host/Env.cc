@@ -60,7 +60,7 @@ static void load_params(Env *e) {
         PANIC("Unable to read " << path);
 
     int coreid;
-    size_t epid;
+    epid_t epid;
     word_t credits;
     label_t lbl;
     std::string shm_prefix;

@@ -25,8 +25,8 @@ DTU m3::DTU::inst;
 
 /* Re-implement the necessary DTU methods we need. */
 
-Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl,
-                       int reply_ep)
+Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t reply_lbl,
+                       epid_t reply_ep)
 {
     word_t *ptr = get_cmd_addr(ep, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
     store_to(ptr + 0, reply_lbl);
@@ -38,7 +38,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl,
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off)
+Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off)
 {
     // temporary hack: read current external address, add offset, store it and
     // restore it later, set address + offset
@@ -60,7 +60,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off)
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off)
+Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off)
 {
     // set address + offset
     word_t *ptr = get_cmd_addr(ep, EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD);

@@ -26,16 +26,16 @@ namespace m3 {
 uintptr_t DTU::recvbufs[EP_COUNT];
 INIT_PRIO_DTU DTU DTU::inst;
 
-size_t DTU::get_msgoff(int ep) const {
+size_t DTU::get_msgoff(epid_t ep) const {
     return get_msgoff(ep, message(ep));
 }
 
-size_t DTU::get_msgoff(int ep, const Message *msg) const {
+size_t DTU::get_msgoff(epid_t ep, const Message *msg) const {
     size_t off = reinterpret_cast<uintptr_t>(msg) - recvbufs[ep];
     return off / msgsize(ep);
 }
 
-void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
+void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, UNUSED uint msgorder, UNUSED int flags) {
     size_t size = 1 << order;
     size_t msgsize = 1 << msgorder;
     recvbufs[ep] = buf;
@@ -47,7 +47,7 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, UNUSED uint msgorder
     //LLOG(IPC, "Activated receive-buffer @ " << (void*)buf << " on " << env()->coreid << ":" << ep);
 }
 
-Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, int reply_ep) {
+Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t reply_lbl, epid_t reply_ep) {
     LLOG(DTU, "-> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " over " << ep);
 
     word_t *ptr = get_cmd_addr(ep, HEADER_CFG_REPLY_LABEL_SLOT_ENABLE_ADDR);
@@ -60,7 +60,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t reply_lbl, 
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
+Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     assert(((uintptr_t)msg & (PACKET_SIZE - 1)) == 0);
     assert((size & (PACKET_SIZE - 1)) == 0);
 
@@ -84,7 +84,7 @@ Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t msgidx) {
     return Errors::NO_ERROR;
 }
 
-void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
+void DTU::send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits) {
     word_t *ptr = (word_t*)(PE_IDMA_CONFIG_ADDRESS + (EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD << PE_IDMA_CMD_POS)
         + (ep << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
     uintptr_t addr = get_slot_addr(dst_ep);
@@ -105,7 +105,7 @@ void DTU::send_credits(int ep, uchar dst, int dst_ep, uint credits) {
     store_to(ptr + 0, credits);
 }
 
-Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
+Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
     LLOG(DTU, "Reading " << size << "b @ " << off << " to " << msg <<  " over " << ep);
 
     // temporary hack: read current external address, add offset, store it and restore it later
@@ -128,7 +128,7 @@ Errors::Code DTU::read(int ep, void *msg, size_t size, size_t off, uint) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::write(int ep, const void *msg, size_t size, size_t off, uint) {
+Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
     LLOG(DTU, "Writing " << size << "b @ " << off << " from " << msg << " over " << ep);
 
     // set address + offset

@@ -97,7 +97,7 @@ public:
 
     void init_dtu();
     void set_params(int core, const std::string &shmprefix, label_t sysc_label,
-                    size_t sysc_epid, word_t sysc_credits) {
+                    epid_t sysc_epid, word_t sysc_credits) {
         coreid = core;
         pe = PEDesc(PEType::COMP_IMEM, m3::PEISA::X86, 1024 * 1024);
         _shm_prefix = shmprefix.c_str();
@@ -127,7 +127,7 @@ private:
     int _logfd;
     String _shm_prefix;
     label_t _sysc_label;
-    size_t _sysc_epid;
+    epid_t _sysc_epid;
     word_t _sysc_credits;
     pthread_mutex_t _log_mutex;
 

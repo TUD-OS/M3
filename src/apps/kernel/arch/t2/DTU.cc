@@ -102,7 +102,7 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
     // unsupported
 }
 
-void DTU::invalidate_ep(const VPEDesc &vpe, int ep) {
+void DTU::invalidate_ep(const VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     memset(&conf, 0, sizeof(conf));
     m3::Sync::memory_barrier();
@@ -126,7 +126,7 @@ void DTU::config_recv_remote(const VPEDesc &, int, uintptr_t, uint, uint, int, b
     // nothing to do; everything is always ready and fixed on T2 for receiving
 }
 
-void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t credits) {
+void DTU::config_send(void *e, label_t label, int dstcore, int, epid_t dstep, size_t, word_t credits) {
     m3::EPConf *ep = reinterpret_cast<m3::EPConf*>(e);
     ep->valid = 1;
     ep->dstcore = log_to_phys(dstcore);
@@ -135,12 +135,12 @@ void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_
     ep->credits = credits;
 }
 
-void DTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void DTU::config_send_local(epid_t ep, label_t label, int dstcore, int dstvpe, epid_t dstep,
         size_t msgsize, word_t credits) {
     config_send(m3::eps() + ep, label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void DTU::config_send_remote(const VPEDesc &vpe, int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void DTU::config_send_remote(const VPEDesc &vpe, epid_t ep, label_t label, int dstcore, int dstvpe, epid_t dstep,
         size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_send(&conf, label, dstcore, dstvpe, dstep, msgsize, credits);
@@ -158,11 +158,11 @@ void DTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t size, int
     ep->credits = size;
 }
 
-void DTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
+void DTU::config_mem_local(epid_t ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
     config_mem(m3::eps() + ep, dstcore, dstvpe, addr, size, m3::KIF::Perm::RW);
 }
 
-void DTU::config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
+void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_mem(&conf, dstcore, dstvpe, addr, size, perm);
     m3::Sync::memory_barrier();
@@ -181,14 +181,14 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     m3::DTU::get().wait_until_ready(ep);
 }
 
-void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size, label_t replylbl, int replyep) {
+void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size, label_t replylbl, epid_t replyep) {
     config_send_local(_ep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
     m3::DTU::get().wait_until_ready(_ep);
 }
 
-void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label, const void *msg, size_t size) {
+void DTU::reply_to(const VPEDesc &vpe, epid_t ep, int, word_t, label_t label, const void *msg, size_t size) {
     send_to(vpe, ep, label, msg, size, 0, 0);
 }
 

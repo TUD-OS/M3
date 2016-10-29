@@ -39,8 +39,8 @@ static void unmap_page(void *addr) {
 }
 
 void CommandsTestSuite::ReadCmdTestCase::run() {
-    const size_t rcvepid = VPE::self().alloc_ep();
-    const size_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvepid = VPE::self().alloc_ep();
+    const epid_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();
@@ -93,8 +93,8 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 }
 
 void CommandsTestSuite::WriteCmdTestCase::run() {
-    const size_t rcvepid = VPE::self().alloc_ep();
-    const size_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvepid = VPE::self().alloc_ep();
+    const epid_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();
@@ -134,8 +134,8 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
 }
 
 void CommandsTestSuite::CmpxchgCmdTestCase::run() {
-    const size_t rcvepid = VPE::self().alloc_ep();
-    const size_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvepid = VPE::self().alloc_ep();
+    const epid_t sndepid = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();

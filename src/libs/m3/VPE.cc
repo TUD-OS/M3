@@ -140,7 +140,7 @@ retry:
 }
 
 size_t VPE::alloc_ep() {
-    size_t ep = _eps->first_clear();
+    epid_t ep = _eps->first_clear();
     if(ep >= EP_COUNT)
         PANIC("No more free endpoints");
     _eps->set(ep);

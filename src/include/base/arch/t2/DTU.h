@@ -53,10 +53,10 @@ public:
     } PACKED;
 
     struct Message : public Header {
-        int send_epid() const {
+        epid_t send_epid() const {
             return 0;
         }
-        int reply_epid() const {
+        epid_t reply_epid() const {
             return epid;
         }
 
@@ -70,9 +70,9 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 1;
 
-    static const int SYSC_EP                = 1;
-    static const int DEF_RECVEP             = 2;
-    static const int FIRST_FREE_EP          = 3;
+    static const epid_t SYSC_EP             = 1;
+    static const epid_t DEF_RECVEP          = 2;
+    static const epid_t FIRST_FREE_EP       = 3;
 
     enum Register {
         REG_TARGET,
@@ -109,43 +109,43 @@ public:
 
     void reset();
 
-    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
-    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
-    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
-    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
+    Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);
+    Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
+    Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
+    Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
         return Errors::NO_ERROR;
     }
-    void sendcrd(UNUSED int ep, UNUSED int crdep, UNUSED size_t size) {
+    void sendcrd(UNUSED epid_t ep, UNUSED epid_t crdep, UNUSED size_t size) {
     }
 
-    bool is_valid(int ep) const {
+    bool is_valid(epid_t ep) const {
         EPConf *cfg = conf(ep);
         return cfg->valid;
     }
-    bool fetch_msg(int ep);
+    bool fetch_msg(epid_t ep);
 
-    DTU::Message *message(int ep) const {
+    DTU::Message *message(epid_t ep) const {
         assert(_last[ep]);
         return _last[ep];
     }
-    Message *message_at(int ep, size_t msgidx) const {
+    Message *message_at(epid_t ep, size_t msgidx) const {
         return reinterpret_cast<Message*>(DTU::get().recvbuf_offset(env()->coreid, ep) + msgidx);
     }
 
-    size_t get_msgoff(int ep) const {
+    size_t get_msgoff(epid_t ep) const {
         return get_msgoff(ep, message(ep));
     }
-    size_t get_msgoff(int ep, const Message *msg) const {
+    size_t get_msgoff(epid_t ep, const Message *msg) const {
         // currently we just return the offset here, because we're implementing reply() in SW.
         return reinterpret_cast<uintptr_t>(msg) - DTU::get().recvbuf_offset(env()->coreid, ep);
     }
 
-    void mark_read(int ep, bool ack = true) {
+    void mark_read(epid_t ep, bool ack = true) {
         if(ack)
             mark_acked(ep);
     }
-    void mark_acked(int ep) {
+    void mark_acked(epid_t ep) {
         // we might have already acked it by doing a reply
         if(_last[ep]) {
             volatile Message *msg = message(ep);
@@ -228,14 +228,14 @@ private:
         return regs[core == CM_CORE ? 0 : 1];
     }
 
-    size_t recvbuf_offset(int core, int ep) const {
+    size_t recvbuf_offset(int core, epid_t ep) const {
         return core * RECV_BUF_MSGSIZE * EP_COUNT + ep * RECV_BUF_MSGSIZE;
     }
 
     Errors::Code check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
         int perms, int type) const;
 
-    EPConf *conf(int ep) const {
+    EPConf *conf(epid_t ep) const {
         return eps() + ep;
     }
 

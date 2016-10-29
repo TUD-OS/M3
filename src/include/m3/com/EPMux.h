@@ -46,7 +46,7 @@ public:
      *
      * @param ep the endpoint id
      */
-    void reserve(size_t ep);
+    void reserve(epid_t ep);
 
     /**
      * Configures an endpoint for the given gate. If necessary, a victim will be picked and removed
@@ -80,10 +80,10 @@ public:
     void reset();
 
 private:
-    size_t select_victim();
-    void activate(size_t epid, capsel_t newcap);
+    epid_t select_victim();
+    void activate(epid_t epid, capsel_t newcap);
 
-    size_t _next_victim;
+    epid_t _next_victim;
     Gate *_gates[EP_COUNT];
     static EPMux _inst;
 };

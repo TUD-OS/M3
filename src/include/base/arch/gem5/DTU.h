@@ -173,10 +173,10 @@ public:
     } PACKED;
 
     struct Message : Header {
-        int send_epid() const {
+        epid_t send_epid() const {
             return senderEpId;
         }
-        int reply_epid() const {
+        epid_t reply_epid() const {
             return replyEpId;
         }
 
@@ -189,12 +189,12 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 1;
 
-    static const int SYSC_SEP               = 0;
-    static const int NOTIFY_SEP             = 1;
-    static const int SYSC_REP               = 2;
-    static const int UPCALL_REP             = 3;
-    static const int DEF_REP                = 4;
-    static const int FIRST_FREE_EP          = 5;
+    static const epid_t SYSC_SEP            = 0;
+    static const epid_t NOTIFY_SEP          = 1;
+    static const epid_t SYSC_REP            = 2;
+    static const epid_t UPCALL_REP          = 3;
+    static const epid_t DEF_REP             = 4;
+    static const epid_t FIRST_FREE_EP       = 5;
 
     static DTU &get() {
         return inst;
@@ -210,11 +210,11 @@ public:
         return (static_cast<uintptr_t>(0x80 + pe) << 52) | virt;
     }
 
-    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep);
-    Errors::Code reply(int ep, const void *msg, size_t size, size_t off);
-    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
-    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
+    Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);
+    Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t off);
+    Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
+    Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
+    Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
         // TODO unsupported
         return Errors::NO_ERROR;
     }
@@ -232,22 +232,22 @@ public:
         write_reg(CmdRegs::COMMAND, cmd);
     }
 
-    bool is_valid(int epid) const {
+    bool is_valid(epid_t epid) const {
         reg_t r0 = read_reg(epid, 0);
         return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
     }
 
-    Message *fetch_msg(int epid) const {
+    Message *fetch_msg(epid_t epid) const {
         write_reg(CmdRegs::COMMAND, buildCommand(epid, CmdOpCode::FETCH_MSG));
         Sync::memory_barrier();
         return reinterpret_cast<Message*>(read_reg(CmdRegs::OFFSET));
     }
 
-    size_t get_msgoff(int, const Message *msg) const {
+    size_t get_msgoff(epid_t, const Message *msg) const {
         return reinterpret_cast<uintptr_t>(msg);
     }
 
-    void mark_read(int ep, size_t off) {
+    void mark_read(epid_t ep, size_t off) {
         write_reg(CmdRegs::OFFSET, off);
         // ensure that we are really done with the message before acking it
         Sync::memory_barrier();
@@ -266,7 +266,7 @@ public:
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::SLEEP));
     }
 
-    void wait_until_ready(int) const {
+    void wait_until_ready(epid_t) const {
         // this is superfluous now, but leaving it here improves the syscall time by 40 cycles (!!!)
         // compilers are the worst. let's get rid of them and just write assembly code again ;)
         while((read_reg(CmdRegs::COMMAND) & 0xF) != 0)
@@ -308,7 +308,7 @@ private:
     static reg_t read_reg(CmdRegs reg) {
         return read_reg(static_cast<size_t>(reg));
     }
-    static reg_t read_reg(int ep, size_t idx) {
+    static reg_t read_reg(epid_t ep, size_t idx) {
         return read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + idx);
     }
     static reg_t read_reg(size_t idx) {
@@ -340,11 +340,11 @@ private:
     static uintptr_t cmd_reg_addr(CmdRegs reg) {
         return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
     }
-    static uintptr_t ep_regs_addr(int ep) {
+    static uintptr_t ep_regs_addr(epid_t ep) {
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
-    static reg_t buildCommand(int epid, CmdOpCode c, uint flags = 0) {
+    static reg_t buildCommand(epid_t epid, CmdOpCode c, uint flags = 0) {
         return static_cast<reg_t>(c) |
                 (static_cast<reg_t>(epid) << 4) |
                 (static_cast<reg_t>(flags) << 12);

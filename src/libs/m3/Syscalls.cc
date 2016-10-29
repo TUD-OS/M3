@@ -56,7 +56,7 @@ Errors::Code Syscalls::noop() {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::activate(capsel_t vpe, size_t ep, capsel_t cap, uintptr_t addr) {
+Errors::Code Syscalls::activate(capsel_t vpe, epid_t ep, capsel_t cap, uintptr_t addr) {
     LLOG(SYSC, "activate(vpe=" << vpe << ", ep=" << ep << ", cap=" << cap << ")");
 
     KIF::Syscall::Activate req;
@@ -68,7 +68,7 @@ Errors::Code Syscalls::activate(capsel_t vpe, size_t ep, capsel_t cap, uintptr_t
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::forwardmsg(capsel_t cap, const void *msg, size_t len, size_t rep, label_t rlabel, void *event) {
+Errors::Code Syscalls::forwardmsg(capsel_t cap, const void *msg, size_t len, epid_t rep, label_t rlabel, void *event) {
     LLOG(SYSC, "forwardmsg(cap=" << cap << ", msg=" << msg << ", len=" << len << ", rep=" << rep
         << ", rlabel=" << fmt(rlabel, "0x") << ", event=" << event << ")");
 
@@ -201,7 +201,7 @@ Errors::Code Syscalls::createmap(capsel_t vpe, capsel_t mem, capsel_t first, cap
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable) {
+Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, epid_t ep, bool tmuxable) {
     LLOG(SYSC, "createvpe(vpe=" << vpe << ", mem=" << mem << ", name=" << name
         << ", type=" << static_cast<int>(pe.type()) << ", pfgate=" << gate <<
         ", pfep=" << ep << ", tmuxable=" << tmuxable << ")");

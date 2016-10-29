@@ -62,7 +62,7 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
     sleep(cycles);
 }
 
-Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, int reply_ep) {
+Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep) {
     static_assert(KIF::Perm::R == DTU::R, "DTU::R does not match KIF::Perm::R");
     static_assert(KIF::Perm::W == DTU::W, "DTU::W does not match KIF::Perm::W");
 
@@ -80,7 +80,7 @@ Errors::Code DTU::send(int ep, const void *msg, size_t size, label_t replylbl, i
     return get_error();
 }
 
-Errors::Code DTU::reply(int ep, const void *msg, size_t size, size_t off) {
+Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
@@ -111,13 +111,13 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::read(int ep, void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags);
     return transfer(cmd, dataaddr, size, off);
 }
 
-Errors::Code DTU::write(int ep, const void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::write(epid_t ep, const void *data, size_t size, size_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags);
     return transfer(cmd, dataaddr, size, off);

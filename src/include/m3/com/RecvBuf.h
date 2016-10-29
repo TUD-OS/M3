@@ -32,21 +32,21 @@ class RecvBuf : public ObjCap {
     friend class Env;
 
 public:
-    static const size_t UNBOUND         = -1;
+    static const epid_t UNBOUND         = -1;
 
     class RecvBufWorkItem : public WorkItem {
     public:
-        explicit RecvBufWorkItem(size_t epid) : _epid(epid) {
+        explicit RecvBufWorkItem(epid_t epid) : _epid(epid) {
         }
 
-        void epid(size_t id) {
+        void epid(epid_t id) {
             _epid = id;
         }
 
         virtual void work() override;
 
     private:
-        size_t _epid;
+        epid_t _epid;
     };
 
     class UpcallWorkItem : public WorkItem {
@@ -69,7 +69,7 @@ private:
           _free(FREE_BUF),
           _workitem() {
     }
-    explicit RecvBuf(VPE &vpe, capsel_t cap, size_t epid, void *buf, int order, int msgorder, uint flags);
+    explicit RecvBuf(VPE &vpe, capsel_t cap, epid_t epid, void *buf, int order, int msgorder, uint flags);
 
 public:
     static RecvBuf &syscall() {
@@ -104,24 +104,24 @@ public:
     const void *addr() const {
         return _buf;
     }
-    size_t epid() const {
+    epid_t epid() const {
         return _epid;
     }
 
     void activate();
-    void activate(size_t epid);
-    void activate(size_t epid, uintptr_t addr);
+    void activate(epid_t epid);
+    void activate(epid_t epid, uintptr_t addr);
     void disable();
     void deactivate();
 
 private:
-    static void *allocate(size_t epid, size_t size);
+    static void *allocate(epid_t epid, size_t size);
     static void free(void *);
 
     VPE &_vpe;
     void *_buf;
     int _order;
-    size_t _epid;
+    epid_t _epid;
     uint _free;
     RecvBufWorkItem *_workitem;
     static RecvBuf _syscall;

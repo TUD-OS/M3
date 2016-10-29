@@ -77,7 +77,7 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
     // unsupported
 }
 
-void DTU::invalidate_ep(const VPEDesc &vpe, int ep) {
+void DTU::invalidate_ep(const VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     memset(regs, 0, sizeof(regs));
     regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
@@ -92,7 +92,7 @@ void DTU::invalidate_eps(const VPEDesc &vpe, int first) {
         invalidate_ep(vpe, i);
 }
 
-void DTU::config_recv_local(int ep, uintptr_t buf, uint order, uint msgorder, int flags) {
+void DTU::config_recv_local(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags) {
     m3::DTU::get().configure_recv(ep, buf, order, msgorder, flags);
 }
 
@@ -100,7 +100,7 @@ void DTU::config_recv_remote(const VPEDesc &, int, uintptr_t, uint, uint, int, b
     // nothing to do; can only be done locally atm
 }
 
-void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_t, word_t) {
+void DTU::config_send(void *e, label_t label, int dstcore, int, epid_t dstep, size_t, word_t) {
     uint64_t *ep = reinterpret_cast<uint64_t*>(e);
 
     /* (1 << LOCAL_CFG_ADDRESS_FIFO_CMD) |
@@ -119,13 +119,13 @@ void DTU::config_send(void *e, label_t label, int dstcore, int, int dstep, size_
     ep[EXTERN_CFG_SIZE_CREDITS_CMD] = (uint64_t)0xFFFFFFFF << 32;
 }
 
-void DTU::config_send_local(int ep, label_t label, int dstcore, int dstvpe, int dstep,
+void DTU::config_send_local(epid_t ep, label_t label, int dstcore, int dstvpe, epid_t dstep,
         size_t msgsize, word_t credits) {
     config_send(m3::DTU::get().get_cmd_addr(ep, 0), label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
-void DTU::config_send_remote(const VPEDesc &vpe, int ep, label_t label, int dstcore,
-        int dstvpe, int dstep, size_t msgsize, word_t credits) {
+void DTU::config_send_remote(const VPEDesc &vpe, epid_t ep, label_t label, int dstcore,
+        int dstvpe, epid_t dstep, size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_send(regs, label, dstcore, dstvpe, dstep, msgsize, credits);
 
@@ -145,11 +145,11 @@ void DTU::config_mem(void *e, int dstcore, int, uintptr_t addr, size_t, int) {
     ep[EXTERN_CFG_SIZE_CREDITS_CMD] = (uint64_t)0xFFFFFFFF << 32;
 }
 
-void DTU::config_mem_local(int ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
+void DTU::config_mem_local(epid_t ep, int dstcore, int dstvpe, uintptr_t addr, size_t size) {
     config_mem(m3::DTU::get().get_cmd_addr(ep, 0), dstcore, dstvpe, addr, size, m3::KIF::Perm::RW);
 }
 
-void DTU::config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe, uintptr_t addr,
+void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstvpe, uintptr_t addr,
         size_t size, int perms) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_mem(regs, dstcore, dstvpe, addr, size, perms);
@@ -159,10 +159,10 @@ void DTU::config_mem_remote(const VPEDesc &vpe, int ep, int dstcore, int dstvpe,
     write_mem(vpe, epaddr, regs, sizeof(regs));
 }
 
-void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, int replyep) {
+void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
+        label_t replylbl, epid_t replyep) {
     // TODO for some reason, we need to use a different EP here.
-    static int tmpep = 0;
+    static epid_t tmpep = 0;
     if(tmpep == 0)
         tmpep = alloc_ep();
     config_send_local(tmpep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
@@ -171,7 +171,7 @@ void DTU::send_to(const VPEDesc &vpe, int ep, label_t label, const void *msg, si
     m3::DTU::get().wait_until_ready(tmpep);
 }
 
-void DTU::reply_to(const VPEDesc &vpe, int ep, int, word_t, label_t label,
+void DTU::reply_to(const VPEDesc &vpe, epid_t ep, int, word_t, label_t label,
         const void *msg, size_t size) {
     send_to(vpe, ep, label, msg, size, 0, 0);
 }

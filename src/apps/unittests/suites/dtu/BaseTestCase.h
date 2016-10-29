@@ -26,7 +26,7 @@ public:
     }
 
 protected:
-    void dmacmd(const void *data, size_t len, size_t epid, size_t offset, size_t length, int op) {
+    void dmacmd(const void *data, size_t len, epid_t epid, size_t offset, size_t length, int op) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);
@@ -40,7 +40,7 @@ protected:
         dtu.wait_until_ready(epid);
     }
 
-    void dmasend(const void *data, size_t len, size_t epid) {
+    void dmasend(const void *data, size_t len, epid_t epid) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);

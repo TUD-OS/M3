@@ -69,7 +69,7 @@ void DTU::reset() {
     // TODO this is a hack; we cannot leave the recv EPs here in all cases. sometimes the REPs are
     // not inherited so that the child might want to reuse the EP for something else, which does
     // not work, because the cmpxchg fails.
-    for(int i = 0; i < EP_COUNT; ++i) {
+    for(epid_t i = 0; i < EP_COUNT; ++i) {
         if(get_ep(i, EP_BUF_ADDR) == 0)
             memset(ep_regs() + i * EPS_RCNT, 0, EPS_RCNT * sizeof(word_t));
     }
@@ -81,7 +81,7 @@ void DTU::try_sleep(bool, uint64_t) const {
     usleep(1);
 }
 
-void DTU::configure_recv(int ep, uintptr_t buf, uint order, uint msgorder) {
+void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
     set_ep(ep, EP_BUF_ADDR, buf);
     set_ep(ep, EP_BUF_ORDER, order);
     set_ep(ep, EP_BUF_MSGORDER, msgorder);
@@ -93,7 +93,7 @@ void DTU::configure_recv(int ep, uintptr_t buf, uint order, uint msgorder) {
     assert((1UL << (order - msgorder)) <= sizeof(word_t) * 8);
 }
 
-int DTU::check_cmd(int ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
+int DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
     if(op == READ || op == WRITE || op == CMPXCHG) {
         uint perms = label & KIF::Perm::RWX;
         if(!(perms & (1 << op))) {
@@ -110,7 +110,7 @@ int DTU::check_cmd(int ep, int op, word_t label, word_t credits, size_t offset, 
     return 0;
 }
 
-int DTU::prepare_reply(int epid,int &dstcore,int &dstep) {
+int DTU::prepare_reply(epid_t epid, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     const size_t reply = get_cmd(CMD_OFFSET);
@@ -144,7 +144,7 @@ int DTU::prepare_reply(int epid,int &dstcore,int &dstep) {
     return 0;
 }
 
-int DTU::prepare_send(int epid,int &dstcore,int &dstep) {
+int DTU::prepare_send(epid_t epid, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const word_t credits = get_ep(epid, EP_CREDITS);
     const size_t size = get_cmd(CMD_SIZE);
@@ -169,7 +169,7 @@ int DTU::prepare_send(int epid,int &dstcore,int &dstep) {
     return 0;
 }
 
-int DTU::prepare_read(int epid,int &dstcore,int &dstep) {
+int DTU::prepare_read(epid_t epid, int &dstcore, epid_t &dstep) {
     dstcore = get_ep(epid, EP_COREID);
     dstep = get_ep(epid, EP_EPID);
 
@@ -182,7 +182,7 @@ int DTU::prepare_read(int epid,int &dstcore,int &dstep) {
     return 0;
 }
 
-int DTU::prepare_write(int epid,int &dstcore,int &dstep) {
+int DTU::prepare_write(epid_t epid, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     dstcore = get_ep(epid, EP_COREID);
@@ -198,7 +198,7 @@ int DTU::prepare_write(int epid,int &dstcore,int &dstep) {
     return 0;
 }
 
-int DTU::prepare_cmpxchg(int epid,int &dstcore,int &dstep) {
+int DTU::prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     dstcore = get_ep(epid, EP_COREID);
@@ -220,9 +220,9 @@ int DTU::prepare_cmpxchg(int epid,int &dstcore,int &dstep) {
     return 0;
 }
 
-int DTU::prepare_sendcrd(int epid, int &dstcore, int &dstep) {
+int DTU::prepare_sendcrd(epid_t epid, int &dstcore, epid_t &dstep) {
     const size_t size = get_cmd(CMD_SIZE);
-    const int crdep = get_cmd(CMD_OFFSET);
+    const epid_t crdep = get_cmd(CMD_OFFSET);
 
     dstcore = get_ep(epid, EP_COREID);
     dstep = get_ep(epid, EP_EPID);
@@ -232,7 +232,7 @@ int DTU::prepare_sendcrd(int epid, int &dstcore, int &dstep) {
     return 0;
 }
 
-int DTU::prepare_ackmsg(int epid) {
+int DTU::prepare_ackmsg(epid_t epid) {
     const word_t addr = get_cmd(CMD_OFFSET);
     size_t bufaddr = get_ep(epid, EP_BUF_ADDR);
     size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
@@ -253,7 +253,7 @@ int DTU::prepare_ackmsg(int epid) {
     return 0;
 }
 
-int DTU::prepare_fetchmsg(int epid) {
+int DTU::prepare_fetchmsg(epid_t epid) {
     word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
     if(msgs == 0)
         return CTRL_ERROR;
@@ -298,14 +298,15 @@ found:
 
 void DTU::handle_command(int core) {
     word_t newctrl = 0;
-    int dstcoreid, dstepid;
+    int dstcoreid;
+    epid_t dstepid;
 
     // clear error
     set_cmd(CMD_CTRL, get_cmd(CMD_CTRL) & ~CTRL_ERROR);
 
     // get regs
-    const int epid = get_cmd(CMD_EPID);
-    const int reply_epid = get_cmd(CMD_REPLY_EPID);
+    const epid_t epid = get_cmd(CMD_EPID);
+    const epid_t reply_epid = get_cmd(CMD_REPLY_EPID);
     const word_t ctrl = get_cmd(CMD_CTRL);
     int op = (ctrl >> OPCODE_SHIFT) & 0xF;
     if(epid >= EP_COUNT) {
@@ -365,7 +366,7 @@ error:
     set_cmd(CMD_CTRL, newctrl);
 }
 
-void DTU::send_msg(int epid, int dstcoreid, int dstepid, bool isreply) {
+void DTU::send_msg(epid_t epid, int dstcoreid, epid_t dstepid, bool isreply) {
     LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << epid << " to pe:ep=" << dstcoreid << ":" << dstepid
@@ -375,7 +376,7 @@ void DTU::send_msg(int epid, int dstcoreid, int dstepid, bool isreply) {
     _backend->send(dstcoreid, dstepid, &_buf);
 }
 
-void DTU::handle_read_cmd(int epid) {
+void DTU::handle_read_cmd(epid_t epid) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
@@ -383,7 +384,7 @@ void DTU::handle_read_cmd(int epid) {
     LLOG(DTU, "(read) " << length << " bytes from #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x") << " -> " << fmt(dest, "p"));
     int dstcoreid = _buf.core;
-    int dstepid = _buf.rpl_epid;
+    epid_t dstepid = _buf.rpl_epid;
     assert(length <= sizeof(_buf.data));
 
     _buf.opcode = RESP;
@@ -398,7 +399,7 @@ void DTU::handle_read_cmd(int epid) {
     send_msg(epid, dstcoreid, dstepid, true);
 }
 
-void DTU::handle_write_cmd(int) {
+void DTU::handle_write_cmd(epid_t) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
@@ -422,14 +423,14 @@ void DTU::handle_resp_cmd() {
     set_cmd(CMD_SIZE, 0);
 }
 
-void DTU::handle_cmpxchg_cmd(int epid) {
+void DTU::handle_cmpxchg_cmd(epid_t epid) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LLOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x"));
     int dstcoreid = _buf.core;
-    int dstepid = _buf.rpl_epid;
+    epid_t dstepid = _buf.rpl_epid;
 
     // do the compare exepge; no need to lock anything or so because our DTU is single-threaded
     word_t res;
@@ -458,7 +459,7 @@ void DTU::handle_cmpxchg_cmd(int epid) {
     send_msg(epid, dstcoreid, dstepid, true);
 }
 
-void DTU::handle_msg(size_t len, int epid) {
+void DTU::handle_msg(size_t len, epid_t epid) {
     const size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
     const size_t msgsize = 1UL << msgord;
     if(len > msgsize) {
@@ -506,28 +507,28 @@ found:
     memcpy(reinterpret_cast<void*>(addr + i * (1UL << msgord)), &_buf, len);
 }
 
-void DTU::handle_receive(int i) {
-    ssize_t res = _backend->recv(i, &_buf);
+void DTU::handle_receive(epid_t ep) {
+    ssize_t res = _backend->recv(ep, &_buf);
     if(res == -1)
         return;
 
     const int op = _buf.opcode;
     switch(op) {
         case READ:
-            handle_read_cmd(i);
+            handle_read_cmd(ep);
             break;
         case RESP:
             handle_resp_cmd();
             break;
         case WRITE:
-            handle_write_cmd(i);
+            handle_write_cmd(ep);
             break;
         case CMPXCHG:
-            handle_cmpxchg_cmd(i);
+            handle_cmpxchg_cmd(ep);
             break;
         case SEND:
         case REPLY:
-            handle_msg(res, i);
+            handle_msg(res, ep);
             break;
     }
 
@@ -546,9 +547,9 @@ void DTU::handle_receive(int i) {
     if(op != SENDCRD) {
         LLOG(DTU, "<- " << fmt(res - HEADER_SIZE, 3)
                 << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-                << " ep=" << i
-                << " (cnt=#" << fmt(get_ep(i, EP_BUF_MSGCNT), "x") << ","
-                << "crd=#" << fmt((long)get_ep(i, EP_CREDITS), "x") << ")");
+                << " ep=" << ep
+                << " (cnt=#" << fmt(get_ep(ep, EP_BUF_MSGCNT), "x") << ","
+                << "crd=#" << fmt((long)get_ep(ep, EP_CREDITS), "x") << ")");
     }
 }
 
@@ -564,7 +565,7 @@ void *DTU::thread(void *arg) {
             dma->handle_command(core);
 
         // have we received a message?
-        for(int i = 0; i < EP_COUNT; ++i)
+        for(epid_t i = 0; i < EP_COUNT; ++i)
             dma->handle_receive(i);
 
         dma->try_sleep();

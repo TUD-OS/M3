@@ -29,11 +29,11 @@ class MsgBackend : public DTU::Backend {
 public:
     virtual void create() override;
     virtual void destroy() override;
-    virtual void send(int core, int ep, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(int ep, DTU::Buffer *buf) override;
+    virtual void send(int core, epid_t ep, const DTU::Buffer *buf) override;
+    virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
 
 private:
-    static key_t get_msgkey(int core, int rep) {
+    static key_t get_msgkey(int core, epid_t rep) {
         return BASE_MSGQID + core * EP_COUNT + rep;
     }
 
@@ -48,8 +48,8 @@ public:
     }
     virtual void destroy() override {
     }
-    virtual void send(int core, int ep, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(int ep, DTU::Buffer *buf) override;
+    virtual void send(int core, epid_t ep, const DTU::Buffer *buf) override;
+    virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
 
 private:
     int _sock;

@@ -72,10 +72,10 @@ public:
     };
 
     struct Message : public Header {
-        int send_epid() const {
+        epid_t send_epid() const {
             return snd_epid;
         }
-        int reply_epid() const {
+        epid_t reply_epid() const {
             return rpl_epid;
         }
 
@@ -88,8 +88,8 @@ public:
         }
         virtual void create() = 0;
         virtual void destroy() = 0;
-        virtual void send(int core, int ep, const DTU::Buffer *buf) = 0;
-        virtual ssize_t recv(int ep, DTU::Buffer *buf) = 0;
+        virtual void send(int core, epid_t ep, const DTU::Buffer *buf) = 0;
+        virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) = 0;
     };
 
     static constexpr size_t HEADER_SIZE         = sizeof(Buffer) - MAX_DATA_SIZE;
@@ -152,12 +152,12 @@ public:
         ACKMSG                                  = 8,
     };
 
-    static const int SYSC_SEP                   = 0;
-    static const int NOTIFY_SEP                 = 1;
-    static const int SYSC_REP                   = 2;
-    static const int UPCALL_REP                 = 3;
-    static const int DEF_REP                    = 4;
-    static const int FIRST_FREE_EP              = 5;
+    static const epid_t SYSC_SEP                = 0;
+    static const epid_t NOTIFY_SEP              = 1;
+    static const epid_t SYSC_REP                = 2;
+    static const epid_t UPCALL_REP              = 3;
+    static const epid_t DEF_REP                 = 4;
+    static const epid_t FIRST_FREE_EP           = 5;
 
     static DTU &get() {
         return inst;
@@ -186,45 +186,45 @@ public:
         return const_cast<word_t*>(_epregs);
     }
 
-    word_t get_ep(int i, size_t reg) const {
-        return _epregs[i * EPS_RCNT + reg];
+    word_t get_ep(epid_t ep, size_t reg) const {
+        return _epregs[ep * EPS_RCNT + reg];
     }
-    void set_ep(int i, size_t reg, word_t val) {
-        _epregs[i * EPS_RCNT + reg] = val;
-    }
-
-    void configure(int i, label_t label, int coreid, int epid, word_t credits) {
-        configure(const_cast<word_t*>(_epregs), i, label, coreid, epid, credits);
-    }
-    static void configure(word_t *eps, int i, label_t label, int coreid, int epid, word_t credits) {
-        eps[i * EPS_RCNT + EP_LABEL] = label;
-        eps[i * EPS_RCNT + EP_COREID] = coreid;
-        eps[i * EPS_RCNT + EP_EPID] = epid;
-        eps[i * EPS_RCNT + EP_CREDITS] = credits;
+    void set_ep(epid_t ep, size_t reg, word_t val) {
+        _epregs[ep * EPS_RCNT + reg] = val;
     }
 
-    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder);
+    void configure(epid_t ep, label_t label, int coreid, epid_t epid, word_t credits) {
+        configure(const_cast<word_t*>(_epregs), ep, label, coreid, epid, credits);
+    }
+    static void configure(word_t *eps, epid_t ep, label_t label, int coreid, epid_t epid, word_t credits) {
+        eps[ep * EPS_RCNT + EP_LABEL] = label;
+        eps[ep * EPS_RCNT + EP_COREID] = coreid;
+        eps[ep * EPS_RCNT + EP_EPID] = epid;
+        eps[ep * EPS_RCNT + EP_CREDITS] = credits;
+    }
 
-    Errors::Code send(int ep, const void *msg, size_t size, label_t replylbl, int replyep) {
+    void configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder);
+
+    Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t replyep) {
         return fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
     }
-    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx) {
+    Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         return fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
     }
-    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint) {
+    Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint) {
         Errors::Code res = fire(ep, READ, msg, size, off, size, label_t(), 0);
         wait_for_mem_cmd();
         return res;
     }
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint) {
+    Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
     }
-    Errors::Code cmpxchg(int ep, const void *msg, size_t msgsize, size_t off, size_t size) {
+    Errors::Code cmpxchg(epid_t ep, const void *msg, size_t msgsize, size_t off, size_t size) {
         Errors::Code res = fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
         wait_for_mem_cmd();
         return res;
     }
-    void sendcrd(int ep, int crdep, size_t size) {
+    void sendcrd(epid_t ep, epid_t crdep, size_t size) {
         set_cmd(CMD_EPID, ep);
         set_cmd(CMD_SIZE, size);
         set_cmd(CMD_OFFSET, crdep);
@@ -232,12 +232,12 @@ public:
         wait_until_ready(ep);
     }
 
-    bool is_valid(int) const {
+    bool is_valid(epid_t) const {
         // TODO not supported
         return true;
     }
 
-    Message *fetch_msg(int epid) {
+    Message *fetch_msg(epid_t epid) {
         if(get_ep(epid, EP_BUF_MSGCNT) == 0)
             return nullptr;
 
@@ -247,11 +247,11 @@ public:
         return reinterpret_cast<Message*>(get_cmd(CMD_OFFSET));
     }
 
-    size_t get_msgoff(int, const Message *msg) const {
+    size_t get_msgoff(epid_t, const Message *msg) const {
         return reinterpret_cast<size_t>(msg);
     }
 
-    void mark_read(int ep, size_t addr) {
+    void mark_read(epid_t ep, size_t addr) {
         set_cmd(CMD_EPID, ep);
         set_cmd(CMD_OFFSET, addr);
         set_cmd(CMD_CTRL, (ACKMSG << OPCODE_SHIFT) | CTRL_START);
@@ -266,13 +266,13 @@ public:
             try_sleep();
         return (get_cmd(CMD_CTRL) & CTRL_ERROR) == 0;
     }
-    void wait_until_ready(int) const {
+    void wait_until_ready(epid_t) const {
         while(!is_ready())
             try_sleep();
     }
 
-    Errors::Code fire(int ep, int op, const void *msg, size_t size, size_t offset, size_t len,
-            label_t replylbl, int replyep) {
+    Errors::Code fire(epid_t ep, int op, const void *msg, size_t size, size_t offset, size_t len,
+            label_t replylbl, epid_t replyep) {
         assert(((uintptr_t)msg & (DTU_PKG_SIZE - 1)) == 0);
         assert((size & (DTU_PKG_SIZE - 1)) == 0);
         set_cmd(CMD_ADDR, reinterpret_cast<word_t>(msg));
@@ -321,25 +321,25 @@ private:
             occupied &= ~(static_cast<word_t>(1) << idx);
     }
 
-    int prepare_reply(int epid, int &dstcore, int &dstep);
-    int prepare_send(int epid, int &dstcore, int &dstep);
-    int prepare_read(int epid, int &dstcore, int &dstep);
-    int prepare_write(int epid, int &dstcore, int &dstep);
-    int prepare_cmpxchg(int epid, int &dstcore, int &dstep);
-    int prepare_sendcrd(int epid, int &dstcore, int &dstep);
-    int prepare_fetchmsg(int epid);
-    int prepare_ackmsg(int epid);
+    int prepare_reply(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_send(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_read(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_write(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_sendcrd(epid_t epid, int &dstcore, epid_t &dstep);
+    int prepare_fetchmsg(epid_t epid);
+    int prepare_ackmsg(epid_t epid);
 
-    void send_msg(int epid, int dstcoreid, int dstepid, bool isreply);
-    void handle_read_cmd(int epid);
-    void handle_write_cmd(int epid);
+    void send_msg(epid_t epid, int dstcoreid, epid_t dstepid, bool isreply);
+    void handle_read_cmd(epid_t epid);
+    void handle_write_cmd(epid_t epid);
     void handle_resp_cmd();
-    void handle_cmpxchg_cmd(int epid);
+    void handle_cmpxchg_cmd(epid_t epid);
     void handle_command(int core);
-    void handle_msg(size_t len, int i);
-    void handle_receive(int i);
+    void handle_msg(size_t len, epid_t ep);
+    void handle_receive(epid_t ep);
 
-    static int check_cmd(int ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
+    static int check_cmd(epid_t ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
     static void *thread(void *arg);
 
     volatile bool _run;

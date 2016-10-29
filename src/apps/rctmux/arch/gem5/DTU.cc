@@ -49,13 +49,13 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code DTU::read(int ep, void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags);
     return transfer(cmd, dataaddr, size, off);
 }
 
-Errors::Code DTU::write(int ep, const void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::write(epid_t ep, const void *data, size_t size, size_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags);
     return transfer(cmd, dataaddr, size, off);

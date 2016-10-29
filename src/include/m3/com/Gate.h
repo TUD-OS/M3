@@ -52,7 +52,7 @@ protected:
      * Binds this gate for sending to the given capability. That is, the capability should be a
      * capability you've received from somebody else.
      */
-    explicit Gate(uint type, capsel_t cap, unsigned capflags, size_t epid = UNBOUND)
+    explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t epid = UNBOUND)
         : ObjCap(type, cap, capflags), SListItem(), _epid(epid) {
     }
 
@@ -67,7 +67,7 @@ public:
     /**
      * @return the endpoint to which this gate is currently bound (might be UNBOUND)
      */
-    size_t epid() const {
+    epid_t epid() const {
         return _epid;
     }
     /**
@@ -98,7 +98,7 @@ protected:
     }
 
 private:
-    size_t _epid;
+    epid_t _epid;
 };
 
 }

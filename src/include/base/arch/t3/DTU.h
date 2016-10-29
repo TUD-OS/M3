@@ -53,10 +53,10 @@ public:
     } PACKED;
 
     struct Message : public Header {
-        int send_epid() const {
+        epid_t send_epid() const {
             return 0;
         }
-        int reply_epid() const {
+        epid_t reply_epid() const {
             return slot;
         }
 
@@ -70,9 +70,9 @@ public:
     static const int FLAG_NO_RINGBUF        = 0;
     static const int FLAG_NO_HEADER         = 1;
 
-    static const int SYSC_EP                = 0;
-    static const int DEF_RECVEP             = 1;
-    static const int FIRST_FREE_EP          = 2;
+    static const epid_t SYSC_EP             = 0;
+    static const epid_t DEF_RECVEP          = 1;
+    static const epid_t FIRST_FREE_EP       = 2;
 
     enum CmdFlags {
         NOPF    = 1,
@@ -95,37 +95,37 @@ public:
         return 0;
     }
 
-    void configure(int ep, label_t label, int coreid, int epid, word_t) {
+    void configure(epid_t ep, label_t label, int coreid, epid_t epid, word_t) {
         // TODO use unlimited credits for the moment
         config_remote(ep, coreid, epid, 0xFFFFFFFF, 0);
         config_label(ep, label);
     }
 
-    void configure_mem(int ep, int coreid, uintptr_t addr, size_t size) {
+    void configure_mem(epid_t ep, int coreid, uintptr_t addr, size_t size) {
         config_header(ep, false, 0, 0);
         config_remote_mem(ep, coreid, addr, size, 1);
     }
 
-    void configure_recv(int ep, uintptr_t buf, uint order, uint msgorder, int flags);
+    void configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder, int flags);
 
-    Errors::Code send(int ep, const void *msg, size_t size, label_t reply_lbl = label_t(), int reply_ep = 0);
-    Errors::Code reply(int ep, const void *msg, size_t size, size_t msgidx);
-    Errors::Code read(int ep, void *msg, size_t size, size_t off, uint flags);
-    Errors::Code write(int ep, const void *msg, size_t size, size_t off, uint flags);
-    Errors::Code cmpxchg(int, const void *, size_t, size_t, size_t) {
+    Errors::Code send(epid_t ep, const void *msg, size_t size, label_t reply_lbl = label_t(), epid_t reply_ep = 0);
+    Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
+    Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
+    Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
+    Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
         return Errors::NO_ERROR;
     }
-    void send_credits(int ep, uchar dst, int dst_ep, uint credits);
+    void send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits);
 
     bool is_valid(int) const {
         return true;
     }
 
-    bool fetch_msg(int ep) const {
+    bool fetch_msg(epid_t ep) const {
         return element_count(ep) - _unack[ep] > 0;
     }
 
-    DTU::Message *message(int ep) const {
+    DTU::Message *message(epid_t ep) const {
         uintptr_t cur = element_ptr(ep);
         if(_unack[ep]) {
             size_t msize = msgsize(ep);
@@ -137,22 +137,22 @@ public:
         }
         return reinterpret_cast<Message*>(cur);
     }
-    Message *message_at(int ep, size_t msgidx) const {
+    Message *message_at(epid_t ep, size_t msgidx) const {
         uintptr_t rbuf = recvbuf(ep);
         size_t sz = msgsize(ep);
         return reinterpret_cast<Message*>(rbuf + msgidx * sz);
     }
 
-    size_t get_msgoff(int ep) const;
-    size_t get_msgoff(int ep, const Message *msg) const;
+    size_t get_msgoff(epid_t ep) const;
+    size_t get_msgoff(epid_t ep, const Message *msg) const;
 
-    void mark_read(int ep, bool ack = true) {
+    void mark_read(epid_t ep, bool ack = true) {
         if(ack)
             do_ack(ep);
         else
             _unack[ep]++;
     }
-    void mark_acked(int ep) {
+    void mark_acked(epid_t ep) {
         _unack[ep]--;
         do_ack(ep);
     }
@@ -161,7 +161,7 @@ public:
         return true;
     }
 
-    void wait_until_ready(int ep) const {
+    void wait_until_ready(epid_t ep) const {
         word_t *status = get_cmd_addr(ep,IDMA_OVERALL_SLOT_STATUS);
         while(read_from(status) != 0)
             ;
@@ -176,7 +176,7 @@ public:
         store_to(ptr, msg);
     }
 
-    uint64_t get_ep_config(int ep) {
+    uint64_t get_ep_config(epid_t ep) {
         word_t *ptr = get_cmd_addr(ep, LOCAL_CFG_ADDRESS_FIFO_CMD);
         uint64_t bufsize = (read_from(ptr + 1) & 0xFFFF) * PACKET_SIZE;
         return ((uint64_t)(bufsize << 48))
@@ -184,14 +184,14 @@ public:
              | (0xFFFFFFFF & recvbuf(ep));
     }
 
-    void set_ep_config(int ep, uint64_t value) {
+    void set_ep_config(epid_t ep, uint64_t value) {
         config_local(ep, 0xFFFFFFFF & value,
                          0xFFFF & (value >> 48),
                          0xFFFF & (value >> 32));
     }
 
 private:
-    void do_ack(int ep) {
+    void do_ack(epid_t ep) {
         word_t *ptr = get_cmd_addr(ep, IDMA_SLOT_FIFO_RELEASE_ELEM);
         store_to(ptr, 1);
     }

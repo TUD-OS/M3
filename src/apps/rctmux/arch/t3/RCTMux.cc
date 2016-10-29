@@ -55,13 +55,13 @@ volatile word_t *_regstate = (word_t*)&(_state.cpu_regs);
 
 namespace RCTMux {
 
-static void mem_write(size_t ep, void *data, size_t size, size_t *offset) {
+static void mem_write(epid_t ep, void *data, size_t size, size_t *offset) {
     DTU::get().wait_until_ready(ep);
     DTU::get().write(ep, data, size, *offset);
     *offset += size;
 }
 
-static void mem_read(size_t ep, void *data, size_t size, size_t *offset) {
+static void mem_read(epid_t ep, void *data, size_t size, size_t *offset) {
     DTU::get().wait_until_ready(ep);
     DTU::get().read(ep, data, size, *offset);
     *offset += size;
