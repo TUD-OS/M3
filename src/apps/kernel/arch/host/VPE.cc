@@ -50,7 +50,7 @@ void VPE::load_app() {
             PANIC("fork");
         if(_pid == 0) {
             write_env_file(getpid(), reinterpret_cast<label_t>(&_syscgate),
-                SyscallHandler::get().epid());
+                SyscallHandler::get().ep());
             char **childargs = new char*[_argc + 1];
             size_t i = 0, j = 0;
             for(; i < _argc; ++i) {
@@ -71,7 +71,7 @@ void VPE::load_app() {
     }
     else {
         write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate),
-            SyscallHandler::get().epid());
+            SyscallHandler::get().ep());
     }
 
     KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
@@ -82,14 +82,14 @@ void VPE::init_memory() {
 }
 
 // TODO make that file-local
-void VPE::write_env_file(pid_t pid, label_t label, epid_t epid) {
+void VPE::write_env_file(pid_t pid, label_t label, epid_t ep) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
     of << m3::env()->shm_prefix().c_str() << "\n";
     of << pe() << "\n";
     of << label << "\n";
-    of << epid << "\n";
+    of << ep << "\n";
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 

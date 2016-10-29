@@ -110,17 +110,17 @@ int DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offse
     return 0;
 }
 
-int DTU::prepare_reply(epid_t epid, int &dstcore, epid_t &dstep) {
+int DTU::prepare_reply(epid_t ep, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     const size_t reply = get_cmd(CMD_OFFSET);
-    const word_t bufaddr = get_ep(epid, EP_BUF_ADDR);
-    const word_t ord = get_ep(epid, EP_BUF_ORDER);
-    const word_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+    const word_t bufaddr = get_ep(ep, EP_BUF_ADDR);
+    const word_t ord = get_ep(ep, EP_BUF_ORDER);
+    const word_t msgord = get_ep(ep, EP_BUF_MSGORDER);
 
     size_t idx = (reply - bufaddr) >> msgord;
     if(idx >= (1UL << (ord - msgord))) {
-        LLOG(DTUERR, "DMA-error: EP" << epid << ": invalid message addr " << (void*)reply);
+        LLOG(DTUERR, "DMA-error: EP" << ep << ": invalid message addr " << (void*)reply);
         return CTRL_ERROR;
     }
 
@@ -128,15 +128,15 @@ int DTU::prepare_reply(epid_t epid, int &dstcore, epid_t &dstep) {
     assert(buf->has_replycap);
 
     if(!buf->has_replycap) {
-        LLOG(DTUERR, "DMA-error: EP" << epid << ": double-reply for msg " << (void*)reply);
+        LLOG(DTUERR, "DMA-error: EP" << ep << ": double-reply for msg " << (void*)reply);
         return CTRL_ERROR;
     }
 
     dstcore = buf->core;
-    dstep = buf->rpl_epid;
+    dstep = buf->rpl_ep;
     _buf.label = buf->replylabel;
     _buf.credits = buf->length + HEADER_SIZE;
-    _buf.crd_ep = buf->snd_epid;
+    _buf.crd_ep = buf->snd_ep;
     _buf.length = size;
     memcpy(_buf.data, src, size);
     // invalidate message for replying
@@ -144,37 +144,37 @@ int DTU::prepare_reply(epid_t epid, int &dstcore, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_send(epid_t epid, int &dstcore, epid_t &dstep) {
+int DTU::prepare_send(epid_t ep, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
-    const word_t credits = get_ep(epid, EP_CREDITS);
+    const word_t credits = get_ep(ep, EP_CREDITS);
     const size_t size = get_cmd(CMD_SIZE);
     // check if we have enough credits
     if(credits != static_cast<word_t>(-1)) {
         if(size + HEADER_SIZE > credits) {
-            LLOG(DTUERR, "DMA-error: insufficient credits on ep " << epid
+            LLOG(DTUERR, "DMA-error: insufficient credits on ep " << ep
                     << " (have #" << fmt(credits, "x") << ", need #" << fmt(size + HEADER_SIZE, "x")
                     << ")." << " Ignoring send-command");
             return CTRL_ERROR;
         }
-        set_ep(epid, EP_CREDITS, credits - (size + HEADER_SIZE));
+        set_ep(ep, EP_CREDITS, credits - (size + HEADER_SIZE));
     }
 
-    dstcore = get_ep(epid, EP_COREID);
-    dstep = get_ep(epid, EP_EPID);
+    dstcore = get_ep(ep, EP_COREID);
+    dstep = get_ep(ep, EP_EPID);
     _buf.credits = 0;
-    _buf.label = get_ep(epid, EP_LABEL);
+    _buf.label = get_ep(ep, EP_LABEL);
 
     _buf.length = size;
     memcpy(_buf.data, src, size);
     return 0;
 }
 
-int DTU::prepare_read(epid_t epid, int &dstcore, epid_t &dstep) {
-    dstcore = get_ep(epid, EP_COREID);
-    dstep = get_ep(epid, EP_EPID);
+int DTU::prepare_read(epid_t ep, int &dstcore, epid_t &dstep) {
+    dstcore = get_ep(ep, EP_COREID);
+    dstep = get_ep(ep, EP_EPID);
 
     _buf.credits = 0;
-    _buf.label = get_ep(epid, EP_LABEL);
+    _buf.label = get_ep(ep, EP_LABEL);
     _buf.length = sizeof(word_t) * 3;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -182,14 +182,14 @@ int DTU::prepare_read(epid_t epid, int &dstcore, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_write(epid_t epid, int &dstcore, epid_t &dstep) {
+int DTU::prepare_write(epid_t ep, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
-    dstcore = get_ep(epid, EP_COREID);
-    dstep = get_ep(epid, EP_EPID);
+    dstcore = get_ep(ep, EP_COREID);
+    dstep = get_ep(ep, EP_EPID);
 
     _buf.credits = 0;
-    _buf.label = get_ep(epid, EP_LABEL);
+    _buf.label = get_ep(ep, EP_LABEL);
     _buf.length = sizeof(word_t) * 2;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -198,11 +198,11 @@ int DTU::prepare_write(epid_t epid, int &dstcore, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep) {
+int DTU::prepare_cmpxchg(epid_t ep, int &dstcore, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
-    dstcore = get_ep(epid, EP_COREID);
-    dstep = get_ep(epid, EP_EPID);
+    dstcore = get_ep(ep, EP_COREID);
+    dstep = get_ep(ep, EP_EPID);
 
     if(size != get_cmd(CMD_LENGTH) * 2) {
         LLOG(DTUERR, "DMA-error: cmpxchg: CMD_SIZE != CMD_LENGTH * 2. Ignoring send-command");
@@ -210,7 +210,7 @@ int DTU::prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep) {
     }
 
     _buf.credits = 0;
-    _buf.label = get_ep(epid, EP_LABEL);
+    _buf.label = get_ep(ep, EP_LABEL);
     _buf.length = sizeof(word_t) * 3;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
@@ -220,48 +220,48 @@ int DTU::prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_sendcrd(epid_t epid, int &dstcore, epid_t &dstep) {
+int DTU::prepare_sendcrd(epid_t ep, int &dstcore, epid_t &dstep) {
     const size_t size = get_cmd(CMD_SIZE);
     const epid_t crdep = get_cmd(CMD_OFFSET);
 
-    dstcore = get_ep(epid, EP_COREID);
-    dstep = get_ep(epid, EP_EPID);
+    dstcore = get_ep(ep, EP_COREID);
+    dstep = get_ep(ep, EP_EPID);
     _buf.credits = size + HEADER_SIZE;
     _buf.length = 1;    // can't be 0
     _buf.crd_ep = crdep;
     return 0;
 }
 
-int DTU::prepare_ackmsg(epid_t epid) {
+int DTU::prepare_ackmsg(epid_t ep) {
     const word_t addr = get_cmd(CMD_OFFSET);
-    size_t bufaddr = get_ep(epid, EP_BUF_ADDR);
-    size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
-    size_t ord = get_ep(epid, EP_BUF_ORDER);
+    size_t bufaddr = get_ep(ep, EP_BUF_ADDR);
+    size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
+    size_t ord = get_ep(ep, EP_BUF_ORDER);
 
     size_t idx = (addr - bufaddr) >> msgord;
     if(idx >= (1UL << (ord - msgord))) {
-        LLOG(DTUERR, "DMA-error: EP" << epid << ": invalid message addr " << (void*)addr);
+        LLOG(DTUERR, "DMA-error: EP" << ep << ": invalid message addr " << (void*)addr);
         return CTRL_ERROR;
     }
 
-    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
+    word_t occupied = get_ep(ep, EP_BUF_OCCUPIED);
     assert(is_occupied(occupied, idx));
     set_occupied(occupied, idx, false);
-    set_ep(epid, EP_BUF_OCCUPIED, occupied);
+    set_ep(ep, EP_BUF_OCCUPIED, occupied);
 
-    LLOG(DTU, "EP" << epid << ": acked message at index " << idx);
+    LLOG(DTU, "EP" << ep << ": acked message at index " << idx);
     return 0;
 }
 
-int DTU::prepare_fetchmsg(epid_t epid) {
-    word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
+int DTU::prepare_fetchmsg(epid_t ep) {
+    word_t msgs = get_ep(ep, EP_BUF_MSGCNT);
     if(msgs == 0)
         return CTRL_ERROR;
 
-    size_t roff = get_ep(epid, EP_BUF_ROFF);
-    word_t unread = get_ep(epid, EP_BUF_OCCUPIED);
-    size_t ord = get_ep(epid, EP_BUF_ORDER);
-    size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+    size_t roff = get_ep(ep, EP_BUF_ROFF);
+    word_t unread = get_ep(ep, EP_BUF_OCCUPIED);
+    size_t ord = get_ep(ep, EP_BUF_ORDER);
+    size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
     size_t size = 1UL << (ord - msgord);
 
     size_t i;
@@ -278,19 +278,19 @@ int DTU::prepare_fetchmsg(epid_t epid) {
     assert(false);
 
 found:
-    assert(is_occupied(get_ep(epid, EP_BUF_OCCUPIED), i));
+    assert(is_occupied(get_ep(ep, EP_BUF_OCCUPIED), i));
 
     set_unread(unread, i, false);
     msgs--;
     roff = i + 1;
 
-    LLOG(DTU, "EP" << epid << ": fetched message at index " << i << " (count=" << msgs << ")");
+    LLOG(DTU, "EP" << ep << ": fetched message at index " << i << " (count=" << msgs << ")");
 
-    set_ep(epid, EP_BUF_UNREAD, unread);
-    set_ep(epid, EP_BUF_ROFF, roff);
-    set_ep(epid, EP_BUF_MSGCNT, msgs);
+    set_ep(ep, EP_BUF_UNREAD, unread);
+    set_ep(ep, EP_BUF_ROFF, roff);
+    set_ep(ep, EP_BUF_MSGCNT, msgs);
 
-    size_t addr = get_ep(epid, EP_BUF_ADDR);
+    size_t addr = get_ep(ep, EP_BUF_ADDR);
     set_cmd(CMD_OFFSET, addr + i * (1UL << msgord));
 
     return 0;
@@ -299,49 +299,49 @@ found:
 void DTU::handle_command(int core) {
     word_t newctrl = 0;
     int dstcoreid;
-    epid_t dstepid;
+    epid_t dstep;
 
     // clear error
     set_cmd(CMD_CTRL, get_cmd(CMD_CTRL) & ~CTRL_ERROR);
 
     // get regs
-    const epid_t epid = get_cmd(CMD_EPID);
-    const epid_t reply_epid = get_cmd(CMD_REPLY_EPID);
+    const epid_t ep = get_cmd(CMD_EPID);
+    const epid_t reply_ep = get_cmd(CMD_REPLY_EPID);
     const word_t ctrl = get_cmd(CMD_CTRL);
     int op = (ctrl >> OPCODE_SHIFT) & 0xF;
-    if(epid >= EP_COUNT) {
-        LLOG(DTUERR, "DMA-error: invalid ep-id (" << epid << ")");
+    if(ep >= EP_COUNT) {
+        LLOG(DTUERR, "DMA-error: invalid ep-id (" << ep << ")");
         newctrl |= CTRL_ERROR;
         goto error;
     }
 
-    newctrl |= check_cmd(epid, op, get_ep(epid, EP_LABEL), get_ep(epid, EP_CREDITS),
+    newctrl |= check_cmd(ep, op, get_ep(ep, EP_LABEL), get_ep(ep, EP_CREDITS),
         get_cmd(CMD_OFFSET), get_cmd(CMD_LENGTH));
     switch(op) {
         case REPLY:
-            newctrl |= prepare_reply(epid, dstcoreid, dstepid);
+            newctrl |= prepare_reply(ep, dstcoreid, dstep);
             break;
         case SEND:
-            newctrl |= prepare_send(epid, dstcoreid, dstepid);
+            newctrl |= prepare_send(ep, dstcoreid, dstep);
             break;
         case READ:
-            newctrl |= prepare_read(epid, dstcoreid, dstepid);
+            newctrl |= prepare_read(ep, dstcoreid, dstep);
             break;
         case WRITE:
-            newctrl |= prepare_write(epid, dstcoreid, dstepid);
+            newctrl |= prepare_write(ep, dstcoreid, dstep);
             break;
         case CMPXCHG:
-            newctrl |= prepare_cmpxchg(epid, dstcoreid, dstepid);
+            newctrl |= prepare_cmpxchg(ep, dstcoreid, dstep);
             break;
         case SENDCRD:
-            newctrl |= prepare_sendcrd(epid, dstcoreid, dstepid);
+            newctrl |= prepare_sendcrd(ep, dstcoreid, dstep);
             break;
         case FETCHMSG:
-            newctrl |= prepare_fetchmsg(epid);
+            newctrl |= prepare_fetchmsg(ep);
             set_cmd(CMD_CTRL, newctrl);
             return;
         case ACKMSG:
-            newctrl |= prepare_ackmsg(epid);
+            newctrl |= prepare_ackmsg(ep);
             set_cmd(CMD_CTRL, newctrl);
             return;
     }
@@ -353,30 +353,30 @@ void DTU::handle_command(int core) {
     if(ctrl & CTRL_DEL_REPLY_CAP) {
         _buf.has_replycap = 1;
         _buf.core = core;
-        _buf.snd_epid = epid;
-        _buf.rpl_epid = reply_epid;
+        _buf.snd_ep = ep;
+        _buf.rpl_ep = reply_ep;
         _buf.replylabel = get_cmd(CMD_REPLYLBL);
     }
     else
         _buf.has_replycap = 0;
 
-    send_msg(epid, dstcoreid, dstepid, op == REPLY);
+    send_msg(ep, dstcoreid, dstep, op == REPLY);
 
 error:
     set_cmd(CMD_CTRL, newctrl);
 }
 
-void DTU::send_msg(epid_t epid, int dstcoreid, epid_t dstepid, bool isreply) {
+void DTU::send_msg(epid_t ep, int dstcoreid, epid_t dstep, bool isreply) {
     LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-            << " over " << epid << " to pe:ep=" << dstcoreid << ":" << dstepid
-            << " (crd=#" << fmt((long)get_ep(dstepid, EP_CREDITS), "x")
-            << " rep=" << _buf.rpl_epid << ")");
+            << " over " << ep << " to pe:ep=" << dstcoreid << ":" << dstep
+            << " (crd=#" << fmt((long)get_ep(dstep, EP_CREDITS), "x")
+            << " rep=" << _buf.rpl_ep << ")");
 
-    _backend->send(dstcoreid, dstepid, &_buf);
+    _backend->send(dstcoreid, dstep, &_buf);
 }
 
-void DTU::handle_read_cmd(epid_t epid) {
+void DTU::handle_read_cmd(epid_t ep) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
@@ -384,7 +384,7 @@ void DTU::handle_read_cmd(epid_t epid) {
     LLOG(DTU, "(read) " << length << " bytes from #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x") << " -> " << fmt(dest, "p"));
     int dstcoreid = _buf.core;
-    epid_t dstepid = _buf.rpl_epid;
+    epid_t dstep = _buf.rpl_ep;
     assert(length <= sizeof(_buf.data));
 
     _buf.opcode = RESP;
@@ -396,7 +396,7 @@ void DTU::handle_read_cmd(epid_t epid) {
     reinterpret_cast<word_t*>(_buf.data)[2] = 0;
     memcpy(_buf.data + _buf.length, reinterpret_cast<void*>(offset), length);
     _buf.length += length;
-    send_msg(epid, dstcoreid, dstepid, true);
+    send_msg(ep, dstcoreid, dstep, true);
 }
 
 void DTU::handle_write_cmd(epid_t) {
@@ -423,14 +423,14 @@ void DTU::handle_resp_cmd() {
     set_cmd(CMD_SIZE, 0);
 }
 
-void DTU::handle_cmpxchg_cmd(epid_t epid) {
+void DTU::handle_cmpxchg_cmd(epid_t ep) {
     word_t base = _buf.label & ~KIF::Perm::RWX;
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LLOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
             << "+#" << fmt(offset - base, "x"));
     int dstcoreid = _buf.core;
-    epid_t dstepid = _buf.rpl_epid;
+    epid_t dstep = _buf.rpl_ep;
 
     // do the compare exepge; no need to lock anything or so because our DTU is single-threaded
     word_t res;
@@ -456,11 +456,11 @@ void DTU::handle_cmpxchg_cmd(epid_t epid) {
     reinterpret_cast<word_t*>(_buf.data)[0] = 0;
     reinterpret_cast<word_t*>(_buf.data)[1] = 0;
     reinterpret_cast<word_t*>(_buf.data)[2] = res;
-    send_msg(epid, dstcoreid, dstepid, true);
+    send_msg(ep, dstcoreid, dstep, true);
 }
 
-void DTU::handle_msg(size_t len, epid_t epid) {
-    const size_t msgord = get_ep(epid, EP_BUF_MSGORDER);
+void DTU::handle_msg(size_t len, epid_t ep) {
+    const size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
     const size_t msgsize = 1UL << msgord;
     if(len > msgsize) {
         LLOG(DTUERR, "DMA-error: dropping message because space is not sufficient"
@@ -468,11 +468,11 @@ void DTU::handle_msg(size_t len, epid_t epid) {
         return;
     }
 
-    word_t occupied = get_ep(epid, EP_BUF_OCCUPIED);
-    word_t unread = get_ep(epid, EP_BUF_UNREAD);
-    word_t msgs = get_ep(epid, EP_BUF_MSGCNT);
-    size_t woff = get_ep(epid, EP_BUF_WOFF);
-    size_t ord = get_ep(epid, EP_BUF_ORDER);
+    word_t occupied = get_ep(ep, EP_BUF_OCCUPIED);
+    word_t unread = get_ep(ep, EP_BUF_UNREAD);
+    word_t msgs = get_ep(ep, EP_BUF_MSGCNT);
+    size_t woff = get_ep(ep, EP_BUF_WOFF);
+    size_t ord = get_ep(ep, EP_BUF_ORDER);
     size_t size = 1UL << (ord - msgord);
 
     size_t i;
@@ -487,7 +487,7 @@ void DTU::handle_msg(size_t len, epid_t epid) {
             goto found;
     }
 
-    LLOG(DTUERR, "EP" << epid << ": dropping message because no slot is free");
+    LLOG(DTUERR, "EP" << ep << ": dropping message because no slot is free");
     return;
 
 found:
@@ -496,14 +496,14 @@ found:
     msgs++;
     woff = i + 1;
 
-    LLOG(DTU, "EP" << epid << ": put message at index " << i << " (count=" << msgs << ")");
+    LLOG(DTU, "EP" << ep << ": put message at index " << i << " (count=" << msgs << ")");
 
-    set_ep(epid, EP_BUF_OCCUPIED, occupied);
-    set_ep(epid, EP_BUF_UNREAD, unread);
-    set_ep(epid, EP_BUF_MSGCNT, msgs);
-    set_ep(epid, EP_BUF_WOFF, woff);
+    set_ep(ep, EP_BUF_OCCUPIED, occupied);
+    set_ep(ep, EP_BUF_UNREAD, unread);
+    set_ep(ep, EP_BUF_MSGCNT, msgs);
+    set_ep(ep, EP_BUF_WOFF, woff);
 
-    size_t addr = get_ep(epid, EP_BUF_ADDR);
+    size_t addr = get_ep(ep, EP_BUF_ADDR);
     memcpy(reinterpret_cast<void*>(addr + i * (1UL << msgord)), &_buf, len);
 }
 

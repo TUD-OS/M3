@@ -41,8 +41,8 @@ class SendGate : public Gate {
     friend class Syscalls;
     friend class EnvUserBackend;
 
-    explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, epid_t epid = UNBOUND)
-        : Gate(SEND_GATE, cap, capflags, epid),
+    explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, epid_t ep = UNBOUND)
+        : Gate(SEND_GATE, cap, capflags, ep),
             _rcvgate(rcvgate == nullptr ? &RecvGate::def() : rcvgate) {
     }
 

@@ -52,13 +52,13 @@ protected:
      * Binds this gate for sending to the given capability. That is, the capability should be a
      * capability you've received from somebody else.
      */
-    explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t epid = UNBOUND)
-        : ObjCap(type, cap, capflags), SListItem(), _epid(epid) {
+    explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t ep = UNBOUND)
+        : ObjCap(type, cap, capflags), SListItem(), _ep(ep) {
     }
 
 public:
-    Gate(Gate &&g) : ObjCap(Util::move(g)), SListItem(Util::move(g)), _epid(g._epid) {
-        g._epid = NODESTROY;
+    Gate(Gate &&g) : ObjCap(Util::move(g)), SListItem(Util::move(g)), _ep(g._ep) {
+        g._ep = NODESTROY;
     }
     ~Gate() {
        EPMux::get().remove(this, flags() & KEEP_CAP);
@@ -67,8 +67,8 @@ public:
     /**
      * @return the endpoint to which this gate is currently bound (might be UNBOUND)
      */
-    epid_t epid() const {
-        return _epid;
+    epid_t ep() const {
+        return _ep;
     }
     /**
      * @return the label for this gate
@@ -93,12 +93,12 @@ public:
 
 protected:
     void ensure_activated() {
-        if(_epid == UNBOUND && sel() != ObjCap::INVALID)
+        if(_ep == UNBOUND && sel() != ObjCap::INVALID)
             EPMux::get().switch_to(this);
     }
 
 private:
-    epid_t _epid;
+    epid_t _ep;
 };
 
 }

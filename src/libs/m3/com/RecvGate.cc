@@ -34,10 +34,10 @@ Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     // might send us another message, which we might miss if we ACK this message after we've got
     // another one. so, ACK it now since the reply marks the end of the handling anyway.
 #if defined(__t2__)
-    DTU::get().mark_read(epid(), msgidx);
+    DTU::get().mark_read(ep(), msgidx);
 #endif
 
-    Errors::Code res = DTU::get().reply(epid(), const_cast<void*>(data), len, msgidx);
+    Errors::Code res = DTU::get().reply(ep(), const_cast<void*>(data), len, msgidx);
 
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         void *event = ThreadManager::get().get_wait_event();
@@ -57,15 +57,15 @@ Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
 
 Errors::Code RecvGate::wait(SendGate *sgate, DTU::Message **msg) const {
     while(1) {
-        *msg = DTU::get().fetch_msg(epid());
+        *msg = DTU::get().fetch_msg(ep());
         if(*msg)
             return Errors::NO_ERROR;
 
-        if(sgate && !DTU::get().is_valid(sgate->epid()))
+        if(sgate && !DTU::get().is_valid(sgate->ep()))
             return Errors::EP_INVALID;
 
         // don't report idles if we wait for a syscall reply
-        DTU::get().try_sleep(!sgate || sgate->epid() != m3::DTU::SYSC_SEP);
+        DTU::get().try_sleep(!sgate || sgate->ep() != m3::DTU::SYSC_SEP);
     }
     UNREACHED;
 }

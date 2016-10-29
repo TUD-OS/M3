@@ -36,17 +36,17 @@ public:
 
     class RecvBufWorkItem : public WorkItem {
     public:
-        explicit RecvBufWorkItem(epid_t epid) : _epid(epid) {
+        explicit RecvBufWorkItem(epid_t ep) : _ep(ep) {
         }
 
-        void epid(epid_t id) {
-            _epid = id;
+        void ep(epid_t id) {
+            _ep = id;
         }
 
         virtual void work() override;
 
     private:
-        epid_t _epid;
+        epid_t _ep;
     };
 
     class UpcallWorkItem : public WorkItem {
@@ -65,11 +65,11 @@ private:
           _vpe(vpe),
           _buf(),
           _order(order),
-          _epid(UNBOUND),
+          _ep(UNBOUND),
           _free(FREE_BUF),
           _workitem() {
     }
-    explicit RecvBuf(VPE &vpe, capsel_t cap, epid_t epid, void *buf, int order, int msgorder, uint flags);
+    explicit RecvBuf(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int msgorder, uint flags);
 
 public:
     static RecvBuf &syscall() {
@@ -93,10 +93,10 @@ public:
     RecvBuf(const RecvBuf&) = delete;
     RecvBuf &operator=(const RecvBuf&) = delete;
     RecvBuf(RecvBuf &&r)
-            : ObjCap(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order), _epid(r._epid),
+            : ObjCap(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order), _ep(r._ep),
               _free(r._free), _workitem(r._workitem) {
         r._free = 0;
-        r._epid = UNBOUND;
+        r._ep = UNBOUND;
         r._workitem = nullptr;
     }
     ~RecvBuf();
@@ -104,24 +104,24 @@ public:
     const void *addr() const {
         return _buf;
     }
-    epid_t epid() const {
-        return _epid;
+    epid_t ep() const {
+        return _ep;
     }
 
     void activate();
-    void activate(epid_t epid);
-    void activate(epid_t epid, uintptr_t addr);
+    void activate(epid_t ep);
+    void activate(epid_t ep, uintptr_t addr);
     void disable();
     void deactivate();
 
 private:
-    static void *allocate(epid_t epid, size_t size);
+    static void *allocate(epid_t ep, size_t size);
     static void free(void *);
 
     VPE &_vpe;
     void *_buf;
     int _order;
-    epid_t _epid;
+    epid_t _ep;
     uint _free;
     RecvBufWorkItem *_workitem;
     static RecvBuf _syscall;

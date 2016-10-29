@@ -58,7 +58,7 @@ INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
 
 struct ReplyInfo {
     explicit ReplyInfo(const m3::DTU::Message &msg)
-        : replylbl(msg.replylabel), replyep(msg.reply_epid()), crdep(msg.send_epid()),
+        : replylbl(msg.replylabel), replyep(msg.reply_ep()), crdep(msg.send_ep()),
           replycrd(msg.length) {
     }
 
@@ -109,7 +109,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     // configure both receive buffers (we need to do that manually in the kernel)
     int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_MSGSIZE_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().recv_msgs(epid(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+    DTU::get().recv_msgs(ep(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_MSGSIZE_ORD);
 
     buford = m3::getnextlog2(Platform::pe_count()) + VPE::NOTIFY_MSGSIZE_ORD;
@@ -119,7 +119,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
 
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().recv_msgs(srvepid(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+    DTU::get().recv_msgs(srvep(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, m3::nextlog2<256>::val);
 #endif
 
@@ -741,18 +741,18 @@ void SyscallHandler::activate(GateIStream &is) {
 
     auto *req = get_message<m3::KIF::Syscall::Activate>(is);
     capsel_t tvpe = req->vpe;
-    epid_t epid = req->ep;
+    epid_t ep = req->ep;
     capsel_t cap = req->cap;
     uintptr_t addr = req->addr;
 
-    LOG_SYS(vpe, ": syscall::activate", "(vpe=" << tvpe << ", ep=" << epid << ", cap=" << cap
+    LOG_SYS(vpe, ": syscall::activate", "(vpe=" << tvpe << ", ep=" << ep << ", cap=" << cap
         << ", addr=#" << m3::fmt(addr, "x") << ")");
 
     VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
     if(tvpeobj == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
 
-    if(epid <= m3::DTU::UPCALL_REP || epid >= EP_COUNT)
+    if(ep <= m3::DTU::UPCALL_REP || ep >= EP_COUNT)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalidate EP");
 
     Capability *capobj = nullptr;
@@ -762,25 +762,25 @@ void SyscallHandler::activate(GateIStream &is) {
             SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalidate capability");
     }
 
-    Capability *oldobj = tvpeobj->vpe->ep_cap(epid);
+    Capability *oldobj = tvpeobj->vpe->ep_cap(ep);
     if(oldobj) {
         if(oldobj->type == Capability::RBUF) {
             RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
             rbufcap->obj->addr = 0;
         }
 
-        m3::Errors::Code res = DTU::get().inval_ep_remote(tvpeobj->vpe->desc(), epid);
+        m3::Errors::Code res = DTU::get().inval_ep_remote(tvpeobj->vpe->desc(), ep);
         if(res != m3::Errors::NO_ERROR)
             SYS_ERROR(vpe, is, res, "Unable to invalidate EP");
     }
 
     if(capobj) {
         epid_t oldep = tvpeobj->vpe->cap_ep(capobj);
-        if(oldep && oldep != epid)
+        if(oldep && oldep != ep)
             SYS_ERROR(vpe, is, m3::Errors::EXISTS, "Capability already in use");
 
         if(capobj->type == Capability::MEM)
-            tvpeobj->vpe->config_mem_ep(epid, *static_cast<MemCapability*>(capobj)->obj);
+            tvpeobj->vpe->config_mem_ep(ep, *static_cast<MemCapability*>(capobj)->obj);
         else if(capobj->type == Capability::MSG) {
             MsgCapability *msgcap = static_cast<MsgCapability*>(capobj);
 
@@ -792,7 +792,7 @@ void SyscallHandler::activate(GateIStream &is) {
                 vpe->stop_wait();
             }
 
-            tvpeobj->vpe->config_snd_ep(epid, *msgcap->obj);
+            tvpeobj->vpe->config_snd_ep(ep, *msgcap->obj);
         }
         else {
             RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
@@ -805,7 +805,7 @@ void SyscallHandler::activate(GateIStream &is) {
 
             rbufcap->obj->vpe = tvpeobj->vpe->id();
             rbufcap->obj->addr = addr;
-            rbufcap->obj->ep = epid;
+            rbufcap->obj->ep = ep;
 
             m3::Errors::Code res = tvpeobj->vpe->rbufs().attach(*tvpeobj->vpe, &*rbufcap->obj);
             if(res != m3::Errors::NO_ERROR)
@@ -813,9 +813,9 @@ void SyscallHandler::activate(GateIStream &is) {
         }
     }
     else
-        tvpeobj->vpe->invalidate_ep(epid);
+        tvpeobj->vpe->invalidate_ep(ep);
 
-    tvpeobj->vpe->ep_cap(epid, capobj);
+    tvpeobj->vpe->ep_cap(ep, capobj);
 
     kreply_result(vpe, is, m3::Errors::NO_ERROR);
 }
@@ -995,7 +995,7 @@ void SyscallHandler::forwardreply(GateIStream &is) {
     res = wait_for(": syscall::forwardreply", tvpe, vpe);
 
     if(res == m3::Errors::NO_ERROR) {
-        DTU::get().reply_to(tvpe.desc(), head.replyEpId, head.senderEpId, head.length,
+        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.senderEp, head.length,
             head.replylabel, req->msg, len);
 
         while(vpe->state() != VPE::RUNNING) {

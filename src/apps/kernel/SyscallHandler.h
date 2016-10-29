@@ -41,16 +41,16 @@ public:
 
     void handle_message(GateIStream &msg);
 
-    epid_t epid() const {
+    epid_t ep() const {
         // we can use it here because we won't issue syscalls ourself
         return m3::DTU::SYSC_SEP;
     }
-    epid_t srvepid() const {
+    epid_t srvep() const {
         return _serv_ep;
     }
 
     RecvGate create_gate(VPE *vpe) {
-        return RecvGate(epid(), vpe);
+        return RecvGate(ep(), vpe);
     }
 
     void pagefault(GateIStream &is);

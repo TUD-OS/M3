@@ -47,10 +47,10 @@ SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, Recv
 Errors::Code SendGate::send(const void *data, size_t len) {
     ensure_activated();
 
-    Errors::Code res = DTU::get().send(epid(), data, len, _rcvgate->label(), _rcvgate->epid());
+    Errors::Code res = DTU::get().send(ep(), data, len, _rcvgate->label(), _rcvgate->ep());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         void *event = ThreadManager::get().get_wait_event();
-        res = Syscalls::get().forwardmsg(sel(), data, len, _rcvgate->epid(), _rcvgate->label(), event);
+        res = Syscalls::get().forwardmsg(sel(), data, len, _rcvgate->ep(), _rcvgate->label(), event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {

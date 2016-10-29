@@ -27,7 +27,7 @@ namespace m3 {
 INIT_PRIO_SYSC Syscalls Syscalls::_inst;
 
 DTU::Message *Syscalls::send_receive(const void *msg, size_t size) {
-    DTU::get().send(_gate.epid(), msg, size, _rlabel, m3::DTU::SYSC_REP);
+    DTU::get().send(_gate.ep(), msg, size, _rlabel, m3::DTU::SYSC_REP);
 
     DTU::Message *reply;
     do {
@@ -349,7 +349,7 @@ USED void Syscalls::exit(int exitcode) {
     KIF::Syscall::Exit req;
     req.opcode = KIF::Syscall::EXIT;
     req.exitcode = exitcode;
-    DTU::get().send(_gate.epid(), &req, sizeof(req), _rlabel, m3::DTU::SYSC_REP);
+    DTU::get().send(_gate.ep(), &req, sizeof(req), _rlabel, m3::DTU::SYSC_REP);
 }
 
 #if defined(__host__)

@@ -39,8 +39,8 @@ static void unmap_page(void *addr) {
 }
 
 void CommandsTestSuite::ReadCmdTestCase::run() {
-    const epid_t rcvepid = VPE::self().alloc_ep();
-    const epid_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvep = VPE::self().alloc_ep();
+    const epid_t sndep = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();
@@ -56,30 +56,30 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     cout << "-- Test errors --\n";
     {
-        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
-            rcvepid, datasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
+            rcvep, datasize);
 
-        dmacmd(nullptr, 0, sndepid, 0, datasize, DTU::WRITE);
+        dmacmd(nullptr, 0, sndep, 0, datasize, DTU::WRITE);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndepid, 0, datasize + 1, DTU::READ);
+        dmacmd(nullptr, 0, sndep, 0, datasize + 1, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndepid, datasize, 0, DTU::READ);
+        dmacmd(nullptr, 0, sndep, datasize, 0, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(nullptr, 0, sndepid, sizeof(word_t), datasize, DTU::READ);
+        dmacmd(nullptr, 0, sndep, sizeof(word_t), datasize, DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     cout << "-- Test reading --\n";
     {
-        dtu.configure(sndepid, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
-            rcvepid, datasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
+            rcvep, datasize);
 
         word_t buf[datasize / sizeof(word_t)];
 
-        dmacmd(buf, datasize, sndepid, 0, datasize, DTU::READ);
+        dmacmd(buf, datasize, sndep, 0, datasize, DTU::READ);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
         dtu.wait_for_mem_cmd();
         for(size_t i = 0; i < 4; ++i)
@@ -87,14 +87,14 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     }
 
     unmap_page(addr);
-    dtu.configure(sndepid, 0, 0, 0, 0);
-    VPE::self().free_ep(sndepid);
-    VPE::self().free_ep(rcvepid);
+    dtu.configure(sndep, 0, 0, 0, 0);
+    VPE::self().free_ep(sndep);
+    VPE::self().free_ep(rcvep);
 }
 
 void CommandsTestSuite::WriteCmdTestCase::run() {
-    const epid_t rcvepid = VPE::self().alloc_ep();
-    const epid_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvep = VPE::self().alloc_ep();
+    const epid_t sndep = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();
@@ -104,20 +104,20 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
-            rcvepid, sizeof(data));
+        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
+            rcvep, sizeof(data));
 
-        dmacmd(nullptr, 0, sndepid, 0, sizeof(data), DTU::READ);
+        dmacmd(nullptr, 0, sndep, 0, sizeof(data), DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     cout << "-- Test writing --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
-            rcvepid, sizeof(data));
+        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
+            rcvep, sizeof(data));
 
-        dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::WRITE);
+        dmacmd(data, sizeof(data), sndep, 0, sizeof(data), DTU::WRITE);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
         volatile const word_t *words = reinterpret_cast<const word_t*>(addr);
         // TODO we do current not know when this is finished
@@ -128,14 +128,14 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     }
 
     unmap_page(addr);
-    dtu.configure(sndepid, 0, 0, 0, 0);
-    VPE::self().free_ep(sndepid);
-    VPE::self().free_ep(rcvepid);
+    dtu.configure(sndep, 0, 0, 0, 0);
+    VPE::self().free_ep(sndep);
+    VPE::self().free_ep(rcvep);
 }
 
 void CommandsTestSuite::CmpxchgCmdTestCase::run() {
-    const epid_t rcvepid = VPE::self().alloc_ep();
-    const epid_t sndepid = VPE::self().alloc_ep();
+    const epid_t rcvep = VPE::self().alloc_ep();
+    const epid_t sndep = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
 
     void *addr = map_page();
@@ -150,23 +150,23 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
-            rcvepid, refdatasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+            rcvep, refdatasize);
 
-        dmacmd(data, sizeof(data), sndepid, 0, sizeof(refdata), DTU::READ);
+        dmacmd(data, sizeof(data), sndep, 0, sizeof(refdata), DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
 
-        dmacmd(data, sizeof(data), sndepid, 0, sizeof(data), DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndep, 0, sizeof(data), DTU::CMPXCHG);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 
     cout << "-- Test failure --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
-            rcvepid, refdatasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+            rcvep, refdatasize);
 
-        dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndep, 0, refdatasize, DTU::CMPXCHG);
         assert_false(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1234);
         assert_word(refdata[1], 5678);
@@ -175,10 +175,10 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test success --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
-            rcvepid, refdatasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+            rcvep, refdatasize);
 
-        dmacmd(data, sizeof(data), sndepid, 0, refdatasize, DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndep, 0, refdatasize, DTU::CMPXCHG);
         assert_true(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1122);
         assert_word(refdata[1], 3344);
@@ -187,17 +187,17 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test offset --\n";
     {
         word_t data[] = {3344, 4455};
-        dtu.configure(sndepid, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
-            rcvepid, refdatasize);
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+            rcvep, refdatasize);
 
-        dmacmd(data, sizeof(data), sndepid, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);
+        dmacmd(data, sizeof(data), sndep, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);
         assert_true(dtu.wait_for_mem_cmd());
         assert_word(refdata[0], 1122);
         assert_word(refdata[1], 4455);
     }
 
     unmap_page(addr);
-    dtu.configure(sndepid, 0, 0, 0, 0);
-    VPE::self().free_ep(sndepid);
-    VPE::self().free_ep(rcvepid);
+    dtu.configure(sndep, 0, 0, 0, 0);
+    VPE::self().free_ep(sndep);
+    VPE::self().free_ep(rcvep);
 }

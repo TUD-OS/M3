@@ -63,7 +63,7 @@ public:
      * @return the error code or Errors::NO_ERROR
      */
     Errors::Code reply(RGATE &gate, const void *msg) {
-        return gate.reply(bytes(), total(), m3::DTU::get().get_msgoff(gate.epid(), msg));
+        return gate.reply(bytes(), total(), m3::DTU::get().get_msgoff(gate.ep(), msg));
     }
 
     using Marshaller::put;
@@ -286,7 +286,7 @@ public:
      * @return the error code or Errors::NO_ERROR
      */
     Errors::Code reply(const void *data, size_t len) const {
-        return _gate->reply(data, len, DTU::get().get_msgoff(_gate->epid(), _msg));
+        return _gate->reply(data, len, DTU::get().get_msgoff(_gate->ep(), _msg));
     }
 
     void ignore(size_t bytes) {
@@ -330,7 +330,7 @@ public:
 
     /**
      * Disables acknowledgement of the message. That is, it will be marked as read, but you have
-     * to ack the message on your own via DTU::get().mark_acked(<epid>).
+     * to ack the message on your own via DTU::get().mark_acked(<ep>).
      */
     void claim() {
         _ack = false;
@@ -342,7 +342,7 @@ public:
      */
     void finish() {
         if(_ack) {
-            DTU::get().mark_read(_gate->epid(), DTU::get().get_msgoff(_gate->epid(), _msg));
+            DTU::get().mark_read(_gate->ep(), DTU::get().get_msgoff(_gate->ep(), _msg));
             _ack = false;
         }
     }

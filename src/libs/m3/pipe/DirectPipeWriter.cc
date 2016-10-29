@@ -31,7 +31,7 @@ DirectPipeWriter::State::State(capsel_t caps, size_t size)
 }
 
 DirectPipeWriter::State::~State() {
-    VPE::self().free_ep(_rbuf.epid());
+    VPE::self().free_ep(_rbuf.ep());
 }
 
 size_t DirectPipeWriter::State::find_spot(size_t *len) {

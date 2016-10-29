@@ -26,28 +26,28 @@ public:
     }
 
 protected:
-    void dmacmd(const void *data, size_t len, epid_t epid, size_t offset, size_t length, int op) {
+    void dmacmd(const void *data, size_t len, epid_t ep, size_t offset, size_t length, int op) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);
-        dtu.set_cmd(m3::DTU::CMD_EPID, epid);
+        dtu.set_cmd(m3::DTU::CMD_EPID, ep);
         dtu.set_cmd(m3::DTU::CMD_OFFSET, offset);
         dtu.set_cmd(m3::DTU::CMD_LENGTH, length);
         dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
         dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (op << 3) | m3::DTU::CTRL_START |
                 m3::DTU::CTRL_DEL_REPLY_CAP);
-        dtu.wait_until_ready(epid);
+        dtu.wait_until_ready(ep);
     }
 
-    void dmasend(const void *data, size_t len, epid_t epid) {
+    void dmasend(const void *data, size_t len, epid_t ep) {
         m3::DTU &dtu = m3::DTU::get();
         dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
         dtu.set_cmd(m3::DTU::CMD_SIZE, len);
-        dtu.set_cmd(m3::DTU::CMD_EPID, epid);
+        dtu.set_cmd(m3::DTU::CMD_EPID, ep);
         dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
         dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
         dtu.set_cmd(m3::DTU::CMD_CTRL, (m3::DTU::SEND << 3) | m3::DTU::CTRL_START);
-        dtu.wait_until_ready(epid);
+        dtu.wait_until_ready(ep);
     }
 };

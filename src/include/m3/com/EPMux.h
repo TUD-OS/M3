@@ -81,7 +81,7 @@ public:
 
 private:
     epid_t select_victim();
-    void activate(epid_t epid, capsel_t newcap);
+    void activate(epid_t ep, capsel_t newcap);
 
     epid_t _next_victim;
     Gate *_gates[EP_COUNT];

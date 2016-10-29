@@ -74,7 +74,7 @@ Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
     ensure_activated();
 
 retry:
-    Errors::Code res = DTU::get().read(epid(), data, len, offset, _cmdflags);
+    Errors::Code res = DTU::get().read(ep(), data, len, offset, _cmdflags);
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         res = forward(data, len, offset, _cmdflags);
         if(len > 0 || res != m3::Errors::NO_ERROR)
@@ -89,7 +89,7 @@ Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
     ensure_activated();
 
 retry:
-    Errors::Code res = DTU::get().write(epid(), data, len, offset, _cmdflags);
+    Errors::Code res = DTU::get().write(ep(), data, len, offset, _cmdflags);
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         res = forward(const_cast<void*&>(data), len, offset,
             _cmdflags | KIF::Syscall::ForwardMem::WRITE);
@@ -105,7 +105,7 @@ Errors::Code MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
     EVENT_TRACER_cmpxchg_sync();
     ensure_activated();
 
-    return DTU::get().cmpxchg(epid(), data, len, offset, len / 2);
+    return DTU::get().cmpxchg(ep(), data, len, offset, len / 2);
 }
 #endif
 

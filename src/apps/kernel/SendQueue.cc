@@ -80,7 +80,7 @@ void SendQueue::send_pending() {
     delete e;
 }
 
-void SendQueue::received_reply(epid_t epid, const m3::DTU::Message *msg) {
+void SendQueue::received_reply(epid_t ep, const m3::DTU::Message *msg) {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: received reply");
 
     assert(_inflight > 0);
@@ -89,7 +89,7 @@ void SendQueue::received_reply(epid_t epid, const m3::DTU::Message *msg) {
     m3::ThreadManager::get().notify(_cur_event, msg, msg->length + sizeof(m3::DTU::Message::Header));
 
     // now that we've copied the message, we can mark it read
-    m3::DTU::get().mark_read(epid, reinterpret_cast<size_t>(msg));
+    m3::DTU::get().mark_read(ep, reinterpret_cast<size_t>(msg));
 
     send_pending();
 }
@@ -100,7 +100,7 @@ void *SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t s
     _cur_event = get_event(id);
     _inflight++;
 
-    sgate->send(msg, size, SyscallHandler::get().srvepid(), reinterpret_cast<label_t>(this));
+    sgate->send(msg, size, SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
     if(onheap)
         m3::Heap::free(const_cast<void*>(msg));
     return _cur_event;

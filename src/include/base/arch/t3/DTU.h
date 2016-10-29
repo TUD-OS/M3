@@ -53,10 +53,10 @@ public:
     } PACKED;
 
     struct Message : public Header {
-        epid_t send_epid() const {
+        epid_t send_ep() const {
             return 0;
         }
-        epid_t reply_epid() const {
+        epid_t reply_ep() const {
             return slot;
         }
 
@@ -95,9 +95,9 @@ public:
         return 0;
     }
 
-    void configure(epid_t ep, label_t label, int coreid, epid_t epid, word_t) {
+    void configure(epid_t ep, label_t label, int coreid, epid_t dstep, word_t) {
         // TODO use unlimited credits for the moment
-        config_remote(ep, coreid, epid, 0xFFFFFFFF, 0);
+        config_remote(ep, coreid, dstep, 0xFFFFFFFF, 0);
         config_label(ep, label);
     }
 

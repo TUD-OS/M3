@@ -40,7 +40,7 @@ public:
     explicit RecvGate(epid_t ep, void *sess) : _ep(ep), _sess(sess) {
     }
 
-    epid_t epid() const {
+    epid_t ep() const {
         return _ep;
     }
     template<class T>

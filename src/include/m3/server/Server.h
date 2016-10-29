@@ -66,7 +66,7 @@ public:
             // handle all requests
             LLOG(SERV, "handling pending requests...");
             DTU::Message *msg;
-            while((msg = DTU::get().fetch_msg(RecvGate::upcall().epid()))) {
+            while((msg = DTU::get().fetch_msg(RecvGate::upcall().ep()))) {
                 GateIStream is(RecvGate::upcall(), msg, Errors::NO_ERROR);
                 handle_message(is, nullptr);
             }

@@ -162,8 +162,8 @@ public:
 
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
         uint8_t senderCoreId;
-        uint8_t senderEpId;
-        uint8_t replyEpId; // for a normal message this is the reply epId
+        uint8_t senderEp;
+        uint8_t replyEp;   // for a normal message this is the reply epId
                            // for a reply this is the enpoint that receives credits
         uint16_t length;
         uint16_t senderVpeId;
@@ -173,11 +173,11 @@ public:
     } PACKED;
 
     struct Message : Header {
-        epid_t send_epid() const {
-            return senderEpId;
+        epid_t send_ep() const {
+            return senderEp;
         }
-        epid_t reply_epid() const {
-            return replyEpId;
+        epid_t reply_ep() const {
+            return replyEp;
         }
 
         unsigned char data[];
@@ -232,13 +232,13 @@ public:
         write_reg(CmdRegs::COMMAND, cmd);
     }
 
-    bool is_valid(epid_t epid) const {
-        reg_t r0 = read_reg(epid, 0);
+    bool is_valid(epid_t ep) const {
+        reg_t r0 = read_reg(ep, 0);
         return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
     }
 
-    Message *fetch_msg(epid_t epid) const {
-        write_reg(CmdRegs::COMMAND, buildCommand(epid, CmdOpCode::FETCH_MSG));
+    Message *fetch_msg(epid_t ep) const {
+        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::FETCH_MSG));
         Sync::memory_barrier();
         return reinterpret_cast<Message*>(read_reg(CmdRegs::OFFSET));
     }
@@ -344,9 +344,9 @@ private:
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
-    static reg_t buildCommand(epid_t epid, CmdOpCode c, uint flags = 0) {
+    static reg_t buildCommand(epid_t ep, CmdOpCode c, uint flags = 0) {
         return static_cast<reg_t>(c) |
-                (static_cast<reg_t>(epid) << 4) |
+                (static_cast<reg_t>(ep) << 4) |
                 (static_cast<reg_t>(flags) << 12);
     }
 

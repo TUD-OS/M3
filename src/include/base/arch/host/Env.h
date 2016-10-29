@@ -97,12 +97,12 @@ public:
 
     void init_dtu();
     void set_params(int core, const std::string &shmprefix, label_t sysc_label,
-                    epid_t sysc_epid, word_t sysc_credits) {
+                    epid_t sysc_ep, word_t sysc_credits) {
         coreid = core;
         pe = PEDesc(PEType::COMP_IMEM, m3::PEISA::X86, 1024 * 1024);
         _shm_prefix = shmprefix.c_str();
         _sysc_label = sysc_label;
-        _sysc_epid = sysc_epid;
+        _sysc_epid = sysc_ep;
         _sysc_credits = sysc_credits;
     }
 

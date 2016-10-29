@@ -53,7 +53,7 @@ public:
 #if defined(__t3__)
         // set default receive buffer again
         RecvBuf &def = RecvBuf::def();
-        DTU::get().configure_recv(def.epid(), reinterpret_cast<word_t>(def.addr()),
+        DTU::get().configure_recv(def.ep(), reinterpret_cast<word_t>(def.addr()),
             def.order(), def.msgorder(), def.flags());
 #endif
 

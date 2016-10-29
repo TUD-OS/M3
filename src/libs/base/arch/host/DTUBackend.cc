@@ -76,37 +76,37 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
 
     // build socket names for all endpoints on all cores
     for(int core = 0; core < MAX_CORES; ++core) {
-        for(epid_t epid = 0; epid < EP_COUNT; ++epid) {
-            sockaddr_un *ep = _endpoints + core * EP_COUNT + epid;
-            ep->sun_family = AF_UNIX;
+        for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
+            sockaddr_un *addr = _endpoints + core * EP_COUNT + ep;
+            addr->sun_family = AF_UNIX;
             // we can't put that in the format string
-            ep->sun_path[0] = '\0';
-            snprintf(ep->sun_path + 1, sizeof(ep->sun_path) - 1, "m3_ep_%d.%d", core, (int)epid);
+            addr->sun_path[0] = '\0';
+            snprintf(addr->sun_path + 1, sizeof(addr->sun_path) - 1, "m3_ep_%d.%d", core, (int)ep);
         }
     }
 
     // create sockets and bind them for our own endpoints
-    for(epid_t epid = 0; epid < EP_COUNT; ++epid) {
-        _localsocks[epid] = socket(AF_UNIX, SOCK_DGRAM, 0);
-        if(_localsocks[epid] == -1)
-            PANIC("Unable to create socket for ep " << epid << ": " << strerror(errno));
+    for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
+        _localsocks[ep] = socket(AF_UNIX, SOCK_DGRAM, 0);
+        if(_localsocks[ep] == -1)
+            PANIC("Unable to create socket for ep " << ep << ": " << strerror(errno));
 
         // if we do fork+exec in kernel/lib we want to close all sockets. they are recreated anyway
-        if(fcntl(_localsocks[epid], F_SETFD, FD_CLOEXEC) == -1)
+        if(fcntl(_localsocks[ep], F_SETFD, FD_CLOEXEC) == -1)
             PANIC("Setting FD_CLOEXEC failed: " << strerror(errno));
         // all calls should be non-blocking
-        if(fcntl(_localsocks[epid], F_SETFL, O_NONBLOCK) == -1)
+        if(fcntl(_localsocks[ep], F_SETFL, O_NONBLOCK) == -1)
             PANIC("Setting O_NONBLOCK failed: " << strerror(errno));
 
-        sockaddr_un *ep = _endpoints + env()->coreid * EP_COUNT + epid;
-        if(bind(_localsocks[epid], (struct sockaddr*)ep, sizeof(*ep)) == -1)
-            PANIC("Binding socket for ep " << epid << " failed: " << strerror(errno));
+        sockaddr_un *addr = _endpoints + env()->coreid * EP_COUNT + ep;
+        if(bind(_localsocks[ep], (struct sockaddr*)addr, sizeof(*addr)) == -1)
+            PANIC("Binding socket for ep " << ep << " failed: " << strerror(errno));
     }
 }
 
 SocketBackend::~SocketBackend() {
-    for(epid_t epid = 0; epid < EP_COUNT; ++epid)
-        close(_localsocks[epid]);
+    for(epid_t ep = 0; ep < EP_COUNT; ++ep)
+        close(_localsocks[ep]);
 }
 
 void SocketBackend::send(int core, epid_t ep, const DTU::Buffer *buf) {

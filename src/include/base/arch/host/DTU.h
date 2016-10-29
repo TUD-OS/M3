@@ -59,8 +59,8 @@ public:
         struct {
             unsigned has_replycap : 1,
                      core : 15,
-                     rpl_epid : 8,
-                     snd_epid : 8;
+                     rpl_ep : 8,
+                     snd_ep : 8;
         } PACKED;
         label_t replylabel;
         word_t credits : sizeof(word_t) * 8 - 16,
@@ -72,11 +72,11 @@ public:
     };
 
     struct Message : public Header {
-        epid_t send_epid() const {
-            return snd_epid;
+        epid_t send_ep() const {
+            return snd_ep;
         }
-        epid_t reply_epid() const {
-            return rpl_epid;
+        epid_t reply_ep() const {
+            return rpl_ep;
         }
 
         unsigned char data[];
@@ -193,13 +193,13 @@ public:
         _epregs[ep * EPS_RCNT + reg] = val;
     }
 
-    void configure(epid_t ep, label_t label, int coreid, epid_t epid, word_t credits) {
-        configure(const_cast<word_t*>(_epregs), ep, label, coreid, epid, credits);
+    void configure(epid_t ep, label_t label, int coreid, epid_t dstep, word_t credits) {
+        configure(const_cast<word_t*>(_epregs), ep, label, coreid, dstep, credits);
     }
-    static void configure(word_t *eps, epid_t ep, label_t label, int coreid, epid_t epid, word_t credits) {
+    static void configure(word_t *eps, epid_t ep, label_t label, int coreid, epid_t dstep, word_t credits) {
         eps[ep * EPS_RCNT + EP_LABEL] = label;
         eps[ep * EPS_RCNT + EP_COREID] = coreid;
-        eps[ep * EPS_RCNT + EP_EPID] = epid;
+        eps[ep * EPS_RCNT + EP_EPID] = dstep;
         eps[ep * EPS_RCNT + EP_CREDITS] = credits;
     }
 
@@ -237,13 +237,13 @@ public:
         return true;
     }
 
-    Message *fetch_msg(epid_t epid) {
-        if(get_ep(epid, EP_BUF_MSGCNT) == 0)
+    Message *fetch_msg(epid_t ep) {
+        if(get_ep(ep, EP_BUF_MSGCNT) == 0)
             return nullptr;
 
-        set_cmd(CMD_EPID, epid);
+        set_cmd(CMD_EPID, ep);
         set_cmd(CMD_CTRL, (FETCHMSG << OPCODE_SHIFT) | CTRL_START);
-        wait_until_ready(epid);
+        wait_until_ready(ep);
         return reinterpret_cast<Message*>(get_cmd(CMD_OFFSET));
     }
 
@@ -321,20 +321,20 @@ private:
             occupied &= ~(static_cast<word_t>(1) << idx);
     }
 
-    int prepare_reply(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_send(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_read(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_write(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_cmpxchg(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_sendcrd(epid_t epid, int &dstcore, epid_t &dstep);
-    int prepare_fetchmsg(epid_t epid);
-    int prepare_ackmsg(epid_t epid);
+    int prepare_reply(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_send(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_read(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_write(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_cmpxchg(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_sendcrd(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_fetchmsg(epid_t ep);
+    int prepare_ackmsg(epid_t ep);
 
-    void send_msg(epid_t epid, int dstcoreid, epid_t dstepid, bool isreply);
-    void handle_read_cmd(epid_t epid);
-    void handle_write_cmd(epid_t epid);
+    void send_msg(epid_t ep, int dstcoreid, epid_t dstep, bool isreply);
+    void handle_read_cmd(epid_t ep);
+    void handle_write_cmd(epid_t ep);
     void handle_resp_cmd();
-    void handle_cmpxchg_cmd(epid_t epid);
+    void handle_cmpxchg_cmd(epid_t ep);
     void handle_command(int core);
     void handle_msg(size_t len, epid_t ep);
     void handle_receive(epid_t ep);

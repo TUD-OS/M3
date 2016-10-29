@@ -42,7 +42,7 @@ using GateIStream = BaseGateIStream<RecvGate, SendGate>;
  */
 class RecvGate : public Gate, public Subscriptions<GateIStream&> {
     explicit RecvGate(RecvBuf *rcvbuf, void *sess)
-        : Gate(RECV_GATE, INVALID, 0, rcvbuf->epid()), Subscriptions<GateIStream&>(),
+        : Gate(RECV_GATE, INVALID, 0, rcvbuf->ep()), Subscriptions<GateIStream&>(),
           _rcvbuf(rcvbuf), _sess(sess) {
     }
 

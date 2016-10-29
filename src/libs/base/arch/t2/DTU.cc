@@ -101,7 +101,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     head.replylabel = replylbl;
     head.has_replycap = 1;
     head.core = env()->coreid;
-    head.epid = reply_ep;
+    head.ep = reply_ep;
     set_target(SLOT_NO, cfg->dstcore, destaddr);
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
@@ -111,8 +111,8 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
 
 Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     DTU::Message *orgmsg = message_at(ep, msgidx);
-    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, orgmsg->epid);
-    LLOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->epid
+    uintptr_t destaddr = RECV_BUF_GLOBAL + recvbuf_offset(env()->coreid, orgmsg->ep);
+    LLOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->ep
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);

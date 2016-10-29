@@ -46,10 +46,10 @@ INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
 void RecvBuf::UpcallWorkItem::work() {
     DTU &dtu = DTU::get();
     RecvGate &upcall = RecvGate::upcall();
-    epid_t epid = upcall.epid();
-    DTU::Message *msg = dtu.fetch_msg(epid);
+    epid_t ep = upcall.ep();
+    DTU::Message *msg = dtu.fetch_msg(ep);
     if(msg) {
-        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << epid);
+        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << ep);
         RecvGate *rgate = msg->label ? reinterpret_cast<RecvGate*>(msg->label) : &upcall;
         GateIStream is(*rgate, msg);
         rgate->notify_all(is);
@@ -58,22 +58,22 @@ void RecvBuf::UpcallWorkItem::work() {
 
 void RecvBuf::RecvBufWorkItem::work() {
     DTU &dtu = DTU::get();
-    assert(_epid != UNBOUND);
-    DTU::Message *msg = dtu.fetch_msg(_epid);
+    assert(_ep != UNBOUND);
+    DTU::Message *msg = dtu.fetch_msg(_ep);
     if(msg) {
-        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _epid);
+        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _ep);
         RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
         GateIStream is(*gate, msg);
         gate->notify_all(is);
     }
 }
 
-RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t epid, void *buf, int order, int msgorder, uint flags)
+RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int msgorder, uint flags)
     : ObjCap(RECV_BUF, cap, flags),
       _vpe(vpe),
       _buf(buf),
       _order(order),
-      _epid(UNBOUND),
+      _ep(UNBOUND),
       _free(0),
       _workitem() {
     if(sel() != ObjCap::INVALID) {
@@ -82,8 +82,8 @@ RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t epid, void *buf, int order, int 
             PANIC("Creating recvbuf failed: " << Errors::to_string(res));
     }
 
-    if(epid != UNBOUND)
-        activate(epid);
+    if(ep != UNBOUND)
+        activate(ep);
 }
 
 RecvBuf RecvBuf::create(int order, int msgorder) {
@@ -113,56 +113,56 @@ RecvBuf::~RecvBuf() {
 }
 
 void RecvBuf::activate() {
-    if(_epid == UNBOUND) {
-        epid_t epid = _vpe.alloc_ep();
+    if(_ep == UNBOUND) {
+        epid_t ep = _vpe.alloc_ep();
         _free |= FREE_EP;
-        activate(epid);
+        activate(ep);
     }
 }
 
-void RecvBuf::activate(epid_t epid) {
-    if(_epid == UNBOUND) {
+void RecvBuf::activate(epid_t ep) {
+    if(_ep == UNBOUND) {
         if(_buf == nullptr) {
-            _buf = allocate(epid, 1UL << _order);
+            _buf = allocate(ep, 1UL << _order);
             _free |= FREE_BUF;
         }
 
-        activate(epid, reinterpret_cast<uintptr_t>(_buf));
+        activate(ep, reinterpret_cast<uintptr_t>(_buf));
     }
 }
 
-void RecvBuf::activate(epid_t epid, uintptr_t addr) {
-    assert(_epid == UNBOUND);
+void RecvBuf::activate(epid_t ep, uintptr_t addr) {
+    assert(_ep == UNBOUND);
 
-    _epid = epid;
+    _ep = ep;
 
     // first reserve the endpoint; we might need to invalidate it
     if(&_vpe == &VPE::self())
-        EPMux::get().reserve(_epid);
+        EPMux::get().reserve(_ep);
 
 #if defined(__t3__)
     // required for t3 because one can't write to these registers externally
-    DTU::get().configure_recv(_epid, addr, order(), msgorder(), flags());
+    DTU::get().configure_recv(_ep, addr, order(), msgorder(), flags());
 #endif
 
     if(sel() != ObjCap::INVALID) {
-        Errors::Code res = Syscalls::get().activate(_vpe.sel(), _epid, sel(), addr);
+        Errors::Code res = Syscalls::get().activate(_vpe.sel(), _ep, sel(), addr);
         if(res != Errors::NO_ERROR)
-            PANIC("Attaching recvbuf to " << _epid << " failed: " << Errors::to_string(res));
+            PANIC("Attaching recvbuf to " << _ep << " failed: " << Errors::to_string(res));
     }
 
     if(&_vpe == &VPE::self()) {
         // if we may receive messages from the endpoint, create a worker for it
-        if(_epid == DTU::UPCALL_REP)
+        if(_ep == DTU::UPCALL_REP)
             env()->workloop()->add(new UpcallWorkItem(), true);
         else {
             if(_workitem == nullptr) {
-                _workitem = new RecvBufWorkItem(_epid);
-                bool permanent = _epid < DTU::FIRST_FREE_EP;
+                _workitem = new RecvBufWorkItem(_ep);
+                bool permanent = _ep < DTU::FIRST_FREE_EP;
                 env()->workloop()->add(_workitem, permanent);
             }
             else
-                _workitem->epid(_epid);
+                _workitem->ep(_ep);
         }
     }
 }
@@ -177,8 +177,8 @@ void RecvBuf::disable() {
 
 void RecvBuf::deactivate() {
     if(_free & FREE_EP)
-        _vpe.free_ep(_epid);
-    _epid = UNBOUND;
+        _vpe.free_ep(_ep);
+    _ep = UNBOUND;
 
     disable();
 }

@@ -60,13 +60,13 @@ static void load_params(Env *e) {
         PANIC("Unable to read " << path);
 
     int coreid;
-    epid_t epid;
+    epid_t ep;
     word_t credits;
     label_t lbl;
     std::string shm_prefix;
-    in >> shm_prefix >> coreid >> lbl >> epid >> credits;
+    in >> shm_prefix >> coreid >> lbl >> ep >> credits;
 
-    e->set_params(coreid, shm_prefix, lbl, epid, credits);
+    e->set_params(coreid, shm_prefix, lbl, ep, credits);
 }
 
 EXTERN_C WEAK void init_env() {

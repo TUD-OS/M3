@@ -78,9 +78,9 @@ void WorkLoop::run() {
 
     m3::DTU &dtu = m3::DTU::get();
     SyscallHandler &sysch = SyscallHandler::get();
-    epid_t sysep = sysch.epid();
+    epid_t sysep = sysch.ep();
     epid_t notifyep = m3::DTU::NOTIFY_SEP;
-    epid_t srvep = sysch.srvepid();
+    epid_t srvep = sysch.srvep();
     const m3::DTU::Message *msg;
     while(has_items()) {
         cycles_t sleep = Timeouts::get().sleep_time();

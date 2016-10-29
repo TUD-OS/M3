@@ -46,18 +46,18 @@ public:
         struct {
             word_t has_replycap : 1,
                    core : 15,
-                   epid : 16;
+                   ep : 16;
         } PACKED;
         label_t replylabel;
         word_t length;        // has to be non-zero
     } PACKED;
 
     struct Message : public Header {
-        epid_t send_epid() const {
+        epid_t send_ep() const {
             return 0;
         }
-        epid_t reply_epid() const {
-            return epid;
+        epid_t reply_ep() const {
+            return ep;
         }
 
         unsigned char data[];
