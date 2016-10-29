@@ -49,8 +49,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
       _requires(),
       _argc(),
-      _argv(),
-      _resumesubscr() {
+      _argv() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MemCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
 
@@ -166,13 +165,6 @@ void VPE::wakeup() {
 
 void VPE::notify_resume() {
     m3::ThreadManager::get().notify(this);
-
-    // notify subscribers
-    for(auto it = _resumesubscr.begin(); it != _resumesubscr.end();) {
-        auto cur = it++;
-        cur->callback(true, &*cur);
-        _resumesubscr.unsubscribe(&*cur);
-    }
 }
 
 void VPE::free_reqs() {

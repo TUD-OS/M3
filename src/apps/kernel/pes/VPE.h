@@ -17,7 +17,6 @@
 #pragma once
 
 #include <base/col/SList.h>
-#include <base/util/Subscriber.h>
 #include <base/KIF.h>
 
 #include <thread/ThreadManager.h>
@@ -161,13 +160,6 @@ public:
 
     void wait_for_exit();
 
-    void subscribe_resume(const m3::Subscriptions<bool>::callback_type &cb) {
-        _resumesubscr.subscribe(cb);
-    }
-    void unsubscribe_resume(m3::Subscriber<bool> *sub) {
-        _resumesubscr.unsubscribe(sub);
-    }
-
     const m3::SList<ServName> &requirements() const {
         return _requires;
     }
@@ -280,7 +272,6 @@ private:
     size_t _argc;
     char **_argv;
     uintptr_t _epaddr;
-    m3::Subscriptions<bool> _resumesubscr;
 };
 
 }
