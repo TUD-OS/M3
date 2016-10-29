@@ -61,10 +61,8 @@ public:
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain);
     // we need the pid only to support the VPE abstraction on the host
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, int pid, int *exitcode);
-    Errors::Code delegate(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
-        size_t *argcount = nullptr, word_t *args = nullptr);
-    Errors::Code obtain(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
-        size_t *argcount = nullptr, word_t *args = nullptr);
+    Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
+    Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
     Errors::Code reqmem(capsel_t cap, size_t size, int perms) {
         return reqmemat(cap, -1, size, perms);
     }
@@ -81,8 +79,7 @@ public:
 private:
     DTU::Message *send_receive(const void *msg, size_t size);
     Errors::Code send_receive_result(const void *msg, size_t size);
-    Errors::Code exchangesess(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
-        size_t *argcount, word_t *args, bool obtain);
+    Errors::Code exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args, bool obtain);
 
     SendGate _gate;
     label_t _rlabel;

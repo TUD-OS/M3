@@ -674,21 +674,15 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
     VPE *vpe = is.gate().session<VPE>();
 
     auto req = get_message<m3::KIF::Syscall::ExchangeSess>(is);
-    capsel_t tvpe = req->vpe;
     capsel_t sesscap = req->sess;
     m3::KIF::CapRngDesc caps(req->caps);
 
     // TODO compiler-bug? if I try to print caps, it hangs on T2!? doing it here manually works
     LOG_SYS(vpe, (obtain ? ": syscall::obtain" : ": syscall::delegate"),
-            "(vpe=" << tvpe << ", sess=" << sesscap << ", caps="
-            << caps.start() << ":" << caps.count() << ")");
-
-    VPECapability *tvpeobj = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
-    if(tvpeobj == nullptr)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
+            "(sess=" << sesscap << ", caps=" << caps.start() << ":" << caps.count() << ")");
 
     SessionCapability *sess = static_cast<SessionCapability*>(
-        tvpeobj->vpe->objcaps().get(sesscap, Capability::SESSION));
+        vpe->objcaps().get(sesscap, Capability::SESSION));
     if(sess == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "Invalid session-cap");
     if(sess->obj->srv->closing)
@@ -721,14 +715,13 @@ void SyscallHandler::exchange_over_sess(GateIStream &is, bool obtain) {
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
 
-    LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"),
-        "(vpe=" << tvpeobj->sel() << ", res=" << res << ")");
+    LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"), "(res=" << res << ")");
 
     if(res != m3::Errors::NO_ERROR)
-        LOG_ERROR(tvpeobj->vpe, res, "Server denied cap-transfer");
+        LOG_ERROR(vpe, res, "Server denied cap-transfer");
     else {
         m3::KIF::CapRngDesc srvcaps(reply->data.caps);
-        res = do_exchange(tvpeobj->vpe, &rsrv->vpe(), caps, srvcaps, obtain);
+        res = do_exchange(vpe, &rsrv->vpe(), caps, srvcaps, obtain);
     }
 
     m3::KIF::Syscall::ExchangeSessReply kreply;

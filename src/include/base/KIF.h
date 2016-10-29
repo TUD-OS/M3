@@ -263,7 +263,6 @@ struct KIF {
         } PACKED;
 
         struct ExchangeSess : public DefaultRequest {
-            word_t vpe;
             word_t sess;
             word_t caps;
             word_t argcount;

@@ -262,11 +262,10 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, int pid, in
     return Errors::last;
 }
 
-Errors::Code Syscalls::exchangesess(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd,
         size_t *argcount, word_t *args, bool obtain) {
     KIF::Syscall::ExchangeSess req;
     req.opcode = obtain ? KIF::Syscall::OBTAIN : KIF::Syscall::DELEGATE;
-    req.vpe = vpe;
     req.sess = sess;
     req.caps = crd.value();
     req.argcount = 0;
@@ -291,16 +290,16 @@ Errors::Code Syscalls::exchangesess(capsel_t vpe, capsel_t sess, const KIF::CapR
     return Errors::last;
 }
 
-Errors::Code Syscalls::delegate(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+Errors::Code Syscalls::delegate(capsel_t sess, const KIF::CapRngDesc &crd,
         size_t *argcount, word_t *args) {
-    LLOG(SYSC, "delegate(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
-    return exchangesess(vpe, sess, crd, argcount, args, false);
+    LLOG(SYSC, "delegate(sess=" << sess << ", crd=" << crd << ")");
+    return exchangesess(sess, crd, argcount, args, false);
 }
 
-Errors::Code Syscalls::obtain(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+Errors::Code Syscalls::obtain(capsel_t sess, const KIF::CapRngDesc &crd,
         size_t *argcount, word_t *args) {
-    LLOG(SYSC, "obtain(vpe=" << vpe << ", sess=" << sess << ", crd=" << crd << ")");
-    return exchangesess(vpe, sess, crd, argcount, args, true);
+    LLOG(SYSC, "obtain(sess=" << sess << ", crd=" << crd << ")");
+    return exchangesess(sess, crd, argcount, args, true);
 }
 
 Errors::Code Syscalls::reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms) {
