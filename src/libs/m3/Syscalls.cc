@@ -175,13 +175,12 @@ Errors::Code Syscalls::createrbuf(capsel_t rbuf, int order, int msgorder) {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::creategate(capsel_t vpe, capsel_t rbuf, capsel_t dst, label_t label, word_t credits) {
-    LLOG(SYSC, "creategate(vpe=" << vpe << ", rbuf=" << rbuf << ", dst=" << dst
-        << ", label=" << fmt(label, "#x") << ", credits=" << credits << ")");
+Errors::Code Syscalls::creategate(capsel_t rbuf, capsel_t dst, label_t label, word_t credits) {
+    LLOG(SYSC, "creategate(rbuf=" << rbuf << ", dst=" << dst << ", label=" << fmt(label, "#x")
+        << ", credits=" << credits << ")");
 
     KIF::Syscall::CreateGate req;
     req.opcode = KIF::Syscall::CREATEGATE;
-    req.vpe = vpe;
     req.rbuf = rbuf;
     req.gate = dst;
     req.label = label;

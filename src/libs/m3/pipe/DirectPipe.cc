@@ -25,7 +25,7 @@ DirectPipe::DirectPipe(VPE &rd, VPE &wr, size_t size)
     : _rd(rd), _wr(wr), _size(size),
       _rbuf(RecvBuf::create(VPE::self().alloc_caps(3), nextlog2<MSG_BUF_SIZE>::val, nextlog2<MSG_SIZE>::val)),
       _mem(MemGate::create_global(size, MemGate::RW, _rbuf.sel() + 1)),
-      _sgate(SendGate::create_for(rd, &_rbuf, 0, CREDITS, nullptr, _rbuf.sel() + 2)),
+      _sgate(SendGate::create_for(&_rbuf, 0, CREDITS, nullptr, _rbuf.sel() + 2)),
       _rdfd(), _wrfd() {
     assert(Math::is_aligned(size, DTU_PKG_SIZE));
 

@@ -26,11 +26,10 @@ namespace m3 {
 
 SendGate SendGate::create(word_t credits, RecvGate *rcvgate, capsel_t sel) {
     rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
-    return create_for(VPE::self(), rcvgate->buffer(), rcvgate->label(), credits, rcvgate, sel);
+    return create_for(rcvgate->buffer(), rcvgate->label(), credits, rcvgate, sel);
 }
 
-SendGate SendGate::create_for(const VPE &vpe, RecvBuf *rbuf, label_t label, word_t credits,
-        RecvGate *rcvgate, capsel_t sel) {
+SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, RecvGate *rcvgate, capsel_t sel) {
     uint flags = 0;
     rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
     if(sel == INVALID)
@@ -41,7 +40,7 @@ SendGate SendGate::create_for(const VPE &vpe, RecvBuf *rbuf, label_t label, word
     // there) because somebody else wants to send us messages to this (or better: to the attached
     // receive gate)
     SendGate gate(sel, flags, rcvgate);
-    Syscalls::get().creategate(vpe.sel(), rbuf->sel(), gate.sel(), label, credits);
+    Syscalls::get().creategate(rbuf->sel(), gate.sel(), label, credits);
     return gate;
 }
 

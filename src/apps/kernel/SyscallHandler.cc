@@ -352,13 +352,12 @@ void SyscallHandler::creategate(GateIStream &is) {
     VPE *vpe = is.gate().session<VPE>();
 
     auto req = get_message<m3::KIF::Syscall::CreateGate>(is);
-    capsel_t tcap = req->vpe;
     capsel_t rbuf = req->rbuf;
     capsel_t dstcap = req->gate;
     label_t label = req->label;
     word_t credits = req->credits;
 
-    LOG_SYS(vpe, ": syscall::creategate", "(vpe=" << tcap << ", rbuf=" << rbuf << ", cap=" << dstcap
+    LOG_SYS(vpe, ": syscall::creategate", "(rbuf=" << rbuf << ", cap=" << dstcap
         << ", label=" << m3::fmt(label, "#0x", sizeof(label_t) * 2)
         << ", crd=#" << m3::fmt(credits, "0x") << ")");
 
@@ -367,9 +366,6 @@ void SyscallHandler::creategate(GateIStream &is) {
         PANIC("Unlimited credits are not yet supported on gem5");
 #endif
 
-    VPECapability *tcapobj = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
-    if(tcapobj == nullptr)
-        SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "VPE capability is invalid");
     RBufCapability *rbufcap = static_cast<RBufCapability*>(vpe->objcaps().get(rbuf, Capability::RBUF));
     if(rbufcap == nullptr)
         SYS_ERROR(vpe, is, m3::Errors::INV_ARGS, "RBuf capability is invalid");

@@ -216,7 +216,6 @@ struct KIF {
         } PACKED;
 
         struct CreateGate : public DefaultRequest {
-            word_t vpe;
             word_t rbuf;
             word_t gate;
             word_t label;

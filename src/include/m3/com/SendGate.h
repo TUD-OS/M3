@@ -50,8 +50,7 @@ public:
     static const word_t UNLIMITED   = KIF::UNLIM_CREDITS;
 
     /**
-     * Creates a new send-gate for your own VPE. That is, a gate is created for one of your endpoints
-     * that you can delegate to somebody else so that he can send messages to you.
+     * Creates a new send-gate for the receive buffer of the given receive gate.
      *
      * @param credits the credits to assign to this gate
      * @param rcvgate the receive-gate to which the messages should be sent
@@ -60,18 +59,16 @@ public:
     static SendGate create(word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
 
     /**
-     * Creates a new send-gate for the given VPE. That is, a gate is created for one of the endpoints
-     * of the given VPE.
+     * Creates a new send-gate for the given receive buffer.
      *
-     * @param vpe the VPE for whose endpoints the gate should be created
      * @param rbuf the destination receive buffer
      * @param label the label
      * @param credits the credits to assign to this gate
      * @param rcvgate the receive-gate to which the replies should be sent
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
-    static SendGate create_for(const VPE &vpe, RecvBuf *rbuf, label_t label = 0,
-        word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
+    static SendGate create_for(RecvBuf *rbuf, label_t label = 0, word_t credits = UNLIMITED,
+        RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
 
     /**
      * Binds this gate for sending to the given msg-capability. Typically, you've received the

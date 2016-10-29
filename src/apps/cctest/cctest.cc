@@ -32,7 +32,7 @@ int main() {
     cc.obtain_fds();
 
     RecvBuf rbuf = RecvBuf::create(nextlog2<512>::val, nextlog2<64>::val);
-    SendGate sg = SendGate::create_for(cc, &rbuf, 0, 64);
+    SendGate sg = SendGate::create_for(&rbuf, 0, 64);
 
     cc.run([&rbuf, virt] {
         RecvGate rgate = RecvGate::create(&rbuf);

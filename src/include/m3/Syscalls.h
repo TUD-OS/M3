@@ -55,7 +55,7 @@ public:
     Errors::Code createsess(capsel_t vpe, capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code createrbuf(capsel_t rbuf, int order, int msgorder);
-    Errors::Code creategate(capsel_t vpe, capsel_t rbuf, capsel_t dst, label_t label, word_t credits);
+    Errors::Code creategate(capsel_t rbuf, capsel_t dst, label_t label, word_t credits);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, size_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, const KIF::CapRngDesc &other, bool obtain);
