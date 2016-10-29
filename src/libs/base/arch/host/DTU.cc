@@ -259,7 +259,7 @@ int DTU::prepare_fetchmsg(epid_t ep) {
         return CTRL_ERROR;
 
     size_t roff = get_ep(ep, EP_BUF_ROFF);
-    word_t unread = get_ep(ep, EP_BUF_OCCUPIED);
+    word_t unread = get_ep(ep, EP_BUF_UNREAD);
     size_t ord = get_ep(ep, EP_BUF_ORDER);
     size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
     size_t size = 1UL << (ord - msgord);
