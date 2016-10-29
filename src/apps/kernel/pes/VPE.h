@@ -159,12 +159,8 @@ public:
         _flags &= ~F_WAITING;
     }
 
-    void subscribe_exit(const m3::Subscriptions<int>::callback_type &cb) {
-        _exitsubscr.subscribe(cb);
-    }
-    void unsubscribe_exit(m3::Subscriber<int> *sub) {
-        _exitsubscr.unsubscribe(sub);
-    }
+    void wait_for_exit();
+
     void subscribe_resume(const m3::Subscriptions<bool>::callback_type &cb) {
         _resumesubscr.subscribe(cb);
     }
@@ -284,7 +280,6 @@ private:
     size_t _argc;
     char **_argv;
     uintptr_t _epaddr;
-    m3::Subscriptions<int> _exitsubscr;
     m3::Subscriptions<bool> _resumesubscr;
 };
 

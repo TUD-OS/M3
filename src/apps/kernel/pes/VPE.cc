@@ -50,7 +50,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _requires(),
       _argc(),
       _argv(),
-      _exitsubscr(),
       _resumesubscr() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MemCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
@@ -104,6 +103,10 @@ void VPE::stop_app() {
     }
 }
 
+void VPE::wait_for_exit() {
+    m3::ThreadManager::get().wait_for(&_exitcode);
+}
+
 void VPE::exit_app(int exitcode) {
     // no update on the PE here, since we don't save the state anyway
     _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
@@ -114,11 +117,7 @@ void VPE::exit_app(int exitcode) {
 
     PEManager::get().stop_vpe(this);
 
-    for(auto it = _exitsubscr.begin(); it != _exitsubscr.end();) {
-        auto cur = it++;
-        cur->callback(exitcode, &*cur);
-        _exitsubscr.unsubscribe(&*cur);
-    }
+    m3::ThreadManager::get().notify(&_exitcode);
 
     unref();
 }

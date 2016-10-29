@@ -56,28 +56,6 @@ INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
         return;                                                                             \
     }
 
-struct ReplyInfo {
-    explicit ReplyInfo(const m3::DTU::Message &msg)
-        : replylbl(msg.replylabel), replyep(msg.reply_ep()), crdep(msg.send_ep()),
-          replycrd(msg.length) {
-    }
-
-    label_t replylbl;
-    epid_t replyep;
-    epid_t crdep;
-    word_t replycrd;
-};
-
-static void reply_to_vpe(VPE *vpe, const ReplyInfo &info, const void *msg, size_t size) {
-    // to send a reply, the VPE has to be running on a PE
-    while(vpe->state() != VPE::RUNNING) {
-        if(!vpe->resume())
-            return;
-    }
-
-    DTU::get().reply_to(vpe->desc(), info.replyep, info.crdep, info.replycrd, info.replylbl, msg, size);
-}
-
 static inline void kreply_msg(VPE *vpe, GateIStream &is, const void *msg, size_t size) {
     while(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
@@ -544,15 +522,13 @@ void SyscallHandler::vpectrl(GateIStream &is) {
             if(!vpecap->vpe->has_app())
                 kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             else {
-                ReplyInfo rinfo(is.message());
-                vpecap->vpe->subscribe_exit([vpe, is, rinfo] (int exitcode, m3::Subscriber<int> *) {
-                    EVENT_TRACER_Syscall_vpectrl();
+                vpe->start_wait();
+                vpecap->vpe->wait_for_exit();
+                vpe->stop_wait();
 
-                    LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << exitcode << ")");
+                LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << vpecap->vpe->exitcode() << ")");
 
-                    auto reply = kernel::create_vmsg(m3::Errors::NO_ERROR, exitcode);
-                    reply_to_vpe(vpe, rinfo, reply.bytes(), reply.total());
-                });
+                kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             }
             break;
     }
