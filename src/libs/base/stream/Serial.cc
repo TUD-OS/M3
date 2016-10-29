@@ -25,7 +25,7 @@ const char *Serial::_colors[] = {
 };
 Serial *Serial::_inst USED;
 
-void Serial::init(const char *path, int core) {
+void Serial::init(const char *path, peid_t pe) {
     if(_inst == nullptr)
         _inst = new Serial();
 
@@ -40,7 +40,7 @@ void Serial::init(const char *path, int core) {
     strcpy(_inst->_outbuf + i, "\e[0;");
     i += 4;
     long col;
-    divide(core,ARRAY_SIZE(_colors),&col);
+    divide(pe,ARRAY_SIZE(_colors),&col);
     strcpy(_inst->_outbuf + i, _colors[col]);
     i += 2;
     _inst->_outbuf[i++] = 'm';
@@ -51,7 +51,7 @@ void Serial::init(const char *path, int core) {
     for(; x < 8; ++x)
         _inst->_outbuf[i++] = ' ';
     _inst->_outbuf[i++] = '@';
-    _inst->_outbuf[i++] = core <= 9 ? '0' + core : 'A' + (core - 10);
+    _inst->_outbuf[i++] = pe <= 9 ? '0' + pe : 'A' + (pe - 10);
     _inst->_outbuf[i++] = ']';
     _inst->_outbuf[i++] = ' ';
     _inst->_start = _inst->_outpos = i;

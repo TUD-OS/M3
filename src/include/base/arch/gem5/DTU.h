@@ -161,7 +161,7 @@ public:
         };
 
         uint8_t flags; // if bit 0 is set its a reply, if bit 1 is set we grant credits
-        uint8_t senderCoreId;
+        uint8_t senderPe;
         uint8_t senderEp;
         uint8_t replyEp;   // for a normal message this is the reply epId
                            // for a reply this is the enpoint that receives credits
@@ -206,7 +206,7 @@ public:
     static uintptr_t noc_to_virt(uint64_t noc) {
         return noc & ((static_cast<uint64_t>(1) << 52) - 1);
     }
-    static uint64_t build_noc_addr(int pe, uintptr_t virt) {
+    static uint64_t build_noc_addr(peid_t pe, uintptr_t virt) {
         return (static_cast<uintptr_t>(0x80 + pe) << 52) | virt;
     }
 

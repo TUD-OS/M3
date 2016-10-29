@@ -408,7 +408,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
     // create VPE
     VPE *nvpe = VPEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
     if(nvpe == nullptr)
-        SYS_ERROR(vpe, is, m3::Errors::NO_FREE_CORE, "No free and suitable pe found");
+        SYS_ERROR(vpe, is, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 
     // childs of daemons are daemons
     if(vpe->flags() & VPE::F_DAEMON)

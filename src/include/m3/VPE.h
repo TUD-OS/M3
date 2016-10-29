@@ -90,7 +90,7 @@ public:
      * @param name the VPE name
      * @param pe the desired PE type (default: same as the current PE)
      * @param pager the pager (optional)
-     * @param tmuxable whether this VPE can share a core with others
+     * @param tmuxable whether this VPE can share a PE with others
      */
     explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(), const char *pager = nullptr, bool tmuxable = false);
     ~VPE();

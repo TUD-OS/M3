@@ -129,7 +129,7 @@ void PEManager::yield_vpe(VPE *vpe) {
         m3::PEDesc pedesc = Platform::pe(pe);
 
         // try to steal a VPE from a different PE
-        for(size_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
             if(!_ctxswitcher[i] ||
                 i == pe ||
                 Platform::pe(i).isa() != pedesc.isa() ||
@@ -165,10 +165,9 @@ bool PEManager::unblock_vpe(VPE *vpe, bool force) {
 }
 
 peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
-    size_t i;
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
-    for(i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+    for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(i == except ||
            Platform::pe(i).isa() != pe.isa() ||
            Platform::pe(i).type() != pe.type())

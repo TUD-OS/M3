@@ -79,7 +79,7 @@ public:
     }
 
     bool is_kernel() const {
-        return coreid == 0;
+        return pe == 0;
     }
     int log_fd() const {
         return _logfd;
@@ -96,10 +96,10 @@ public:
     void print() const;
 
     void init_dtu();
-    void set_params(int core, const std::string &shmprefix, label_t sysc_label,
+    void set_params(peid_t _pe, const std::string &shmprefix, label_t sysc_label,
                     epid_t sysc_ep, word_t sysc_credits) {
-        coreid = core;
-        pe = PEDesc(PEType::COMP_IMEM, m3::PEISA::X86, 1024 * 1024);
+        pe = _pe;
+        pedesc = PEDesc(PEType::COMP_IMEM, m3::PEISA::X86, 1024 * 1024);
         _shm_prefix = shmprefix.c_str();
         _sysc_label = sysc_label;
         _sysc_epid = sysc_ep;
@@ -113,15 +113,15 @@ public:
 private:
     static int set_inst(Env *e) {
         _inst = e;
-        // coreid
+        // pe id
         return 0;
     }
     static void init_executable();
 
 public:
-    int coreid;
+    peid_t pe;
     EnvBackend *backend;
-    PEDesc pe;
+    PEDesc pedesc;
 
 private:
     int _logfd;

@@ -56,11 +56,11 @@ Platform::KEnv::KEnv() {
 }
 
 peid_t Platform::kernel_pe() {
-    // gem5 initializes the coreid for us
-    return m3::env()->coreid;
+    // gem5 initializes the peid for us
+    return m3::env()->pe;
 }
 peid_t Platform::first_pe() {
-    return m3::env()->coreid + 1;
+    return m3::env()->pe + 1;
 }
 peid_t Platform::last_pe() {
     return last_pe_id;

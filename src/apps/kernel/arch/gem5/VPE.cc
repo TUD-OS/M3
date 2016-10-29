@@ -274,7 +274,7 @@ void VPE::load_app() {
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = STACK_TOP - sizeof(word_t);
     senv.entry = entry;
-    senv.pe = Platform::pe(pe());
+    senv.pedesc = Platform::pe(pe());
     senv.heapsize = MOD_HEAP_SIZE;
 
     DTU::get().write_mem(desc(), RT_START, &senv, sizeof(senv));

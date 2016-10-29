@@ -30,10 +30,10 @@
 namespace m3 {
 
 void MsgBackend::create() {
-    for(size_t c = 0; c < MAX_CORES; ++c) {
-        for(epid_t i = 0; i < EP_COUNT; ++i) {
-            size_t off = c * EP_COUNT + i;
-            _ids[off] = msgget(get_msgkey(c, i), IPC_CREAT | IPC_EXCL | 0777);
+    for(peid_t pe = 0; pe < PE_COUNT; ++pe) {
+        for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
+            size_t off = pe * EP_COUNT + ep;
+            _ids[off] = msgget(get_msgkey(pe, ep), IPC_CREAT | IPC_EXCL | 0777);
             if(_ids[off] == -1)
                 PANIC("Creation of message queue failed: " << strerror(errno));
         }
@@ -41,12 +41,12 @@ void MsgBackend::create() {
 }
 
 void MsgBackend::destroy() {
-    for(size_t i = 0; i < MAX_CORES * EP_COUNT; ++i)
+    for(size_t i = 0; i < PE_COUNT * EP_COUNT; ++i)
         msgctl(_ids[i], IPC_RMID, nullptr);
 }
 
-void MsgBackend::send(int core, epid_t ep, const DTU::Buffer *buf) {
-    int msgqid = msgget(get_msgkey(core, ep), 0);
+void MsgBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
+    int msgqid = msgget(get_msgkey(pe, ep), 0);
     // send it
     int res;
     do
@@ -59,7 +59,7 @@ void MsgBackend::send(int core, epid_t ep, const DTU::Buffer *buf) {
 ssize_t MsgBackend::recv(epid_t ep, DTU::Buffer *buf) {
     int msgqid = DTU::get().get_ep(ep, DTU::EP_BUF_MSGQID);
     if(msgqid == 0) {
-        msgqid = msgget(get_msgkey(env()->coreid, ep), 0);
+        msgqid = msgget(get_msgkey(env()->pe, ep), 0);
         DTU::get().set_ep(ep, DTU::EP_BUF_MSGQID, msgqid);
     }
 
@@ -74,14 +74,14 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
     if(_sock == -1)
         PANIC("Unable to open socket: " << strerror(errno));
 
-    // build socket names for all endpoints on all cores
-    for(int core = 0; core < MAX_CORES; ++core) {
+    // build socket names for all endpoints on all PEs
+    for(peid_t pe = 0; pe < PE_COUNT; ++pe) {
         for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
-            sockaddr_un *addr = _endpoints + core * EP_COUNT + ep;
+            sockaddr_un *addr = _endpoints + pe * EP_COUNT + ep;
             addr->sun_family = AF_UNIX;
             // we can't put that in the format string
             addr->sun_path[0] = '\0';
-            snprintf(addr->sun_path + 1, sizeof(addr->sun_path) - 1, "m3_ep_%d.%d", core, (int)ep);
+            snprintf(addr->sun_path + 1, sizeof(addr->sun_path) - 1, "m3_ep_%d.%d", (int)pe, (int)ep);
         }
     }
 
@@ -98,7 +98,7 @@ SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localso
         if(fcntl(_localsocks[ep], F_SETFL, O_NONBLOCK) == -1)
             PANIC("Setting O_NONBLOCK failed: " << strerror(errno));
 
-        sockaddr_un *addr = _endpoints + env()->coreid * EP_COUNT + ep;
+        sockaddr_un *addr = _endpoints + env()->pe * EP_COUNT + ep;
         if(bind(_localsocks[ep], (struct sockaddr*)addr, sizeof(*addr)) == -1)
             PANIC("Binding socket for ep " << ep << " failed: " << strerror(errno));
     }
@@ -109,10 +109,10 @@ SocketBackend::~SocketBackend() {
         close(_localsocks[ep]);
 }
 
-void SocketBackend::send(int core, epid_t ep, const DTU::Buffer *buf) {
+void SocketBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
     if(sendto(_sock, buf, buf->length + DTU::HEADER_SIZE, 0,
-        (struct sockaddr*)(_endpoints + core * EP_COUNT + ep), sizeof(sockaddr_un)) == -1)
-        LLOG(DTUERR, "Sending message to EP " << core << ":" << ep << " failed: " << strerror(errno));
+        (struct sockaddr*)(_endpoints + pe * EP_COUNT + ep), sizeof(sockaddr_un)) == -1)
+        LLOG(DTUERR, "Sending message to EP " << pe << ":" << ep << " failed: " << strerror(errno));
 }
 
 ssize_t SocketBackend::recv(epid_t ep, DTU::Buffer *buf) {

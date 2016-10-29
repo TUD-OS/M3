@@ -19,7 +19,7 @@
 namespace m3 {
 
 void *RecvBuf::allocate(epid_t ep, size_t size) {
-    uintptr_t offset = DTU::get().recvbuf_offset(env()->coreid, ep);
+    uintptr_t offset = DTU::get().recvbuf_offset(env()->pe, ep);
     return reinterpret_cast<void*>(RECV_BUF_LOCAL + offset);
 }
 

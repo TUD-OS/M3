@@ -68,7 +68,7 @@ Errors::Code VPE::run(void *lambda) {
     copy_sections();
 
     alignas(DTU_PKG_SIZE) Env senv;
-    senv.coreid = 0;
+    senv.pe = 0;
     senv.argc = env()->argc;
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = get_sp();
@@ -86,7 +86,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.pager_sess = 0;
 
     senv.backend = env()->backend;
-    senv.pe = _pe;
+    senv.pedesc = _pe;
 
     senv.heapsize = env()->heapsize;
 
@@ -157,7 +157,7 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.pager_gate = _pager ? _pager->gate().sel() : 0;
 
     senv.backend = nullptr;
-    senv.pe = _pe;
+    senv.pedesc = _pe;
 
     senv.heapsize = _pager ? APP_HEAP_SIZE : 0;
 
@@ -197,7 +197,7 @@ Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
         return _pager->map_anon(&virt, sz, prot, 0);
     }
 
-    /* seek to that offset and copy it to destination core */
+    /* seek to that offset and copy it to destination PE */
     if(exec.stream().seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
         return Errors::INVALID_ELF;
 
@@ -232,7 +232,7 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
         header.e_ident[3] != 'F')
         return Errors::INVALID_ELF;
 
-    /* copy load segments to destination core */
+    /* copy load segments to destination PE */
     uintptr_t end = 0;
     off_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {

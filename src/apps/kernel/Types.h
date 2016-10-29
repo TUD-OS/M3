@@ -19,4 +19,3 @@
 #include <base/Types.h>
 
 typedef ulong vpeid_t;
-typedef ulong peid_t;

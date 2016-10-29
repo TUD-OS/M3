@@ -29,15 +29,15 @@ class MsgBackend : public DTU::Backend {
 public:
     virtual void create() override;
     virtual void destroy() override;
-    virtual void send(int core, epid_t ep, const DTU::Buffer *buf) override;
+    virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) override;
     virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
 
 private:
-    static key_t get_msgkey(int core, epid_t rep) {
-        return BASE_MSGQID + core * EP_COUNT + rep;
+    static key_t get_msgkey(peid_t pe, epid_t rep) {
+        return BASE_MSGQID + pe * EP_COUNT + rep;
     }
 
-    int _ids[EP_COUNT * MAX_CORES];
+    int _ids[EP_COUNT * PE_COUNT];
 };
 
 class SocketBackend : public DTU::Backend {
@@ -48,13 +48,13 @@ public:
     }
     virtual void destroy() override {
     }
-    virtual void send(int core, epid_t ep, const DTU::Buffer *buf) override;
+    virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) override;
     virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
 
 private:
     int _sock;
     int _localsocks[EP_COUNT];
-    sockaddr_un _endpoints[MAX_CORES * EP_COUNT];
+    sockaddr_un _endpoints[PE_COUNT * EP_COUNT];
 };
 
 }

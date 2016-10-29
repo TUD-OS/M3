@@ -56,7 +56,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     cout << "-- Test errors --\n";
     {
-        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->pe,
             rcvep, datasize);
 
         dmacmd(nullptr, 0, sndep, 0, datasize, DTU::WRITE);
@@ -74,7 +74,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
     cout << "-- Test reading --\n";
     {
-        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->pe,
             rcvep, datasize);
 
         word_t buf[datasize / sizeof(word_t)];
@@ -104,7 +104,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->pe,
             rcvep, sizeof(data));
 
         dmacmd(nullptr, 0, sndep, 0, sizeof(data), DTU::READ);
@@ -114,7 +114,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     cout << "-- Test writing --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->pe,
             rcvep, sizeof(data));
 
         dmacmd(data, sizeof(data), sndep, 0, sizeof(data), DTU::WRITE);
@@ -150,7 +150,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test errors --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->pe,
             rcvep, refdatasize);
 
         dmacmd(data, sizeof(data), sndep, 0, sizeof(refdata), DTU::READ);
@@ -163,7 +163,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test failure --\n";
     {
         word_t data[] = {1234, 567, 1122, 3344};
-        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->pe,
             rcvep, refdatasize);
 
         dmacmd(data, sizeof(data), sndep, 0, refdatasize, DTU::CMPXCHG);
@@ -175,7 +175,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test success --\n";
     {
         word_t data[] = {1234, 5678, 1122, 3344};
-        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->pe,
             rcvep, refdatasize);
 
         dmacmd(data, sizeof(data), sndep, 0, refdatasize, DTU::CMPXCHG);
@@ -187,7 +187,7 @@ void CommandsTestSuite::CmpxchgCmdTestCase::run() {
     cout << "-- Test offset --\n";
     {
         word_t data[] = {3344, 4455};
-        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->coreid,
+        dtu.configure(sndep, reinterpret_cast<word_t>(refdata) | MemGate::X, env()->pe,
             rcvep, refdatasize);
 
         dmacmd(data, sizeof(data), sndep, sizeof(word_t), sizeof(word_t), DTU::CMPXCHG);

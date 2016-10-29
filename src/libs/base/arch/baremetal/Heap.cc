@@ -31,8 +31,8 @@ void Heap::init() {
     uintptr_t end;
     if(env()->heapsize == 0) {
 #if defined(__gem5__)
-        if(env()->pe.has_memory())
-            end = env()->pe.mem_size() - RECVBUF_SIZE_SPM;
+        if(env()->pedesc.has_memory())
+            end = env()->pedesc.mem_size() - RECVBUF_SIZE_SPM;
         // this does only exist so that we can still run scenarios on cache-PEs without pager
         else
             end = Math::round_up(begin, PAGE_SIZE) + MOD_HEAP_SIZE;

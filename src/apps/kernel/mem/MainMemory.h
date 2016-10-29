@@ -45,7 +45,7 @@ public:
         operator bool() const {
             return size > 0;
         }
-        size_t pe() const {
+        peid_t pe() const {
             return MainMemory::get().module(mod).pe();
         }
 
@@ -65,7 +65,7 @@ public:
     Allocation allocate(size_t size, size_t align);
     Allocation allocate_at(uintptr_t offset, size_t size);
 
-    void free(size_t pe, uintptr_t addr, size_t size);
+    void free(peid_t pe, uintptr_t addr, size_t size);
     void free(const Allocation &alloc);
 
     size_t size() const;

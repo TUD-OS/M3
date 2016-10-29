@@ -59,14 +59,14 @@ static void load_params(Env *e) {
     if(!in.good())
         PANIC("Unable to read " << path);
 
-    int coreid;
+    peid_t pe;
     epid_t ep;
     word_t credits;
     label_t lbl;
     std::string shm_prefix;
-    in >> shm_prefix >> coreid >> lbl >> ep >> credits;
+    in >> shm_prefix >> pe >> lbl >> ep >> credits;
 
-    e->set_params(coreid, shm_prefix, lbl, ep, credits);
+    e->set_params(pe, shm_prefix, lbl, ep, credits);
 }
 
 EXTERN_C WEAK void init_env() {
@@ -102,7 +102,7 @@ Env::Init::Init() {
 
     init_env();
 
-    Serial::init(executable(), env()->coreid);
+    Serial::init(executable(), env()->pe);
 }
 
 Env::Init::~Init() {
@@ -118,7 +118,7 @@ Env::PostInit::PostInit() {
 void Env::reset() {
     load_params(this);
 
-    Serial::init(executable(), env()->coreid);
+    Serial::init(executable(), env()->pe);
 
     DTU::get().reset();
     EPMux::get().reset();
@@ -130,7 +130,7 @@ void Env::reset() {
 }
 
 Env::Env(EnvBackend *backend, int logfd)
-        : coreid(set_inst(this)), backend(backend), _logfd(logfd), _shm_prefix(),
+        : pe(set_inst(this)), backend(backend), _logfd(logfd), _shm_prefix(),
           _sysc_label(), _sysc_epid(), _sysc_credits(),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER) {
 }

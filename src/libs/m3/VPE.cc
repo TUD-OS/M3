@@ -34,7 +34,7 @@ INIT_PRIO_VPE VPE VPE::_self;
 
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
-    : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _pe(env()->pe),
+    : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _pe(env()->pedesc),
       _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _ms(), _fds() {
     init_state();
     init();

@@ -91,8 +91,8 @@ static void *restore() {
     assert(flags & m3::WAITING);
 
     m3::Env *senv = m3::env();
-    // remember the current core id (might have changed since last switch)
-    senv->coreid = flags >> 32;
+    // remember the current PE (might have changed since last switch)
+    senv->pe = flags >> 32;
 
     if(!(status & STARTED)) {
         // if we get here, there is an application to jump to

@@ -34,7 +34,7 @@ static const char *errmsgs[] = {
     /*  9 */ "No such file or directory",
     /* 10 */ "No permissions",
     /* 11 */ "Not supported",
-    /* 12 */ "No free cores",
+    /* 12 */ "No free PE",
     /* 13 */ "Invalid ELF file",
     /* 14 */ "No space left",
     /* 15 */ "Object does already exist",

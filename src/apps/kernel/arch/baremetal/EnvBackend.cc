@@ -36,12 +36,12 @@ public:
     }
 
     virtual void init() override {
-        // don't do that on gem5 because the kernel coreid is already set by gem5
+        // don't do that on gem5 because the kernel peid is already set by gem5
 #if !defined(__gem5__)
-        m3::env()->coreid = DTU::get().log_to_phys(Platform::kernel_pe());
+        m3::env()->pe = DTU::get().log_to_phys(Platform::kernel_pe());
 #endif
 
-        m3::Serial::init("kernel", m3::env()->coreid);
+        m3::Serial::init("kernel", m3::env()->pe);
     }
 
     virtual void reinit() override {

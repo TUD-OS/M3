@@ -37,7 +37,7 @@ struct Errors {
         NO_SUCH_FILE,
         NO_PERM,
         NOT_SUP,
-        NO_FREE_CORE,
+        NO_FREE_PE,
         INVALID_ELF,
         NO_SPACE,
         EXISTS,

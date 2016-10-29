@@ -27,7 +27,7 @@
 namespace m3 {
 
 /**
- * Gate is the base-class of all gates. A Gate is in general a connection to an endpoint on a core.
+ * Gate is the base-class of all gates. A Gate is in general a connection to an endpoint on a PE.
  * This can be used for send/reply or for memory operations like read and write.
  *
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.

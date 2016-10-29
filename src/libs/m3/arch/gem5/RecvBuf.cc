@@ -29,12 +29,12 @@ void *RecvBuf::allocate(size_t, size_t size) {
     static size_t total = 0;
     static uintptr_t begin = 0;
     if(nextbuf == 0) {
-        if(env()->pe.has_virtmem()) {
+        if(env()->pedesc.has_virtmem()) {
             begin = nextbuf = RECVBUF_SPACE;
             total = RECVBUF_SIZE;
         }
         else {
-            begin = nextbuf = env()->pe.mem_size() - RECVBUF_SIZE_SPM;
+            begin = nextbuf = env()->pedesc.mem_size() - RECVBUF_SIZE_SPM;
             total = RECVBUF_SIZE_SPM;
         }
     }

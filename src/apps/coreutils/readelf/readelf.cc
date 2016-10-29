@@ -47,10 +47,8 @@ static void parse(FStream &bin) {
     cout << "Program Headers:\n";
     cout << "  Type    Offset     VirtAddr     PhysAddr     FileSiz   MemSiz    Flg Align\n";
 
-    /* copy load segments to destination core */
     off_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
-        /* load program header */
         ELF_PH pheader;
         if(bin.seek(off, SEEK_SET) != off)
             exitmsg("Invalid ELF-file");
@@ -68,7 +66,6 @@ static void parse(FStream &bin) {
              << ((pheader.p_flags & PF_X) ? "E" : " ") << " "
              << fmt(pheader.p_align, "#0x") << "\n";
 
-        /* seek to that offset and copy it to destination core */
         if(bin.seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
             exitmsg("Invalid ELF-file");
 

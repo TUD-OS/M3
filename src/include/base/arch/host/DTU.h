@@ -58,7 +58,7 @@ public:
         label_t label;
         struct {
             unsigned has_replycap : 1,
-                     core : 15,
+                     pe : 15,
                      rpl_ep : 8,
                      snd_ep : 8;
         } PACKED;
@@ -88,7 +88,7 @@ public:
         }
         virtual void create() = 0;
         virtual void destroy() = 0;
-        virtual void send(int core, epid_t ep, const DTU::Buffer *buf) = 0;
+        virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) = 0;
         virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) = 0;
     };
 
@@ -121,7 +121,7 @@ public:
     static constexpr size_t EP_BUF_OCCUPIED     = 8;
 
     // for sending message and accessing memory
-    static constexpr size_t EP_COREID           = 9;
+    static constexpr size_t EP_PEID             = 9;
     static constexpr size_t EP_EPID             = 10;
     static constexpr size_t EP_LABEL            = 11;
     static constexpr size_t EP_CREDITS          = 12;
@@ -193,12 +193,12 @@ public:
         _epregs[ep * EPS_RCNT + reg] = val;
     }
 
-    void configure(epid_t ep, label_t label, int coreid, epid_t dstep, word_t credits) {
-        configure(const_cast<word_t*>(_epregs), ep, label, coreid, dstep, credits);
+    void configure(epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits) {
+        configure(const_cast<word_t*>(_epregs), ep, label, pe, dstep, credits);
     }
-    static void configure(word_t *eps, epid_t ep, label_t label, int coreid, epid_t dstep, word_t credits) {
+    static void configure(word_t *eps, epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits) {
         eps[ep * EPS_RCNT + EP_LABEL] = label;
-        eps[ep * EPS_RCNT + EP_COREID] = coreid;
+        eps[ep * EPS_RCNT + EP_PEID] = pe;
         eps[ep * EPS_RCNT + EP_EPID] = dstep;
         eps[ep * EPS_RCNT + EP_CREDITS] = credits;
     }
@@ -321,21 +321,21 @@ private:
             occupied &= ~(static_cast<word_t>(1) << idx);
     }
 
-    int prepare_reply(epid_t ep, int &dstcore, epid_t &dstep);
-    int prepare_send(epid_t ep, int &dstcore, epid_t &dstep);
-    int prepare_read(epid_t ep, int &dstcore, epid_t &dstep);
-    int prepare_write(epid_t ep, int &dstcore, epid_t &dstep);
-    int prepare_cmpxchg(epid_t ep, int &dstcore, epid_t &dstep);
-    int prepare_sendcrd(epid_t ep, int &dstcore, epid_t &dstep);
+    int prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    int prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    int prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    int prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    int prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    int prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep);
     int prepare_fetchmsg(epid_t ep);
     int prepare_ackmsg(epid_t ep);
 
-    void send_msg(epid_t ep, int dstcoreid, epid_t dstep, bool isreply);
+    void send_msg(epid_t ep, peid_t dstpe, epid_t dstep, bool isreply);
     void handle_read_cmd(epid_t ep);
     void handle_write_cmd(epid_t ep);
     void handle_resp_cmd();
     void handle_cmpxchg_cmd(epid_t ep);
-    void handle_command(int core);
+    void handle_command(peid_t pe);
     void handle_msg(size_t len, epid_t ep);
     void handle_receive(epid_t ep);
 

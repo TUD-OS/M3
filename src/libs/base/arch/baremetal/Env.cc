@@ -33,7 +33,7 @@ OStream &operator<<(OStream &os, const Env &senv) {
     static_assert((sizeof(Env) % DTU_PKG_SIZE) == 0, "sizeof(Env) % 8 !=  0");
 #endif
 
-    os << "core  : " << senv.coreid << "\n";
+    os << "pe    : " << senv.pe << "\n";
     os << "argc  : " << senv.argc << "\n";
     os << "argv  : " << fmt((void*)senv.argv, "p") << "\n";
     os << "sp    : " << fmt(senv.sp, "p") << "\n";

@@ -35,3 +35,4 @@ using fd_t      = int;
 using cycles_t  = uint64_t;
 
 using epid_t    = ulong;
+using peid_t    = ulong;

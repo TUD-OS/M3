@@ -56,7 +56,7 @@ MainMemory::Allocation MainMemory::allocate_at(uintptr_t offset, size_t size) {
     return Allocation();
 }
 
-void MainMemory::free(size_t pe, uintptr_t addr, size_t size) {
+void MainMemory::free(peid_t pe, uintptr_t addr, size_t size) {
     for(size_t i = 0; i < _count; ++i) {
         if(_mods[i]->pe() == pe) {
             _mods[i]->map().free(addr, size);

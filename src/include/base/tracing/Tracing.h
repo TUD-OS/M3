@@ -104,13 +104,13 @@
 /// memory read/write is finished
 #define EVENT_TRACE_MEM_FINISH()                m3::Tracing::get().event_mem_finish();
 /// memory read
-#define EVENT_TRACE_MEM_READ(core, len)         m3::Tracing::get().event_mem_read(core, len);
+#define EVENT_TRACE_MEM_READ(pe, len)           m3::Tracing::get().event_mem_read(pe, len);
 /// memory write
-#define EVENT_TRACE_MEM_WRITE(core, len)        m3::Tracing::get().event_mem_write(core, len);
+#define EVENT_TRACE_MEM_WRITE(pe, len)          m3::Tracing::get().event_mem_write(pe, len);
 /// message send
-#define EVENT_TRACE_MSG_SEND(core, len, tag)    m3::Tracing::get().event_msg_send(core, len, tag);
+#define EVENT_TRACE_MSG_SEND(pe, len, tag)      m3::Tracing::get().event_msg_send(pe, len, tag);
 /// message receive
-#define EVENT_TRACE_MSG_RECV(core, len, tag)    m3::Tracing::get().event_msg_recv(core, len, tag);
+#define EVENT_TRACE_MSG_RECV(pe, len, tag)      m3::Tracing::get().event_msg_recv(pe, len, tag);
 ///
 /// initialize at kernel
 #define EVENT_TRACE_INIT_KERNEL()               m3::Tracing::get().init_kernel();
@@ -163,10 +163,10 @@ public:
 //#define EVENT_ENTER(id) Tracing::get().event_func_enter(id);
 //#define EVENT_EXIT() Tracing::get().event_func_exit();
 #define EVENT_TRACE_MEM_FINISH()
-#define EVENT_TRACE_MEM_READ(remotecore, length)
-#define EVENT_TRACE_MEM_WRITE(remotecore, length)
-#define EVENT_TRACE_MSG_SEND(remotecore, length, tag)
-#define EVENT_TRACE_MSG_RECV(remotecore, length, tag)
+#define EVENT_TRACE_MEM_READ(pe, length)
+#define EVENT_TRACE_MEM_WRITE(pe, length)
+#define EVENT_TRACE_MSG_SEND(pe, length, tag)
+#define EVENT_TRACE_MSG_RECV(pe, length, tag)
 #define EVENT_TRACE_INIT_KERNEL()
 #define EVENT_TRACE_REINIT()
 #define EVENT_TRACE_FLUSH_LIGHT()

@@ -43,7 +43,7 @@ class Env {
     friend OStream &operator<<(OStream &, const Env &senv);
 
 public:
-    uint64_t coreid;
+    uint64_t pe;
     uint32_t argc;
     char **argv;
 
@@ -63,7 +63,7 @@ public:
 
     BaremetalEnvBackend *backend;
     uintptr_t kenv;
-    PEDesc pe;
+    PEDesc pedesc;
 
 #if defined(__gem5__)
     m3::Exceptions::isr_func *isrs;

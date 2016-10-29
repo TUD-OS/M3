@@ -336,7 +336,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         // senderVpeId can't be invalid
         VPE &v = VPEManager::get().vpe(rmsg->senderVpeId);
         // the VPE might have been migrated
-        rmsg->senderCoreId = v.pe();
+        rmsg->senderPe = v.pe();
         // re-enable replies
         rmsg->flags |= 1 << 2;
         res = m3::DTU::get().reply(ep, msg, size, msgidx);
