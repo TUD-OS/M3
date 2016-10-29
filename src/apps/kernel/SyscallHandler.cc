@@ -389,7 +389,7 @@ void SyscallHandler::createvpe(GateIStream &is) {
         SYS_ERROR(vpe, is, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 
     // childs of daemons are daemons
-    if(vpe->flags() & VPE::F_DAEMON)
+    if(vpe->is_daemon())
         nvpe->make_daemon();
 
     // inherit VPE and mem caps to the parent

@@ -194,7 +194,7 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     enqueue(vpe);
 
     // if we are forced or are executing nothing useful atm, start a switch immediately
-    if(force || !_cur || (_cur->flags() & VPE::F_IDLE) || _cur->is_waiting())
+    if(force || !_cur || (_cur->_flags & VPE::F_IDLE) || _cur->is_waiting())
         return start_switch();
 
     if(!_timeout) {
@@ -216,7 +216,7 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 
 void ContextSwitcher::update_report() {
     bool report = _global_ready > 0;
-    if(can_mux() && _cur && !(_cur->flags() & VPE::F_IDLE) && report != _set_report) {
+    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && report != _set_report) {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating report=" << report);
 
         // update idle_report and wake him up in case he was idling
@@ -341,7 +341,7 @@ retry:
 
             _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->id());
 
-            if(_cur->flags() & VPE::F_INIT)
+            if(_cur->_flags & VPE::F_INIT)
                 _cur->init_memory();
 
             // fall through
@@ -353,7 +353,7 @@ retry:
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
 
             // tell rctmux whether there is an application and the PE id
-            if(_cur->flags() & VPE::F_HASAPP)
+            if(_cur->_flags & VPE::F_HASAPP)
                 flags |= m3::RCTMuxCtrl::RESTORE | (static_cast<uint64_t>(_pe) << 32);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: restoring VPE " << _cur->id() << " with report="

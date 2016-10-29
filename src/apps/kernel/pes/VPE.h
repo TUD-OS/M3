@@ -83,17 +83,21 @@ public:
     VPE &operator=(const VPE &) = delete;
     ~VPE();
 
-    const VPEDesc &desc() const {
-        return _desc;
-    }
     vpeid_t id() const {
         return desc().id;
+    }
+    const m3::String &name() const {
+        return _name;
+    }
+
+    const VPEDesc &desc() const {
+        return _desc;
     }
     peid_t pe() const {
         return desc().pe;
     }
-    const m3::String &name() const {
-        return _name;
+    void set_pe(peid_t pe) {
+        _desc.pe = pe;
     }
 
     int pid() const {
@@ -103,23 +107,24 @@ public:
         _pid = pid;
     }
 
-    void set_pe(peid_t pe) {
-        _desc.pe = pe;
+    bool is_daemon() const {
+        return _flags & F_DAEMON;
     }
-
-    uint flags() const {
-        return _flags;
+    bool has_app() const {
+        return _flags & F_HASAPP;
     }
-    int state() const {
+    State state() const {
         return _state;
     }
 
     AddrSpace *address_space() {
         return _as;
     }
+
     RecvBufs &rbufs() {
         return _rbufs;
     }
+
     uintptr_t ep_addr() const {
         return _epaddr;
     }
@@ -145,6 +150,7 @@ public:
     int exitcode() const {
         return _exitcode;
     }
+    void wait_for_exit();
 
     bool is_waiting() const {
         return _flags & F_WAITING;
@@ -156,15 +162,6 @@ public:
     void stop_wait() {
         assert(_flags & F_WAITING);
         _flags &= ~F_WAITING;
-    }
-
-    void wait_for_exit();
-
-    const m3::SList<ServName> &requirements() const {
-        return _requires;
-    }
-    void add_requirement(const m3::String &name) {
-        _requires.append(new ServName(name));
     }
 
     CapTable &objcaps() {
@@ -190,15 +187,6 @@ public:
     }
     void upcall_notify(m3::Errors::Code res, word_t event);
 
-    bool has_app() const {
-        return _flags & F_HASAPP;
-    }
-
-    void set_args(size_t argc, char **argv) {
-        _argc = argc;
-        _argv = argv;
-    }
-
     void add_forward() {
         _pending_fwds++;
     }
@@ -216,8 +204,6 @@ public:
     bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 
-    void make_daemon();
-
     void invalidate_ep(epid_t ep);
 
     bool can_forward_msg(epid_t ep);
@@ -227,6 +213,20 @@ public:
     void config_rcv_ep(epid_t ep, const RBufObject &obj);
     void config_snd_ep(epid_t ep, const MsgObject &obj);
     void config_mem_ep(epid_t ep, const MemObject &obj);
+
+    void make_daemon();
+
+    const m3::SList<ServName> &requirements() const {
+        return _requires;
+    }
+    void add_requirement(const m3::String &name) {
+        _requires.append(new ServName(name));
+    }
+
+    void set_args(size_t argc, char **argv) {
+        _argc = argc;
+        _argv = argv;
+    }
 
 private:
     int refcount() const {
@@ -254,7 +254,7 @@ private:
     uint _flags;
     int _refs;
     int _pid;
-    int _state;
+    State _state;
     int _exitcode;
     uint _pending_fwds;
     m3::String _name;

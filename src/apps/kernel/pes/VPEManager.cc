@@ -181,14 +181,14 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, caps
 void VPEManager::add(VPE *vpe) {
     _vpes[vpe->id()] = vpe;
 
-    if(~vpe->flags() & VPE::F_IDLE) {
+    if(~vpe->_flags & VPE::F_IDLE) {
         _count++;
         PEManager::get().add_vpe(vpe);
     }
 }
 
 void VPEManager::remove(VPE *vpe) {
-    uint flags = vpe->flags();
+    uint flags = vpe->_flags;
     vpeid_t id = vpe->id();
 
     PEManager::get().remove_vpe(vpe);
