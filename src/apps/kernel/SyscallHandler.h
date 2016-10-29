@@ -29,7 +29,7 @@ class SyscallHandler {
     explicit SyscallHandler();
 
 public:
-    using handler_func = void (SyscallHandler::*)(GateIStream &is);
+    using handler_func = void (SyscallHandler::*)(VPE *vpe, const m3::DTU::Message *msg);
 
     static SyscallHandler &get() {
         return _inst;
@@ -39,7 +39,7 @@ public:
         _callbacks[op] = func;
     }
 
-    void handle_message(GateIStream &msg);
+    void handle_message(VPE *vpe, const m3::DTU::Message *msg);
 
     epid_t ep() const {
         // we can use it here because we won't issue syscalls ourself
@@ -53,38 +53,41 @@ public:
         return RecvGate(ep(), vpe);
     }
 
-    void pagefault(GateIStream &is);
-    void createsrv(GateIStream &is);
-    void createsess(GateIStream &is);
-    void createsessat(GateIStream &is);
-    void createrbuf(GateIStream &is);
-    void creategate(GateIStream &is);
-    void createvpe(GateIStream &is);
-    void createmap(GateIStream &is);
-    void exchange(GateIStream &is);
-    void vpectrl(GateIStream &is);
-    void delegate(GateIStream &is);
-    void obtain(GateIStream &is);
-    void activate(GateIStream &is);
-    void forwardmsg(GateIStream &is);
-    void forwardmem(GateIStream &is);
-    void forwardreply(GateIStream &is);
-    void reqmem(GateIStream &is);
-    void derivemem(GateIStream &is);
-    void revoke(GateIStream &is);
-    void idle(GateIStream &is);
-    void exit(GateIStream &is);
-    void noop(GateIStream &is);
+    void pagefault(VPE *vpe, const m3::DTU::Message *msg);
+    void createsrv(VPE *vpe, const m3::DTU::Message *msg);
+    void createsess(VPE *vpe, const m3::DTU::Message *msg);
+    void createsessat(VPE *vpe, const m3::DTU::Message *msg);
+    void createrbuf(VPE *vpe, const m3::DTU::Message *msg);
+    void creategate(VPE *vpe, const m3::DTU::Message *msg);
+    void createvpe(VPE *vpe, const m3::DTU::Message *msg);
+    void createmap(VPE *vpe, const m3::DTU::Message *msg);
+    void exchange(VPE *vpe, const m3::DTU::Message *msg);
+    void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
+    void delegate(VPE *vpe, const m3::DTU::Message *msg);
+    void obtain(VPE *vpe, const m3::DTU::Message *msg);
+    void activate(VPE *vpe, const m3::DTU::Message *msg);
+    void forwardmsg(VPE *vpe, const m3::DTU::Message *msg);
+    void forwardmem(VPE *vpe, const m3::DTU::Message *msg);
+    void forwardreply(VPE *vpe, const m3::DTU::Message *msg);
+    void reqmem(VPE *vpe, const m3::DTU::Message *msg);
+    void derivemem(VPE *vpe, const m3::DTU::Message *msg);
+    void revoke(VPE *vpe, const m3::DTU::Message *msg);
+    void idle(VPE *vpe, const m3::DTU::Message *msg);
+    void exit(VPE *vpe, const m3::DTU::Message *msg);
+    void noop(VPE *vpe, const m3::DTU::Message *msg);
 
 #if defined(__host__)
-    void init(GateIStream &is);
+    void init(VPE *vpe, const m3::DTU::Message *msg);
 #endif
 
 private:
+    void reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size);
+    void reply_result(VPE *vpe, const m3::DTU::Message *msg, m3::Errors::Code code);
+
     m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur);
     m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
         const m3::KIF::CapRngDesc &c2, bool obtain);
-    void exchange_over_sess(GateIStream &is, bool obtain);
+    void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
 
     epid_t _serv_ep;
     // +1 for init on host

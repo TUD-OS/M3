@@ -72,24 +72,4 @@ private:
     label_t _label;
 };
 
-template<typename ... Args>
-static inline auto create_vmsg(const Args& ... args) -> StaticGateOStream<m3::ostreamsize<Args...>()> {
-    StaticGateOStream<m3::ostreamsize<Args...>()> os;
-    os.vput(args...);
-    return os;
-}
-
-template<typename... Args>
-static inline m3::Errors::Code send_vmsg(SendGate &gate, RecvGate *rgate, const Args &... args) {
-    EVENT_TRACER_send_vmsg();
-    auto msg = kernel::create_vmsg(args...);
-    return gate.send(msg.bytes(), msg.total, rgate);
-}
-template<typename... Args>
-static inline m3::Errors::Code reply_vmsg(GateIStream &is, const Args &... args) {
-    EVENT_TRACER_reply_vmsg();
-    auto msg = kernel::create_vmsg(args...);
-    return is.reply(msg.bytes(), msg.total());
-}
-
 }
