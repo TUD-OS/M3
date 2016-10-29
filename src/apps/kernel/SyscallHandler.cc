@@ -71,12 +71,6 @@ static inline void kreply_result(VPE *vpe, GateIStream &is, m3::Errors::Code cod
     return kreply_msg(vpe, is, &reply, sizeof(reply));
 }
 
-template<typename... Args>
-static inline void kreply_vmsg(VPE *vpe, GateIStream &is, const Args &... args) {
-    auto msg = kernel::create_vmsg(args...);
-    kreply_msg(vpe, is, msg.bytes(), msg.total());
-}
-
 template<typename T>
 static const T *get_message(GateIStream &is) {
     return reinterpret_cast<const T*>(is.message().data);
@@ -400,7 +394,10 @@ void SyscallHandler::createvpe(GateIStream &is) {
     if(gcap != m3::KIF::INV_SEL)
         nvpe->objcaps().obtain(gcap, msg);
 
-    kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, Platform::pe(nvpe->pe()).value());
+    m3::KIF::Syscall::CreateVPEReply reply;
+    reply.error = m3::Errors::NO_ERROR;
+    reply.pe = Platform::pe(nvpe->pe()).value();
+    kreply_msg(vpe, is, &reply, sizeof(reply));
 }
 
 void SyscallHandler::createmap(UNUSED GateIStream &is) {
