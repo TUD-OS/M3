@@ -17,46 +17,12 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/com/GateStream.h>
 #include <base/Errors.h>
-
-#include "mem/SlabCache.h"
-#include "DTU.h"
 
 namespace kernel {
 
 class VPE;
-class RecvGate;
 class SendGate;
-
-using GateOStream = m3::BaseGateOStream<RecvGate, SendGate>;
-template<size_t SIZE>
-using StaticGateOStream = m3::BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
-using AutoGateOStream = m3::BaseAutoGateOStream<RecvGate, SendGate>;
-using GateIStream = m3::BaseGateIStream<RecvGate, SendGate>;
-
-class RecvGate : public SlabObject<RecvGate> {
-public:
-    explicit RecvGate(epid_t ep, void *sess) : _ep(ep), _sess(sess) {
-    }
-
-    epid_t ep() const {
-        return _ep;
-    }
-    template<class T>
-    T *session() {
-        return static_cast<T*>(_sess);
-    }
-
-    m3::Errors::Code reply(const void *data, size_t len, size_t msgidx) {
-        DTU::get().reply(_ep, data, len, msgidx);
-        return m3::Errors::NO_ERROR;
-    }
-
-private:
-    epid_t _ep;
-    void *_sess;
-};
 
 class SendGate {
 public:

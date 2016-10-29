@@ -14,8 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/com/Marshalling.h>
-
+#include <m3/com/Marshalling.h>
 #include <m3/pipe/DirectPipeReader.h>
 #include <m3/pipe/DirectPipeWriter.h>
 #include <m3/pipe/IndirectPipeReader.h>

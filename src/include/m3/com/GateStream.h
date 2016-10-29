@@ -16,19 +16,343 @@
 
 #pragma once
 
-#include <base/com/GateStream.h>
-
+#include <m3/com/Marshalling.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/MemGate.h>
 #include <m3/com/RecvGate.h>
 
 namespace m3 {
 
-using GateOStream = BaseGateOStream<RecvGate, SendGate>;
+/**
+ * The gate stream classes provide an easy abstraction to marshall or unmarshall data when
+ * communicating between VPEs. Therefore, if you want to combine multiple values into a single
+ * message or extract multiple values from a message, this is the abstraction you might want to use.
+ * If you already have the data to send, you should directly use the send-method of SendGate. If
+ * you don't want to extract values from a message but directly access the message, use the
+ * data-field of the message you received.
+ *
+ * All classes work with (variadic) templates and are thus type-safe. Of course, that does not
+ * relieve you from taking care that sender and receiver agree on the types of the values that are
+ * exchanged via messaging.
+ */
+
+/**
+ * The gate stream to marshall values into a message and send it over an endpoint. Thus, it "outputs"
+ * values into a message.
+ */
+class GateOStream : public Marshaller {
+public:
+    explicit GateOStream(unsigned char *bytes, size_t total) : Marshaller(bytes, total) {
+    }
+    GateOStream(const GateOStream &) = default;
+    GateOStream &operator=(const GateOStream &) = default;
+
+    /**
+     * Replies the current content of this GateOStream as a message to the given message.
+     *
+     * @param gate the gate that hosts the message to reply to
+     * @param msg the message to reply to
+     * @return the error code or Errors::NO_ERROR
+     */
+    Errors::Code reply(RecvGate &gate, const void *msg) {
+        return gate.reply(bytes(), total(),
+            m3::DTU::get().get_msgoff(gate.ep(), reinterpret_cast<const m3::DTU::Message*>(msg)));
+    }
+
+    using Marshaller::put;
+
+    /**
+     * Puts all remaining items (the ones that haven't been read yet) of <is> into this GateOStream.
+     *
+     * @param is the GateIStream
+     * @return *this
+     */
+    void put(const GateIStream &is);
+};
+
+/**
+ * An implementation of GateOStream that hosts the message as a member. E.g. you can put an object
+ * of this class on the stack, which would host the message on the stack.
+ * In most cases, you don't want to use this class yourself, but the free-standing convenience
+ * functions below that automatically determine <SIZE>.
+ *
+ * @param SIZE the max. size of the message
+ */
 template<size_t SIZE>
-using StaticGateOStream = BaseStaticGateOStream<SIZE, RecvGate, SendGate>;
-using AutoGateOStream = BaseAutoGateOStream<RecvGate, SendGate>;
-using GateIStream = BaseGateIStream<RecvGate, SendGate>;
+class StaticGateOStream : public GateOStream {
+public:
+    explicit StaticGateOStream() : GateOStream(_bytes, SIZE) {
+    }
+    template<size_t SRCSIZE>
+    StaticGateOStream(const StaticGateOStream<SRCSIZE> &os) : GateOStream(os) {
+        static_assert(SIZE >= SRCSIZE, "Incompatible sizes");
+        memcpy(_bytes, os._bytes, sizeof(os._bytes));
+    }
+    template<size_t SRCSIZE>
+    StaticGateOStream &operator=(const StaticGateOStream<SRCSIZE> &os) {
+        static_assert(SIZE >= SRCSIZE, "Incompatible sizes");
+        GateOStream::operator=(os);
+        if(&os != this)
+            memcpy(_bytes, os._bytes, sizeof(os._bytes));
+        return *this;
+    }
+
+private:
+    alignas(DTU_PKG_SIZE) unsigned char _bytes[SIZE];
+};
+
+/**
+ * An implementation of GateOStream that hosts the message on the stack by using alloca.
+ */
+class AutoGateOStream : public GateOStream {
+public:
+#if defined(__t2__) or defined(__t3__)
+    // TODO alloca() uses movsp which causes an exception to be handled appropriately. since this
+    // isn't that trivial to implement, we're using malloc instead.
+    explicit AutoGateOStream(size_t size)
+        : GateOStream(static_cast<unsigned char*>(
+            Heap::alloc(Math::round_up(size, DTU_PKG_SIZE))), Math::round_up(size, DTU_PKG_SIZE)) {
+    }
+    ~AutoGateOStream() {
+        Heap::free(this->_bytes);
+    }
+#else
+    ALWAYS_INLINE explicit AutoGateOStream(size_t size)
+        : GateOStream(static_cast<unsigned char*>(
+            alloca(Math::round_up(size, DTU_PKG_SIZE))), Math::round_up(size, DTU_PKG_SIZE)) {
+    }
+#endif
+
+    AutoGateOStream(AutoGateOStream &&os) : GateOStream(os) {
+    }
+
+    bool is_on_heap() const {
+#if defined(__t2__) or defined(__t3__)
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    /**
+     * Claim the ownership of the data from this class. Thus, it will not free it.
+     */
+    void claim() {
+        this->_bytes = nullptr;
+    }
+};
+
+/**
+ * The gate stream to unmarshall values from a message. Thus, it "inputs" values from a message
+ * into variables.
+ *
+ * Note: unfortunately, we can't reuse the functionality of Unmarshaller here. It seems to be a
+ * compiler-bug when building for Xtensa. The compiler generates wrong code when we initialize the
+ * _length field to _msg->length.
+ */
+class GateIStream {
+public:
+    /**
+     * Creates an object to read the first not acknowledged message from <gate>.
+     *
+     * @param gate the gate to fetch the message from
+     * @param err the error code
+     */
+    explicit GateIStream(RecvGate &gate, const DTU::Message *msg, Errors::Code err)
+        : _err(err), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
+    }
+
+    /**
+     * Creates an object for given message.
+     *
+     * @param gate the gate to fetch the message from
+     * @param msg the message
+     */
+    explicit GateIStream(RecvGate &gate, const DTU::Message *msg)
+        : _err(Errors::NO_ERROR), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
+    }
+
+    // don't do the ack twice. thus, copies never ack.
+    GateIStream(const GateIStream &is)
+        : _err(is._err), _ack(), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+    }
+    GateIStream &operator=(const GateIStream &is) {
+        if(this != &is) {
+            _err = is._err;
+            _ack = false;
+            _pos = is._pos;
+            _gate = is._gate;
+            _msg = is._msg;
+        }
+        return *this;
+    }
+    GateIStream &operator=(GateIStream &&is) {
+        if(this != &is) {
+            _err = is._err;
+            _ack = is._ack;
+            _pos = is._pos;
+            _gate = is._gate;
+            _msg = is._msg;
+            is._ack = 0;
+        }
+        return *this;
+    }
+    GateIStream(GateIStream &&is)
+        : _err(is._err), _ack(is._ack), _pos(is._pos), _gate(is._gate), _msg(is._msg) {
+        is._ack = 0;
+    }
+    ~GateIStream() {
+        finish();
+    }
+
+    /**
+     * @return the error that occurred (or Errors::NO_ERROR)
+     */
+    Errors::Code error() const {
+        return _err;
+    }
+    /**
+     * @return the receive gate
+     */
+    RecvGate &gate() {
+        return *_gate;
+    }
+    /**
+     * @return the message (header + payload)
+     */
+    const DTU::Message &message() const {
+        return *_msg;
+    }
+    /**
+     * @return the label of the message
+     */
+    label_t label() const {
+        return _msg->label;
+    }
+    /**
+     * @return the current position, i.e. the offset of the unread data
+     */
+    size_t pos() const {
+        return _pos;
+    }
+    /**
+     * @return the length of the message in bytes
+     */
+    size_t length() const {
+#if defined(__t3__)
+        return _msg->length * DTU_PKG_SIZE;
+#else
+        return _msg->length;
+#endif
+    }
+    /**
+     * @return the remaining bytes to read
+     */
+    size_t remaining() const {
+        return length() - _pos;
+    }
+    /**
+     * @return the message payload
+     */
+    const unsigned char *buffer() const {
+        return _msg->data;
+    }
+
+    /**
+     * Replies the message constructed by <os> to this message
+     *
+     * @param os the GateOStream hosting the message to reply
+     * @return the error code or Errors::NO_ERROR
+     */
+    Errors::Code reply(const GateOStream &os) const {
+        return reply(os.bytes(), os.total());
+    }
+    /**
+     * Replies the given message to this one
+     *
+     * @param data the message data
+     * @param len the length of the message
+     * @return the error code or Errors::NO_ERROR
+     */
+    Errors::Code reply(const void *data, size_t len) const {
+        return _gate->reply(data, len, DTU::get().get_msgoff(_gate->ep(), _msg));
+    }
+
+    void ignore(size_t bytes) {
+        _pos += bytes;
+    }
+
+    /**
+     * Pulls the given values out of this stream
+     *
+     * @param val the value to write to
+     * @param args the other values to write to
+     */
+    template<typename T, typename... Args>
+    void vpull(T &val, Args &... args) {
+        *this >> val;
+        vpull(args...);
+    }
+
+    /**
+     * Pulls a value into <value>.
+     *
+     * @param value the value to write to
+     * @return *this
+     */
+    template<typename T>
+    GateIStream & operator>>(T &value) {
+        assert(_pos + sizeof(T) <= length());
+        value = *reinterpret_cast<const T*>(_msg->data + _pos);
+        _pos += Math::round_up(sizeof(T), sizeof(ulong));
+        return *this;
+    }
+    GateIStream & operator>>(String &value) {
+        assert(_pos + sizeof(size_t) <= length());
+        size_t len = *reinterpret_cast<const size_t*>(_msg->data + _pos);
+        _pos += sizeof(size_t);
+        assert(_pos + len <= length());
+        value.reset(reinterpret_cast<const char*>(_msg->data + _pos), len);
+        _pos += Math::round_up(len, sizeof(ulong));
+        return *this;
+    }
+
+    /**
+     * Disables acknowledgement of the message. That is, it will be marked as read, but you have
+     * to ack the message on your own via DTU::get().mark_acked(<ep>).
+     */
+    void claim() {
+        _ack = false;
+    }
+
+    /**
+     * Finishes this message, i.e. moves the read-position in the ringbuffer forward. If
+     * acknowledgement has not been disabled (see claim), it will be acked.
+     */
+    void finish() {
+        if(_ack) {
+            DTU::get().mark_read(_gate->ep(), DTU::get().get_msgoff(_gate->ep(), _msg));
+            _ack = false;
+        }
+    }
+
+private:
+    // needed as recursion-end
+    void vpull() {
+    }
+
+    Errors::Code _err;
+    bool _ack;
+    size_t _pos;
+    RecvGate *_gate;
+    const DTU::Message *_msg;
+};
+
+inline void GateOStream::put(const GateIStream &is) {
+    assert(fits(_bytecount, is.remaining()));
+    memcpy(const_cast<unsigned char*>(bytes()) + _bytecount, is.buffer() + is.pos(), is.remaining());
+    _bytecount += is.remaining();
+}
 
 static inline Errors::Code reply_error(const GateIStream &is, m3::Errors::Code error) {
     KIF::DefaultReply reply;

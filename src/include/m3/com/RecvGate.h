@@ -24,9 +24,7 @@ namespace m3 {
 
 class SendGate;
 class RecvGate;
-template<class RGATE, class SGATE>
-class BaseGateIStream;
-using GateIStream = BaseGateIStream<RecvGate, SendGate>;
+class GateIStream;
 
 /**
  * A RecvGate can be used for receiving messages from somebody else and reply on these messages. It

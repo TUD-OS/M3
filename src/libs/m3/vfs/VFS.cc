@@ -14,10 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/com/Marshalling.h>
 #include <base/stream/Serial.h>
 #include <base/Init.h>
 
+#include <m3/com/Marshalling.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/MountSpace.h>

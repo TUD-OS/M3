@@ -14,9 +14,8 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/com/Marshalling.h>
-#include <base/com/GateStream.h>
-
+#include <m3/com/Marshalling.h>
+#include <m3/com/GateStream.h>
 #include <m3/session/M3FS.h>
 #include <m3/vfs/MountSpace.h>
 

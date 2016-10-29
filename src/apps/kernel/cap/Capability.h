@@ -23,6 +23,7 @@
 
 #include "com/Services.h"
 #include "mem/SlabCache.h"
+#include "Types.h"
 
 namespace m3 {
 class OStream;
