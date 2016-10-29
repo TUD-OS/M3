@@ -39,7 +39,7 @@ void VPE::init() {
     rbuf.addr = 1;  // has to be non-zero
     rbuf.ep = m3::DTU::NOTIFY_SEP;
     rbuf.add_ref(); // don't free this
-    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(&syscall_gate()), 1 << NOTIFY_MSGSIZE_ORD);
+    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 
@@ -49,8 +49,7 @@ void VPE::load_app() {
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
-            write_env_file(getpid(), reinterpret_cast<label_t>(&_syscgate),
-                SyscallHandler::get().ep());
+            write_env_file(getpid(), reinterpret_cast<label_t>(this), SyscallHandler::get().ep());
             char **childargs = new char*[_argc + 1];
             size_t i = 0, j = 0;
             for(; i < _argc; ++i) {
@@ -69,10 +68,8 @@ void VPE::load_app() {
             exit(1);
         }
     }
-    else {
-        write_env_file(_pid, reinterpret_cast<label_t>(&_syscgate),
-            SyscallHandler::get().ep());
-    }
+    else
+        write_env_file(_pid, reinterpret_cast<label_t>(this), SyscallHandler::get().ep());
 
     KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
 }

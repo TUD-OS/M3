@@ -171,9 +171,6 @@ public:
         return _mapcaps;
     }
 
-    RecvGate &syscall_gate() {
-        return _syscgate;
-    }
     SendGate &upcall_sgate() {
         return _upcsgate;
     }
@@ -263,7 +260,6 @@ private:
     uint64_t _lastsched;
     Capability *_epcaps[EP_COUNT - m3::DTU::FIRST_FREE_EP];
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
-    RecvGate _syscgate;
     SendGate _upcsgate;
     SendQueue _upcqueue;
     RecvBufs _rbufs;

@@ -49,10 +49,6 @@ public:
         return _serv_ep;
     }
 
-    RecvGate create_gate(VPE *vpe) {
-        return RecvGate(ep(), vpe);
-    }
-
     void pagefault(VPE *vpe, const m3::DTU::Message *msg);
     void createsrv(VPE *vpe, const m3::DTU::Message *msg);
     void createsess(VPE *vpe, const m3::DTU::Message *msg);

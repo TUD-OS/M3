@@ -91,8 +91,7 @@ void WorkLoop::run() {
         msg = dtu.fetch_msg(sysep);
         if(msg) {
             // we know the subscriber here, so optimize that a bit
-            RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
-            VPE *vpe = rgate->session<VPE>();
+            VPE *vpe = reinterpret_cast<VPE*>(msg->label);
             sysch.handle_message(vpe, msg);
             m3::DTU::get().mark_read(sysep, reinterpret_cast<uintptr_t>(msg));
             EVENT_TRACE_FLUSH_LIGHT();
@@ -100,9 +99,7 @@ void WorkLoop::run() {
 
         msg = dtu.fetch_msg(notifyep);
         if(msg) {
-            // we know the subscriber here, so optimize that a bit
-            RecvGate *rgate = reinterpret_cast<RecvGate*>(msg->label);
-            VPE *vpe = rgate->session<VPE>();
+            VPE *vpe = reinterpret_cast<VPE*>(msg->label);
             sysch.handle_message(vpe, msg);
             m3::DTU::get().mark_read(sysep, reinterpret_cast<uintptr_t>(msg));
         }
