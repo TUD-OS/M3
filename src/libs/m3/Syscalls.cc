@@ -27,13 +27,13 @@ namespace m3 {
 INIT_PRIO_SYSC Syscalls Syscalls::_inst;
 
 DTU::Message *Syscalls::send_receive(const void *msg, size_t size) {
-    DTU::get().send(_gate.epid(), msg, size, _rlabel, _rep);
+    DTU::get().send(_gate.epid(), msg, size, _rlabel, m3::DTU::SYSC_REP);
 
     DTU::Message *reply;
     do {
         DTU::get().try_sleep(false);
 
-        reply = DTU::get().fetch_msg(_rep);
+        reply = DTU::get().fetch_msg(m3::DTU::SYSC_REP);
     }
     while(reply == nullptr);
 
@@ -46,7 +46,7 @@ Errors::Code Syscalls::send_receive_result(const void *msg, size_t size) {
     KIF::DefaultReply *rdata = reinterpret_cast<KIF::DefaultReply*>(reply->data);
     Errors::last = static_cast<Errors::Code>(rdata->error);
 
-    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;
 }
 
@@ -105,7 +105,7 @@ Errors::Code Syscalls::forwardmem(capsel_t cap, void *data, size_t len, size_t o
     if(Errors::last == Errors::NO_ERROR && (~flags & KIF::Syscall::ForwardMem::WRITE))
         memcpy(data, reply->data, len);
 
-    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;
 }
 
@@ -225,7 +225,7 @@ Errors::Code Syscalls::createvpe(capsel_t vpe, capsel_t mem, const String &name,
     if(Errors::last == Errors::NO_ERROR)
         pe = PEDesc(reply->pe);
 
-    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;
 }
 
@@ -258,7 +258,7 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, int pid, in
     if(op == KIF::Syscall::VCTRL_WAIT && Errors::last == Errors::NO_ERROR)
         *exitcode = reply->exitcode;
 
-    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;
 }
 
@@ -286,7 +286,7 @@ Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd,
             args[i] = reply->args[i];
     }
 
-    DTU::get().mark_read(_rep, reinterpret_cast<size_t>(reply));
+    DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;
 }
 
@@ -349,7 +349,7 @@ USED void Syscalls::exit(int exitcode) {
     KIF::Syscall::Exit req;
     req.opcode = KIF::Syscall::EXIT;
     req.exitcode = exitcode;
-    DTU::get().send(_gate.epid(), &req, sizeof(req), _rlabel, _rep);
+    DTU::get().send(_gate.epid(), &req, sizeof(req), _rlabel, m3::DTU::SYSC_REP);
 }
 
 #if defined(__host__)

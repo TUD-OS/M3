@@ -42,8 +42,8 @@ public:
 
 private:
     explicit Syscalls()
-        : _gate(ObjCap::INVALID, 0, &RecvGate::syscall(), DTU::SYSC_SEP), _rlabel(_gate.receive_gate()->label()),
-          _rep(_gate.receive_gate()->epid()) {
+        : _gate(ObjCap::INVALID, 0, &RecvGate::syscall(), DTU::SYSC_SEP),
+          _rlabel(_gate.receive_gate()->label()) {
     }
 
 public:
@@ -83,7 +83,6 @@ private:
 
     SendGate _gate;
     label_t _rlabel;
-    int _rep;
     static Syscalls _inst;
 };
 
