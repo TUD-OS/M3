@@ -519,17 +519,19 @@ void SyscallHandler::vpectrl(GateIStream &is) {
             break;
 
         case m3::KIF::Syscall::VCTRL_WAIT:
-            if(!vpecap->vpe->has_app())
-                kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
-            else {
+            m3::KIF::Syscall::VPECtrlReply reply;
+            reply.error = m3::Errors::NO_ERROR;
+
+            if(vpecap->vpe->has_app()) {
                 vpe->start_wait();
                 vpecap->vpe->wait_for_exit();
                 vpe->stop_wait();
 
                 LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << vpecap->vpe->exitcode() << ")");
-
-                kreply_vmsg(vpe, is, m3::Errors::NO_ERROR, vpecap->vpe->exitcode());
             }
+
+            reply.exitcode = vpecap->vpe->exitcode();
+            kreply_msg(vpe, is, &reply, sizeof(reply));
             break;
     }
 }
