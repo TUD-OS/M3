@@ -90,8 +90,7 @@ private:
     void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
 
     epid_t _serv_ep;
-    // +1 for init on host
-    handler_func _callbacks[m3::KIF::Syscall::COUNT + 1];
+    handler_func _callbacks[m3::KIF::Syscall::COUNT];
     static SyscallHandler _inst;
 };
 
