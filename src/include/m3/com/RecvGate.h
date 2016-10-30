@@ -74,6 +74,13 @@ public:
     }
 
     /**
+     * @return the label for this gate
+     */
+    label_t label() const {
+        return reinterpret_cast<label_t>(this);
+    }
+
+    /**
      * @return the set receive-buffer
      */
     RecvBuf *buffer() {

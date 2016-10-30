@@ -63,12 +63,6 @@ public:
     epid_t ep() const {
         return _ep;
     }
-    /**
-     * @return the label for this gate
-     */
-    label_t label() const {
-        return reinterpret_cast<label_t>(this);
-    }
 
     /**
      * Rebinds this gate to the given capability-selector. Note that this will release the so far
