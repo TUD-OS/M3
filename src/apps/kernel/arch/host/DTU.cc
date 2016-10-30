@@ -101,6 +101,16 @@ void DTU::write_ep_local(epid_t ep) {
     memcpy(reinterpret_cast<void*>(addr), _state.get_ep(ep), m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
+m3::Errors::Code get_header(const VPEDesc &, const RBufObject *, uintptr_t &, m3::DTU::Header &) {
+    // unused
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code set_header(const VPEDesc &, const RBufObject *, uintptr_t &, const m3::DTU::Header &) {
+    // unused
+    return m3::Errors::NO_ERROR;
+}
+
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
     _state.config_recv(ep, buf, order, msgorder);
     write_ep_local(ep);

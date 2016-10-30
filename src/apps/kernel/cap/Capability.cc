@@ -62,8 +62,8 @@ static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
 }
 
 m3::Errors::Code RBufCapability::revoke() {
-    VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
-    vpe.rbufs().detach(vpe, &*obj);
+    m3::ThreadManager::get().notify(&*obj);
+    invalidate_ep(table()->id() - 1, this);
     obj.unref();
     return m3::Errors::NO_ERROR;
 }

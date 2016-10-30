@@ -19,7 +19,6 @@
 
 #include <thread/ThreadManager.h>
 
-#include "com/RecvBufs.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "Platform.h"
@@ -210,7 +209,20 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
     update_ep(ep);
 }
 
-void VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
+m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
+    if(obj.addr < Platform::rw_barrier(pe()))
+        return m3::Errors::INV_ARGS;
+
+    for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
+        if(!_epcaps[i] || _epcaps[i]->type != Capability::RBUF)
+            continue;
+
+        RBufCapability *cap = static_cast<RBufCapability*>(_epcaps[i]);
+        if(m3::Math::overlap(cap->obj->addr, cap->obj->addr + cap->obj->size(),
+            obj.addr, obj.addr + cap->obj->size()))
+            return m3::Errors::INV_ARGS;
+    }
+
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "RBuf[addr=#" << m3::fmt(obj.addr, "x")
         << ", order=" << obj.order
@@ -218,6 +230,9 @@ void VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
 
     _dtustate.config_recv(ep, obj.addr, obj.order, obj.msgorder);
     update_ep(ep);
+
+    m3::ThreadManager::get().notify(&obj);
+    return m3::Errors::NO_ERROR;
 }
 
 void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {

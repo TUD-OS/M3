@@ -302,6 +302,36 @@ void DTU::write_ep_local(epid_t ep) {
            sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
+static uintptr_t get_msgaddr(const RBufObject *obj, uintptr_t msgaddr) {
+    // the message has to be within the receive buffer
+    if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
+        return 0;
+
+    // ensure that we start at a message boundary
+    size_t idx = (msgaddr - obj->addr) >> obj->msgorder;
+    return obj->addr + (idx << obj->msgorder);
+}
+
+m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+        m3::DTU::Header &head) {
+    msgaddr = get_msgaddr(obj, msgaddr);
+    if(!msgaddr)
+        return m3::Errors::INV_ARGS;
+
+    read_mem(vpe, msgaddr, &head, sizeof(head));
+    return m3::Errors::NO_ERROR;
+}
+
+m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+        const m3::DTU::Header &head) {
+    msgaddr = get_msgaddr(obj, msgaddr);
+    if(!msgaddr)
+        return m3::Errors::INV_ARGS;
+
+    write_mem(vpe, msgaddr, &head, sizeof(head));
+    return m3::Errors::NO_ERROR;
+}
+
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
     _state.config_recv(ep, buf, order, msgorder);
     write_ep_local(ep);

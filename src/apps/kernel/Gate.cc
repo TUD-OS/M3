@@ -15,6 +15,7 @@
  */
 
 #include "pes/VPE.h"
+#include "DTU.h"
 #include "Gate.h"
 
 namespace kernel {

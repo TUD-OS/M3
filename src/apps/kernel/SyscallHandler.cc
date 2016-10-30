@@ -21,7 +21,6 @@
 
 #include <thread/ThreadManager.h>
 
-#include "com/RecvBufs.h"
 #include "com/Services.h"
 #include "pes/ContextSwitcher.h"
 #include "pes/PEManager.h"
@@ -752,8 +751,6 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         }
         else {
             RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
-            if(addr < Platform::rw_barrier(tvpeobj->vpe->pe()))
-                SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Not in receive buffer space");
             if(rbufcap->obj->addr != 0)
                 SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Receive buffer already activated");
 
@@ -763,9 +760,11 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             rbufcap->obj->addr = addr;
             rbufcap->obj->ep = ep;
 
-            m3::Errors::Code res = tvpeobj->vpe->rbufs().attach(*tvpeobj->vpe, &*rbufcap->obj);
-            if(res != m3::Errors::NO_ERROR)
+            m3::Errors::Code res = tvpeobj->vpe->config_rcv_ep(ep, *rbufcap->obj);
+            if(res != m3::Errors::NO_ERROR) {
+                rbufcap->obj->addr = 0;
                 SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
+            }
         }
     }
     else
@@ -936,7 +935,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     }
 
     m3::DTU::Header head;
-    m3::Errors::Code res = vpe->rbufs().get_header(*vpe, &*capobj->obj, msgaddr, head);
+    m3::Errors::Code res = DTU::get().get_header(vpe->desc(), &*capobj->obj, msgaddr, head);
     if(res != m3::Errors::NO_ERROR || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
         SYS_ERROR(vpe, msg, res, "Invalid arguments");
 
@@ -957,7 +956,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         }
 
         head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
-        res = vpe->rbufs().set_header(*vpe, &*capobj->obj, msgaddr, head);
+        res = DTU::get().set_header(vpe->desc(), &*capobj->obj, msgaddr, head);
     }
     if(res != m3::Errors::NO_ERROR)
         LOG_ERROR(vpe, res, "forwardreply failed");

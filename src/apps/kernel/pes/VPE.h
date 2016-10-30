@@ -23,7 +23,6 @@
 
 #include <cstring>
 
-#include "com/RecvBufs.h"
 #include "cap/CapTable.h"
 #include "cap/Capability.h"
 #include "mem/AddrSpace.h"
@@ -121,10 +120,6 @@ public:
         return _as;
     }
 
-    RecvBufs &rbufs() {
-        return _rbufs;
-    }
-
     uintptr_t ep_addr() const {
         return _epaddr;
     }
@@ -207,7 +202,7 @@ public:
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
     void forward_mem(epid_t ep, peid_t pe);
 
-    void config_rcv_ep(epid_t ep, const RBufObject &obj);
+    m3::Errors::Code config_rcv_ep(epid_t ep, const RBufObject &obj);
     void config_snd_ep(epid_t ep, const MsgObject &obj);
     void config_mem_ep(epid_t ep, const MemObject &obj);
 
@@ -262,7 +257,6 @@ private:
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     SendGate _upcsgate;
     SendQueue _upcqueue;
-    RecvBufs _rbufs;
     AddrSpace *_as;
     m3::SList<ServName> _requires;
     size_t _argc;

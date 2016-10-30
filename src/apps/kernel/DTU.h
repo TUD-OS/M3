@@ -24,6 +24,7 @@
 
 namespace kernel {
 
+class RBufObject;
 class VPE;
 class VPEDesc;
 
@@ -69,6 +70,11 @@ public:
     void read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);
+
+    m3::Errors::Code get_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+        m3::DTU::Header &head);
+    m3::Errors::Code set_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+        const m3::DTU::Header &head);
 
     void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder);
 

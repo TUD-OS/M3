@@ -118,6 +118,10 @@ public:
     virtual ~RBufObject() {
     }
 
+    size_t size() const {
+        return 1UL << order;
+    }
+
     vpeid_t vpe;
     epid_t ep;
     uintptr_t addr;
