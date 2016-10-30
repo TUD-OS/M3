@@ -40,13 +40,6 @@ class Gate : public ObjCap, public SListItem {
 public:
     static const size_t UNBOUND     = RecvBuf::UNBOUND;
 
-    enum Operation {
-        READ    = 0x0,
-        WRITE   = 0x1,
-        CMPXCHG = 0x2,
-        SEND    = 0x3,
-    };
-
 protected:
     /**
      * Binds this gate for sending to the given capability. That is, the capability should be a
