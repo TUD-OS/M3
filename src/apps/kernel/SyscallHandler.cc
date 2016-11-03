@@ -739,7 +739,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         else if(capobj->type == Capability::MSG) {
             MsgCapability *msgcap = static_cast<MsgCapability*>(capobj);
 
-            if(msgcap->obj->rbuf->addr == 0) {
+            if(!msgcap->obj->rbuf->activated()) {
                 LOG_SYS(vpe, ": syscall::activate", ": waiting for rbuf " << &msgcap->obj->rbuf);
 
                 vpe->start_wait();
@@ -751,7 +751,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         }
         else {
             RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
-            if(rbufcap->obj->addr != 0)
+            if(rbufcap->obj->activated())
                 SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Receive buffer already activated");
 
             LOG_SYS(vpe, ": syscall::activate", ": rbuf " << &*rbufcap->obj);

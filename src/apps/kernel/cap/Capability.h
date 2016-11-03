@@ -118,6 +118,9 @@ public:
     virtual ~RBufObject() {
     }
 
+    bool activated() const {
+        return addr != 0;
+    }
     size_t size() const {
         return 1UL << order;
     }
