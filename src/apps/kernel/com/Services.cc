@@ -24,9 +24,10 @@ namespace kernel {
 
 ServiceList ServiceList::_inst;
 
-Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label)
-    : m3::SListItem(), RefCounted(), closing(), _vpe(vpe), _sel(sel), _name(name),
-      _sgate(vpe, m3::DTU::UPCALL_REP, label) {
+Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label,
+        const m3::Reference<RBufObject> &rbuf)
+    : m3::SListItem(), RefCounted(), closing(), _squeue(vpe), _sel(sel), _name(name),
+      _sgate(vpe, rbuf->ep, label), _rbuf(rbuf) {
 }
 
 Service::~Service() {
@@ -35,15 +36,18 @@ Service::~Service() {
 }
 
 int Service::pending() const {
-    return _vpe.upcall_queue().inflight() + _vpe.upcall_queue().pending();
+    return _squeue.inflight() + _squeue.pending();
 }
 
 void Service::send(const void *msg, size_t size, bool free) {
-    _vpe.upcall_queue().send(&_sgate, msg, size, free);
+    _squeue.send(&_sgate, msg, size, free);
 }
 
 const m3::DTU::Message *Service::send_receive(const void *msg, size_t size, bool free) {
-    void *event = _vpe.upcall_queue().send(&_sgate, msg, size, free);
+    if(!_rbuf->activated())
+        return nullptr;
+
+    void *event = _squeue.send(&_sgate, msg, size, free);
 
     m3::ThreadManager::get().wait_for(event);
 

@@ -31,7 +31,7 @@ public:
     MyHandler() : Handler<>(), _count() {
     }
 
-    virtual Errors::Code handle_obtain(SessionData *, RecvBuf *, KIF::Service::ExchangeData &) override {
+    virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &) override {
         if(++_count == 5)
             srv->shutdown();
         return  Errors::NOT_SUP;
@@ -41,6 +41,7 @@ public:
         return Handler<>::handle_close(sess);
     }
     virtual void handle_shutdown() override {
+        Handler<>::handle_shutdown();
         cout << "Kernel wants to shut down.\n";
         run = false;
     }
@@ -52,7 +53,7 @@ private:
 int main() {
     for(int i = 0; run && i < 10; ++i) {
         MyHandler hdl;
-        srv = new Server<MyHandler>("srvtest-server", &hdl, nextlog2<512>::val, nextlog2<128>::val);
+        srv = new Server<MyHandler>("srvtest-server", &hdl);
         if(Errors::occurred())
             break;
         env()->workloop()->run();

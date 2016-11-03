@@ -69,7 +69,7 @@ protected:
         *sess = new SESS();
         return Errors::NO_ERROR;
     }
-    virtual Errors::Code handle_obtain(SESS *, RecvBuf *, KIF::Service::ExchangeData &) {
+    virtual Errors::Code handle_obtain(SESS *, KIF::Service::ExchangeData &) {
         return Errors::NOT_SUP;
     }
     virtual Errors::Code handle_delegate(SESS *, KIF::Service::ExchangeData &) {

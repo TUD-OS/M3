@@ -124,12 +124,14 @@ Errors::Code Syscalls::forwardreply(capsel_t cap, const void *msg, size_t len, u
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createsrv(capsel_t srv, label_t label, const String &name) {
-    LLOG(SYSC, "createsrv(srv=" << srv << ", label=" << fmt(label, "0x") << ", name=" << name << ")");
+Errors::Code Syscalls::createsrv(capsel_t srv, capsel_t rbuf, label_t label, const String &name) {
+    LLOG(SYSC, "createsrv(srv=" << srv << ", rbuf=" << rbuf << ", label=" << fmt(label, "0x")
+        << ", name=" << name << ")");
 
     KIF::Syscall::CreateSrv req;
     req.opcode = KIF::Syscall::CREATESRV;
     req.srv = srv;
+    req.rbuf = rbuf;
     req.label = label;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);

@@ -366,10 +366,6 @@ public:
         add_operation(Plasma::COLDOWN, &PlasmaRequestHandler::coldown);
     }
 
-    virtual size_t credits() override {
-        return Server<PlasmaRequestHandler>::DEF_MSGSIZE;
-    }
-
     void left(GateIStream &is) {
         qa.to_quote(tsc(), qa.get_quote() - 1);
         reply_vmsg(is, 0);

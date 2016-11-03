@@ -33,10 +33,6 @@ public:
         add_operation(CALC, &ArithRequestHandler::calc);
     }
 
-    virtual size_t credits() override {
-        return Server<ArithRequestHandler>::DEF_MSGSIZE;
-    }
-
     void calc(GateIStream &is) {
         String str;
         is >> str;

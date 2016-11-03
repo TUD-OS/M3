@@ -106,10 +106,6 @@ public:
         delete _buf;
     }
 
-    size_t credits() override {
-        return Server<HashReqHandler>::DEF_MSGSIZE;
-    }
-
     Errors::Code handle_open(HashSessionData **sess, word_t) override {
         for(size_t id = 0; id < MAX_CLIENTS; ++id) {
             if(!(occupied & (1 << id))) {
@@ -120,9 +116,9 @@ public:
         return Errors::NO_SPACE;
     }
 
-    Errors::Code handle_obtain(HashSessionData *sess, RecvBuf *rbuf, KIF::Service::ExchangeData &data) override {
+    Errors::Code handle_obtain(HashSessionData *sess, KIF::Service::ExchangeData &data) override {
         if(!sess->send_gate())
-            return RequestHandler::handle_obtain(sess, rbuf, data);
+            return RequestHandler::handle_obtain(sess, data);
 
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;

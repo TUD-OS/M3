@@ -28,7 +28,7 @@ public:
     explicit VGAHandler(MemGate *vgamem) : _vgamem(vgamem) {
     }
 
-    virtual Errors::Code handle_obtain(SessionData *, RecvBuf *, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &data) override {
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;
 

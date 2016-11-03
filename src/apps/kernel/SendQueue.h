@@ -41,6 +41,9 @@ public:
         : _vpe(vpe), _queue(), _next_id(), _cur_event(), _inflight(0) {
     }
 
+    VPE &vpe() const {
+        return _vpe;
+    }
     int inflight() const {
         return _inflight;
     }

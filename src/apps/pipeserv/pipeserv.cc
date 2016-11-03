@@ -36,19 +36,14 @@ public:
         add_operation(Pipe::CLOSE, &PipeServiceHandler::close);
     }
 
-    virtual size_t credits() override {
-        return 64;
-    }
-
     virtual Errors::Code handle_open(PipeSessionData **sess, word_t arg) override {
         *sess = new PipeSessionData(arg);
         return Errors::NO_ERROR;
     }
 
-    virtual Errors::Code handle_obtain(PipeSessionData *sess, RecvBuf *rcvbuf,
-            KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code handle_obtain(PipeSessionData *sess, KIF::Service::ExchangeData &data) override {
         if(!sess->send_gate())
-            return base_class_t::handle_obtain(sess, rcvbuf, data);
+            return base_class_t::handle_obtain(sess, data);
 
         if((sess->reader && sess->writer) || data.argcount != 0 || data.caps != 1)
             return Errors::INV_ARGS;

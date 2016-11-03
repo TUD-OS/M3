@@ -32,24 +32,19 @@ class Server : public ObjCap {
     using handler_func = void (Server::*)(GateIStream &is);
 
 public:
-    static constexpr size_t DEF_BUFSIZE     = 8192;
-    static constexpr size_t DEF_MSGSIZE     = 256;
-
-    explicit Server(const String &name, HDL *handler, int buford = nextlog2<DEF_BUFSIZE>::val,
-                    int msgord = nextlog2<DEF_MSGSIZE>::val)
+    explicit Server(const String &name, HDL *handler)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
-          // TODO we do not always need a receive buffer for clients
-          _rcvbuf(RecvBuf::create(buford, msgord)),
-          _ctrl_rgate(RecvGate::create(&RecvBuf::upcall())) {
+          _rcvbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
+          _rgate(RecvGate::create(&_rcvbuf)) {
         // in this case, we activate it manually in order to create the workloop item
         _rcvbuf.activate();
 
         LLOG(SERV, "create(" << name << ")");
-        Syscalls::get().createsrv(sel(), _ctrl_rgate.label(), name);
+        Syscalls::get().createsrv(sel(), _rcvbuf.sel(), _rgate.label(), name);
 
         using std::placeholders::_1;
         using std::placeholders::_2;
-        _ctrl_rgate.subscribe(std::bind(&Server::handle_message, this, _1, _2));
+        _rgate.subscribe(std::bind(&Server::handle_message, this, _1, _2));
 
         _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
         _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
@@ -66,8 +61,8 @@ public:
             // handle all requests
             LLOG(SERV, "handling pending requests...");
             DTU::Message *msg;
-            while((msg = DTU::get().fetch_msg(RecvGate::upcall().ep()))) {
-                GateIStream is(RecvGate::upcall(), msg, Errors::NO_ERROR);
+            while((msg = DTU::get().fetch_msg(_rgate.ep()))) {
+                GateIStream is(_rgate, msg, Errors::NO_ERROR);
                 handle_message(is, nullptr);
             }
         }
@@ -76,6 +71,7 @@ public:
     }
 
     void shutdown() {
+        _handler->handle_shutdown();
         // by disabling the receive buffer, we remove it from the WorkLoop, which in the end
         // stops the WorkLoop
         _rcvbuf.disable();
@@ -126,7 +122,7 @@ private:
         memcpy(&reply.data, &req->data, sizeof(req->data));
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
-        reply.error = _handler->handle_obtain(sess, &_rcvbuf, reply.data);
+        reply.error = _handler->handle_obtain(sess, reply.data);
 
         is.reply(&reply, sizeof(reply));
     }
@@ -165,7 +161,6 @@ private:
 
         LLOG(SERV, "shutdown()");
 
-        _handler->handle_shutdown();
         shutdown();
 
         reply_error(is, Errors::NO_ERROR);
@@ -175,7 +170,7 @@ protected:
     HDL *_handler;
     handler_func _ctrl_handler[5];
     RecvBuf _rcvbuf;
-    RecvGate _ctrl_rgate;
+    RecvGate _rgate;
 };
 
 }

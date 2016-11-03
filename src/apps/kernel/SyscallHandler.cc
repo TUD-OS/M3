@@ -142,16 +142,21 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
 
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(msg);
     capsel_t srv = req->srv;
+    capsel_t rbuf = req->rbuf;
     label_t label = req->label;
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
-    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", label="
-        << m3::fmt(label, "#0x", sizeof(label_t) * 2) << ", name=" << name << ")");
+    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", rbuf=" << rbuf
+        << ", label=" << m3::fmt(label, "0x") << ", name=" << name << ")");
+
+    RBufCapability *rbufcap = static_cast<RBufCapability*>(vpe->objcaps().get(rbuf, Capability::RBUF));
+    if(rbufcap == nullptr || !rbufcap->obj->activated())
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Receive buffer capability invalid");
 
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Service does already exist");
 
-    Service *s = ServiceList::get().add(*vpe, srv, name, label);
+    Service *s = ServiceList::get().add(*vpe, srv, name, label, rbufcap->obj);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)
@@ -229,9 +234,11 @@ void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
     smsg.arg = arg;
 
     const m3::DTU::Message *srvreply = s->send_receive(&smsg, sizeof(smsg), false);
-
     vpe->stop_wait();
-    EVENT_TRACER_Syscall_createsess();
+
+    if(srvreply == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::RECV_GONE, "Service unreachable");
+
     auto reply = reinterpret_cast<const m3::KIF::Service::OpenReply*>(srvreply->data);
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
@@ -666,7 +673,9 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
     const m3::DTU::Message *srvreply = rsrv->send_receive(&smsg, sizeof(smsg), false);
     vpe->stop_wait();
 
-    EVENT_TRACER_Syscall_delob_done();
+    if(srvreply == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::RECV_GONE, "Service unreachable");
+
     auto *reply = reinterpret_cast<const m3::KIF::Service::ExchangeReply*>(srvreply->data);
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);

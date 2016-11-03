@@ -44,10 +44,6 @@ public:
         add_operation(Pager::UNMAP, &MemReqHandler::unmap);
     }
 
-    virtual size_t credits() override {
-        return Server<MemReqHandler>::DEF_MSGSIZE;
-    }
-
     virtual Errors::Code handle_delegate(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
         if(data.caps != 1 && data.caps != 2)
             return Errors::INV_ARGS;
@@ -67,9 +63,9 @@ public:
         return Errors::NO_ERROR;
     }
 
-    virtual Errors::Code handle_obtain(AddrSpace *sess, RecvBuf *rcvbuf, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code handle_obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
         if(!sess->send_gate())
-            return base_class_t::handle_obtain(sess, rcvbuf, data);
+            return base_class_t::handle_obtain(sess, data);
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;
 

@@ -162,14 +162,9 @@ public:
         add_operation(M3FS::CLOSE, &M3FSRequestHandler::close);
     }
 
-    virtual size_t credits() override {
-        return Server<M3FSRequestHandler>::DEF_MSGSIZE;
-    }
-
-    virtual Errors::Code handle_obtain(M3FSSessionData *sess, RecvBuf *rcvbuf,
-            KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code handle_obtain(M3FSSessionData *sess, KIF::Service::ExchangeData &data) override {
         if(!sess->send_gate())
-            return m3fs_reqh_base_t::handle_obtain(sess, rcvbuf, data);
+            return m3fs_reqh_base_t::handle_obtain(sess, data);
 
         EVENT_TRACER_FS_getlocs();
         if(data.argcount != 5)
@@ -433,6 +428,7 @@ public:
     }
 
     virtual void handle_shutdown() override {
+        m3fs_reqh_base_t::handle_shutdown();
         _handle.flush_cache();
     }
 

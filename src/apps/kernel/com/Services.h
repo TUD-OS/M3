@@ -28,14 +28,16 @@
 namespace kernel {
 
 class VPE;
+class RBufObject;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label);
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label,
+        const m3::Reference<RBufObject> &rbuf);
     ~Service();
 
     VPE &vpe() const {
-        return _vpe;
+        return _squeue.vpe();
     }
     capsel_t selector() const {
         return _sel;
@@ -55,10 +57,11 @@ public:
     bool closing;
 
 private:
-    VPE &_vpe;
+    SendQueue _squeue;
     capsel_t _sel;
     m3::String _name;
     SendGate _sgate;
+    m3::Reference<RBufObject> _rbuf;
 };
 
 class ServiceList {
@@ -81,8 +84,9 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, label_t label) {
-        Service *inst = new Service(vpe, sel, name, label);
+    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, label_t label,
+            const m3::Reference<RBufObject> &rbuf) {
+        Service *inst = new Service(vpe, sel, name, label, rbuf);
         _list.append(inst);
         return inst;
     }

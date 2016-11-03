@@ -190,6 +190,7 @@ struct KIF {
 
         struct CreateSrv : public DefaultRequest {
             word_t srv;
+            word_t rbuf;
             word_t label;
             word_t namelen;
             char name[32];

@@ -34,10 +34,6 @@ public:
         add_operation(TEST, &TestRequestHandler::test);
     }
 
-    virtual size_t credits() override {
-        return Server<TestRequestHandler>::DEF_MSGSIZE;
-    }
-
     void test(GateIStream &is) {
         String str;
         is >> str;
