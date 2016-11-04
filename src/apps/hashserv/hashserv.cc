@@ -66,7 +66,7 @@ public:
             mem = new MemGate(VPE::self().mem().derive(
                 BUF_ADDR + offset(), hash::Accel::BUF_SIZE, MemGate::W));
         }
-        sgate = new SendGate(SendGate::create_for(buf, label, 256, &RecvGate::def()));
+        sgate = new SendGate(SendGate::create(buf, label, 256));
         sgate->reply_gate()->activate();
         return mem->sel();
     }

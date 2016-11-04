@@ -24,12 +24,7 @@
 
 namespace m3 {
 
-SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, capsel_t sel) {
-    rgate = rgate == nullptr ? &RecvGate::def() : rgate;
-    return create_for(rgate, label, credits, nullptr, sel);
-}
-
-SendGate SendGate::create_for(RecvGate *rgate, label_t label, word_t credits, RecvGate *replygate, capsel_t sel) {
+SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, RecvGate *replygate, capsel_t sel) {
     uint flags = 0;
     replygate = replygate == nullptr ? &RecvGate::def() : replygate;
     if(sel == INVALID)

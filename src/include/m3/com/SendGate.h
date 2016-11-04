@@ -50,34 +50,22 @@ public:
     static const word_t UNLIMITED   = KIF::UNLIM_CREDITS;
 
     /**
-     * Creates a new send-gate for the receive gate of the given receive gate.
-     *
-     * @param rcvgate the receive-gate to which the messages should be sent
-     * @param label the label
-     * @param credits the credits to assign to this gate
-     * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
-     */
-    static SendGate create(RecvGate *rgate = nullptr, label_t label = 0,
-        word_t credits = UNLIMITED, capsel_t sel = INVALID);
-
-    /**
-     * Creates a new send-gate for the given receive gate.
+     * Creates a new send gate for the given receive gate.
      *
      * @param rgate the destination receive gate
      * @param label the label
      * @param credits the credits to assign to this gate
-     * @param replygate the receive-gate to which the replies should be sent
+     * @param replygate the receive gate to which the replies should be sent
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
-    static SendGate create_for(RecvGate *rgate, label_t label = 0, word_t credits = UNLIMITED,
+    static SendGate create(RecvGate *rgate, label_t label = 0, word_t credits = UNLIMITED,
         RecvGate *replygate = nullptr, capsel_t sel = INVALID);
 
     /**
-     * Binds this gate for sending to the given msg-capability. Typically, you've received the
-     * cap from somebody else.
+     * Binds this gate for sending to the given capability. Typically, received from somebody else.
      *
      * @param cap the capability
-     * @param replygate the reply gate
+     * @param replygate the receive gate to which the replies should be sent
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
     static SendGate bind(capsel_t cap, RecvGate *replygate = nullptr,

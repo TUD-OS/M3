@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
     // create a gate the sender can send to (at the receiver)
     RecvGate rgate = RecvGate::create(nextlog2<512>::val, nextlog2<64>::val);
-    SendGate sgate = SendGate::create_for(&rgate, 0, 64);
+    SendGate sgate = SendGate::create(&rgate, 0, 64);
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
