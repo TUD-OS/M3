@@ -216,7 +216,7 @@ void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap");
 
     Service *s = ServiceList::get().find(name);
-    if(!s || s->closing)
+    if(!s)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Unknown service");
 
     m3::Reference<Service> rsrv(s);
@@ -277,7 +277,7 @@ void SyscallHandler::createsessat(VPE *vpe, const m3::DTU::Message *msg) {
 
     ServiceCapability *scapobj = static_cast<ServiceCapability*>(
         vpe->objcaps().get(srvcap, Capability::SERVICE));
-    if(scapobj == nullptr || scapobj->inst->closing)
+    if(scapobj == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Service capability is invalid");
 
     SessionCapability *sess = new SessionCapability(&vpe->objcaps(), sesscap,
@@ -648,8 +648,6 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
         vpe->objcaps().get(sesscap, Capability::SESSION));
     if(sess == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid session-cap");
-    if(sess->obj->srv->closing)
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Server is shutting down");
 
     // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sess->obj->srv);
@@ -994,12 +992,10 @@ void SyscallHandler::revoke(VPE *vpe, const m3::DTU::Message *msg) {
     if(crd.type() == m3::KIF::CapRngDesc::OBJ && crd.start() < 2)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
-    CapTable &table = crd.type() == m3::KIF::CapRngDesc::OBJ
-        ? vpecap->vpe->objcaps()
-        : vpecap->vpe->mapcaps();
-    m3::Errors::Code res = table.revoke(crd, own);
-    if(res != m3::Errors::NO_ERROR)
-        SYS_ERROR(vpe, msg, res, "Revoke failed");
+    if(crd.type() == m3::KIF::CapRngDesc::OBJ)
+        vpecap->vpe->objcaps().revoke(crd, own);
+    else
+        vpecap->vpe->mapcaps().revoke(crd, own);
 
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }

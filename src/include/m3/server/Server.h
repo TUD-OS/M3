@@ -52,23 +52,6 @@ public:
         _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
         _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
     }
-    ~Server() {
-        LLOG(SERV, "destroy()");
-        // if it fails, there are pending requests. this might happen multiple times because
-        // the kernel might have them still in the send-queue.
-        KIF::CapRngDesc caps(KIF::CapRngDesc::OBJ, sel());
-        while(VPE::self().revoke(caps) == Errors::MSGS_WAITING) {
-            // handle all requests
-            LLOG(SERV, "handling pending requests...");
-            DTU::Message *msg;
-            while((msg = DTU::get().fetch_msg(_rgate.ep()))) {
-                GateIStream is(_rgate, msg, Errors::NO_ERROR);
-                handle_message(is, nullptr);
-            }
-        }
-        // don't revoke it again
-        flags(ObjCap::KEEP_CAP);
-    }
 
     void shutdown() {
         _handler->handle_shutdown();

@@ -93,8 +93,7 @@ public:
     void printChilds(m3::OStream &os, int layer = 0) const;
 
 private:
-    virtual m3::Errors::Code revoke() {
-        return m3::Errors::NO_ERROR;
+    virtual void revoke() {
     }
     virtual Capability *clone(CapTable *tbl, capsel_t sel) = 0;
 
@@ -183,7 +182,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 protected:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         RBufCapability *c = new RBufCapability(*this);
         c->put(tbl, sel);
@@ -203,7 +202,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 protected:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MsgCapability *c = new MsgCapability(*this);
         c->put(tbl, sel);
@@ -224,7 +223,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MemCapability *c = new MemCapability(*this);
         c->put(tbl, sel);
@@ -244,7 +243,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         return new MapCapability(tbl, sel, phys, length, attr);
     }
@@ -263,7 +262,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *, capsel_t) override {
         /* not cloneable */
         return nullptr;
@@ -282,7 +281,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         SessionCapability *s = new SessionCapability(*this);
         s->put(tbl, sel);
@@ -301,7 +300,7 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual m3::Errors::Code revoke() override;
+    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         VPECapability *v = new VPECapability(*this);
         v->put(tbl, sel);

@@ -81,30 +81,21 @@ void CapTable::inherit(Capability *parent, Capability *child) {
     parent->_child = child;
 }
 
-m3::Errors::Code CapTable::revoke_rec(Capability *c, bool revnext) {
+void CapTable::revoke_rec(Capability *c, bool revnext) {
     Capability *child = c->child();
     Capability *next = c->next();
 
-    m3::Errors::Code res = c->revoke();
-    // actually, this is a bit specific for service+session. although it failed to revoke the service
-    // we want to revoke all childs, i.e. the sessions to remove them from the service.
-    // TODO if there are other failable revokes, we need to reconsider that
-    if(res == m3::Errors::NO_ERROR)
-        c->table()->unset(c->sel());
-    // reset the child-pointer since we're revoking all childs
-    // note that we would need to do much more if delegatable capabilities could deny a revoke
-    else
-        c->_child = nullptr;
+    c->revoke();
+    c->table()->unset(c->sel());
 
     if(child)
         revoke_rec(child, true);
     // on the first level, we don't want to revoke siblings
     if(revnext && next)
         revoke_rec(next, true);
-    return res;
 }
 
-m3::Errors::Code CapTable::revoke(Capability *c, bool revnext) {
+void CapTable::revoke(Capability *c, bool revnext) {
     if(c) {
         if(c->_next)
             c->_next->_prev = c->_prev;
@@ -112,24 +103,19 @@ m3::Errors::Code CapTable::revoke(Capability *c, bool revnext) {
             c->_prev->_next = c->_next;
         if(c->_parent && c->_parent->_child == c)
             c->_parent->_child = c->_next;
-        return revoke_rec(c, revnext);
+        revoke_rec(c, revnext);
     }
-    return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code CapTable::revoke(const m3::KIF::CapRngDesc &crd, bool own) {
+void CapTable::revoke(const m3::KIF::CapRngDesc &crd, bool own) {
     for(capsel_t i = crd.start(), end = crd.start() + crd.count(); i < end; ) {
-        m3::Errors::Code res;
         Capability *c = get(i);
         i = c ? c->sel() + c->length : i + 1;
         if(own)
-            res = revoke(c, false);
-        else
-            res = c ? revoke(c->_child, true) : m3::Errors::NO_ERROR;
-        if(res != m3::Errors::NO_ERROR)
-            return res;
+            revoke(c, false);
+        else if(c)
+            revoke(c->_child, true);
     }
-    return m3::Errors::NO_ERROR;
 }
 
 m3::OStream &operator<<(m3::OStream &os, const CapTable &ct) {

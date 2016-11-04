@@ -26,7 +26,7 @@ ServiceList ServiceList::_inst;
 
 Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label,
         const m3::Reference<RBufObject> &rbuf)
-    : m3::SListItem(), RefCounted(), closing(), _squeue(vpe), _sel(sel), _name(name),
+    : m3::SListItem(), RefCounted(), _squeue(vpe), _sel(sel), _name(name),
       _sgate(vpe, rbuf->ep, label), _rbuf(rbuf) {
 }
 
@@ -40,6 +40,9 @@ int Service::pending() const {
 }
 
 void Service::send(const void *msg, size_t size, bool free) {
+    if(!_rbuf->activated())
+        return;
+
     _squeue.send(&_sgate, msg, size, free);
 }
 

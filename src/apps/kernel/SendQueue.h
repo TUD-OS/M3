@@ -57,6 +57,7 @@ public:
 
     void *send(SendGate *sgate, const void *msg, size_t size, bool onheap);
     void received_reply(epid_t ep, const m3::DTU::Message *msg);
+    void abort();
 
 private:
     void send_pending();

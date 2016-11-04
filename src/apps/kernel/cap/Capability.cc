@@ -61,23 +61,21 @@ static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
     }
 }
 
-m3::Errors::Code RBufCapability::revoke() {
+void RBufCapability::revoke() {
     m3::ThreadManager::get().notify(&*obj);
     invalidate_ep(table()->id() - 1, this);
+    obj->addr = 0;
     obj.unref();
-    return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code MsgCapability::revoke() {
+void MsgCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
     obj.unref();
-    return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code MemCapability::revoke() {
+void MemCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
     obj.unref();
-    return m3::Errors::NO_ERROR;
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint _pages, uint _attr)
@@ -93,28 +91,24 @@ void MapCapability::remap(uintptr_t _phys, uint _attr) {
     DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, length, attr);
 }
 
-m3::Errors::Code MapCapability::revoke() {
+void MapCapability::revoke() {
     VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
     DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
-    return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code SessionCapability::revoke() {
+void SessionCapability::revoke() {
     // if the server created that, we want to close it as soon as there are no clients using it anymore
     if(obj->servowned && obj->refcount() == 2)
         obj->close();
     obj.unref();
-    return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code ServiceCapability::revoke() {
-    bool closing = inst->closing;
-    inst->closing = true;
-    // if we have childs, i.e. sessions, we need to send the close-message to the service first,
-    // in which case there will be pending requests, which need to be handled first.
-    if(inst->pending() > 0 || (child() != nullptr && !closing))
-        return m3::Errors::MSGS_WAITING;
-    return m3::Errors::NO_ERROR;
+void ServiceCapability::revoke() {
+    // first, reset the receive buffer: make all slots not-occupied
+    if(inst->rbuf()->activated())
+        inst->vpe().config_rcv_ep(inst->rbuf()->ep, *inst->rbuf());
+    // now, abort everything in the sendqueue
+    inst->abort();
 }
 
 VPECapability::VPECapability(CapTable *tbl, capsel_t sel, VPE *p)
@@ -126,9 +120,8 @@ VPECapability::VPECapability(const VPECapability &t) : Capability(t), vpe(t.vpe)
     vpe->ref();
 }
 
-m3::Errors::Code VPECapability::revoke() {
+void VPECapability::revoke() {
     vpe->unref();
-    return m3::Errors::NO_ERROR;
 }
 
 void Capability::print(m3::OStream &os) const {

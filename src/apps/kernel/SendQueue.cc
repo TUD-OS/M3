@@ -39,6 +39,9 @@ void *SendQueue::get_event(uint64_t id) {
 void *SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap) {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: trying to send message");
 
+    if(_inflight == -1)
+        return nullptr;
+
     if(_vpe.state() == VPE::RUNNING && _inflight == 0)
         return do_send(sgate, _next_id++, msg, size, onheap);
 
@@ -115,6 +118,20 @@ void *SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t s
     if(onheap)
         m3::Heap::free(const_cast<void*>(msg));
     return _cur_event;
+}
+
+void SendQueue::abort() {
+    if(_inflight)
+        m3::ThreadManager::get().notify(_cur_event);
+    _inflight = -1;
+
+    while(_queue.length() > 0)
+        delete _queue.remove_first();
+
+    if(_timeout) {
+        Timeouts::get().cancel(_timeout);
+        _timeout = nullptr;
+    }
 }
 
 }

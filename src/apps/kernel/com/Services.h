@@ -48,13 +48,17 @@ public:
     SendGate &send_gate() const {
         return const_cast<SendGate&>(_sgate);
     }
+    const m3::Reference<RBufObject> &rbuf() const {
+        return _rbuf;
+    }
 
     int pending() const;
 
     void send(const void *msg, size_t size, bool free);
     const m3::DTU::Message *send_receive(const void *msg, size_t size, bool free);
-
-    bool closing;
+    void abort() {
+        _squeue.abort();
+    }
 
 private:
     SendQueue _squeue;

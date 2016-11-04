@@ -214,7 +214,7 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
         return m3::Errors::INV_ARGS;
 
     for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
-        if(!_epcaps[i] || _epcaps[i]->type != Capability::RBUF)
+        if(m3::DTU::FIRST_FREE_EP + i == ep || !_epcaps[i] || _epcaps[i]->type != Capability::RBUF)
             continue;
 
         RBufCapability *cap = static_cast<RBufCapability*>(_epcaps[i]);

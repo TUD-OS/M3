@@ -70,7 +70,7 @@ public:
 
     Capability *obtain(capsel_t dst, Capability *c);
     void inherit(Capability *parent, Capability *child);
-    m3::Errors::Code revoke(const m3::KIF::CapRngDesc &crd, bool own);
+    void revoke(const m3::KIF::CapRngDesc &crd, bool own);
 
     Capability *get(capsel_t i) {
         return _caps.find(i);
@@ -108,8 +108,8 @@ public:
 #endif
 
 private:
-    static m3::Errors::Code revoke(Capability *c, bool revnext);
-    static m3::Errors::Code revoke_rec(Capability *c, bool revnext);
+    static void revoke(Capability *c, bool revnext);
+    static void revoke_rec(Capability *c, bool revnext);
     bool range_valid(const m3::KIF::CapRngDesc &crd) const {
         return crd.count() == 0 || crd.start() + crd.count() > crd.start();
     }
