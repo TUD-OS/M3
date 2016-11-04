@@ -23,20 +23,17 @@
 using namespace m3;
 
 int main() {
-    int failed = 0;
     for(int j = 0; j < 10; ++j) {
-        Session sess("srvtest-server");
-        if(Errors::occurred()) {
-            cout << "Unable to create sess at srvtest-server. Retrying.\n";
-            if(++failed == 20)
+        Session *sess;
+        while(true) {
+            sess = new Session("srvtest-server");
+            if(!Errors::occurred())
                 break;
-            --j;
-            continue;
+            delete sess;
         }
 
-        failed = 0;
         for(int i = 0; i < 10; ++i) {
-            capsel_t sel = sess.obtain(1).start();
+            capsel_t sel = sess->obtain(1).start();
             VPE::self().free_cap(sel);
 
             if(Errors::last == Errors::INV_ARGS)
@@ -44,6 +41,7 @@ int main() {
             if(Errors::last != Errors::NOT_SUP)
                 cout << "Expected NOT_SUP, got " << Errors::to_string(Errors::last) << "\n";
         }
+        delete sess;
     }
     return 0;
 }

@@ -24,7 +24,6 @@ using namespace m3;
 class MyHandler;
 
 static Server<MyHandler> *srv;
-static bool run = true;
 
 class MyHandler : public Handler<> {
 public:
@@ -40,18 +39,13 @@ public:
         cout << "Client closed connection.\n";
         return Handler<>::handle_close(sess);
     }
-    virtual void handle_shutdown() override {
-        Handler<>::handle_shutdown();
-        cout << "Kernel wants to shut down.\n";
-        run = false;
-    }
 
 private:
     int _count;
 };
 
 int main() {
-    for(int i = 0; run && i < 10; ++i) {
+    for(int i = 0; i < 10; ++i) {
         MyHandler hdl;
         srv = new Server<MyHandler>("srvtest-server", &hdl);
         if(Errors::occurred())
