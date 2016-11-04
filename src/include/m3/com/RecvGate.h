@@ -102,7 +102,6 @@ public:
     void activate();
     void activate(epid_t ep);
     void activate(epid_t ep, uintptr_t addr);
-    void deactivate();
 
     /**
      * Start to listen for received messages
@@ -140,6 +139,8 @@ public:
 private:
     static void *allocate(epid_t ep, size_t size);
     static void free(void *);
+
+    void deactivate();
 
     VPE &_vpe;
     void *_buf;
