@@ -20,7 +20,7 @@
 #include <base/Errors.h>
 #include <base/KIF.h>
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -34,9 +34,9 @@ class Server : public ObjCap {
 public:
     explicit Server(const String &name, HDL *handler)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
-          _rcvbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)) {
+          _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)) {
         using std::placeholders::_1;
-        _rcvbuf.start(std::bind(&Server::handle_message, this, _1));
+        _rgate.start(std::bind(&Server::handle_message, this, _1));
 
         _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
         _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
@@ -45,12 +45,12 @@ public:
         _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
 
         LLOG(SERV, "create(" << name << ")");
-        Syscalls::get().createsrv(sel(), _rcvbuf.sel(), name);
+        Syscalls::get().createsrv(sel(), _rgate.sel(), name);
     }
 
     void shutdown() {
         _handler->handle_shutdown();
-        _rcvbuf.stop();
+        _rgate.stop();
     }
 
     HDL &handler() {
@@ -145,7 +145,7 @@ private:
 protected:
     HDL *_handler;
     handler_func _ctrl_handler[5];
-    RecvBuf _rcvbuf;
+    RecvGate _rgate;
 };
 
 }

@@ -61,7 +61,7 @@ static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
     }
 }
 
-void RBufCapability::revoke() {
+void RGateCapability::revoke() {
     m3::ThreadManager::get().notify(&*obj);
     invalidate_ep(table()->id() - 1, this);
     obj->addr = 0;
@@ -105,8 +105,8 @@ void SessionCapability::revoke() {
 
 void ServiceCapability::revoke() {
     // first, reset the receive buffer: make all slots not-occupied
-    if(inst->rbuf()->activated())
-        inst->vpe().config_rcv_ep(inst->rbuf()->ep, *inst->rbuf());
+    if(inst->rgate()->activated())
+        inst->vpe().config_rcv_ep(inst->rgate()->ep, *inst->rgate());
     // now, abort everything in the sendqueue
     inst->abort();
 }
@@ -130,8 +130,8 @@ void Capability::print(m3::OStream &os) const {
     child()->printChilds(os);
 }
 
-void RBufCapability::printInfo(m3::OStream &os) const {
-    os << ": rbuf[refs=" << obj->refcount()
+void RGateCapability::printInfo(m3::OStream &os) const {
+    os << ": rgate[refs=" << obj->refcount()
        << ", ep=" << obj->ep
        << ", addr=#" << m3::fmt(obj->addr, "0x", sizeof(label_t) * 2)
        << ", order=" << obj->order
@@ -140,7 +140,7 @@ void RBufCapability::printInfo(m3::OStream &os) const {
 
 void MsgCapability::printInfo(m3::OStream &os) const {
     os << ": mesg[refs=" << obj->refcount()
-       << ", dst=" << obj->rbuf->vpe << ":" << obj->rbuf->ep
+       << ", dst=" << obj->rgate->vpe << ":" << obj->rgate->ep
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }

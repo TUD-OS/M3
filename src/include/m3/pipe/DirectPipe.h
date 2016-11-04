@@ -116,10 +116,10 @@ public:
     ~DirectPipe();
 
     /**
-     * @return the capabilities (memory and gate)
+     * @return the capabilities (rgate, memory and sgate)
      */
     capsel_t caps() const {
-        return _rbuf.sel();
+        return _rgate.sel();
     }
     /**
      * @return the size of the shared memory area
@@ -154,7 +154,7 @@ private:
     VPE &_rd;
     VPE &_wr;
     size_t _size;
-    RecvBuf _rbuf;
+    RecvGate _rgate;
     MemGate _mem;
     SendGate _sgate;
     fd_t _rdfd;

@@ -28,11 +28,11 @@
 namespace kernel {
 
 class VPE;
-class RBufObject;
+class RGateObject;
 
 class Service : public SlabObject<Service>, public m3::SListItem, public m3::RefCounted {
 public:
-    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RBufObject> &rbuf);
+    explicit Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RGateObject> &rgate);
     ~Service();
 
     VPE &vpe() const {
@@ -47,8 +47,8 @@ public:
     SendGate &send_gate() const {
         return const_cast<SendGate&>(_sgate);
     }
-    const m3::Reference<RBufObject> &rbuf() const {
-        return _rbuf;
+    const m3::Reference<RGateObject> &rgate() const {
+        return _rgate;
     }
 
     int pending() const;
@@ -64,7 +64,7 @@ private:
     capsel_t _sel;
     m3::String _name;
     SendGate _sgate;
-    m3::Reference<RBufObject> _rbuf;
+    m3::Reference<RGateObject> _rgate;
 };
 
 class ServiceList {
@@ -87,8 +87,8 @@ public:
         return _list.end();
     }
 
-    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RBufObject> &rbuf) {
-        Service *inst = new Service(vpe, sel, name, rbuf);
+    Service *add(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RGateObject> &rgate) {
+        Service *inst = new Service(vpe, sel, name, rgate);
         _list.append(inst);
         return inst;
     }

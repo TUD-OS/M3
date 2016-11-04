@@ -21,7 +21,7 @@
 #include <base/EnvBackend.h>
 #include <base/PEDesc.h>
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 
 #include <pthread.h>
 #include <assert.h>

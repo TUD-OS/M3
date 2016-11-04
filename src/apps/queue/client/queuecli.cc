@@ -36,10 +36,10 @@ static void received_data(GateIStream &is) {
 int main() {
     Session qtest("queuetest");
 
-    RecvBuf rcvbuf = RecvBuf::create(nextlog2<4096>::val, nextlog2<512>::val);
-    SendGate sgate = SendGate::create(&rcvbuf, 0, SendGate::UNLIMITED);
+    RecvGate rgate = RecvGate::create(nextlog2<4096>::val, nextlog2<512>::val);
+    SendGate sgate = SendGate::create(&rgate, 0, SendGate::UNLIMITED);
     qtest.delegate_obj(sgate.sel());
-    rcvbuf.start(received_data);
+    rgate.start(received_data);
 
     env()->workloop()->run();
     return 0;

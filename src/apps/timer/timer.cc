@@ -33,7 +33,7 @@ int main() {
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
     if(Errors::occurred())
         exitmsg("Unable to connect to service 'interrupts'");
-    timerirqs.rbuf().start(timer_event);
+    timerirqs.rgate().start(timer_event);
 
     env()->workloop()->run();
     return 0;

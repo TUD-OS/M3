@@ -119,10 +119,10 @@ int main(int argc, char **argv) {
         exitmsg("Opening " << moviefile << " failed");
 
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.rbuf().start(timer_event);
+    timerirqs.rgate().start(timer_event);
 
     Keyboard kb("keyb");
-    kb.rbuf().start(kb_event);
+    kb.rgate().start(kb_event);
 
     env()->workloop()->run();
     return 0;

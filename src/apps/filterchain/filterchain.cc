@@ -19,7 +19,7 @@
 
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/com/GateStream.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
@@ -57,19 +57,19 @@ int main(int argc, char **argv) {
     VPE t2("receiver");
 
     // create a gate the sender can send to (at the receiver)
-    RecvBuf rbuf = RecvBuf::create(nextlog2<512>::val, nextlog2<64>::val);
-    SendGate gate = SendGate::create_for(&rbuf, 0, 64);
+    RecvGate rgate = RecvGate::create(nextlog2<512>::val, nextlog2<64>::val);
+    SendGate gate = SendGate::create_for(&rgate, 0, 64);
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
     t2.fds(*VPE::self().fds());
     t2.obtain_fds();
-    t2.delegate_obj(rbuf.sel());
-    t2.run([&rbuf] {
+    t2.delegate_obj(rgate.sel());
+    t2.run([&rgate] {
         size_t count, total = 0;
         int finished = 0;
         while(!finished) {
-            GateIStream is = receive_vmsg(rbuf, count, finished);
+            GateIStream is = receive_vmsg(rgate, count, finished);
 
             cout << "Got " << count << " data items\n";
 

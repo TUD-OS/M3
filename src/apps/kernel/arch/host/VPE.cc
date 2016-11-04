@@ -34,12 +34,12 @@ void VPE::init() {
         return;
 
     // configure notify endpoint
-    RBufObject rbuf(NOTIFY_MSGSIZE_ORD, NOTIFY_MSGSIZE_ORD);
-    rbuf.vpe = VPEManager::MAX_VPES;
-    rbuf.addr = 1;  // has to be non-zero
-    rbuf.ep = m3::DTU::NOTIFY_SEP;
-    rbuf.add_ref(); // don't free this
-    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
+    RGateObject rgate(NOTIFY_MSGSIZE_ORD, NOTIFY_MSGSIZE_ORD);
+    rgate.vpe = VPEManager::MAX_VPES;
+    rgate.addr = 1;  // has to be non-zero
+    rgate.ep = m3::DTU::NOTIFY_SEP;
+    rgate.add_ref(); // don't free this
+    MsgObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 

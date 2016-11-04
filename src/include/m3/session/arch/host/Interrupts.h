@@ -19,7 +19,7 @@
 #include <base/arch/host/HWInterrupts.h>
 
 #include <m3/com/Gate.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/session/Session.h>
 #include <m3/VPE.h>
 
@@ -30,18 +30,18 @@ public:
     explicit Interrupts(const String &service, HWInterrupts::IRQ irq, int buford = nextlog2<256>::val,
             int msgord = nextlog2<64>::val)
         : Session(service, irq),
-          _rcvbuf(RecvBuf::create(buford, msgord)),
-          _sgate(SendGate::create(&_rcvbuf, 0, SendGate::UNLIMITED)) {
+          _rgate(RecvGate::create(buford, msgord)),
+          _sgate(SendGate::create(&_rgate, 0, SendGate::UNLIMITED)) {
         if(!Errors::occurred())
             delegate_obj(_sgate.sel());
     }
 
-    RecvBuf &rbuf() {
-        return _rcvbuf;
+    RecvGate &rgate() {
+        return _rgate;
     }
 
 private:
-    RecvBuf _rcvbuf;
+    RecvGate _rgate;
     SendGate _sgate;
 };
 

@@ -403,7 +403,7 @@ int main() {
     VGA vga("vga");
 
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.rbuf().start(std::bind(refresh_screen, &vga, std::placeholders::_1));
+    timerirqs.rgate().start(std::bind(refresh_screen, &vga, std::placeholders::_1));
 
     Server<PlasmaRequestHandler> srv("plasma", new PlasmaRequestHandler());
 

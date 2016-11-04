@@ -58,7 +58,7 @@ static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &) {
 int main() {
     Interrupts kbirqs("interrupts", HWInterrupts::KEYB);
     Server<EventHandler<>> kbserver("keyb", new EventHandler<>());
-    kbirqs.rbuf().start(std::bind(kb_irq, &kbserver, std::placeholders::_1));
+    kbirqs.rgate().start(std::bind(kb_irq, &kbserver, std::placeholders::_1));
 
     env()->workloop()->run();
     return 0;

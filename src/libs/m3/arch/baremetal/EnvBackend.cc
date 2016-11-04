@@ -19,7 +19,7 @@
 #include <base/Backtrace.h>
 #include <base/Env.h>
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/stream/Standard.h>
 #include <m3/Syscalls.h>
 #include <m3/UserWorkLoop.h>
@@ -51,7 +51,7 @@ public:
 
 #if defined(__t3__)
         // set default receive buffer again
-        RecvBuf &def = RecvBuf::def();
+        RecvGate &def = RecvGate::def();
         DTU::get().configure_recv(def.ep(), reinterpret_cast<word_t>(def.addr()),
             def.order(), def.msgorder(), def.flags());
 #endif

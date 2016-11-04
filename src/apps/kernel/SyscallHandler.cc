@@ -87,7 +87,7 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::CREATESRV, &SyscallHandler::createsrv);
     add_operation(m3::KIF::Syscall::CREATESESS, &SyscallHandler::createsess);
     add_operation(m3::KIF::Syscall::CREATESESSAT, &SyscallHandler::createsessat);
-    add_operation(m3::KIF::Syscall::CREATERBUF, &SyscallHandler::createrbuf);
+    add_operation(m3::KIF::Syscall::CREATERGATE, &SyscallHandler::creatergate);
     add_operation(m3::KIF::Syscall::CREATEGATE, &SyscallHandler::creategate);
     add_operation(m3::KIF::Syscall::CREATEVPE, &SyscallHandler::createvpe);
     add_operation(m3::KIF::Syscall::CREATEMAP, &SyscallHandler::createmap);
@@ -142,19 +142,19 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
 
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(msg);
     capsel_t srv = req->srv;
-    capsel_t rbuf = req->rbuf;
+    capsel_t rgate = req->rgate;
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
-    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", rbuf=" << rbuf << ", name=" << name << ")");
+    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", rgate=" << rgate << ", name=" << name << ")");
 
-    RBufCapability *rbufcap = static_cast<RBufCapability*>(vpe->objcaps().get(rbuf, Capability::RBUF));
-    if(rbufcap == nullptr || !rbufcap->obj->activated())
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Receive buffer capability invalid");
+    RGateCapability *rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
+    if(rgatecap == nullptr || !rgatecap->obj->activated())
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate capability invalid");
 
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Service does already exist");
 
-    Service *s = ServiceList::get().add(*vpe, srv, name, rbufcap->obj);
+    Service *s = ServiceList::get().add(*vpe, srv, name, rgatecap->obj);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)
@@ -286,15 +286,15 @@ void SyscallHandler::createsessat(VPE *vpe, const m3::DTU::Message *msg) {
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }
 
-void SyscallHandler::createrbuf(VPE *vpe, const m3::DTU::Message *msg) {
-    EVENT_TRACER_Syscall_createrbuf();
+void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
+    EVENT_TRACER_Syscall_creatergate();
 
-    auto req = get_message<m3::KIF::Syscall::CreateRBuf>(msg);
-    capsel_t rbuf = req->rbuf;
+    auto req = get_message<m3::KIF::Syscall::CreateRGate>(msg);
+    capsel_t rgate = req->rgate;
     int order = req->order;
     int msgorder = req->msgorder;
 
-    LOG_SYS(vpe, ": syscall::createrbuf", "(rbuf=" << rbuf
+    LOG_SYS(vpe, ": syscall::creatergate", "(rgate=" << rgate
         << ", size=" << m3::fmt(1UL << order, "#x")
         << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ")");
 
@@ -303,8 +303,8 @@ void SyscallHandler::createrbuf(VPE *vpe, const m3::DTU::Message *msg) {
     if((1UL << (order - msgorder)) > MAX_RB_SIZE)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Too many receive buffer slots");
 
-    RBufCapability *cap = new RBufCapability(&vpe->objcaps(), rbuf, order, msgorder);
-    vpe->objcaps().set(rbuf, cap);
+    RGateCapability *cap = new RGateCapability(&vpe->objcaps(), rgate, order, msgorder);
+    vpe->objcaps().set(rgate, cap);
 
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }
@@ -313,12 +313,12 @@ void SyscallHandler::creategate(VPE *vpe, const m3::DTU::Message *msg) {
     EVENT_TRACER_Syscall_creategate();
 
     auto req = get_message<m3::KIF::Syscall::CreateGate>(msg);
-    capsel_t rbuf = req->rbuf;
+    capsel_t rgate = req->rgate;
     capsel_t dstcap = req->gate;
     label_t label = req->label;
     word_t credits = req->credits;
 
-    LOG_SYS(vpe, ": syscall::creategate", "(rbuf=" << rbuf << ", cap=" << dstcap
+    LOG_SYS(vpe, ": syscall::creategate", "(rgate=" << rgate << ", cap=" << dstcap
         << ", label=" << m3::fmt(label, "#0x", sizeof(label_t) * 2)
         << ", crd=#" << m3::fmt(credits, "0x") << ")");
 
@@ -327,15 +327,15 @@ void SyscallHandler::creategate(VPE *vpe, const m3::DTU::Message *msg) {
         PANIC("Unlimited credits are not yet supported on gem5");
 #endif
 
-    RBufCapability *rbufcap = static_cast<RBufCapability*>(vpe->objcaps().get(rbuf, Capability::RBUF));
-    if(rbufcap == nullptr)
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RBuf capability is invalid");
+    RGateCapability *rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
+    if(rgatecap == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate capability is invalid");
 
     if(!vpe->objcaps().unused(dstcap))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap");
 
     vpe->objcaps().set(dstcap,
-        new MsgCapability(&vpe->objcaps(), dstcap, &*rbufcap->obj, label, credits));
+        new MsgCapability(&vpe->objcaps(), dstcap, &*rgatecap->obj, label, credits));
 
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }
@@ -717,16 +717,16 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
 
     Capability *capobj = nullptr;
     if(cap != m3::KIF::INV_SEL) {
-        capobj = vpe->objcaps().get(cap, Capability::MSG | Capability::MEM | Capability::RBUF);
+        capobj = vpe->objcaps().get(cap, Capability::MSG | Capability::MEM | Capability::RGATE);
         if(capobj == nullptr)
             SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalidate capability");
     }
 
     Capability *oldobj = tvpeobj->vpe->ep_cap(ep);
     if(oldobj) {
-        if(oldobj->type == Capability::RBUF) {
-            RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
-            rbufcap->obj->addr = 0;
+        if(oldobj->type == Capability::RGATE) {
+            RGateCapability *rgatecap = static_cast<RGateCapability*>(capobj);
+            rgatecap->obj->addr = 0;
         }
 
         m3::Errors::Code res = DTU::get().inval_ep_remote(tvpeobj->vpe->desc(), ep);
@@ -744,30 +744,30 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         else if(capobj->type == Capability::MSG) {
             MsgCapability *msgcap = static_cast<MsgCapability*>(capobj);
 
-            if(!msgcap->obj->rbuf->activated()) {
-                LOG_SYS(vpe, ": syscall::activate", ": waiting for rbuf " << &msgcap->obj->rbuf);
+            if(!msgcap->obj->rgate->activated()) {
+                LOG_SYS(vpe, ": syscall::activate", ": waiting for rgate " << &msgcap->obj->rgate);
 
                 vpe->start_wait();
-                m3::ThreadManager::get().wait_for(&*msgcap->obj->rbuf);
+                m3::ThreadManager::get().wait_for(&*msgcap->obj->rgate);
                 vpe->stop_wait();
             }
 
             tvpeobj->vpe->config_snd_ep(ep, *msgcap->obj);
         }
         else {
-            RBufCapability *rbufcap = static_cast<RBufCapability*>(capobj);
-            if(rbufcap->obj->activated())
-                SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Receive buffer already activated");
+            RGateCapability *rgatecap = static_cast<RGateCapability*>(capobj);
+            if(rgatecap->obj->activated())
+                SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "RGate already activated");
 
-            LOG_SYS(vpe, ": syscall::activate", ": rbuf " << &*rbufcap->obj);
+            LOG_SYS(vpe, ": syscall::activate", ": rgate " << &*rgatecap->obj);
 
-            rbufcap->obj->vpe = tvpeobj->vpe->id();
-            rbufcap->obj->addr = addr;
-            rbufcap->obj->ep = ep;
+            rgatecap->obj->vpe = tvpeobj->vpe->id();
+            rgatecap->obj->addr = addr;
+            rgatecap->obj->ep = ep;
 
-            m3::Errors::Code res = tvpeobj->vpe->config_rcv_ep(ep, *rbufcap->obj);
+            m3::Errors::Code res = tvpeobj->vpe->config_rcv_ep(ep, *rgatecap->obj);
             if(res != m3::Errors::NO_ERROR) {
-                rbufcap->obj->addr = 0;
+                rgatecap->obj->addr = 0;
                 SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
             }
         }
@@ -830,7 +830,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     // TODO if we do that asynchronously, we need to buffer the message somewhere, because the
     // VPE might want to do other system calls in the meantime. probably, VPEs need to allocate
     // the memory beforehand and the kernel will simply use it afterwards.
-    VPE &tvpe = VPEManager::get().vpe(capobj->obj->rbuf->vpe);
+    VPE &tvpe = VPEManager::get().vpe(capobj->obj->rgate->vpe);
     bool async = tvpe.state() != VPE::RUNNING && event;
     if(async)
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
@@ -839,7 +839,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
 
     if(res == m3::Errors::NO_ERROR) {
         uint32_t sender = vpe->pe() | (vpe->id() << 8);
-        DTU::get().send_to(tvpe.desc(), capobj->obj->rbuf->ep, capobj->obj->label, req->msg, req->len,
+        DTU::get().send_to(tvpe.desc(), capobj->obj->rgate->ep, capobj->obj->label, req->msg, req->len,
             req->rlabel, req->repid, sender);
 
         vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
@@ -929,9 +929,9 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     LOG_SYS(vpe, ": syscall::forwardreply", "(cap=" << cap << ", len=" << len
         << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
 
-    RBufCapability *capobj = static_cast<RBufCapability*>(vpe->objcaps().get(cap, Capability::RBUF));
+    RGateCapability *capobj = static_cast<RGateCapability*>(vpe->objcaps().get(cap, Capability::RGATE));
     if(capobj == nullptr)
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rbuf cap");
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate cap");
 
     // ensure that the VPE is running, because we need to access it's address space
     while(vpe->state() != VPE::RUNNING) {

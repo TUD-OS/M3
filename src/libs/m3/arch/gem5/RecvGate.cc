@@ -16,14 +16,14 @@
 
 #include <base/Panic.h>
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/com/MemGate.h>
 #include <m3/session/Pager.h>
 #include <m3/Syscalls.h>
 
 namespace m3 {
 
-void *RecvBuf::allocate(size_t, size_t size) {
+void *RecvGate::allocate(size_t, size_t size) {
     // TODO this assumes that we don't VPE::run between SPM and non-SPM PEs
     static uintptr_t nextbuf = 0;
     static size_t total = 0;
@@ -49,7 +49,7 @@ void *RecvBuf::allocate(size_t, size_t size) {
     return res;
 }
 
-void RecvBuf::free(void *) {
+void RecvGate::free(void *) {
     // TODO implement me
 }
 

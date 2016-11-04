@@ -23,8 +23,8 @@ namespace m3 {
 
 DirectPipeReader::State::State(capsel_t caps)
     : _mgate(MemGate::bind(caps + 1)),
-      _rbuf(RecvBuf::bind(caps + 0, nextlog2<DirectPipe::MSG_BUF_SIZE>::val)),
-      _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rbuf, nullptr) {
+      _rgate(RecvGate::bind(caps + 0, nextlog2<DirectPipe::MSG_BUF_SIZE>::val)),
+      _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate, nullptr) {
 }
 
 DirectPipeReader::DirectPipeReader(capsel_t caps, State *state)
@@ -45,7 +45,7 @@ void DirectPipeReader::send_eof() {
     if(~_state->_eof & DirectPipe::READ_EOF) {
         // if we have not fetched a message yet, do so now
         if(_state->_pkglen == static_cast<size_t>(-1))
-            _state->_is = receive_vmsg(_state->_rbuf, _state->_pos, _state->_pkglen);
+            _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
         DBG_PIPE("[read] replying len=0\n");
         reply_vmsg(_state->_is, (size_t)0);
         _state->_eof |= DirectPipe::READ_EOF;
@@ -66,7 +66,7 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
             reply_vmsg(_state->_is, _state->_pkglen);
             _state->_is.finish();
         }
-        _state->_is = receive_vmsg(_state->_rbuf, _state->_pos, _state->_pkglen);
+        _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
         _state->_rem = _state->_pkglen;
     }
 

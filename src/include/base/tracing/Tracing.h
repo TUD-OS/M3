@@ -37,7 +37,7 @@
 #define EVENT_TRACER_Syscall_createsrv()    EVENT_TRACER(12);
 #define EVENT_TRACER_Syscall_createsess()   EVENT_TRACER(13);
 #define EVENT_TRACER_Syscall_createsessat() EVENT_TRACER(14);
-#define EVENT_TRACER_Syscall_createrbuf()   EVENT_TRACER(15);
+#define EVENT_TRACER_Syscall_creatergate()  EVENT_TRACER(15);
 #define EVENT_TRACER_Syscall_creategate()   EVENT_TRACER(16);
 #define EVENT_TRACER_Syscall_createvpe()    EVENT_TRACER(17);
 #define EVENT_TRACER_Syscall_createmap()    EVENT_TRACER(18);

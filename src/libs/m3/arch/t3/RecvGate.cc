@@ -1,4 +1,4 @@
-/*
+#/*
  * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
@@ -14,15 +14,15 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 
 namespace m3 {
 
-void *RecvBuf::allocate(size_t, size_t size) {
+void *RecvGate::allocate(size_t, size_t size) {
     return new uint8_t[size];
 }
 
-void RecvBuf::free(void *ptr) {
+void RecvGate::free(void *ptr) {
     delete[] static_cast<uint8_t*>(ptr);
 }
 

@@ -19,7 +19,7 @@
 #include <base/util/Reference.h>
 
 #include <m3/session/Session.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/vfs/FileSystem.h>
 

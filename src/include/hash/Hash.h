@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 
 #include <hash/Accel.h>
@@ -36,8 +36,8 @@ public:
 
 private:
     Accel *_accel;
-    m3::RecvBuf _srbuf;
-    m3::RecvBuf _crbuf;
+    m3::RecvGate _srgate;
+    m3::RecvGate _crgate;
     m3::SendGate _send;
 };
 

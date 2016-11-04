@@ -14,16 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 
 namespace m3 {
 
-void *RecvBuf::allocate(epid_t ep, size_t size) {
-    uintptr_t offset = DTU::get().recvbuf_offset(env()->pe, ep);
-    return reinterpret_cast<void*>(RECV_BUF_LOCAL + offset);
+void *RecvGate::allocate(size_t, size_t size) {
+    return new uint8_t[size];
 }
 
-void RecvBuf::free(void *) {
+void RecvGate::free(void *ptr) {
+    delete[] static_cast<uint8_t*>(ptr);
 }
 
 }

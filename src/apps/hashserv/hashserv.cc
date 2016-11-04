@@ -55,7 +55,7 @@ public:
         return id * hash::Accel::BUF_SIZE;
     }
 
-    capsel_t connect(VPE &acc, RecvBuf *buf) {
+    capsel_t connect(VPE &acc, RecvGate *buf) {
         label_t label;
         if(acc.pe().has_virtmem()) {
             label = ACC_BUFS + offset();
@@ -66,8 +66,8 @@ public:
             mem = new MemGate(VPE::self().mem().derive(
                 BUF_ADDR + offset(), hash::Accel::BUF_SIZE, MemGate::W));
         }
-        sgate = new SendGate(SendGate::create_for(buf, label, 256, &RecvBuf::def()));
-        sgate->reply_buf()->activate();
+        sgate = new SendGate(SendGate::create_for(buf, label, 256, &RecvGate::def()));
+        sgate->reply_gate()->activate();
         return mem->sel();
     }
 
@@ -80,7 +80,7 @@ class HashReqHandler : public RequestHandler<HashReqHandler, Hash::Operation, Ha
 public:
     explicit HashReqHandler(hash::Accel *accel)
         : RequestHandler(),
-          _rbuf(RecvBuf::create_for(accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
+          _rgate(RecvGate::create_for(accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
           _buf(),
           _mem(accel->get().mem().derive(ACC_BUFS, hash::Accel::BUF_SIZE, MemGate::W)),
           _accel(accel) {
@@ -96,8 +96,8 @@ public:
             _accel->get().pager()->map_anon(&virt, hash::Accel::BUF_SIZE * MAX_CLIENTS, Pager::Prot::RW, 0);
         }
 
-        _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _rbuf.sel(), 1), hash::Accel::RBUF);
-        _rbuf.activate(hash::Accel::EPID, _accel->getRBAddr());
+        _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _rgate.sel(), 1), hash::Accel::RBUF);
+        _rgate.activate(hash::Accel::EPID, _accel->getRBAddr());
         _accel->get().start();
 
         add_operation(Hash::CREATE_HASH, &HashReqHandler::create_hash);
@@ -123,7 +123,7 @@ public:
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;
 
-        capsel_t cap = sess->connect(_accel->get(), &_rbuf);
+        capsel_t cap = sess->connect(_accel->get(), &_rgate);
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, cap, 1).value();
         data.argcount = 0;
         return Errors::NO_ERROR;
@@ -150,7 +150,7 @@ public:
     }
 
 private:
-    RecvBuf _rbuf;
+    RecvGate _rgate;
     MemGate *_buf;
     MemGate _mem;
     hash::Accel *_accel;

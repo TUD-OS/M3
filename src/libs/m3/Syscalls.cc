@@ -124,13 +124,13 @@ Errors::Code Syscalls::forwardreply(capsel_t cap, const void *msg, size_t len, u
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createsrv(capsel_t srv, capsel_t rbuf, const String &name) {
-    LLOG(SYSC, "createsrv(srv=" << srv << ", rbuf=" << rbuf << ", name=" << name << ")");
+Errors::Code Syscalls::createsrv(capsel_t srv, capsel_t rgate, const String &name) {
+    LLOG(SYSC, "createsrv(srv=" << srv << ", rgate=" << rgate << ", name=" << name << ")");
 
     KIF::Syscall::CreateSrv req;
     req.opcode = KIF::Syscall::CREATESRV;
     req.srv = srv;
-    req.rbuf = rbuf;
+    req.rgate = rgate;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
     size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
@@ -161,25 +161,25 @@ Errors::Code Syscalls::createsess(capsel_t cap, const String &name, word_t arg) 
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createrbuf(capsel_t rbuf, int order, int msgorder) {
-    LLOG(SYSC, "createrbuf(rbuf=" << rbuf << ", size=" << fmt(1UL << order, "x")
+Errors::Code Syscalls::creatergate(capsel_t rgate, int order, int msgorder) {
+    LLOG(SYSC, "creatergate(rgate=" << rgate << ", size=" << fmt(1UL << order, "x")
         << ", msgsize=" << fmt(1UL << msgorder, "x") << ")");
 
-    KIF::Syscall::CreateRBuf req;
-    req.opcode = KIF::Syscall::CREATERBUF;
-    req.rbuf = rbuf;
+    KIF::Syscall::CreateRGate req;
+    req.opcode = KIF::Syscall::CREATERGATE;
+    req.rgate = rgate;
     req.order = order;
     req.msgorder = msgorder;
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::creategate(capsel_t rbuf, capsel_t dst, label_t label, word_t credits) {
-    LLOG(SYSC, "creategate(rbuf=" << rbuf << ", dst=" << dst << ", label=" << fmt(label, "#x")
+Errors::Code Syscalls::creategate(capsel_t rgate, capsel_t dst, label_t label, word_t credits) {
+    LLOG(SYSC, "creategate(rgate=" << rgate << ", dst=" << dst << ", label=" << fmt(label, "#x")
         << ", credits=" << credits << ")");
 
     KIF::Syscall::CreateGate req;
     req.opcode = KIF::Syscall::CREATEGATE;
-    req.rbuf = rbuf;
+    req.rgate = rgate;
     req.gate = dst;
     req.label = label;
     req.credits = credits;

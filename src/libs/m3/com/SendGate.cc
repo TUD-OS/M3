@@ -24,30 +24,30 @@
 
 namespace m3 {
 
-SendGate SendGate::create(RecvBuf *rbuf, label_t label, word_t credits, capsel_t sel) {
-    rbuf = rbuf == nullptr ? &RecvBuf::def() : rbuf;
-    return create_for(rbuf, label, credits, nullptr, sel);
+SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, capsel_t sel) {
+    rgate = rgate == nullptr ? &RecvGate::def() : rgate;
+    return create_for(rgate, label, credits, nullptr, sel);
 }
 
-SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, RecvBuf *replybuf, capsel_t sel) {
+SendGate SendGate::create_for(RecvGate *rgate, label_t label, word_t credits, RecvGate *replygate, capsel_t sel) {
     uint flags = 0;
-    replybuf = replybuf == nullptr ? &RecvBuf::def() : replybuf;
+    replygate = replygate == nullptr ? &RecvGate::def() : replygate;
     if(sel == INVALID)
         sel = VPE::self().alloc_cap();
     else
         flags |= KEEP_SEL;
-    SendGate gate(sel, flags, replybuf);
-    Syscalls::get().creategate(rbuf->sel(), gate.sel(), label, credits);
+    SendGate gate(sel, flags, replygate);
+    Syscalls::get().creategate(rgate->sel(), gate.sel(), label, credits);
     return gate;
 }
 
 Errors::Code SendGate::send(const void *data, size_t len) {
     ensure_activated();
 
-    Errors::Code res = DTU::get().send(ep(), data, len, 0, _replybuf->ep());
+    Errors::Code res = DTU::get().send(ep(), data, len, 0, _replygate->ep());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         void *event = ThreadManager::get().get_wait_event();
-        res = Syscalls::get().forwardmsg(sel(), data, len, _replybuf->ep(), 0, event);
+        res = Syscalls::get().forwardmsg(sel(), data, len, _replygate->ep(), 0, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {

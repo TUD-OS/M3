@@ -113,7 +113,7 @@ struct KIF {
             CREATESRV,
             CREATESESS,
             CREATESESSAT,
-            CREATERBUF,
+            CREATERGATE,
             CREATEGATE,
             CREATEVPE,
             CREATEMAP,
@@ -190,7 +190,7 @@ struct KIF {
 
         struct CreateSrv : public DefaultRequest {
             word_t srv;
-            word_t rbuf;
+            word_t rgate;
             word_t namelen;
             char name[32];
         } PACKED;
@@ -208,14 +208,14 @@ struct KIF {
             word_t ident;
         } PACKED;
 
-        struct CreateRBuf : public DefaultRequest {
-            word_t rbuf;
+        struct CreateRGate : public DefaultRequest {
+            word_t rgate;
             word_t order;
             word_t msgorder;
         } PACKED;
 
         struct CreateGate : public DefaultRequest {
-            word_t rbuf;
+            word_t rgate;
             word_t gate;
             word_t label;
             word_t credits;

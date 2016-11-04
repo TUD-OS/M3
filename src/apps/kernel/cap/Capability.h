@@ -49,7 +49,7 @@ public:
         MEM     = 0x08,
         MAP     = 0x10,
         VIRTPE  = 0x20,
-        RBUF    = 0x40,
+        RGATE   = 0x40,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
@@ -109,12 +109,12 @@ private:
     Capability *_prev;
 };
 
-class RBufObject : public SlabObject<RBufObject>, public m3::RefCounted {
+class RGateObject : public SlabObject<RGateObject>, public m3::RefCounted {
 public:
-    explicit RBufObject(int _order, int _msgorder)
+    explicit RGateObject(int _order, int _msgorder)
         : RefCounted(), vpe(), ep(), addr(), order(_order), msgorder(_msgorder) {
     }
-    virtual ~RBufObject() {
+    virtual ~RGateObject() {
     }
 
     bool activated() const {
@@ -133,13 +133,13 @@ public:
 
 class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(RBufObject *_rbuf, label_t _label, word_t _credits)
-        : RefCounted(), rbuf(_rbuf), label(_label), credits(_credits) {
+    explicit MsgObject(RGateObject *_rgate, label_t _label, word_t _credits)
+        : RefCounted(), rgate(_rgate), label(_label), credits(_credits) {
     }
     virtual ~MsgObject() {
     }
 
-    m3::Reference<RBufObject> rbuf;
+    m3::Reference<RGateObject> rgate;
     label_t label;
     word_t credits;
 };
@@ -173,10 +173,10 @@ public:
     m3::Reference<Service> srv;
 };
 
-class RBufCapability : public SlabObject<RBufCapability>, public Capability {
+class RGateCapability : public SlabObject<RGateCapability>, public Capability {
 public:
-    explicit RBufCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
-        : Capability(tbl, sel, RBUF), obj(new RBufObject(order, msgorder)) {
+    explicit RGateCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
+        : Capability(tbl, sel, RGATE), obj(new RGateObject(order, msgorder)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -184,19 +184,19 @@ public:
 protected:
     virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        RBufCapability *c = new RBufCapability(*this);
+        RGateCapability *c = new RGateCapability(*this);
         c->put(tbl, sel);
         return c;
     }
 
 public:
-    m3::Reference<RBufObject> obj;
+    m3::Reference<RGateObject> obj;
 };
 
 class MsgCapability : public SlabObject<MsgCapability>, public Capability {
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, RBufObject *rbuf, label_t label, word_t credits)
-        : Capability(tbl, sel, MSG), obj(new MsgObject(rbuf, label, credits)) {
+    explicit MsgCapability(CapTable *tbl, capsel_t sel, RGateObject *rgate, label_t label, word_t credits)
+        : Capability(tbl, sel, MSG), obj(new MsgObject(rgate, label, credits)) {
     }
 
     void printInfo(m3::OStream &os) const override;

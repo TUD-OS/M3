@@ -19,7 +19,7 @@
 #include <base/Panic.h>
 
 #include <m3/com/EPMux.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -27,7 +27,7 @@
 
 namespace m3 {
 
-INIT_PRIO_RECVBUF RecvBuf RecvBuf::_syscall (
+INIT_PRIO_RECVBUF RecvGate RecvGate::_syscall (
 #if defined(__host__) || defined(__gem5__)
     VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, nullptr, m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0
 #else
@@ -36,15 +36,15 @@ INIT_PRIO_RECVBUF RecvBuf RecvBuf::_syscall (
 #endif
 );
 
-INIT_PRIO_RECVBUF RecvBuf RecvBuf::_upcall (
+INIT_PRIO_RECVBUF RecvGate RecvGate::_upcall (
     VPE::self(), ObjCap::INVALID, DTU::UPCALL_REP, nullptr, m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0
 );
 
-INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
+INIT_PRIO_RECVBUF RecvGate RecvGate::_default (
     VPE::self(), ObjCap::INVALID, DTU::DEF_REP, nullptr, m3::nextlog2<DEF_RBUF_SIZE>::val, DEF_RBUF_ORDER, 0
 );
 
-void RecvBuf::RecvBufWorkItem::work() {
+void RecvGate::RecvGateWorkItem::work() {
     DTU::Message *msg = DTU::get().fetch_msg(_buf->ep());
     if(msg) {
         LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _buf->ep());
@@ -53,7 +53,7 @@ void RecvBuf::RecvBufWorkItem::work() {
     }
 }
 
-RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int msgorder, uint flags)
+RecvGate::RecvGate(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int msgorder, uint flags)
     : ObjCap(RECV_BUF, cap, flags),
       _vpe(vpe),
       _buf(buf),
@@ -63,42 +63,42 @@ RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int ms
       _handler(),
       _workitem() {
     if(sel() != ObjCap::INVALID) {
-        Errors::Code res = Syscalls::get().createrbuf(sel(), order, msgorder);
+        Errors::Code res = Syscalls::get().creatergate(sel(), order, msgorder);
         if(res != Errors::NO_ERROR)
-            PANIC("Creating recvbuf failed: " << Errors::to_string(res));
+            PANIC("Creating RecvGate failed: " << Errors::to_string(res));
     }
 
     if(ep != UNBOUND)
         activate(ep);
 }
 
-RecvBuf RecvBuf::create(int order, int msgorder) {
+RecvGate RecvGate::create(int order, int msgorder) {
     return create_for(VPE::self(), order, msgorder);
 }
 
-RecvBuf RecvBuf::create(capsel_t cap, int order, int msgorder) {
+RecvGate RecvGate::create(capsel_t cap, int order, int msgorder) {
     return create_for(VPE::self(), cap, order, msgorder);
 }
 
-RecvBuf RecvBuf::create_for(VPE &vpe, int order, int msgorder) {
-    return RecvBuf(vpe, VPE::self().alloc_cap(), UNBOUND, nullptr, order, msgorder, 0);
+RecvGate RecvGate::create_for(VPE &vpe, int order, int msgorder) {
+    return RecvGate(vpe, VPE::self().alloc_cap(), UNBOUND, nullptr, order, msgorder, 0);
 }
 
-RecvBuf RecvBuf::create_for(VPE &vpe, capsel_t cap, int order, int msgorder) {
-    return RecvBuf(vpe, cap, UNBOUND, nullptr, order, msgorder, KEEP_SEL);
+RecvGate RecvGate::create_for(VPE &vpe, capsel_t cap, int order, int msgorder) {
+    return RecvGate(vpe, cap, UNBOUND, nullptr, order, msgorder, KEEP_SEL);
 }
 
-RecvBuf RecvBuf::bind(capsel_t cap, int order) {
-    return RecvBuf(VPE::self(), cap, order, KEEP_SEL | KEEP_CAP);
+RecvGate RecvGate::bind(capsel_t cap, int order) {
+    return RecvGate(VPE::self(), cap, order, KEEP_SEL | KEEP_CAP);
 }
 
-RecvBuf::~RecvBuf() {
+RecvGate::~RecvGate() {
     if(_free & FREE_BUF)
         free(_buf);
     deactivate();
 }
 
-void RecvBuf::activate() {
+void RecvGate::activate() {
     if(_ep == UNBOUND) {
         epid_t ep = _vpe.alloc_ep();
         _free |= FREE_EP;
@@ -106,7 +106,7 @@ void RecvBuf::activate() {
     }
 }
 
-void RecvBuf::activate(epid_t ep) {
+void RecvGate::activate(epid_t ep) {
     if(_ep == UNBOUND) {
         if(_buf == nullptr) {
             _buf = allocate(ep, 1UL << _order);
@@ -117,7 +117,7 @@ void RecvBuf::activate(epid_t ep) {
     }
 }
 
-void RecvBuf::activate(epid_t ep, uintptr_t addr) {
+void RecvGate::activate(epid_t ep, uintptr_t addr) {
     assert(_ep == UNBOUND);
 
     _ep = ep;
@@ -134,11 +134,11 @@ void RecvBuf::activate(epid_t ep, uintptr_t addr) {
     if(sel() != ObjCap::INVALID) {
         Errors::Code res = Syscalls::get().activate(_vpe.sel(), _ep, sel(), addr);
         if(res != Errors::NO_ERROR)
-            PANIC("Attaching recvbuf to " << _ep << " failed: " << Errors::to_string(res));
+            PANIC("Attaching RecvGate to " << _ep << " failed: " << Errors::to_string(res));
     }
 }
 
-void RecvBuf::deactivate() {
+void RecvGate::deactivate() {
     if(_free & FREE_EP)
         _vpe.free_ep(_ep);
     _ep = UNBOUND;
@@ -146,7 +146,7 @@ void RecvBuf::deactivate() {
     stop();
 }
 
-void RecvBuf::start(msghandler_t handler) {
+void RecvGate::start(msghandler_t handler) {
     activate();
 
     assert(&_vpe == &VPE::self());
@@ -154,11 +154,11 @@ void RecvBuf::start(msghandler_t handler) {
     _handler = handler;
 
     bool permanent = _ep < DTU::FIRST_FREE_EP;
-    _workitem = new RecvBufWorkItem(this);
+    _workitem = new RecvGateWorkItem(this);
     env()->workloop()->add(_workitem, permanent);
 }
 
-void RecvBuf::stop() {
+void RecvGate::stop() {
     if(_workitem) {
         env()->workloop()->remove(_workitem);
         delete _workitem;
@@ -166,7 +166,7 @@ void RecvBuf::stop() {
     }
 }
 
-Errors::Code RecvBuf::reply(const void *data, size_t len, size_t msgidx) {
+Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     // TODO hack to fix the race-condition on T2. as soon as we've replied to the other PE, he
     // might send us another message, which we might miss if we ACK this message after we've got
     // another one. so, ACK it now since the reply marks the end of the handling anyway.
@@ -192,7 +192,7 @@ Errors::Code RecvBuf::reply(const void *data, size_t len, size_t msgidx) {
     return res;
 }
 
-Errors::Code RecvBuf::wait(SendGate *sgate, const DTU::Message **msg) {
+Errors::Code RecvGate::wait(SendGate *sgate, const DTU::Message **msg) {
     activate();
 
     while(1) {

@@ -122,12 +122,12 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     }
 }
 
-m3::Errors::Code get_header(const VPEDesc &, const RBufObject *, uintptr_t &, m3::DTU::Header &) {
+m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, uintptr_t &, m3::DTU::Header &) {
     // unused
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code set_header(const VPEDesc &, const RBufObject *, uintptr_t &, const m3::DTU::Header &) {
+m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, const m3::DTU::Header &) {
     // unused
     return m3::Errors::NO_ERROR;
 }

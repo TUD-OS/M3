@@ -31,12 +31,12 @@ int main() {
     cc.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
     cc.obtain_fds();
 
-    RecvBuf rbuf = RecvBuf::create(nextlog2<512>::val, nextlog2<64>::val);
-    SendGate sg = SendGate::create_for(&rbuf, 0, 64);
+    RecvGate rgate = RecvGate::create(nextlog2<512>::val, nextlog2<64>::val);
+    SendGate sg = SendGate::create_for(&rgate, 0, 64);
 
-    cc.run([&rbuf, virt] {
+    cc.run([&rgate, virt] {
         int val;
-        receive_vmsg(rbuf, val);
+        receive_vmsg(rgate, val);
 
         volatile int *nums = reinterpret_cast<volatile int*>(virt);
 

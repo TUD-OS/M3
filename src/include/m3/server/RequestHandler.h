@@ -21,7 +21,7 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/com/SendGate.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
 
 namespace m3 {
@@ -60,9 +60,9 @@ public:
     static const int DEF_MSGORDER   = nextlog2<256>::val;
 
     explicit RequestHandler(int order = DEF_ORDER, int msgorder = DEF_MSGORDER)
-        : Handler<SESS>(), _msgorder(msgorder), _rbuf(RecvBuf::create(order, msgorder)), _callbacks() {
+        : Handler<SESS>(), _msgorder(msgorder), _rgate(RecvGate::create(order, msgorder)), _callbacks() {
         using std::placeholders::_1;
-        _rbuf.start(std::bind(&CLS::handle_message, this, _1));
+        _rgate.start(std::bind(&CLS::handle_message, this, _1));
     }
 
     void add_operation(OP op, handler_func func) {
@@ -76,7 +76,7 @@ protected:
 
         label_t label = reinterpret_cast<label_t>(sess);
         word_t credits = 1UL << _msgorder;
-        sess->_sgate = new SendGate(SendGate::create(&_rbuf, label, credits));
+        sess->_sgate = new SendGate(SendGate::create(&_rgate, label, credits));
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
         data.caps = crd.value();
@@ -84,7 +84,7 @@ protected:
     }
 
     virtual void handle_shutdown() override {
-        _rbuf.stop();
+        _rgate.stop();
     }
 
 public:
@@ -102,7 +102,7 @@ public:
 
 private:
     int _msgorder;
-    RecvBuf _rbuf;
+    RecvGate _rgate;
     handler_func _callbacks[OPCNT];
 };
 

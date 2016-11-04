@@ -21,7 +21,7 @@
 #include <base/Init.h>
 #include <base/Panic.h>
 
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/Syscalls.h>
 #include <m3/UserWorkLoop.h>
 
@@ -148,15 +148,15 @@ void Env::init_executable() {
 }
 
 void Env::init_dtu() {
-    RecvBuf &sysc = RecvBuf::syscall();
+    RecvGate &sysc = RecvGate::syscall();
     DTU::get().configure_recv(DTU::SYSC_REP, reinterpret_cast<uintptr_t>(sysc.addr()),
         SYSC_RBUF_ORDER, SYSC_RBUF_ORDER);
 
-    RecvBuf &upc = RecvBuf::upcall();
+    RecvGate &upc = RecvGate::upcall();
     DTU::get().configure_recv(DTU::UPCALL_REP, reinterpret_cast<uintptr_t>(upc.addr()),
         UPCALL_RBUF_ORDER, UPCALL_RBUF_ORDER);
 
-    RecvBuf &def = RecvBuf::upcall();
+    RecvGate &def = RecvGate::upcall();
     DTU::get().configure_recv(DTU::DEF_REP, reinterpret_cast<uintptr_t>(def.addr()),
         DEF_RBUF_ORDER, DEF_RBUF_ORDER);
 

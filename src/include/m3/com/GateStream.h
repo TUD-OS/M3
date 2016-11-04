@@ -19,7 +19,7 @@
 #include <m3/com/Marshalling.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/MemGate.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 
 namespace m3 {
 
@@ -50,13 +50,13 @@ public:
     /**
      * Replies the current content of this GateOStream as a message to the given message.
      *
-     * @param rbuf the receive buffer that hosts the message to reply to
+     * @param rgate the receive gate that hosts the message to reply to
      * @param msg the message to reply to
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code reply(RecvBuf &rbuf, const void *msg) {
-        return rbuf.reply(bytes(), total(),
-            m3::DTU::get().get_msgoff(rbuf.ep(), reinterpret_cast<const m3::DTU::Message*>(msg)));
+    Errors::Code reply(RecvGate &rgate, const void *msg) {
+        return rgate.reply(bytes(), total(),
+            m3::DTU::get().get_msgoff(rgate.ep(), reinterpret_cast<const m3::DTU::Message*>(msg)));
     }
 
     using Marshaller::put;
@@ -153,25 +153,25 @@ public:
 class GateIStream {
 public:
     /**
-     * Creates an object for the given message from <rbuf>.
+     * Creates an object for the given message from <rgate>.
      *
-     * @param rbuf the receive buffer
+     * @param rgate the receive gate
      * @param err the error code
      */
-    explicit GateIStream(RecvBuf &rbuf, const DTU::Message *msg, Errors::Code err = Errors::NO_ERROR)
-        : _err(err), _ack(true), _pos(0), _rbuf(&rbuf), _msg(msg) {
+    explicit GateIStream(RecvGate &rgate, const DTU::Message *msg, Errors::Code err = Errors::NO_ERROR)
+        : _err(err), _ack(true), _pos(0), _rgate(&rgate), _msg(msg) {
     }
 
     // don't do the ack twice. thus, copies never ack.
     GateIStream(const GateIStream &is)
-        : _err(is._err), _ack(), _pos(is._pos), _rbuf(is._rbuf), _msg(is._msg) {
+        : _err(is._err), _ack(), _pos(is._pos), _rgate(is._rgate), _msg(is._msg) {
     }
     GateIStream &operator=(const GateIStream &is) {
         if(this != &is) {
             _err = is._err;
             _ack = false;
             _pos = is._pos;
-            _rbuf = is._rbuf;
+            _rgate = is._rgate;
             _msg = is._msg;
         }
         return *this;
@@ -181,14 +181,14 @@ public:
             _err = is._err;
             _ack = is._ack;
             _pos = is._pos;
-            _rbuf = is._rbuf;
+            _rgate = is._rgate;
             _msg = is._msg;
             is._ack = 0;
         }
         return *this;
     }
     GateIStream(GateIStream &&is)
-        : _err(is._err), _ack(is._ack), _pos(is._pos), _rbuf(is._rbuf), _msg(is._msg) {
+        : _err(is._err), _ack(is._ack), _pos(is._pos), _rgate(is._rgate), _msg(is._msg) {
         is._ack = 0;
     }
     ~GateIStream() {
@@ -202,10 +202,10 @@ public:
         return _err;
     }
     /**
-     * @return the receive buffer
+     * @return the receive gate
      */
-    RecvBuf &rbuf() {
-        return *_rbuf;
+    RecvGate &rgate() {
+        return *_rgate;
     }
     /**
      * @return the message (header + payload)
@@ -266,7 +266,7 @@ public:
      * @return the error code or Errors::NO_ERROR
      */
     Errors::Code reply(const void *data, size_t len) const {
-        return _rbuf->reply(data, len, DTU::get().get_msgoff(_rbuf->ep(), _msg));
+        return _rgate->reply(data, len, DTU::get().get_msgoff(_rgate->ep(), _msg));
     }
 
     void ignore(size_t bytes) {
@@ -322,7 +322,7 @@ public:
      */
     void finish() {
         if(_ack) {
-            DTU::get().mark_read(_rbuf->ep(), DTU::get().get_msgoff(_rbuf->ep(), _msg));
+            DTU::get().mark_read(_rgate->ep(), DTU::get().get_msgoff(_rgate->ep(), _msg));
             _ack = false;
         }
     }
@@ -335,7 +335,7 @@ private:
     Errors::Code _err;
     bool _ack;
     size_t _pos;
-    RecvBuf *_rbuf;
+    RecvGate *_rgate;
     const DTU::Message *_msg;
 };
 
@@ -422,29 +422,29 @@ static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &
  * Receives a message from <gate> and returns an GateIStream to unmarshall the message. Note that
  * the GateIStream object acknowledges the message on destruction.
  *
- * @param gate the gate to receive the message from
+ * @param rgate the gate to receive the message from
  * @return the GateIStream
  */
-static inline GateIStream receive_msg(RecvBuf &rbuf) {
+static inline GateIStream receive_msg(RecvGate &rgate) {
     EVENT_TRACER_receive_msg();
     const DTU::Message *msg;
-    Errors::Code err = rbuf.wait(nullptr, &msg);
-    return GateIStream(rbuf, msg, err);
+    Errors::Code err = rgate.wait(nullptr, &msg);
+    return GateIStream(rgate, msg, err);
 }
 /**
  * Receives a message from <gate> and unmarshalls the message into <args>. Note that
  * the GateIStream object acknowledges the message on destruction.
  *
- * @param gate the gate to receive the message from
+ * @param rgate the gate to receive the message from
  * @param args the arguments to unmarshall to
  * @return the GateIStream, e.g. to read further values or to reply
  */
 template<typename... Args>
-static inline GateIStream receive_vmsg(RecvBuf &rbuf, Args &... args) {
+static inline GateIStream receive_vmsg(RecvGate &rgate, Args &... args) {
     EVENT_TRACER_receive_vmsg();
     const DTU::Message *msg;
-    Errors::Code err = rbuf.wait(nullptr, &msg);
-    GateIStream is(rbuf, msg, err);
+    Errors::Code err = rgate.wait(nullptr, &msg);
+    GateIStream is(rgate, msg, err);
     is.vpull(args...);
     return is;
 }
@@ -460,8 +460,8 @@ static inline GateIStream receive_vmsg(RecvBuf &rbuf, Args &... args) {
 static inline GateIStream receive_reply(SendGate &gate) {
     EVENT_TRACER_receive_msg();
     const DTU::Message *msg;
-    Errors::Code err = gate.reply_buf()->wait(&gate, &msg);
-    return GateIStream(*gate.reply_buf(), msg, err);
+    Errors::Code err = gate.reply_gate()->wait(&gate, &msg);
+    return GateIStream(*gate.reply_gate(), msg, err);
 }
 
 /**

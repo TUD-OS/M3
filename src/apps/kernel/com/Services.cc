@@ -24,9 +24,9 @@ namespace kernel {
 
 ServiceList ServiceList::_inst;
 
-Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RBufObject> &rbuf)
+Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RGateObject> &rgate)
     : m3::SListItem(), RefCounted(), _squeue(vpe), _sel(sel), _name(name),
-      _sgate(vpe, rbuf->ep, 0), _rbuf(rbuf) {
+      _sgate(vpe, rgate->ep, 0), _rgate(rgate) {
 }
 
 Service::~Service() {
@@ -39,14 +39,14 @@ int Service::pending() const {
 }
 
 void Service::send(const void *msg, size_t size, bool free) {
-    if(!_rbuf->activated())
+    if(!_rgate->activated())
         return;
 
     _squeue.send(&_sgate, msg, size, free);
 }
 
 const m3::DTU::Message *Service::send_receive(const void *msg, size_t size, bool free) {
-    if(!_rbuf->activated())
+    if(!_rgate->activated())
         return nullptr;
 
     void *event = _squeue.send(&_sgate, msg, size, free);

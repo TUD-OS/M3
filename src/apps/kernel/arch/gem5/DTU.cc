@@ -322,7 +322,7 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     }
 }
 
-static uintptr_t get_msgaddr(const RBufObject *obj, uintptr_t msgaddr) {
+static uintptr_t get_msgaddr(const RGateObject *obj, uintptr_t msgaddr) {
     // the message has to be within the receive buffer
     if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
         return 0;
@@ -332,7 +332,7 @@ static uintptr_t get_msgaddr(const RBufObject *obj, uintptr_t msgaddr) {
     return obj->addr + (idx << obj->msgorder);
 }
 
-m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
         m3::DTU::Header &head) {
     msgaddr = get_msgaddr(obj, msgaddr);
     if(!msgaddr)
@@ -342,7 +342,7 @@ m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RBufObject *obj, uint
     return m3::Errors::NO_ERROR;
 }
 
-m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
+m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
         const m3::DTU::Header &head) {
     msgaddr = get_msgaddr(obj, msgaddr);
     if(!msgaddr)

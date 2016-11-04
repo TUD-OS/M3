@@ -209,22 +209,22 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
     update_ep(ep);
 }
 
-m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
+m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     if(obj.addr < Platform::rw_barrier(pe()))
         return m3::Errors::INV_ARGS;
 
     for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
-        if(m3::DTU::FIRST_FREE_EP + i == ep || !_epcaps[i] || _epcaps[i]->type != Capability::RBUF)
+        if(m3::DTU::FIRST_FREE_EP + i == ep || !_epcaps[i] || _epcaps[i]->type != Capability::RGATE)
             continue;
 
-        RBufCapability *cap = static_cast<RBufCapability*>(_epcaps[i]);
+        RGateCapability *cap = static_cast<RGateCapability*>(_epcaps[i]);
         if(m3::Math::overlap(cap->obj->addr, cap->obj->addr + cap->obj->size(),
             obj.addr, obj.addr + cap->obj->size()))
             return m3::Errors::INV_ARGS;
     }
 
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
-        "RBuf[addr=#" << m3::fmt(obj.addr, "x")
+        "RGate[addr=#" << m3::fmt(obj.addr, "x")
         << ", order=" << obj.order
         << ", msgorder=" << obj.msgorder << "]");
 
@@ -236,17 +236,17 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RBufObject &obj) {
 }
 
 void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {
-    assert(obj.rbuf->addr != 0);
-    peid_t pe = VPEManager::get().peof(obj.rbuf->vpe);
+    assert(obj.rgate->addr != 0);
+    peid_t pe = VPEManager::get().peof(obj.rgate->vpe);
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
-        "Send[vpe=" << obj.rbuf->vpe
+        "Send[vpe=" << obj.rgate->vpe
         << ", pe=" << pe
-        << ", ep=" << obj.rbuf->ep
+        << ", ep=" << obj.rgate->ep
         << ", label=#" << m3::fmt(obj.label, "x")
-        << ", msgsize=" << obj.rbuf->msgorder << ", crd=" << obj.credits << "]");
+        << ", msgsize=" << obj.rgate->msgorder << ", crd=" << obj.credits << "]");
 
-    _dtustate.config_send(ep, obj.label, pe, obj.rbuf->vpe,
-        obj.rbuf->ep, 1UL << obj.rbuf->msgorder, obj.credits);
+    _dtustate.config_send(ep, obj.label, pe, obj.rgate->vpe,
+        obj.rgate->ep, 1UL << obj.rgate->msgorder, obj.credits);
     update_ep(ep);
 }
 

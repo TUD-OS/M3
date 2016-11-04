@@ -53,7 +53,7 @@ public:
     void createsrv(VPE *vpe, const m3::DTU::Message *msg);
     void createsess(VPE *vpe, const m3::DTU::Message *msg);
     void createsessat(VPE *vpe, const m3::DTU::Message *msg);
-    void createrbuf(VPE *vpe, const m3::DTU::Message *msg);
+    void creatergate(VPE *vpe, const m3::DTU::Message *msg);
     void creategate(VPE *vpe, const m3::DTU::Message *msg);
     void createvpe(VPE *vpe, const m3::DTU::Message *msg);
     void createmap(VPE *vpe, const m3::DTU::Message *msg);

@@ -20,7 +20,7 @@
 
 #include <m3/com/EPMux.h>
 #include <m3/com/Gate.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/VPE.h>
 #include <m3/Syscalls.h>
 

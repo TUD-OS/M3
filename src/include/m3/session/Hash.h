@@ -37,10 +37,10 @@ public:
 
     explicit Hash(const String &service)
         : Session(service),
-          _rbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
-          _send(SendGate::bind(obtain(1).start(), &_rbuf)),
+          _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
+          _sgate(SendGate::bind(obtain(1).start(), &_rgate)),
           _mem(MemGate::bind(obtain(1).start())) {
-        _rbuf.activate();
+        _rgate.activate();
     }
 
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max) {
@@ -50,7 +50,7 @@ public:
         hash::Accel::Request req;
         req.algo = algo;
         req.len = len;
-        GateIStream is = send_receive_vmsg(_send, CREATE_HASH, req);
+        GateIStream is = send_receive_vmsg(_sgate, CREATE_HASH, req);
 
         uint64_t count;
         is >> count;
@@ -62,8 +62,8 @@ public:
     }
 
 private:
-    RecvBuf _rbuf;
-    SendGate _send;
+    RecvGate _rgate;
+    SendGate _sgate;
     MemGate _mem;
 };
 

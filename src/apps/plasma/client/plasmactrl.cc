@@ -48,7 +48,7 @@ int main() {
     // create event gate
     Keyboard kb("keyb");
     Plasma plasma("plasma");
-    kb.rbuf().start(std::bind(kb_event, &plasma, std::placeholders::_1));
+    kb.rgate().start(std::bind(kb_event, &plasma, std::placeholders::_1));
 
     env()->workloop()->run();
     return 0;

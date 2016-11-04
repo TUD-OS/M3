@@ -27,19 +27,19 @@ namespace hash {
 
 Hash::Hash()
     : _accel(Accel::create()),
-      _srbuf(RecvBuf::create_for(_accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
-      _crbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
-      _send(SendGate::create_for(&_srbuf, Accel::BUF_ADDR, 256, &_crbuf)) {
+      _srgate(RecvGate::create_for(_accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
+      _crgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
+      _send(SendGate::create_for(&_srgate, Accel::BUF_ADDR, 256, &_crgate)) {
     // has to be activated
-    _crbuf.activate();
+    _crgate.activate();
 
     if(_accel->get().pager()) {
         uintptr_t virt = BUF_ADDR;
         _accel->get().pager()->map_anon(&virt, Accel::BUF_SIZE, Pager::Prot::RW, 0);
     }
 
-    _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srbuf.sel(), 1), hash::Accel::RBUF);
-    _srbuf.activate(hash::Accel::EPID, _accel->getRBAddr());
+    _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srgate.sel(), 1), hash::Accel::RBUF);
+    _srgate.activate(hash::Accel::EPID, _accel->getRBAddr());
     _accel->get().start();
 }
 

@@ -29,10 +29,10 @@
 
 namespace m3 {
 
-class RecvBuf;
+class RecvGate;
 
 class DTU {
-    friend class RecvBuf;
+    friend class RecvGate;
 
     static const uintptr_t DRAM_START       = 0x8000;
 

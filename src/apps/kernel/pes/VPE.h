@@ -202,7 +202,7 @@ public:
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
     void forward_mem(epid_t ep, peid_t pe);
 
-    m3::Errors::Code config_rcv_ep(epid_t ep, const RBufObject &obj);
+    m3::Errors::Code config_rcv_ep(epid_t ep, const RGateObject &obj);
     void config_snd_ep(epid_t ep, const MsgObject &obj);
     void config_mem_ep(epid_t ep, const MemObject &obj);
 

@@ -21,7 +21,7 @@
 #include <base/DTU.h>
 
 #include <m3/com/EPMux.h>
-#include <m3/com/RecvBuf.h>
+#include <m3/com/RecvGate.h>
 #include <m3/ObjCap.h>
 
 namespace m3 {
@@ -38,7 +38,7 @@ class Gate : public ObjCap, public SListItem {
     static const size_t NODESTROY   = -2;
 
 public:
-    static const size_t UNBOUND     = RecvBuf::UNBOUND;
+    static const size_t UNBOUND     = RecvGate::UNBOUND;
 
 protected:
     /**

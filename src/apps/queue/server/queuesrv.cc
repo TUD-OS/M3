@@ -47,7 +47,7 @@ static void timer_irq(GateIStream &) {
 
 int main() {
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.rbuf().start(timer_irq);
+    timerirqs.rgate().start(timer_irq);
 
     // now, register service
     server = new Server<EventHandler<>>("queuetest", new EventHandler<>());

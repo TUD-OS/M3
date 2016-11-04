@@ -26,39 +26,39 @@
 namespace kernel {
 
 void VPE::init() {
-    RBufObject rbuf(SYSC_MSGSIZE_ORD, SYSC_MSGSIZE_ORD);
-    rbuf.vpe = VPEManager::MAX_VPES;
-    rbuf.addr = 1;  // has to be non-zero
-    rbuf.ep = m3::DTU::SYSC_SEP;
-    rbuf.add_ref(); // don't free this
+    RGateObject rgate(SYSC_MSGSIZE_ORD, SYSC_MSGSIZE_ORD);
+    rgate.vpe = VPEManager::MAX_VPES;
+    rgate.addr = 1;  // has to be non-zero
+    rgate.ep = m3::DTU::SYSC_SEP;
+    rgate.add_ref(); // don't free this
 
     // configure syscall endpoint
-    MsgObject mobj(&rbuf, reinterpret_cast<label_t>(this), 1 << SYSC_MSGSIZE_ORD);
+    MsgObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << SYSC_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::SYSC_SEP, mobj);
 
     // configure notify endpoint
-    rbuf.ep = m3::DTU::NOTIFY_SEP;
-    rbuf.msgorder = rbuf.order = NOTIFY_MSGSIZE_ORD;
+    rgate.ep = m3::DTU::NOTIFY_SEP;
+    rgate.msgorder = rgate.order = NOTIFY_MSGSIZE_ORD;
     mobj.credits = m3::DTU::CREDITS_UNLIM;
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 
     // attach syscall receive endpoint
-    rbuf.order = m3::nextlog2<SYSC_RBUF_SIZE>::val;
-    rbuf.msgorder = SYSC_RBUF_ORDER;
-    rbuf.addr = Platform::def_recvbuf(pe());
-    config_rcv_ep(m3::DTU::SYSC_REP, rbuf);
+    rgate.order = m3::nextlog2<SYSC_RBUF_SIZE>::val;
+    rgate.msgorder = SYSC_RBUF_ORDER;
+    rgate.addr = Platform::def_recvbuf(pe());
+    config_rcv_ep(m3::DTU::SYSC_REP, rgate);
 
     // attach upcall receive endpoint
-    rbuf.order = m3::nextlog2<UPCALL_RBUF_SIZE>::val;
-    rbuf.msgorder = UPCALL_RBUF_ORDER;
-    rbuf.addr += SYSC_RBUF_SIZE;
-    config_rcv_ep(m3::DTU::UPCALL_REP, rbuf);
+    rgate.order = m3::nextlog2<UPCALL_RBUF_SIZE>::val;
+    rgate.msgorder = UPCALL_RBUF_ORDER;
+    rgate.addr += SYSC_RBUF_SIZE;
+    config_rcv_ep(m3::DTU::UPCALL_REP, rgate);
 
     // attach default receive endpoint
-    rbuf.order = m3::nextlog2<DEF_RBUF_SIZE>::val;
-    rbuf.msgorder = DEF_RBUF_ORDER;
-    rbuf.addr += UPCALL_RBUF_SIZE;
-    config_rcv_ep(m3::DTU::DEF_REP, rbuf);
+    rgate.order = m3::nextlog2<DEF_RBUF_SIZE>::val;
+    rgate.msgorder = DEF_RBUF_ORDER;
+    rgate.addr += UPCALL_RBUF_SIZE;
+    config_rcv_ep(m3::DTU::DEF_REP, rgate);
 }
 
 void VPE::activate_sysc_ep(void *) {
