@@ -36,7 +36,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _state(DEAD),
       _exitcode(),
       _pending_fwds(),
-      _name(std::move(prog)),
+      _name(m3::Util::move(prog)),
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _lastsched(),

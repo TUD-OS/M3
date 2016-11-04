@@ -373,7 +373,7 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
         ep = -1;
 
     // create VPE
-    VPE *nvpe = VPEManager::get().create(std::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
+    VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe), ep, gcap, tmuxable);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 

@@ -172,7 +172,7 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, caps
         return nullptr;
 
     uint flags = tmuxable ? VPE::F_MUXABLE : 0;
-    VPE *vpe = new VPE(std::move(name), i, id, flags, ep, pfgate);
+    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, ep, pfgate);
     assert(vpe == _vpes[id]);
 
     return vpe;
