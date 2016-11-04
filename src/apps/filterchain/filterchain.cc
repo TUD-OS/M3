@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
     // create a gate the sender can send to (at the receiver)
     RecvGate rgate = RecvGate::create(nextlog2<512>::val, nextlog2<64>::val);
-    SendGate gate = SendGate::create_for(&rgate, 0, 64);
+    SendGate sgate = SendGate::create_for(&rgate, 0, 64);
     // use the buffer as the receive memory area at t2
     MemGate resmem = t2.mem().derive(reinterpret_cast<uintptr_t>(buffer), BUF_SIZE);
 
@@ -85,8 +85,8 @@ int main(int argc, char **argv) {
     t1.obtain_fds();
     t1.delegate_obj(mem.sel());
     t1.delegate_obj(resmem.sel());
-    t1.delegate_obj(gate.sel());
-    t1.run([buffer, &mem, &gate, &resmem, memSize] {
+    t1.delegate_obj(sgate.sel());
+    t1.run([buffer, &mem, &sgate, &resmem, memSize] {
         uint *result = new uint[BUF_SIZE / sizeof(uint)];
         size_t c = 0;
 
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
                     // if the result buffer is full, send it over to the receiver and notify him
                     if(c == BUF_SIZE / sizeof(uint)) {
                         resmem.write_sync(result, c * sizeof(uint), 0);
-                        send_receive_vmsg(gate, c, 0);
+                        send_receive_vmsg(sgate, c, 0);
                         c = 0;
                     }
                 }
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
         // any data left to send?
         if(c > 0) {
             resmem.write_sync(result, c * sizeof(uint), 0);
-            send_receive_vmsg(gate, c, 1);
+            send_receive_vmsg(sgate, c, 1);
         }
         return 0;
     });
