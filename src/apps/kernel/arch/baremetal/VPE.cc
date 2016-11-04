@@ -70,6 +70,8 @@ VPE::~VPE() {
     free_reqs();
     _objcaps.revoke_all();
     _mapcaps.revoke_all();
+    // ensure that there are no syscalls for this VPE anymore
+    DTU::get().drop_msgs(SyscallHandler::get().ep(), reinterpret_cast<label_t>(this));
     delete _as;
 }
 

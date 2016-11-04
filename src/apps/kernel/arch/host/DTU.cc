@@ -101,6 +101,27 @@ void DTU::write_ep_local(epid_t ep) {
     memcpy(reinterpret_cast<void*>(addr), _state.get_ep(ep), m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
+void DTU::drop_msgs(epid_t ep, label_t label) {
+    word_t *regs = reinterpret_cast<word_t*>(_state.get_ep(ep));
+    // we assume that the one that used the label can no longer send messages. thus, if there are
+    // no messages yet, we are done.
+    if(regs[m3::DTU::EP_BUF_MSGCNT] == 0)
+        return;
+
+    uintptr_t base = regs[m3::DTU::EP_BUF_ADDR];
+    int order = regs[m3::DTU::EP_BUF_ORDER];
+    int msgorder = regs[m3::DTU::EP_BUF_MSGORDER];
+    word_t unread = regs[m3::DTU::EP_BUF_UNREAD];
+    int max = 1UL << (order - msgorder);
+    for(int i = 0; i < max; ++i) {
+        if(unread & (1UL << i)) {
+            m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i << msgorder));
+            if(msg->label == label)
+                m3::DTU::get().mark_read(ep, reinterpret_cast<uintptr_t>(msg));
+        }
+    }
+}
+
 m3::Errors::Code get_header(const VPEDesc &, const RBufObject *, uintptr_t &, m3::DTU::Header &) {
     // unused
     return m3::Errors::NO_ERROR;

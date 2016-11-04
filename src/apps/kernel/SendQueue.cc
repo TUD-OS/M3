@@ -18,10 +18,16 @@
 
 #include "pes/Timeouts.h"
 #include "pes/VPE.h"
+#include "DTU.h"
 #include "SendQueue.h"
 #include "SyscallHandler.h"
 
 namespace kernel {
+
+SendQueue::~SendQueue() {
+    // ensure that there are no messages left for this SendQueue in the receive buffer
+    DTU::get().drop_msgs(SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
+}
 
 void *SendQueue::get_event(uint64_t id) {
     return reinterpret_cast<void*>(static_cast<uint64_t>(1) << 63 | id);

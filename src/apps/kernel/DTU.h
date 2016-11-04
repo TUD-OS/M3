@@ -71,6 +71,8 @@ public:
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);
 
+    void drop_msgs(epid_t ep, label_t label);
+
     m3::Errors::Code get_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,
         m3::DTU::Header &head);
     m3::Errors::Code set_header(const VPEDesc &vpe, const RBufObject *obj, uintptr_t &msgaddr,

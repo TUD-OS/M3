@@ -96,6 +96,8 @@ VPE::~VPE() {
     free_reqs();
     // revoke all caps first because we might need the sepsgate for that
     _objcaps.revoke_all();
+    // ensure that there are no syscalls for this VPE anymore
+    DTU::get().drop_msgs(SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
 }
 
 }

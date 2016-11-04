@@ -40,6 +40,7 @@ public:
     explicit SendQueue(VPE &vpe)
         : _vpe(vpe), _queue(), _next_id(), _cur_event(), _inflight(0) {
     }
+    ~SendQueue();
 
     VPE &vpe() const {
         return _vpe;

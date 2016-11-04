@@ -302,6 +302,26 @@ void DTU::write_ep_local(epid_t ep) {
            sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
+void DTU::drop_msgs(epid_t ep, label_t label) {
+    m3::DTU::reg_t *regs = reinterpret_cast<m3::DTU::reg_t*>(_state.get_ep(ep));
+    // we assume that the one that used the label can no longer send messages. thus, if there are
+    // no messages yet, we are done.
+    if((regs[0] & 0xFFFF) == 0)
+        return;
+
+    uintptr_t base = regs[1];
+    size_t bufsize = (regs[0] >> 16) & 0xFFFF;
+    size_t msgsize = (regs[0] >> 32) & 0xFFFF;
+    word_t unread = regs[2] >> 32;
+    for(size_t i = 0; i < bufsize; ++i) {
+        if(unread & (1UL << i)) {
+            m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i * msgsize));
+            if(msg->label == label)
+                m3::DTU::get().mark_read(ep, reinterpret_cast<uintptr_t>(msg));
+        }
+    }
+}
+
 static uintptr_t get_msgaddr(const RBufObject *obj, uintptr_t msgaddr) {
     // the message has to be within the receive buffer
     if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
