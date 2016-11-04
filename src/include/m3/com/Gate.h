@@ -17,7 +17,6 @@
 #pragma once
 
 #include <base/util/Util.h>
-#include <base/util/Subscriber.h>
 #include <base/DTU.h>
 
 #include <m3/com/EPMux.h>
