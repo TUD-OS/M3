@@ -22,18 +22,16 @@
 
 namespace kernel {
 
+struct Timeout : public m3::SListItem {
+    explicit Timeout(cycles_t when, std::function<void()> callback)
+        : m3::SListItem(), when(when), callback(callback) {
+    }
+
+    cycles_t when;
+    std::function<void ()> callback;
+};
+
 class Timeouts {
-public:
-    struct Timeout : public m3::SListItem {
-        explicit Timeout(cycles_t when, std::function<void()> callback)
-            : m3::SListItem(), when(when), callback(callback) {
-        }
-
-        cycles_t when;
-        std::function<void ()> callback;
-    };
-
-private:
     explicit Timeouts() : _timeouts() {
     }
 

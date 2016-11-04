@@ -19,10 +19,10 @@
 #include <base/Config.h>
 #include <base/col/SList.h>
 
-#include "pes/Timeouts.h"
-#include "pes/VPE.h"
-
 namespace kernel {
+
+class Timeout;
+class VPE;
 
 class ContextSwitcher {
     enum State {
@@ -100,7 +100,7 @@ private:
     State _state;
     size_t _count;
     m3::SList<VPE> _ready;
-    Timeouts::Timeout *_timeout;
+    Timeout *_timeout;
     cycles_t _wait_time;
     VPE *_idle;
     VPE *_cur;

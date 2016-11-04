@@ -60,7 +60,7 @@ void Timeouts::trigger() {
     while(_timeouts.length() > 0);
 }
 
-Timeouts::Timeout *Timeouts::wait_for(cycles_t cycles, std::function<void()> callback) {
+Timeout *Timeouts::wait_for(cycles_t cycles, std::function<void()> callback) {
     cycles_t when = DTU::get().get_time() + cycles;
 
     // insert timeouts in ascending order
