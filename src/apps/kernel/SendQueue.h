@@ -25,6 +25,8 @@
 
 namespace kernel {
 
+class Timeout;
+
 class SendQueue {
     struct Entry : public m3::SListItem {
         explicit Entry(uint64_t _id, SendGate *_sgate, const void *_msg, size_t _size)
@@ -39,7 +41,7 @@ class SendQueue {
 
 public:
     explicit SendQueue(VPE &vpe)
-        : _vpe(vpe), _queue(), _next_id(), _cur_event(), _inflight(0) {
+        : _vpe(vpe), _queue(), _next_id(), _cur_event(), _inflight(0), _timeout() {
     }
     ~SendQueue();
 
@@ -66,6 +68,7 @@ private:
     uint64_t _next_id;
     void *_cur_event;
     int _inflight;
+    Timeout *_timeout;
 };
 
 }

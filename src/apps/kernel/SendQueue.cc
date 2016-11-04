@@ -27,6 +27,9 @@ namespace kernel {
 SendQueue::~SendQueue() {
     // ensure that there are no messages left for this SendQueue in the receive buffer
     DTU::get().drop_msgs(SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
+
+    if(_timeout)
+        Timeouts::get().cancel(_timeout);
 }
 
 void *SendQueue::get_event(uint64_t id) {
@@ -41,7 +44,7 @@ void *SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap
 
     // call this again from the workloop to be sure that we can switch the thread
     if(_vpe.state() != VPE::RUNNING && _inflight == 0)
-        Timeouts::get().wait_for(0, std::bind(&SendQueue::send_pending, this));
+        _timeout = Timeouts::get().wait_for(0, std::bind(&SendQueue::send_pending, this));
 
     // if it's not already on the heap, put it there
     if(!onheap) {
@@ -58,6 +61,8 @@ void *SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap
 }
 
 void SendQueue::send_pending() {
+    _timeout = nullptr;
+
     if(_queue.length() == 0)
         return;
 
