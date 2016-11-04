@@ -42,7 +42,6 @@ public:
     };
 
     enum {
-        RECV_BUF,
         MEM_GATE,
         SEND_GATE,
         RECV_GATE,

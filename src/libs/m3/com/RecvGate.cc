@@ -54,11 +54,10 @@ void RecvGate::RecvGateWorkItem::work() {
 }
 
 RecvGate::RecvGate(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int msgorder, uint flags)
-    : ObjCap(RECV_BUF, cap, flags),
+    : Gate(RECV_GATE, cap, flags),
       _vpe(vpe),
       _buf(buf),
       _order(order),
-      _ep(UNBOUND),
       _free(0),
       _handler(),
       _workitem() {
@@ -99,49 +98,49 @@ RecvGate::~RecvGate() {
 }
 
 void RecvGate::activate() {
-    if(_ep == UNBOUND) {
+    if(ep() == UNBOUND) {
         epid_t ep = _vpe.alloc_ep();
         _free |= FREE_EP;
         activate(ep);
     }
 }
 
-void RecvGate::activate(epid_t ep) {
-    if(_ep == UNBOUND) {
+void RecvGate::activate(epid_t _ep) {
+    if(ep() == UNBOUND) {
         if(_buf == nullptr) {
-            _buf = allocate(ep, 1UL << _order);
+            _buf = allocate(_ep, 1UL << _order);
             _free |= FREE_BUF;
         }
 
-        activate(ep, reinterpret_cast<uintptr_t>(_buf));
+        activate(_ep, reinterpret_cast<uintptr_t>(_buf));
     }
 }
 
-void RecvGate::activate(epid_t ep, uintptr_t addr) {
-    assert(_ep == UNBOUND);
+void RecvGate::activate(epid_t _ep, uintptr_t addr) {
+    assert(ep() == UNBOUND);
 
-    _ep = ep;
+    ep(_ep);
 
     // first reserve the endpoint; we might need to invalidate it
     if(&_vpe == &VPE::self())
-        EPMux::get().reserve(_ep);
+        EPMux::get().reserve(ep());
 
 #if defined(__t3__)
     // required for t3 because one can't write to these registers externally
-    DTU::get().configure_recv(_ep, addr, order(), msgorder(), flags());
+    DTU::get().configure_recv(ep(), addr, order(), msgorder(), flags());
 #endif
 
     if(sel() != ObjCap::INVALID) {
-        Errors::Code res = Syscalls::get().activate(_vpe.sel(), _ep, sel(), addr);
+        Errors::Code res = Syscalls::get().activate(_vpe.sel(), ep(), sel(), addr);
         if(res != Errors::NO_ERROR)
-            PANIC("Attaching RecvGate to " << _ep << " failed: " << Errors::to_string(res));
+            PANIC("Attaching RecvGate to " << ep() << " failed: " << Errors::to_string(res));
     }
 }
 
 void RecvGate::deactivate() {
     if(_free & FREE_EP)
-        _vpe.free_ep(_ep);
-    _ep = UNBOUND;
+        _vpe.free_ep(ep());
+    ep(UNBOUND);
 
     stop();
 }
@@ -153,7 +152,7 @@ void RecvGate::start(msghandler_t handler) {
     assert(!_workitem);
     _handler = handler;
 
-    bool permanent = _ep < DTU::FIRST_FREE_EP;
+    bool permanent = ep() < DTU::FIRST_FREE_EP;
     _workitem = new RecvGateWorkItem(this);
     env()->workloop()->add(_workitem, permanent);
 }

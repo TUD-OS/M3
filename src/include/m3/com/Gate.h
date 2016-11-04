@@ -21,7 +21,6 @@
 #include <base/DTU.h>
 
 #include <m3/com/EPMux.h>
-#include <m3/com/RecvGate.h>
 #include <m3/ObjCap.h>
 
 namespace m3 {
@@ -38,7 +37,7 @@ class Gate : public ObjCap, public SListItem {
     static const size_t NODESTROY   = -2;
 
 public:
-    static const size_t UNBOUND     = RecvGate::UNBOUND;
+    static const size_t UNBOUND     = -1;
 
 protected:
     /**
@@ -79,6 +78,10 @@ public:
     }
 
 protected:
+    void ep(epid_t ep) {
+        _ep = ep;
+    }
+
     void ensure_activated() {
         if(_ep == UNBOUND && sel() != ObjCap::INVALID)
             EPMux::get().switch_to(this);

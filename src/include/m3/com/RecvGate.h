@@ -21,7 +21,7 @@
 #include <base/WorkLoop.h>
 #include <base/DTU.h>
 
-#include <m3/ObjCap.h>
+#include <m3/com/Gate.h>
 
 #include <functional>
 
@@ -32,12 +32,10 @@ class GateIStream;
 class SendGate;
 class VPE;
 
-class RecvGate : public ObjCap {
+class RecvGate : public Gate {
     friend class Env;
 
 public:
-    static const epid_t UNBOUND         = -1;
-
     class RecvGateWorkItem : public WorkItem {
     public:
         explicit RecvGateWorkItem(RecvGate *buf) : _buf(buf) {
@@ -56,11 +54,10 @@ private:
     };
 
     explicit RecvGate(VPE &vpe, capsel_t cap, int order, uint flags)
-        : ObjCap(RECV_BUF, cap, flags),
+        : Gate(RECV_GATE, cap, flags),
           _vpe(vpe),
           _buf(),
           _order(order),
-          _ep(UNBOUND),
           _free(FREE_BUF),
           _handler(),
           _workitem() {
@@ -91,19 +88,15 @@ public:
     RecvGate(const RecvGate&) = delete;
     RecvGate &operator=(const RecvGate&) = delete;
     RecvGate(RecvGate &&r)
-            : ObjCap(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order), _ep(r._ep),
+            : Gate(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order),
               _free(r._free), _handler(r._handler), _workitem(r._workitem) {
         r._free = 0;
-        r._ep = UNBOUND;
         r._workitem = nullptr;
     }
     ~RecvGate();
 
     const void *addr() const {
         return _buf;
-    }
-    epid_t ep() const {
-        return _ep;
     }
 
     void activate();
@@ -151,7 +144,6 @@ private:
     VPE &_vpe;
     void *_buf;
     int _order;
-    epid_t _ep;
     uint _free;
     msghandler_t _handler;
     RecvGateWorkItem *_workitem;
