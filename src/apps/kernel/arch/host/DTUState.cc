@@ -79,6 +79,8 @@ void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) 
     regs[m3::DTU::EP_BUF_ROFF]       = 0;
     regs[m3::DTU::EP_BUF_WOFF]       = 0;
     regs[m3::DTU::EP_BUF_MSGCNT]     = 0;
+    regs[m3::DTU::EP_BUF_UNREAD]     = 0;
+    regs[m3::DTU::EP_BUF_OCCUPIED]   = 0;
 }
 
 void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t, epid_t dstep, size_t, word_t credits) {
