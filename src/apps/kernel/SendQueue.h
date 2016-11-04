@@ -54,10 +54,10 @@ public:
     }
 
     void *send(SendGate *sgate, const void *msg, size_t size, bool onheap);
-    void send_pending();
     void received_reply(epid_t ep, const m3::DTU::Message *msg);
 
 private:
+    void send_pending();
     void *get_event(uint64_t id);
     void *do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap);
 
