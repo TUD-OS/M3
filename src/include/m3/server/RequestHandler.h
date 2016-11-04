@@ -21,7 +21,7 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/com/SendGate.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/server/Handler.h>
 
 namespace m3 {
@@ -34,22 +34,17 @@ class RequestSessionData : public SessionData {
     friend class RequestHandler;
 
 public:
-    explicit RequestSessionData() : _rgate(), _sgate() {
+    explicit RequestSessionData() : _sgate() {
     }
     ~RequestSessionData() {
-        delete _rgate;
         delete _sgate;
     }
 
     SendGate *send_gate() {
         return _sgate;
     }
-    RecvGate *recv_gate() {
-        return _rgate;
-    }
 
 private:
-    RecvGate *_rgate;
     SendGate *_sgate;
 };
 
@@ -66,6 +61,8 @@ public:
 
     explicit RequestHandler(int order = DEF_ORDER, int msgorder = DEF_MSGORDER)
         : Handler<SESS>(), _msgorder(msgorder), _rbuf(RecvBuf::create(order, msgorder)), _callbacks() {
+        using std::placeholders::_1;
+        _rbuf.start(std::bind(&CLS::handle_message, this, _1));
     }
 
     void add_operation(OP op, handler_func func) {
@@ -74,14 +71,12 @@ public:
 
 protected:
     virtual Errors::Code handle_obtain(SESS *sess, KIF::Service::ExchangeData &data) override {
-        using std::placeholders::_1;
-        using std::placeholders::_2;
         if(sess->send_gate() || data.argcount > 0 || data.caps != 1)
             return Errors::INV_ARGS;
 
-        sess->_rgate = new RecvGate(RecvGate::create(&_rbuf, sess));
-        sess->_sgate = new SendGate(SendGate::create(1UL << _msgorder, sess->_rgate));
-        sess->_rgate->subscribe(std::bind(&RequestHandler::handle_message, this, _1, _2));
+        label_t label = reinterpret_cast<label_t>(sess);
+        word_t credits = 1UL << _msgorder;
+        sess->_sgate = new SendGate(SendGate::create(&_rbuf, label, credits));
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
         data.caps = crd.value();
@@ -89,11 +84,11 @@ protected:
     }
 
     virtual void handle_shutdown() override {
-        _rbuf.disable();
+        _rbuf.stop();
     }
 
 public:
-    void handle_message(GateIStream &msg, Subscriber<GateIStream&> *) {
+    void handle_message(GateIStream &msg) {
         EVENT_TRACER_Service_request();
         OP op;
         msg >> op;

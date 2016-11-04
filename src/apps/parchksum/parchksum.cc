@@ -18,7 +18,7 @@
 
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/com/GateStream.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
@@ -30,9 +30,9 @@ struct Worker {
     SendGate sgate;
     VPE vpe;
 
-    Worker(RecvGate &rgate, MemGate &mem, size_t offset, size_t size)
+    Worker(RecvBuf &rbuf, MemGate &mem, size_t offset, size_t size)
             : submem(mem.derive(offset, size)),
-              sgate(SendGate::create(DTU_PKG_SIZE + DTU::HEADER_SIZE, &rgate)), vpe("worker") {
+              sgate(SendGate::create(&rbuf, 0, DTU_PKG_SIZE + DTU::HEADER_SIZE)), vpe("worker") {
         vpe.delegate_obj(submem.sel());
         vpe.fds(*VPE::self().fds());
         vpe.obtain_fds();
@@ -53,14 +53,13 @@ int main(int argc, char **argv) {
     const size_t SUBMEM_SIZE = MEM_SIZE / vpes;
 
     RecvBuf rbuf = RecvBuf::create(getnextlog2(vpes * 64), nextlog2<64>::val);
-    RecvGate rgate = RecvGate::create(&rbuf);
 
     MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
 
     // create worker
     Worker **worker = new Worker*[vpes];
     for(int i = 0; i < vpes; ++i) {
-        worker[i] = new Worker(rgate, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
+        worker[i] = new Worker(rbuf, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
         if(Errors::last != Errors::NO_ERROR)
             exitmsg("Unable to create worker");
     }
@@ -117,7 +116,7 @@ int main(int argc, char **argv) {
     uint checksum = 0;
     for(int i = 0; i < vpes; ++i) {
         uint vpechksum;
-        receive_vmsg(rgate, vpechksum);
+        receive_vmsg(rbuf, vpechksum);
         checksum += vpechksum;
     }
 

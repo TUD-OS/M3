@@ -24,22 +24,19 @@
 
 namespace m3 {
 
-SendGate SendGate::create(word_t credits, RecvGate *rcvgate, capsel_t sel) {
-    rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
-    return create_for(rcvgate->buffer(), rcvgate->label(), credits, rcvgate, sel);
+SendGate SendGate::create(RecvBuf *rbuf, label_t label, word_t credits, capsel_t sel) {
+    rbuf = rbuf == nullptr ? &RecvBuf::def() : rbuf;
+    return create_for(rbuf, label, credits, nullptr, sel);
 }
 
-SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, RecvGate *rcvgate, capsel_t sel) {
+SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, RecvBuf *replybuf, capsel_t sel) {
     uint flags = 0;
-    rcvgate = rcvgate == nullptr ? &RecvGate::def() : rcvgate;
+    replybuf = replybuf == nullptr ? &RecvBuf::def() : replybuf;
     if(sel == INVALID)
         sel = VPE::self().alloc_cap();
     else
         flags |= KEEP_SEL;
-    // when we create a send gate for one of our endpoints, it has to be bound to an endpoint (and stay
-    // there) because somebody else wants to send us messages to this (or better: to the attached
-    // receive gate)
-    SendGate gate(sel, flags, rcvgate);
+    SendGate gate(sel, flags, replybuf);
     Syscalls::get().creategate(rbuf->sel(), gate.sel(), label, credits);
     return gate;
 }
@@ -47,10 +44,10 @@ SendGate SendGate::create_for(RecvBuf *rbuf, label_t label, word_t credits, Recv
 Errors::Code SendGate::send(const void *data, size_t len) {
     ensure_activated();
 
-    Errors::Code res = DTU::get().send(ep(), data, len, _rcvgate->label(), _rcvgate->ep());
+    Errors::Code res = DTU::get().send(ep(), data, len, 0, _replybuf->ep());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         void *event = ThreadManager::get().get_wait_event();
-        res = Syscalls::get().forwardmsg(sel(), data, len, _rcvgate->ep(), _rcvgate->label(), event);
+        res = Syscalls::get().forwardmsg(sel(), data, len, _replybuf->ep(), 0, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {

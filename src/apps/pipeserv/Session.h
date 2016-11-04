@@ -79,14 +79,13 @@ public:
     explicit PipeHandler(PipeSessionData *sess)
         : refs(1),
           _rbuf(m3::RecvBuf::create(m3::nextlog2<BUFSIZE>::val, m3::nextlog2<MSGSIZE>::val)),
-          _rgate(m3::RecvGate::create(&_rbuf, sess)),
-          _sgate(m3::SendGate::create(MSGSIZE, &_rgate)),
+          _sgate(m3::SendGate::create(&_rbuf, reinterpret_cast<label_t>(sess), MSGSIZE)),
           _lastid(),
           _pending(),
           _callbacks() {
         using std::placeholders::_1;
         using std::placeholders::_2;
-        _rgate.subscribe(std::bind(&PipeHandler<SUB>::handle_message, this, _1, _2));
+        _rbuf.start(std::bind(&PipeHandler<SUB>::handle_message, this, _1));
     }
 
     m3::SendGate &sendgate() {
@@ -97,7 +96,7 @@ public:
         _callbacks[0] = func;
     }
 
-    void handle_message(m3::GateIStream &msg, m3::Subscriber<m3::GateIStream&> *) {
+    void handle_message(m3::GateIStream &msg) {
         EVENT_TRACER_Service_request();
         (static_cast<SUB*>(this)->*_callbacks[0])(msg);
     }
@@ -105,7 +104,6 @@ public:
 protected:
     int refs;
     m3::RecvBuf _rbuf;
-    m3::RecvGate _rgate;
     m3::SendGate _sgate;
     int _lastid;
     m3::SList<RdWrRequest> _pending;

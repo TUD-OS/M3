@@ -25,7 +25,7 @@
 
 using namespace m3;
 
-static void received_data(GateIStream &is, Subscriber<GateIStream&> *) {
+static void received_data(GateIStream &is) {
     unsigned sum = 0;
     const unsigned char *data = is.buffer();
     for(size_t i = 0; i < is.remaining(); ++i)
@@ -37,10 +37,9 @@ int main() {
     Session qtest("queuetest");
 
     RecvBuf rcvbuf = RecvBuf::create(nextlog2<4096>::val, nextlog2<512>::val);
-    RecvGate rgate = RecvGate::create(&rcvbuf);
-    SendGate sgate = SendGate::create(SendGate::UNLIMITED, &rgate);
+    SendGate sgate = SendGate::create(&rcvbuf, 0, SendGate::UNLIMITED);
     qtest.delegate_obj(sgate.sel());
-    rgate.subscribe(received_data);
+    rcvbuf.start(received_data);
 
     env()->workloop()->run();
     return 0;

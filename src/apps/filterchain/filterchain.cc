@@ -19,7 +19,7 @@
 
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/com/GateStream.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
@@ -66,12 +66,10 @@ int main(int argc, char **argv) {
     t2.obtain_fds();
     t2.delegate_obj(rbuf.sel());
     t2.run([&rbuf] {
-        RecvGate rcvgate = RecvGate::create(&rbuf);
-
         size_t count, total = 0;
         int finished = 0;
         while(!finished) {
-            GateIStream is = receive_vmsg(rcvgate, count, finished);
+            GateIStream is = receive_vmsg(rbuf, count, finished);
 
             cout << "Got " << count << " data items\n";
 

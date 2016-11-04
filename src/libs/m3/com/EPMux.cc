@@ -20,7 +20,7 @@
 
 #include <m3/com/EPMux.h>
 #include <m3/com/Gate.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/VPE.h>
 #include <m3/Syscalls.h>
 
@@ -39,10 +39,6 @@ void EPMux::reserve(epid_t ep) {
     if(_gates[ep]) {
         activate(ep, ObjCap::INVALID);
         _gates[ep]->_ep = Gate::UNBOUND;
-        if(_gates[ep]->type() == ObjCap::RECV_GATE) {
-            RecvGate *rgate = static_cast<RecvGate*>(_gates[ep]);
-            rgate->buffer()->deactivate();
-        }
         _gates[ep] = nullptr;
     }
 }

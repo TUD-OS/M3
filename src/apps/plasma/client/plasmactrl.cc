@@ -23,7 +23,7 @@
 
 using namespace m3;
 
-static void kb_event(Plasma *plasma, GateIStream &is, Subscriber<GateIStream&> *) {
+static void kb_event(Plasma *plasma, GateIStream &is) {
     Keyboard::Event ev;
     is >> ev;
     if(ev.isbreak)
@@ -48,7 +48,7 @@ int main() {
     // create event gate
     Keyboard kb("keyb");
     Plasma plasma("plasma");
-    kb.gate().subscribe(std::bind(kb_event, &plasma, std::placeholders::_1, std::placeholders::_2));
+    kb.rbuf().start(std::bind(kb_event, &plasma, std::placeholders::_1));
 
     env()->workloop()->run();
     return 0;

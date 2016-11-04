@@ -27,7 +27,7 @@ namespace m3 {
 INIT_PRIO_SYSC Syscalls Syscalls::_inst;
 
 DTU::Message *Syscalls::send_receive(const void *msg, size_t size) {
-    DTU::get().send(_gate.ep(), msg, size, _rlabel, m3::DTU::SYSC_REP);
+    DTU::get().send(_gate.ep(), msg, size, 0, m3::DTU::SYSC_REP);
 
     DTU::Message *reply;
     do {
@@ -124,15 +124,13 @@ Errors::Code Syscalls::forwardreply(capsel_t cap, const void *msg, size_t len, u
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createsrv(capsel_t srv, capsel_t rbuf, label_t label, const String &name) {
-    LLOG(SYSC, "createsrv(srv=" << srv << ", rbuf=" << rbuf << ", label=" << fmt(label, "0x")
-        << ", name=" << name << ")");
+Errors::Code Syscalls::createsrv(capsel_t srv, capsel_t rbuf, const String &name) {
+    LLOG(SYSC, "createsrv(srv=" << srv << ", rbuf=" << rbuf << ", name=" << name << ")");
 
     KIF::Syscall::CreateSrv req;
     req.opcode = KIF::Syscall::CREATESRV;
     req.srv = srv;
     req.rbuf = rbuf;
-    req.label = label;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
     size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
@@ -351,7 +349,7 @@ USED void Syscalls::exit(int exitcode) {
     KIF::Syscall::Exit req;
     req.opcode = KIF::Syscall::EXIT;
     req.exitcode = exitcode;
-    DTU::get().send(_gate.ep(), &req, sizeof(req), _rlabel, m3::DTU::SYSC_REP);
+    DTU::get().send(_gate.ep(), &req, sizeof(req), 0, m3::DTU::SYSC_REP);
 }
 
 #if defined(__host__)

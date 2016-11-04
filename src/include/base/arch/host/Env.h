@@ -30,7 +30,6 @@
 namespace m3 {
 
 class Env;
-class RecvGate;
 
 class HostEnvBackend : public EnvBackend {
     friend class Env;

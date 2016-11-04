@@ -63,7 +63,7 @@ public:
     }
 
     void attach(GateIStream &is) {
-        PipeSessionData *sess = is.gate().session<PipeSessionData>();
+        PipeSessionData *sess = is.label<PipeSessionData*>();
 
         bool reading;
         is >> reading;
@@ -73,7 +73,7 @@ public:
     }
 
     void close(GateIStream &is) {
-        PipeSessionData *sess = is.gate().session<PipeSessionData>();
+        PipeSessionData *sess = is.label<PipeSessionData*>();
 
         bool reading;
         int id;

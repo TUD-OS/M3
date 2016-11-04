@@ -143,11 +143,9 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(msg);
     capsel_t srv = req->srv;
     capsel_t rbuf = req->rbuf;
-    label_t label = req->label;
     m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
 
-    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", rbuf=" << rbuf
-        << ", label=" << m3::fmt(label, "0x") << ", name=" << name << ")");
+    LOG_SYS(vpe, ": syscall::createsrv", "(srv=" << srv << ", rbuf=" << rbuf << ", name=" << name << ")");
 
     RBufCapability *rbufcap = static_cast<RBufCapability*>(vpe->objcaps().get(rbuf, Capability::RBUF));
     if(rbufcap == nullptr || !rbufcap->obj->activated())
@@ -156,7 +154,7 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Service does already exist");
 
-    Service *s = ServiceList::get().add(*vpe, srv, name, label, rbufcap->obj);
+    Service *s = ServiceList::get().add(*vpe, srv, name, rbufcap->obj);
     vpe->objcaps().set(srv, new ServiceCapability(&vpe->objcaps(), srv, s));
 
 #if defined(__host__)

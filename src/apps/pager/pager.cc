@@ -82,7 +82,7 @@ public:
     }
 
     void pf(GateIStream &is) {
-        AddrSpace *sess = is.gate().session<AddrSpace>();
+        AddrSpace *sess = is.label<AddrSpace*>();
         uint64_t virt, access;
         is >> virt >> access;
 
@@ -134,7 +134,7 @@ public:
     }
 
     void clone(GateIStream &is) {
-        AddrSpace *sess = is.gate().session<AddrSpace>();
+        AddrSpace *sess = is.label<AddrSpace*>();
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::clone()");
 
@@ -146,7 +146,7 @@ public:
     }
 
     void map_anon(GateIStream &is) {
-        AddrSpace *sess = is.gate().session<AddrSpace>();
+        AddrSpace *sess = is.label<AddrSpace*>();
         uintptr_t virt;
         size_t len;
         int prot, flags;
@@ -212,7 +212,7 @@ public:
     }
 
     void unmap(GateIStream &is) {
-        AddrSpace *sess = is.gate().session<AddrSpace>();
+        AddrSpace *sess = is.label<AddrSpace*>();
         uintptr_t virt;
         is >> virt;
 

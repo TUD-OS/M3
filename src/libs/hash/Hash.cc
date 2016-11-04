@@ -29,8 +29,10 @@ Hash::Hash()
     : _accel(Accel::create()),
       _srbuf(RecvBuf::create_for(_accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
       _crbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
-      _rgate(RecvGate::create(&_crbuf)),
-      _send(SendGate::create_for(&_srbuf, Accel::BUF_ADDR, 256, &_rgate)) {
+      _send(SendGate::create_for(&_srbuf, Accel::BUF_ADDR, 256, &_crbuf)) {
+    // has to be activated
+    _crbuf.activate();
+
     if(_accel->get().pager()) {
         uintptr_t virt = BUF_ADDR;
         _accel->get().pager()->map_anon(&virt, Accel::BUF_SIZE, Pager::Prot::RW, 0);

@@ -25,9 +25,10 @@ namespace m3 {
 DirectPipeWriter::State::State(capsel_t caps, size_t size)
     : _mgate(MemGate::bind(caps + 0)),
       _rbuf(RecvBuf::create(nextlog2<DirectPipe::MSG_BUF_SIZE>::val, nextlog2<DirectPipe::MSG_SIZE>::val)),
-      _rgate(RecvGate::create(&_rbuf)), _sgate(SendGate::bind(caps + 1, &_rgate)),
+      _sgate(SendGate::bind(caps + 1, &_rbuf)),
       _size(size), _free(_size), _rdpos(), _wrpos(),
       _capacity(DirectPipe::MSG_BUF_SIZE / DirectPipe::MSG_SIZE), _eof() {
+    _rbuf.activate();
 }
 
 size_t DirectPipeWriter::State::find_spot(size_t *len) {
@@ -57,7 +58,7 @@ void DirectPipeWriter::State::read_replies() {
         size_t len = 1;
         int cap = DirectPipe::MSG_BUF_SIZE / DirectPipe::MSG_SIZE;
         while(len && _capacity < cap) {
-            receive_vmsg(_rgate, len);
+            receive_vmsg(_rbuf, len);
             DBG_PIPE("[shutdown] got len=" << len << "\n");
             _capacity++;
         }
@@ -102,7 +103,7 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
         size_t off = _state->find_spot(&aligned_amount);
         if(_state->_capacity == 0 || off == static_cast<size_t>(-1)) {
             size_t len;
-            receive_vmsg(_state->_rgate, len);
+            receive_vmsg(_state->_rbuf, len);
             DBG_PIPE("[write] got len=" << len << "\n");
             len = Math::round_up(len, DTU_PKG_SIZE);
             _state->_rdpos = (_state->_rdpos + len) % _state->_size;

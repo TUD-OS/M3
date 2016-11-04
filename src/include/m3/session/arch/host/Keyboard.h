@@ -142,19 +142,18 @@ public:
     };
 
     explicit Keyboard(const String &service, int buford = nextlog2<256>::val, int msgord = nextlog2<64>::val)
-        : Session(service), _buffer(RecvBuf::create(buford, msgord)),
-          _rgate(RecvGate::create(&_buffer)), _sgate(SendGate::create(SendGate::UNLIMITED, &_rgate)) {
+        : Session(service), _rbuf(RecvBuf::create(buford, msgord)),
+          _sgate(SendGate::create(&_rbuf, 0, SendGate::UNLIMITED)) {
         if(!Errors::occurred())
             delegate_obj(_sgate.sel());
     }
 
-    RecvGate &gate() {
-        return _rgate;
+    RecvBuf &rbuf() {
+        return _rbuf;
     }
 
 private:
-    RecvBuf _buffer;
-    RecvGate _rgate;
+    RecvBuf _rbuf;
     SendGate _sgate;
 };
 

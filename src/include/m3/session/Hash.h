@@ -38,9 +38,9 @@ public:
     explicit Hash(const String &service)
         : Session(service),
           _rbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
-          _rgate(RecvGate::create(&_rbuf)),
-          _send(SendGate::bind(obtain(1).start(), &_rgate)),
+          _send(SendGate::bind(obtain(1).start(), &_rbuf)),
           _mem(MemGate::bind(obtain(1).start())) {
+        _rbuf.activate();
     }
 
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max) {
@@ -63,7 +63,6 @@ public:
 
 private:
     RecvBuf _rbuf;
-    RecvGate _rgate;
     SendGate _send;
     MemGate _mem;
 };

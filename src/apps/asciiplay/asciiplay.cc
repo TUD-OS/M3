@@ -59,7 +59,7 @@ static void copy_to_vga(int row, int col, const char *str, size_t len, size_t to
     }
 }
 
-static void timer_event(GateIStream &, Subscriber<GateIStream&> *) {
+static void timer_event(GateIStream &) {
     static Status laststatus = PLAYING;
     if(status != laststatus || ticks == next_tick) {
         if(status == PLAYING) {
@@ -92,7 +92,7 @@ static void timer_event(GateIStream &, Subscriber<GateIStream&> *) {
         ticks++;
 }
 
-static void kb_event(GateIStream &is, Subscriber<GateIStream&> *) {
+static void kb_event(GateIStream &is) {
     Keyboard::Event ev;
     is >> ev;
     if(!ev.isbreak)
@@ -119,10 +119,10 @@ int main(int argc, char **argv) {
         exitmsg("Opening " << moviefile << " failed");
 
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.gate().subscribe(timer_event);
+    timerirqs.rbuf().start(timer_event);
 
     Keyboard kb("keyb");
-    kb.gate().subscribe(kb_event);
+    kb.rbuf().start(kb_event);
 
     env()->workloop()->run();
     return 0;

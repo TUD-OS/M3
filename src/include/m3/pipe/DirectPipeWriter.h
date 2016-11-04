@@ -38,7 +38,6 @@ class DirectPipeWriter : public File {
 
         MemGate _mgate;
         RecvBuf _rbuf;
-        RecvGate _rgate;
         SendGate _sgate;
         size_t _size;
         size_t _free;

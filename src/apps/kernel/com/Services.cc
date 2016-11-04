@@ -24,10 +24,9 @@ namespace kernel {
 
 ServiceList ServiceList::_inst;
 
-Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, label_t label,
-        const m3::Reference<RBufObject> &rbuf)
+Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Reference<RBufObject> &rbuf)
     : m3::SListItem(), RefCounted(), _squeue(vpe), _sel(sel), _name(name),
-      _sgate(vpe, rbuf->ep, label), _rbuf(rbuf) {
+      _sgate(vpe, rbuf->ep, 0), _rbuf(rbuf) {
 }
 
 Service::~Service() {

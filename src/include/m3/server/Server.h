@@ -20,7 +20,7 @@
 #include <base/Errors.h>
 #include <base/KIF.h>
 
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/server/Handler.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -34,30 +34,23 @@ class Server : public ObjCap {
 public:
     explicit Server(const String &name, HDL *handler)
         : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
-          _rcvbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)),
-          _rgate(RecvGate::create(&_rcvbuf)) {
-        // in this case, we activate it manually in order to create the workloop item
-        _rcvbuf.activate();
-
-        LLOG(SERV, "create(" << name << ")");
-        Syscalls::get().createsrv(sel(), _rcvbuf.sel(), _rgate.label(), name);
-
+          _rcvbuf(RecvBuf::create(nextlog2<256>::val, nextlog2<256>::val)) {
         using std::placeholders::_1;
-        using std::placeholders::_2;
-        _rgate.subscribe(std::bind(&Server::handle_message, this, _1, _2));
+        _rcvbuf.start(std::bind(&Server::handle_message, this, _1));
 
         _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
         _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
         _ctrl_handler[KIF::Service::DELEGATE] = &Server::handle_delegate;
         _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
         _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
+
+        LLOG(SERV, "create(" << name << ")");
+        Syscalls::get().createsrv(sel(), _rcvbuf.sel(), name);
     }
 
     void shutdown() {
         _handler->handle_shutdown();
-        // by disabling the receive buffer, we remove it from the WorkLoop, which in the end
-        // stops the WorkLoop
-        _rcvbuf.disable();
+        _rcvbuf.stop();
     }
 
     HDL &handler() {
@@ -65,7 +58,7 @@ public:
     }
 
 private:
-    void handle_message(GateIStream &is, Subscriber<GateIStream&> *) {
+    void handle_message(GateIStream &is) {
         auto *req = reinterpret_cast<const KIF::DefaultRequest*>(is.message().data);
         KIF::Service::Operation op = static_cast<KIF::Service::Operation>(req->opcode);
 
@@ -153,7 +146,6 @@ protected:
     HDL *_handler;
     handler_func _ctrl_handler[5];
     RecvBuf _rcvbuf;
-    RecvGate _rgate;
 };
 
 }

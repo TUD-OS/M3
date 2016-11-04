@@ -42,8 +42,7 @@ public:
 
 private:
     explicit Syscalls()
-        : _gate(ObjCap::INVALID, 0, &RecvGate::syscall(), DTU::SYSC_SEP),
-          _rlabel(_gate.receive_gate()->label()) {
+        : _gate(ObjCap::INVALID, 0, &RecvBuf::syscall(), DTU::SYSC_SEP) {
     }
 
 public:
@@ -51,7 +50,7 @@ public:
     Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, epid_t rep, label_t rlabel, void *event);
     Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
     Errors::Code forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event);
-    Errors::Code createsrv(capsel_t srv, capsel_t rbuf, label_t label, const String &name);
+    Errors::Code createsrv(capsel_t srv, capsel_t rbuf, const String &name);
     Errors::Code createsess(capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code createrbuf(capsel_t rbuf, int order, int msgorder);
@@ -82,7 +81,6 @@ private:
     Errors::Code exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args, bool obtain);
 
     SendGate _gate;
-    label_t _rlabel;
     static Syscalls _inst;
 };
 

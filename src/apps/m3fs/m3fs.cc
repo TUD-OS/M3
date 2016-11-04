@@ -227,7 +227,7 @@ public:
 
     void open(GateIStream &is) {
         EVENT_TRACER_FS_open();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String path;
         int fd, flags;
         is >> path >> flags;
@@ -277,7 +277,7 @@ public:
 
     void seek(GateIStream &is) {
         EVENT_TRACER_FS_seek();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         int fd, whence;
         off_t off;
         size_t extent, extoff;
@@ -299,7 +299,7 @@ public:
 
     void stat(GateIStream &is) {
         EVENT_TRACER_FS_stat();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::stat(path=" << path << ")");
@@ -319,7 +319,7 @@ public:
 
     void fstat(GateIStream &is) {
         EVENT_TRACER_FS_fstat();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         int fd;
         is >> fd;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::fstat(fd=" << fd << ")");
@@ -339,7 +339,7 @@ public:
 
     void mkdir(GateIStream &is) {
         EVENT_TRACER_FS_mkdir();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String path;
         mode_t mode;
         is >> path >> mode;
@@ -354,7 +354,7 @@ public:
 
     void rmdir(GateIStream &is) {
         EVENT_TRACER_FS_rmdir();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::rmdir(path=" << path << ")");
@@ -367,7 +367,7 @@ public:
 
     void link(GateIStream &is) {
         EVENT_TRACER_FS_link();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String oldpath, newpath;
         is >> oldpath >> newpath;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::link(oldpath=" << oldpath
@@ -381,7 +381,7 @@ public:
 
     void unlink(GateIStream &is) {
         EVENT_TRACER_FS_unlink();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::unlink(path=" << path << ")");
@@ -394,7 +394,7 @@ public:
 
     void close(GateIStream &is) {
         EVENT_TRACER_FS_close();
-        M3FSSessionData *sess = is.gate().session<M3FSSessionData>();
+        M3FSSessionData *sess = is.label<M3FSSessionData*>();
         int fd;
         size_t extent, extoff;
         is >> fd >> extent >> extoff;

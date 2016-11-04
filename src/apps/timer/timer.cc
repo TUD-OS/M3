@@ -22,7 +22,7 @@
 
 using namespace m3;
 
-static void timer_event(GateIStream &is, Subscriber<GateIStream&> *) {
+static void timer_event(GateIStream &is) {
     static int i = 0;
     HWInterrupts::IRQ irq;
     is >> irq;
@@ -33,7 +33,7 @@ int main() {
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
     if(Errors::occurred())
         exitmsg("Unable to connect to service 'interrupts'");
-    timerirqs.gate().subscribe(timer_event);
+    timerirqs.rbuf().start(timer_event);
 
     env()->workloop()->run();
     return 0;

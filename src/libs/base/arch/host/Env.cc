@@ -21,7 +21,7 @@
 #include <base/Init.h>
 #include <base/Panic.h>
 
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/Syscalls.h>
 #include <m3/UserWorkLoop.h>
 

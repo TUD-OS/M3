@@ -18,11 +18,12 @@
 #include <base/Init.h>
 #include <base/Panic.h>
 
-#include <m3/com/RecvGate.h>
 #include <m3/com/EPMux.h>
 #include <m3/com/RecvBuf.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
+
+#include <thread/ThreadManager.h>
 
 namespace m3 {
 
@@ -43,28 +44,12 @@ INIT_PRIO_RECVBUF RecvBuf RecvBuf::_default (
     VPE::self(), ObjCap::INVALID, DTU::DEF_REP, nullptr, m3::nextlog2<DEF_RBUF_SIZE>::val, DEF_RBUF_ORDER, 0
 );
 
-void RecvBuf::UpcallWorkItem::work() {
-    DTU &dtu = DTU::get();
-    RecvGate &upcall = RecvGate::upcall();
-    epid_t ep = upcall.ep();
-    DTU::Message *msg = dtu.fetch_msg(ep);
-    if(msg) {
-        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << ep);
-        RecvGate *rgate = msg->label ? reinterpret_cast<RecvGate*>(msg->label) : &upcall;
-        GateIStream is(*rgate, msg);
-        rgate->notify_all(is);
-    }
-}
-
 void RecvBuf::RecvBufWorkItem::work() {
-    DTU &dtu = DTU::get();
-    assert(_ep != UNBOUND);
-    DTU::Message *msg = dtu.fetch_msg(_ep);
+    DTU::Message *msg = DTU::get().fetch_msg(_buf->ep());
     if(msg) {
-        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _ep);
-        RecvGate *gate = reinterpret_cast<RecvGate*>(msg->label);
-        GateIStream is(*gate, msg);
-        gate->notify_all(is);
+        LLOG(IPC, "Received msg @ " << (void*)msg << " over ep " << _buf->ep());
+        GateIStream is(*_buf, msg);
+        _buf->_handler(is);
     }
 }
 
@@ -75,6 +60,7 @@ RecvBuf::RecvBuf(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int ms
       _order(order),
       _ep(UNBOUND),
       _free(0),
+      _handler(),
       _workitem() {
     if(sel() != ObjCap::INVALID) {
         Errors::Code res = Syscalls::get().createrbuf(sel(), order, msgorder);
@@ -150,29 +136,6 @@ void RecvBuf::activate(epid_t ep, uintptr_t addr) {
         if(res != Errors::NO_ERROR)
             PANIC("Attaching recvbuf to " << _ep << " failed: " << Errors::to_string(res));
     }
-
-    if(&_vpe == &VPE::self()) {
-        // if we may receive messages from the endpoint, create a worker for it
-        if(_ep == DTU::UPCALL_REP)
-            env()->workloop()->add(new UpcallWorkItem(), true);
-        else {
-            if(_workitem == nullptr) {
-                _workitem = new RecvBufWorkItem(_ep);
-                bool permanent = _ep < DTU::FIRST_FREE_EP;
-                env()->workloop()->add(_workitem, permanent);
-            }
-            else
-                _workitem->ep(_ep);
-        }
-    }
-}
-
-void RecvBuf::disable() {
-    if(_workitem) {
-        env()->workloop()->remove(_workitem);
-        delete _workitem;
-        _workitem = nullptr;
-    }
 }
 
 void RecvBuf::deactivate() {
@@ -180,7 +143,70 @@ void RecvBuf::deactivate() {
         _vpe.free_ep(_ep);
     _ep = UNBOUND;
 
-    disable();
+    stop();
+}
+
+void RecvBuf::start(msghandler_t handler) {
+    activate();
+
+    assert(&_vpe == &VPE::self());
+    assert(!_workitem);
+    _handler = handler;
+
+    bool permanent = _ep < DTU::FIRST_FREE_EP;
+    _workitem = new RecvBufWorkItem(this);
+    env()->workloop()->add(_workitem, permanent);
+}
+
+void RecvBuf::stop() {
+    if(_workitem) {
+        env()->workloop()->remove(_workitem);
+        delete _workitem;
+        _workitem = nullptr;
+    }
+}
+
+Errors::Code RecvBuf::reply(const void *data, size_t len, size_t msgidx) {
+    // TODO hack to fix the race-condition on T2. as soon as we've replied to the other PE, he
+    // might send us another message, which we might miss if we ACK this message after we've got
+    // another one. so, ACK it now since the reply marks the end of the handling anyway.
+#if defined(__t2__)
+    DTU::get().mark_read(ep(), msgidx);
+#endif
+
+    Errors::Code res = DTU::get().reply(ep(), const_cast<void*>(data), len, msgidx);
+
+    if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
+        void *event = ThreadManager::get().get_wait_event();
+        res = Syscalls::get().forwardreply(sel(), data, len, msgidx, event);
+
+        // if this has been done, go to sleep and wait until the kernel sends us the upcall
+        if(res == Errors::UPCALL_REPLY) {
+            ThreadManager::get().wait_for(event);
+            auto *msg = reinterpret_cast<const KIF::Upcall::Notify*>(
+                ThreadManager::get().get_current_msg());
+            res = static_cast<Errors::Code>(msg->error);
+        }
+    }
+
+    return res;
+}
+
+Errors::Code RecvBuf::wait(SendGate *sgate, const DTU::Message **msg) {
+    activate();
+
+    while(1) {
+        *msg = DTU::get().fetch_msg(ep());
+        if(*msg)
+            return Errors::NO_ERROR;
+
+        if(sgate && !DTU::get().is_valid(sgate->ep()))
+            return Errors::EP_INVALID;
+
+        // don't report idles if we wait for a syscall reply
+        DTU::get().try_sleep(!sgate || sgate->ep() != m3::DTU::SYSC_SEP);
+    }
+    UNREACHED;
 }
 
 }

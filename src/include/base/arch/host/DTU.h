@@ -37,7 +37,6 @@
 namespace m3 {
 
 class Gate;
-class RecvGate;
 class MsgBackend;
 class SocketBackend;
 

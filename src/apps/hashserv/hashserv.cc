@@ -55,7 +55,7 @@ public:
         return id * hash::Accel::BUF_SIZE;
     }
 
-    capsel_t connect(VPE &acc, RecvBuf *buf, RecvGate *rgate) {
+    capsel_t connect(VPE &acc, RecvBuf *buf) {
         label_t label;
         if(acc.pe().has_virtmem()) {
             label = ACC_BUFS + offset();
@@ -66,7 +66,8 @@ public:
             mem = new MemGate(VPE::self().mem().derive(
                 BUF_ADDR + offset(), hash::Accel::BUF_SIZE, MemGate::W));
         }
-        sgate = new SendGate(SendGate::create_for(buf, label, 256, rgate));
+        sgate = new SendGate(SendGate::create_for(buf, label, 256, &RecvBuf::def()));
+        sgate->reply_buf()->activate();
         return mem->sel();
     }
 
@@ -80,7 +81,6 @@ public:
     explicit HashReqHandler(hash::Accel *accel)
         : RequestHandler(),
           _rbuf(RecvBuf::create_for(accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
-          _rgate(RecvGate::create(&RecvBuf::def())),
           _buf(),
           _mem(accel->get().mem().derive(ACC_BUFS, hash::Accel::BUF_SIZE, MemGate::W)),
           _accel(accel) {
@@ -123,14 +123,14 @@ public:
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;
 
-        capsel_t cap = sess->connect(_accel->get(), &_rbuf, &_rgate);
+        capsel_t cap = sess->connect(_accel->get(), &_rbuf);
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, cap, 1).value();
         data.argcount = 0;
         return Errors::NO_ERROR;
     }
 
     void create_hash(GateIStream &is) {
-        HashSessionData *sess = is.gate().session<HashSessionData>();
+        HashSessionData *sess = is.label<HashSessionData*>();
         hash::Accel::Request req;
         is >> req;
 
@@ -151,7 +151,6 @@ public:
 
 private:
     RecvBuf _rbuf;
-    RecvGate _rgate;
     MemGate *_buf;
     MemGate _mem;
     hash::Accel *_accel;

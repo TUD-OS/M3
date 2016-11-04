@@ -36,7 +36,6 @@ class DirectPipeReader : public File {
 
         MemGate _mgate;
         RecvBuf _rbuf;
-        RecvGate _rgate;
         size_t _pos;
         size_t _rem;
         size_t _pkglen;

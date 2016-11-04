@@ -385,7 +385,7 @@ public:
     }
 };
 
-static void refresh_screen(VGA *vga, GateIStream &, Subscriber<GateIStream&> *) {
+static void refresh_screen(VGA *vga, GateIStream &) {
     if(irqs++ < INTRO_TIME) {
         ia.render(tsc());
         vga->gate().write_sync(ia.buffer(), ia.size(), 0);
@@ -403,7 +403,7 @@ int main() {
     VGA vga("vga");
 
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.gate().subscribe(std::bind(refresh_screen, &vga, std::placeholders::_1, std::placeholders::_2));
+    timerirqs.rbuf().start(std::bind(refresh_screen, &vga, std::placeholders::_1));
 
     Server<PlasmaRequestHandler> srv("plasma", new PlasmaRequestHandler());
 

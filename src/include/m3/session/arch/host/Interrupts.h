@@ -31,18 +31,17 @@ public:
             int msgord = nextlog2<64>::val)
         : Session(service, irq),
           _rcvbuf(RecvBuf::create(buford, msgord)),
-          _rgate(RecvGate::create(&_rcvbuf)), _sgate(SendGate::create(SendGate::UNLIMITED, &_rgate)) {
+          _sgate(SendGate::create(&_rcvbuf, 0, SendGate::UNLIMITED)) {
         if(!Errors::occurred())
             delegate_obj(_sgate.sel());
     }
 
-    RecvGate &gate() {
-        return _rgate;
+    RecvBuf &rbuf() {
+        return _rcvbuf;
     }
 
 private:
     RecvBuf _rcvbuf;
-    RecvGate _rgate;
     SendGate _sgate;
 };
 

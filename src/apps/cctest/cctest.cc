@@ -35,10 +35,8 @@ int main() {
     SendGate sg = SendGate::create_for(&rbuf, 0, 64);
 
     cc.run([&rbuf, virt] {
-        RecvGate rgate = RecvGate::create(&rbuf);
-
         int val;
-        receive_vmsg(rgate, val);
+        receive_vmsg(rbuf, val);
 
         volatile int *nums = reinterpret_cast<volatile int*>(virt);
 

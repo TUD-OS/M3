@@ -21,7 +21,6 @@
 #include <base/KIF.h>
 
 #include <m3/com/GateStream.h>
-#include <m3/com/RecvGate.h>
 #include <m3/com/RecvBuf.h>
 
 namespace m3 {

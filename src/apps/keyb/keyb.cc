@@ -38,7 +38,7 @@
 
 using namespace m3;
 
-static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &, Subscriber<GateIStream&> *) {
+static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &) {
     static SharedMemory kbdmem("kbd", sizeof(unsigned) * 2, SharedMemory::JOIN);
     unsigned *regs = reinterpret_cast<unsigned*>(kbdmem.addr());
     if(regs[KEYBOARD_CTRL] & KEYBOARD_RDY) {
@@ -58,7 +58,7 @@ static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &, Subscriber<G
 int main() {
     Interrupts kbirqs("interrupts", HWInterrupts::KEYB);
     Server<EventHandler<>> kbserver("keyb", new EventHandler<>());
-    kbirqs.gate().subscribe(std::bind(kb_irq, &kbserver, std::placeholders::_1, std::placeholders::_2));
+    kbirqs.rbuf().start(std::bind(kb_irq, &kbserver, std::placeholders::_1));
 
     env()->workloop()->run();
     return 0;

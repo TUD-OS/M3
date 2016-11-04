@@ -35,7 +35,7 @@ static char *gendata() {
     return data;
 }
 
-static void timer_irq(GateIStream &, Subscriber<GateIStream&>*) {
+static void timer_irq(GateIStream &) {
     for(auto &h : server->handler()) {
         // skip clients that have a session but no gate yet
         if(h.gate()) {
@@ -47,7 +47,7 @@ static void timer_irq(GateIStream &, Subscriber<GateIStream&>*) {
 
 int main() {
     Interrupts timerirqs("interrupts", HWInterrupts::TIMER);
-    timerirqs.gate().subscribe(timer_irq);
+    timerirqs.rbuf().start(timer_irq);
 
     // now, register service
     server = new Server<EventHandler<>>("queuetest", new EventHandler<>());

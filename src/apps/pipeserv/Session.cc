@@ -21,12 +21,12 @@
 using namespace m3;
 
 template<typename... Args>
-static Errors::Code reply_vmsg_late(RecvGate &gate, const DTU::Message *msg,
+static Errors::Code reply_vmsg_late(RecvBuf &rbuf, const DTU::Message *msg,
         const Args &... args) {
     auto reply = create_vmsg(args...);
-    size_t idx = DTU::get().get_msgoff(gate.ep(), msg);
-    Errors::Code res = gate.reply(reply.bytes(), reply.total(), idx);
-    DTU::get().mark_read(gate.ep(), idx);
+    size_t idx = DTU::get().get_msgoff(rbuf.ep(), msg);
+    Errors::Code res = rbuf.reply(reply.bytes(), reply.total(), idx);
+    DTU::get().mark_read(rbuf.ep(), idx);
     return res;
 }
 
@@ -82,7 +82,7 @@ Errors::Code PipeReadHandler::close(PipeSessionData *sess, int id) {
 }
 
 void PipeReadHandler::read(GateIStream &is) {
-    PipeSessionData *sess = is.gate().session<PipeSessionData>();
+    PipeSessionData *sess = is.label<PipeSessionData*>();
     size_t amount;
     int id;
     is >> amount >> id;
@@ -144,14 +144,14 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
             lastread = ramount;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: " << ramount << " @" << rpos
                 << " [" << _lastid << "]");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, rpos, ramount, _lastid);
+            reply_vmsg_late(_rbuf, req->lastmsg, Errors::NO_ERROR, rpos, ramount, _lastid);
             delete req;
             break;
         }
         else if(sess->flags & WRITE_EOF) {
             _pending.remove_first();
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: EOF");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, (size_t)0, (size_t)0, 0);
+            reply_vmsg_late(_rbuf, req->lastmsg, Errors::NO_ERROR, (size_t)0, (size_t)0, 0);
             delete req;
         }
         else
@@ -187,7 +187,7 @@ Errors::Code PipeWriteHandler::close(PipeSessionData *sess, int id) {
 }
 
 void PipeWriteHandler::write(GateIStream &is) {
-    PipeSessionData *sess = is.gate().session<PipeSessionData>();
+    PipeSessionData *sess = is.label<PipeSessionData*>();
     size_t amount;
     int id;
     is >> amount >> id;
@@ -240,7 +240,7 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
         while(_pending.length() > 0) {
             RdWrRequest *req = _pending.remove_first();
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::END_OF_FILE);
+            reply_vmsg_late(_rbuf, req->lastmsg, Errors::END_OF_FILE);
             delete req;
         }
     }
@@ -254,7 +254,7 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
             _lastid++;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: " << req->amount
                 << " @" << wpos << " [" << _lastid << "]");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, wpos, _lastid);
+            reply_vmsg_late(_rbuf, req->lastmsg, Errors::NO_ERROR, wpos, _lastid);
             delete req;
         }
     }

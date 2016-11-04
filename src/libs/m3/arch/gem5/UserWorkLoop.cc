@@ -17,7 +17,7 @@
 #include <base/Panic.h>
 
 #include <m3/com/GateStream.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 #include <m3/UserWorkLoop.h>
 
 #include <thread/ThreadManager.h>
@@ -25,7 +25,7 @@
 namespace m3 {
 
 void UserWorkLoop::multithreaded(uint count) {
-    RecvGate::upcall().subscribe([] (GateIStream &is, Subscriber<GateIStream&> *) {
+    RecvBuf::upcall().start([](GateIStream &is) {
         auto &msg = reinterpret_cast<const KIF::Upcall::Notify&>(is.message().data);
         assert(msg.opcode == KIF::Upcall::NOTIFY);
 

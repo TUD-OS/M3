@@ -19,7 +19,7 @@
 #include <base/Errors.h>
 
 #include <m3/com/Gate.h>
-#include <m3/com/RecvGate.h>
+#include <m3/com/RecvBuf.h>
 
 namespace m3 {
 
@@ -41,22 +41,24 @@ class SendGate : public Gate {
     friend class Syscalls;
     friend class EnvUserBackend;
 
-    explicit SendGate(capsel_t cap, uint capflags, RecvGate *rcvgate, epid_t ep = UNBOUND)
+    explicit SendGate(capsel_t cap, uint capflags, RecvBuf *replybuf, epid_t ep = UNBOUND)
         : Gate(SEND_GATE, cap, capflags, ep),
-            _rcvgate(rcvgate == nullptr ? &RecvGate::def() : rcvgate) {
+            _replybuf(replybuf == nullptr ? &RecvBuf::def() : replybuf) {
     }
 
 public:
     static const word_t UNLIMITED   = KIF::UNLIM_CREDITS;
 
     /**
-     * Creates a new send-gate for the receive buffer of the given receive gate.
+     * Creates a new send-gate for the receive buffer of the given receive buffer.
      *
-     * @param credits the credits to assign to this gate
      * @param rcvgate the receive-gate to which the messages should be sent
+     * @param label the label
+     * @param credits the credits to assign to this gate
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
-    static SendGate create(word_t credits = UNLIMITED, RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
+    static SendGate create(RecvBuf *rbuf = nullptr, label_t label = 0,
+        word_t credits = UNLIMITED, capsel_t sel = INVALID);
 
     /**
      * Creates a new send-gate for the given receive buffer.
@@ -64,41 +66,41 @@ public:
      * @param rbuf the destination receive buffer
      * @param label the label
      * @param credits the credits to assign to this gate
-     * @param rcvgate the receive-gate to which the replies should be sent
+     * @param replybuf the receive-gate to which the replies should be sent
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
     static SendGate create_for(RecvBuf *rbuf, label_t label = 0, word_t credits = UNLIMITED,
-        RecvGate *rcvgate = nullptr, capsel_t sel = INVALID);
+        RecvBuf *replybuf = nullptr, capsel_t sel = INVALID);
 
     /**
      * Binds this gate for sending to the given msg-capability. Typically, you've received the
      * cap from somebody else.
      *
      * @param cap the capability
-     * @param rcvbuf the receive-buffer
+     * @param replybuf the reply buffer
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static SendGate bind(capsel_t cap, RecvGate *rcvgate = nullptr,
+    static SendGate bind(capsel_t cap, RecvBuf *replybuf = nullptr,
             uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
-        return SendGate(cap, flags, rcvgate);
+        return SendGate(cap, flags, replybuf);
     }
 
-    SendGate(SendGate &&g) : Gate(Util::move(g)), _rcvgate(g._rcvgate) {
+    SendGate(SendGate &&g) : Gate(Util::move(g)), _replybuf(g._replybuf) {
     }
 
     /**
      * @return the gate to receive the replies from when sending a message over this gate
      */
-    RecvGate *receive_gate() {
-        return _rcvgate;
+    RecvBuf *reply_buf() {
+        return _replybuf;
     }
     /**
      * Sets the receive-gate to receive replies on.
      *
-     * @param rcvgate the new receive gate
+     * @param rcvbuf the new receive gate
      */
-    void receive_gate(RecvGate *rcvgate) {
-        _rcvgate = rcvgate;
+    void reply_buf(RecvBuf *rcvbuf) {
+        _replybuf = rcvbuf;
     }
 
     /**
@@ -111,7 +113,7 @@ public:
     Errors::Code send(const void *data, size_t len);
 
 private:
-    RecvGate *_rcvgate;
+    RecvBuf *_replybuf;
 };
 
 }
