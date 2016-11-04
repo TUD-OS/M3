@@ -153,23 +153,13 @@ public:
 class GateIStream {
 public:
     /**
-     * Creates an object to read the first not acknowledged message from <gate>.
+     * Creates an object for the given message from <rgate>.
      *
-     * @param gate the gate to fetch the message from
+     * @param rgate the receive gate
      * @param err the error code
      */
-    explicit GateIStream(RecvGate &gate, const DTU::Message *msg, Errors::Code err)
-        : _err(err), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
-    }
-
-    /**
-     * Creates an object for given message.
-     *
-     * @param gate the gate to fetch the message from
-     * @param msg the message
-     */
-    explicit GateIStream(RecvGate &gate, const DTU::Message *msg)
-        : _err(Errors::NO_ERROR), _ack(true), _pos(0), _gate(&gate), _msg(msg) {
+    explicit GateIStream(RecvGate &rgate, const DTU::Message *msg, Errors::Code err = Errors::NO_ERROR)
+        : _err(err), _ack(true), _pos(0), _rgate(&rgate), _msg(msg) {
     }
 
     // don't do the ack twice. thus, copies never ack.
