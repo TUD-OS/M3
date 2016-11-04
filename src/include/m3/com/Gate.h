@@ -31,7 +31,7 @@ namespace m3 {
  *
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
  */
-class Gate : public ObjCap, public SListItem {
+class Gate : public ObjCap {
     friend class EPMux;
 
     static const size_t NODESTROY   = -2;
@@ -45,11 +45,11 @@ protected:
      * capability you've received from somebody else.
      */
     explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t ep = UNBOUND)
-        : ObjCap(type, cap, capflags), SListItem(), _ep(ep) {
+        : ObjCap(type, cap, capflags), _ep(ep) {
     }
 
 public:
-    Gate(Gate &&g) : ObjCap(Util::move(g)), SListItem(Util::move(g)), _ep(g._ep) {
+    Gate(Gate &&g) : ObjCap(Util::move(g)), _ep(g._ep) {
         g._ep = NODESTROY;
     }
     ~Gate() {
