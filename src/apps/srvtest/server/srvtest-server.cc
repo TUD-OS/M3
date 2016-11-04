@@ -33,7 +33,7 @@ public:
     virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &) override {
         if(++_count == 5)
             srv->shutdown();
-        return  Errors::NOT_SUP;
+        return Errors::NOT_SUP;
     }
     virtual Errors::Code handle_close(SessionData *sess) override {
         cout << "Client closed connection.\n";
