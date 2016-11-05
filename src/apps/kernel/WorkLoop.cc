@@ -54,9 +54,11 @@ static void check_childs() {
                 KLOG(VPES, "Child " << pid << " core dumped");
         }
 
-        kernel::VPE *vpe = kernel::VPEManager::get().vpe_by_pid(pid);
-        if(vpe)
-            vpe->stop_app(0, false);
+        if(WIFSIGNALED(status) || WEXITSTATUS(status) == 255) {
+            kernel::VPE *vpe = kernel::VPEManager::get().vpe_by_pid(pid);
+            if(vpe)
+                vpe->stop_app(0, false);
+        }
     }
 }
 #endif

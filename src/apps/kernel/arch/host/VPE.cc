@@ -65,7 +65,8 @@ void VPE::load_app() {
             childargs[j] = nullptr;
             execv(childargs[0], childargs);
             KLOG(VPES, "VPE creation failed: " << strerror(errno));
-            exit(1);
+            // special error code to let the WorkLoop delete the VPE
+            exit(255);
         }
     }
     else
