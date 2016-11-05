@@ -187,8 +187,7 @@ public:
     }
 
     void start_app();
-    void stop_app();
-    void exit_app(int exitcode);
+    void stop_app(int exitcode, bool self);
 
     void yield();
 
@@ -232,6 +231,7 @@ private:
     void init();
     void init_memory();
     void load_app();
+    void exit_app(int exitcode);
 
     void update_ep(epid_t ep);
 

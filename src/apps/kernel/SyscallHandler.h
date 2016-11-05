@@ -54,27 +54,22 @@ public:
     void createsess(VPE *vpe, const m3::DTU::Message *msg);
     void createsessat(VPE *vpe, const m3::DTU::Message *msg);
     void creatergate(VPE *vpe, const m3::DTU::Message *msg);
-    void creategate(VPE *vpe, const m3::DTU::Message *msg);
+    void createsgate(VPE *vpe, const m3::DTU::Message *msg);
+    void createmgate(VPE *vpe, const m3::DTU::Message *msg);
     void createvpe(VPE *vpe, const m3::DTU::Message *msg);
     void createmap(VPE *vpe, const m3::DTU::Message *msg);
-    void exchange(VPE *vpe, const m3::DTU::Message *msg);
+    void activate(VPE *vpe, const m3::DTU::Message *msg);
     void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
+    void derivemem(VPE *vpe, const m3::DTU::Message *msg);
+    void exchange(VPE *vpe, const m3::DTU::Message *msg);
     void delegate(VPE *vpe, const m3::DTU::Message *msg);
     void obtain(VPE *vpe, const m3::DTU::Message *msg);
-    void activate(VPE *vpe, const m3::DTU::Message *msg);
+    void revoke(VPE *vpe, const m3::DTU::Message *msg);
     void forwardmsg(VPE *vpe, const m3::DTU::Message *msg);
     void forwardmem(VPE *vpe, const m3::DTU::Message *msg);
     void forwardreply(VPE *vpe, const m3::DTU::Message *msg);
-    void reqmem(VPE *vpe, const m3::DTU::Message *msg);
-    void derivemem(VPE *vpe, const m3::DTU::Message *msg);
-    void revoke(VPE *vpe, const m3::DTU::Message *msg);
     void idle(VPE *vpe, const m3::DTU::Message *msg);
-    void exit(VPE *vpe, const m3::DTU::Message *msg);
     void noop(VPE *vpe, const m3::DTU::Message *msg);
-
-#if defined(__host__)
-    void init(VPE *vpe, const m3::DTU::Message *msg);
-#endif
 
 private:
     void reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size);

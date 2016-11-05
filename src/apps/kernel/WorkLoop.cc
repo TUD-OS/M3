@@ -56,7 +56,7 @@ static void check_childs() {
 
         kernel::VPE *vpe = kernel::VPEManager::get().vpe_by_pid(pid);
         if(vpe)
-            vpe->stop_app();
+            vpe->stop_app(0, false);
     }
 }
 #endif

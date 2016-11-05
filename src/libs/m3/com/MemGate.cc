@@ -33,7 +33,7 @@ MemGate MemGate::create_global_for(uintptr_t addr, size_t size, int perms, capse
         sel = VPE::self().alloc_cap();
     else
         flags |= KEEP_SEL;
-    Syscalls::get().reqmemat(sel, addr, size, perms);
+    Syscalls::get().createmgateat(sel, addr, size, perms);
     return MemGate(flags, sel);
 }
 

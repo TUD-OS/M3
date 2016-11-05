@@ -24,6 +24,7 @@
 #include <m3/com/RecvGate.h>
 #include <m3/Syscalls.h>
 #include <m3/UserWorkLoop.h>
+#include <m3/VPE.h>
 
 #include <fstream>
 #include <unistd.h>
@@ -45,6 +46,11 @@ const char *Env::_exec_short_ptr = nullptr;
 static void stop_dtu() {
     DTU::get().stop();
     pthread_join(DTU::get().tid(), nullptr);
+}
+
+static void init_syscall() {
+    word_t arg = reinterpret_cast<word_t>(DTU::get().ep_regs());
+    Syscalls::get().vpectrl(VPE::self().sel(), KIF::Syscall::VCTRL_INIT, &arg);
 }
 
 static void on_exit_func(int status, void *) {
@@ -112,7 +118,7 @@ Env::Init::~Init() {
 Env::PostInit::PostInit() {
     _inst->init_dtu();
     if(!env()->is_kernel())
-        Syscalls::get().init(DTU::get().ep_regs());
+        init_syscall();
 }
 
 void Env::reset() {
@@ -126,7 +132,7 @@ void Env::reset() {
     init_dtu();
 
     // we have to call init for this VPE in case we hadn't done that yet
-    Syscalls::get().init(DTU::get().ep_regs());
+    init_syscall();
 }
 
 Env::Env(EnvBackend *backend, int logfd)

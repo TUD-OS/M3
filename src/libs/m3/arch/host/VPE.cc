@@ -133,7 +133,8 @@ Errors::Code VPE::run(void *lambda) {
         close(fd[0]);
 
         // let the kernel create the config-file etc. for the given pid
-        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, pid, nullptr);
+        word_t arg = pid;
+        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
         write_file(pid, "eps", _eps, sizeof(*_eps));
@@ -210,7 +211,8 @@ Errors::Code VPE::exec(Executable &exec) {
         close(tmp);
 
         // let the kernel create the config-file etc. for the given pid
-        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, pid, nullptr);
+        word_t arg = pid;
+        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
         write_file(pid, "eps", _eps, sizeof(*_eps));

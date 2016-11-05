@@ -32,7 +32,7 @@ SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, RecvGa
     else
         flags |= KEEP_SEL;
     SendGate gate(sel, flags, replygate);
-    Syscalls::get().creategate(rgate->sel(), gate.sel(), label, credits);
+    Syscalls::get().createsgate(rgate->sel(), gate.sel(), label, credits);
     return gate;
 }
 

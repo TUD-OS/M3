@@ -195,16 +195,18 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 }
 
 Errors::Code VPE::start() {
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0, NULL);
+    word_t arg = 0;
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 }
 
 Errors::Code VPE::stop() {
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, 0, NULL);
+    word_t arg = 0;
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, &arg);
 }
 
 int VPE::wait() {
-    int exitcode;
-    Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, 0, &exitcode);
+    word_t exitcode;
+    Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, &exitcode);
     return exitcode;
 }
 

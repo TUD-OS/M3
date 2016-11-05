@@ -46,34 +46,34 @@ private:
     }
 
 public:
-    Errors::Code activate(capsel_t vpe, epid_t ep, capsel_t cap, uintptr_t addr);
-    Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, epid_t rep, label_t rlabel, void *event);
-    Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
-    Errors::Code forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event);
     Errors::Code createsrv(capsel_t srv, capsel_t rgate, const String &name);
     Errors::Code createsess(capsel_t cap, const String &name, word_t arg);
     Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
     Errors::Code creatergate(capsel_t rgate, int order, int msgorder);
-    Errors::Code creategate(capsel_t rgate, capsel_t dst, label_t label, word_t credits);
+    Errors::Code createsgate(capsel_t rgate, capsel_t dst, label_t label, word_t credits);
+    Errors::Code createmgate(capsel_t cap, size_t size, int perms) {
+        return createmgateat(cap, -1, size, perms);
+    }
+    Errors::Code createmgateat(capsel_t cap, uintptr_t addr, size_t size, int perms);
     Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, epid_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
-    Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
-    // we need the pid only to support the VPE abstraction on the host
-    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, int pid, int *exitcode);
+
+    Errors::Code activate(capsel_t vpe, epid_t ep, capsel_t cap, uintptr_t addr);
+    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, word_t *arg);
+    Errors::Code derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms);
+
     Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
     Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
-    Errors::Code reqmem(capsel_t cap, size_t size, int perms) {
-        return reqmemat(cap, -1, size, perms);
-    }
-    Errors::Code reqmemat(capsel_t cap, uintptr_t addr, size_t size, int perms);
-    Errors::Code derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms);
+    Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
     Errors::Code revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own = true);
-    void exit(int exitcode);
+
+    Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, epid_t rep, label_t rlabel, void *event);
+    Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
+    Errors::Code forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event);
+
     Errors::Code noop();
 
-#if defined(__host__)
-    Errors::Code init(void *eps);
-#endif
+    void exit(int exitcode);
 
 private:
     DTU::Message *send_receive(const void *msg, size_t size);

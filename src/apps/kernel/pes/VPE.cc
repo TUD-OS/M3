@@ -87,11 +87,13 @@ void VPE::start_app() {
     PEManager::get().start_vpe(this);
 }
 
-void VPE::stop_app() {
+void VPE::stop_app(int exitcode, bool self) {
     if(!has_app())
         return;
 
-    if(_state == RUNNING)
+    if(self)
+        exit_app(exitcode);
+    else if(_state == RUNNING)
         exit_app(1);
     else {
         PEManager::get().stop_vpe(this);
