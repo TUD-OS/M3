@@ -199,8 +199,8 @@ public:
     void forward_mem(epid_t ep, peid_t pe);
 
     m3::Errors::Code config_rcv_ep(epid_t ep, const RGateObject &obj);
-    void config_snd_ep(epid_t ep, const MsgObject &obj);
-    void config_mem_ep(epid_t ep, const MemObject &obj);
+    void config_snd_ep(epid_t ep, const SGateObject &obj);
+    void config_mem_ep(epid_t ep, const MGateObject &obj);
 
     void make_daemon();
 

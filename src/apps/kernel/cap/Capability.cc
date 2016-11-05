@@ -27,13 +27,13 @@ m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
     return os;
 }
 
-MemObject::~MemObject() {
+MGateObject::~MGateObject() {
     // if it's not derived, it's always memory from mem-PEs
     if(!derived)
         MainMemory::get().free(pe, addr, size);
 }
 
-void SessionObject::close() {
+void SessObject::close() {
     // only send the close message, if the service has not exited yet
     if(srv->vpe().has_app()) {
         KLOG(SERV, "Sending CLOSE message for ident " << m3::fmt(ident, "#x", 8)
@@ -45,7 +45,8 @@ void SessionObject::close() {
         ServiceList::get().send(srv, &msg, sizeof(msg), false);
     }
 }
-SessionObject::~SessionObject() {
+
+SessObject::~SessObject() {
     if(!servowned)
         close();
 }
@@ -68,12 +69,12 @@ void RGateCapability::revoke() {
     obj.unref();
 }
 
-void MsgCapability::revoke() {
+void SGateCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
     obj.unref();
 }
 
-void MemCapability::revoke() {
+void MGateCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
     obj.unref();
 }
@@ -96,14 +97,14 @@ void MapCapability::revoke() {
     DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
 }
 
-void SessionCapability::revoke() {
+void SessCapability::revoke() {
     // if the server created that, we want to close it as soon as there are no clients using it anymore
     if(obj->servowned && obj->refcount() == 2)
         obj->close();
     obj.unref();
 }
 
-void ServiceCapability::revoke() {
+void ServCapability::revoke() {
     // first, reset the receive buffer: make all slots not-occupied
     if(inst->rgate()->activated())
         inst->vpe().config_rcv_ep(inst->rgate()->ep, *inst->rgate());
@@ -138,15 +139,15 @@ void RGateCapability::printInfo(m3::OStream &os) const {
        << ", msgorder=" << obj->msgorder << "]";
 }
 
-void MsgCapability::printInfo(m3::OStream &os) const {
-    os << ": mesg[refs=" << obj->refcount()
+void SGateCapability::printInfo(m3::OStream &os) const {
+    os << ": sgate[refs=" << obj->refcount()
        << ", dst=" << obj->rgate->vpe << ":" << obj->rgate->ep
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
        << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
 }
 
-void MemCapability::printInfo(m3::OStream &os) const {
-    os << ": mem [refs=" << obj->refcount()
+void MGateCapability::printInfo(m3::OStream &os) const {
+    os << ": mgate[refs=" << obj->refcount()
        << ", dst=" << obj->vpe << "@" << obj->pe
        << ", addr=" << m3::fmt(obj->addr, "#0x", sizeof(label_t) * 2)
        << ", size=" << m3::fmt(obj->size, "#0x", sizeof(label_t) * 2)
@@ -160,11 +161,11 @@ void MapCapability::printInfo(m3::OStream &os) const {
        << ", attr=#" << m3::fmt(attr, "x") << "]";
 }
 
-void ServiceCapability::printInfo(m3::OStream &os) const {
+void ServCapability::printInfo(m3::OStream &os) const {
     os << ": serv[name=" << inst->name() << "]";
 }
 
-void SessionCapability::printInfo(m3::OStream &os) const {
+void SessCapability::printInfo(m3::OStream &os) const {
     os << ": sess[refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << m3::fmt(obj->ident, "x")

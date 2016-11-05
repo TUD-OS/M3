@@ -49,7 +49,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _argc(),
       _argv() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
-    _objcaps.set(1, new MemCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
+    _objcaps.set(1, new MGateCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
 
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get().add(this);
@@ -238,7 +238,7 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     return m3::Errors::NO_ERROR;
 }
 
-void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {
+void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
     assert(obj.rgate->addr != 0);
     peid_t pe = VPEManager::get().peof(obj.rgate->vpe);
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
@@ -253,7 +253,7 @@ void VPE::config_snd_ep(epid_t ep, const MsgObject &obj) {
     update_ep(ep);
 }
 
-void VPE::config_mem_ep(epid_t ep, const MemObject &obj) {
+void VPE::config_mem_ep(epid_t ep, const MGateObject &obj) {
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "Mem [vpe=" << obj.vpe
         << ", pe=" << obj.pe

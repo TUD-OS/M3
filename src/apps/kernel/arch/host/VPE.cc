@@ -39,7 +39,7 @@ void VPE::init() {
     rgate.addr = 1;  // has to be non-zero
     rgate.ep = m3::DTU::NOTIFY_SEP;
     rgate.add_ref(); // don't free this
-    MsgObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
+    SGateObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 

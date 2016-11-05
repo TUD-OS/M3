@@ -43,13 +43,13 @@ public:
     typedef capsel_t key_t;
 
     enum {
-        SERVICE = 0x01,
-        SESSION = 0x02,
-        MSG     = 0x04,
-        MEM     = 0x08,
-        MAP     = 0x10,
-        VIRTPE  = 0x20,
-        RGATE   = 0x40,
+        SERV    = 0x01,
+        SESS    = 0x02,
+        SGATE   = 0x04,
+        RGATE   = 0x08,
+        MGATE   = 0x10,
+        MAP     = 0x20,
+        VIRTPE  = 0x40,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
@@ -131,12 +131,12 @@ public:
     int msgorder;
 };
 
-class MsgObject : public SlabObject<MsgObject>, public m3::RefCounted {
+class SGateObject : public SlabObject<SGateObject>, public m3::RefCounted {
 public:
-    explicit MsgObject(RGateObject *_rgate, label_t _label, word_t _credits)
+    explicit SGateObject(RGateObject *_rgate, label_t _label, word_t _credits)
         : RefCounted(), rgate(_rgate), label(_label), credits(_credits) {
     }
-    virtual ~MsgObject() {
+    virtual ~SGateObject() {
     }
 
     m3::Reference<RGateObject> rgate;
@@ -144,12 +144,12 @@ public:
     word_t credits;
 };
 
-class MemObject : public SlabObject<MemObject>, public m3::RefCounted {
+class MGateObject : public SlabObject<MGateObject>, public m3::RefCounted {
 public:
-    explicit MemObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, uint _perms)
+    explicit MGateObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, uint _perms)
         : RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size), perms(_perms), derived(false) {
     }
-    virtual ~MemObject();
+    virtual ~MGateObject();
 
     peid_t pe;
     vpeid_t vpe;
@@ -157,20 +157,6 @@ public:
     size_t size;
     uint perms;
     bool derived;
-};
-
-class SessionObject : public SlabObject<SessionObject>, public m3::RefCounted {
-public:
-    explicit SessionObject(Service *_srv, word_t _ident)
-        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
-    }
-    ~SessionObject();
-
-    void close();
-
-    bool servowned;
-    word_t ident;
-    m3::Reference<Service> srv;
 };
 
 class RGateCapability : public SlabObject<RGateCapability>, public Capability {
@@ -193,10 +179,24 @@ public:
     m3::Reference<RGateObject> obj;
 };
 
-class MsgCapability : public SlabObject<MsgCapability>, public Capability {
+class SessObject : public SlabObject<SessObject>, public m3::RefCounted {
 public:
-    explicit MsgCapability(CapTable *tbl, capsel_t sel, RGateObject *rgate, label_t label, word_t credits)
-        : Capability(tbl, sel, MSG), obj(new MsgObject(rgate, label, credits)) {
+    explicit SessObject(Service *_srv, word_t _ident)
+        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
+    }
+    ~SessObject();
+
+    void close();
+
+    bool servowned;
+    word_t ident;
+    m3::Reference<Service> srv;
+};
+
+class SGateCapability : public SlabObject<SGateCapability>, public Capability {
+public:
+    explicit SGateCapability(CapTable *tbl, capsel_t sel, RGateObject *rgate, label_t label, word_t credits)
+        : Capability(tbl, sel, SGATE), obj(new SGateObject(rgate, label, credits)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -204,20 +204,20 @@ public:
 protected:
     virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        MsgCapability *c = new MsgCapability(*this);
+        SGateCapability *c = new SGateCapability(*this);
         c->put(tbl, sel);
         return c;
     }
 
 public:
-    m3::Reference<MsgObject> obj;
+    m3::Reference<SGateObject> obj;
 };
 
-class MemCapability : public SlabObject<MemCapability>, public Capability {
+class MGateCapability : public SlabObject<MGateCapability>, public Capability {
 public:
-    explicit MemCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, uintptr_t addr,
+    explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, uintptr_t addr,
         size_t size, uint perms)
-        : Capability(tbl, sel, MEM), obj(new MemObject(pe, vpe, addr, size, perms)) {
+        : Capability(tbl, sel, MGATE), obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -225,13 +225,13 @@ public:
 private:
     virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        MemCapability *c = new MemCapability(*this);
+        MGateCapability *c = new MGateCapability(*this);
         c->put(tbl, sel);
         return c;
     }
 
 public:
-    m3::Reference<MemObject> obj;
+    m3::Reference<MGateObject> obj;
 };
 
 class MapCapability : public SlabObject<MapCapability>, public Capability {
@@ -253,10 +253,10 @@ public:
     uint attr;
 };
 
-class ServiceCapability : public SlabObject<ServiceCapability>, public Capability {
+class ServCapability : public SlabObject<ServCapability>, public Capability {
 public:
-    explicit ServiceCapability(CapTable *tbl, capsel_t sel, Service *_inst)
-        : Capability(tbl, sel, SERVICE), inst(_inst) {
+    explicit ServCapability(CapTable *tbl, capsel_t sel, Service *_inst)
+        : Capability(tbl, sel, SERV), inst(_inst) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -272,10 +272,10 @@ public:
     m3::Reference<Service> inst;
 };
 
-class SessionCapability : public SlabObject<SessionCapability>, public Capability {
+class SessCapability : public SlabObject<SessCapability>, public Capability {
 public:
-    explicit SessionCapability(CapTable *tbl, capsel_t sel, Service *srv, word_t ident)
-        : Capability(tbl, sel, SESSION), obj(new SessionObject(srv, ident)) {
+    explicit SessCapability(CapTable *tbl, capsel_t sel, Service *srv, word_t ident)
+        : Capability(tbl, sel, SESS), obj(new SessObject(srv, ident)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -283,13 +283,13 @@ public:
 private:
     virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
-        SessionCapability *s = new SessionCapability(*this);
+        SessCapability *s = new SessCapability(*this);
         s->put(tbl, sel);
         return s;
     }
 
 public:
-    m3::Reference<SessionObject> obj;
+    m3::Reference<SessObject> obj;
 };
 
 class VPECapability : public SlabObject<VPECapability>, public Capability {

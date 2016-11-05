@@ -33,7 +33,7 @@ void VPE::init() {
     rgate.add_ref(); // don't free this
 
     // configure syscall endpoint
-    MsgObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << SYSC_MSGSIZE_ORD);
+    SGateObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << SYSC_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::SYSC_SEP, mobj);
 
     // configure notify endpoint
