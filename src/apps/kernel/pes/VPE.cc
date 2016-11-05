@@ -73,10 +73,11 @@ void VPE::unref() {
         VPEManager::get().remove(this);
 }
 
-void VPE::start_app() {
+void VPE::start_app(int pid) {
     if(has_app())
         return;
 
+    _pid = pid;
     _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference

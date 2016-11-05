@@ -101,7 +101,7 @@ void VPEManager::init(int argc, char **argv) {
         if(strcmp(argv[i], "idle") != 0 && _vpes[id]->requirements().length() > 0)
             _pending.append(new Pending(_vpes[id]));
         else
-            _vpes[id]->start_app();
+            _vpes[id]->start_app(_vpes[id]->pid());
 
         i = j;
     }
@@ -119,7 +119,7 @@ void VPEManager::start_pending(ServiceList &serv) {
 
         if(fullfilled) {
             auto old = it++;
-            old->vpe->start_app();
+            old->vpe->start_app(old->vpe->pid());
             _pending.remove(&*old);
             delete &*old;
         }

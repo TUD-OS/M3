@@ -102,9 +102,6 @@ public:
     int pid() const {
         return _pid;
     }
-    void set_pid(int pid) {
-        _pid = pid;
-    }
 
     bool is_daemon() const {
         return _flags & F_DAEMON;
@@ -186,7 +183,7 @@ public:
         _pending_fwds--;
     }
 
-    void start_app();
+    void start_app(int pid);
     void stop_app(int exitcode, bool self);
 
     void yield();

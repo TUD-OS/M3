@@ -576,10 +576,6 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
     if(vpecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE cap");
 
-#if defined(__host__)
-    vpecap->vpe->set_pid(arg);
-#endif
-
     switch(op) {
         case m3::KIF::Syscall::VCTRL_INIT:
             vpecap->vpe->set_ep_addr(arg);
@@ -588,7 +584,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
         case m3::KIF::Syscall::VCTRL_START:
             if(vpe == vpecap->vpe)
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't start itself");
-            vpecap->vpe->start_app();
+            vpecap->vpe->start_app(arg);
             break;
 
         case m3::KIF::Syscall::VCTRL_STOP:
