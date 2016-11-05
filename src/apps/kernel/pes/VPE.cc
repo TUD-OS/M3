@@ -113,9 +113,10 @@ void VPE::stop_app(int exitcode, bool self) {
     else {
         PEManager::get().stop_vpe(this);
         _flags &= ~F_HASAPP;
-        if(rem_ref())
-            delete this;
     }
+
+    if(rem_ref())
+        delete this;
 }
 
 void VPE::wait_for_exit() {
@@ -133,9 +134,6 @@ void VPE::exit_app(int exitcode) {
     PEManager::get().stop_vpe(this);
 
     m3::ThreadManager::get().notify(&_exitcode);
-
-    if(rem_ref())
-        delete this;
 }
 
 void VPE::yield() {
