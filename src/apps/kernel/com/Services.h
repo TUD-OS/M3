@@ -44,9 +44,6 @@ public:
     const m3::String &name() const {
         return _name;
     }
-    SendGate &send_gate() const {
-        return const_cast<SendGate&>(_sgate);
-    }
     const m3::Reference<RGateObject> &rgate() const {
         return _rgate;
     }
