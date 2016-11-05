@@ -38,7 +38,7 @@ class PEManager;
 class VPECapability;
 class VPEManager;
 
-class VPE : public m3::SListItem, public SlabObject<VPE> {
+class VPE : public m3::SListItem, public SlabObject<VPE>, public m3::RefCounted {
     friend class ContextSwitcher;
     friend class PEManager;
     friend class VPECapability;
@@ -217,14 +217,6 @@ public:
     }
 
 private:
-    int refcount() const {
-        return _refs;
-    }
-    void ref() {
-        _refs++;
-    }
-    void unref();
-
     void init();
     void init_memory();
     void load_app();
@@ -241,7 +233,6 @@ private:
 
     VPEDesc _desc;
     uint _flags;
-    int _refs;
     int _pid;
     State _state;
     int _exitcode;

@@ -30,7 +30,7 @@ VPEManager::~VPEManager() {
         if(_vpes[i]) {
             kill(_vpes[i]->pid(), SIGTERM);
             waitpid(_vpes[i]->pid(), nullptr, 0);
-            _vpes[i]->unref();
+            delete _vpes[i];
         }
     }
 }

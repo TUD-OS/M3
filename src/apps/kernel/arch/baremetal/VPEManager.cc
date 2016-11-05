@@ -24,7 +24,7 @@ namespace kernel {
 VPEManager::~VPEManager() {
     for(size_t i = 0; i < MAX_VPES; ++i) {
         if(_vpes[i])
-            _vpes[i]->unref();
+            delete _vpes[i];
     }
 }
 

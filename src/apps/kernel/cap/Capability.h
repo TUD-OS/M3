@@ -294,8 +294,9 @@ public:
 
 class VPECapability : public SlabObject<VPECapability>, public Capability {
 public:
-    explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p);
-    VPECapability(const VPECapability &t);
+    explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p)
+        : Capability(tbl, sel, VIRTPE), obj(p) {
+    }
 
     void printInfo(m3::OStream &os) const override;
 
@@ -308,7 +309,7 @@ private:
     }
 
 public:
-    VPE *vpe;
+    m3::Reference<VPE> obj;
 };
 
 }

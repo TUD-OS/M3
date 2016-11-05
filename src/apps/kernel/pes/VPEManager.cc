@@ -188,19 +188,15 @@ void VPEManager::add(VPE *vpe) {
 }
 
 void VPEManager::remove(VPE *vpe) {
-    uint flags = vpe->_flags;
-    vpeid_t id = vpe->id();
-
     PEManager::get().remove_vpe(vpe);
 
-    delete vpe;
     // do that afterwards, because some actions in the destructor might try to get the VPE
-    _vpes[id] = nullptr;
+    _vpes[vpe->id()] = nullptr;
 
-    if(flags & VPE::F_IDLE)
+    if(vpe->_flags & VPE::F_IDLE)
         return;
 
-    if(flags & VPE::F_DAEMON) {
+    if(vpe->_flags & VPE::F_DAEMON) {
         assert(_daemons > 0);
         _daemons--;
     }

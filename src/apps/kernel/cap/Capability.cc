@@ -112,17 +112,8 @@ void ServCapability::revoke() {
     inst->abort();
 }
 
-VPECapability::VPECapability(CapTable *tbl, capsel_t sel, VPE *p)
-    : Capability(tbl, sel, VIRTPE), vpe(p) {
-    p->ref();
-}
-
-VPECapability::VPECapability(const VPECapability &t) : Capability(t), vpe(t.vpe) {
-    vpe->ref();
-}
-
 void VPECapability::revoke() {
-    vpe->unref();
+    obj.unref();
 }
 
 void Capability::print(m3::OStream &os) const {
@@ -173,8 +164,8 @@ void SessCapability::printInfo(m3::OStream &os) const {
 }
 
 void VPECapability::printInfo(m3::OStream &os) const {
-    os << ": vpe [refs=" << vpe->refcount()
-       << ", name=" << vpe->name() << "]";
+    os << ": vpe [refs=" << obj->refcount()
+       << ", name=" << obj->name() << "]";
 }
 
 void Capability::printChilds(m3::OStream &os, int layer) const {

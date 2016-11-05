@@ -31,7 +31,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       SlabObject<VPE>(),
       _desc(peid, id),
       _flags(flags | F_INIT),
-      _refs(0),
       _pid(),
       _state(DEAD),
       _exitcode(),
@@ -54,6 +53,9 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get().add(this);
 
+    // we have one reference to itself
+    rem_ref();
+
     if(~_flags & F_IDLE)
         init();
 
@@ -62,15 +64,27 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
         KLOG(VPES, "  requires: '" << r.name << "'");
 }
 
+VPE::~VPE() {
+    KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
+
+    _state = DEAD;
+
+    free_reqs();
+
+    _objcaps.revoke_all();
+    _mapcaps.revoke_all();
+
+    // ensure that there are no syscalls for this VPE anymore
+    DTU::get().drop_msgs(SyscallHandler::get().ep(), reinterpret_cast<label_t>(this));
+
+    delete _as;
+
+    VPEManager::get().remove(this);
+}
+
 void VPE::make_daemon() {
     _flags |= F_DAEMON;
     VPEManager::get()._daemons++;
-}
-
-void VPE::unref() {
-    // 1 because we always have a VPE-cap for ourself (not revokeable)
-    if(--_refs == 1)
-        VPEManager::get().remove(this);
 }
 
 void VPE::start_app(int pid) {
@@ -81,7 +95,7 @@ void VPE::start_app(int pid) {
     _flags |= F_HASAPP;
 
     // when exiting, the program will release one reference
-    ref();
+    add_ref();
 
     KLOG(VPES, "Starting VPE '" << _name << "' [id=" << id() << "]");
 
@@ -99,7 +113,8 @@ void VPE::stop_app(int exitcode, bool self) {
     else {
         PEManager::get().stop_vpe(this);
         _flags &= ~F_HASAPP;
-        unref();
+        if(rem_ref())
+            delete this;
     }
 }
 
@@ -119,7 +134,8 @@ void VPE::exit_app(int exitcode) {
 
     m3::ThreadManager::get().notify(&_exitcode);
 
-    unref();
+    if(rem_ref())
+        delete this;
 }
 
 void VPE::yield() {

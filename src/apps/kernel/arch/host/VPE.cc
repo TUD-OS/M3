@@ -90,14 +90,4 @@ void VPE::write_env_file(pid_t pid, label_t label, epid_t ep) {
     of << (1 << SYSC_CREDIT_ORD) << "\n";
 }
 
-VPE::~VPE() {
-    KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    _state = DEAD;
-    free_reqs();
-    // revoke all caps first because we might need the sepsgate for that
-    _objcaps.revoke_all();
-    // ensure that there are no syscalls for this VPE anymore
-    DTU::get().drop_msgs(SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
-}
-
 }

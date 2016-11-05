@@ -446,7 +446,7 @@ void SyscallHandler::createmap(VPE *vpe, const m3::DTU::Message *msg) {
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Region of memory capability is invalid");
 
     uintptr_t phys = m3::DTU::build_noc_addr(mgatecap->obj->pe, mgatecap->obj->addr + PAGE_SIZE * first);
-    CapTable &mcaps = vpecap->vpe->mapcaps();
+    CapTable &mcaps = vpecap->obj->mapcaps();
 
     auto mapcap = static_cast<MapCapability*>(mcaps.get(dst, Capability::MAP));
     if(mapcap == nullptr) {
@@ -493,26 +493,26 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalidate capability");
     }
 
-    Capability *oldcap = vpecap->vpe->ep_cap(ep);
+    Capability *oldcap = vpecap->obj->ep_cap(ep);
     if(oldcap) {
         if(oldcap->type == Capability::RGATE) {
             auto rgatecap = static_cast<RGateCapability*>(gatecap);
             rgatecap->obj->addr = 0;
         }
 
-        m3::Errors::Code res = DTU::get().inval_ep_remote(vpecap->vpe->desc(), ep);
+        m3::Errors::Code res = DTU::get().inval_ep_remote(vpecap->obj->desc(), ep);
         if(res != m3::Errors::NO_ERROR)
             SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
     }
 
     if(gatecap) {
-        epid_t oldep = vpecap->vpe->cap_ep(gatecap);
+        epid_t oldep = vpecap->obj->cap_ep(gatecap);
         if(oldep && oldep != ep)
             SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Capability already in use");
 
         if(gatecap->type == Capability::MGATE) {
             auto mgatecap = static_cast<MGateCapability*>(gatecap);
-            vpecap->vpe->config_mem_ep(ep, *mgatecap->obj);
+            vpecap->obj->config_mem_ep(ep, *mgatecap->obj);
         }
         else if(gatecap->type == Capability::SGATE) {
             auto sgatecap = static_cast<SGateCapability*>(gatecap);
@@ -529,18 +529,18 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
                     ": rgate " << &sgatecap->obj->rgate << " activated");
             }
 
-            vpecap->vpe->config_snd_ep(ep, *sgatecap->obj);
+            vpecap->obj->config_snd_ep(ep, *sgatecap->obj);
         }
         else {
             auto rgatecap = static_cast<RGateCapability*>(gatecap);
             if(rgatecap->obj->activated())
                 SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "RGate already activated");
 
-            rgatecap->obj->vpe = vpecap->vpe->id();
+            rgatecap->obj->vpe = vpecap->obj->id();
             rgatecap->obj->addr = addr;
             rgatecap->obj->ep = ep;
 
-            m3::Errors::Code res = vpecap->vpe->config_rcv_ep(ep, *rgatecap->obj);
+            m3::Errors::Code res = vpecap->obj->config_rcv_ep(ep, *rgatecap->obj);
             if(res != m3::Errors::NO_ERROR) {
                 rgatecap->obj->addr = 0;
                 SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
@@ -548,9 +548,9 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         }
     }
     else
-        vpecap->vpe->invalidate_ep(ep);
+        vpecap->obj->invalidate_ep(ep);
 
-    vpecap->vpe->ep_cap(ep, gatecap);
+    vpecap->obj->ep_cap(ep, gatecap);
 
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }
@@ -577,35 +577,39 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
 
     switch(op) {
         case m3::KIF::Syscall::VCTRL_INIT:
-            vpecap->vpe->set_ep_addr(arg);
+            vpecap->obj->set_ep_addr(arg);
             break;
 
         case m3::KIF::Syscall::VCTRL_START:
-            if(vpe == vpecap->vpe)
+            if(vpe == &*vpecap->obj)
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't start itself");
-            vpecap->vpe->start_app(arg);
+            vpecap->obj->start_app(arg);
             break;
 
-        case m3::KIF::Syscall::VCTRL_STOP:
-            vpecap->vpe->stop_app(arg, vpe == vpecap->vpe);
+        case m3::KIF::Syscall::VCTRL_STOP: {
+            bool self = vpe == &*vpecap->obj;
+            vpecap->obj->stop_app(arg, self);
+            if(self)
+                return;
             break;
+        }
 
         case m3::KIF::Syscall::VCTRL_WAIT:
-            if(vpe == vpecap->vpe)
+            if(vpe == &*vpecap->obj)
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't wait for itself");
 
             m3::KIF::Syscall::VPECtrlReply reply;
             reply.error = m3::Errors::NO_ERROR;
 
-            if(vpecap->vpe->has_app()) {
+            if(vpecap->obj->has_app()) {
                 vpe->start_wait();
-                vpecap->vpe->wait_for_exit();
+                vpecap->obj->wait_for_exit();
                 vpe->stop_wait();
 
-                LOG_SYS(vpe, ": syscall::vpectrl-cont", "(exitcode=" << vpecap->vpe->exitcode() << ")");
+                LOG_SYS(vpe, ": syscall::vpectrl-cont", "(exitcode=" << vpecap->obj->exitcode() << ")");
             }
 
-            reply.exitcode = vpecap->vpe->exitcode();
+            reply.exitcode = vpecap->obj->exitcode();
             reply_msg(vpe, msg, &reply, sizeof(reply));
             return;
     }
@@ -673,8 +677,8 @@ void SyscallHandler::exchange(VPE *vpe, const m3::DTU::Message *msg) {
     if(vpecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE cap");
 
-    VPE *t1 = obtain ? vpecap->vpe : vpe;
-    VPE *t2 = obtain ? vpe : vpecap->vpe;
+    VPE *t1 = obtain ? &*vpecap->obj : vpe;
+    VPE *t2 = obtain ? vpe : &*vpecap->obj;
     m3::Errors::Code res = do_exchange(t1, t2, own, other, obtain);
 
     reply_result(vpe, msg, res);
@@ -698,9 +702,9 @@ void SyscallHandler::revoke(VPE *vpe, const m3::DTU::Message *msg) {
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Cap 0 and 1 are not revokeable");
 
     if(crd.type() == m3::KIF::CapRngDesc::OBJ)
-        vpecap->vpe->objcaps().revoke(crd, own);
+        vpecap->obj->objcaps().revoke(crd, own);
     else
-        vpecap->vpe->mapcaps().revoke(crd, own);
+        vpecap->obj->mapcaps().revoke(crd, own);
 
     reply_result(vpe, msg, m3::Errors::NO_ERROR);
 }

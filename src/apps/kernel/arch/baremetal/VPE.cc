@@ -64,15 +64,4 @@ void VPE::init() {
 void VPE::activate_sysc_ep(void *) {
 }
 
-VPE::~VPE() {
-    KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
-    _state = DEAD;
-    free_reqs();
-    _objcaps.revoke_all();
-    _mapcaps.revoke_all();
-    // ensure that there are no syscalls for this VPE anymore
-    DTU::get().drop_msgs(SyscallHandler::get().ep(), reinterpret_cast<label_t>(this));
-    delete _as;
-}
-
 }
