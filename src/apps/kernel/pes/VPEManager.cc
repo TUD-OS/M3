@@ -60,13 +60,6 @@ void VPEManager::init(int argc, char **argv) {
 
             // allow multiple applications with the same name
             _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);
-
-#if defined(__t3__)
-            // VPEs started in t3 simulator are already running when loaded
-            // via commandline, thus suspend them temporarily
-            // FIXME: this feels like a dirty hack to me
-            _vpes[id]->resume();
-#endif
         }
 
         // find end of arguments

@@ -103,10 +103,6 @@ public:
 
     void revoke_all();
 
-#if defined(__t3__)
-    void activate_msgcaps();
-#endif
-
 private:
     static void revoke(Capability *c, bool revnext);
     static void revoke_rec(Capability *c, bool revnext);

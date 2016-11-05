@@ -30,36 +30,6 @@ void CapTable::revoke_all() {
     }
 }
 
-#if defined(__t3__)
-void CapTable::activate_msgcaps() {
-
-    // FIXME
-    // this is somewhat ugly code since we cant iterate over all capabilites
-    // inside a Treap so we remove the root item one by one and insert
-    // them again at the end
-    // note: this code is not thread-safe(!)
-
-    Capability *c;
-    Treap<Capability> tmp;
-
-    while ((c = static_cast<Capability*>(_caps.remove_root())) != nullptr) {
-        tmp.insert(c);
-        if (c->type == Capability::MSG) {
-            MsgCapability *msgc = static_cast<MsgCapability*>(c);
-            if (msgc->localepid != -1) {
-                LOG(VPES, "Activating EP " << msgc->localepid);
-                KVPE &vpe = VPEManager::get().vpe(msgc->table()->id() - 1);
-                vpe.xchg_ep(msgc->localepid, nullptr, msgc);
-            }
-        }
-    }
-
-    while ((c = static_cast<Capability*>(tmp.remove_root())) != nullptr) {
-        _caps.insert(c);
-    }
-}
-#endif
-
 Capability *CapTable::obtain(capsel_t dst, Capability *c) {
     Capability *nc = c;
     if(c) {
