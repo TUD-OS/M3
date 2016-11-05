@@ -227,7 +227,6 @@ private:
     void notify_resume();
 
     void write_env_file(int pid, label_t label, epid_t ep);
-    void activate_sysc_ep(void *addr);
 
     void free_reqs();
 

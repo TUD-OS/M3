@@ -61,7 +61,4 @@ void VPE::init() {
     config_rcv_ep(m3::DTU::DEF_REP, rgate);
 }
 
-void VPE::activate_sysc_ep(void *) {
-}
-
 }
