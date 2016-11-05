@@ -564,8 +564,13 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
     m3::KIF::Syscall::VPEOp op = static_cast<m3::KIF::Syscall::VPEOp>(req->op);
     word_t arg = req->arg;
 
-    LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tcap << ", op=" << op
-            << ", arg=" << arg << ")");
+    static const char *opnames[] = {
+        "INIT", "START", "STOP", "WAIT"
+    };
+
+    LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tcap
+        << ", op=" << (static_cast<size_t>(op) < ARRAY_SIZE(opnames) ? opnames[op] : "??")
+        << ", arg=" << m3::fmt(arg, "#x") << ")");
 
     VPECapability *vpecap = static_cast<VPECapability*>(vpe->objcaps().get(tcap, Capability::VIRTPE));
     if(vpecap == nullptr)
