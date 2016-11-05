@@ -234,7 +234,7 @@ void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
 
-    LOG_SYS(vpe, ": syscall::createsess-cb", "(res=" << res << ")");
+    LOG_SYS(vpe, ": syscall::createsess-cont", "(res=" << res << ")");
 
     if(res != m3::Errors::NO_ERROR)
         LOG_ERROR(vpe, res, "Server denied session creation");
@@ -518,11 +518,15 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             auto sgatecap = static_cast<SGateCapability*>(gatecap);
 
             if(!sgatecap->obj->rgate->activated()) {
-                LOG_SYS(vpe, ": syscall::activate", ": waiting for rgate " << &sgatecap->obj->rgate);
+                LOG_SYS(vpe, ": syscall::activate",
+                    ": waiting for rgate " << &sgatecap->obj->rgate);
 
                 vpe->start_wait();
                 m3::ThreadManager::get().wait_for(&*sgatecap->obj->rgate);
                 vpe->stop_wait();
+
+                LOG_SYS(vpe, ": syscall::activate-cont",
+                    ": rgate " << &sgatecap->obj->rgate << " activated");
             }
 
             vpecap->vpe->config_snd_ep(ep, *sgatecap->obj);
@@ -531,8 +535,6 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             auto rgatecap = static_cast<RGateCapability*>(gatecap);
             if(rgatecap->obj->activated())
                 SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "RGate already activated");
-
-            LOG_SYS(vpe, ": syscall::activate", ": rgate " << &*rgatecap->obj);
 
             rgatecap->obj->vpe = vpecap->vpe->id();
             rgatecap->obj->addr = addr;
@@ -600,7 +602,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
                 vpecap->vpe->wait_for_exit();
                 vpe->stop_wait();
 
-                LOG_SYS(vpe, ": syscall::vpectrl-cb", "(exitcode=" << vpecap->vpe->exitcode() << ")");
+                LOG_SYS(vpe, ": syscall::vpectrl-cont", "(exitcode=" << vpecap->vpe->exitcode() << ")");
             }
 
             reply.exitcode = vpecap->vpe->exitcode();
@@ -778,7 +780,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
 
     m3::Errors::Code res = static_cast<m3::Errors::Code>(reply->error);
 
-    LOG_SYS(vpe, (obtain ? ": syscall::obtain-cb" : ": syscall::delegate-cb"), "(res=" << res << ")");
+    LOG_SYS(vpe, (obtain ? ": syscall::obtain-cont" : ": syscall::delegate-cont"), "(res=" << res << ")");
 
     if(res != m3::Errors::NO_ERROR)
         LOG_ERROR(vpe, res, "Server denied cap-transfer");
@@ -816,6 +818,8 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur)
         tvpe.rem_forward();
         cur->stop_wait();
     }
+
+    LOG_SYS(cur, name, "-cont: VPE " << tvpe.id() << " ready");
     return res;
 }
 
