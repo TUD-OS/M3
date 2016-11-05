@@ -39,12 +39,12 @@ MemGate MemGate::create_global_for(uintptr_t addr, size_t size, int perms, capse
 
 MemGate MemGate::derive(size_t offset, size_t size, int perms) const {
     capsel_t cap = VPE::self().alloc_cap();
-    Syscalls::get().derivemem(sel(), cap, offset, size, perms);
+    Syscalls::get().derivemem(cap, sel(), offset, size, perms);
     return MemGate(0, cap);
 }
 
 MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) const {
-    Syscalls::get().derivemem(sel(), cap, offset, size, perms);
+    Syscalls::get().derivemem(cap, sel(), offset, size, perms);
     return MemGate(ObjCap::KEEP_SEL, cap);
 }
 

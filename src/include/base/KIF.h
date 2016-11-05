@@ -158,58 +158,58 @@ struct KIF {
         } PACKED;
 
         struct CreateSrv : public DefaultRequest {
-            word_t srv;
-            word_t rgate;
+            word_t dst_sel;
+            word_t rgate_sel;
             word_t namelen;
             char name[32];
         } PACKED;
 
         struct CreateSess : public DefaultRequest {
-            word_t sess;
+            word_t dst_sel;
             word_t arg;
             word_t namelen;
             char name[32];
         } PACKED;
 
         struct CreateSessAt : public DefaultRequest {
-            word_t srv;
-            word_t sess;
+            word_t dst_sel;
+            word_t srv_sel;
             word_t ident;
         } PACKED;
 
         struct CreateRGate : public DefaultRequest {
-            word_t rgate;
+            word_t dst_sel;
             word_t order;
             word_t msgorder;
         } PACKED;
 
         struct CreateSGate : public DefaultRequest {
-            word_t rgate;
-            word_t gate;
+            word_t dst_sel;
+            word_t rgate_sel;
             word_t label;
             word_t credits;
         } PACKED;
 
         struct CreateMGate : public DefaultRequest {
-            word_t mem;
+            word_t dst_sel;
             word_t addr;
             word_t size;
             word_t perms;
         } PACKED;
 
         struct CreateMap : public DefaultRequest {
-            word_t vpe;
-            word_t mem;
+            word_t dst_sel;
+            word_t vpe_sel;
+            word_t mgate_sel;
             word_t first;
             word_t pages;
-            word_t dest;
             word_t perms;
         } PACKED;
 
         struct CreateVPE : public DefaultRequest {
-            word_t vpe;
-            word_t mem;
-            word_t gate;
+            word_t dst_sel;
+            word_t mgate_sel;
+            word_t sgate_sel;
             word_t pe;
             word_t ep;
             word_t muxable;
@@ -222,14 +222,14 @@ struct KIF {
         } PACKED;
 
         struct Activate : public DefaultRequest {
-            word_t vpe;
+            word_t vpe_sel;
+            word_t gate_sel;
             word_t ep;
-            word_t cap;
             word_t addr;
         } PACKED;
 
         struct VPECtrl : public DefaultRequest {
-            word_t vpe;
+            word_t vpe_sel;
             word_t op;
             word_t arg;
         } PACKED;
@@ -239,23 +239,23 @@ struct KIF {
         } PACKED;
 
         struct DeriveMem : public DefaultRequest {
-            word_t src;
-            word_t dst;
+            word_t dst_sel;
+            word_t src_sel;
             word_t offset;
             word_t size;
             word_t perms;
         } PACKED;
 
         struct Exchange : public DefaultRequest {
-            word_t vpe;
-            word_t own;
-            word_t other;
+            word_t vpe_sel;
+            word_t own_crd;
+            word_t other_sel;
             word_t obtain;
         } PACKED;
 
         struct ExchangeSess : public DefaultRequest {
-            word_t sess;
-            word_t caps;
+            word_t sess_sel;
+            word_t crd;
             word_t argcount;
             word_t args[8];
         } PACKED;
@@ -266,15 +266,15 @@ struct KIF {
         } PACKED;
 
         struct Revoke : public DefaultRequest {
-            word_t vpe;
+            word_t vpe_sel;
             word_t crd;
             word_t own;
         } PACKED;
 
         struct ForwardMsg : public DefaultRequest {
-            word_t cap;
+            word_t sgate_sel;
+            word_t rgate_sel;
             word_t len;
-            word_t repid;
             word_t rlabel;
             word_t event;
             char msg[MAX_MSG_SIZE];
@@ -286,7 +286,7 @@ struct KIF {
                 WRITE   = 2,
             };
 
-            word_t cap;
+            word_t mgate_sel;
             word_t len;
             word_t offset;
             word_t flags;
@@ -299,7 +299,7 @@ struct KIF {
         };
 
         struct ForwardReply : public DefaultRequest {
-            word_t cap;
+            word_t rgate_sel;
             word_t msgaddr;
             word_t len;
             word_t event;

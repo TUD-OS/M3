@@ -74,7 +74,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
 
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, _pager->gate().sel(), alloc_ep(), tmuxable);
+        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(), name, _pe, alloc_ep(), tmuxable);
         // mark the pfgate cap allocated
         assert(!_caps->is_set(_pager->gate().sel()));
         _caps->set(_pager->gate().sel());
@@ -84,7 +84,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         delegate_obj(_pager->sel());
     }
     else
-        Syscalls::get().createvpe(sel(), _mem.sel(), name, _pe, ObjCap::INVALID, 0, tmuxable);
+        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, name, _pe, 0, tmuxable);
 }
 
 VPE::~VPE() {

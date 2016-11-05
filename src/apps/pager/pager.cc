@@ -73,7 +73,7 @@ public:
 
         // clone the current session and connect it to the current one
         AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_cap());
-        Syscalls::get().createsessat(srv->sel(), nsess->sess.sel(), reinterpret_cast<word_t>(nsess));
+        Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
         add_session(nsess);
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());

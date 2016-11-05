@@ -32,7 +32,7 @@ SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, RecvGa
     else
         flags |= KEEP_SEL;
     SendGate gate(sel, flags, replygate);
-    Syscalls::get().createsgate(rgate->sel(), gate.sel(), label, credits);
+    Syscalls::get().createsgate(gate.sel(), rgate->sel(), label, credits);
     return gate;
 }
 
@@ -42,7 +42,7 @@ Errors::Code SendGate::send(const void *data, size_t len) {
     Errors::Code res = DTU::get().send(ep(), data, len, 0, _replygate->ep());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         void *event = ThreadManager::get().get_wait_event();
-        res = Syscalls::get().forwardmsg(sel(), data, len, _replygate->ep(), 0, event);
+        res = Syscalls::get().forwardmsg(sel(), _replygate->sel(), data, len, 0, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall
         if(res == Errors::UPCALL_REPLY) {

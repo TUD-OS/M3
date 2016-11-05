@@ -131,7 +131,7 @@ void RecvGate::activate(epid_t _ep, uintptr_t addr) {
 #endif
 
     if(sel() != ObjCap::INVALID) {
-        Errors::Code res = Syscalls::get().activate(_vpe.sel(), ep(), sel(), addr);
+        Errors::Code res = Syscalls::get().activate(_vpe.sel(), sel(), ep(), addr);
         if(res != Errors::NO_ERROR)
             PANIC("Attaching RecvGate to " << ep() << " failed: " << Errors::to_string(res));
     }

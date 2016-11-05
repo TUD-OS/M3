@@ -46,30 +46,30 @@ private:
     }
 
 public:
-    Errors::Code createsrv(capsel_t srv, capsel_t rgate, const String &name);
-    Errors::Code createsess(capsel_t cap, const String &name, word_t arg);
-    Errors::Code createsessat(capsel_t srv, capsel_t sess, word_t ident);
-    Errors::Code creatergate(capsel_t rgate, int order, int msgorder);
-    Errors::Code createsgate(capsel_t rgate, capsel_t dst, label_t label, word_t credits);
-    Errors::Code createmgate(capsel_t cap, size_t size, int perms) {
-        return createmgateat(cap, -1, size, perms);
+    Errors::Code createsrv(capsel_t dst, capsel_t rgate, const String &name);
+    Errors::Code createsess(capsel_t dst, const String &name, word_t arg);
+    Errors::Code createsessat(capsel_t dst, capsel_t srv, word_t ident);
+    Errors::Code creatergate(capsel_t dst, int order, int msgorder);
+    Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);
+    Errors::Code createmgate(capsel_t dst, size_t size, int perms) {
+        return createmgateat(dst, -1, size, perms);
     }
-    Errors::Code createmgateat(capsel_t cap, uintptr_t addr, size_t size, int perms);
-    Errors::Code createvpe(capsel_t vpe, capsel_t mem, const String &name, PEDesc &pe, capsel_t gate, epid_t ep, bool tmuxable);
-    Errors::Code createmap(capsel_t vpe, capsel_t mem, capsel_t first, capsel_t pages, capsel_t dst, int perms);
+    Errors::Code createmgateat(capsel_t dst, uintptr_t addr, size_t size, int perms);
+    Errors::Code createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, const String &name, PEDesc &pe, epid_t ep, bool tmuxable);
+    Errors::Code createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, capsel_t first, capsel_t pages, int perms);
 
-    Errors::Code activate(capsel_t vpe, epid_t ep, capsel_t cap, uintptr_t addr);
+    Errors::Code activate(capsel_t vpe, capsel_t gate, epid_t ep, uintptr_t addr);
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, word_t *arg);
-    Errors::Code derivemem(capsel_t src, capsel_t dst, size_t offset, size_t size, int perms);
+    Errors::Code derivemem(capsel_t dst, capsel_t src, size_t offset, size_t size, int perms);
 
     Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
     Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
     Errors::Code revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own = true);
 
-    Errors::Code forwardmsg(capsel_t cap, const void *msg, size_t len, epid_t rep, label_t rlabel, void *event);
-    Errors::Code forwardmem(capsel_t cap, void *data, size_t len, size_t offset, uint flags, void *event);
-    Errors::Code forwardreply(capsel_t cap, const void *msg, size_t len, uintptr_t msgaddr, void *event);
+    Errors::Code forwardmsg(capsel_t sgate, capsel_t rgate, const void *msg, size_t len, label_t rlabel, void *event);
+    Errors::Code forwardmem(capsel_t mgate, void *data, size_t len, size_t offset, uint flags, void *event);
+    Errors::Code forwardreply(capsel_t rgate, const void *msg, size_t len, uintptr_t msgaddr, void *event);
 
     Errors::Code noop();
 

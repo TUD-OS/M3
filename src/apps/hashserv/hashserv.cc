@@ -87,8 +87,8 @@ public:
         if(!_accel->get().pe().has_virtmem()) {
             _buf = new MemGate(MemGate::create_global(
                 hash::Accel::BUF_SIZE * MAX_CLIENTS, MemGate::RW));
-            Syscalls::get().createmap(VPE::self().sel(), _buf->sel(), 0,
-                hash::Accel::BUF_SIZE / PAGE_SIZE, BUF_ADDR / PAGE_SIZE, MemGate::RW);
+            Syscalls::get().createmap(BUF_ADDR / PAGE_SIZE, VPE::self().sel(), _buf->sel(), 0,
+                hash::Accel::BUF_SIZE / PAGE_SIZE, MemGate::RW);
         }
         else {
             assert(_accel->get().pager() != nullptr);
