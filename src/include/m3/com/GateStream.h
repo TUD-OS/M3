@@ -27,7 +27,7 @@ namespace m3 {
  * The gate stream classes provide an easy abstraction to marshall or unmarshall data when
  * communicating between VPEs. Therefore, if you want to combine multiple values into a single
  * message or extract multiple values from a message, this is the abstraction you might want to use.
- * If you already have the data to send, you should directly use the send-method of SendGate. If
+ * If you already have the data to send, you should directly use the send method of SendGate. If
  * you don't want to extract values from a message but directly access the message, use the
  * data-field of the message you received.
  *
@@ -73,7 +73,7 @@ public:
 /**
  * An implementation of GateOStream that hosts the message as a member. E.g. you can put an object
  * of this class on the stack, which would host the message on the stack.
- * In most cases, you don't want to use this class yourself, but the free-standing convenience
+ * In most cases, you don't want to use this class yourself, but the free standing convenience
  * functions below that automatically determine <SIZE>.
  *
  * @param SIZE the max. size of the message

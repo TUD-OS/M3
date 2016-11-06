@@ -31,6 +31,15 @@ class GateIStream;
 class SendGate;
 class VPE;
 
+/**
+ * A receive gate is used to receive messages from send gates. To this end, it has a receive buffer
+ * of a fixed message and total size. Multiple send gates can be created for one receive gate. After
+ * a message has been received, the reply operation can be used to send a reply back to the sender.
+ *
+ * Receiving messages is possible by waiting for them using the wait() method. This approach is used
+ * when, e.g., receiving a reply upon a sent message. Alternatively, one can start to listen to
+ * received messages. In this case, a WorkLoop item is created.
+ */
 class RecvGate : public Gate {
     enum {
         FREE_BUF    = 1,
@@ -62,23 +71,72 @@ class RecvGate : public Gate {
 public:
     using msghandler_t = std::function<void(GateIStream&)>;
 
+    /**
+     * @return the receive gate for system call replies
+     */
     static RecvGate &syscall() {
         return _syscall;
     }
+    /**
+     * @return the receive gate for upcalls
+     */
     static RecvGate &upcall() {
         return _upcall;
     }
+    /**
+     * @return the default receive gate. can be used whenever a buffer for a single message with a
+     *  reasonable size is sufficient
+     */
     static RecvGate &def() {
         return _default;
     }
 
+    /**
+     * Creates a new receive gate with given size.
+     *
+     * @param order the size of the buffer (2^<order> bytes)
+     * @param msgorder the size of messages within the buffer (2^<msgorder> bytes)
+     * @return the receive gate
+     */
     static RecvGate create(int order, int msgorder);
-    static RecvGate create(capsel_t cap, int order, int msgorder);
+    /**
+     * Creates a new receive gate at selector <sel> with given size.
+     *
+     * @param sel the capability selector to use
+     * @param order the size of the buffer (2^<order> bytes)
+     * @param msgorder the size of messages within the buffer (2^<msgorder> bytes)
+     * @return the receive gate
+     */
+    static RecvGate create(capsel_t sel, int order, int msgorder);
 
+    /**
+     * Creates a new receive gate that should be activated for <vpe>.
+     *
+     * @param vpe the VPE that should activate the receive gate
+     * @param order the size of the buffer (2^<order> bytes)
+     * @param msgorder the size of messages within the buffer (2^<msgorder> bytes)
+     * @return the receive gate
+     */
     static RecvGate create_for(VPE &vpe, int order, int msgorder);
-    static RecvGate create_for(VPE &vpe, capsel_t cap, int order, int msgorder);
+    /**
+     * Creates a new receive gate at selector <sel> that should be activated for <vpe>.
+     *
+     * @param vpe the VPE that should activate the receive gate
+     * @param sel the capability selector to use
+     * @param order the size of the buffer (2^<order> bytes)
+     * @param msgorder the size of messages within the buffer (2^<msgorder> bytes)
+     * @return the receive gate
+     */
+    static RecvGate create_for(VPE &vpe, capsel_t sel, int order, int msgorder);
 
-    static RecvGate bind(capsel_t cap, int order);
+    /**
+     * Binds the receive gate at selector <sel>.
+     *
+     * @param sel the capability selector
+     * @param order the size of the buffer (2^<order> bytes)
+     * @return the receive gate
+     */
+    static RecvGate bind(capsel_t sel, int order);
 
     RecvGate(const RecvGate&) = delete;
     RecvGate &operator=(const RecvGate&) = delete;
@@ -90,39 +148,51 @@ public:
     }
     ~RecvGate();
 
+    /**
+     * @return the buffer address
+     */
     const void *addr() const {
         return _buf;
     }
 
+    /**
+     * Activates this receive gate, i.e., lets the kernel configure a free endpoint for it
+     */
     void activate();
+    /**
+     * Activates this receive gate, i.e., lets the kernel configure endpoint <ep> for it
+     */
     void activate(epid_t ep);
+    /**
+     * Activates this receive gate, i.e., lets the kernel configure endpoint <ep> for it and use
+     * <addr> as the buffer.
+     */
     void activate(epid_t ep, uintptr_t addr);
 
     /**
-     * Start to listen for received messages
+     * Starts to listen for received messages, i.e., creates a WorkLoop item.
      *
      * @param handler the handler to call for received messages
      */
     void start(msghandler_t handler);
 
     /**
-     * Stop to listen for received messages
+     * Stops to listen for received messages
      */
     void stop();
 
     /**
-     * Waits until this endpoint has received a message. If <sgate> is given, it will stop if as
-     * soon as it gets invalid and return the appropriate error.
+     * Waits until a message is received. If <sgate> is given, it will stop if as soon as <sgate>
+     * gets invalid and return the appropriate error.
      *
-     * @param sgate the send-gate (optional), if waiting for a reply
+     * @param sgate the send gate (optional), if waiting for a reply
      * @param msg will be set to the fetched message
      * @return the error code
      */
     Errors::Code wait(SendGate *sgate, const DTU::Message **msg);
 
     /**
-     * Performs the reply-operation with <data> of length <len> on message with index <msgidx>.
-     * This requires that you have received a reply-capability with this message.
+     * Replies the <len> bytes at <data> to the message at <msgidx>.
      *
      * @param data the data to send
      * @param len the length of the data

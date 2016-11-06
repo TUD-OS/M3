@@ -28,14 +28,10 @@ class EnvUserBackend;
 class VPE;
 
 /**
- * A SendGate can only be used for sending messages. To do that, it needs to be backed by a
- * msg-capability. You can either create a SendGate for one of your own endpoints and delegate it
- * to somebody else in order to allow him to send messages to you. Or you can bind a SendGate to
- * a msg-capability you've received from somebody else.
- *
- * In order to receive responses on the messages you send, a SendGate has an associated RecvGate.
- * By default, this is the default receive gate that is used for all replies. But you can specify
- * a different one, if desired.
+ * A SendGate is used to send messages to a RecvGate. To receive replies for the sent messages,
+ * it has an associated RecvGate. You can either create a SendGate for a RecvGate and delegate it
+ * to somebody else in order to allow him to send messages to this RecvGate. Or you can bind a
+ * SendGate to a capability you've received from somebody else.
  */
 class SendGate : public Gate {
     friend class Syscalls;
@@ -62,15 +58,15 @@ public:
         RecvGate *replygate = nullptr, capsel_t sel = INVALID);
 
     /**
-     * Binds this gate for sending to the given capability. Typically, received from somebody else.
+     * Binds this send gate to the given capability. Typically, received from somebody else.
      *
-     * @param cap the capability
+     * @param sel the capability selector
      * @param replygate the receive gate to which the replies should be sent
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static SendGate bind(capsel_t cap, RecvGate *replygate = nullptr,
+    static SendGate bind(capsel_t sel, RecvGate *replygate = nullptr,
             uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
-        return SendGate(cap, flags, replygate);
+        return SendGate(sel, flags, replygate);
     }
 
     SendGate(SendGate &&g) : Gate(Util::move(g)), _replygate(g._replygate) {
@@ -83,7 +79,7 @@ public:
         return _replygate;
     }
     /**
-     * Sets the receive-gate to receive replies on.
+     * Sets the receive gate to receive replies on.
      *
      * @param rgate the new receive gate
      */
@@ -92,7 +88,7 @@ public:
     }
 
     /**
-     * Performs the send-operation with <data> of length <len>.
+     * Sends <data> of length <len> to the associated RecvGate.
      *
      * @param data the data to send
      * @param len the length of the data

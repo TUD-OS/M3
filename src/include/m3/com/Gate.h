@@ -25,8 +25,14 @@
 namespace m3 {
 
 /**
- * Gate is the base-class of all gates. A Gate is in general a connection to an endpoint on a PE.
- * This can be used for send/reply or for memory operations like read and write.
+ * Gate is the base class of all gates. A gate is in general the software abstraction for DTU-based
+ * communication. There are three different kinds of gates: SendGate, RecvGate and MemGate.
+ * SendGate and RecvGate allow to perform message-based communication, while MemGate allows to
+ * read/write from/to PE-external memory.
+ *
+ * Before gates can be used, they need to be activated. That is, a syscall needs to be performed to
+ * let the kernel configure an endpoint for the gate. For SendGate and MemGate, this is done
+ * automatically by EPMux. For RecvGate, it needs to be done manually.
  *
  * On top of Gate, GateStream provides an easy way to marshall/unmarshall data.
  */
@@ -39,10 +45,6 @@ public:
     static const size_t UNBOUND     = -1;
 
 protected:
-    /**
-     * Binds this gate for sending to the given capability. That is, the capability should be a
-     * capability you've received from somebody else.
-     */
     explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t ep = UNBOUND)
         : ObjCap(type, cap, capflags), _ep(ep) {
     }
@@ -63,8 +65,8 @@ public:
     }
 
     /**
-     * Rebinds this gate to the given capability-selector. Note that this will release the so far
-     * bound capability-selector, depending on what has been done on the object-creation. So, if the
+     * Rebinds this gate to the given capability selector. Note that this will release the so far
+     * bound capability selector, depending on what has been done on object creation. So, if the
      * capability has been created, it will be released. If the selector has been allocated, it will
      * be released. If not, nothing is done.
      *

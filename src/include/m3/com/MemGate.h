@@ -24,12 +24,8 @@
 namespace m3 {
 
 /**
- * A memory gate is a gate that allows the operations read, write and cmpxchg. Like the SendGate,
- * it is backed by a capability. In this case, it should be a memory-capability (otherwise
- * operations will fail).
- * For read and cmpxchg there is no asynchronously send reply, but they block until they are
- * finished. In contrast to that, write does not block, but return immediately as soon as the data
- * has been send. That is, it might not have been received by the memory yet.
+ * A memory gate is used to access PE-external memory via the DTU. You can either create a MemGate
+ * by requesting PE-external memory from the kernel or bind a MemGate to an existing capability.
  */
 class MemGate : public Gate {
     explicit MemGate(uint flags, capsel_t cap) : Gate(MEM_GATE, cap, flags), _cmdflags() {
@@ -51,7 +47,7 @@ public:
     };
 
     /**
-     * Creates a new memory-gate for global memory. That is, it requests <size> bytes of global
+     * Creates a new memory gate for global memory. That is, it requests <size> bytes of global
      * memory with given permissions.
      *
      * @param size the memory size
@@ -75,14 +71,14 @@ public:
     static MemGate create_global_for(uintptr_t addr, size_t size, int perms, capsel_t sel = INVALID);
 
     /**
-     * Binds this gate for read/write/cmpxchg to the given memory-capability. That is, the
-     * capability should be a memory-capability you've received from somebody else.
+     * Binds this gate for read/write/cmpxchg to the given memory capability. That is, the
+     * capability should be a memory capability you've received from somebody else.
      *
-     * @param cap the memory-capability
+     * @param sel the capability selector
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static MemGate bind(capsel_t cap, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
-        return MemGate(flags, cap);
+    static MemGate bind(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
+        return MemGate(flags, sel);
     }
 
     /**
@@ -110,19 +106,19 @@ public:
     MemGate derive(size_t offset, size_t size, int perms = RWX) const;
 
     /**
-     * Derives memory from this memory gate and uses <cap> for it. That is, it creates a new memory
+     * Derives memory from this memory gate and uses <sel> for it. That is, it creates a new memory
      * capability that is bound to a subset of this memory (in space or permissions).
      *
-     * @param cap the capability selector to use
+     * @param sel the capability selector to use
      * @param offset the offset inside this memory capability
      * @param size the size of the memory area
      * @param perms the permissions (you can only downgrade)
      * @return the new memory gate
      */
-    MemGate derive(capsel_t cap, size_t offset, size_t size, int perms = RWX) const;
+    MemGate derive(capsel_t sel, size_t offset, size_t size, int perms = RWX) const;
 
     /**
-     * Performs the write-operation to write the <len> bytes at <data> to <offset>.
+     * Writes the <len> bytes at <data> to <offset>.
      *
      * @param data the data to write
      * @param len the number of bytes to write
@@ -132,7 +128,7 @@ public:
     Errors::Code write_sync(const void *data, size_t len, size_t offset);
 
     /**
-     * Performs the read-operation to read <len> bytes from <offset> into <data>.
+     * Reads <len> bytes from <offset> into <data>.
      *
      * @param data the buffer to write into
      * @param len the number of bytes to read
