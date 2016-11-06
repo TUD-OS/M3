@@ -30,7 +30,7 @@ static void received_data(GateIStream &is) {
     const unsigned char *data = is.buffer();
     for(size_t i = 0; i < is.remaining(); ++i)
         sum += data[i];
-    cout << "Received " << fmt(sum, "x") << "\n";
+    cout << env()->pe << ": received " << fmt(sum, "x") << "\n";
 }
 
 int main() {
