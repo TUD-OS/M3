@@ -17,13 +17,11 @@
 #pragma once
 
 #include <base/KIF.h>
-
-#include "cap/CapTable.h"
-#include "com/Services.h"
-#include "pes/VPE.h"
-#include "Gate.h"
+#include <base/DTU.h>
 
 namespace kernel {
+
+class VPE;
 
 class SyscallHandler {
     explicit SyscallHandler();

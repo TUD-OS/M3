@@ -15,6 +15,7 @@
  */
 
 #include <base/Init.h>
+#include <base/Panic.h>
 
 #include "mem/MainMemory.h"
 

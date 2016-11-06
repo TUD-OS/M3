@@ -21,10 +21,7 @@
 
 #include <thread/ThreadManager.h>
 
-#include <cstring>
-
 #include "cap/CapTable.h"
-#include "cap/Capability.h"
 #include "mem/AddrSpace.h"
 #include "mem/SlabCache.h"
 #include "pes/VPEDesc.h"

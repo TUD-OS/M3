@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <base/util/Profile.h>
-
 #include "mem/Slab.h"
 
 namespace kernel {

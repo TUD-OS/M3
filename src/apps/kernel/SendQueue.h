@@ -18,7 +18,6 @@
 
 #include <base/Common.h>
 #include <base/col/SList.h>
-#include <base/Heap.h>
 #include <base/DTU.h>
 
 #include "Gate.h"

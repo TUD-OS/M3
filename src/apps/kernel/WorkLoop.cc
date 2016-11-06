@@ -15,13 +15,11 @@
  */
 
 #include <base/Common.h>
-#include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
-#include <base/WorkLoop.h>
+#include <base/tracing/Tracing.h>
 
 #include <thread/ThreadManager.h>
 
-#include "pes/PEManager.h"
 #include "pes/Timeouts.h"
 #include "pes/VPEManager.h"
 #include "SyscallHandler.h"

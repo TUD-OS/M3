@@ -16,11 +16,14 @@
 
 #include <base/Common.h>
 #include <base/log/Kernel.h>
+#include <base/util/Math.h>
 
 #include <thread/ThreadManager.h>
 
+#include "pes/PEManager.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
+#include "DTU.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
 

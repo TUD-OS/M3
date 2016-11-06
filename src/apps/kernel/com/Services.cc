@@ -18,7 +18,6 @@
 
 #include "com/Services.h"
 #include "pes/VPE.h"
-#include "SyscallHandler.h"
 
 namespace kernel {
 

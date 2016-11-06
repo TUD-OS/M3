@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <base/log/Kernel.h>
+#include <base/util/Math.h>
 #include <base/util/Sync.h>
 #include <base/DTU.h>
 

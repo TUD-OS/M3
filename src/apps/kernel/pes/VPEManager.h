@@ -16,14 +16,10 @@
 
 #pragma once
 
-#include <base/stream/OStringStream.h>
 #include <base/PEDesc.h>
 
-#include "pes/PEManager.h"
 #include "pes/VPE.h"
-#include "DTU.h"
 #include "Platform.h"
-#include "SyscallHandler.h"
 
 namespace kernel {
 

@@ -20,7 +20,6 @@
 #include <base/col/Treap.h>
 #include <base/KIF.h>
 
-#include "com/Services.h"
 #include "cap/Capability.h"
 
 namespace kernel {

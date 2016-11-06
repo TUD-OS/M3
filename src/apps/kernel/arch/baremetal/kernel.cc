@@ -14,18 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/Serial.h>
 #include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
-#include <base/DTU.h>
-
-#include <thread/ThreadManager.h>
 
 #include "mem/MainMemory.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
-#include "Platform.h"
-#include "SyscallHandler.h"
 #include "WorkLoop.h"
 
 using namespace kernel;

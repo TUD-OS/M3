@@ -14,10 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
-
 #include "pes/VPEManager.h"
-#include "Platform.h"
 
 namespace kernel {
 

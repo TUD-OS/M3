@@ -15,8 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/Serial.h>
-#include <base/Backtrace.h>
+#include <base/util/Math.h>
 #include <base/Env.h>
 #include <base/Heap.h>
 

@@ -19,7 +19,6 @@
 #include <base/Common.h>
 #include <base/col/Treap.h>
 #include <base/DTU.h>
-#include <base/KIF.h>
 
 #include "com/Services.h"
 #include "mem/SlabCache.h"

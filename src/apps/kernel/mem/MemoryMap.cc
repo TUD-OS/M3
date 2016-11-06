@@ -17,8 +17,6 @@
 #include <base/log/Kernel.h>
 #include <base/util/Math.h>
 
-#include <assert.h>
-
 #include "mem/MemoryMap.h"
 
 namespace kernel {

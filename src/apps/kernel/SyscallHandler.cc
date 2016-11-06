@@ -16,15 +16,16 @@
 
 #include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
+#include <base/util/Math.h>
 #include <base/Init.h>
 #include <base/Panic.h>
 
 #include <thread/ThreadManager.h>
 
 #include "com/Services.h"
-#include "pes/ContextSwitcher.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "DTU.h"
 #include "Platform.h"
 #include "SyscallHandler.h"
 #include "WorkLoop.h"

@@ -16,15 +16,15 @@
 
 #include <base/RCTMux.h>
 #include <base/log/Kernel.h>
-#include <base/col/Treap.h>
+#include <base/util/Profile.h>
 
-#include "DTU.h"
 #include "pes/ContextSwitcher.h"
 #include "pes/Timeouts.h"
+#include "pes/PEManager.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
+#include "DTU.h"
 #include "Platform.h"
-#include "WorkLoop.h"
 
 namespace kernel {
 

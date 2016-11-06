@@ -18,9 +18,7 @@
 #include <base/util/Math.h>
 #include <base/log/Kernel.h>
 #include <base/ELF.h>
-#include <base/Panic.h>
 
-#include "cap/Capability.h"
 #include "mem/MainMemory.h"
 #include "pes/VPE.h"
 #include "DTU.h"

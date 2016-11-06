@@ -19,6 +19,7 @@
 #include "pes/VPEManager.h"
 #include "cap/Capability.h"
 #include "cap/CapTable.h"
+#include "DTU.h"
 
 namespace kernel {
 

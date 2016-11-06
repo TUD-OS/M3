@@ -21,7 +21,6 @@
 #include <unistd.h>
 
 #include "pes/VPEManager.h"
-#include "Platform.h"
 
 namespace kernel {
 

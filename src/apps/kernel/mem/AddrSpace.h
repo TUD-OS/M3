@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/DTU.h>
 
 #include "mem/MainMemory.h"
 

@@ -14,14 +14,11 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/stream/OStringStream.h>
 #include <base/log/Kernel.h>
-#include <base/Panic.h>
-
-#include <string.h>
 
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "DTU.h"
 #include "Platform.h"
 
 namespace kernel {

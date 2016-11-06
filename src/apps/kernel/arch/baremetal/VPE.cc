@@ -14,14 +14,10 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
-#include <base/log/Kernel.h>
-
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
-#include "SyscallHandler.h"
 
 namespace kernel {
 

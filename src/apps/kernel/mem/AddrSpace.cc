@@ -16,7 +16,6 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
-#include <base/DTU.h>
 
 #include "mem/AddrSpace.h"
 #include "mem/MainMemory.h"
