@@ -24,7 +24,7 @@
 
 namespace kernel {
 
-class Timeout;
+struct Timeout;
 
 class SendQueue {
     struct Entry : public m3::SListItem {
