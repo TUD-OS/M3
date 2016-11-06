@@ -22,7 +22,6 @@
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -35,13 +34,14 @@ static const int REPEATS    = 4;
 
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)
-        : exec(argc, argv),
+        : argc(argc), argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", muxed) {
         if(Errors::last != Errors::NO_ERROR)
             exitmsg("Unable to create VPE");
     }
 
-    Executable exec;
+    int argc;
+    const char **argv;
     VPE vpe;
 };
 
@@ -111,14 +111,14 @@ int main(int argc, char **argv) {
         if(VERBOSE) cout << "Starting service...\n";
 
         // start service
-        Errors::Code res = apps[0]->vpe.exec(apps[0]->exec);
+        Errors::Code res = apps[0]->vpe.exec(apps[0]->argc, apps[0]->argv);
         if(res != Errors::NO_ERROR)
-            PANIC("Cannot execute " << apps[0]->exec.argv()[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << apps[0]->argv[0] << ": " << Errors::to_string(res));
 
         if(apps[1]) {
-            res = apps[1]->vpe.exec(apps[1]->exec);
+            res = apps[1]->vpe.exec(apps[1]->argc, apps[1]->argv);
             if(res != Errors::NO_ERROR)
-                PANIC("Cannot execute " << apps[1]->exec.argv()[0] << ": " << Errors::to_string(res));
+                PANIC("Cannot execute " << apps[1]->argv[0] << ": " << Errors::to_string(res));
         }
 
         if(VERBOSE) cout << "Waiting for service...\n";
@@ -145,18 +145,18 @@ int main(int argc, char **argv) {
         apps[2]->vpe.obtain_fds();
         apps[2]->vpe.mountspace(*VPE::self().mountspace());
         apps[2]->vpe.obtain_mountspace();
-        res = apps[2]->vpe.exec(apps[2]->exec);
+        res = apps[2]->vpe.exec(apps[2]->argc, apps[2]->argv);
         if(res != Errors::NO_ERROR)
-            PANIC("Cannot execute " << apps[2]->exec.argv()[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << apps[2]->argv[0] << ": " << Errors::to_string(res));
 
         // start reader
         apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         apps[3]->vpe.obtain_fds();
         apps[3]->vpe.mountspace(*VPE::self().mountspace());
         apps[3]->vpe.obtain_mountspace();
-        res = apps[3]->vpe.exec(apps[3]->exec);
+        res = apps[3]->vpe.exec(apps[3]->argc, apps[3]->argv);
         if(res != Errors::NO_ERROR)
-            PANIC("Cannot execute " << apps[3]->exec.argv()[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << apps[3]->argv[0] << ": " << Errors::to_string(res));
 
         pipe.close_writer();
         pipe.close_reader();
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
         // don't wait for the services
         for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
             int res = apps[i]->vpe.wait();
-            if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
+            if(VERBOSE) cout << apps[i]->argv[0] << " exited with " << res << "\n";
         }
 
         cycles_t end = Profile::stop(0x1234);

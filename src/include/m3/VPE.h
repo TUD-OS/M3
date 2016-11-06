@@ -35,7 +35,6 @@ class FileTable;
 class MountSpace;
 class Pager;
 class FStream;
-class Executable;
 class EnvUserBackend;
 
 /**
@@ -302,14 +301,6 @@ public:
     Errors::Code exec(int argc, const char **argv);
 
     /**
-     * Executes the given executable on this VPE.
-     *
-     * @param exec the executable to run
-     * @return the error if any occurred
-     */
-    Errors::Code exec(Executable &exec);
-
-    /**
      * Clones this program onto this VPE and executes the given function.
      *
      * @param f the function to execute
@@ -327,8 +318,8 @@ private:
     void init_state();
     void init_fs();
     Errors::Code run(void *lambda);
-    Errors::Code load_segment(Executable &exec, ElfPh &pheader, char *buffer);
-    Errors::Code load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size);
+    Errors::Code load_segment(ElfPh &pheader, char *buffer);
+    Errors::Code load(int argc, const char **argv, uintptr_t *entry, char *buffer, size_t *size);
     void clear_mem(char *buffer, size_t count, uintptr_t dest);
     size_t store_arguments(char *buffer, int argc, const char **argv);
 
@@ -344,6 +335,7 @@ private:
     Pager *_pager;
     MountSpace *_ms;
     FileTable *_fds;
+    FStream *_exec;
     bool _tmuxable;
     static VPE _self;
 };

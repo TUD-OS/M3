@@ -20,7 +20,6 @@
 #include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -32,12 +31,12 @@ using namespace m3;
 static const int WARMUP = 10;
 static const int REPEAT = 10;
 
-static void start(VPE &v, Executable &e) {
+static void start(VPE &v, int argc, const char **argv) {
     v.mountspace(*VPE::self().mountspace());
     v.obtain_mountspace();
-    Errors::Code res = v.exec(e);
+    Errors::Code res = v.exec(argc, argv);
     if(res != Errors::NO_ERROR)
-        PANIC("Cannot execute " << e.argv()[0] << ": " << Errors::to_string(res));
+        PANIC("Cannot execute " << argv[0] << ": " << Errors::to_string(res));
 }
 
 int main(int argc, char **argv) {
@@ -50,21 +49,19 @@ int main(int argc, char **argv) {
     if(VERBOSE) cout << "Creating VPEs...\n";
 
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
-    Executable exec1(ARRAY_SIZE(args1), args1);
     VPE s1(args1[0], VPE::self().pe(), "pager", muxable);
     if(Errors::last != Errors::NO_ERROR)
         exitmsg("Unable to create VPE");
 
     const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
-    Executable exec2(ARRAY_SIZE(args2), args2);
     VPE s2(args2[0], VPE::self().pe(), "pager", muxable);
     if(Errors::last != Errors::NO_ERROR)
         exitmsg("Unable to create VPE");
 
     if(VERBOSE) cout << "Starting VPEs...\n";
 
-    start(s1, exec1);
-    start(s2, exec2);
+    start(s1, ARRAY_SIZE(args1), args1);
+    start(s2, ARRAY_SIZE(args2), args2);
 
     enum TestOp {
         TEST

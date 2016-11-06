@@ -17,7 +17,6 @@
 #include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -41,8 +40,7 @@ int main(int argc, char **argv) {
         child.mountspace(*VPE::self().mountspace());
         child.obtain_mountspace();
 
-        Executable exec(argc - 1, const_cast<const char**>(argv) + 1);
-        Errors::Code err = child.exec(exec);
+        Errors::Code err = child.exec(argc - 1, const_cast<const char**>(argv) + 1);
         if(err != Errors::NO_ERROR)
             exitmsg("Executing " << argv[1] << " failed");
 

@@ -19,7 +19,6 @@
 
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/MountSpace.h>
 #include <m3/vfs/SerialFile.h>
@@ -35,7 +34,7 @@ INIT_PRIO_VPE VPE VPE::_self;
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
     : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _pe(env()->pedesc),
-      _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _ms(), _fds() {
+      _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _ms(), _fds(), _exec() {
     init_state();
     init();
     init_fs();
@@ -58,7 +57,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _pager(), _ms(new MountSpace()), _fds(new FileTable()),
+          _pager(), _ms(new MountSpace()), _fds(new FileTable()), _exec(),
           _tmuxable(tmuxable) {
     init();
 
@@ -99,6 +98,7 @@ VPE::~VPE() {
         delete _caps;
         delete _fds;
         delete _ms;
+        delete _exec;
     }
 }
 
@@ -187,11 +187,6 @@ Errors::Code VPE::obtain(const KIF::CapRngDesc &crd, capsel_t dest) {
 
 Errors::Code VPE::revoke(const KIF::CapRngDesc &crd, bool delonly) {
     return Syscalls::get().revoke(sel(), crd, !delonly);
-}
-
-Errors::Code VPE::exec(int argc, const char **argv) {
-    Executable e(argc, argv);
-    return exec(e);
 }
 
 Errors::Code VPE::start() {

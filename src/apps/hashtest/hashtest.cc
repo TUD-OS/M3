@@ -19,7 +19,6 @@
 
 #include <m3/stream/Standard.h>
 #include <m3/session/Hash.h>
-#include <m3/vfs/Executable.h>
 
 #include <hash/Hash.h>
 

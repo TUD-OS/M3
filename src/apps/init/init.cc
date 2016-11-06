@@ -17,7 +17,6 @@
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
-#include <m3/vfs/Executable.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -39,8 +38,7 @@ int main(int argc, const char **argv) {
     sh.mountspace(*VPE::self().mountspace());
     sh.obtain_mountspace();
 
-    Executable exec(argc - 1, argv + 1);
-    if(sh.exec(exec) != Errors::NO_ERROR)
+    if(sh.exec(argc - 1, argv + 1) != Errors::NO_ERROR)
         exitmsg("Unable to exec " << argv[1]);
 
     sh.wait();

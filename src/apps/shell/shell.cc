@@ -20,7 +20,6 @@
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/Dir.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
@@ -49,7 +48,6 @@ static PEDesc get_pe_type(const char *name) {
 static bool execute(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
-    Executable *exec[MAX_CMDS] = {nullptr};
 
     fd_t infd = STDIN_FD;
     fd_t outfd = STDOUT_FD;
@@ -116,8 +114,7 @@ static bool execute(CmdList *list, bool muxed) {
         vpes[i]->obtain_mountspace();
 
         Errors::Code err;
-        exec[i] = new Executable(cmd->args->count, cmd->args->args);
-        if((err = vpes[i]->exec(*exec[i])) != Errors::NO_ERROR) {
+        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NO_ERROR) {
             errmsg("Unable to execute '" << cmd->args->args[0] << "'");
             break;
         }
@@ -134,7 +131,6 @@ static bool execute(CmdList *list, bool muxed) {
             if(res != 0)
                 cerr << "Program terminated with exit code " << res << "\n";
             delete vpes[i];
-            delete exec[i];
         }
     }
     for(size_t i = 0; i < list->count; ++i)

@@ -20,7 +20,6 @@
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
@@ -112,8 +111,7 @@ int main() {
             VPE vpe("hello");
             cycles_t start = Profile::start(4);
             const char *args[] = {"/bin/noop"};
-            Executable exec(ARRAY_SIZE(args), args);
-            Errors::Code res = vpe.exec(exec);
+            Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
             if(res != Errors::NO_ERROR)
                 exitmsg("Unable to load " << args[0]);
 

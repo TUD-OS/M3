@@ -20,7 +20,6 @@
 #include <m3/stream/Standard.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/RegularFile.h>
-#include <m3/vfs/Executable.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -67,9 +66,7 @@ int main() {
         cc.obtain_mountspace();
 
         const char *args[] = {"/bin/hello"};
-        Executable exec(ARRAY_SIZE(args), args);
-
-        cc.exec(exec);
+        cc.exec(ARRAY_SIZE(args), args);
         cc.wait();
     }
 

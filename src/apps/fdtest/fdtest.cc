@@ -19,7 +19,6 @@
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/MountSpace.h>
 #include <m3/vfs/SerialFile.h>
 #include <m3/vfs/VFS.h>
@@ -81,8 +80,7 @@ int main() {
         child.obtain_fds();
 
         const char *args[] = {"/bin/fdchild"};
-        Executable exec(ARRAY_SIZE(args), args);
-        child.exec(exec);
+        child.exec(ARRAY_SIZE(args), args);
         int res = child.wait();
         cout << "result: " << res << "\n";
     }

@@ -19,7 +19,6 @@
 
 #include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/MountSpace.h>
 #include <m3/vfs/RegularFile.h>
 #include <m3/Syscalls.h>
@@ -103,19 +102,25 @@ Errors::Code VPE::run(void *lambda) {
     return start();
 }
 
-Errors::Code VPE::exec(Executable &exec) {
+Errors::Code VPE::exec(int argc, const char **argv) {
     alignas(DTU_PKG_SIZE) Env senv;
     char *buffer = (char*)Heap::alloc(BUF_SIZE);
 
+    if(_exec)
+        delete _exec;
+    _exec = new FStream(argv[0], FILE_RWX);
+    if(!*_exec)
+        return Errors::last;
+
     uintptr_t entry;
     size_t size;
-    Errors::Code err = load(exec, &entry, buffer, &size);
+    Errors::Code err = load(argc, argv, &entry, buffer, &size);
     if(err != Errors::NO_ERROR) {
         Heap::free(buffer);
         return err;
     }
 
-    senv.argc = exec.argc();
+    senv.argc = argc;
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
     senv.sp = STACK_TOP;
     senv.entry = entry;
@@ -178,7 +183,7 @@ void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {
     }
 }
 
-Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
+Errors::Code VPE::load_segment(ElfPh &pheader, char *buffer) {
     if(_pager) {
         int prot = 0;
         if(pheader.p_flags & PF_R)
@@ -190,22 +195,24 @@ Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
 
         uintptr_t virt = pheader.p_vaddr;
         size_t sz = Math::round_up(pheader.p_memsz, static_cast<size_t>(PAGE_SIZE));
-        if(pheader.p_memsz == pheader.p_filesz)
-            return _pager->map_ds(&virt, sz, prot, 0, exec.sess(), exec.fd(), pheader.p_offset);
+        if(pheader.p_memsz == pheader.p_filesz) {
+            const RegularFile *rfile = static_cast<const RegularFile*>(_exec->file());
+            return _pager->map_ds(&virt, sz, prot, 0, *rfile->fs(), rfile->fd(), pheader.p_offset);
+        }
 
         assert(pheader.p_filesz == 0);
         return _pager->map_anon(&virt, sz, prot, 0);
     }
 
     /* seek to that offset and copy it to destination PE */
-    if(exec.stream().seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
+    if(_exec->seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
         return Errors::INVALID_ELF;
 
     size_t count = pheader.p_filesz;
     size_t segoff = pheader.p_vaddr;
     while(count > 0) {
         size_t amount = std::min(count, BUF_SIZE);
-        if(exec.stream().read(buffer, amount) != amount)
+        if(_exec->read(buffer, amount) != amount)
             return Errors::last;
 
         _mem.write(buffer, Math::round_up(amount, DTU_PKG_SIZE), segoff);
@@ -218,14 +225,10 @@ Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
     return Errors::NO_ERROR;
 }
 
-Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t *size) {
-    FStream &bin = exec.stream();
-    if(!bin)
-        return Errors::last;
-
+Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buffer, size_t *size) {
     /* load and check ELF header */
     ElfEh header;
-    if(bin.read(&header, sizeof(header)) != sizeof(header))
+    if(_exec->read(&header, sizeof(header)) != sizeof(header))
         return Errors::INVALID_ELF;
 
     if(header.e_ident[0] != '\x7F' || header.e_ident[1] != 'E' || header.e_ident[2] != 'L' ||
@@ -238,16 +241,16 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
         ElfPh pheader;
-        if(bin.seek(off, SEEK_SET) != off)
+        if(_exec->seek(off, SEEK_SET) != off)
             return Errors::INVALID_ELF;
-        if(bin.read(&pheader, sizeof(pheader)) != sizeof(pheader))
+        if(_exec->read(&pheader, sizeof(pheader)) != sizeof(pheader))
             return Errors::last;
 
         /* we're only interested in non-empty load segments */
         if(pheader.p_type != PT_LOAD || pheader.p_memsz == 0 || skip_section(&pheader))
             continue;
 
-        load_segment(exec, pheader, buffer);
+        load_segment(pheader, buffer);
         end = pheader.p_vaddr + pheader.p_memsz;
     }
 
@@ -265,7 +268,7 @@ Errors::Code VPE::load(Executable &exec, uintptr_t *entry, char *buffer, size_t 
             return err;
     }
 
-    *size = store_arguments(buffer, exec.argc(), exec.argv());
+    *size = store_arguments(buffer, argc, argv);
 
     *entry = header.e_entry;
     return Errors::NO_ERROR;

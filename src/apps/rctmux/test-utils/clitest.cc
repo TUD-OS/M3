@@ -20,7 +20,6 @@
 #include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/vfs/Executable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -31,13 +30,14 @@ using namespace m3;
 
 struct App {
     explicit App(int argc, const char *argv[], bool tmux)
-        : exec(argc, argv),
+        : argc(argc), argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", tmux) {
         if(Errors::last != Errors::NO_ERROR)
             exitmsg("Unable to create VPE");
     }
 
-    Executable exec;
+    int argc;
+    const char **argv;
     VPE vpe;
 };
 
@@ -64,9 +64,9 @@ int main() {
     for(size_t i = 0; i < ARRAY_SIZE(apps); ++i) {
         apps[i]->vpe.mountspace(*VPE::self().mountspace());
         apps[i]->vpe.obtain_mountspace();
-        Errors::Code res = apps[i]->vpe.exec(apps[i]->exec);
+        Errors::Code res = apps[i]->vpe.exec(apps[i]->argc, apps[i]->argv);
         if(res != Errors::NO_ERROR)
-            PANIC("Cannot execute " << apps[i]->exec.argv()[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << apps[i]->argv[0] << ": " << Errors::to_string(res));
     }
 
     if(VERBOSE) cout << "Waiting for VPEs...\n";
@@ -74,7 +74,7 @@ int main() {
     // don't wait for the service
     for(size_t i = 1; i < 3; ++i) {
         int res = apps[i]->vpe.wait();
-        if(VERBOSE) cout << apps[i]->exec.argv()[0] << " exited with " << res << "\n";
+        if(VERBOSE) cout << apps[i]->argv[0] << " exited with " << res << "\n";
     }
 
     if(VERBOSE) cout << "Deleting VPEs...\n";
