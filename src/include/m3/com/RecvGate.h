@@ -27,15 +27,16 @@
 
 namespace m3 {
 
-class Env;
 class GateIStream;
 class SendGate;
 class VPE;
 
 class RecvGate : public Gate {
-    friend class Env;
+    enum {
+        FREE_BUF    = 1,
+        FREE_EP     = 2,
+    };
 
-public:
     class RecvGateWorkItem : public WorkItem {
     public:
         explicit RecvGateWorkItem(RecvGate *buf) : _buf(buf) {
@@ -45,12 +46,6 @@ public:
 
     protected:
         RecvGate *_buf;
-    };
-
-private:
-    enum {
-        FREE_BUF    = 1,
-        FREE_EP     = 2,
     };
 
     explicit RecvGate(VPE &vpe, capsel_t cap, int order, uint flags)
