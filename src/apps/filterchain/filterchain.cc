@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     while(rem > 0) {
         for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i)
             buffer[i] = Random::get();
-        mem.write_sync(buffer, BUF_SIZE, offset);
+        mem.write(buffer, BUF_SIZE, offset);
         offset += BUF_SIZE;
         rem -= BUF_SIZE;
     }
@@ -93,14 +93,14 @@ int main(int argc, char **argv) {
         size_t rem = memSize;
         size_t offset = 0;
         while(rem > 0) {
-            mem.read_sync(buffer, BUF_SIZE, offset);
+            mem.read(buffer, BUF_SIZE, offset);
             for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i) {
                 // condition that selects the data item
                 if(buffer[i] % 10 == 0) {
                     result[c++] = buffer[i];
                     // if the result buffer is full, send it over to the receiver and notify him
                     if(c == BUF_SIZE / sizeof(uint)) {
-                        resmem.write_sync(result, c * sizeof(uint), 0);
+                        resmem.write(result, c * sizeof(uint), 0);
                         send_receive_vmsg(sgate, c, 0);
                         c = 0;
                     }
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 
         // any data left to send?
         if(c > 0) {
-            resmem.write_sync(result, c * sizeof(uint), 0);
+            resmem.write(result, c * sizeof(uint), 0);
             send_receive_vmsg(sgate, c, 1);
         }
         return 0;

@@ -91,12 +91,12 @@ Errors::Code VPE::run(void *lambda) {
     senv.heapsize = env()->heapsize;
 
     /* write start env to PE */
-    _mem.write_sync(&senv, sizeof(senv), RT_START);
+    _mem.write(&senv, sizeof(senv), RT_START);
 
     /* write args */
     char *buffer = (char*)Heap::alloc(BUF_SIZE);
     size_t size = store_arguments(buffer, env()->argc, const_cast<const char**>(env()->argv));
-    _mem.write_sync(buffer, size, RT_SPACE_START);
+    _mem.write(buffer, size, RT_SPACE_START);
     Heap::free(buffer);
 
     /* go! */
@@ -148,7 +148,7 @@ Errors::Code VPE::exec(Executable &exec) {
     offset = Math::round_up(offset + sizeof(*_eps), DTU_PKG_SIZE);
 
     /* write entire runtime stuff */
-    _mem.write_sync(buffer, offset, RT_SPACE_START);
+    _mem.write(buffer, offset, RT_SPACE_START);
 
     Heap::free(buffer);
 
@@ -162,7 +162,7 @@ Errors::Code VPE::exec(Executable &exec) {
     senv.heapsize = _pager ? APP_HEAP_SIZE : 0;
 
     /* write start env to PE */
-    _mem.write_sync(&senv, sizeof(senv), RT_START);
+    _mem.write(&senv, sizeof(senv), RT_START);
 
     /* go! */
     return start();
@@ -172,7 +172,7 @@ void VPE::clear_mem(char *buffer, size_t count, uintptr_t dest) {
     memset(buffer, 0, BUF_SIZE);
     while(count > 0) {
         size_t amount = std::min(count, BUF_SIZE);
-        _mem.write_sync(buffer, Math::round_up(amount, DTU_PKG_SIZE), dest);
+        _mem.write(buffer, Math::round_up(amount, DTU_PKG_SIZE), dest);
         count -= amount;
         dest += amount;
     }
@@ -208,7 +208,7 @@ Errors::Code VPE::load_segment(Executable &exec, ElfPh &pheader, char *buffer) {
         if(exec.stream().read(buffer, amount) != amount)
             return Errors::last;
 
-        _mem.write_sync(buffer, Math::round_up(amount, DTU_PKG_SIZE), segoff);
+        _mem.write(buffer, Math::round_up(amount, DTU_PKG_SIZE), segoff);
         count -= amount;
         segoff += amount;
     }

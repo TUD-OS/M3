@@ -26,8 +26,8 @@ static char tmpbuf[4096];
 void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size) {
     size_t pages = size >> PAGE_BITS;
     for(size_t i = 0; i < pages; ++i) {
-        src->read_sync (tmpbuf, sizeof(tmpbuf), srcoff + i * PAGE_SIZE);
-        dst->write_sync(tmpbuf, sizeof(tmpbuf), i * PAGE_SIZE);
+        src->read (tmpbuf, sizeof(tmpbuf), srcoff + i * PAGE_SIZE);
+        dst->write(tmpbuf, sizeof(tmpbuf), i * PAGE_SIZE);
     }
 }
 
@@ -105,5 +105,5 @@ void Region::copy(m3::MemGate *mem, uintptr_t virt) {
 void Region::clear() {
     size_t pages = size() >> PAGE_BITS;
     for(size_t i = 0; i < pages; ++i)
-        _mem->gate->write_sync(zeros, sizeof(zeros), i * PAGE_SIZE);
+        _mem->gate->write(zeros, sizeof(zeros), i * PAGE_SIZE);
 }

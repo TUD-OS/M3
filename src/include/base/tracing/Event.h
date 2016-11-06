@@ -65,9 +65,9 @@ static const event_func_names_and_group_struct event_funcs[] = {
     { "reply_msg",            1 },
     { "reply_vmsg",           1 },
     { "write_vmsg",           1 },
-    { "read_sync",            1 },
-    { "write_sync",           1 },
-    { "cmpxchg_sync",         1 },
+    { "read",                 1 },
+    { "write",                1 },
+    { "cmpxchg",              1 },
 
     { "Syscall_pagefault",    2 },
     { "Syscall_createsrv",    2 },

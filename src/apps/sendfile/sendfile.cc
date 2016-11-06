@@ -57,15 +57,15 @@ int main(int argc, char **argv) {
 
         memset(buffer, 0, sizeof(buffer));
         strcpy(buffer, basename(argv[i]));
-        mem.write_sync(buffer, DRAM_FILENAME_LEN, DRAM_FILENAME);
+        mem.write(buffer, DRAM_FILENAME_LEN, DRAM_FILENAME);
 
         uint64_t size = info.size;
-        mem.write_sync(&size, sizeof(size), DRAM_FILESIZE);
+        mem.write(&size, sizeof(size), DRAM_FILESIZE);
 
         uint64_t bno = info.firstblock;
-        mem.write_sync(&bno, sizeof(bno), DRAM_BLOCKNO);
+        mem.write(&bno, sizeof(bno), DRAM_BLOCKNO);
         while(bno != 0)
-            mem.read_sync(&bno, sizeof(bno), DRAM_BLOCKNO);
+            mem.read(&bno, sizeof(bno), DRAM_BLOCKNO);
 
         cout << "Done!\n";
     }

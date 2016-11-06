@@ -29,7 +29,7 @@ static word_t buffer[4];
 
 int main() {
     MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
-    mem.read_sync(buffer, sizeof(buffer), 0);
+    mem.read(buffer, sizeof(buffer), 0);
     cycles_t total = 0;
     for(int i = 0; i < COUNT; ++i) {
         cycles_t start = Profile::start(0);

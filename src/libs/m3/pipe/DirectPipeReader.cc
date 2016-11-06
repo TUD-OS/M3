@@ -77,7 +77,7 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     else {
         size_t aligned_amount = Math::round_up(amount, DTU_PKG_SIZE);
         Profile::start(0xaaaa);
-        _state->_mgate.read_sync(buffer, aligned_amount, _state->_pos);
+        _state->_mgate.read(buffer, aligned_amount, _state->_pos);
         Profile::stop(0xaaaa);
         _state->_pos += aligned_amount;
         _state->_rem -= amount;

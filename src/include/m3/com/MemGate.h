@@ -125,7 +125,7 @@ public:
      * @param offset the start-offset
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code write_sync(const void *data, size_t len, size_t offset);
+    Errors::Code write(const void *data, size_t len, size_t offset);
 
     /**
      * Reads <len> bytes from <offset> into <data>.
@@ -135,7 +135,7 @@ public:
      * @param offset the start-offset
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code read_sync(void *data, size_t len, size_t offset);
+    Errors::Code read(void *data, size_t len, size_t offset);
 
 #if defined(__host__)
     /**
@@ -150,7 +150,7 @@ public:
      * @return true on success
      * @return the error code or Errors::NO_ERROR
      */
-    Errors::Code cmpxchg_sync(void *data, size_t len, size_t offset);
+    Errors::Code cmpxchg(void *data, size_t len, size_t offset);
 #endif
 
 private:

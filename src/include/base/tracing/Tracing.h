@@ -29,9 +29,9 @@
 #define EVENT_TRACER_reply_msg()            EVENT_TRACER(5)
 #define EVENT_TRACER_reply_vmsg()           EVENT_TRACER(6)
 #define EVENT_TRACER_write_vmsg()           EVENT_TRACER(7)
-#define EVENT_TRACER_read_sync()            EVENT_TRACER(8)
-#define EVENT_TRACER_write_sync()           EVENT_TRACER(9)
-#define EVENT_TRACER_cmpxchg_sync()         EVENT_TRACER(10)
+#define EVENT_TRACER_read()                 EVENT_TRACER(8)
+#define EVENT_TRACER_write()                EVENT_TRACER(9)
+#define EVENT_TRACER_cmpxchg()              EVENT_TRACER(10)
 // syscalls
 #define EVENT_TRACER_Syscall_pagefault()    EVENT_TRACER(11);
 #define EVENT_TRACER_Syscall_createsrv()    EVENT_TRACER(12);

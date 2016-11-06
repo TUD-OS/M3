@@ -29,7 +29,7 @@ void MemoryTestSuite::SyncTestCase::run() {
     cout << "-- Test read sync --\n";
     {
         write_vmsg(gate, 0, 1, 2, 3, 4);
-        gate.read_sync(data, sizeof(data), 0);
+        gate.read(data, sizeof(data), 0);
         assert_int(data[0], 1);
         assert_int(data[1], 2);
         assert_int(data[2], 3);
@@ -44,7 +44,7 @@ void MemoryTestSuite::DeriveTestCase::run() {
 
     cout << "-- Test derive --\n";
     {
-        gate.read_sync(test, sizeof(ulong) * 4, 0);
+        gate.read(test, sizeof(ulong) * 4, 0);
 
         assert_int(test[0], 1);
         assert_int(test[1], 2);
@@ -54,7 +54,7 @@ void MemoryTestSuite::DeriveTestCase::run() {
 
         MemGate sub = gate.derive(4 * sizeof(ulong), sizeof(ulong), MemGate::RWX);
         write_vmsg(sub, 0, 5);
-        gate.read_sync(test, sizeof(ulong) * 5, 0);
+        gate.read(test, sizeof(ulong) * 5, 0);
 
         assert_int(test[0], 1);
         assert_int(test[1], 2);
@@ -66,7 +66,7 @@ void MemoryTestSuite::DeriveTestCase::run() {
     cout << "-- Test wrong derive --\n";
     {
         MemGate sub = gate.derive(4 * sizeof(ulong), sizeof(ulong), MemGate::R);
-        sub.read_sync(test, sizeof(ulong), 0);
+        sub.read(test, sizeof(ulong), 0);
         assert_int(test[0], 5);
 
         write_vmsg(sub, 0, 8);

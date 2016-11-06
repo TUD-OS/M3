@@ -50,12 +50,12 @@ void *Cache::get_block(m3::blockno_t bno, bool write) {
 
     // if its dirty, write it back to global memory
     if(_blocks[lru].bno != 0 && _blocks[lru].dirty) {
-        _mem.write_sync(_data + lru * _blocksize, _blocksize, _blocks[lru].bno * _blocksize);
+        _mem.write(_data + lru * _blocksize, _blocksize, _blocks[lru].bno * _blocksize);
         _blocks[lru].dirty = false;
     }
 
     // read desired block
-    _mem.read_sync(_data + lru * _blocksize, _blocksize, bno * _blocksize);
+    _mem.read(_data + lru * _blocksize, _blocksize, bno * _blocksize);
     _blocks[lru].timestamp = _timestamp;
     _blocks[lru].bno = bno;
     _blocks[lru].dirty |= write;
@@ -91,6 +91,6 @@ Cache::BlockInfo *Cache::get(m3::blockno_t bno) {
 
 void Cache::flush_block(size_t i) {
     SLOG(FS, "Writing block " << _blocks[i].bno << " to DRAM");
-    _mem.write_sync(_data + i * _blocksize, _blocksize, _blocks[i].bno * _blocksize);
+    _mem.write(_data + i * _blocksize, _blocksize, _blocks[i].bno * _blocksize);
     _blocks[i].dirty = false;
 }

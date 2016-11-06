@@ -28,7 +28,7 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
         return -1;
 
     Profile::start(0xaaaa);
-    _mem.write_sync(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
+    _mem.write(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
     Profile::stop(0xaaaa);
     return count;
 }

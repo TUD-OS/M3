@@ -85,7 +85,7 @@ static void timer_event(GateIStream &) {
         len = strlen(linebuf);
         copy_to_vga(VGA::ROWS - 1, VGA::COLS - len, linebuf, len, len);
 
-        vga.gate().write_sync(vgabuf, sizeof(vgabuf), 0);
+        vga.gate().write(vgabuf, sizeof(vgabuf), 0);
         laststatus = status;
     }
     if(status != PAUSED)

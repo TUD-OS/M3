@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     cycles_t start2 = Profile::start(1);
     for(size_t i = 0; i < SIZE / size; ++i)
-        mem.read_sync(buffer, size, 0x0);
+        mem.read(buffer, size, 0x0);
     cycles_t end2 = Profile::stop(1);
 
     cout << "Setup time: " << (end1 - start1) << "\n";

@@ -45,7 +45,7 @@ public:
 
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max) {
         assert(len <= BUF_SIZE);
-        _mem.write_sync(data, len, 0);
+        _mem.write(data, len, 0);
 
         hash::Accel::Request req;
         req.algo = algo;

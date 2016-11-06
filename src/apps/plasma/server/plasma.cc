@@ -388,11 +388,11 @@ public:
 static void refresh_screen(VGA *vga, GateIStream &) {
     if(irqs++ < INTRO_TIME) {
         ia.render(tsc());
-        vga->gate().write_sync(ia.buffer(), ia.size(), 0);
+        vga->gate().write(ia.buffer(), ia.size(), 0);
     }
     else {
         qa.render(tsc());
-        vga->gate().write_sync(qa.buffer(), qa.size(), 0);
+        vga->gate().write(qa.buffer(), qa.size(), 0);
     }
 }
 

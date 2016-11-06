@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
             while(rem > 0) {
                 for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i)
                     buffer[i] = i;
-                vpemem.write_sync(buffer, BUF_SIZE, offset);
+                vpemem.write(buffer, BUF_SIZE, offset);
                 offset += BUF_SIZE;
                 rem -= BUF_SIZE;
             }
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
             size_t rem = SUBMEM_SIZE;
             size_t offset = 0;
             while(rem > 0) {
-                vpemem.read_sync(buffer, BUF_SIZE, offset);
+                vpemem.read(buffer, BUF_SIZE, offset);
                 for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i)
                     checksum += buffer[i];
                 offset += BUF_SIZE;

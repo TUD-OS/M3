@@ -415,7 +415,7 @@ template<typename... Args>
 static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &... args) {
     EVENT_TRACER_write_vmsg();
     auto os = create_vmsg(args...);
-    return gate.write_sync(os.bytes(), os.total(), offset);
+    return gate.write(os.bytes(), os.total(), offset);
 }
 
 /**

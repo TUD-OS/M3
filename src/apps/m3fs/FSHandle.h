@@ -42,16 +42,16 @@ public:
     }
 
     void read_from_block(void *buffer, size_t len, m3::blockno_t bno, size_t off) {
-        _mem.read_sync(buffer, len, bno * _sb.blocksize + off);
+        _mem.read(buffer, len, bno * _sb.blocksize + off);
     }
     void write_to_block(const void *buffer, size_t len, m3::blockno_t bno, size_t off) {
-        _mem.write_sync(buffer, len, bno * _sb.blocksize + off);
+        _mem.write(buffer, len, bno * _sb.blocksize + off);
     }
 
     void flush_cache() {
         _cache.flush();
         _sb.checksum = _sb.get_checksum();
-        _mem.write_sync(&_sb, sizeof(_sb), 0);
+        _mem.write(&_sb, sizeof(_sb), 0);
     }
 
 private:

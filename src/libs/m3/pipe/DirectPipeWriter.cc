@@ -125,7 +125,7 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
 
         if(aligned_amount) {
             Profile::start(0xaaaa);
-            _state->_mgate.write_sync(buf, aligned_amount, off);
+            _state->_mgate.write(buf, aligned_amount, off);
             Profile::stop(0xaaaa);
             _state->_wrpos = (off + aligned_amount) % _size;
         }

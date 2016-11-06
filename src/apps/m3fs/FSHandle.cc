@@ -23,7 +23,7 @@
 using namespace m3;
 
 bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb) {
-    mem.read_sync(sb, sizeof(*sb), 0);
+    mem.read(sb, sizeof(*sb), 0);
     SLOG(FS, "Superblock:");
     SLOG(FS, "  blocksize=" << sb->blocksize);
     SLOG(FS, "  total_inodes=" << sb->total_inodes);

@@ -69,8 +69,8 @@ Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint fla
     return res;
 }
 
-Errors::Code MemGate::read_sync(void *data, size_t len, size_t offset) {
-    EVENT_TRACER_read_sync();
+Errors::Code MemGate::read(void *data, size_t len, size_t offset) {
+    EVENT_TRACER_read();
     ensure_activated();
 
 retry:
@@ -84,8 +84,8 @@ retry:
     return res;
 }
 
-Errors::Code MemGate::write_sync(const void *data, size_t len, size_t offset) {
-    EVENT_TRACER_write_sync();
+Errors::Code MemGate::write(const void *data, size_t len, size_t offset) {
+    EVENT_TRACER_write();
     ensure_activated();
 
 retry:
@@ -101,8 +101,8 @@ retry:
 }
 
 #if defined(__host__)
-Errors::Code MemGate::cmpxchg_sync(void *data, size_t len, size_t offset) {
-    EVENT_TRACER_cmpxchg_sync();
+Errors::Code MemGate::cmpxchg(void *data, size_t len, size_t offset) {
+    EVENT_TRACER_cmpxchg();
     ensure_activated();
 
     return DTU::get().cmpxchg(ep(), data, len, offset, len / 2);

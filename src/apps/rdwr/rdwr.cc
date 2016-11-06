@@ -51,8 +51,8 @@ int main() {
     MemGate mem = MemGate::create_global(sizeof(some_data) * 8, MemGate::RW);
 
     cout << "Writing to it and reading it back...\n";
-    mem.write_sync(some_data, sizeof(some_data), DTU_PKG_SIZE);
-    mem.read_sync(some_data_ctrl, sizeof(some_data_ctrl), DTU_PKG_SIZE);
+    mem.write(some_data, sizeof(some_data), DTU_PKG_SIZE);
+    mem.read(some_data_ctrl, sizeof(some_data_ctrl), DTU_PKG_SIZE);
 
     check_result();
 
@@ -60,8 +60,8 @@ int main() {
     MemGate submem = mem.derive(0x20, sizeof(some_data) + DTU_PKG_SIZE, MemGate::RWX);
 
     cout << "Writing to it and reading it back...\n";
-    submem.write_sync(some_data, sizeof(some_data), DTU_PKG_SIZE);
-    submem.read_sync(some_data_ctrl, sizeof(some_data_ctrl), DTU_PKG_SIZE);
+    submem.write(some_data, sizeof(some_data), DTU_PKG_SIZE);
+    submem.read(some_data_ctrl, sizeof(some_data_ctrl), DTU_PKG_SIZE);
 
     check_result();
     return 0;

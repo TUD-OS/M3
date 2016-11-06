@@ -140,7 +140,7 @@ public:
         }
 
         if(!_accel->get().pe().has_virtmem())
-            _mem.write_sync(reinterpret_cast<void*>(BUF_ADDR + sess->offset()), req.len, 0);
+            _mem.write(reinterpret_cast<void*>(BUF_ADDR + sess->offset()), req.len, 0);
 
         GateIStream areply = send_receive_msg(sess->sendgate(), &req, sizeof(req));
 

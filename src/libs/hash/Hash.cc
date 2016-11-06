@@ -49,7 +49,7 @@ Hash::~Hash() {
 
 size_t Hash::get(Algorithm algo, const void *data, size_t len, void *res, size_t max) {
     assert(len <= Accel::BUF_SIZE);
-    _accel->get().mem().write_sync(data, len, BUF_ADDR);
+    _accel->get().mem().write(data, len, BUF_ADDR);
 
     Accel::Request req;
     req.algo = algo;
