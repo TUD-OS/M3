@@ -84,7 +84,7 @@ public:
      * Adds the given mountpoint
      *
      * @param mp the mountpoint
-     * @return the error or Errors::NO_ERROR
+     * @return the error or Errors::NONE
      */
     Errors::Code add(MountPoint *mp);
 

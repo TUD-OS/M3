@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
         exitmsg("Usage: " << argv[0] << " <dir>...");
 
     for(int i = 1; i < argc; ++i) {
-        if(VFS::mkdir(argv[i], 0755) != Errors::NO_ERROR)
+        if(VFS::mkdir(argv[i], 0755) != Errors::NONE)
             errmsg("Creating directory " << argv[i] << " failed");
     }
     return 0;

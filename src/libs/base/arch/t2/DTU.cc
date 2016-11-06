@@ -106,7 +106,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
@@ -133,7 +133,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
     Sync::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
@@ -146,7 +146,7 @@ Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t
         //         << " with " << fmt(perms, "#x"));
         return Errors::NO_PERM;
     }
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
@@ -163,7 +163,7 @@ Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
     reinterpret_cast<unsigned char*>(msg)[size - 1] = 0xFF;
 
     Errors::Code res = check_rw_access(base, len, off, size, cfg->label & KIF::Perm::RWX, KIF::Perm::R);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         return res;
 
     set_target(SLOT_NO, cfg->dstcore, srcaddr);
@@ -181,7 +181,7 @@ Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
             break;
     }
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
@@ -195,7 +195,7 @@ Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uin
     EVENT_TRACE_MEM_WRITE(cfg->dstcore, size);
 
     Errors::Code res = check_rw_access(base, len, off, size, cfg->label & KIF::Perm::RWX, KIF::Perm::W);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         return res;
 
     set_target(SLOT_NO, cfg->dstcore, destaddr);
@@ -207,7 +207,7 @@ Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uin
     while((rem = get_remaining(ep)) > 0)
         ;
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 }

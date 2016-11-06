@@ -55,7 +55,7 @@ m3::Errors::Code AddrSpace::clone() {
         dscopy->inherit(&*ds);
     }
 
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 capsel_t AddrSpace::init(capsel_t caps) {

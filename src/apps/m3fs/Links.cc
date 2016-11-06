@@ -63,7 +63,7 @@ found:
 
     inode->links++;
     INodes::mark_dirty(h, inode->inode);
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir) {
@@ -87,7 +87,7 @@ Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t nam
                 // reduce links and free, if necessary
                 if(--inode->links == 0)
                     INodes::free(h, inode);
-                return Errors::NO_ERROR;
+                return Errors::NONE;
             }
 
             prev = e;

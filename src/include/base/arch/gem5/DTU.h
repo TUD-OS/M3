@@ -216,7 +216,7 @@ public:
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
     Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
         // TODO unsupported
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void abort(uint flags, reg_t *cmdreg) {

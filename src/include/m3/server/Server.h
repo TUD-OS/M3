@@ -139,7 +139,7 @@ private:
 
         shutdown();
 
-        reply_error(is, Errors::NO_ERROR);
+        reply_error(is, Errors::NONE);
     }
 
 protected:

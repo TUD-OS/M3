@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 
     Errors::Code res;
     FileInfo info;
-    if((res = VFS::stat(dirname, info)) != Errors::NO_ERROR)
+    if((res = VFS::stat(dirname, info)) != Errors::NONE)
         exitmsg("stat of " << dirname << " failed");
     if(!M3FS_ISDIR(info.mode))
         exitmsg(dirname << " is no directory");

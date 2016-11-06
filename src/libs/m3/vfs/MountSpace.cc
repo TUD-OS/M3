@@ -91,7 +91,7 @@ Errors::Code MountSpace::add(MountPoint *mp) {
     }
     _mounts[i] = mp;
     _count++;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Reference<FileSystem> MountSpace::resolve(const char *path, size_t *pos) {

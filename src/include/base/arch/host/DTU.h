@@ -287,7 +287,7 @@ public:
             set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START | CTRL_DEL_REPLY_CAP);
         wait_until_ready(ep);
         // TODO report errors here
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void start();

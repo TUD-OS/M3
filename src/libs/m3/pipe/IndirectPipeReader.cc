@@ -23,7 +23,7 @@ namespace m3 {
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     size_t pos;
     Errors::Code res = _pipe->read(&pos, &count, &_lastid);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         return -1;
     if(count == 0)
         return 0;

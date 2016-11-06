@@ -30,7 +30,7 @@ int main() {
         //ser >> serv;
 
         Session test(serv);
-        if(Errors::last != Errors::NO_ERROR) {
+        if(Errors::last != Errors::NONE) {
             errmsg("Unable to connect to '" << serv << "'");
             continue;
         }
@@ -48,7 +48,7 @@ int main() {
 
             // 0 = TEST
             GateIStream is = send_receive_vmsg(gate, 0, req);
-            if(is.error() != Errors::NO_ERROR)
+            if(is.error() != Errors::NONE)
                 exitmsg("Communication failed");
             is >> resp;
             cout << "Got '" << resp << "'\n";

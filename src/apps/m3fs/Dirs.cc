@@ -81,7 +81,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create) {
         if(!ninode)
             return INVALID_INO;
         Errors::Code res = Links::create(h, inode, path, namelen, ninode);
-        if(res != Errors::NO_ERROR) {
+        if(res != Errors::NONE) {
             INodes::free(h, ninode);
             return INVALID_INO;
         }
@@ -121,17 +121,17 @@ Errors::Code Dirs::create(FSHandle &h, const char *path, mode_t mode) {
 
     // create directory itself
     Errors::Code res = Links::create(h, parinode, base, baselen, dirinode);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         goto errINode;
 
     // create "." and ".."
     res = Links::create(h, dirinode, ".", 1, dirinode);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         goto errLink1;
     res = Links::create(h, dirinode, "..", 2, parinode);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         goto errLink2;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 
 errLink2:
     Links::remove(h, dirinode, ".", 1, true);

@@ -113,7 +113,7 @@ public:
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
     Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
     void send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits);
 

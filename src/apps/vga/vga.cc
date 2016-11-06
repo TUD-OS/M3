@@ -34,7 +34,7 @@ public:
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vgamem->sel());
         data.caps = crd.value();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
 private:

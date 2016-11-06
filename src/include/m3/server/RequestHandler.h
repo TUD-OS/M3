@@ -80,7 +80,7 @@ protected:
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
         data.caps = crd.value();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     virtual void handle_shutdown() override {

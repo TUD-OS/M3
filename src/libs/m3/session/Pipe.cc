@@ -25,7 +25,7 @@ void Pipe::attach(bool reading) {
 Errors::Code Pipe::read(size_t *pos, size_t *amount, int *lastid) {
     GateIStream reply = send_receive_vmsg(_rdgate, *amount, *lastid);
     reply >> Errors::last;
-    if(Errors::last == Errors::NO_ERROR)
+    if(Errors::last == Errors::NONE)
         reply >> *pos >> *amount >> *lastid;
     return Errors::last;
 }
@@ -33,7 +33,7 @@ Errors::Code Pipe::read(size_t *pos, size_t *amount, int *lastid) {
 Errors::Code Pipe::write(size_t *pos, size_t amount, int *lastid) {
     GateIStream reply = send_receive_vmsg(_wrgate, amount, *lastid);
     reply >> Errors::last;
-    if(Errors::last == Errors::NO_ERROR)
+    if(Errors::last == Errors::NONE)
         reply >> *pos >> *lastid;
     return Errors::last;
 }

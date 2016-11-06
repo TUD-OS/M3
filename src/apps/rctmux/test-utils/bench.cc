@@ -38,7 +38,7 @@ struct App {
     explicit App(int argc, const char *argv[], bool muxed)
         : argc(argc), argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", muxed) {
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");
     }
 
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
             apps[i]->vpe.mountspace(*VPE::self().mountspace());
             apps[i]->vpe.obtain_mountspace();
             Errors::Code res = apps[i]->vpe.exec(apps[i]->argc, apps[i]->argv);
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 PANIC("Cannot execute " << apps[i]->argv[0] << ": " << Errors::to_string(res));
 
             if(!muxed) {

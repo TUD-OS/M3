@@ -29,7 +29,7 @@ extern FStream cout;
 extern FStream cerr;
 
 static inline void appenderr(FStream &os) {
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         os << ": " << Errors::to_string(Errors::last);
     os << "\n";
 }

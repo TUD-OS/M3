@@ -67,7 +67,7 @@ static bool execute(CmdList *list, bool muxed) {
         }
 
         vpes[i] = new VPE(cmd->args->args[0], pe, nullptr, muxed);
-        if(Errors::last != Errors::NO_ERROR) {
+        if(Errors::last != Errors::NONE) {
             errmsg("Unable to create VPE for " << cmd->args->args[0]);
             break;
         }
@@ -114,7 +114,7 @@ static bool execute(CmdList *list, bool muxed) {
         vpes[i]->obtain_mountspace();
 
         Errors::Code err;
-        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NO_ERROR) {
+        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NONE) {
             errmsg("Unable to execute '" << cmd->args->args[0] << "'");
             break;
         }
@@ -143,7 +143,7 @@ static bool execute(CmdList *list, bool muxed) {
 }
 
 int main(int argc, char **argv) {
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NO_ERROR) {
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Unable to mount filesystem\n");
     }

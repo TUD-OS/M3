@@ -27,7 +27,7 @@ using namespace m3;
 int main() {
     if(VPE::self().pager()) {
         FileRef file("/test.txt", FILE_R);
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to open /test.txt");
 
         FileInfo info;
@@ -37,7 +37,7 @@ int main() {
         uintptr_t virt = 0x104000;
         Errors::Code res = VPE::self().pager()->map_ds(&virt, Math::round_up(info.size, PAGE_SIZE),
             Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             exitmsg("Unable to map /test.txt");
 
         const char *str = reinterpret_cast<const char*>(virt);

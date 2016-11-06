@@ -92,7 +92,7 @@ public:
      *
      * @param data the data to send
      * @param len the length of the data
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code send(const void *data, size_t len);
 

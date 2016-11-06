@@ -151,7 +151,7 @@ Errors::Code VPE::run(void *lambda) {
         write(fd[1], &byte, 1);
         close(fd[1]);
     }
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code VPE::exec(int argc, const char **argv) {
@@ -229,7 +229,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         write(fd[1], &byte, 1);
         close(fd[1]);
     }
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 
 errorExec:
     close(tmp);

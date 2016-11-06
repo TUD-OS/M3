@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
         exitmsg("Usage: " << argv[0] << " <dir>...");
 
     for(int i = 1; i < argc; ++i) {
-        if(VFS::rmdir(argv[i]) != Errors::NO_ERROR)
+        if(VFS::rmdir(argv[i]) != Errors::NONE)
             errmsg("Removing directory " << argv[i] << " failed");
     }
     return 0;

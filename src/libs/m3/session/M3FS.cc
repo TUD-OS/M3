@@ -26,7 +26,7 @@ File *M3FS::open(const char *path, int perms) {
     {
         GateIStream resp = send_receive_vmsg(_gate, OPEN, path, perms);
         resp >> Errors::last;
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             return nullptr;
         resp >> fd;
     }
@@ -36,28 +36,28 @@ File *M3FS::open(const char *path, int perms) {
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {
     GateIStream reply = send_receive_vmsg(_gate, STAT, path);
     reply >> Errors::last;
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         return Errors::last;
     reply >> info;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 int M3FS::fstat(int fd, FileInfo &info) {
     GateIStream reply = send_receive_vmsg(_gate, FSTAT, fd);
     reply >> Errors::last;
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         return Errors::last;
     reply >> info;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 int M3FS::seek(int fd, off_t off, int whence, size_t &global, size_t &extoff, off_t &pos) {
     GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, global, extoff);
     reply >> Errors::last;
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         return Errors::last;
     reply >> global >> extoff >> pos;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code M3FS::mkdir(const char *path, mode_t mode) {

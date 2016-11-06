@@ -88,7 +88,7 @@ public:
         bool extended = false;
         size_t argcount = ARRAY_SIZE(args);
         crd = sess.obtain(count, &argcount, args);
-        if(Errors::last == Errors::NO_ERROR) {
+        if(Errors::last == Errors::NONE) {
             extended = args[0];
             *offset = args[1];
             for(size_t i = 2; i < argcount; ++i)

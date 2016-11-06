@@ -22,7 +22,7 @@ namespace kernel {
 
 m3::Errors::Code SendGate::send(const void *data, size_t len, epid_t rep, label_t label) {
     DTU::get().send_to(_vpe.desc(), _ep, _label, data, len, label, rep);
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 }

@@ -123,7 +123,7 @@ public:
      * @param data the data to write
      * @param len the number of bytes to write
      * @param offset the start-offset
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code write(const void *data, size_t len, size_t offset);
 
@@ -133,7 +133,7 @@ public:
      * @param data the buffer to write into
      * @param len the number of bytes to read
      * @param offset the start-offset
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code read(void *data, size_t len, size_t offset);
 
@@ -148,7 +148,7 @@ public:
      * @param len the number of bytes of one value
      * @param offset the start-offset
      * @return true on success
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code cmpxchg(void *data, size_t len, size_t offset);
 #endif

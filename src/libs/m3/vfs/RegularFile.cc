@@ -280,7 +280,7 @@ ssize_t RegularFile::get_location(Position &pos, bool writing) const {
         // 4, then 8, then 16, up to a certain limit.
         _extended |= const_cast<Reference<M3FS>&>(_fs)->get_locs(_fd, pos.global, MAX_LOCS,
             writing ? WRITE_INC_BLOCKS : 0, _memcaps, _locs);
-        if(Errors::last != Errors::NO_ERROR || _locs.count() == 0)
+        if(Errors::last != Errors::NONE || _locs.count() == 0)
             return Errors::last;
 
         // determine new length

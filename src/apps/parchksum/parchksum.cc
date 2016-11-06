@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     Worker **worker = new Worker*[vpes];
     for(int i = 0; i < vpes; ++i) {
         worker[i] = new Worker(rgate, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to create worker");
     }
 

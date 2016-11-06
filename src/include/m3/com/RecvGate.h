@@ -197,7 +197,7 @@ public:
      * @param data the data to send
      * @param len the length of the data
      * @param msgidx the index of the message to reply to
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code reply(const void *data, size_t len, size_t msgidx);
 

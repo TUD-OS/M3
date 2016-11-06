@@ -159,7 +159,7 @@ void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
     vpe->config_snd_ep(vpe->address_space()->ep(), *sgatecap->obj);
 #endif
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
@@ -191,7 +191,7 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     // maybe there are VPEs that now have all requirements fullfilled
     VPEManager::get().start_pending(ServiceList::get());
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
@@ -237,7 +237,7 @@ void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
 
     LOG_SYS(vpe, ": syscall::createsess-cont", "(res=" << res << ")");
 
-    if(res != m3::Errors::NO_ERROR)
+    if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "Server denied session creation");
     else {
         // inherit the session-cap from the service-cap. this way, it will be automatically
@@ -274,7 +274,7 @@ void SyscallHandler::createsessat(VPE *vpe, const m3::DTU::Message *msg) {
     sesscap->obj->servowned = true;
     vpe->objcaps().set(dst, sesscap);
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
@@ -297,7 +297,7 @@ void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
     auto rgatecap = new RGateCapability(&vpe->objcaps(), dst, order, msgorder);
     vpe->objcaps().set(dst, rgatecap);
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::createsgate(VPE *vpe, const m3::DTU::Message *msg) {
@@ -328,7 +328,7 @@ void SyscallHandler::createsgate(VPE *vpe, const m3::DTU::Message *msg) {
     vpe->objcaps().set(dst,
         new SGateCapability(&vpe->objcaps(), dst, &*rgatecap->obj, label, credits));
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
@@ -359,7 +359,7 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
     vpe->objcaps().set(dst, new MGateCapability(&vpe->objcaps(), dst,
         alloc.pe(), VPE::INVALID_ID, alloc.addr, alloc.size, perms));
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
@@ -410,7 +410,7 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
         nvpe->objcaps().obtain(sgate, sgatecap);
 
     m3::KIF::Syscall::CreateVPEReply reply;
-    reply.error = m3::Errors::NO_ERROR;
+    reply.error = m3::Errors::NONE;
     reply.pe = Platform::pe(nvpe->pe()).value();
     reply_msg(vpe, msg, &reply, sizeof(reply));
 }
@@ -465,7 +465,7 @@ void SyscallHandler::createmap(VPE *vpe, const m3::DTU::Message *msg) {
     }
 #endif
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
@@ -502,7 +502,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         }
 
         m3::Errors::Code res = DTU::get().inval_ep_remote(vpecap->obj->desc(), ep);
-        if(res != m3::Errors::NO_ERROR)
+        if(res != m3::Errors::NONE)
             SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
     }
 
@@ -542,7 +542,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             rgatecap->obj->ep = ep;
 
             m3::Errors::Code res = vpecap->obj->config_rcv_ep(ep, *rgatecap->obj);
-            if(res != m3::Errors::NO_ERROR) {
+            if(res != m3::Errors::NONE) {
                 rgatecap->obj->addr = 0;
                 SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
             }
@@ -553,7 +553,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
 
     vpecap->obj->ep_cap(ep, gatecap);
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
@@ -600,7 +600,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't wait for itself");
 
             m3::KIF::Syscall::VPECtrlReply reply;
-            reply.error = m3::Errors::NO_ERROR;
+            reply.error = m3::Errors::NONE;
 
             if(vpecap->obj->has_app()) {
                 vpe->start_wait();
@@ -615,7 +615,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
             return;
     }
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::derivemem(VPE *vpe, const m3::DTU::Message *msg) {
@@ -649,7 +649,7 @@ void SyscallHandler::derivemem(VPE *vpe, const m3::DTU::Message *msg) {
     ));
     dercap->obj->derived = true;
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 void SyscallHandler::delegate(VPE *vpe, const m3::DTU::Message *msg) {
@@ -707,7 +707,7 @@ void SyscallHandler::revoke(VPE *vpe, const m3::DTU::Message *msg) {
     else
         vpecap->obj->mapcaps().revoke(crd, own);
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
@@ -741,7 +741,7 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::Ca
         assert(dsttab.get(dstsel) == nullptr);
         dsttab.obtain(dstsel, srccap);
     }
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain) {
@@ -787,7 +787,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
 
     LOG_SYS(vpe, (obtain ? ": syscall::obtain-cont" : ": syscall::delegate-cont"), "(res=" << res << ")");
 
-    if(res != m3::Errors::NO_ERROR)
+    if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "Server denied cap-transfer");
     else {
         m3::KIF::CapRngDesc srvcaps(reply->data.caps);
@@ -797,7 +797,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
     m3::KIF::Syscall::ExchangeSessReply kreply;
     kreply.error = res;
     kreply.argcount = 0;
-    if(res == m3::Errors::NO_ERROR) {
+    if(res == m3::Errors::NONE) {
         kreply.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(kreply.args));
         for(size_t i = 0; i < kreply.argcount; ++i)
             kreply.args[i] = reply->data.args[i];
@@ -806,7 +806,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
 }
 
 m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur) {
-    m3::Errors::Code res = m3::Errors::NO_ERROR;
+    m3::Errors::Code res = m3::Errors::NONE;
     while(tvpe.state() != VPE::RUNNING) {
         cur->start_wait();
         tvpe.add_forward();
@@ -867,7 +867,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
 
     m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe);
 
-    if(res == m3::Errors::NO_ERROR) {
+    if(res == m3::Errors::NONE) {
         uint32_t sender = vpe->pe() | (vpe->id() << 8);
         DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, req->msg,
             req->len, req->rlabel, rgatecap->obj->ep, sender);
@@ -926,7 +926,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     m3::KIF::Syscall::ForwardMemReply reply;
     reply.error = res;
 
-    if(res == m3::Errors::NO_ERROR) {
+    if(res == m3::Errors::NONE) {
         if(flags & m3::KIF::Syscall::ForwardMem::WRITE)
             res = DTU::get().try_write_mem(tvpe.desc(), mgatecap->obj->addr + offset, req->data, len);
         else
@@ -934,7 +934,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
 
         vpe->forward_mem(ep, tvpe.pe());
     }
-    if(res != m3::Errors::NO_ERROR && res != m3::Errors::PAGEFAULT)
+    if(res != m3::Errors::NONE && res != m3::Errors::PAGEFAULT)
         LOG_ERROR(vpe, res, "forwardmem failed");
 
     if(async)
@@ -971,7 +971,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
 
     m3::DTU::Header head;
     m3::Errors::Code res = DTU::get().get_header(vpe->desc(), &*rgatecap->obj, msgaddr, head);
-    if(res != m3::Errors::NO_ERROR || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
+    if(res != m3::Errors::NONE || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
         SYS_ERROR(vpe, msg, res, "Invalid arguments");
 
     VPE &tvpe = VPEManager::get().vpe(head.senderVpeId);
@@ -981,7 +981,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
 
     res = wait_for(": syscall::forwardreply", tvpe, vpe);
 
-    if(res == m3::Errors::NO_ERROR) {
+    if(res == m3::Errors::NONE) {
         DTU::get().reply_to(tvpe.desc(), head.replyEp, head.senderEp, head.length,
             head.replylabel, req->msg, len);
 
@@ -993,7 +993,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
         res = DTU::get().set_header(vpe->desc(), &*rgatecap->obj, msgaddr, head);
     }
-    if(res != m3::Errors::NO_ERROR)
+    if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "forwardreply failed");
 
     if(async)
@@ -1014,7 +1014,7 @@ void SyscallHandler::noop(VPE *vpe, const m3::DTU::Message *msg) {
     EVENT_TRACER_Syscall_noop();
     LOG_SYS(vpe, ": syscall::noop", "()");
 
-    reply_result(vpe, msg, m3::Errors::NO_ERROR);
+    reply_result(vpe, msg, m3::Errors::NONE);
 }
 
 }

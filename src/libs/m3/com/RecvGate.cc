@@ -63,7 +63,7 @@ RecvGate::RecvGate(VPE &vpe, capsel_t cap, epid_t ep, void *buf, int order, int 
       _workitem() {
     if(sel() != ObjCap::INVALID) {
         Errors::Code res = Syscalls::get().creatergate(sel(), order, msgorder);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             PANIC("Creating RecvGate failed: " << Errors::to_string(res));
     }
 
@@ -132,7 +132,7 @@ void RecvGate::activate(epid_t _ep, uintptr_t addr) {
 
     if(sel() != ObjCap::INVALID) {
         Errors::Code res = Syscalls::get().activate(_vpe.sel(), sel(), ep(), addr);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             PANIC("Attaching RecvGate to " << ep() << " failed: " << Errors::to_string(res));
     }
 }
@@ -197,7 +197,7 @@ Errors::Code RecvGate::wait(SendGate *sgate, const DTU::Message **msg) {
     while(1) {
         *msg = DTU::get().fetch_msg(ep());
         if(*msg)
-            return Errors::NO_ERROR;
+            return Errors::NONE;
 
         if(sgate && !DTU::get().is_valid(sgate->ep()))
             return Errors::EP_INVALID;

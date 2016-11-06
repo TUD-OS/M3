@@ -38,7 +38,7 @@ public:
 
     virtual Errors::Code handle_open(PipeSessionData **sess, word_t arg) override {
         *sess = new PipeSessionData(arg);
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     virtual Errors::Code handle_obtain(PipeSessionData *sess, KIF::Service::ExchangeData &data) override {
@@ -59,7 +59,7 @@ public:
             data.caps = crd.value();
         }
         sess->init();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void attach(GateIStream &is) {

@@ -61,7 +61,7 @@ Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint fla
         res = static_cast<Errors::Code>(msg->error);
     }
 
-    if(res == Errors::NO_ERROR) {
+    if(res == Errors::NONE) {
         len -= amount;
         offset += amount;
         data = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(data) + amount);
@@ -77,7 +77,7 @@ retry:
     Errors::Code res = DTU::get().read(ep(), data, len, offset, _cmdflags);
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         res = forward(data, len, offset, _cmdflags);
-        if(len > 0 || res != m3::Errors::NO_ERROR)
+        if(len > 0 || res != m3::Errors::NONE)
             goto retry;
     }
 
@@ -93,7 +93,7 @@ retry:
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
         res = forward(const_cast<void*&>(data), len, offset,
             _cmdflags | KIF::Syscall::ForwardMem::WRITE);
-        if(len > 0 || res != m3::Errors::NO_ERROR)
+        if(len > 0 || res != m3::Errors::NONE)
             goto retry;
     }
 

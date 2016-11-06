@@ -57,7 +57,7 @@ PipeSessionData::~PipeSessionData() {
 Errors::Code PipeReadHandler::attach(PipeSessionData *sess) {
     refs++;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: read-refs=" << refs);
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code PipeReadHandler::close(PipeSessionData *sess, int id) {
@@ -72,13 +72,13 @@ Errors::Code PipeReadHandler::close(PipeSessionData *sess, int id) {
 
     if(--refs > 0) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read-refs=" << refs);
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     sess->flags |= READ_EOF;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read end");
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 void PipeReadHandler::read(GateIStream &is) {
@@ -110,7 +110,7 @@ void PipeReadHandler::read(GateIStream &is) {
         if(sess->flags & WRITE_EOF) {
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " EOF");
             amount = 0;
-            reply_vmsg(is, Errors::NO_ERROR, pos, amount, 0);
+            reply_vmsg(is, Errors::NONE, pos, amount, 0);
         }
         else
             append_request(sess, is, amount);
@@ -120,7 +120,7 @@ void PipeReadHandler::read(GateIStream &is) {
         lastread = amount;
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " @" << pos
             << " [" << _lastid << "]");
-        reply_vmsg(is, Errors::NO_ERROR, pos, amount, _lastid);
+        reply_vmsg(is, Errors::NONE, pos, amount, _lastid);
     }
 }
 
@@ -144,14 +144,14 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
             lastread = ramount;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: " << ramount << " @" << rpos
                 << " [" << _lastid << "]");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, rpos, ramount, _lastid);
+            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, rpos, ramount, _lastid);
             delete req;
             break;
         }
         else if(sess->flags & WRITE_EOF) {
             _pending.remove_first();
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: EOF");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, (size_t)0, (size_t)0, 0);
+            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, (size_t)0, (size_t)0, 0);
             delete req;
         }
         else
@@ -162,7 +162,7 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
 Errors::Code PipeWriteHandler::attach(PipeSessionData *sess) {
     refs++;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: write-refs=" << refs);
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code PipeWriteHandler::close(PipeSessionData *sess, int id) {
@@ -177,13 +177,13 @@ Errors::Code PipeWriteHandler::close(PipeSessionData *sess, int id) {
 
     if(--refs > 0) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write-refs=" << refs);
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     sess->flags |= WRITE_EOF;
     SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write end");
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 void PipeWriteHandler::write(GateIStream &is) {
@@ -222,7 +222,7 @@ void PipeWriteHandler::write(GateIStream &is) {
         _lastid++;
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount
             << " @" << pos << " [" << _lastid << "]");
-        reply_vmsg(is, Errors::NO_ERROR, pos, _lastid);
+        reply_vmsg(is, Errors::NONE, pos, _lastid);
     }
 }
 
@@ -254,7 +254,7 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
             _lastid++;
             SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: " << req->amount
                 << " @" << wpos << " [" << _lastid << "]");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NO_ERROR, wpos, _lastid);
+            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, wpos, _lastid);
             delete req;
         }
     }

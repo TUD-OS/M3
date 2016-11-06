@@ -340,7 +340,7 @@ m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uin
         return m3::Errors::INV_ARGS;
 
     read_mem(vpe, msgaddr, &head, sizeof(head));
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
@@ -350,7 +350,7 @@ m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uin
         return m3::Errors::INV_ARGS;
 
     write_mem(vpe, msgaddr, &head, sizeof(head));
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
@@ -376,7 +376,7 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::COMMAND, cmd);
 
     m3::Errors::Code res = m3::DTU::get().get_error();
-    if(res != m3::Errors::NO_ERROR)
+    if(res != m3::Errors::NONE)
         PANIC("Send failed");
 }
 
@@ -392,7 +392,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         rmsg->flags |= 1 << 2;
         res = m3::DTU::get().reply(ep, msg, size, msgidx);
     }
-    if(res != m3::Errors::NO_ERROR)
+    if(res != m3::Errors::NONE)
         PANIC("Reply failed");
 }
 

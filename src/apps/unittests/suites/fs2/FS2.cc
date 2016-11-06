@@ -152,7 +152,7 @@ void FS2TestSuite::WriteFileTestCase::run() {
 }
 
 void FS2TestSuite::MetaFileTestCase::run() {
-    assert_int(VFS::mkdir("/example", 0755), Errors::NO_ERROR);
+    assert_int(VFS::mkdir("/example", 0755), Errors::NONE);
     assert_int(VFS::mkdir("/example", 0755), Errors::EXISTS);
     assert_int(VFS::mkdir("/example/foo/bar", 0755), Errors::NO_SUCH_FILE);
 
@@ -162,7 +162,7 @@ void FS2TestSuite::MetaFileTestCase::run() {
     }
 
     {
-        assert_int(VFS::mount("/fs/", new M3FS("m3fs")), Errors::NO_ERROR);
+        assert_int(VFS::mount("/fs/", new M3FS("m3fs")), Errors::NONE);
         assert_int(VFS::link("/example/myfile", "/fs/foo"), Errors::XFS_LINK);
         VFS::unmount("/fs");
     }
@@ -172,13 +172,13 @@ void FS2TestSuite::MetaFileTestCase::run() {
     assert_int(VFS::rmdir("/example"), Errors::DIR_NOT_EMPTY);
 
     assert_int(VFS::link("/example", "/newpath"), Errors::IS_DIR);
-    assert_int(VFS::link("/example/myfile", "/newpath"), Errors::NO_ERROR);
+    assert_int(VFS::link("/example/myfile", "/newpath"), Errors::NONE);
 
     assert_int(VFS::unlink("/example"), Errors::IS_DIR);
     assert_int(VFS::unlink("/example/foo"), Errors::NO_SUCH_FILE);
-    assert_int(VFS::unlink("/example/myfile"), Errors::NO_ERROR);
+    assert_int(VFS::unlink("/example/myfile"), Errors::NONE);
 
-    assert_int(VFS::rmdir("/example"), Errors::NO_ERROR);
+    assert_int(VFS::rmdir("/example"), Errors::NONE);
 
-    assert_int(VFS::unlink("/newpath"), Errors::NO_ERROR);
+    assert_int(VFS::unlink("/newpath"), Errors::NONE);
 }

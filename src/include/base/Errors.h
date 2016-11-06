@@ -23,7 +23,7 @@ namespace m3 {
  */
 struct Errors {
     enum Code {
-        NO_ERROR,
+        NONE,
         // DTU errors
         MISS_CREDITS,
         NO_RING_SPACE,
@@ -62,7 +62,7 @@ struct Errors {
      * @return true if an error occurred
      */
     static bool occurred() {
-        return last != NO_ERROR;
+        return last != NONE;
     }
 
     /**

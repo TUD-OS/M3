@@ -24,7 +24,7 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     size_t pos = 0;
     Errors::Code res = _pipe->write(&pos, count, &_lastid);
     assert((pos % DTU_PKG_SIZE) == 0);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         return -1;
 
     Profile::start(0xaaaa);

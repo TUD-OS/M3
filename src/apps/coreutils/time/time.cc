@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     cycles_t start = Profile::start(0);
     {
         VPE child(argv[1]);
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Creating VPE for " << argv[1] << " failed");
 
         child.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         child.obtain_mountspace();
 
         Errors::Code err = child.exec(argc - 1, const_cast<const char**>(argv) + 1);
-        if(err != Errors::NO_ERROR)
+        if(err != Errors::NONE)
             exitmsg("Executing " << argv[1] << " failed");
 
         res = child.wait();

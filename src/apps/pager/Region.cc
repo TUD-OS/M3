@@ -60,7 +60,7 @@ m3::Errors::Code Region::map(uint flags) {
             _ds->addrspace()->vpe.sel(), mem()->gate->sel(),
             mem_offset() >> PAGE_BITS, size() >> PAGE_BITS, flags);
     }
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void Region::copy(m3::MemGate *mem, uintptr_t virt) {

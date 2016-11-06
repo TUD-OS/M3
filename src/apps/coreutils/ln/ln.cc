@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     if(argc != 3)
         exitmsg("Usage: " << argv[0] << " <target> <linkname>");
 
-    if(VFS::link(argv[1], argv[2]) != Errors::NO_ERROR)
+    if(VFS::link(argv[1], argv[2]) != Errors::NONE)
         errmsg("Link of " << argv[1] << " to " << argv[2] << " failed");
     return 0;
 }

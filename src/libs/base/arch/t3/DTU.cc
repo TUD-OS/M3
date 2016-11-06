@@ -57,7 +57,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t reply_lb
     config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
     fire(ep, WRITE, 1);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
@@ -81,7 +81,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
     // LLOG(DTU, "Sending " << m->length << " credits back to " << m->modid << ":" << m->slot);
     // send_credits(ep, m->modid, m->slot, 0x80000000 | m->length);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 void DTU::send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits) {
@@ -125,7 +125,7 @@ Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off, uint) {
     // restore old value
     store_to(ptr + 0, base);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
@@ -147,7 +147,7 @@ Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off, uin
     // restore old value
     store_to(ptr + 0, base);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 }

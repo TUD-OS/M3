@@ -35,7 +35,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t reply_lb
     config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
     fire(ep, WRITE, 1);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off)
@@ -57,7 +57,7 @@ Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off)
     // restore old value
     store_to(ptr + 0, base);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off)
@@ -78,7 +78,7 @@ Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off)
     // restore old value
     store_to(ptr + 0, base);
 
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 } /* namespace m3 */

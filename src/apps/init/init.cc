@@ -32,13 +32,13 @@ int main(int argc, const char **argv) {
     }
 
     VPE sh(argv[1], VPE::self().pe(), "pager");
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE");
 
     sh.mountspace(*VPE::self().mountspace());
     sh.obtain_mountspace();
 
-    if(sh.exec(argc - 1, argv + 1) != Errors::NO_ERROR)
+    if(sh.exec(argc - 1, argv + 1) != Errors::NONE)
         exitmsg("Unable to exec " << argv[1]);
 
     sh.wait();

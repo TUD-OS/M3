@@ -48,7 +48,7 @@ int main() {
         uintptr_t virt = 0x30000000;
         Errors::Code res = VPE::self().pager()->map_anon(&virt, PAGES * PAGE_SIZE,
             Pager::READ, 0);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             exitmsg("Unable to map anonymous memory");
 
         anon = do_bench(0, reinterpret_cast<char*>(virt));
@@ -56,14 +56,14 @@ int main() {
 
     {
         FileRef f("/zeros.bin", FILE_R);
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to open /zeros.bin");
 
         RegularFile *rfile = static_cast<RegularFile*>(&*f);
         uintptr_t virt = 0x31000000;
         Errors::Code res = VPE::self().pager()->map_ds(&virt, PAGES * PAGE_SIZE,
             Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             exitmsg("Unable to map /test.txt");
 
         file = do_bench(1, reinterpret_cast<char*>(virt));

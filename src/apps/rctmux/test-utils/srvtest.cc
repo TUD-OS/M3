@@ -35,7 +35,7 @@ static void start(VPE &v, int argc, const char **argv) {
     v.mountspace(*VPE::self().mountspace());
     v.obtain_mountspace();
     Errors::Code res = v.exec(argc, argv);
-    if(res != Errors::NO_ERROR)
+    if(res != Errors::NONE)
         PANIC("Cannot execute " << argv[0] << ": " << Errors::to_string(res));
 }
 
@@ -50,12 +50,12 @@ int main(int argc, char **argv) {
 
     const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
     VPE s1(args1[0], VPE::self().pe(), "pager", muxable);
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE");
 
     const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
     VPE s2(args2[0], VPE::self().pe(), "pager", muxable);
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE");
 
     if(VERBOSE) cout << "Starting VPEs...\n";

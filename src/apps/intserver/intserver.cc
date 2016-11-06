@@ -42,7 +42,7 @@ class IntEventHandler : public EventHandler<IntSessionData> {
 public:
     virtual Errors::Code handle_open(IntSessionData **sess, word_t arg) override {
         *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(arg));
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 };
 

@@ -60,7 +60,7 @@ public:
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, data.caps);
         data.caps = crd.value();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     virtual Errors::Code handle_obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
@@ -78,7 +78,7 @@ public:
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
         data.caps = crd.value();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void pf(GateIStream &is) {
@@ -124,13 +124,13 @@ public:
 
         // ask the dataspace what to do
         Errors::Code res = ds->handle_pf(virt);
-        if(res != Errors::NO_ERROR) {
+        if(res != Errors::NONE) {
             SLOG(PAGER, "Unable to handle pagefault: " << Errors::to_string(res));
             reply_error(is, res);
             return;
         }
 
-        reply_error(is, Errors::NO_ERROR);
+        reply_error(is, Errors::NONE);
     }
 
     void clone(GateIStream &is) {
@@ -139,7 +139,7 @@ public:
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::clone()");
 
         Errors::Code res = sess->clone();
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             SLOG(PAGER, "Clone failed: " << Errors::to_string(res));
 
         reply_error(is, res);
@@ -179,7 +179,7 @@ public:
         AnonDataSpace *ds = new AnonDataSpace(sess, virt, len, prot | flags);
         sess->add(ds);
 
-        reply_vmsg(is, Errors::NO_ERROR, virt);
+        reply_vmsg(is, Errors::NONE, virt);
     }
 
     capsel_t map_ds(AddrSpace *sess, size_t argc, const word_t *args, uintptr_t *virt) {
@@ -223,7 +223,7 @@ public:
         if(ds) {
             sess->remove(ds);
             delete ds;
-            res = Errors::NO_ERROR;
+            res = Errors::NONE;
         }
         else
             SLOG(PAGER, "No dataspace attached at " << fmt(virt, "p"));

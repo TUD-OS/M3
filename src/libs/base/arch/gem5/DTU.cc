@@ -105,10 +105,10 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
         off += amount;
 
         Errors::Code res = get_error();
-        if(EXPECT_FALSE(res != Errors::NO_ERROR))
+        if(EXPECT_FALSE(res != Errors::NONE))
             return res;
     }
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {

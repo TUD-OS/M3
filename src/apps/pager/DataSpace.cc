@@ -93,7 +93,7 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
     }
     else {
         // otherwise, there is nothing to do
-        return m3::Errors::NO_ERROR;
+        return m3::Errors::NONE;
     }
 
     return reg->map(flags());
@@ -161,7 +161,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
     }
     else {
         // otherwise, there is nothing to do
-        return m3::Errors::NO_ERROR;
+        return m3::Errors::NONE;
     }
 
     return reg->map(flags());

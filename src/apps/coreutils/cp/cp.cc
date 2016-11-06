@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     FileInfo info;
     Errors::Code res = VFS::stat(argv[argc - 1], info);
 
-    if(res == Errors::NO_ERROR && M3FS_ISDIR(info.mode)) {
+    if(res == Errors::NONE && M3FS_ISDIR(info.mode)) {
         for(int i = 1; i < argc - 1; ++i) {
             OStringStream dst;
             dst << argv[argc - 1] << "/";
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     else {
         if(argc > 3)
             exitmsg("Last argument is no directory, but multiple source files given");
-        if(VFS::stat(argv[1], info) != Errors::NO_ERROR)
+        if(VFS::stat(argv[1], info) != Errors::NONE)
             exitmsg("Stat for " << argv[1] << " failed");
         if(M3FS_ISDIR(info.mode))
             exitmsg("Second argument is no directory, but first is");

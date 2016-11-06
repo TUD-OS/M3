@@ -65,7 +65,7 @@ protected:
         sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->gate()->sel());
         data.caps = crd.value();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
 private:

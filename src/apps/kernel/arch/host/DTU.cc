@@ -80,7 +80,7 @@ m3::Errors::Code DTU::inval_ep_remote(const VPEDesc &vpe, epid_t ep) {
     memset(regs, 0, sizeof(regs));
     // TODO detect if credits are outstanding
     write_ep_remote(vpe, ep, regs);
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void DTU::read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
@@ -124,12 +124,12 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
 
 m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, uintptr_t &, m3::DTU::Header &) {
     // unused
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, const m3::DTU::Header &) {
     // unused
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
@@ -157,13 +157,13 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t crdep, word_t credits, 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.pe, 0, size);
     m3::DTU::get().write(_ep, data, size, 0, 0);
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.pe, 0, size);
     m3::DTU::get().read(_ep, data, size, 0, 0);
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void DTU::cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,

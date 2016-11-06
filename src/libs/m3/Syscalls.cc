@@ -161,7 +161,7 @@ Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, c
     auto *reply = reinterpret_cast<KIF::Syscall::CreateVPEReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(Errors::last == Errors::NO_ERROR)
+    if(Errors::last == Errors::NONE)
         pe = PEDesc(reply->pe);
 
     DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
@@ -193,7 +193,7 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, word_t *arg
     auto *reply = reinterpret_cast<KIF::Syscall::VPECtrlReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(op == KIF::Syscall::VCTRL_WAIT && Errors::last == Errors::NO_ERROR)
+    if(op == KIF::Syscall::VCTRL_WAIT && Errors::last == Errors::NONE)
         *arg = reply->exitcode;
 
     DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
@@ -244,7 +244,7 @@ Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, s
     auto *reply = reinterpret_cast<KIF::Syscall::ExchangeSessReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(Errors::last == Errors::NO_ERROR && argcount) {
+    if(Errors::last == Errors::NONE && argcount) {
         *argcount = reply->argcount;
         for(size_t i = 0; i < *argcount; ++i)
             args[i] = reply->args[i];
@@ -309,7 +309,7 @@ Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t
     auto *reply = reinterpret_cast<KIF::Syscall::ForwardMemReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(Errors::last == Errors::NO_ERROR && (~flags & KIF::Syscall::ForwardMem::WRITE))
+    if(Errors::last == Errors::NONE && (~flags & KIF::Syscall::ForwardMem::WRITE))
         memcpy(data, reply->data, len);
 
     DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));

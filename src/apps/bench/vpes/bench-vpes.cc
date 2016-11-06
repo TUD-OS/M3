@@ -54,7 +54,7 @@ int main() {
                 cycles_t end = Profile::stop(1);
                 return end - start2;
             });
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 exitmsg("VPE::run failed");
 
             int time = vpe.wait();
@@ -73,7 +73,7 @@ int main() {
             Errors::Code res = vpe.run([]() {
                 return 0;
             });
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 exitmsg("VPE::run failed");
 
             vpe.wait();
@@ -93,7 +93,7 @@ int main() {
             Errors::Code res = vpe.run([]() {
                 return 0;
             });
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 exitmsg("VPE::run failed");
 
             vpe.wait();
@@ -112,7 +112,7 @@ int main() {
             cycles_t start = Profile::start(4);
             const char *args[] = {"/bin/noop"};
             Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 exitmsg("Unable to load " << args[0]);
 
             vpe.wait();

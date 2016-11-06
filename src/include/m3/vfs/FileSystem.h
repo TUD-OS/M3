@@ -64,7 +64,7 @@ public:
      *
      * @param path the directory path
      * @param mode the permissions to assign
-     * @return Errors::NO_ERROR on success
+     * @return Errors::NONE on success
      */
     virtual Errors::Code mkdir(const char *path, mode_t mode) = 0;
 
@@ -72,7 +72,7 @@ public:
      * Removes the given directory. It needs to be empty.
      *
      * @param path the directory path
-     * @return Errors::NO_ERROR on success
+     * @return Errors::NONE on success
      */
     virtual Errors::Code rmdir(const char *path) = 0;
 
@@ -81,7 +81,7 @@ public:
      *
      * @param oldpath the existing path
      * @param newpath tne link to create
-     * @return Errors::NO_ERROR on success
+     * @return Errors::NONE on success
      */
     virtual Errors::Code link(const char *oldpath, const char *newpath) = 0;
 
@@ -89,7 +89,7 @@ public:
      * Removes the given file.
      *
      * @param path the path
-     * @return Errors::NO_ERROR on success
+     * @return Errors::NONE on success
      */
     virtual Errors::Code unlink(const char *path) = 0;
 };

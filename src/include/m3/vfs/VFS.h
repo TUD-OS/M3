@@ -45,7 +45,7 @@ public:
      *
      * @param path the path
      * @param fs the filesystem instance (has to be allocated on the heap; TODO keep that?)
-     * @return Errors::NO_ERROR on success
+     * @return Errors::NONE on success
      */
     static Errors::Code mount(const char *path, FileSystem *fs);
 

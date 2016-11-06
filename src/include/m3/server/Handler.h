@@ -66,7 +66,7 @@ public:
 protected:
     virtual Errors::Code handle_open(SESS **sess, word_t) {
         *sess = new SESS();
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
     virtual Errors::Code handle_obtain(SESS *, KIF::Service::ExchangeData &) {
         return Errors::NOT_SUP;
@@ -77,7 +77,7 @@ protected:
     virtual Errors::Code handle_close(SESS *sess) {
         remove_session(sess);
         delete sess;
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
     virtual void handle_shutdown() {
     }

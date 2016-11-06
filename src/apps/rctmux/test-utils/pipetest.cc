@@ -36,7 +36,7 @@ struct App {
     explicit App(int argc, const char *argv[], bool muxed)
         : argc(argc), argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", muxed) {
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");
     }
 
@@ -112,12 +112,12 @@ int main(int argc, char **argv) {
 
         // start service
         Errors::Code res = apps[0]->vpe.exec(apps[0]->argc, apps[0]->argv);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[0]->argv[0] << ": " << Errors::to_string(res));
 
         if(apps[1]) {
             res = apps[1]->vpe.exec(apps[1]->argc, apps[1]->argv);
-            if(res != Errors::NO_ERROR)
+            if(res != Errors::NONE)
                 PANIC("Cannot execute " << apps[1]->argv[0] << ": " << Errors::to_string(res));
         }
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
         apps[2]->vpe.mountspace(*VPE::self().mountspace());
         apps[2]->vpe.obtain_mountspace();
         res = apps[2]->vpe.exec(apps[2]->argc, apps[2]->argv);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[2]->argv[0] << ": " << Errors::to_string(res));
 
         // start reader
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
         apps[3]->vpe.mountspace(*VPE::self().mountspace());
         apps[3]->vpe.obtain_mountspace();
         res = apps[3]->vpe.exec(apps[3]->argc, apps[3]->argv);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[3]->argv[0] << ": " << Errors::to_string(res));
 
         pipe.close_writer();

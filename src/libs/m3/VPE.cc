@@ -67,7 +67,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
             _pager = new Pager(pager);
         else if(VPE::self().pager())
             _pager = VPE::self().pager()->create_clone();
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             return;
     }
 
@@ -167,7 +167,7 @@ void VPE::obtain_fds() {
 
 Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {
     Errors::Code res = Syscalls::get().exchange(sel(), crd, dest, false);
-    if(res == Errors::NO_ERROR) {
+    if(res == Errors::NONE) {
         for(capsel_t sel = 0; sel < crd.count(); ++sel) {
             if(!VPE::self().is_cap_free(sel + crd.start()))
                 _caps->set(dest + sel);

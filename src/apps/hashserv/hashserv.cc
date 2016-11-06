@@ -110,7 +110,7 @@ public:
         for(size_t id = 0; id < MAX_CLIENTS; ++id) {
             if(!(occupied & (1 << id))) {
                 *sess = new HashSessionData(id);
-                return Errors::NO_ERROR;
+                return Errors::NONE;
             }
         }
         return Errors::NO_SPACE;
@@ -126,7 +126,7 @@ public:
         capsel_t cap = sess->connect(_accel->get(), &_rgate);
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, cap, 1).value();
         data.argcount = 0;
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void create_hash(GateIStream &is) {

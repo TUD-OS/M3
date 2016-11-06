@@ -52,7 +52,7 @@ public:
      *
      * @param rgate the receive gate that hosts the message to reply to
      * @param msg the message to reply to
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code reply(RecvGate &rgate, const void *msg) {
         return rgate.reply(bytes(), total(),
@@ -158,7 +158,7 @@ public:
      * @param rgate the receive gate
      * @param err the error code
      */
-    explicit GateIStream(RecvGate &rgate, const DTU::Message *msg, Errors::Code err = Errors::NO_ERROR)
+    explicit GateIStream(RecvGate &rgate, const DTU::Message *msg, Errors::Code err = Errors::NONE)
         : _err(err), _ack(true), _pos(0), _rgate(&rgate), _msg(msg) {
     }
 
@@ -196,7 +196,7 @@ public:
     }
 
     /**
-     * @return the error that occurred (or Errors::NO_ERROR)
+     * @return the error that occurred (or Errors::NONE)
      */
     Errors::Code error() const {
         return _err;
@@ -253,7 +253,7 @@ public:
      * Replies the message constructed by <os> to this message
      *
      * @param os the GateOStream hosting the message to reply
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code reply(const GateOStream &os) const {
         return reply(os.bytes(), os.total());
@@ -263,7 +263,7 @@ public:
      *
      * @param data the message data
      * @param len the length of the message
-     * @return the error code or Errors::NO_ERROR
+     * @return the error code or Errors::NONE
      */
     Errors::Code reply(const void *data, size_t len) const {
         return _rgate->reply(data, len, DTU::get().get_msgoff(_rgate->ep(), _msg));
@@ -358,7 +358,7 @@ static inline Errors::Code reply_error(const GateIStream &is, m3::Errors::Code e
  * @param gate the gate to send to
  * @param data the message data
  * @param len the message length
- * @return the error code or Errors::NO_ERROR
+ * @return the error code or Errors::NONE
  */
 static inline Errors::Code send_msg(SendGate &gate, const void *data, size_t len) {
     EVENT_TRACER_send_msg();
@@ -388,7 +388,7 @@ static inline auto create_vmsg(const Args& ... args) -> StaticGateOStream<ostrea
  *
  * @param gate the gate to send to
  * @param args the arguments to put into the message
- * @return the error code or Errors::NO_ERROR
+ * @return the error code or Errors::NONE
  */
 template<typename... Args>
 static inline Errors::Code send_vmsg(SendGate &gate, const Args &... args) {
@@ -409,7 +409,7 @@ static inline Errors::Code reply_vmsg(const GateIStream &is, const Args &... arg
  * @param gate the memory gate
  * @param offset the offset to write to
  * @param args the arguments to marshall
- * @return the error code or Errors::NO_ERROR
+ * @return the error code or Errors::NONE
  */
 template<typename... Args>
 static inline Errors::Code write_vmsg(MemGate &gate, size_t offset, const Args &... args) {

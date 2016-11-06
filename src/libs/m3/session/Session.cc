@@ -23,7 +23,7 @@ namespace m3 {
 void Session::connect(const String &service, word_t arg) {
     capsel_t cap = VPE::self().alloc_cap();
     Errors::Code res = Syscalls::get().createsess(cap, service, arg);
-    if(res == Errors::NO_ERROR)
+    if(res == Errors::NONE)
         sel(cap);
     else
         VPE::self().free_cap(cap);

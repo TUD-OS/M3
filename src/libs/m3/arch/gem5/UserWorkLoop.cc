@@ -33,7 +33,7 @@ void UserWorkLoop::multithreaded(uint count) {
         ThreadManager::get().notify(event, &msg, sizeof(msg));
 
         KIF::DefaultReply reply;
-        reply.error = Errors::NO_ERROR;
+        reply.error = Errors::NONE;
         reply_msg(is, &reply, sizeof(reply));
     });
 

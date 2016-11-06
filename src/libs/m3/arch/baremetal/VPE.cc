@@ -115,7 +115,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     uintptr_t entry;
     size_t size;
     Errors::Code err = load(argc, argv, &entry, buffer, &size);
-    if(err != Errors::NO_ERROR) {
+    if(err != Errors::NONE) {
         Heap::free(buffer);
         return err;
     }
@@ -222,7 +222,7 @@ Errors::Code VPE::load_segment(ElfPh &pheader, char *buffer) {
 
     /* zero the rest */
     clear_mem(buffer, pheader.p_memsz - pheader.p_filesz, segoff);
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buffer, size_t *size) {
@@ -258,20 +258,20 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
         // create area for stack and boot/runtime stuff
         uintptr_t virt = RT_START;
         Errors::Code err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
-        if(err != Errors::NO_ERROR)
+        if(err != Errors::NONE)
             return err;
 
         // create heap
         virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
         err = _pager->map_anon(&virt, APP_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
-        if(err != Errors::NO_ERROR)
+        if(err != Errors::NONE)
             return err;
     }
 
     *size = store_arguments(buffer, argc, argv);
 
     *entry = header.e_entry;
-    return Errors::NO_ERROR;
+    return Errors::NONE;
 }
 
 size_t VPE::store_arguments(char *buffer, int argc, const char **argv) {

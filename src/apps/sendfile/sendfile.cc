@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
         exitmsg("Usage: " << argv[0] << " <file>...");
 
     MemGate mem = MemGate::create_global_for(DRAM_FILE_AREA, DRAM_FILE_AREA_LEN, MemGate::RW);
-    if(Errors::last != Errors::NO_ERROR)
+    if(Errors::last != Errors::NONE)
         exitmsg("Unable to request DRAM_BLOCKNO memory");
 
     for(int i = 1; i < argc; ++i) {
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
         }
 
         FileInfo info;
-        if(VFS::stat(argv[i], info) != Errors::NO_ERROR) {
+        if(VFS::stat(argv[i], info) != Errors::NONE) {
             cout << "Unable to stat '" << argv[i] << "': "
                 << Errors::to_string(Errors::last) << "\n";
             continue;

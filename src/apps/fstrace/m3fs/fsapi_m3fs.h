@@ -153,14 +153,14 @@ public:
         else
             exitmsg("Using uninitialized file/dir @ " << args->fd);
 
-        if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
+        if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
     virtual void stat(const stat_args_t *args, UNUSED int lineNo) override {
         m3::FileInfo info;
         int res = m3::VFS::stat(add_prefix(args->name), info);
-        if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
+        if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
@@ -170,19 +170,19 @@ public:
 
     virtual void unlink(const unlink_args_t *args, UNUSED int lineNo) override {
         int res = m3::VFS::unlink(add_prefix(args->name));
-        if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
+        if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
     virtual void rmdir(const rmdir_args_t *args, UNUSED int lineNo) override {
         int res = m3::VFS::rmdir(add_prefix(args->name));
-        if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
+        if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
     virtual void mkdir(const mkdir_args_t *args, UNUSED int lineNo) override {
         int res = m3::VFS::mkdir(add_prefix(args->name), 0777 /*args->mode*/);
-        if ((res == m3::Errors::NO_ERROR) != (args->err == 0))
+        if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 

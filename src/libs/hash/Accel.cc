@@ -40,10 +40,10 @@ uintptr_t AccelEMem::getRBAddr() {
 
 Accel *Accel::create() {
     Accel *acc = new AccelIMem(true);
-    if(Errors::last != Errors::NO_ERROR) {
+    if(Errors::last != Errors::NONE) {
         delete acc;
         acc = new AccelEMem(true);
-        if(Errors::last != Errors::NO_ERROR)
+        if(Errors::last != Errors::NONE)
             exitmsg("Unable to find accelerator");
     }
     return acc;

@@ -205,7 +205,7 @@ public:
 
         KIF::CapRngDesc crd;
         bool extended = false;
-        Errors::last = Errors::NO_ERROR;
+        Errors::last = Errors::NONE;
         m3::loclist_type *locs = INodes::get_locs(_handle, inode, offset, count, blocks,
             of->flags & MemGate::RWX, crd, extended);
         if(!locs) {
@@ -222,7 +222,7 @@ public:
             data.args[2 + i] = locs->get(i);
 
         of->caps.add(crd);
-        return Errors::NO_ERROR;
+        return Errors::NONE;
     }
 
     void open(GateIStream &is) {
@@ -272,7 +272,7 @@ public:
         fd = sess->request_fd(inode->inode, flags, inode->size, extent, off);
         SLOG(FS, fmt((word_t)sess, "#x") << ": -> fd=" << fd << ", inode=" << inode->inode
             << ", size=" << inode->size << ", extent=" << extent << ", extoff=" << off);
-        reply_vmsg(is, Errors::NO_ERROR, fd);
+        reply_vmsg(is, Errors::NONE, fd);
     }
 
     void seek(GateIStream &is) {
@@ -294,7 +294,7 @@ public:
         }
 
         off_t pos = INodes::seek(_handle, of->ino, off, whence, extent, extoff);
-        reply_vmsg(is, Errors::NO_ERROR, extent, extoff, pos + off);
+        reply_vmsg(is, Errors::NONE, extent, extoff, pos + off);
     }
 
     void stat(GateIStream &is) {
@@ -314,7 +314,7 @@ public:
 
         m3::FileInfo info;
         INodes::stat(_handle, ino, info);
-        reply_vmsg(is, Errors::NO_ERROR, info);
+        reply_vmsg(is, Errors::NONE, info);
     }
 
     void fstat(GateIStream &is) {
@@ -334,7 +334,7 @@ public:
 
         m3::FileInfo info;
         INodes::stat(_handle, of->ino, info);
-        reply_vmsg(is, Errors::NO_ERROR, info);
+        reply_vmsg(is, Errors::NONE, info);
     }
 
     void mkdir(GateIStream &is) {
@@ -347,7 +347,7 @@ public:
             << ", mode=" << fmt(mode, "o") << ")");
 
         Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             SLOG(FS, fmt((word_t)sess, "#x") << ": mkdir failed: " << Errors::to_string(res));
         reply_error(is, res);
     }
@@ -360,7 +360,7 @@ public:
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::rmdir(path=" << path << ")");
 
         Errors::Code res = Dirs::remove(_handle, path.c_str());
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             SLOG(FS, fmt((word_t)sess, "#x") << ": rmdir failed: " << Errors::to_string(res));
         reply_error(is, res);
     }
@@ -374,7 +374,7 @@ public:
             << ", newpath=" << newpath << ")");
 
         Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             SLOG(FS, fmt((word_t)sess, "#x") << ": link failed: " << Errors::to_string(res));
         reply_error(is, res);
     }
@@ -387,7 +387,7 @@ public:
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::unlink(path=" << path << ")");
 
         Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
-        if(res != Errors::NO_ERROR)
+        if(res != Errors::NONE)
             SLOG(FS, fmt((word_t)sess, "#x") << ": unlink failed: " << Errors::to_string(res));
         reply_error(is, res);
     }
@@ -424,7 +424,7 @@ public:
 
         sess->release_fd(fd);
 
-        reply_error(is, Errors::NO_ERROR);
+        reply_error(is, Errors::NONE);
     }
 
     virtual void handle_shutdown() override {

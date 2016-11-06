@@ -252,7 +252,7 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     update_ep(ep);
 
     m3::ThreadManager::get().notify(&obj);
-    return m3::Errors::NO_ERROR;
+    return m3::Errors::NONE;
 }
 
 void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
