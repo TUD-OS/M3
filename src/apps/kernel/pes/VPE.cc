@@ -243,6 +243,8 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
             return m3::Errors::INV_ARGS;
     }
 
+    // TODO zero the receive buffer first in case this memory is reused
+
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "RGate[addr=#" << m3::fmt(obj.addr, "x")
         << ", order=" << obj.order
