@@ -847,9 +847,13 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgate, Capability::SGATE));
     if(sgatecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid msg cap");
-    auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
-    if(rgatecap == nullptr)
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate cap");
+    epid_t rep = m3::DTU::DEF_REP;
+    if(rgate != m3::KIF::INV_SEL) {
+        auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
+        if(rgatecap == nullptr)
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate cap");
+        rep = rgatecap->obj->ep;
+    }
 
     epid_t ep = vpe->cap_ep(sgatecap);
     if(ep == 0)
@@ -870,7 +874,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     if(res == m3::Errors::NONE) {
         uint32_t sender = vpe->pe() | (vpe->id() << 8);
         DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, req->msg,
-            req->len, req->rlabel, rgatecap->obj->ep, sender);
+            req->len, req->rlabel, rep, sender);
 
         vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
     }
