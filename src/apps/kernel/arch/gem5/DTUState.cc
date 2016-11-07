@@ -76,8 +76,8 @@ void DTUState::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] &= ~(static_cast<m3::DTU::reg_t>(0xFFFF) << 16);
     r[0] |= vpe << 16;
-    r[1] &= ~(static_cast<m3::DTU::reg_t>(0xFF) << 24);
-    r[1] |= pe << 24;
+    r[1] &= ~(static_cast<m3::DTU::reg_t>(0xFF) << 40);
+    r[1] |= pe << 40;
     // TODO reduce credits
 }
 
