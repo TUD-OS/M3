@@ -69,9 +69,9 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Starting session creation...\n";
 
-    Session *sess[2];
-    SendGate *sgate[2];
-    const char *name[2];
+    Session *sess[2] = {nullptr, nullptr};
+    SendGate *sgate[2] = {nullptr, nullptr};
+    const char *name[2] = {nullptr, nullptr};
 
     for(int i = 0; i < 2; ++i) {
         name[i] = i == 0 ? "srv1" : "srv2";
