@@ -69,7 +69,7 @@ if(!$f)
 
 if($mode == 'trace') {
     while(($line = fgets($f)) !== false) {
-        if(preg_match('/(\d+): (pe\d+\.cpu) (\S+) : 0x([a-f0-9]+)\s*@\s*.*?  :   (.*)$/', $line, $match)) {
+        if(preg_match('/(\d+): (pe\d+\.cpu) (\S+) : 0x([a-f0-9]+)\s*@\s*.+?\s*:\s*(.*)$/', $line, $match)) {
             $func = funcname(bchexdec($match[4]));
             printf("%7s: %s: %s : %s\n", $match[1], $match[2], $func, $match[5]);
         }
