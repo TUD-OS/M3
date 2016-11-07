@@ -66,10 +66,6 @@ public:
     static const size_t HEADER_SIZE         = sizeof(Header);
     static const size_t PACKET_SIZE         = 8;
 
-    // TODO not yet supported
-    static const int FLAG_NO_RINGBUF        = 0;
-    static const int FLAG_NO_HEADER         = 1;
-
     static const epid_t SYSC_EP             = 0;
     static const epid_t DEF_RECVEP          = 1;
     static const epid_t FIRST_FREE_EP       = 2;

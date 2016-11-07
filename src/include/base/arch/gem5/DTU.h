@@ -185,10 +185,6 @@ public:
 
     static const size_t HEADER_SIZE         = sizeof(Header);
 
-    // TODO not yet supported
-    static const int FLAG_NO_RINGBUF        = 0;
-    static const int FLAG_NO_HEADER         = 1;
-
     static const epid_t SYSC_SEP            = 0;
     static const epid_t NOTIFY_SEP          = 1;
     static const epid_t SYSC_REP            = 2;
