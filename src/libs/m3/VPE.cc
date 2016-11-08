@@ -107,7 +107,6 @@ void VPE::init() {
     _caps->set(1);
     _eps->set(DTU::SYSC_SEP);
     _eps->set(DTU::SYSC_REP);
-    _eps->set(DTU::NOTIFY_SEP);
     _eps->set(DTU::UPCALL_REP);
     _eps->set(DTU::DEF_REP);
 }

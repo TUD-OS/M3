@@ -45,7 +45,7 @@ class ContextSwitcher {
         S_RESTORE_DONE
     };
 
-    static const cycles_t REPORT_TIME       = 20000;
+    static const cycles_t YIELD_TIME        = 20000;
     static const cycles_t MAX_WAIT_TIME     = 50000;
     static const cycles_t INIT_WAIT_TIME    = 1000;
     static const int SIGNAL_WAIT_COUNT      = 50;
@@ -81,7 +81,7 @@ public:
 
     VPE *steal_vpe();
 
-    void update_report();
+    void update_yield();
 
 private:
     VPE* schedule();
@@ -104,7 +104,7 @@ private:
     cycles_t _wait_time;
     VPE *_idle;
     VPE *_cur;
-    bool _set_report;
+    bool _set_yield;
     static size_t _global_ready;
 };
 

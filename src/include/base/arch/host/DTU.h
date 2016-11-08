@@ -152,11 +152,10 @@ public:
     };
 
     static const epid_t SYSC_SEP                = 0;
-    static const epid_t NOTIFY_SEP              = 1;
-    static const epid_t SYSC_REP                = 2;
-    static const epid_t UPCALL_REP              = 3;
-    static const epid_t DEF_REP                 = 4;
-    static const epid_t FIRST_FREE_EP           = 5;
+    static const epid_t SYSC_REP                = 1;
+    static const epid_t UPCALL_REP              = 2;
+    static const epid_t DEF_REP                 = 3;
+    static const epid_t FIRST_FREE_EP           = 4;
 
     static DTU &get() {
         return inst;

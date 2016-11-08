@@ -69,11 +69,6 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     DTU::get().recv_msgs(ep(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_MSGSIZE_ORD);
 
-    buford = m3::getnextlog2(Platform::pe_count()) + VPE::NOTIFY_MSGSIZE_ORD;
-    bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().recv_msgs(m3::DTU::NOTIFY_SEP, reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, VPE::NOTIFY_MSGSIZE_ORD);
-
     buford = m3::nextlog2<1024>::val;
     bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(srvep(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
@@ -103,7 +98,6 @@ SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
     add_operation(m3::KIF::Syscall::FORWARD_MSG,    &SyscallHandler::forwardmsg);
     add_operation(m3::KIF::Syscall::FORWARD_MEM,    &SyscallHandler::forwardmem);
     add_operation(m3::KIF::Syscall::FORWARD_REPLY,  &SyscallHandler::forwardreply);
-    add_operation(m3::KIF::Syscall::IDLE,           &SyscallHandler::idle);
     add_operation(m3::KIF::Syscall::NOOP,           &SyscallHandler::noop);
 }
 
@@ -565,7 +559,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
     word_t arg = req->arg;
 
     static const char *opnames[] = {
-        "INIT", "START", "STOP", "WAIT"
+        "INIT", "START", "YIELD", "STOP", "WAIT"
     };
 
     LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tvpe
@@ -586,6 +580,15 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't start itself");
             vpecap->obj->start_app(arg);
             break;
+
+        case m3::KIF::Syscall::VCTRL_YIELD:
+            if(vpe != &*vpecap->obj)
+                SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Yield for other VPEs is prohibited");
+
+            // reply before the context switch
+            reply_result(vpe, msg, m3::Errors::NONE);
+            vpecap->obj->yield();
+            return;
 
         case m3::KIF::Syscall::VCTRL_STOP: {
             bool self = vpe == &*vpecap->obj;
@@ -1005,13 +1008,6 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     else
         reply_result(vpe, msg, res);
 #endif
-}
-
-void SyscallHandler::idle(VPE *vpe, const m3::DTU::Message *) {
-    EVENT_TRACER_Syscall_idle();
-    LOG_SYS(vpe, ": syscall::idle", "()");
-
-    vpe->yield();
 }
 
 void SyscallHandler::noop(VPE *vpe, const m3::DTU::Message *msg) {

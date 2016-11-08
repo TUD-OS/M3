@@ -66,7 +66,6 @@ public:
     void forwardmsg(VPE *vpe, const m3::DTU::Message *msg);
     void forwardmem(VPE *vpe, const m3::DTU::Message *msg);
     void forwardreply(VPE *vpe, const m3::DTU::Message *msg);
-    void idle(VPE *vpe, const m3::DTU::Message *msg);
     void noop(VPE *vpe, const m3::DTU::Message *msg);
 
 private:

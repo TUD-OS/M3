@@ -32,12 +32,6 @@ void VPE::init() {
     SGateObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << SYSC_MSGSIZE_ORD);
     config_snd_ep(m3::DTU::SYSC_SEP, mobj);
 
-    // configure notify endpoint
-    rgate.ep = m3::DTU::NOTIFY_SEP;
-    rgate.msgorder = rgate.order = NOTIFY_MSGSIZE_ORD;
-    mobj.credits = m3::DTU::CREDITS_UNLIM;
-    config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
-
     // attach syscall receive endpoint
     rgate.order = m3::nextlog2<SYSC_RBUF_SIZE>::val;
     rgate.msgorder = SYSC_RBUF_ORDER;

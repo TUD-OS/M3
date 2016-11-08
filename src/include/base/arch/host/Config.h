@@ -33,7 +33,7 @@
 #define MAX_RB_SIZE         32
 
 #define RCTMUX_ENTRY        0   // unused
-#define RCTMUX_REPORT       0   // unused
+#define RCTMUX_YIELD        0   // unused
 #define RCTMUX_FLAGS        0   // unused
 
 // this has to be large enough for forwarded memory reads

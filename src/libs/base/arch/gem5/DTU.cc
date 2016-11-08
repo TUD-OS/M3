@@ -24,26 +24,26 @@ namespace m3 {
 
 INIT_PRIO_DTU DTU DTU::inst;
 
-void DTU::try_sleep(bool report, uint64_t cycles) {
+void DTU::try_sleep(bool yield, uint64_t cycles) {
     // check for messages a few times
     for(int i = 0; i < 100; ++i) {
         if(read_reg(DtuRegs::MSG_CNT) > 0)
             return;
     }
 
-    uint64_t report_time = *reinterpret_cast<uint64_t*>(RCTMUX_REPORT);
-    if(report && report_time > 0) {
-        // if we want to wait longer than our report time, sleep first for a while until we report
-        if(cycles == 0 || cycles > report_time) {
+    uint64_t yield_time = *reinterpret_cast<uint64_t*>(RCTMUX_YIELD);
+    if(yield && yield_time > 0) {
+        // if we want to wait longer than our yield time, sleep first for a while until we yield
+        if(cycles == 0 || cycles > yield_time) {
             // sleep a bit
             uint64_t now = read_reg(DtuRegs::CUR_TIME);
             Sync::memory_barrier();
-            sleep(report_time);
+            sleep(yield_time);
             Sync::memory_barrier();
             uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
 
             // if we were waked up early, there is something to do
-            if(sleep_time < report_time)
+            if(sleep_time < yield_time)
                 return;
 
             // adjust the remaining sleep time
@@ -53,8 +53,8 @@ void DTU::try_sleep(bool report, uint64_t cycles) {
                 return;
         }
 
-        // if we still want to sleep, report that
-        m3::env()->backend->report_idle();
+        // if we still want to sleep, yield
+        m3::env()->backend->yield();
     }
 
     // note that the DTU checks again whether there actually are no messages, because we might

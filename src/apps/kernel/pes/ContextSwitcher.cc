@@ -70,7 +70,7 @@ size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
     : _muxable(Platform::pe(pe).supports_multictx()), _pe(pe), _state(S_IDLE), _count(), _ready(),
-      _timeout(), _wait_time(), _idle(), _cur(), _set_report() {
+      _timeout(), _wait_time(), _idle(), _cur(), _set_yield() {
     assert(pe > 0);
 }
 
@@ -214,16 +214,16 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     return false;
 }
 
-void ContextSwitcher::update_report() {
-    bool report = _global_ready > 0;
-    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && report != _set_report) {
-        KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating report=" << report);
+void ContextSwitcher::update_yield() {
+    bool yield = _global_ready > 0;
+    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield) {
+        KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating yield=" << yield);
 
-        // update idle_report and wake him up in case he was idling
-        _set_report = report;
-        uint64_t val = report ? REPORT_TIME : 0;
-        DTU::get().write_mem(_cur->desc(), RCTMUX_REPORT, &val, sizeof(val));
-        if(report)
+        // update yield time and wake him up in case he was idling
+        _set_yield = yield;
+        uint64_t val = yield ? YIELD_TIME : 0;
+        DTU::get().write_mem(_cur->desc(), RCTMUX_YIELD, &val, sizeof(val));
+        if(yield)
             DTU::get().wakeup(_cur->desc());
     }
 }
@@ -349,7 +349,7 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && (_set_report = migvpe || _global_ready > 0)) ? REPORT_TIME : 0;
+            uint64_t report = (can_mux() && (_set_yield = migvpe || _global_ready > 0)) ? YIELD_TIME : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
 
             // tell rctmux whether there is an application and the PE id

@@ -41,17 +41,6 @@ static void write_env_file(pid_t pid, peid_t pe, label_t label, epid_t ep) {
 }
 
 void VPE::init() {
-    if(ep_addr() == 0)
-        return;
-
-    // configure notify endpoint
-    RGateObject rgate(NOTIFY_MSGSIZE_ORD, NOTIFY_MSGSIZE_ORD);
-    rgate.vpe = VPEManager::MAX_VPES;
-    rgate.addr = 1;  // has to be non-zero
-    rgate.ep = m3::DTU::NOTIFY_SEP;
-    rgate.add_ref(); // don't free this
-    SGateObject mobj(&rgate, reinterpret_cast<label_t>(this), 1 << NOTIFY_MSGSIZE_ORD);
-    config_snd_ep(m3::DTU::NOTIFY_SEP, mobj);
 }
 
 void VPE::load_app() {

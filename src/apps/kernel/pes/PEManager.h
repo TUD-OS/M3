@@ -50,7 +50,7 @@ public:
     bool unblock_vpe(VPE *vpe, bool force);
 
 private:
-    void update_report(size_t before);
+    void update_yield(size_t before);
     void deprivilege_pes();
 
     ContextSwitcher **_ctxswitcher;

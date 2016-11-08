@@ -186,11 +186,10 @@ public:
     static const size_t HEADER_SIZE         = sizeof(Header);
 
     static const epid_t SYSC_SEP            = 0;
-    static const epid_t NOTIFY_SEP          = 1;
-    static const epid_t SYSC_REP            = 2;
-    static const epid_t UPCALL_REP          = 3;
-    static const epid_t DEF_REP             = 4;
-    static const epid_t FIRST_FREE_EP       = 5;
+    static const epid_t SYSC_REP            = 1;
+    static const epid_t UPCALL_REP          = 2;
+    static const epid_t DEF_REP             = 3;
+    static const epid_t FIRST_FREE_EP       = 4;
 
     static DTU &get() {
         return inst;
@@ -255,7 +254,7 @@ public:
     uint msgcnt() {
         return read_reg(DtuRegs::MSG_CNT);
     }
-    void try_sleep(bool report = true, uint64_t cycles = 0);
+    void try_sleep(bool yield = true, uint64_t cycles = 0);
     void sleep(uint64_t cycles = 0) {
         write_reg(CmdRegs::OFFSET, cycles);
         Sync::memory_barrier();

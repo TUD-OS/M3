@@ -68,9 +68,9 @@ public:
         EVENT_TRACE_REINIT();
     }
 
-    void report_idle() override {
-        SendGate sg(ObjCap::INVALID, 0, nullptr, DTU::SYSC_SEP);
-        send_vmsg(sg, m3::KIF::Syscall::IDLE);
+    void yield() override {
+        word_t arg = 0;
+        Syscalls::get().vpectrl(0, KIF::Syscall::VCTRL_YIELD, &arg);
     }
 
     void exit(int code) override {

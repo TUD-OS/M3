@@ -139,7 +139,6 @@ struct KIF {
             FORWARD_REPLY,
 
             // misc
-            IDLE,
             NOOP,
 
             COUNT
@@ -148,6 +147,7 @@ struct KIF {
         enum VPEOp {
             VCTRL_INIT,
             VCTRL_START,
+            VCTRL_YIELD,
             VCTRL_STOP,
             VCTRL_WAIT,
         };

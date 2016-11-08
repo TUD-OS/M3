@@ -418,7 +418,7 @@ m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *dat
 
 void DTU::write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify) {
     uint64_t vals[2] = {notify, flags};
-    write_mem(vpe, RCTMUX_REPORT, &vals, sizeof(vals));
+    write_mem(vpe, RCTMUX_YIELD, &vals, sizeof(vals));
 }
 
 void DTU::write_swflags(const VPEDesc &vpe, uint64_t flags) {

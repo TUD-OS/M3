@@ -43,12 +43,12 @@ void PEManager::init() {
     }
 }
 
-void PEManager::update_report(size_t before) {
+void PEManager::update_yield(size_t before) {
     if((before == 0 && ContextSwitcher::global_ready() > 0) ||
        (before > 0 && ContextSwitcher::global_ready() == 0)) {
         for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
             if(_ctxswitcher[i])
-                _ctxswitcher[i]->update_report();
+                _ctxswitcher[i]->update_yield();
         }
     }
 }
@@ -60,7 +60,7 @@ void PEManager::add_vpe(VPE *vpe) {
     if(ctx)
         ctx->add_vpe(vpe);
 
-    update_report(global);
+    update_yield(global);
 }
 
 void PEManager::remove_vpe(VPE *vpe) {
@@ -70,7 +70,7 @@ void PEManager::remove_vpe(VPE *vpe) {
     if(ctx)
         ctx->remove_vpe(vpe);
 
-    update_report(global);
+    update_yield(global);
 }
 
 void PEManager::start_vpe(VPE *vpe) {
@@ -80,7 +80,7 @@ void PEManager::start_vpe(VPE *vpe) {
     if(ctx)
         ctx->start_vpe(vpe);
 
-    update_report(global);
+    update_yield(global);
 }
 
 void PEManager::stop_vpe(VPE *vpe) {
@@ -90,7 +90,7 @@ void PEManager::stop_vpe(VPE *vpe) {
     if(ctx)
         ctx->stop_vpe(vpe);
 
-    update_report(global);
+    update_yield(global);
 }
 
 bool PEManager::migrate_vpe(VPE *vpe) {
@@ -111,7 +111,7 @@ bool PEManager::migrate_vpe(VPE *vpe) {
     assert(ctx);
     ctx->add_vpe(vpe);
 
-    update_report(global);
+    update_yield(global);
     return true;
 }
 
@@ -147,7 +147,7 @@ void PEManager::yield_vpe(VPE *vpe) {
         }
     }
 
-    update_report(global);
+    update_yield(global);
 }
 
 bool PEManager::unblock_vpe(VPE *vpe, bool force) {
@@ -157,7 +157,7 @@ bool PEManager::unblock_vpe(VPE *vpe, bool force) {
     assert(ctx);
     bool res = ctx->unblock_vpe(vpe, force);
 
-    update_report(global);
+    update_yield(global);
     return res;
 }
 
