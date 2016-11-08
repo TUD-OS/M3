@@ -101,15 +101,15 @@ void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) 
     r[2] = 0;
 }
 
-void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t) {
+void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep,
+        size_t msgsize, word_t credits) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((vpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);
-    // TODO hand out "unlimited" credits atm
     r[1] = (static_cast<m3::DTU::reg_t>(pe & 0xFF) << 40) |
             (static_cast<m3::DTU::reg_t>(dstep & 0xFF) << 32) |
-            (m3::DTU::CREDITS_UNLIM << 16) |
-            m3::DTU::CREDITS_UNLIM;
+            (credits << 16) |
+            (credits << 0);
     r[2] = lbl;
 }
 

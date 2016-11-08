@@ -361,7 +361,7 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
         label_t replylbl, epid_t replyep, uint32_t sender) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
-    _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, msgsize);
+    _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
 
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
