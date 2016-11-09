@@ -875,7 +875,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe);
 
     if(res == m3::Errors::NONE) {
-        uint32_t sender = vpe->pe() | (vpe->id() << 8);
+        uint64_t sender = vpe->pe() | (vpe->id() << 8) | (ep << 24) | (static_cast<uint64_t>(rep) << 32);
         DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, req->msg,
             req->len, req->rlabel, rep, sender);
 
@@ -989,8 +989,10 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     res = wait_for(": syscall::forwardreply", tvpe, vpe);
 
     if(res == m3::Errors::NONE) {
-        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.senderEp, head.length,
-            head.replylabel, req->msg, len);
+        uint64_t sender = vpe->pe() | (vpe->id() << 8) |
+                        (static_cast<uint64_t>(head.senderEp) << 32) |
+                        (static_cast<uint64_t>(1) << 40);
+        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, req->msg, len, sender);
 
         while(vpe->state() != VPE::RUNNING) {
             if(!vpe->resume())

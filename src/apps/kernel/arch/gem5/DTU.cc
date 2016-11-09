@@ -359,7 +359,7 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep, uint32_t sender) {
+        label_t replylbl, epid_t replyep, uint64_t sender) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
@@ -367,9 +367,12 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_SIZE, size);
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_LABEL, replylbl);
-    m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_EP, replyep);
-    if(sender == static_cast<uint32_t>(-1))
-        sender = Platform::kernel_pe() | (VPEManager::MAX_VPES << 8);
+    if(sender == static_cast<uint64_t>(-1)) {
+        sender = Platform::kernel_pe() |
+                 (VPEManager::MAX_VPES << 8) |
+                 (_ep << 24) |
+                 (static_cast<uint64_t>(replyep) << 32);
+    }
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::OFFSET, sender);
     m3::Sync::compiler_barrier();
     m3::DTU::reg_t cmd = m3::DTU::get().buildCommand(_ep, m3::DTU::CmdOpCode::SEND);
@@ -396,9 +399,9 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         PANIC("Reply failed");
 }
 
-void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t, word_t, label_t label, const void *msg,
-        size_t size) {
-    send_to(vpe, ep, label, msg, size, 0, 0);
+void DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg, size_t size,
+        uint64_t sender) {
+    send_to(vpe, rep, label, msg, size, 0, 0, sender);
 }
 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {

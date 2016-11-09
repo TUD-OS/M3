@@ -78,7 +78,6 @@ void DTUState::forward_msg(epid_t ep, peid_t pe, vpeid_t vpe) {
     r[0] |= vpe << 16;
     r[1] &= ~(static_cast<m3::DTU::reg_t>(0xFF) << 40);
     r[1] |= pe << 40;
-    // TODO reduce credits
 }
 
 void DTUState::forward_mem(epid_t ep, peid_t pe) {
