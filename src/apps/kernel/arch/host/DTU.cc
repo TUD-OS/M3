@@ -142,16 +142,13 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep, uint32_t) {
+        label_t replylbl, epid_t replyep, uint64_t) {
     m3::DTU::get().configure(_ep, label, vpe.pe, ep, size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
 }
 
-void DTU::reply_to(const VPEDesc &vpe, epid_t ep, epid_t crdep, word_t credits, label_t label,
-    const void *msg, size_t size) {
-    m3::DTU::get().configure(_ep, label, vpe.pe, ep, size + m3::DTU::HEADER_SIZE);
-    m3::DTU::get().sendcrd(_ep, crdep, credits);
-    m3::DTU::get().send(_ep, msg, size, 0, 0);
+void DTU::reply_to(const VPEDesc &, epid_t, label_t, const void *, size_t, uint64_t) {
+    // UNUSED
 }
 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {

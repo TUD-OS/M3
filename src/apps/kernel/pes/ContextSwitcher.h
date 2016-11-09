@@ -21,7 +21,7 @@
 
 namespace kernel {
 
-class Timeout;
+struct Timeout;
 class VPE;
 
 class ContextSwitcher {
