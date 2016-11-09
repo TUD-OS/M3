@@ -26,7 +26,7 @@ namespace kernel {
 
 SendQueue::~SendQueue() {
     // ensure that there are no messages left for this SendQueue in the receive buffer
-    DTU::get().drop_msgs(SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
+    DTU::get().drop_msgs(SyscallHandler::srvep(), reinterpret_cast<label_t>(this));
 
     if(_timeout)
         Timeouts::get().cancel(_timeout);
@@ -114,7 +114,7 @@ void *SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t s
     _cur_event = get_event(id);
     _inflight++;
 
-    sgate->send(msg, size, SyscallHandler::get().srvep(), reinterpret_cast<label_t>(this));
+    sgate->send(msg, size, SyscallHandler::srvep(), reinterpret_cast<label_t>(this));
     if(onheap)
         m3::Heap::free(const_cast<void*>(msg));
     return _cur_event;

@@ -77,9 +77,8 @@ void WorkLoop::run() {
 #endif
 
     m3::DTU &dtu = m3::DTU::get();
-    SyscallHandler &sysch = SyscallHandler::get();
-    epid_t sysep = sysch.ep();
-    epid_t srvep = sysch.srvep();
+    epid_t sysep = SyscallHandler::ep();
+    epid_t srvep = SyscallHandler::srvep();
     const m3::DTU::Message *msg;
     while(has_items()) {
         cycles_t sleep = Timeouts::get().sleep_time();
@@ -91,7 +90,7 @@ void WorkLoop::run() {
         if(msg) {
             // we know the subscriber here, so optimize that a bit
             VPE *vpe = reinterpret_cast<VPE*>(msg->label);
-            sysch.handle_message(vpe, msg);
+            SyscallHandler::handle_message(vpe, msg);
             m3::DTU::get().mark_read(sysep, reinterpret_cast<uintptr_t>(msg));
             EVENT_TRACE_FLUSH_LIGHT();
         }

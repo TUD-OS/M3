@@ -49,7 +49,7 @@ void VPE::load_app() {
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
-            write_env_file(getpid(), pe(), reinterpret_cast<label_t>(this), SyscallHandler::get().ep());
+            write_env_file(getpid(), pe(), reinterpret_cast<label_t>(this), SyscallHandler::ep());
             char **childargs = new char*[_argc + 1];
             size_t i = 0, j = 0;
             for(; i < _argc; ++i) {
@@ -70,7 +70,7 @@ void VPE::load_app() {
         }
     }
     else
-        write_env_file(_pid, pe(), reinterpret_cast<label_t>(this), SyscallHandler::get().ep());
+        write_env_file(_pid, pe(), reinterpret_cast<label_t>(this), SyscallHandler::ep());
 
     KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
 }

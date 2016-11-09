@@ -36,7 +36,7 @@ extern int int_target;
 
 namespace kernel {
 
-INIT_PRIO_USER(3) SyscallHandler SyscallHandler::_inst;
+SyscallHandler::handler_func SyscallHandler::_callbacks[m3::KIF::Syscall::COUNT];
 
 #define LOG_SYS(vpe, sysname, expr)                                                         \
         KLOG(SYSC, (vpe)->id() << ":" << (vpe)->name() << "@" << m3::fmt((vpe)->pe(), "X")  \
@@ -61,7 +61,7 @@ static const T *get_message(const m3::DTU::Message *msg) {
     return reinterpret_cast<const T*>(msg->data);
 }
 
-SyscallHandler::SyscallHandler() : _serv_ep(DTU::get().alloc_ep()) {
+void SyscallHandler::init() {
 #if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
     int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_MSGSIZE_ORD;
@@ -121,7 +121,7 @@ void SyscallHandler::handle_message(VPE *vpe, const m3::DTU::Message *msg) {
     m3::KIF::Syscall::Operation op = static_cast<m3::KIF::Syscall::Operation>(req->opcode);
 
     if(static_cast<size_t>(op) < sizeof(_callbacks) / sizeof(_callbacks[0]))
-        (this->*_callbacks[op])(vpe, msg);
+        _callbacks[op](vpe, msg);
     else
         reply_result(vpe, msg, m3::Errors::INV_ARGS);
 }

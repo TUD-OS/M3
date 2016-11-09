@@ -118,6 +118,7 @@ int main(int argc, char *argv[]) {
 
     if(fsimg)
         copyfromfs(MainMemory::get(), fsimg);
+    SyscallHandler::init();
     PEManager::create();
     VPEManager::create();
     VPEManager::get().init(argc - argstart - 1, argv + argstart + 1);

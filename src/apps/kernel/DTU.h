@@ -29,17 +29,13 @@ class VPE;
 class VPEDesc;
 
 class DTU {
-    explicit DTU() : _next_ep(m3::DTU::FIRST_FREE_EP), _ep(alloc_ep()) {
+    explicit DTU() : _ep(m3::DTU::UPCALL_REP) {
         init();
     }
 
 public:
     static DTU &get() {
         return _inst;
-    }
-
-    epid_t alloc_ep() {
-        return _next_ep++;
     }
 
     DTUState &state() {
@@ -118,7 +114,6 @@ private:
     void clear_pt(uintptr_t pt);
 #endif
 
-    epid_t _next_ep;
     epid_t _ep;
     DTUState _state;
     static DTU _inst;

@@ -24,62 +24,58 @@ namespace kernel {
 class VPE;
 
 class SyscallHandler {
-    explicit SyscallHandler();
+    SyscallHandler() = delete;
+
+    using handler_func = void (*)(VPE *vpe, const m3::DTU::Message *msg);
 
 public:
-    using handler_func = void (SyscallHandler::*)(VPE *vpe, const m3::DTU::Message *msg);
+    static void init();
 
-    static SyscallHandler &get() {
-        return _inst;
-    }
-
-    void add_operation(m3::KIF::Syscall::Operation op, handler_func func) {
-        _callbacks[op] = func;
-    }
-
-    void handle_message(VPE *vpe, const m3::DTU::Message *msg);
-
-    epid_t ep() const {
+    static epid_t ep() {
         // we can use it here because we won't issue syscalls ourself
         return m3::DTU::SYSC_SEP;
     }
-    epid_t srvep() const {
-        return _serv_ep;
+    static epid_t srvep() {
+        return m3::DTU::SYSC_REP;
     }
 
-    void pagefault(VPE *vpe, const m3::DTU::Message *msg);
-    void createsrv(VPE *vpe, const m3::DTU::Message *msg);
-    void createsess(VPE *vpe, const m3::DTU::Message *msg);
-    void createsessat(VPE *vpe, const m3::DTU::Message *msg);
-    void creatergate(VPE *vpe, const m3::DTU::Message *msg);
-    void createsgate(VPE *vpe, const m3::DTU::Message *msg);
-    void createmgate(VPE *vpe, const m3::DTU::Message *msg);
-    void createvpe(VPE *vpe, const m3::DTU::Message *msg);
-    void createmap(VPE *vpe, const m3::DTU::Message *msg);
-    void activate(VPE *vpe, const m3::DTU::Message *msg);
-    void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
-    void derivemem(VPE *vpe, const m3::DTU::Message *msg);
-    void exchange(VPE *vpe, const m3::DTU::Message *msg);
-    void delegate(VPE *vpe, const m3::DTU::Message *msg);
-    void obtain(VPE *vpe, const m3::DTU::Message *msg);
-    void revoke(VPE *vpe, const m3::DTU::Message *msg);
-    void forwardmsg(VPE *vpe, const m3::DTU::Message *msg);
-    void forwardmem(VPE *vpe, const m3::DTU::Message *msg);
-    void forwardreply(VPE *vpe, const m3::DTU::Message *msg);
-    void noop(VPE *vpe, const m3::DTU::Message *msg);
+    static void handle_message(VPE *vpe, const m3::DTU::Message *msg);
 
 private:
-    void reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size);
-    void reply_result(VPE *vpe, const m3::DTU::Message *msg, m3::Errors::Code code);
+    static void pagefault(VPE *vpe, const m3::DTU::Message *msg);
+    static void createsrv(VPE *vpe, const m3::DTU::Message *msg);
+    static void createsess(VPE *vpe, const m3::DTU::Message *msg);
+    static void createsessat(VPE *vpe, const m3::DTU::Message *msg);
+    static void creatergate(VPE *vpe, const m3::DTU::Message *msg);
+    static void createsgate(VPE *vpe, const m3::DTU::Message *msg);
+    static void createmgate(VPE *vpe, const m3::DTU::Message *msg);
+    static void createvpe(VPE *vpe, const m3::DTU::Message *msg);
+    static void createmap(VPE *vpe, const m3::DTU::Message *msg);
+    static void activate(VPE *vpe, const m3::DTU::Message *msg);
+    static void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
+    static void derivemem(VPE *vpe, const m3::DTU::Message *msg);
+    static void exchange(VPE *vpe, const m3::DTU::Message *msg);
+    static void delegate(VPE *vpe, const m3::DTU::Message *msg);
+    static void obtain(VPE *vpe, const m3::DTU::Message *msg);
+    static void revoke(VPE *vpe, const m3::DTU::Message *msg);
+    static void forwardmsg(VPE *vpe, const m3::DTU::Message *msg);
+    static void forwardmem(VPE *vpe, const m3::DTU::Message *msg);
+    static void forwardreply(VPE *vpe, const m3::DTU::Message *msg);
+    static void noop(VPE *vpe, const m3::DTU::Message *msg);
 
-    m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur);
-    m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
+    static void add_operation(m3::KIF::Syscall::Operation op, handler_func func) {
+        _callbacks[op] = func;
+    }
+
+    static void reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size);
+    static void reply_result(VPE *vpe, const m3::DTU::Message *msg, m3::Errors::Code code);
+
+    static m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur);
+    static m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
         const m3::KIF::CapRngDesc &c2, bool obtain);
-    void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
+    static void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
 
-    epid_t _serv_ep;
-    handler_func _callbacks[m3::KIF::Syscall::COUNT];
-    static SyscallHandler _inst;
+    static handler_func _callbacks[];
 };
 
 }

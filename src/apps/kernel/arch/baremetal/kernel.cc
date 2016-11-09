@@ -20,6 +20,7 @@
 #include "mem/MainMemory.h"
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "SyscallHandler.h"
 #include "WorkLoop.h"
 
 using namespace kernel;
@@ -37,6 +38,7 @@ int main(int argc, char *argv[]) {
     // create some worker threads
     m3::env()->workloop()->multithreaded(8);
 
+    SyscallHandler::init();
     PEManager::create();
     VPEManager::create();
     VPEManager::get().init(argc - 1, argv + 1);

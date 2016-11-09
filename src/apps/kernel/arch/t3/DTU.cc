@@ -162,9 +162,7 @@ void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstv
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
         label_t replylbl, epid_t replyep) {
     // TODO for some reason, we need to use a different EP here.
-    static epid_t tmpep = 0;
-    if(tmpep == 0)
-        tmpep = alloc_ep();
+    epid_t tmpep = m3::DTU::FIRST_FREE_EP;
     config_send_local(tmpep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
         size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(tmpep, msg, size, replylbl, replyep);
