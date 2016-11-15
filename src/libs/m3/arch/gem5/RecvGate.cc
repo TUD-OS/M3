@@ -23,7 +23,7 @@
 
 namespace m3 {
 
-void *RecvGate::allocate(size_t, size_t size) {
+void *RecvGate::allocate(epid_t, size_t size) {
     // TODO this assumes that we don't VPE::run between SPM and non-SPM PEs
     static uintptr_t nextbuf = 0;
     static size_t total = 0;

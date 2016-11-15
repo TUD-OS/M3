@@ -162,7 +162,7 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(msg);
     capsel_t dst = req->dst_sel;
     capsel_t rgate = req->rgate_sel;
-    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+    m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createsrv", "(dst=" << dst << ", rgate=" << rgate << ", name=" << name << ")");
 
@@ -194,7 +194,7 @@ void SyscallHandler::createsess(VPE *vpe, const m3::DTU::Message *msg) {
     auto req = get_message<m3::KIF::Syscall::CreateSess>(msg);
     capsel_t dst = req->dst_sel;
     word_t arg = req->arg;
-    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+    m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createsess", "(dst=" << dst << ", name=" << name << ", arg=" << arg << ")");
 
@@ -366,7 +366,7 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     m3::PEDesc::value_t pe = req->pe;
     epid_t ep = req->ep;
     bool tmuxable = req->muxable;
-    m3::String name(req->name, m3::Math::min(req->namelen, sizeof(req->name)));
+    m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createvpe", "(dst=" << dst << ", mgate=" << mgate
         << ", sgate=" << sgate << ", name=" << name
@@ -440,7 +440,7 @@ void SyscallHandler::createmap(VPE *vpe, const m3::DTU::Message *msg) {
     if(first >= total || first + pages <= first || first + pages > total)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Region of memory capability is invalid");
 
-    uintptr_t phys = m3::DTU::build_noc_addr(mgatecap->obj->pe, mgatecap->obj->addr + PAGE_SIZE * first);
+    gaddr phys = m3::DTU::build_noc_addr(mgatecap->obj->pe, mgatecap->obj->addr + PAGE_SIZE * first);
     CapTable &mcaps = vpecap->obj->mapcaps();
 
     auto mapcap = static_cast<MapCapability*>(mcaps.get(dst, Capability::MAP));
@@ -801,7 +801,8 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
     kreply.error = res;
     kreply.argcount = 0;
     if(res == m3::Errors::NONE) {
-        kreply.argcount = m3::Math::min(reply->data.argcount, ARRAY_SIZE(kreply.args));
+        kreply.argcount = m3::Math::min(static_cast<size_t>(reply->data.argcount),
+            ARRAY_SIZE(kreply.args));
         for(size_t i = 0; i < kreply.argcount; ++i)
             kreply.args[i] = reply->data.args[i];
     }
@@ -899,7 +900,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
 #else
     auto *req = get_message<m3::KIF::Syscall::ForwardMem>(msg);
     capsel_t mgate = req->mgate_sel;
-    size_t len = m3::Math::min(sizeof(req->data), req->len);
+    size_t len = m3::Math::min(sizeof(req->data), static_cast<size_t>(req->len));
     size_t offset = req->offset;
     uint flags = req->flags;
     word_t event = req->event;
@@ -960,7 +961,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     auto *req = get_message<m3::KIF::Syscall::ForwardReply>(msg);
     capsel_t rgate = req->rgate_sel;
     uintptr_t msgaddr = req->msgaddr;
-    size_t len = m3::Math::min(sizeof(req->msg), req->len);
+    size_t len = m3::Math::min(sizeof(req->msg), static_cast<size_t>(req->len));
     word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::forwardreply", "(rgate=" << rgate << ", len=" << len

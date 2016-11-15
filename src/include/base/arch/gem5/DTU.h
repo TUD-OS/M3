@@ -202,7 +202,7 @@ public:
         return noc & ((static_cast<uint64_t>(1) << 52) - 1);
     }
     static uint64_t build_noc_addr(peid_t pe, uintptr_t virt) {
-        return (static_cast<uintptr_t>(0x80 + pe) << 52) | virt;
+        return (static_cast<uint64_t>(0x80 + pe) << 52) | virt;
     }
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);

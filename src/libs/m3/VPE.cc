@@ -138,7 +138,7 @@ retry:
     return res;
 }
 
-size_t VPE::alloc_ep() {
+epid_t VPE::alloc_ep() {
     epid_t ep = _eps->first_clear();
     if(ep >= EP_COUNT)
         PANIC("No more free endpoints");

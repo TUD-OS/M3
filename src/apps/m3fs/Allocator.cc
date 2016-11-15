@@ -124,7 +124,7 @@ void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
         // first, align it to word-size
         uint32_t i = start & (perblock - 1);
         uint32_t begin = i;
-        uint32_t end = Math::min(i + count, perblock);
+        uint32_t end = Math::min(static_cast<uint32_t>(i + count), static_cast<uint32_t>(perblock));
         for(; (i % Bitmap::WORD_BITS) != 0 && i < end; ++i) {
             assert(bm.is_set(i));
             bm.unset(i);

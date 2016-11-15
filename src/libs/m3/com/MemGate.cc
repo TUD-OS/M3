@@ -50,7 +50,7 @@ MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) con
 
 Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint flags) {
     void *event = ThreadManager::get().get_wait_event();
-    size_t amount = Math::min(KIF::MAX_MSG_SIZE, len);
+    size_t amount = Math::min(static_cast<size_t>(KIF::MAX_MSG_SIZE), len);
     Errors::Code res = Syscalls::get().forwardmem(sel(), data, amount, offset, flags, event);
 
     // if this has been done, go to sleep and wait until the kernel sends us the upcall
