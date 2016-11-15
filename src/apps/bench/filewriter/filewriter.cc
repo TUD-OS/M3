@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
     cycles_t end1,start2,end2,start3;
     cycles_t start1 = Profile::start(0);
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
     {

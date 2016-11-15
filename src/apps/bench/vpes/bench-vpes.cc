@@ -31,9 +31,6 @@ using namespace m3;
 static cycles_t exec_time = 0;
 
 int main() {
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        exitmsg("Mounting root-fs failed");
-
     {
         for(int i = 0; i < COUNT; ++i) {
             cycles_t start = Profile::start(0);

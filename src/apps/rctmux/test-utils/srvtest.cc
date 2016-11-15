@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     bool muxable = argc > 1 && strcmp(argv[1], "1") == 0;
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
+    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
         PANIC("Cannot mount root fs");
 
     if(VERBOSE) cout << "Creating VPEs...\n";

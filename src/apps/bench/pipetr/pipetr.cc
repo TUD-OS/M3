@@ -41,9 +41,6 @@ int main(int argc, char **argv) {
     if(argc < 5)
         exitmsg("Usage: " << argv[0] << " <in> <out> <s> <r>");
 
-    if(VFS::mount("/", new M3FS("m3fs")) < 0)
-        exitmsg("Mounting root-fs failed");
-
     cycles_t apptime = 0;
     cycles_t start = Profile::start(0);
 
