@@ -17,7 +17,6 @@
 #include <base/stream/IStream.h>
 #include <base/util/Digits.h>
 #include <base/util/Math.h>
-#include <cstring>
 
 namespace m3 {
 

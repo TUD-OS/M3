@@ -18,8 +18,6 @@
 
 #include <base/stream/OStream.h>
 #include <base/Heap.h>
-#include <cstdlib>
-#include <cstring>
 
 namespace m3 {
 

@@ -20,8 +20,6 @@
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 
-#include <cstring>
-
 #include "common/traceplayer.h"
 #include "platform.h"
 

@@ -16,9 +16,9 @@
 
 #pragma once
 
+#include <sys/types.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 using uchar     = unsigned char;
 using ushort    = unsigned short;

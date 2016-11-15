@@ -21,6 +21,8 @@
 #include <m3/com/MemGate.h>
 #include <m3/com/RecvGate.h>
 
+#include <alloca.h>
+
 namespace m3 {
 
 /**

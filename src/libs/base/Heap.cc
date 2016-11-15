@@ -20,7 +20,6 @@
 #include <base/Heap.h>
 #include <base/DTU.h>
 #include <base/Panic.h>
-#include <cstring>
 
 #if defined(__t3__)
 #   include <base/RCTMux.h>
