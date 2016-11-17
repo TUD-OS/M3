@@ -90,7 +90,7 @@ void DTU::set_rw_barrier(const VPEDesc &, uintptr_t) {
     // unsupported
 }
 
-void DTU::config_pf_remote(const VPEDesc &, uint64_t, int) {
+void DTU::config_pf_remote(const VPEDesc &, gaddr_t, int) {
     // unsupported
 }
 

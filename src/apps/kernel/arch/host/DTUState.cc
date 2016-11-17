@@ -104,7 +104,7 @@ void DTUState::config_rwb(uintptr_t) {
     // not supported
 }
 
-void DTUState::config_pf(uint64_t, epid_t) {
+void DTUState::config_pf(gaddr_t, epid_t) {
     // not supported
 }
 

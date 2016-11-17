@@ -42,8 +42,8 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
 
     if(count == 0) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
-            uintptr_t addr = m3::DTU::noc_to_virt(reinterpret_cast<uintptr_t>(Platform::mod(i)));
-            peid_t pe = m3::DTU::noc_to_pe(reinterpret_cast<uintptr_t>(Platform::mod(i)));
+            uintptr_t addr = m3::DTU::gaddr_to_virt(Platform::mod(i));
+            peid_t pe = m3::DTU::gaddr_to_pe(Platform::mod(i));
             DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, &mods[i], sizeof(mods[i]));
 
             KLOG(KENV, "Module '" << mods[i].name << "':");
@@ -81,23 +81,23 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
     return nullptr;
 }
 
-static uint64_t alloc_mem(size_t size) {
+static gaddr_t alloc_mem(size_t size) {
     MainMemory::Allocation alloc = MainMemory::get().allocate(size, PAGE_SIZE);
     if(!alloc)
         PANIC("Not enough memory");
-    return m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
+    return m3::DTU::build_gaddr(alloc.pe(), alloc.addr);
 }
 
 static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offset) {
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file");
 
-    uintptr_t addr = m3::DTU::noc_to_virt(mod->addr + offset);
-    peid_t pe = m3::DTU::noc_to_pe(mod->addr + offset);
+    uintptr_t addr = m3::DTU::gaddr_to_virt(mod->addr + offset);
+    peid_t pe = m3::DTU::gaddr_to_pe(mod->addr + offset);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, data, size);
 }
 
-static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t size, bool clear) {
+static void copy_clear(const VPEDesc &vpe, gaddr_t dst, gaddr_t src, size_t size, bool clear) {
     if(clear)
         memset(buffer, 0, sizeof(buffer));
 
@@ -106,17 +106,17 @@ static void copy_clear(const VPEDesc &vpe, uintptr_t dst, uintptr_t src, size_t 
         size_t amount = m3::Math::min(rem, sizeof(buffer));
         // read it from src, if necessary
         if(!clear) {
-            DTU::get().read_mem(VPEDesc(m3::DTU::noc_to_pe(src), VPE::INVALID_ID),
-                m3::DTU::noc_to_virt(src), buffer, amount);
+            DTU::get().read_mem(VPEDesc(m3::DTU::gaddr_to_pe(src), VPE::INVALID_ID),
+                m3::DTU::gaddr_to_virt(src), buffer, amount);
         }
-        DTU::get().write_mem(vpe, m3::DTU::noc_to_virt(dst), buffer, amount);
+        DTU::get().write_mem(vpe, m3::DTU::gaddr_to_virt(dst), buffer, amount);
         src += amount;
         dst += amount;
         rem -= amount;
     }
 }
 
-static void map_segment(VPE &vpe, uint64_t phys, uintptr_t virt, size_t size, uint perms) {
+static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, uint perms) {
     if(Platform::pe(vpe.pe()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
         size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
@@ -163,7 +163,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
         if((copy && (perms & m3::DTU::PTE_W)) || pheader.p_filesz == 0) {
             // allocate memory
             size_t size = m3::Math::round_up((pheader.p_vaddr & PAGE_BITS) + pheader.p_memsz, PAGE_SIZE);
-            uintptr_t phys = alloc_mem(size);
+            gaddr_t phys = alloc_mem(size);
 
             // map it
             map_segment(vpe, phys, virt, size, perms);
@@ -181,7 +181,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
 
     if(needs_heap) {
         // create initial heap
-        uintptr_t phys = alloc_mem(MOD_HEAP_SIZE);
+        gaddr_t phys = alloc_mem(MOD_HEAP_SIZE);
         map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), MOD_HEAP_SIZE, m3::DTU::PTE_RW);
     }
 
@@ -197,9 +197,9 @@ static uintptr_t map_idle(VPE &vpe) {
         idle = new BootModule;
 
         // copy the ELF file
-        size_t size = m3::Math::round_up(tmp->size, PAGE_SIZE);
-        uintptr_t phys = alloc_mem(size);
-        copy_clear(VPEDesc(m3::DTU::noc_to_pe(phys), VPE::INVALID_ID), phys, tmp->addr, tmp->size, false);
+        size_t size = m3::Math::round_up(static_cast<size_t>(tmp->size), PAGE_SIZE);
+        gaddr_t phys = alloc_mem(size);
+        copy_clear(VPEDesc(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID), phys, tmp->addr, tmp->size, false);
 
         // remember the copy
         strcpy(idle->name, "rctmux");
@@ -228,12 +228,12 @@ void VPE::load_app() {
     if(Platform::pe(pe()).has_virtmem()) {
         // map runtime space
         uintptr_t virt = RT_START;
-        uintptr_t phys = alloc_mem(STACK_TOP - virt);
+        gaddr_t phys = alloc_mem(STACK_TOP - virt);
         map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
     }
 
     // load app
-    uint64_t entry = load_mod(*this, mod, !appFirst, true);
+    uintptr_t entry = load_mod(*this, mod, !appFirst, true);
 
     // count arguments
     int argc = 1;
@@ -288,13 +288,13 @@ void VPE::init_memory() {
         map_idle(*this);
     // PEs with virtual memory still need the rctmux flags
     else if(vm) {
-        uintptr_t phys = alloc_mem(PAGE_SIZE);
+        gaddr_t phys = alloc_mem(PAGE_SIZE);
         map_segment(*this, phys, RCTMUX_FLAGS & ~PAGE_MASK, PAGE_SIZE, m3::DTU::PTE_RW);
     }
 
     if(vm) {
         // map receive buffer
-        uintptr_t phys = alloc_mem(RECVBUF_SIZE);
+        gaddr_t phys = alloc_mem(RECVBUF_SIZE);
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
 

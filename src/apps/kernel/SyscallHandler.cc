@@ -440,7 +440,7 @@ void SyscallHandler::createmap(VPE *vpe, const m3::DTU::Message *msg) {
     if(first >= total || first + pages <= first || first + pages > total)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Region of memory capability is invalid");
 
-    gaddr phys = m3::DTU::build_noc_addr(mgatecap->obj->pe, mgatecap->obj->addr + PAGE_SIZE * first);
+    gaddr_t phys = m3::DTU::build_gaddr(mgatecap->obj->pe, mgatecap->obj->addr + PAGE_SIZE * first);
     CapTable &mcaps = vpecap->obj->mapcaps();
 
     auto mapcap = static_cast<MapCapability*>(mcaps.get(dst, Capability::MAP));

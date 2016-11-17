@@ -195,14 +195,14 @@ public:
         return inst;
     }
 
-    static size_t noc_to_pe(uint64_t noc) {
+    static peid_t gaddr_to_pe(gaddr_t noc) {
         return (noc >> 52) - 0x80;
     }
-    static uintptr_t noc_to_virt(uint64_t noc) {
-        return noc & ((static_cast<uint64_t>(1) << 52) - 1);
+    static uintptr_t gaddr_to_virt(gaddr_t noc) {
+        return noc & ((static_cast<gaddr_t>(1) << 52) - 1);
     }
-    static uint64_t build_noc_addr(peid_t pe, uintptr_t virt) {
-        return (static_cast<uint64_t>(0x80 + pe) << 52) | virt;
+    static gaddr_t build_gaddr(peid_t pe, uintptr_t virt) {
+        return (static_cast<gaddr_t>(0x80 + pe) << 52) | virt;
     }
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);

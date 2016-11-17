@@ -63,7 +63,7 @@ void DTU::config_rwb_remote(const VPEDesc &, uintptr_t) {
     // unsupported
 }
 
-void DTU::config_pf_remote(const VPEDesc &, uint64_t, epid_t) {
+void DTU::config_pf_remote(const VPEDesc &, gaddr_t, epid_t) {
     // unsupported
 }
 

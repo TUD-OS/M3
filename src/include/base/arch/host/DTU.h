@@ -162,10 +162,10 @@ public:
     }
 
     /* unused */
-    static uintptr_t noc_to_virt(uint64_t) {
+    static uintptr_t gaddr_to_virt(gaddr_t) {
         return 0;
     }
-    static uint64_t build_noc_addr(int, uintptr_t) {
+    static gaddr_t build_gaddr(int, uintptr_t) {
         return 0;
     }
 

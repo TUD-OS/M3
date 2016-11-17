@@ -40,12 +40,12 @@ void DTU::do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
-void DTU::clear_pt(uintptr_t pt) {
+void DTU::clear_pt(gaddr_t pt) {
     // clear the pagetable
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
-    peid_t pe = m3::DTU::noc_to_pe(pt);
-    uintptr_t addr = m3::DTU::noc_to_virt(pt);
+    peid_t pe = m3::DTU::gaddr_to_pe(pt);
+    uintptr_t addr = m3::DTU::gaddr_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
         write_mem(VPEDesc(pe, VPE::INVALID_ID), addr + i * sizeof(buffer), buffer, sizeof(buffer));
 }
@@ -92,7 +92,7 @@ void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
 }
 
-void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
+void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t ep) {
     static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
     static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
@@ -101,9 +101,9 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
     clear_pt(rootpt);
 
     // insert recursive entry
-    uintptr_t addr = m3::DTU::noc_to_virt(rootpt);
+    uintptr_t addr = m3::DTU::gaddr_to_virt(rootpt);
     m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
-    write_mem(VPEDesc(m3::DTU::noc_to_pe(rootpt), VPE::INVALID_ID),
+    write_mem(VPEDesc(m3::DTU::gaddr_to_pe(rootpt), VPE::INVALID_ID),
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
 
     // init DTU registers
@@ -134,7 +134,7 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         assert(alloc);
 
         // clear PT
-        pte = m3::DTU::build_noc_addr(alloc.pe(), alloc.addr);
+        pte = m3::DTU::build_gaddr(alloc.pe(), alloc.addr);
         clear_pt(pte);
 
         // insert PTE
@@ -149,7 +149,7 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
 }
 
 bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
-        uintptr_t &phys, uint &pages, int perm) {
+        gaddr_t &phys, uint &pages, int perm) {
     // note that we can assume here that map_pages is always called for the same set of
     // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
     // only page 1. this is because we call map_pages with MapCapability, which can't
@@ -215,8 +215,8 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uint64_t root, uintptr_t virt, int level) {
-    uintptr_t pt = m3::DTU::noc_to_virt(root);
+uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level) {
+    uintptr_t pt = m3::DTU::gaddr_to_virt(root);
     for(int l = m3::DTU::LEVEL_CNT - 1; l >= 0; --l) {
         size_t idx = (virt >> (PAGE_BITS + m3::DTU::LEVEL_BITS * l)) & m3::DTU::LEVEL_MASK;
         pt += idx * m3::DTU::PTE_SIZE;
@@ -227,22 +227,22 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, uint64_t root, uintptr_t vir
         m3::DTU::pte_t pte;
         read_mem(vpe, pt, &pte, sizeof(pte));
 
-        pt = m3::DTU::noc_to_virt(pte & ~PAGE_MASK);
+        pt = m3::DTU::gaddr_to_virt(pte & ~PAGE_MASK);
     }
 
     UNREACHED;
 }
 
-void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm) {
+void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm) {
     bool running = vpe.pe == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
 
     VPEDesc rvpe(vpe);
-    uint64_t root = 0;
+    gaddr_t root = 0;
     if(!running) {
         VPE &v = VPEManager::get().vpe(vpe.id);
         // TODO we currently assume that all PTEs are in the same mem PE as the root PT
-        peid_t pe = m3::DTU::noc_to_pe(v.address_space()->root_pt());
+        peid_t pe = m3::DTU::gaddr_to_pe(v.address_space()->root_pt());
         root = v.address_space()->root_pt();
         rvpe = VPEDesc(pe, VPE::INVALID_ID);
     }

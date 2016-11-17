@@ -34,8 +34,8 @@ public:
     capsel_t gate() const {
         return _gate;
     }
-    uint64_t root_pt() const {
-        return m3::DTU::build_noc_addr(_rootpt.pe(), _rootpt.addr);
+    gaddr_t root_pt() const {
+        return m3::DTU::build_gaddr(_rootpt.pe(), _rootpt.addr);
     }
 
     epid_t _ep;

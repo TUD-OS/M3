@@ -235,9 +235,9 @@ public:
 
 class MapCapability : public SlabObject<MapCapability>, public Capability {
 public:
-    explicit MapCapability(CapTable *tbl, capsel_t sel, uintptr_t _phys, uint pages, uint _attr);
+    explicit MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint pages, uint _attr);
 
-    void remap(uintptr_t _phys, uint _attr);
+    void remap(gaddr_t _phys, uint _attr);
 
     void printInfo(m3::OStream &os) const override;
 
@@ -248,7 +248,7 @@ private:
     }
 
 public:
-    uintptr_t phys;
+    gaddr_t phys;
     uint attr;
 };
 

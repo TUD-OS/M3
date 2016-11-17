@@ -37,7 +37,7 @@ public:
     static peid_t first_pe();
     static peid_t last_pe();
 
-    static uintptr_t mod(size_t i) {
+    static gaddr_t mod(size_t i) {
         return _kenv.mods[i];
     }
     static size_t pe_count() {

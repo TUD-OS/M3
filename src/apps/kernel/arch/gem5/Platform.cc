@@ -31,8 +31,8 @@ static peid_t last_pe_id;
 
 Platform::KEnv::KEnv() {
     // read kernel env
-    peid_t pe = m3::DTU::noc_to_pe(m3::env()->kenv);
-    uintptr_t addr = m3::DTU::noc_to_virt(m3::env()->kenv);
+    peid_t pe = m3::DTU::gaddr_to_pe(m3::env()->kenv);
+    uintptr_t addr = m3::DTU::gaddr_to_virt(m3::env()->kenv);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, this, sizeof(*this));
 
     // register memory modules

@@ -124,7 +124,7 @@ void DTUState::config_rwb(uintptr_t addr) {
     _regs.set(m3::DTU::DtuRegs::RW_BARRIER, addr);
 }
 
-void DTUState::config_pf(uint64_t rootpt, epid_t ep) {
+void DTUState::config_pf(gaddr_t rootpt, epid_t ep) {
     uint features = 0;
     if(ep != static_cast<epid_t>(-1))
         features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);

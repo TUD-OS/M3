@@ -57,9 +57,9 @@ public:
     void injectIRQ(const VPEDesc &vpe);
 
     void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
-    void config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep);
+    void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t ep);
 
-    void map_pages(const VPEDesc &vpe, uintptr_t virt, uintptr_t phys, uint pages, int perm);
+    void map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
 
     m3::Errors::Code inval_ep_remote(const VPEDesc &vpe, epid_t ep);
@@ -107,11 +107,11 @@ private:
     bool create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, int perm);
     bool create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
-        uintptr_t &phys, uint &pages, int perm);
-    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, uint64_t root, uintptr_t virt, int level);
+        gaddr_t &phys, uint &pages, int perm);
+    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
-    void clear_pt(uintptr_t pt);
+    void clear_pt(gaddr_t);
 #endif
 
     epid_t _ep;
