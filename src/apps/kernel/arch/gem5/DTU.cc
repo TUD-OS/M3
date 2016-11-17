@@ -298,9 +298,10 @@ void DTU::write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
 }
 
 void DTU::write_ep_local(epid_t ep) {
-    memcpy(reinterpret_cast<void*>(m3::DTU::ep_regs_addr(ep)),
-           _state.get_ep(ep),
-           sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
+    m3::DTU::reg_t *src = reinterpret_cast<m3::DTU::reg_t*>(_state.get_ep(ep));
+    m3::DTU::reg_t *dst = reinterpret_cast<m3::DTU::reg_t*>(m3::DTU::ep_regs_addr(ep));
+    for(size_t i = 0; i < m3::DTU::EP_REGS; ++i)
+        dst[i] = src[i];
 }
 
 void DTU::drop_msgs(epid_t ep, label_t label) {
