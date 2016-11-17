@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <sys/types.h>
-#include <stddef.h>
 #include <stdint.h>
 
 using uchar     = unsigned char;
@@ -26,6 +24,9 @@ using uint      = unsigned int;
 using ulong     = unsigned long;
 using llong     = long long;
 using ullong    = unsigned long long;
+
+using size_t    = unsigned long;
+using ssize_t   = long;
 
 using word_t    = unsigned long;
 using label_t   = word_t;
