@@ -28,8 +28,8 @@ public:
     struct KEnv {
         explicit KEnv();
 
-        uintptr_t mods[MAX_MODS];
-        size_t pe_count;
+        uint64_t mods[MAX_MODS];
+        uint64_t pe_count;
         m3::PEDesc pes[MAX_PES];
     } PACKED;
 

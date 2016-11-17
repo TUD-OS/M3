@@ -136,7 +136,7 @@ void Env::reset() {
 }
 
 Env::Env(EnvBackend *backend, int logfd)
-        : pe(set_inst(this)), backend(backend), _logfd(logfd), _shm_prefix(),
+        : pe(set_inst(this)), _backend(backend), _logfd(logfd), _shm_prefix(),
           _sysc_label(), _sysc_epid(), _sysc_credits(),
           _log_mutex(PTHREAD_MUTEX_INITIALIZER) {
 }
@@ -185,7 +185,7 @@ void Env::print() const {
 }
 
 Env::~Env() {
-    delete backend;
+    delete _backend;
     if(is_kernel())
         stop_dtu();
 }

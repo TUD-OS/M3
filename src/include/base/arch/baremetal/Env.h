@@ -45,32 +45,36 @@ class Env {
 public:
     uint64_t pe;
     uint32_t argc;
-    char **argv;
+    uint64_t argv;
 
-    uintptr_t sp;
-    uintptr_t entry;
-    uintptr_t lambda;
+    uint64_t sp;
+    uint64_t entry;
+    uint64_t lambda;
     uint32_t pager_sess;
     uint32_t pager_gate;
     uint32_t mounts_len;
-    uintptr_t mounts;
+    uint64_t mounts;
     uint32_t fds_len;
-    uintptr_t fds;
-    uintptr_t eps;
-    uintptr_t caps;
-    uintptr_t exitaddr;
-    size_t heapsize;
+    uint64_t fds;
+    uint64_t eps;
+    uint64_t caps;
+    uint64_t exitaddr;
+    uint64_t heapsize;
 
-    BaremetalEnvBackend *backend;
-    uintptr_t kenv;
+    uint64_t _backend;
+    uint64_t kenv;
     PEDesc pedesc;
 
 #if defined(__gem5__)
     m3::Exceptions::isr_func *isrs;
 #endif
 
+    BaremetalEnvBackend *backend() {
+        return reinterpret_cast<BaremetalEnvBackend*>(_backend);
+    }
+
     WorkLoop *workloop() {
-        return backend->_workloop;
+        return backend()->_workloop;
     }
 
     static void run() asm("env_run");

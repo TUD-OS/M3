@@ -70,7 +70,7 @@ Errors::Code VPE::run(void *lambda) {
     alignas(DTU_PKG_SIZE) Env senv;
     senv.pe = 0;
     senv.argc = env()->argc;
-    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+    senv.argv = RT_SPACE_START;
     senv.sp = CPU::get_sp();
     senv.entry = get_entry();
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
@@ -85,7 +85,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.pager_gate = 0;
     senv.pager_sess = 0;
 
-    senv.backend = env()->backend;
+    senv._backend = env()->_backend;
     senv.pedesc = _pe;
 
     senv.heapsize = env()->heapsize;
@@ -95,7 +95,7 @@ Errors::Code VPE::run(void *lambda) {
 
     /* write args */
     char *buffer = (char*)Heap::alloc(BUF_SIZE);
-    size_t size = store_arguments(buffer, env()->argc, const_cast<const char**>(env()->argv));
+    size_t size = store_arguments(buffer, env()->argc, reinterpret_cast<const char**>(env()->argv));
     _mem.write(buffer, size, RT_SPACE_START);
     Heap::free(buffer);
 
@@ -122,7 +122,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     }
 
     senv.argc = argc;
-    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+    senv.argv = RT_SPACE_START;
     senv.sp = STACK_TOP;
     senv.entry = entry;
     senv.lambda = 0;
@@ -134,11 +134,11 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     senv.mounts = RT_SPACE_START + offset;
     senv.mounts_len = _ms->serialize(buffer + offset, RT_SPACE_SIZE - offset);
-    offset = Math::round_up(offset + senv.mounts_len, sizeof(word_t));
+    offset = Math::round_up(offset + static_cast<size_t>(senv.mounts_len), sizeof(word_t));
 
     senv.fds = RT_SPACE_START + offset;
     senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
-    offset = Math::round_up(offset + senv.fds_len, sizeof(word_t));
+    offset = Math::round_up(offset + static_cast<size_t>(senv.fds_len), sizeof(word_t));
 
     size_t eps_caps = Math::round_up(sizeof(*_caps), sizeof(word_t)) +
         Math::round_up(sizeof(*_eps), sizeof(word_t));
@@ -162,7 +162,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     senv.pager_sess = _pager ? _pager->sel() : 0;
     senv.pager_gate = _pager ? _pager->gate().sel() : 0;
 
-    senv.backend = nullptr;
+    senv._backend = 0;
     senv.pedesc = _pe;
 
     senv.heapsize = _pager ? APP_HEAP_SIZE : 0;
@@ -277,14 +277,14 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
 
 size_t VPE::store_arguments(char *buffer, int argc, const char **argv) {
     /* copy arguments and arg pointers to buffer */
-    char **argptr = (char**)buffer;
-    char *args = buffer + argc * sizeof(char*);
+    uint64_t *argptr = reinterpret_cast<uint64_t*>(buffer);
+    char *args = buffer + argc * sizeof(uint64_t);
     for(int i = 0; i < argc; ++i) {
         size_t len = strlen(argv[i]);
         if(args + len >= buffer + BUF_SIZE)
             return Errors::INV_ARGS;
         strcpy(args, argv[i]);
-        *argptr++ = (char*)(RT_SPACE_START + (args - buffer));
+        *argptr++ = RT_SPACE_START + (args - buffer);
         args += len + 1;
     }
     return args - buffer;

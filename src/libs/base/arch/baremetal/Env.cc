@@ -57,7 +57,7 @@ void Env::run() {
 
     int res;
     if(e->lambda) {
-        e->backend->reinit();
+        e->backend()->reinit();
 
         EVENT_TRACER_Lambda();
         std::function<int()> *f = reinterpret_cast<std::function<int()>*>(e->lambda);
@@ -66,11 +66,18 @@ void Env::run() {
     else {
         init_env(e);
         e->pre_init();
-        e->backend->init();
+        e->backend()->init();
         e->post_init();
 
         EVENT_TRACER_Main();
-        res = main(e->argc, e->argv);
+        char **argv = reinterpret_cast<char**>(e->argv);
+        if(sizeof(char*) != sizeof(uint64_t)) {
+            uint64_t *argv64 = reinterpret_cast<uint64_t*>(e->argv);
+            argv = new char*[e->argc];
+            for(uint64_t i = 0; i < e->argc; ++i)
+                argv[i] = reinterpret_cast<char*>(argv64[i]);
+        }
+        res = main(e->argc, argv);
     }
 
     e->exit(res);
@@ -80,7 +87,7 @@ void Env::run() {
 USED void Env::exit(int code) {
     pre_exit();
     __cxa_finalize(nullptr);
-    backend->exit(code);
+    backend()->exit(code);
     entry = 0;
     jmpto(exitaddr);
 }

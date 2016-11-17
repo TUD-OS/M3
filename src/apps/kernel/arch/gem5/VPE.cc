@@ -243,15 +243,15 @@ void VPE::load_app() {
     }
 
     // copy arguments and arg pointers to buffer
-    char **argptr = (char**)buffer;
-    char *args = buffer + argc * sizeof(char*);
+    uint64_t *argptr = reinterpret_cast<uint64_t*>(buffer);
+    char *args = buffer + argc * sizeof(uint64_t);
     char c;
     size_t i, off = args - buffer;
-    *argptr++ = (char*)(RT_SPACE_START + off);
+    *argptr++ = RT_SPACE_START + off;
     for(i = 0; i < sizeof(buffer) && (c = mod->name[i]); ++i) {
         if(c == ' ') {
             args[i] = '\0';
-            *argptr++ = (char*)(RT_SPACE_START + off + i + 1);
+            *argptr++ = RT_SPACE_START + off + i + 1;
         }
         else
             args[i] = c;
@@ -268,7 +268,7 @@ void VPE::load_app() {
     memset(&senv, 0, sizeof(senv));
 
     senv.argc = argc;
-    senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
+    senv.argv = RT_SPACE_START;
     senv.sp = STACK_TOP - sizeof(word_t);
     senv.entry = entry;
     senv.pedesc = Platform::pe(pe());

@@ -74,7 +74,10 @@ public:
     void reset();
 
     WorkLoop *workloop() {
-        return backend->_workloop;
+        return _backend->_workloop;
+    }
+    EnvBackend *backend() {
+        return _backend;
     }
 
     bool is_kernel() const {
@@ -119,10 +122,10 @@ private:
 
 public:
     peid_t pe;
-    EnvBackend *backend;
     PEDesc pedesc;
 
 private:
+    EnvBackend *_backend;
     int _logfd;
     String _shm_prefix;
     label_t _sysc_label;

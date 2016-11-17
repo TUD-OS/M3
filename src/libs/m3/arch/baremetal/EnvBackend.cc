@@ -40,7 +40,8 @@ public:
             ;
 
         // TODO argv is always present, isn't it?
-        Serial::init(env()->argv ? env()->argv[0] : "Unknown", env()->pe);
+        uint64_t *argv = reinterpret_cast<uint64_t*>(env()->argv);
+        Serial::init(argv ? reinterpret_cast<char*>(argv[0]) : "Unknown", env()->pe);
     }
 
     virtual void reinit() override {
@@ -56,7 +57,8 @@ public:
             def.order(), def.msgorder(), def.flags());
 #endif
 
-        Serial::init(env()->argv ? env()->argv[0] : "Unknown", senv->pe);
+        uint64_t *argv = reinterpret_cast<uint64_t*>(env()->argv);
+        Serial::init(argv ? reinterpret_cast<char*>(argv[0]) : "Unknown", senv->pe);
         EPMux::get().reset();
 #if defined(__t2__)
         DTU::get().reset();
@@ -79,7 +81,7 @@ public:
 };
 
 EXTERN_C void init_env(Env *e) {
-    e->backend = new EnvUserBackend();
+    e->_backend = reinterpret_cast<uint64_t>(new EnvUserBackend());
 }
 
 }

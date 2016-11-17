@@ -89,7 +89,7 @@ public:
 };
 
 EXTERN_C void init_env(m3::Env *e) {
-    e->backend = new BaremetalKEnvBackend();
+    e->_backend = reinterpret_cast<uint64_t>(new BaremetalKEnvBackend());
 }
 
 }

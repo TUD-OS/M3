@@ -85,7 +85,7 @@ USED void *Heap::try_alloc(size_t size) {
             break;
 
         // ok, try to extend the heap
-        if(!env()->backend->extend_heap(size))
+        if(!env()->backend()->extend_heap(size))
             return nullptr;
     }
 
