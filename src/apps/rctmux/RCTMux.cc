@@ -18,9 +18,6 @@
 #include <base/Env.h>
 #include <base/RCTMux.h>
 
-#include <assert.h>
-
-#include "Debug.h"
 #include "RCTMux.h"
 
 EXTERN_C void _start();
@@ -75,9 +72,6 @@ EXTERN_C void _sleep() {
 }
 
 EXTERN_C void _save(void *s) {
-    assert(flags_get() & m3::STORE);
-    assert(flags_get() & m3::WAITING);
-
     save();
 
     state = s;
@@ -88,7 +82,6 @@ EXTERN_C void _save(void *s) {
 
 static void *restore() {
     uint64_t flags = flags_get();
-    assert(flags & m3::WAITING);
 
     m3::Env *senv = m3::env();
     // remember the current PE (might have changed since last switch)
@@ -96,7 +89,6 @@ static void *restore() {
 
     if(!(status & STARTED)) {
         // if we get here, there is an application to jump to
-        assert(senv->entry != 0);
 
         // remember exit location
         senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
