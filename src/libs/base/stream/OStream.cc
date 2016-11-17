@@ -77,7 +77,7 @@ OStream::FormatParams::FormatParams(const char *fmt)
     }
 }
 
-int OStream::printsignedprefix(long n, uint flags) {
+int OStream::printsignedprefix(llong n, uint flags) {
     int count = 0;
     if(n > 0) {
         if(flags & FormatParams::FORCESIGN) {
@@ -104,7 +104,7 @@ int OStream::putspad(const char *s, uint pad, uint prec, uint flags) {
     return count;
 }
 
-int OStream::printnpad(long n, uint pad, uint flags) {
+int OStream::printnpad(llong n, uint pad, uint flags) {
     int count = 0;
     // pad left
     if(!(flags & FormatParams::PADRIGHT) && pad > 0) {
@@ -121,7 +121,7 @@ int OStream::printnpad(long n, uint pad, uint flags) {
     return count;
 }
 
-int OStream::printupad(ulong u, uint base, uint pad, uint flags) {
+int OStream::printupad(ullong u, uint base, uint pad, uint flags) {
     int count = 0;
     // pad left - spaces
     if(!(flags & FormatParams::PADRIGHT) && !(flags & FormatParams::PADZEROS) && pad > 0) {
@@ -164,9 +164,9 @@ int OStream::printpad(int count, uint flags) {
     return res;
 }
 
-USED int OStream::printu(ulong n, uint base, char *chars) {
-    long rem;
-    long quot = divide(n, base, &rem);
+USED int OStream::printu(ullong n, uint base, char *chars) {
+    llong rem;
+    llong quot = divide(n, base, &rem);
     int res = 0;
     if(n >= base)
         res += printu(quot, base, chars);
@@ -174,27 +174,7 @@ USED int OStream::printu(ulong n, uint base, char *chars) {
     return res + 1;
 }
 
-int OStream::printllu(ullong n, uint base, char *chars) {
-    llong rem;
-    llong quot = divide(n, base, &rem);
-    int res = 0;
-    if(n >= base)
-        res += printllu(quot, base, chars);
-    write(chars[rem]);
-    return res + 1;
-}
-
-int OStream::printlln(llong n) {
-    llong rem;
-    llong quot = divide(n, 10, &rem);
-    int res = 0;
-    if(n >= 10)
-        res += printlln(quot);
-    write(_hexchars_big[rem]);
-    return res + 1;
-}
-
-USED int OStream::printn(long n) {
+USED int OStream::printn(llong n) {
     int res = 0;
     if(n < 0) {
         write('-');
@@ -202,8 +182,8 @@ USED int OStream::printn(long n) {
         res++;
     }
 
-    long rem;
-    long quot = divide(n, 10, &rem);
+    llong rem;
+    llong quot = divide(n, 10, &rem);
     if(n >= 10)
         res += printn(quot);
     write('0' + rem);
@@ -224,7 +204,7 @@ int OStream::printfloat(float d, uint precision) {
         c += puts("inf", -1);
     else {
         llong val = (llong)d;
-        c += printlln(val);
+        c += printn(val);
         d -= val;
         write('.');
         c++;

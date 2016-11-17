@@ -250,26 +250,26 @@ public:
         return *this;
     }
     OStream & operator<<(uchar u) {
-        return operator<<(static_cast<ulong>(u));
+        return operator<<(static_cast<ullong>(u));
     }
     OStream & operator<<(short n) {
-        return operator<<(static_cast<long>(n));
+        return operator<<(static_cast<llong>(n));
     }
     OStream & operator<<(ushort u) {
-        return operator<<(static_cast<ulong>(u));
+        return operator<<(static_cast<ullong>(u));
     }
     OStream & operator<<(int n) {
-        return operator<<(static_cast<long>(n));
+        return operator<<(static_cast<llong>(n));
     }
     OStream & operator<<(uint u) {
-        return operator<<(static_cast<ulong>(u));
+        return operator<<(static_cast<ullong>(u));
     }
     OStream & operator<<(long n) {
         printn(n);
         return *this;
     }
     OStream & operator<<(llong n) {
-        printlln(n);
+        printn(n);
         return *this;
     }
     OStream & operator<<(ulong u) {
@@ -277,7 +277,7 @@ public:
         return *this;
     }
     OStream & operator<<(ullong u) {
-        printllu(u,10, _hexchars_small);
+        printu(u,10, _hexchars_small);
         return *this;
     }
     OStream & operator<<(float f) {
@@ -316,15 +316,13 @@ public:
     virtual void write(char c) = 0;
 
 private:
-    int printsignedprefix(long n, uint flags);
+    int printsignedprefix(llong n, uint flags);
     int putspad(const char *s, uint pad, uint prec, uint flags);
-    int printnpad(long n, uint pad, uint flags);
-    int printupad(ulong u, uint base, uint pad, uint flags);
+    int printnpad(llong n, uint pad, uint flags);
+    int printupad(ullong u, uint base, uint pad, uint flags);
     int printpad(int count, uint flags);
-    int printu(ulong n, uint base, char *chars);
-    int printllu(ullong n, uint base, char *chars);
-    int printn(long n);
-    int printlln(llong n);
+    int printu(ullong n, uint base, char *chars);
+    int printn(llong n);
     int printfloat(float d, uint precision);
     int printptr(uintptr_t u, uint flags);
     int puts(const char *str, ulong prec = -1);
