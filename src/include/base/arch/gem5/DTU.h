@@ -17,9 +17,9 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/Env.h>
 #include <base/util/Util.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
+#include <base/Env.h>
 #include <base/Errors.h>
 #include <assert.h>
 
@@ -234,7 +234,7 @@ public:
 
     Message *fetch_msg(epid_t ep) const {
         write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::FETCH_MSG));
-        Sync::memory_barrier();
+        CPU::memory_barrier();
         return reinterpret_cast<Message*>(read_reg(CmdRegs::OFFSET));
     }
 
@@ -245,19 +245,24 @@ public:
     void mark_read(epid_t ep, size_t off) {
         write_reg(CmdRegs::OFFSET, off);
         // ensure that we are really done with the message before acking it
-        Sync::memory_barrier();
+        CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::ACK_MSG));
         // ensure that we don't do something else before the ack
-        Sync::memory_barrier();
+        CPU::memory_barrier();
     }
 
     uint msgcnt() {
         return read_reg(DtuRegs::MSG_CNT);
     }
+
+    cycles_t tsc() const {
+        return read_reg(DtuRegs::CUR_TIME);
+    }
+
     void try_sleep(bool yield = true, uint64_t cycles = 0);
     void sleep(uint64_t cycles = 0) {
         write_reg(CmdRegs::OFFSET, cycles);
-        Sync::memory_barrier();
+        CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::SLEEP));
     }
 
@@ -274,14 +279,14 @@ public:
 
     void debug_msg(uint64_t msg) {
         write_reg(CmdRegs::OFFSET, msg);
-        Sync::memory_barrier();
+        CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::DEBUG_MSG));
     }
 
     void print(const char *str, size_t len) {
         write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(str));
         write_reg(CmdRegs::DATA_SIZE, len);
-        Sync::memory_barrier();
+        CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::PRINT));
     }
 
@@ -307,13 +312,7 @@ private:
         return read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + idx);
     }
     static reg_t read_reg(size_t idx) {
-        reg_t res;
-        asm volatile (
-            "mov (%1), %0"
-            : "=r"(res)
-            : "r"(BASE_ADDR + idx * sizeof(reg_t))
-        );
-        return res;
+        return CPU::read8b(BASE_ADDR + idx * sizeof(reg_t));
     }
 
     static void write_reg(DtuRegs reg, reg_t value) {
@@ -323,10 +322,7 @@ private:
         write_reg(static_cast<size_t>(reg), value);
     }
     static void write_reg(size_t idx, reg_t value) {
-        asm volatile (
-            "mov %0, (%1)"
-            : : "r"(value), "r"(BASE_ADDR + idx * sizeof(reg_t))
-        );
+        CPU::write8b(BASE_ADDR + idx * sizeof(reg_t), value);
     }
 
     static uintptr_t dtu_reg_addr(DtuRegs reg) {

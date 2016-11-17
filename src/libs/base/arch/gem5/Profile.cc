@@ -19,22 +19,16 @@
 
 namespace m3 {
 
-static cycles_t rdtsc() {
-    uint32_t u, l;
-    asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
-    return (cycles_t)u << 32 | l;
-}
-
 cycles_t Profile::start(unsigned msg) {
-    Sync::compiler_barrier();
+    CPU::compiler_barrier();
     DTU::get().debug_msg(START_TSC | msg);
-    return rdtsc();
+    return DTU::get().tsc();
 }
 
 cycles_t Profile::stop(unsigned msg) {
     DTU::get().debug_msg(STOP_TSC | msg);
-    cycles_t res = rdtsc();
-    Sync::compiler_barrier();
+    cycles_t res = DTU::get().tsc();
+    CPU::compiler_barrier();
     return res;
 }
 

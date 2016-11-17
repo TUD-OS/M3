@@ -15,8 +15,8 @@
  */
 
 #include <base/arch/host/SharedMemory.h>
-#include <base/util/Sync.h>
 #include <base/log/Services.h>
+#include <base/CPU.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/session/arch/host/Keyboard.h>
@@ -43,7 +43,7 @@ static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &) {
     unsigned *regs = reinterpret_cast<unsigned*>(kbdmem.addr());
     if(regs[KEYBOARD_CTRL] & KEYBOARD_RDY) {
         unsigned data = regs[KEYBOARD_DATA];
-        Sync::compiler_barrier();
+        CPU::compiler_barrier();
         regs[KEYBOARD_CTRL] &= ~KEYBOARD_RDY;
 
         Keyboard::Event ev;

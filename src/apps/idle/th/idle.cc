@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
 #include <base/Env.h>
 
 #include "print.h"

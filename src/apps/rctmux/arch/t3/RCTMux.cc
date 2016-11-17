@@ -15,7 +15,6 @@
  */
 
 #include <base/util/Math.h>
-#include <base/util/Sync.h>
 #include <base/util/Profile.h>
 #include <base/DTU.h>
 #include <base/Env.h>

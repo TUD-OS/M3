@@ -19,6 +19,7 @@
 #include <base/stream/Serial.h>
 #include <base/tracing/Tracing.h>
 #include <base/util/Profile.h>
+#include <base/CPU.h>
 #include <base/Init.h>
 
 #if defined(TRACE_ENABLED)
@@ -353,7 +354,7 @@ void Tracing::mem_write(size_t addr, const void * buf, size_t size) {
 
     DTU::get().wait_until_ready(SLOT_NO);
     DTU::get().set_target(SLOT_NO, MEMORY_CORE, addr);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     DTU::get().fire(SLOT_NO, DTU::WRITE, buf, size);
 
     // wait until the size-register has been decremented to 0
@@ -369,7 +370,7 @@ void Tracing::mem_read(size_t addr, void * buf, size_t size)
 
     DTU::get().wait_until_ready(SLOT_NO);
     DTU::get().set_target(SLOT_NO, MEMORY_CORE, addr);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     reinterpret_cast<unsigned char*>(buf)[size - 1] = 0xFF;
     DTU::get().fire(SLOT_NO, DTU::READ, buf, size);
 

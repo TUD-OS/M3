@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/DTU.h>
 #include <base/util/Math.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
+#include <base/DTU.h>
 
 #include <m3/com/MemGate.h>
 
@@ -35,7 +35,7 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
         write_reg(CmdRegs::DATA_ADDR, data);
         write_reg(CmdRegs::DATA_SIZE, amount);
         write_reg(CmdRegs::OFFSET, off);
-        Sync::compiler_barrier();
+        CPU::compiler_barrier();
         write_reg(CmdRegs::COMMAND, cmd);
 
         left -= amount;

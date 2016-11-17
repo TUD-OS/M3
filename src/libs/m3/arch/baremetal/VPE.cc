@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/CPU.h>
 #include <base/ELF.h>
 #include <base/Panic.h>
 
@@ -70,7 +71,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.pe = 0;
     senv.argc = env()->argc;
     senv.argv = reinterpret_cast<char**>(RT_SPACE_START);
-    senv.sp = get_sp();
+    senv.sp = CPU::get_sp();
     senv.entry = get_entry();
     senv.lambda = reinterpret_cast<uintptr_t>(lambda);
     senv.exitaddr = 0;

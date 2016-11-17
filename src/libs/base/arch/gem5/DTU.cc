@@ -15,7 +15,7 @@
  */
 
 #include <base/util/Math.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 #include <base/Init.h>
 #include <base/KIF.h>
@@ -37,9 +37,9 @@ void DTU::try_sleep(bool yield, uint64_t cycles) {
         if(cycles == 0 || cycles > yield_time) {
             // sleep a bit
             uint64_t now = read_reg(DtuRegs::CUR_TIME);
-            Sync::memory_barrier();
+            CPU::memory_barrier();
             sleep(yield_time);
-            Sync::memory_barrier();
+            CPU::memory_barrier();
             uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
 
             // if we were waked up early, there is something to do
@@ -54,7 +54,7 @@ void DTU::try_sleep(bool yield, uint64_t cycles) {
         }
 
         // if we still want to sleep, yield
-        m3::env()->backend->yield();
+        m3::env()->backend()->yield();
     }
 
     // note that the DTU checks again whether there actually are no messages, because we might
@@ -74,7 +74,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::REPLY_LABEL, replylbl);
     write_reg(CmdRegs::REPLY_EP, reply_ep);
-    Sync::compiler_barrier();
+    CPU::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::SEND));
 
     return get_error();
@@ -84,7 +84,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t off) {
     write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
     write_reg(CmdRegs::DATA_SIZE, size);
     write_reg(CmdRegs::OFFSET, off);
-    Sync::compiler_barrier();
+    CPU::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::REPLY));
 
     return get_error();
@@ -97,7 +97,7 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
         write_reg(CmdRegs::DATA_ADDR, data);
         write_reg(CmdRegs::DATA_SIZE, amount);
         write_reg(CmdRegs::OFFSET, off);
-        Sync::compiler_barrier();
+        CPU::compiler_barrier();
         write_reg(CmdRegs::COMMAND, cmd);
 
         left -= amount;

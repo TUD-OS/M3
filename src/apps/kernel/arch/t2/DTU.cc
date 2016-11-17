@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 #include "pes/VPEManager.h"
@@ -63,7 +63,7 @@ void DTU::wakeup(const VPEDesc &vpe) {
 
     // write the core id to the PE
     uint64_t id = log_to_phys(vpe.core);
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, RT_START, &id, sizeof(id));
 
     // configure syscall endpoint again
@@ -82,7 +82,7 @@ void DTU::suspend(const VPEDesc &) {
 void DTU::injectIRQ(const VPEDesc &vpe) {
     // inject an IRQ
     uint64_t val = 1;
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
@@ -105,7 +105,7 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
 void DTU::invalidate_ep(const VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     memset(&conf, 0, sizeof(conf));
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t addr = EPS_START + ep * sizeof(m3::EPConf);
     write_mem(vpe, addr, &conf, sizeof(conf));
 }
@@ -113,7 +113,7 @@ void DTU::invalidate_ep(const VPEDesc &vpe, epid_t ep) {
 void DTU::invalidate_eps(const VPEDesc &vpe, int first) {
     alignas(DTU_PKG_SIZE) char eps[EPS_SIZE];
     memset(eps, 0, sizeof(eps));
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     size_t start = first * sizeof(m3::EPConf);
     write_mem(vpe, EPS_START, eps + start, sizeof(eps) - start);
 }
@@ -144,7 +144,7 @@ void DTU::config_send_remote(const VPEDesc &vpe, epid_t ep, label_t label, int d
         size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_send(&conf, label, dstcore, dstvpe, dstep, msgsize, credits);
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t epaddr = EPS_START + ep * sizeof(m3::EPConf);
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }
@@ -165,7 +165,7 @@ void DTU::config_mem_local(epid_t ep, int dstcore, int dstvpe, uintptr_t addr, s
 void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstvpe, uintptr_t addr, size_t size, int perm) {
     alignas(DTU_PKG_SIZE) m3::EPConf conf;
     config_mem(&conf, dstcore, dstvpe, addr, size, perm);
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t epaddr = EPS_START + ep * sizeof(m3::EPConf);
     write_mem(vpe, epaddr, &conf, sizeof(conf));
 }

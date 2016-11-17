@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <base/util/Math.h>
+#include <base/CPU.h>
 #include <base/Env.h>
 #include <base/Panic.h>
 #include <string.h>
@@ -132,10 +133,7 @@ void Env::pre_exit() {
 }
 
 void Env::jmpto(uintptr_t addr) {
-    if(addr != 0)
-        asm volatile ("jx    %0" : : "r"(addr));
-    while(1)
-        asm volatile ("waiti 0");
+    CPU::jumpto(addr);
 }
 
 }

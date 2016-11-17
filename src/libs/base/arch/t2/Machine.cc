@@ -16,7 +16,6 @@
 
 #include <base/stream/Serial.h>
 #include <base/util/Math.h>
-#include <base/util/Sync.h>
 #include <base/DTU.h>
 #include <base/Machine.h>
 #include <cstring>

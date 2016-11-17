@@ -14,9 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
 #include <base/log/Lib.h>
 #include <base/tracing/Tracing.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 #include <base/Init.h>
 #include <base/KIF.h>
@@ -103,7 +103,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     head.core = env()->coreid;
     head.ep = reply_ep;
     set_target(SLOT_NO, cfg->dstcore, destaddr);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
 
     return Errors::NONE;
@@ -130,7 +130,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
     head.has_replycap = 0;
     head.core = env()->coreid;
     set_target(SLOT_NO, orgmsg->core, destaddr);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     fire(SLOT_NO, WRITE, &head, sizeof(head));
 
     return Errors::NONE;

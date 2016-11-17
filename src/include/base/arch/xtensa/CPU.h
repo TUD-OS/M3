@@ -16,31 +16,50 @@
 
 #pragma once
 
+#include <base/Common.h>
+#include <base/CPU.h>
+
 namespace m3 {
 
-/**
- * Synchronization primitives.
- */
-class Sync {
-public:
-    /**
-     * Prevents the compiler from reordering instructions. That is, the code-generator will put all
-     * preceding load and store commands before load and store commands that follow this call.
-     */
-    static inline void compiler_barrier() {
-        asm volatile ("" : : : "memory");
-    }
+inline uint64_t CPU::read8b(uintptr_t) {
+    // unused
+    return 0;
+}
 
-    static inline void memory_barrier() {
-#if defined(__t2__) or defined(__t3__)
-        asm volatile ("memw" : : : "memory");
-#else
-        asm volatile ("mfence" : : : "memory");
-#endif
-    }
+inline void CPU::write8b(uintptr_t, uint64_t) {
+    // unused
+}
 
-private:
-    Sync();
-};
+inline word_t CPU::get_sp() {
+    word_t val;
+    asm volatile (
+          "mov.n %0, a1;"
+          : "=a" (val)
+    );
+    return val;
+}
+
+inline word_t CPU::get_fp() {
+    // unused
+    return 0;
+}
+
+inline void CPU::jumpto(uintptr_t addr) {
+    asm volatile (
+        "jx    %0"
+        :
+        : "r"(addr)
+    );
+    UNREACHED;
+}
+
+inline void CPU::memory_barrier() {
+    asm volatile (
+        "memw"
+        :
+        :
+        : "memory"
+    );
+}
 
 }

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 namespace m3 {
@@ -34,14 +34,14 @@ public:
 
 #if defined(__t3__)
 inline cycles_t Profile::start(unsigned id) {
-    Sync::compiler_barrier();
+    CPU::compiler_barrier();
     DTU::get().debug_msg(START_TSC | id);
     return 0;
 }
 
 inline cycles_t Profile::stop(unsigned id) {
     DTU::get().debug_msg(STOP_TSC | id);
-    Sync::compiler_barrier();
+    CPU::compiler_barrier();
     return 0;
 }
 #endif

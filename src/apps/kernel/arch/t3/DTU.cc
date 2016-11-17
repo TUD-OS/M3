@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 #include "pes/VPE.h"
@@ -46,7 +46,7 @@ void DTU::unset_vpeid(const VPEDesc &) {
 void DTU::wakeup(const VPEDesc &vpe) {
     // write the core id to the PE
     uint64_t id = vpe.core;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, RT_START, &id, sizeof(id));
 
     injectIRQ(vpe);
@@ -58,7 +58,7 @@ void DTU::suspend(const VPEDesc &) {
 void DTU::injectIRQ(const VPEDesc &vpe) {
     // inject an IRQ
     uint64_t val = 1;
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
@@ -82,7 +82,7 @@ void DTU::invalidate_ep(const VPEDesc &vpe, epid_t ep) {
     memset(regs, 0, sizeof(regs));
     regs[OVERALL_SLOT_CFG] = (uint64_t)0xFFFFFFFF << 32;
 
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t addr = m3::DTU::get().get_external_cmd_addr(ep, 0);
     write_mem(vpe, addr, regs, sizeof(regs));
 }
@@ -129,7 +129,7 @@ void DTU::config_send_remote(const VPEDesc &vpe, epid_t ep, label_t label, int d
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_send(regs, label, dstcore, dstvpe, dstep, msgsize, credits);
 
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t epaddr = m3::DTU::get().get_external_cmd_addr(ep, 0);
     write_mem(vpe, epaddr, regs, sizeof(regs));
 }
@@ -154,7 +154,7 @@ void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstv
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_mem(regs, dstcore, dstvpe, addr, size, perms);
 
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     uintptr_t epaddr = m3::DTU::get().get_external_cmd_addr(ep, 0);
     write_mem(vpe, epaddr, regs, sizeof(regs));
 }

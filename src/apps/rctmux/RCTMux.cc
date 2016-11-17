@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/Env.h>
 #include <base/RCTMux.h>
 
@@ -50,7 +50,7 @@ EXTERN_C void *_start_app() {
         return restore();
 
     if(flags & m3::WAITING) {
-        m3::Sync::memory_barrier();
+        m3::CPU::memory_barrier();
         flags_set(m3::SIGNAL);
 
         // no application anymore; only reset that if the kernel actually requested that
@@ -64,12 +64,12 @@ EXTERN_C void *_start_app() {
 }
 
 EXTERN_C void _sleep() {
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     sleep();
 
     // it might happen that IRQs are issued late, so that, if we're idling, the STORE flag is set
     // when we get here. just wait until the IRQ is issued.
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     while(flags_get() & m3::STORE)
         ;
 }
@@ -82,7 +82,7 @@ EXTERN_C void _save(void *s) {
 
     state = s;
 
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     flags_set(m3::SIGNAL);
 }
 
@@ -109,7 +109,7 @@ static void *restore() {
         resume();
 
     // tell the kernel that we are ready
-    m3::Sync::memory_barrier();
+    m3::CPU::memory_barrier();
     flags_set(m3::SIGNAL);
 
     return state;

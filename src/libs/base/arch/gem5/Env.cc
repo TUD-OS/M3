@@ -16,6 +16,7 @@
 
 #include <base/Common.h>
 #include <base/arch/gem5/Exceptions.h>
+#include <base/CPU.h>
 #include <base/Env.h>
 
 typedef void (*constr_func)();
@@ -42,10 +43,7 @@ void Env::pre_exit() {
 }
 
 void Env::jmpto(uintptr_t addr) {
-    if(addr != 0)
-        asm volatile ("jmp *%0" : : "r"(addr));
-    while(1)
-        asm volatile ("hlt");
+    CPU::jumpto(addr);
 }
 
 }

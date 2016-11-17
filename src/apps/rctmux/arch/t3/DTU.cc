@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 // this is mostly taken from libm3 (arch/t3/DTU.cc)
@@ -50,9 +50,9 @@ Errors::Code DTU::read(epid_t ep, void *msg, size_t size, size_t off)
     config_local(ep, reinterpret_cast<uintptr_t>(msg), size, DTU_PKG_SIZE);
     fire(ep, READ, 1);
 
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     wait_until_ready(ep);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
 
     // restore old value
     store_to(ptr + 0, base);
@@ -71,9 +71,9 @@ Errors::Code DTU::write(epid_t ep, const void *msg, size_t size, size_t off)
     config_local(ep, reinterpret_cast<uintptr_t>(msg), 0, 0);
     fire(ep, WRITE, 1);
 
-    Sync::memory_barrier();
+    CPU::memory_barrier();
     wait_until_ready(ep);
-    Sync::memory_barrier();
+    CPU::memory_barrier();
 
     // restore old value
     store_to(ptr + 0, base);

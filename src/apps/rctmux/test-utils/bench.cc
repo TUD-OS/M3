@@ -17,7 +17,6 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/util/Sync.h>
 #include <base/util/Profile.h>
 #include <base/Panic.h>
 

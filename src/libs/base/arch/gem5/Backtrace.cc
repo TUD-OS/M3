@@ -17,14 +17,14 @@
 #include <base/util/Math.h>
 #include <base/Backtrace.h>
 #include <base/Config.h>
+#include <base/CPU.h>
 
 namespace m3 {
 
 const size_t Backtrace::CALL_INSTR_SIZE = 5;
 
 size_t Backtrace::collect(uintptr_t *addr, size_t max) {
-    uintptr_t bp;
-    asm volatile ("mov %%rbp,%0" : "=a" (bp));
+    uintptr_t bp = CPU::get_fp();
 
     uintptr_t stack = Math::round_dn<uintptr_t>(bp, STACK_SIZE);
     uintptr_t end = Math::round_up<uintptr_t>(bp, STACK_SIZE);

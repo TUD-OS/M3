@@ -29,15 +29,6 @@ extern "C" void *_iram0_text_start;
 extern "C" void *_text_end;
 extern "C" void *_dram0_rodata_start;
 
-word_t VPE::get_sp() {
-    word_t val;
-    asm volatile (
-          "mov.n %0, a1;"
-          : "=a" (val)
-    );
-    return val;
-}
-
 uintptr_t VPE::get_entry() {
     return (uintptr_t)&_ResetVector_text_start;
 }

@@ -324,7 +324,6 @@ private:
     size_t store_arguments(char *buffer, int argc, const char **argv);
 
     uintptr_t get_entry();
-    static word_t get_sp();
     static bool skip_section(ElfPh *ph);
     void copy_sections();
 

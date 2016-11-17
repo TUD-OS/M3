@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Sync.h>
 #include <base/util/Math.h>
 #include <base/log/Kernel.h>
 #include <base/ELF.h>

@@ -15,6 +15,7 @@
  */
 
 #include <base/Common.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 #include "pes/VPE.h"
@@ -54,7 +55,7 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // reset idle time and msg count; msg count will be recalculated from the EPs
     _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
 

@@ -17,7 +17,7 @@
 #include <base/Common.h>
 #include <base/log/Kernel.h>
 #include <base/util/Math.h>
-#include <base/util/Sync.h>
+#include <base/CPU.h>
 #include <base/DTU.h>
 
 #include "mem/MainMemory.h"
@@ -30,13 +30,13 @@ namespace kernel {
 
 void DTU::do_set_vpeid(const VPEDesc &vpe, vpeid_t nid) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = nid;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
 
 void DTU::do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = cmd;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
@@ -61,13 +61,13 @@ peid_t DTU::log_to_phys(peid_t pe) {
 void DTU::deprivilege(peid_t pe) {
     // unset the privileged flag
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t features = 0;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(VPEDesc(pe, VPE::INVALID_ID),
         m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), &features, sizeof(features));
 }
 
 cycles_t DTU::get_time() {
-    return m3::DTU::get().read_reg(m3::DTU::DtuRegs::CUR_TIME);
+    return m3::DTU::get().tsc();
 }
 
 void DTU::set_vpeid(const VPEDesc &vpe) {
@@ -88,7 +88,7 @@ void DTU::injectIRQ(const VPEDesc &vpe) {
 
 void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t barrier = addr;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
 }
 
@@ -114,7 +114,7 @@ void DTU::config_pf_remote(const VPEDesc &vpe, uint64_t rootpt, epid_t ep) {
     regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
     regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = ep;
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), regs, sizeof(regs));
 
     // invalidate TLB, because we have changed the root PT
@@ -183,7 +183,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
             // the endpoint
             alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
                 static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3);
-            m3::Sync::compiler_barrier();
+            m3::CPU::compiler_barrier();
             write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
         }
 
@@ -282,18 +282,18 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
 m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
         static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_EP) | (ep << 3);
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD);
     return try_write_mem(vpe, addr, &reg, sizeof(reg));
 }
 
 void DTU::read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     read_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
 void DTU::write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs) {
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     write_mem(vpe, m3::DTU::ep_regs_addr(ep), regs, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
 }
 
@@ -374,7 +374,7 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
                  (static_cast<uint64_t>(replyep) << 32);
     }
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::OFFSET, sender);
-    m3::Sync::compiler_barrier();
+    m3::CPU::compiler_barrier();
     m3::DTU::reg_t cmd = m3::DTU::get().buildCommand(_ep, m3::DTU::CmdOpCode::SEND);
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::COMMAND, cmd);
 

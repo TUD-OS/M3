@@ -29,15 +29,6 @@ extern "C" void *_text_end;
 extern "C" void *_data_start;
 extern "C" void *_bss_end;
 
-word_t VPE::get_sp() {
-    word_t val;
-    asm volatile (
-          "mov %%rsp,%0;"
-          : "=r" (val)
-    );
-    return val;
-}
-
 uintptr_t VPE::get_entry() {
     return (uintptr_t)&_text_start;
 }
@@ -63,7 +54,7 @@ void VPE::copy_sections() {
     _mem.write((void*)start_addr, Heap::end_area_size(), start_addr);
 
     /* copy stack */
-    start_addr = get_sp();
+    start_addr = CPU::get_sp();
     end_addr = STACK_TOP;
     _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
 }
