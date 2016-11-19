@@ -24,8 +24,6 @@
 
 namespace m3 {
 
-const size_t Backtrace::CALL_INSTR_SIZE = 3;
-
 static uintptr_t addr_from_ra(word_t ra, word_t sp) {
     return (ra & 0x3fffffff) | (sp & 0xc0000000);
 }
@@ -62,7 +60,7 @@ size_t Backtrace::collect(uintptr_t *addr, size_t max) {
     for(; i < max && a1 > sp_start && a1 < sp_end; ++i) {
         pc = addr_from_ra(a0, pc);
 
-        addr[i] = pc - CALL_INSTR_SIZE;
+        addr[i] = pc - 3;
 
         psp = (word_t*)a1;
         a0 = *(psp - 4);

@@ -21,23 +21,19 @@
 
 namespace m3 {
 
-const size_t Backtrace::CALL_INSTR_SIZE = 5;
-
 size_t Backtrace::collect(uintptr_t *addr, size_t max) {
-    uintptr_t bp = CPU::get_fp();
+    uintptr_t bp;
+    asm volatile ("mov %%rbp, %0;" : "=r" (bp));
 
-    uintptr_t stack = Math::round_dn<uintptr_t>(bp, STACK_SIZE);
+    uintptr_t base = Math::round_dn<uintptr_t>(bp, STACK_SIZE);
     uintptr_t end = Math::round_up<uintptr_t>(bp, STACK_SIZE);
     uintptr_t start = end - STACK_SIZE;
-    size_t i = 0;
-    for(; i < max; ++i) {
-        // prevent page-fault
-        if(bp < start || bp >= end)
-            break;
 
-        bp = stack + (bp & (STACK_SIZE - 1));
-        addr[i] = *(reinterpret_cast<uintptr_t*>(bp) + 1) - CALL_INSTR_SIZE;
-        bp = *reinterpret_cast<uintptr_t*>(bp);
+    size_t i = 0;
+    for(; bp >= start && bp < end && i < max; ++i) {
+        bp = base + (bp & (STACK_SIZE - 1));
+        addr[i] = reinterpret_cast<uintptr_t*>(bp)[1] - 5;
+        bp = reinterpret_cast<uintptr_t*>(bp)[0];
     }
     return i;
 }

@@ -11,7 +11,7 @@ fi
 
 t2pcip="$M3_SSH_PREFIX"th
 t2pcthip="$M3_SSH_PREFIX"thshell
-build=build/$M3_TARGET-$M3_BUILD
+build=build/$M3_TARGET-$M3_ISA-$M3_BUILD
 bindir=$build/bin
 
 if [ "$M3_TARGET" = "t2" ] || [ "$M3_TARGET" = "t3" ]; then
@@ -144,13 +144,17 @@ build_params_gem5() {
 
     params=`mktemp`
     echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
-    echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --cmd \"$cmd\"" >> $params
+    echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --isa $M3_ISA --cmd \"$cmd\"" >> $params
     echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
     if [ "$M3_PAUSE_PE" != "" ]; then
         echo -n " --pausepe=$M3_PAUSE_PE" >> $params
     fi
     if [ "$M3_GEM5_CC" != "" ]; then
         echo -n " --coherent" >> $params
+    fi
+
+    if [ "$M3_ISA" = "x86_64" ]; then
+        gem5build="X86"
     fi
 
     export M5_PATH=$build
@@ -160,10 +164,10 @@ build_params_gem5() {
         echo -n "run " >> $tmp
         cat $params >> $tmp
         echo >> $tmp
-        gdb --tui hw/gem5/build/X86/gem5.debug --command=$tmp
+        gdb --tui hw/gem5/build/$gem5build/gem5.debug --command=$tmp
         rm $tmp
     else
-        xargs -a $params hw/gem5/build/X86/gem5.opt
+        xargs -a $params hw/gem5/build/$gem5build/gem5.opt
     fi
 
     rm $params

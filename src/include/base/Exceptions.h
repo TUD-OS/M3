@@ -19,39 +19,17 @@
 #include <base/Common.h>
 #include <base/Config.h>
 
+#if defined(__x86_64__)
+#   include <base/arch/x86_64/ExceptionState.h>
+#else
+#   error "Unsupported ISA"
+#endif
+
 namespace m3 {
 
 class Exceptions {
 public:
-    /* the stack frame for the interrupt-handler */
-    struct State {
-        /* general purpose registers */
-        ulong r15;
-        ulong r14;
-        ulong r13;
-        ulong r12;
-        ulong r11;
-        ulong r10;
-        ulong r9;
-        ulong r8;
-        ulong rbp;
-        ulong rsi;
-        ulong rdi;
-        ulong rdx;
-        ulong rcx;
-        ulong rbx;
-        ulong rax;
-        /* interrupt-number */
-        ulong intrptNo;
-        /* error-code (for exceptions); default = 0 */
-        ulong errorCode;
-        /* pushed by the CPU */
-        ulong rip;
-        ulong cs;
-        ulong rflags;
-        ulong rsp;
-        ulong ss;
-    } PACKED;
+    typedef ExceptionState State;
 
     typedef void (*isr_func)(State *state);
 

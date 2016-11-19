@@ -23,7 +23,6 @@ namespace m3 {
 class OStream;
 
 class Backtrace {
-    static const size_t CALL_INSTR_SIZE;
     static const size_t MAX_DEPTH       = 10;
 
     Backtrace();

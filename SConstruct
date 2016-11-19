@@ -13,15 +13,19 @@ if target == 't2' or target == 't3':
     config = ConfigParser.RawConfigParser()
     config.readfp(StringIO.StringIO(ini_str))
 
+    if target == 't3':
+        core = 'Pe_4MB_128k_4irq'
+    else:
+        core = 'oi_lx4_PE_6'
     isa = 'xtensa'
-    cross = 'xtensa-buildroot-linux-uclibc'
+    cross = 'xtensa-buildroot-linux-uclibc-'
     crossdir = Dir(config.get('root', 'buildroot')).abspath + '/host/usr/'
     crossver = '5.3.0'
     runtime = 'sim' if target == 't3' else 'min-rt'
     configpath = Dir(config.get('root', 'cfgpath'))
     xtroot = Dir(config.get('root', 'xtroot'))
     tooldir = Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/bin')
-    crtdir = crossdir + '/lib/gcc/' + cross + '/' + crossver
+    crtdir = crossdir + '/lib/gcc/' + cross[:-1] + '/' + crossver
 elif target == 'gem5':
     isa = 'x86_64'
     cross = ''
@@ -32,17 +36,6 @@ else:
     target = 'host'
     cross = ''
     configpath = Dir('.')
-
-core = os.environ.get('M3_CORE')
-if core is None:
-    if target == 't3':
-        core = 'Pe_4MB_128k_4irq'
-    elif target == 't2':
-        core = 'oi_lx4_PE_6'
-    elif target == 'gem5':
-        core = 'x86_64'
-    else:
-        core = os.popen("uname -m").read().strip()
 
 # build basic environment
 baseenv = Environment(
@@ -114,30 +107,27 @@ if target == 't2' or target == 't3':
         CRTDIR = Dir(crtdir)
     )
     env.Replace(ENV = {'PATH' : crossdir + '/bin:' + tooldir.abspath + ':' + os.environ['PATH']})
-    env.Replace(CXX = cross + '-g++')
-    env.Replace(AS = cross + '-gcc')
-    env.Replace(FORTRAN = cross + '-gfortran')
-    env.Replace(F90 = cross + '-gfortran')
-    env.Replace(CC = cross + '-gcc')
-    env.Replace(LD = cross + '-ld')
-    env.Replace(AR = cross + '-gcc-ar')
-    env.Replace(RANLIB = cross + '-gcc-ranlib')
 else:
     env.Append(CXXFLAGS = ' -fno-omit-frame-pointer')
     if target == 'gem5':
-        # disable red-zone for all applications, because we use the application's stack in rctmux's
-        # IRQ handlers since applications run in privileged mode.
-        env.Append(CFLAGS = ' -mno-red-zone')
-        env.Append(CXXFLAGS = ' -mno-red-zone')
+        if isa == 'x86_64':
+            # disable red-zone for all applications, because we use the application's stack in rctmux's
+            # IRQ handlers since applications run in privileged mode.
+            env.Append(CFLAGS = ' -mno-red-zone')
+            env.Append(CXXFLAGS = ' -mno-red-zone')
         # no build-id because it confuses gem5
         env.Append(LINKFLAGS = ' -static -Wl,--build-id=none -nostdlib')
         # binaries get very large otherwise
         env.Append(LINKFLAGS = ' -Wl,-z,max-page-size=4096 -Wl,-z,common-page-size=4096')
-    env.Replace(CXX = 'g++')
-    env.Replace(CC = 'gcc')
-    env.Replace(AS = 'gcc')
-    env.Replace(AR = 'gcc-ar')
-    env.Replace(RANLIB = 'gcc-ranlib')
+
+env.Replace(CXX = cross + 'g++')
+env.Replace(AS = cross + 'gcc')
+env.Replace(CC = cross + 'gcc')
+env.Replace(LD = cross + 'ld')
+env.Replace(AR = cross + 'gcc-ar')
+env.Replace(RANLIB = cross + 'gcc-ranlib')
+env.Replace(FORTRAN = cross + 'gfortran')
+env.Replace(F90 = cross + 'gfortran')
 
 # add build-dependent flags (debug/release)
 btype = os.environ.get('M3_BUILD', 'release')
@@ -168,7 +158,7 @@ else:
         env.Append(LINKFLAGS = ' -O2 -flto')
     hostenv.Append(CXXFLAGS = ' -O3')
     hostenv.Append(CFLAGS = ' -O3')
-builddir = 'build/' + target + '-' + btype
+builddir = 'build/' + target + '-' + isa + '-' + btype
 
 if target == 't2' or target == 't3':
     archtype = 'th'
@@ -177,11 +167,9 @@ else:
 
 # add some important paths
 env.Append(
-    CROSS = cross,
     ARCH = target,
     ISA = isa,
     ARCHTYPE = archtype,
-    CORE = core,
     BUILD = btype,
     CFGS = configpath,
     BUILDDIR = Dir(builddir),
@@ -230,7 +218,7 @@ def M3Strip(env, target, source):
     return env.Command(
         target, source,
         Action(
-            cross + '-strip -o $TARGET $SOURCE',
+            cross + 'strip -o $TARGET $SOURCE',
             '$STRIPCOMSTR'
         )
     )

@@ -14,16 +14,18 @@ fi
 if [ -z $M3_TARGET ]; then
     M3_TARGET='host'
 fi
+
 if [ "$M3_TARGET" = "t3" ]; then
-    M3_CORE='Pe_4MB_128k_4irq'
+    M3_ISA='xtensa'
 elif [ "$M3_TARGET" = "t2" ]; then
-    M3_CORE='oi_lx4_PE_6'
+    M3_ISA='xtensa'
 elif [ "$M3_TARGET" = "gem5" ]; then
-    M3_CORE='x86_64'
+    M3_ISA='x86_64'
 else
     M3_CORE=`uname -m`
 fi
-export M3_BUILD M3_TARGET M3_CORE
+
+export M3_BUILD M3_TARGET M3_ISA
 
 if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
@@ -38,11 +40,16 @@ else
     fi
     tooldir=$xtroot/XtDevTools/install/tools/$toolversion/XtensaTools/bin
     export PATH=$tooldir:$PATH
-    export XTENSA_SYSTEM=$cfgpath/$M3_CORE/config
-    export XTENSA_CORE=$M3_CORE
+
+    if [ "$M3_TARGET" = "t3" ]; then
+        export XTENSA_CORE='Pe_4MB_128k_4irq'
+    else
+        export XTENSA_CORE='oi_lx4_PE_6'
+    fi
+    export XTENSA_SYSTEM=$cfgpath/$XTENSA_CORE/config
 fi
 
-build=build/$M3_TARGET-$M3_BUILD
+build=build/$M3_TARGET-$M3_ISA-$M3_BUILD
 bindir=$build/bin/
 
 help() {
@@ -50,8 +57,8 @@ help() {
     echo ""
     echo "This is a convenience script that is responsible for building everything"
     echo "and running the specified command afterwards. The most important environment"
-    echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5)"
-    echo "and M3_BUILD=(debug|release)."
+    echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5),"
+    echo "M3_ISA=(x86_64) [on gem5 only], and M3_BUILD=(debug|release)."
     echo "You can also prevent the script from building everything by specifying -n or"
     echo "--no-build. In this case, only the specified command is executed."
     echo "To build sequentially, i.e. with a single thread, use -s."
@@ -81,6 +88,8 @@ help() {
     echo "    M3_TARGET:               the target. Either 'host' for using the Linux-based"
     echo "                             coarse-grained simulator, or 'gem5' or 't2'/'t3' for"
     echo "                             tomahawk 2/3. The default is 'host'."
+    echo "    M3_ISA:                  the ISA to use. On gem5, 'x86_64' is"
+    echo "                             supported. On other targets, it is ignored."
     echo "    M3_BUILD:                the build-type. Either debug or release. In debug"
     echo "                             mode optimizations are disabled, debug infos are"
     echo "                             available and assertions are active. In release"
@@ -144,7 +153,7 @@ if [ "$cmd" = "clean" ] || [ "$cmd" = "distclean" ]; then
 fi
 
 if $dobuild; then
-    echo "Building for $M3_TARGET (core=$M3_CORE) in $M3_BUILD mode using $cpus jobs..."
+    echo "Building for $M3_TARGET-$M3_ISA-$M3_BUILD using $cpus jobs..."
 
     scons -j$cpus
     if [ $? -ne 0 ]; then
@@ -273,7 +282,7 @@ case "$cmd" in
             echo "target remote localhost:$port" > $gdbcmd
             echo "display/i \$pc" >> $gdbcmd
             echo "b main" >> $gdbcmd
-            gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+            ${crossprefix}gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
             killall -9 gem5.opt
             rm $gdbcmd
         elif [ "$M3_TARGET" = "t3" ]; then

@@ -17,11 +17,9 @@
 #pragma once
 
 #include <base/Common.h>
-#if defined(__gem5__)
-#   include <base/arch/gem5/Exceptions.h>
-#endif
 #include <base/Config.h>
 #include <base/EnvBackend.h>
+#include <base/Exceptions.h>
 #include <base/PEDesc.h>
 
 namespace m3 {

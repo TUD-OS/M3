@@ -29,6 +29,8 @@ elif env['ARCH'] == 'gem5':
         myenv,
         target = 'rctmux',
         source = [
+            env.Glob('arch/gem5-$ISA/*.S'),
+            env.Glob('arch/gem5-$ISA/*.cc'),
             env.Glob(archdir + '/*.S'),
             env.Glob(archdir + '/*.cc'),
             env.Glob('*.cc'),

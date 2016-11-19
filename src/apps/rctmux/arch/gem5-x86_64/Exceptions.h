@@ -17,8 +17,8 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/arch/gem5/Exceptions.h>
 #include <base/Config.h>
+#include <base/Exceptions.h>
 
 namespace RCTMux {
 

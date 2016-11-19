@@ -15,9 +15,9 @@
  */
 
 #include <base/Common.h>
-#include <base/arch/gem5/Exceptions.h>
 #include <base/CPU.h>
 #include <base/Env.h>
+#include <base/Exceptions.h>
 
 typedef void (*constr_func)();
 

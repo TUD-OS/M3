@@ -153,7 +153,7 @@ isrNull:
     push    $32                     // the interrupt-number
 .size   isrNull, .-isrNull
 
-.data
+.bss
 
     .align 16
     .space 512, 0

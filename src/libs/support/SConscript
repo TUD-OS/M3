@@ -1,5 +1,5 @@
 Import('env')
 
-for f in env.Glob('$ARCHTYPE/*.S'):
+for f in [env.Glob('$ARCHTYPE/*.S'), env.Glob('$ARCHTYPE-$ISA/*.S')]:
     obj = env.Object(source = f)
     env.Install(env['LIBDIR'], obj)

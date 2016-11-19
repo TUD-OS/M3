@@ -1,5 +1,5 @@
 #!/bin/sh
-build="build/$M3_TARGET-$M3_BUILD"
+build="build/$M3_TARGET-$M3_ISA-$M3_BUILD"
 $build/bin/posixmsg-server &
 pid=$!
 trap 'kill $pid' INT

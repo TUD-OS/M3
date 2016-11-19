@@ -15,9 +15,10 @@
  */
 
 #include <base/Common.h>
-#include <base/arch/gem5/Exceptions.h>
 #include <base/stream/Serial.h>
 #include <base/Backtrace.h>
+#include <base/Exceptions.h>
+#include <base/Env.h>
 
 namespace m3 {
 
@@ -49,9 +50,9 @@ static const char *exNames[] = {
 
 void Exceptions::init() {
     // TODO put the exception stuff in rctmux into a library and use it in the kernel as well
-    if(m3::env()->isrs) {
+    if(env()->isrs) {
         for(int i = 0; i <= 0x10; ++i)
-            m3::env()->isrs[i] = handler;
+            env()->isrs[i] = handler;
     }
 }
 
@@ -89,6 +90,7 @@ void Exceptions::handler(State *state) {
     ser << "  r14: " << fmt(state->r14,    "#0x", 16) << "\n";
     ser << "  r15: " << fmt(state->r15,    "#0x", 16) << "\n";
     ser << "  flg: " << fmt(state->rflags, "#0x", 16) << "\n";
+
     env()->exit(1);
 }
 
