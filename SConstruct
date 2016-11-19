@@ -147,17 +147,10 @@ else:
         env.Append(CXXFLAGS = ' -Os -DNDEBUG -flto')
         env.Append(CFLAGS = ' -Os -DNDEBUG -flto')
         env.Append(LINKFLAGS = ' -Os -flto')
-    elif target == 'host' or target == 'gem5':
-        # no LTO for host
-        env.Append(CXXFLAGS = ' -O2 -DNDEBUG -flto')
-        env.Append(CFLAGS = ' -O2 -DNDEBUG -flto')
-        env.Append(LINKFLAGS = ' -O2 -flto')
     else:
         env.Append(CXXFLAGS = ' -O2 -DNDEBUG -flto')
         env.Append(CFLAGS = ' -O2 -DNDEBUG -flto')
         env.Append(LINKFLAGS = ' -O2 -flto')
-    hostenv.Append(CXXFLAGS = ' -O3')
-    hostenv.Append(CFLAGS = ' -O3')
 builddir = 'build/' + target + '-' + isa + '-' + btype
 
 if target == 't2' or target == 't3':
