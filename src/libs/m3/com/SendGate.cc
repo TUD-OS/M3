@@ -41,7 +41,7 @@ Errors::Code SendGate::send(const void *data, size_t len) {
 
     Errors::Code res = DTU::get().send(ep(), data, len, 0, _replygate->ep());
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        void *event = ThreadManager::get().get_wait_event();
+        event_t event = ThreadManager::get().get_wait_event();
         res = Syscalls::get().forwardmsg(sel(), _replygate->sel(), data, len, 0, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall

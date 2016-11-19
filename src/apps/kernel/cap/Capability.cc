@@ -64,7 +64,7 @@ static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
 }
 
 void RGateCapability::revoke() {
-    m3::ThreadManager::get().notify(&*obj);
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&*obj));
     invalidate_ep(table()->id() - 1, this);
     obj->addr = 0;
     obj.unref();

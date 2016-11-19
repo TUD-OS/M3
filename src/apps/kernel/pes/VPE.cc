@@ -123,7 +123,7 @@ void VPE::stop_app(int exitcode, bool self) {
 }
 
 void VPE::wait_for_exit() {
-    m3::ThreadManager::get().wait_for(&_exitcode);
+    m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(&_exitcode));
 }
 
 void VPE::exit_app(int exitcode) {
@@ -136,7 +136,7 @@ void VPE::exit_app(int exitcode) {
 
     PEManager::get().stop_vpe(this);
 
-    m3::ThreadManager::get().notify(&_exitcode);
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&_exitcode));
 }
 
 void VPE::yield() {
@@ -168,7 +168,7 @@ bool VPE::resume(bool need_app, bool unblock) {
     if(unblock)
         wait = !PEManager::get().unblock_vpe(this, false);
     if(wait)
-        m3::ThreadManager::get().wait_for(this);
+        m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(this));
 
     KLOG(VPES, "Resumed VPE '" << _name << "' [id=" << id() << "]");
     return true;
@@ -182,7 +182,7 @@ void VPE::wakeup() {
 }
 
 void VPE::notify_resume() {
-    m3::ThreadManager::get().notify(this);
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(this));
 }
 
 void VPE::free_reqs() {
@@ -253,7 +253,7 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     _dtustate.config_recv(ep, obj.addr, obj.order, obj.msgorder);
     update_ep(ep);
 
-    m3::ThreadManager::get().notify(&obj);
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&obj));
     return m3::Errors::NONE;
 }
 

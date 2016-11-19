@@ -275,32 +275,32 @@ Errors::Code Syscalls::revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::forwardmsg(capsel_t sgate, capsel_t rgate, const void *msg, size_t len, label_t rlabel, void *event) {
+Errors::Code Syscalls::forwardmsg(capsel_t sgate, capsel_t rgate, const void *msg, size_t len, label_t rlabel, event_t event) {
     LLOG(SYSC, "forwardmsg(sgate=" << sgate << ", rgate=" << rgate << ", msg=" << msg
-        << ", len=" << len << ", rlabel=" << fmt(rlabel, "0x") << ", event=" << event << ")");
+        << ", len=" << len << ", rlabel=" << fmt(rlabel, "0x") << ", event=" << fmt(event, "0x") << ")");
 
     KIF::Syscall::ForwardMsg req;
     req.opcode = KIF::Syscall::FORWARD_MSG;
     req.sgate_sel = sgate;
     req.rgate_sel = rgate;
     req.rlabel = rlabel;
-    req.event = reinterpret_cast<word_t>(event);
+    req.event = event;
     req.len = len;
     memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
     size_t msgsize = sizeof(req) - sizeof(req.msg) + req.len;
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t offset, uint flags, void *event) {
+Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t offset, uint flags, event_t event) {
     LLOG(SYSC, "forwardmem(mgate=" << mgate << ", data=" << data << ", len=" << len
-        << ", offset=" << offset << ", flags=" << fmt(flags, "0x") << ", event=" << event << ")");
+        << ", offset=" << offset << ", flags=" << fmt(flags, "0x") << ", event=" << fmt(event, "0x") << ")");
 
     KIF::Syscall::ForwardMem req;
     req.opcode = KIF::Syscall::FORWARD_MEM;
     req.mgate_sel = mgate;
     req.offset = offset;
     req.flags = flags;
-    req.event = reinterpret_cast<word_t>(event);
+    req.event = event;
     req.len = len;
     if(flags & KIF::Syscall::ForwardMem::WRITE)
         memcpy(req.data, data, Math::min(sizeof(req.data), len));
@@ -316,15 +316,15 @@ Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t
     return Errors::last;
 }
 
-Errors::Code Syscalls::forwardreply(capsel_t rgate, const void *msg, size_t len, uintptr_t msgaddr, void *event) {
+Errors::Code Syscalls::forwardreply(capsel_t rgate, const void *msg, size_t len, uintptr_t msgaddr, event_t event) {
     LLOG(SYSC, "forwardreply(rgate=" << rgate << ", msg=" << msg << ", len=" << len
-        << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
+        << ", msgaddr=" << (void*)msgaddr << ", event=" << fmt(event, "0x") << ")");
 
     KIF::Syscall::ForwardReply req;
     req.opcode = KIF::Syscall::FORWARD_REPLY;
     req.rgate_sel = rgate;
     req.msgaddr = msgaddr;
-    req.event = reinterpret_cast<word_t>(event);
+    req.event = event;
     req.len = len;
     memcpy(req.msg, msg, Math::min(sizeof(req.msg), len));
     size_t msgsize = sizeof(req) - sizeof(req.msg) + req.len;

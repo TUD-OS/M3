@@ -54,19 +54,19 @@ public:
         return _queue.length();
     }
 
-    void *send(SendGate *sgate, const void *msg, size_t size, bool onheap);
+    event_t send(SendGate *sgate, const void *msg, size_t size, bool onheap);
     void received_reply(epid_t ep, const m3::DTU::Message *msg);
     void abort();
 
 private:
     void send_pending();
-    void *get_event(uint64_t id);
-    void *do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap);
+    event_t get_event(uint64_t id);
+    event_t do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap);
 
     VPE &_vpe;
     m3::SList<Entry> _queue;
     uint64_t _next_id;
-    void *_cur_event;
+    event_t _cur_event;
     int _inflight;
     Timeout *_timeout;
 };

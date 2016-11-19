@@ -517,7 +517,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
                     ": waiting for rgate " << &sgatecap->obj->rgate);
 
                 vpe->start_wait();
-                m3::ThreadManager::get().wait_for(&*sgatecap->obj->rgate);
+                m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(&*sgatecap->obj->rgate));
                 vpe->stop_wait();
 
                 LOG_SYS(vpe, ": syscall::activate-cont",
@@ -846,7 +846,8 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::forwardmsg", "(sgate=" << sgate << ", rgate=" << rgate
-        << ", len=" << len << ", rlabel=" << m3::fmt(rlabel, "0x") << ", event=" << event << ")");
+        << ", len=" << len << ", rlabel=" << m3::fmt(rlabel, "0x")
+        << ", event=" << m3::fmt(event, "0x") << ")");
 
     auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgate, Capability::SGATE));
     if(sgatecap == nullptr)
@@ -906,7 +907,8 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::forwardmem", "(mgate=" << mgate << ", len=" << len
-        << ", offset=" << offset << ", flags=" << m3::fmt(flags, "0x") << ", event=" << event << ")");
+        << ", offset=" << offset << ", flags=" << m3::fmt(flags, "0x")
+        << ", event=" << m3::fmt(event, "0x") << ")");
 
     auto mgatecap = static_cast<MGateCapability*>(vpe->objcaps().get(mgate, Capability::MGATE));
     if(mgatecap == nullptr)
@@ -965,7 +967,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     word_t event = req->event;
 
     LOG_SYS(vpe, ": syscall::forwardreply", "(rgate=" << rgate << ", len=" << len
-        << ", msgaddr=" << (void*)msgaddr << ", event=" << event << ")");
+        << ", msgaddr=" << (void*)msgaddr << ", event=" << m3::fmt(event, "0x") << ")");
 
     auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
     if(rgatecap == nullptr)

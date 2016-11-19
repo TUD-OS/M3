@@ -48,7 +48,7 @@ const m3::DTU::Message *Service::send_receive(const void *msg, size_t size, bool
     if(!_rgate->activated())
         return nullptr;
 
-    void *event = _squeue.send(&_sgate, msg, size, free);
+    event_t event = _squeue.send(&_sgate, msg, size, free);
 
     m3::ThreadManager::get().wait_for(event);
 

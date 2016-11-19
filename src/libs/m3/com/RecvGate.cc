@@ -176,7 +176,7 @@ Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
     Errors::Code res = DTU::get().reply(ep(), const_cast<void*>(data), len, msgidx);
 
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
-        void *event = ThreadManager::get().get_wait_event();
+        event_t event = ThreadManager::get().get_wait_event();
         res = Syscalls::get().forwardreply(sel(), data, len, msgidx, event);
 
         // if this has been done, go to sleep and wait until the kernel sends us the upcall

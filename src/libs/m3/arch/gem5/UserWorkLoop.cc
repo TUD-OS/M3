@@ -29,8 +29,7 @@ void UserWorkLoop::multithreaded(uint count) {
         auto &msg = reinterpret_cast<const KIF::Upcall::Notify&>(is.message().data);
         assert(msg.opcode == KIF::Upcall::NOTIFY);
 
-        void *event = reinterpret_cast<void*>(msg.event);
-        ThreadManager::get().notify(event, &msg, sizeof(msg));
+        ThreadManager::get().notify(msg.event, &msg, sizeof(msg));
 
         KIF::DefaultReply reply;
         reply.error = Errors::NONE;

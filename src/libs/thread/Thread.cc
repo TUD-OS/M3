@@ -25,7 +25,7 @@ namespace m3 {
 int Thread::_next_id = 1;
 
 Thread::Thread(thread_func func, void *arg)
-        : _id(_next_id++), _regs(), _stack(), _event(nullptr) {
+        : _id(_next_id++), _regs(), _stack(), _event(0) {
     // TODO
     // better leave one page before and behind each stack free to detect stack-under-/overflows
     void* addr = m3::Heap::alloc(T_STACK_SZ);

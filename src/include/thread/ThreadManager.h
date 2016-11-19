@@ -47,21 +47,21 @@ public:
         return _current->get_msg();
     }
 
-    void *get_wait_event() {
+    event_t get_wait_event() {
         // if we have no other threads available, don't use events
         if(sleeping_count() == 0)
-            return nullptr;
+            return 0;
         // otherwise, use a unique number
-        return reinterpret_cast<void*>(_next_id++);
+        return _next_id++;
     }
 
     void init(uint threads);
 
-    void wait_for(const void *event) {
+    void wait_for(event_t event) {
         assert(_sleep.length() > 0);
         _current->subscribe(event);
         _blocked.append(_current);
-        LLOG(THREAD, "Thread " << _current->id() << " waits for " << event);
+        LLOG(THREAD, "Thread " << _current->id() << " waits for " << fmt(event, "x"));
         if(_ready.length())
             switch_to(_ready.remove_first());
         else
@@ -75,14 +75,14 @@ public:
         }
     }
 
-    void notify(const void *event, const void *msg = nullptr, size_t size = 0) {
+    void notify(event_t event, const void *msg = nullptr, size_t size = 0) {
         assert(size <= Thread::MAX_MSG_SIZE);
         for(auto it = _blocked.begin(); it != _blocked.end(); ) {
             auto old = it++;
             if(old->trigger_event(event)) {
                 Thread* t = &(*old);
                 t->set_msg(msg, size);
-                LLOG(THREAD, "Waking up thread " << t->id() << " for event " << event);
+                LLOG(THREAD, "Waking up thread " << t->id() << " for event " << fmt(event, "x"));
                 _blocked.remove(t);
                 _ready.append(t);
             }
@@ -124,7 +124,7 @@ private:
     m3::SList<Thread> _ready;
     m3::SList<Thread> _blocked;
     m3::SList<Thread> _sleep;
-    uintptr_t _next_id;
+    event_t _next_id;
     static ThreadManager inst;
 };
 

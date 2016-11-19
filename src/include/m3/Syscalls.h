@@ -67,9 +67,9 @@ public:
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
     Errors::Code revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own = true);
 
-    Errors::Code forwardmsg(capsel_t sgate, capsel_t rgate, const void *msg, size_t len, label_t rlabel, void *event);
-    Errors::Code forwardmem(capsel_t mgate, void *data, size_t len, size_t offset, uint flags, void *event);
-    Errors::Code forwardreply(capsel_t rgate, const void *msg, size_t len, uintptr_t msgaddr, void *event);
+    Errors::Code forwardmsg(capsel_t sgate, capsel_t rgate, const void *msg, size_t len, label_t rlabel, event_t event);
+    Errors::Code forwardmem(capsel_t mgate, void *data, size_t len, size_t offset, uint flags, event_t event);
+    Errors::Code forwardreply(capsel_t rgate, const void *msg, size_t len, uintptr_t msgaddr, event_t event);
 
     Errors::Code noop();
 

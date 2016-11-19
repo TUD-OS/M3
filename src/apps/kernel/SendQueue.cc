@@ -32,15 +32,15 @@ SendQueue::~SendQueue() {
         Timeouts::get().cancel(_timeout);
 }
 
-void *SendQueue::get_event(uint64_t id) {
-    return reinterpret_cast<void*>(static_cast<uint64_t>(1) << 63 | id);
+event_t SendQueue::get_event(uint64_t id) {
+    return static_cast<event_t>(1) << (sizeof(event_t) * 8 - 1) | id;
 }
 
-void *SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap) {
+event_t SendQueue::send(SendGate *sgate, const void *msg, size_t size, bool onheap) {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: trying to send message");
 
     if(_inflight == -1)
-        return nullptr;
+        return 0;
 
     if(_vpe.state() == VPE::RUNNING && _inflight == 0)
         return do_send(sgate, _next_id++, msg, size, onheap);
@@ -108,7 +108,7 @@ void SendQueue::received_reply(epid_t ep, const m3::DTU::Message *msg) {
     send_pending();
 }
 
-void *SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap) {
+event_t SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap) {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: sending message");
 
     _cur_event = get_event(id);

@@ -45,7 +45,7 @@ public:
 
 private:
     explicit Thread()
-        : _id(_next_id++), _regs(), _stack(), _event(nullptr), _content(false) {
+        : _id(_next_id++), _regs(), _stack(), _event(0), _content(false) {
     }
 
     bool save() {
@@ -55,12 +55,12 @@ private:
         return thread_resume(&_regs);
     }
 
-    void subscribe(const void *event) {
+    void subscribe(event_t event) {
         _event = event;
     }
-    void unsubscribe(const void *event) {
+    void unsubscribe(event_t event) {
         if(_event == event)
-            _event = nullptr;
+            _event = 0;
     }
     void set_msg(const void *msg, size_t size) {
         _content = msg != nullptr;
@@ -75,7 +75,7 @@ public:
     const Regs &regs() const {
         return _regs;
     }
-    inline bool trigger_event(const void *event) const {
+    inline bool trigger_event(event_t event) const {
         return _event == event;
     }
     const unsigned char *get_msg() const {
@@ -86,7 +86,7 @@ private:
     int _id;
     Regs _regs;
     word_t *_stack;
-    const void *_event;
+    event_t _event;
     bool _content;
     unsigned char _msg[MAX_MSG_SIZE];
     static int _next_id;
