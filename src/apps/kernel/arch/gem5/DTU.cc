@@ -83,7 +83,7 @@ void DTU::wakeup(const VPEDesc &vpe) {
 }
 
 void DTU::injectIRQ(const VPEDesc &vpe) {
-    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ) | (0x40 << 3));
+    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ));
 }
 
 void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
