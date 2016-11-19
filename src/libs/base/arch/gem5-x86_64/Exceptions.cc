@@ -51,8 +51,9 @@ static const char *exNames[] = {
 void Exceptions::init() {
     // TODO put the exception stuff in rctmux into a library and use it in the kernel as well
     if(env()->isrs) {
+        auto funcs = reinterpret_cast<Exceptions::isr_func*>(env()->isrs);
         for(int i = 0; i <= 0x10; ++i)
-            env()->isrs[i] = handler;
+            funcs[i] = handler;
     }
 }
 

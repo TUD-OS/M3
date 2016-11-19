@@ -14,6 +14,7 @@
 
 #include "traceplayer.h"
 #include "exceptions.h"
+#include "clock.h"
 
 #include "platform.h"
 

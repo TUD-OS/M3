@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
@@ -14,18 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <cstring>
+#include <thread/Thread.h>
 
-#if defined(__gem5__) and defined(__x86_64__)
-const char *strrchr(const char *str, int ch) {
-#else
-char *strrchr(const char *str, int ch) {
-#endif
-    char *pos = NULL;
-    while(*str) {
-        if(*str++ == ch)
-            pos = (char*)(str - 1);
-    }
-    return pos;
+namespace m3 {
+
+void thread_init(Thread::thread_func func, void *arg, Regs *regs, word_t *stack) {
+    regs->r[0] = reinterpret_cast<word_t>(arg);                             // arg
+    regs->r[13] = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 2);      // sp
+    regs->r[11] = regs->r[13];                                              // fp
+    regs->r[14] = reinterpret_cast<word_t>(func);                           // lr
+    regs->cpsr = 0x13;  // supervisor mode
+}
+
 }

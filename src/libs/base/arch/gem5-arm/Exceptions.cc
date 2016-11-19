@@ -14,31 +14,27 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
-
 #include <base/Common.h>
-#include <base/Config.h>
-
-#if defined(__x86_64__)
-#   include <base/arch/x86_64/ExceptionState.h>
-#elif defined(__arm__)
-#   include <base/arch/arm/ExceptionState.h>
-#else
-#   error "Unsupported ISA"
-#endif
+#include <base/stream/Serial.h>
+#include <base/Backtrace.h>
+#include <base/Exceptions.h>
 
 namespace m3 {
 
-class Exceptions {
-public:
-    typedef ExceptionState State;
+void Exceptions::init() {
+    // TODO
+}
 
-    typedef void (*isr_func)(State *state);
+void Exceptions::handler(State *state) {
+    auto &ser = Serial::get();
 
-    static void init();
+    Backtrace::print(ser);
 
-private:
-    static void handler(State *state);
-};
+    for(size_t i = 0; i < ARRAY_SIZE(state->r); ++i)
+        ser << "  r" << fmt(i, 2) << ": " << fmt(state->r[i], "#0x", 8) << "\n";
+    ser << "  lr : " << fmt(state->lr, "#0x", 8) << "\n";
+
+    env()->exit(1);
+}
 
 }

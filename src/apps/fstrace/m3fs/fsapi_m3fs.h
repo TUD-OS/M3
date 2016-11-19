@@ -36,14 +36,6 @@ class FSAPI_M3FS : public FSAPI {
         fdMap[fd]->clearerr();
     }
 
-#if defined(__gem5__)
-    static cycles_t rdtsc() {
-        uint32_t u, l;
-        asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
-        return (cycles_t)u << 32 | l;
-    }
-#endif
-
 public:
     explicit FSAPI_M3FS(m3::String const &prefix)
         : _start(), _prefix(prefix), fdMap(), dirMap() {
@@ -66,14 +58,20 @@ public:
     }
 
     virtual void waituntil(UNUSED const waituntil_args_t *args, int) override {
-#if defined(__t2__) || defined(__t3__)
+#if defined(__xtensa__)
         int rem = args->timestamp / 4;
         while(rem > 0)
             asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
-#elif defined(__gem5__)
+#elif defined(__x86_64__)
         int rem = (4 * args->timestamp) / 10;
         while(rem > 0)
             asm volatile ("dec %0" : "+r"(rem));
+#elif defined(__arm__)
+        int rem = (4 * args->timestamp) / 10;
+        while(rem > 0)
+            asm volatile ("sub %0, %0, #1" : "+r"(rem));
+#else
+#   error "Unsupported ISA"
 #endif
     }
 

@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2013, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
+ * This file is part of M3 (Microkernel for Minimalist Manycores).
  *
  * M3 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -14,18 +14,18 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <cstring>
+#pragma once
 
-#if defined(__gem5__) and defined(__x86_64__)
-const char *strrchr(const char *str, int ch) {
-#else
-char *strrchr(const char *str, int ch) {
-#endif
-    char *pos = NULL;
-    while(*str) {
-        if(*str++ == ch)
-            pos = (char*)(str - 1);
-    }
-    return pos;
+#include <base/Common.h>
+
+namespace m3 {
+
+/* the stack frame for the interrupt-handler */
+struct ExceptionState {
+    word_t cpsr;
+    word_t r[13]; // r0 .. r12
+    word_t lr;
+    word_t pc;
+} PACKED;
+
 }

@@ -105,8 +105,9 @@ private:
         FETCH_MSG           = 5,
         ACK_MSG             = 6,
         SLEEP               = 7,
-        DEBUG_MSG           = 8,
-        PRINT               = 9,
+        CLEAR_IRQ           = 8,
+        DEBUG_MSG           = 9,
+        PRINT               = 10,
     };
 
     enum class ExtCmdOpCode {
@@ -288,6 +289,10 @@ public:
         write_reg(CmdRegs::DATA_SIZE, len);
         CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::PRINT));
+    }
+
+    void clear_irq() {
+        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::CLEAR_IRQ));
     }
 
 private:

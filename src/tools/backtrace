@@ -26,7 +26,7 @@ if (!defined $ARGV[0])
 
 my $nm = 'nm';
 $nm = "$ENV{'SYSTEM_TARGET'}$nm" if defined $ENV{"SYSTEM_TARGET"};
-$nm = 'arm-softfloat-elf-nm' if !(system("file -L $ARGV[0] | grep -qw ARM") >> 8);
+$nm = 'arm-none-eabi-nm' if !(system("file -L $ARGV[0] | grep -qw ARM") >> 8);
 
 my @args = @ARGV;
 

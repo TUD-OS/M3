@@ -22,6 +22,8 @@
 
 #if defined(__x86_64__)
 #   include <thread/isa/x86_64/Thread.h>
+#elif defined(__arm__)
+#   include <thread/isa/arm/Thread.h>
 #else
 #   error "Unsupported ISA"
 #endif

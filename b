@@ -20,16 +20,22 @@ if [ "$M3_TARGET" = "t3" ]; then
 elif [ "$M3_TARGET" = "t2" ]; then
     M3_ISA='xtensa'
 elif [ "$M3_TARGET" = "gem5" ]; then
-    M3_ISA='x86_64'
+    if [ "$M3_ISA" != "arm" ]; then
+        M3_ISA='x86_64'
+    fi
 else
-    M3_CORE=`uname -m`
+    M3_ISA='x86_64'
 fi
 
 export M3_BUILD M3_TARGET M3_ISA
 
 if [ "$M3_TARGET" = "host" ] || [ "$M3_TARGET" = "gem5" ]; then
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$build/bin"
-    crossprefix=''
+    if [ "$M3_ISA" = "arm" ]; then
+        crossprefix='arm-none-eabi-'
+    else
+        crossprefix=''
+    fi
 else
     . hw/th/config.ini
     crossprefix="/opt/m3-cross-xtensa/bin/xtensa-elf-m3-"
@@ -58,7 +64,7 @@ help() {
     echo "This is a convenience script that is responsible for building everything"
     echo "and running the specified command afterwards. The most important environment"
     echo "variables that influence its behaviour are M3_TARGET=(host|t2|t3|gem5),"
-    echo "M3_ISA=(x86_64) [on gem5 only], and M3_BUILD=(debug|release)."
+    echo "M3_ISA=(x86_64|arm) [on gem5 only], and M3_BUILD=(debug|release)."
     echo "You can also prevent the script from building everything by specifying -n or"
     echo "--no-build. In this case, only the specified command is executed."
     echo "To build sequentially, i.e. with a single thread, use -s."
@@ -88,7 +94,7 @@ help() {
     echo "    M3_TARGET:               the target. Either 'host' for using the Linux-based"
     echo "                             coarse-grained simulator, or 'gem5' or 't2'/'t3' for"
     echo "                             tomahawk 2/3. The default is 'host'."
-    echo "    M3_ISA:                  the ISA to use. On gem5, 'x86_64' is"
+    echo "    M3_ISA:                  the ISA to use. On gem5, 'arm' and 'x86_64' is"
     echo "                             supported. On other targets, it is ignored."
     echo "    M3_BUILD:                the build-type. Either debug or release. In debug"
     echo "                             mode optimizations are disabled, debug infos are"

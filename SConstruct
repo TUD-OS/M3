@@ -27,8 +27,13 @@ if target == 't2' or target == 't3':
     tooldir = Dir(xtroot.abspath + '/XtDevTools/install/tools/' + toolversion + '/XtensaTools/bin')
     crtdir = crossdir + '/lib/gcc/' + cross[:-1] + '/' + crossver
 elif target == 'gem5':
-    isa = 'x86_64'
-    cross = ''
+    isa = os.environ.get('M3_ISA')
+    if isa is None:
+        isa = 'x86_64'
+    if isa == 'arm':
+        cross = 'arm-none-eabi-'
+    else:
+        cross = ''
     configpath = Dir('.')
 else:
     # build for host by default
@@ -70,6 +75,7 @@ if int(verbose) == 0:
     baseenv['STRIPCOMSTR']  = "[STRIP  ] $TARGET"
     baseenv['DUMPCOMSTR']   = "[DUMP   ] $TARGET"
     baseenv['MKFSCOMSTR']   = "[MKFS   ] $TARGET"
+    baseenv['CPPCOMSTR']    = "[CPP    ] $TARGET"
 
 # for host compilation
 hostenv = baseenv.Clone()
@@ -80,12 +86,12 @@ hostenv.Append(
 # for target compilation
 env = baseenv.Clone()
 env.Append(
-    CXXFLAGS = ' -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2' \
+    CXXFLAGS = ' -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2' \
         ' -fno-threadsafe-statics -fno-stack-protector',
     CPPFLAGS = ' -U_FORTIFY_SOURCE',
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
-    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--gc-sections -Wno-lto-type-mismatch',
+    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
 )
 
 # allow to add preprocessor flags via env variable
@@ -115,6 +121,11 @@ else:
             # IRQ handlers since applications run in privileged mode.
             env.Append(CFLAGS = ' -mno-red-zone')
             env.Append(CXXFLAGS = ' -mno-red-zone')
+        else:
+            env.Append(CFLAGS = ' -march=armv7-a')
+            env.Append(CXXFLAGS = ' -march=armv7-a')
+            env.Append(LINKFLAGS = ' -march=armv7-a')
+            env.Append(ASFLAGS = ' -march=armv7-a')
         # no build-id because it confuses gem5
         env.Append(LINKFLAGS = ' -static -Wl,--build-id=none -nostdlib')
         # binaries get very large otherwise
@@ -216,6 +227,18 @@ def M3Strip(env, target, source):
         )
     )
 
+def M3CPP(env, target, source):
+    env.Command(
+        target, source,
+        Action(
+            cross + 'cpp -P $CPPFLAGS $SOURCE $TARGET',
+            '$CPPCOMSTR'
+        )
+    )
+
+def_ldscript = env.File('$BUILDDIR/ld-final.conf')
+M3CPP(env, def_ldscript, '#src/toolchain/gem5/ld.conf')
+
 link_addr = 0x200000
 
 def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtcore = None,
@@ -265,11 +288,11 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
         myenv.Depends(prog, myenv['LIBDIR'].abspath + '/libm3.a')
     elif myenv['ARCH'] == 'gem5':
         if not NoSup:
-            libs = ['c'] + m3libs + libs
+            libs = ['gcc', 'c'] + m3libs + libs
             source = [myenv['LIBDIR'].abspath + '/crt0.o'] + [source]
 
         if ldscript is None:
-            ldscript = File('#src/toolchain/gem5/ld.conf')
+            ldscript = def_ldscript
         myenv.Append(LINKFLAGS = ' -Wl,-T,' + ldscript.abspath)
 
         if varAddr:
@@ -297,6 +320,7 @@ env.AddMethod(M3MemDump)
 env.AddMethod(M3FileDump)
 env.AddMethod(M3Mkfs)
 env.AddMethod(M3Strip)
+env.AddMethod(M3CPP)
 env.AddMethod(install.InstallFiles)
 env.M3Program = M3Program
 

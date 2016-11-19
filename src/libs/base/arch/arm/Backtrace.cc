@@ -14,18 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <cstring>
+#include <base/util/Math.h>
+#include <base/Backtrace.h>
+#include <base/Config.h>
+#include <base/CPU.h>
 
-#if defined(__gem5__) and defined(__x86_64__)
-const char *strrchr(const char *str, int ch) {
-#else
-char *strrchr(const char *str, int ch) {
-#endif
-    char *pos = NULL;
-    while(*str) {
-        if(*str++ == ch)
-            pos = (char*)(str - 1);
+namespace m3 {
+
+size_t Backtrace::collect(uintptr_t *addr, size_t max) {
+    uintptr_t fp;
+    asm volatile ("mov %0, r11;" : "=r" (fp));
+
+    uintptr_t base = Math::round_dn<uintptr_t>(fp, STACK_SIZE);
+    uintptr_t end = Math::round_up<uintptr_t>(fp, STACK_SIZE);
+    uintptr_t start = end - STACK_SIZE;
+
+    size_t i = 0;
+    for(; fp >= start && fp < end && i < max; ++i) {
+        fp = base + (fp & (STACK_SIZE - 1));
+        addr[i] = reinterpret_cast<uintptr_t*>(fp)[0] - 4;
+        fp = reinterpret_cast<uintptr_t*>(fp)[-1];
     }
-    return pos;
+    return i;
+}
+
 }

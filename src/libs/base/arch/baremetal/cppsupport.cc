@@ -91,6 +91,12 @@ EXTERN_C void __cxa_finalize(void *) {
         exit_funcs[i].f(exit_funcs[i].p);
 }
 
+#if defined(__arm__)
+EXTERN_C int __aeabi_atexit(void *object, void (*dtor)(void *), void *handle) {
+    return __cxa_atexit(dtor, object, handle);
+}
+#endif
+
 /* Fortran support */
 EXTERN_C void outbyte(char byte) {
     Machine::write(&byte, 1);

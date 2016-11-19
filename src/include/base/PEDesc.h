@@ -38,8 +38,9 @@ enum class PEType {
 enum class PEISA {
     NONE        = 0,
     X86         = 1,
-    XTENSA      = 2,
-    ACCEL_HASH  = 3,
+    ARM         = 2,
+    XTENSA      = 3,
+    ACCEL_HASH  = 4,
 };
 
 /**
@@ -82,13 +83,13 @@ struct PEDesc {
      * @return the isa of the PE
      */
     PEISA isa() const {
-        return static_cast<PEISA>((_value >> 3) & 0x3);
+        return static_cast<PEISA>((_value >> 3) & 0x7);
     }
     /**
      * @return if the PE has a core that is programmable
      */
     bool is_programmable() const {
-        return isa() == PEISA::X86 || isa() == PEISA::XTENSA;
+        return isa() != PEISA::NONE && isa() != PEISA::ACCEL_HASH;
     }
 
     /**

@@ -14,8 +14,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
-#include <dirent.h>
 #include <assert.h>
 
 #include "buffer.h"

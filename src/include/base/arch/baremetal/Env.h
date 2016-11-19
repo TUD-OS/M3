@@ -19,7 +19,6 @@
 #include <base/Common.h>
 #include <base/Config.h>
 #include <base/EnvBackend.h>
-#include <base/Exceptions.h>
 #include <base/PEDesc.h>
 
 namespace m3 {
@@ -64,7 +63,7 @@ public:
     PEDesc pedesc;
 
 #if defined(__gem5__)
-    m3::Exceptions::isr_func *isrs;
+    uintptr_t isrs;
 #endif
 
     BaremetalEnvBackend *backend() {

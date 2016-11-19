@@ -25,8 +25,13 @@ using ulong     = unsigned long;
 using llong     = long long;
 using ullong    = unsigned long long;
 
+#if defined(__arm__)
+using size_t    = unsigned int;
+using ssize_t   = int;
+#else
 using size_t    = unsigned long;
 using ssize_t   = long;
+#endif
 
 using word_t    = unsigned long;
 using label_t   = word_t;

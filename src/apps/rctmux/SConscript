@@ -23,7 +23,8 @@ if env['ARCH'] == 't3':
 # gem5
 elif env['ARCH'] == 'gem5':
     myenv = env.Clone()
-    myenv.Append(LINKFLAGS = ' -Wl,--section-start=.text=0x1000')
+
+    myenv.M3CPP('ld-final.conf', '#src/apps/rctmux/arch/gem5/ld.conf')
 
     myenv.M3Program(
         myenv,
@@ -36,7 +37,8 @@ elif env['ARCH'] == 'gem5':
             env.Glob('*.cc'),
         ],
         NoSup = True,
-        varAddr = False
+        varAddr = False,
+        ldscript = myenv.File('ld-final.conf')
     )
 
 # build test and dev programs

@@ -155,6 +155,8 @@ build_params_gem5() {
 
     if [ "$M3_ISA" = "x86_64" ]; then
         gem5build="X86"
+    else
+        gem5build="ARM"
     fi
 
     export M5_PATH=$build

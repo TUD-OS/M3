@@ -33,7 +33,7 @@ void init() {
 
 void *init_state() {
     m3::Env *senv = m3::env();
-    senv->isrs = Exceptions::get_table();
+    senv->isrs = reinterpret_cast<uintptr_t>(Exceptions::get_table());
 
     // put state at the stack top
     m3::Exceptions::State *state = reinterpret_cast<m3::Exceptions::State*>(senv->sp) - 1;

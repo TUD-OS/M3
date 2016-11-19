@@ -17,7 +17,7 @@
 #include <base/Common.h>
 #include <cstring>
 
-#if defined(__gem5__)
+#if defined(__gem5__) and defined(__x86_64__)
 const char *strchr(const char *str, int ch) {
 #else
 char *strchr(const char *str, int ch) {

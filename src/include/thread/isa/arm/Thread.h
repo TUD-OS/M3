@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
@@ -14,18 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <cstring>
+#pragma once
 
-#if defined(__gem5__) and defined(__x86_64__)
-const char *strrchr(const char *str, int ch) {
-#else
-char *strrchr(const char *str, int ch) {
-#endif
-    char *pos = NULL;
-    while(*str) {
-        if(*str++ == ch)
-            pos = (char*)(str - 1);
-    }
-    return pos;
+#ifdef __cplusplus
+#include <base/Types.h>
+
+namespace m3 {
+
+typedef void (*_thread_func)(void*);
+
+struct Regs {
+    word_t r[15];
+    word_t cpsr;
+};
+
+enum {
+    T_STACK_WORDS = 512
+};
+
+void thread_init(_thread_func func, void *arg, Regs *regs, word_t *stack);
+extern "C"  bool thread_save(Regs *regs);
+extern "C" bool thread_resume(Regs *regs);
+
 }
+
+#endif
