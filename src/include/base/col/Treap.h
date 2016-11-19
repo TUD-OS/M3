@@ -18,7 +18,7 @@
 
 #include <base/Common.h>
 #include <base/stream/OStream.h>
-#include <cassert>
+#include <assert.h>
 
 namespace m3 {
 

@@ -17,18 +17,16 @@
 #include <base/Common.h>
 #include <base/stream/Serial.h>
 
+#include <assert.h>
+#include <stdlib.h>
+
 #ifndef NDEBUG
-EXTERN_C void __assert(const char *failedexpr, const char *file, int line) throw() {
-    m3::Serial::get() << "assertion \"" << failedexpr << "\" failed in "
-                  << file << ":" << line << "\n";
+
+void __assert_failed(const char *expr, const char *file, const char *func, int line) {
+    m3::Serial::get() << "assertion \"" << expr << "\" failed in " << func << " in "
+                      << file << ":" << line << "\n";
     abort();
     /* NOTREACHED */
 }
 
-EXTERN_C void __assert_fail(const char *failedexpr, const char *file, unsigned int line, const char *func) throw() {
-    m3::Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
-                  << file << ":" << line << "\n";
-    abort();
-    /* NOTREACHED */
-}
 #endif

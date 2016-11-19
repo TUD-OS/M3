@@ -14,14 +14,29 @@
  * General Public License version 2 for more details.
  */
 
+#pragma once
+
 #include <base/Common.h>
-#include <base/stream/Serial.h>
+
+#if defined(__tools__) || defined(__host__)
+#   include_next <assert.h>
+#else
+
+EXTERN_C void __assert_failed(const char *expr, const char *file, const char *func, int line);
 
 #ifndef NDEBUG
-EXTERN_C void __assert(const char *failedexpr, const char *file, unsigned int line, const char *func) throw() {
-    m3::Serial::get() << "assertion \"" << failedexpr << "\" failed in " << func << " in "
-                  << file << ":" << line << "\n";
-    abort();
-    /* NOTREACHED */
-}
+
+#   define assert(expr)                                                     \
+        do {                                                                \
+            if(!(expr)) {                                                   \
+                __assert_failed(#expr, __FILE__, __FUNCTION__, __LINE__);   \
+            }                                                               \
+        } while(0)
+
+#else
+
+#   define assert(...)
+
+#endif
+
 #endif
