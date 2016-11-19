@@ -182,7 +182,7 @@ public:
         reply_vmsg(is, Errors::NONE, virt);
     }
 
-    capsel_t map_ds(AddrSpace *sess, size_t argc, const word_t *args, uintptr_t *virt) {
+    capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
         if(argc != 5)
             return Errors::INV_ARGS;
 

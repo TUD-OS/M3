@@ -20,7 +20,7 @@
 
 namespace m3 {
 
-void Session::connect(const String &service, word_t arg) {
+void Session::connect(const String &service, xfer_t arg) {
     capsel_t cap = VPE::self().alloc_cap();
     Errors::Code res = Syscalls::get().createsess(cap, service, arg);
     if(res == Errors::NONE)
@@ -29,11 +29,11 @@ void Session::connect(const String &service, word_t arg) {
         VPE::self().free_cap(cap);
 }
 
-void Session::delegate(const KIF::CapRngDesc &crd, size_t *argcount, word_t *args) {
+void Session::delegate(const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args) {
     Syscalls::get().delegate(sel(), crd, argcount, args);
 }
 
-KIF::CapRngDesc Session::obtain(uint count, size_t *argcount, word_t *args) {
+KIF::CapRngDesc Session::obtain(uint count, size_t *argcount, xfer_t *args) {
     KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, VPE::self().alloc_caps(count), count);
     Syscalls::get().obtain(sel(), crd, argcount, args);
     return crd;

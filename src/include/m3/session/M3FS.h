@@ -79,8 +79,8 @@ public:
     template<size_t N>
     static bool get_locs(Session &sess, int fd, size_t *offset, size_t count, size_t blocks,
             KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
-        word_t args[5];
-        args[0] = fd;
+        xfer_t args[5];
+        args[0] = static_cast<xfer_t>(fd);
         args[1] = *offset;
         args[2] = count;
         args[3] = blocks;

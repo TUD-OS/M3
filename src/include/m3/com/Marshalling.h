@@ -72,7 +72,7 @@ public:
     Marshaller & operator<<(const T& value) {
         assert(fits(_bytecount, sizeof(T)));
         *reinterpret_cast<T*>(_bytes + _bytecount) = value;
-        _bytecount += Math::round_up(sizeof(T), sizeof(ulong));
+        _bytecount += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }
     Marshaller & operator<<(const char *value) {
@@ -99,11 +99,11 @@ public:
 
 protected:
     Marshaller & put_str(const char *value, size_t len) {
-        assert(fits(_bytecount, len + sizeof(size_t)));
+        assert(fits(_bytecount, len + sizeof(xfer_t)));
         unsigned char *start = const_cast<unsigned char*>(bytes());
-        *reinterpret_cast<size_t*>(start + _bytecount) = len;
-        memcpy(start + _bytecount + sizeof(size_t), value, len);
-        _bytecount += Math::round_up(len + sizeof(size_t), sizeof(ulong));
+        *reinterpret_cast<xfer_t*>(start + _bytecount) = len;
+        memcpy(start + _bytecount + sizeof(xfer_t), value, len);
+        _bytecount += Math::round_up(len + sizeof(xfer_t), sizeof(xfer_t));
         return *this;
     }
 
@@ -188,16 +188,16 @@ public:
     Unmarshaller & operator>>(T &value) {
         assert(_pos + sizeof(T) <= length());
         value = *reinterpret_cast<const T*>(_data + _pos);
-        _pos += Math::round_up(sizeof(T), sizeof(ulong));
+        _pos += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }
     Unmarshaller & operator>>(String &value) {
-        assert(_pos + sizeof(size_t) <= length());
-        size_t len = *reinterpret_cast<const size_t*>(_data + _pos);
-        _pos += sizeof(size_t);
+        assert(_pos + sizeof(xfer_t) <= length());
+        size_t len = *reinterpret_cast<const xfer_t*>(_data + _pos);
+        _pos += sizeof(xfer_t);
         assert(_pos + len <= length());
         value.reset(reinterpret_cast<const char*>(_data + _pos), len);
-        _pos += Math::round_up(len, sizeof(ulong));
+        _pos += Math::round_up(len, sizeof(xfer_t));
         return *this;
     }
 
@@ -229,7 +229,7 @@ inline void Marshaller::put(const Marshaller &os) {
 
 template<typename T>
 struct OStreamSize {
-    static const size_t value = Math::round_up(sizeof(T), sizeof(ulong));
+    static const size_t value = Math::round_up(sizeof(T), sizeof(xfer_t));
 };
 template<>
 struct OStreamSize<String> {
@@ -262,17 +262,17 @@ constexpr size_t ostreamsize() {
  */
 template<typename T>
 constexpr size_t vostreamsize(T len) {
-    return Math::round_up(len, sizeof(ulong));
+    return Math::round_up(len, sizeof(xfer_t));
 }
 template<typename T1, typename... Args>
 constexpr size_t vostreamsize(T1 len, Args... lens) {
     return Math::round_up(
-        Math::round_up(len, sizeof(ulong)) + vostreamsize<Args...>(lens...), DTU_PKG_SIZE);
+        Math::round_up(len, sizeof(xfer_t)) + vostreamsize<Args...>(lens...), DTU_PKG_SIZE);
 }
 
 static_assert(ostreamsize<int, float, int>() ==
-    Math::round_up(sizeof(ulong) + sizeof(ulong) + sizeof(ulong), DTU_PKG_SIZE), "failed");
+    Math::round_up(sizeof(xfer_t) * 3, DTU_PKG_SIZE), "failed");
 static_assert(ostreamsize<short, String>() ==
-    Math::round_up(sizeof(ulong) + String::DEFAULT_MAX_LEN, DTU_PKG_SIZE), "failed");
+    Math::round_up(sizeof(xfer_t) + String::DEFAULT_MAX_LEN, DTU_PKG_SIZE), "failed");
 
 }

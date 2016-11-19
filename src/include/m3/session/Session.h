@@ -41,7 +41,7 @@ public:
      * @param name the service name
      * @param arg the argument
      */
-    explicit Session(const String &name, word_t arg = 0)
+    explicit Session(const String &name, xfer_t arg = 0)
         : ObjCap(SESSION) {
         connect(name, arg);
     }
@@ -81,7 +81,7 @@ public:
      * @param args the arguments to pass to the server
      * @return the error code
      */
-    void delegate(const KIF::CapRngDesc &caps, size_t *argcount = nullptr, word_t *args = nullptr);
+    void delegate(const KIF::CapRngDesc &caps, size_t *argcount = nullptr, xfer_t *args = nullptr);
 
     /**
      * Obtains up to <count> capabilities from the server with additional arguments and puts the
@@ -92,10 +92,10 @@ public:
      * @param args the arguments to pass to the server
      * @return the received capabilities
      */
-    KIF::CapRngDesc obtain(uint count, size_t *argcount = nullptr, word_t *args = nullptr);
+    KIF::CapRngDesc obtain(uint count, size_t *argcount = nullptr, xfer_t *args = nullptr);
 
 private:
-    void connect(const String &name, word_t arg);
+    void connect(const String &name, xfer_t arg);
 };
 
 }

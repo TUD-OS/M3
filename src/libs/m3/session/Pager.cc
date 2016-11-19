@@ -38,7 +38,7 @@ Errors::Code Pager::map_anon(uintptr_t *virt, size_t len, int prot, int flags) {
 
 Errors::Code Pager::map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
         int fd, size_t offset) {
-    word_t args[5];
+    xfer_t args[5];
     args[0] = *virt;
     args[1] = len;
     args[2] = prot | flags;

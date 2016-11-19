@@ -63,7 +63,7 @@ Errors::Code Syscalls::createsrv(capsel_t dst, capsel_t rgate, const String &nam
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createsess(capsel_t dst, const String &name, word_t arg) {
+Errors::Code Syscalls::createsess(capsel_t dst, const String &name, xfer_t arg) {
     LLOG(SYSC, "createsess(dst=" << dst << ", name=" << name << ", arg=" << arg << ")");
 
     KIF::Syscall::CreateSess req;
@@ -180,7 +180,7 @@ Errors::Code Syscalls::activate(capsel_t vpe, capsel_t gate, epid_t ep, uintptr_
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, word_t *arg) {
+Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg) {
     LLOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", arg=" << *arg << ")");
 
     KIF::Syscall::VPECtrl req;
@@ -227,7 +227,7 @@ Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args, bool obtain) {
+Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args, bool obtain) {
     KIF::Syscall::ExchangeSess req;
     req.opcode = obtain ? KIF::Syscall::OBTAIN : KIF::Syscall::DELEGATE;
     req.sess_sel = sess;
@@ -254,12 +254,12 @@ Errors::Code Syscalls::exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, s
     return Errors::last;
 }
 
-Errors::Code Syscalls::delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args) {
+Errors::Code Syscalls::delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args) {
     LLOG(SYSC, "delegate(sess=" << sess << ", crd=" << crd << ")");
     return exchangesess(sess, crd, argcount, args, false);
 }
 
-Errors::Code Syscalls::obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args) {
+Errors::Code Syscalls::obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args) {
     LLOG(SYSC, "obtain(sess=" << sess << ", crd=" << crd << ")");
     return exchangesess(sess, crd, argcount, args, true);
 }

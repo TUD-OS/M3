@@ -189,17 +189,17 @@ Errors::Code VPE::revoke(const KIF::CapRngDesc &crd, bool delonly) {
 }
 
 Errors::Code VPE::start() {
-    word_t arg = 0;
+    xfer_t arg = 0;
     return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 }
 
 Errors::Code VPE::stop() {
-    word_t arg = 0;
+    xfer_t arg = 0;
     return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, &arg);
 }
 
 int VPE::wait() {
-    word_t exitcode;
+    xfer_t exitcode;
     Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, &exitcode);
     return exitcode;
 }

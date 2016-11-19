@@ -47,7 +47,7 @@ private:
 
 public:
     Errors::Code createsrv(capsel_t dst, capsel_t rgate, const String &name);
-    Errors::Code createsess(capsel_t dst, const String &name, word_t arg);
+    Errors::Code createsess(capsel_t dst, const String &name, xfer_t arg);
     Errors::Code createsessat(capsel_t dst, capsel_t srv, word_t ident);
     Errors::Code creatergate(capsel_t dst, int order, int msgorder);
     Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);
@@ -59,11 +59,11 @@ public:
     Errors::Code createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, capsel_t first, capsel_t pages, int perms);
 
     Errors::Code activate(capsel_t vpe, capsel_t gate, epid_t ep, uintptr_t addr);
-    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, word_t *arg);
+    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg);
     Errors::Code derivemem(capsel_t dst, capsel_t src, size_t offset, size_t size, int perms);
 
-    Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
-    Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, word_t *args = nullptr);
+    Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, xfer_t *args = nullptr);
+    Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr, xfer_t *args = nullptr);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
     Errors::Code revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own = true);
 
@@ -78,7 +78,7 @@ public:
 private:
     DTU::Message *send_receive(const void *msg, size_t size);
     Errors::Code send_receive_result(const void *msg, size_t size);
-    Errors::Code exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, word_t *args, bool obtain);
+    Errors::Code exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args, bool obtain);
 
     SendGate _gate;
     static Syscalls _inst;

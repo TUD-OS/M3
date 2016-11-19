@@ -41,7 +41,7 @@ struct KIF {
     /**
      * The maximum message length that can be used
      */
-    static const word_t MAX_MSG_SIZE    = 440;
+    static const size_t MAX_MSG_SIZE    = 440;
 
     /**
      * The permissions for MemGate
@@ -55,7 +55,7 @@ struct KIF {
     };
 
     struct CapRngDesc {
-        typedef uint64_t value_type;
+        typedef xfer_t value_type;
 
         enum Type {
             OBJ,
@@ -97,11 +97,11 @@ struct KIF {
     };
 
     struct DefaultReply {
-        word_t error;
+        xfer_t error;
     } PACKED;
 
     struct DefaultRequest {
-        word_t opcode;
+        xfer_t opcode;
     } PACKED;
 
     /**
@@ -153,130 +153,130 @@ struct KIF {
         };
 
         struct Pagefault : public DefaultRequest {
-            word_t virt;
-            word_t access;
+            xfer_t virt;
+            xfer_t access;
         } PACKED;
 
         struct CreateSrv : public DefaultRequest {
-            word_t dst_sel;
-            word_t rgate_sel;
-            word_t namelen;
+            xfer_t dst_sel;
+            xfer_t rgate_sel;
+            xfer_t namelen;
             char name[32];
         } PACKED;
 
         struct CreateSess : public DefaultRequest {
-            word_t dst_sel;
-            word_t arg;
-            word_t namelen;
+            xfer_t dst_sel;
+            xfer_t arg;
+            xfer_t namelen;
             char name[32];
         } PACKED;
 
         struct CreateSessAt : public DefaultRequest {
-            word_t dst_sel;
-            word_t srv_sel;
-            word_t ident;
+            xfer_t dst_sel;
+            xfer_t srv_sel;
+            xfer_t ident;
         } PACKED;
 
         struct CreateRGate : public DefaultRequest {
-            word_t dst_sel;
-            word_t order;
-            word_t msgorder;
+            xfer_t dst_sel;
+            xfer_t order;
+            xfer_t msgorder;
         } PACKED;
 
         struct CreateSGate : public DefaultRequest {
-            word_t dst_sel;
-            word_t rgate_sel;
-            word_t label;
-            word_t credits;
+            xfer_t dst_sel;
+            xfer_t rgate_sel;
+            xfer_t label;
+            xfer_t credits;
         } PACKED;
 
         struct CreateMGate : public DefaultRequest {
-            word_t dst_sel;
-            word_t addr;
-            word_t size;
-            word_t perms;
+            xfer_t dst_sel;
+            xfer_t addr;
+            xfer_t size;
+            xfer_t perms;
         } PACKED;
 
         struct CreateMap : public DefaultRequest {
-            word_t dst_sel;
-            word_t vpe_sel;
-            word_t mgate_sel;
-            word_t first;
-            word_t pages;
-            word_t perms;
+            xfer_t dst_sel;
+            xfer_t vpe_sel;
+            xfer_t mgate_sel;
+            xfer_t first;
+            xfer_t pages;
+            xfer_t perms;
         } PACKED;
 
         struct CreateVPE : public DefaultRequest {
-            word_t dst_sel;
-            word_t mgate_sel;
-            word_t sgate_sel;
-            word_t pe;
-            word_t ep;
-            word_t muxable;
-            word_t namelen;
+            xfer_t dst_sel;
+            xfer_t mgate_sel;
+            xfer_t sgate_sel;
+            xfer_t pe;
+            xfer_t ep;
+            xfer_t muxable;
+            xfer_t namelen;
             char name[32];
         } PACKED;
 
         struct CreateVPEReply : public DefaultReply {
-            word_t pe;
+            xfer_t pe;
         } PACKED;
 
         struct Activate : public DefaultRequest {
-            word_t vpe_sel;
-            word_t gate_sel;
-            word_t ep;
-            word_t addr;
+            xfer_t vpe_sel;
+            xfer_t gate_sel;
+            xfer_t ep;
+            xfer_t addr;
         } PACKED;
 
         struct VPECtrl : public DefaultRequest {
-            word_t vpe_sel;
-            word_t op;
-            word_t arg;
+            xfer_t vpe_sel;
+            xfer_t op;
+            xfer_t arg;
         } PACKED;
 
         struct VPECtrlReply : public DefaultReply {
-            word_t exitcode;
+            xfer_t exitcode;
         } PACKED;
 
         struct DeriveMem : public DefaultRequest {
-            word_t dst_sel;
-            word_t src_sel;
-            word_t offset;
-            word_t size;
-            word_t perms;
+            xfer_t dst_sel;
+            xfer_t src_sel;
+            xfer_t offset;
+            xfer_t size;
+            xfer_t perms;
         } PACKED;
 
         struct Exchange : public DefaultRequest {
-            word_t vpe_sel;
-            word_t own_crd;
-            word_t other_sel;
-            word_t obtain;
+            xfer_t vpe_sel;
+            xfer_t own_crd;
+            xfer_t other_sel;
+            xfer_t obtain;
         } PACKED;
 
         struct ExchangeSess : public DefaultRequest {
-            word_t sess_sel;
-            word_t crd;
-            word_t argcount;
-            word_t args[8];
+            xfer_t sess_sel;
+            xfer_t crd;
+            xfer_t argcount;
+            xfer_t args[8];
         } PACKED;
 
         struct ExchangeSessReply : public DefaultReply {
-            word_t argcount;
-            word_t args[8];
+            xfer_t argcount;
+            xfer_t args[8];
         } PACKED;
 
         struct Revoke : public DefaultRequest {
-            word_t vpe_sel;
-            word_t crd;
-            word_t own;
+            xfer_t vpe_sel;
+            xfer_t crd;
+            xfer_t own;
         } PACKED;
 
         struct ForwardMsg : public DefaultRequest {
-            word_t sgate_sel;
-            word_t rgate_sel;
-            word_t len;
-            word_t rlabel;
-            word_t event;
+            xfer_t sgate_sel;
+            xfer_t rgate_sel;
+            xfer_t len;
+            xfer_t rlabel;
+            xfer_t event;
             char msg[MAX_MSG_SIZE];
         };
 
@@ -286,11 +286,11 @@ struct KIF {
                 WRITE   = 2,
             };
 
-            word_t mgate_sel;
-            word_t len;
-            word_t offset;
-            word_t flags;
-            word_t event;
+            xfer_t mgate_sel;
+            xfer_t len;
+            xfer_t offset;
+            xfer_t flags;
+            xfer_t event;
             char data[MAX_MSG_SIZE];
         };
 
@@ -299,10 +299,10 @@ struct KIF {
         };
 
         struct ForwardReply : public DefaultRequest {
-            word_t rgate_sel;
-            word_t msgaddr;
-            word_t len;
-            word_t event;
+            xfer_t rgate_sel;
+            xfer_t msgaddr;
+            xfer_t len;
+            xfer_t event;
             char msg[MAX_MSG_SIZE];
         };
 
@@ -323,21 +323,21 @@ struct KIF {
         };
 
         struct Open : public DefaultRequest {
-            word_t arg;
+            xfer_t arg;
         } PACKED;
 
         struct OpenReply : public DefaultReply {
-            word_t sess;
+            xfer_t sess;
         } PACKED;
 
         struct ExchangeData {
-            word_t caps;
-            word_t argcount;
-            word_t args[8];
+            xfer_t caps;
+            xfer_t argcount;
+            xfer_t args[8];
         } PACKED;
 
         struct Exchange : public DefaultRequest {
-            word_t sess;
+            xfer_t sess;
             ExchangeData data;
         } PACKED;
 
@@ -346,7 +346,7 @@ struct KIF {
         } PACKED;
 
         struct Close : public DefaultRequest {
-            word_t sess;
+            xfer_t sess;
         } PACKED;
 
         struct Shutdown : public DefaultRequest {
@@ -362,8 +362,8 @@ struct KIF {
         };
 
         struct Notify : public DefaultRequest {
-            word_t error;
-            word_t event;
+            xfer_t error;
+            xfer_t event;
         } PACKED;
     };
 };

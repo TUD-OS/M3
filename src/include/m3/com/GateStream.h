@@ -297,16 +297,16 @@ public:
     GateIStream & operator>>(T &value) {
         assert(_pos + sizeof(T) <= length());
         value = *reinterpret_cast<const T*>(_msg->data + _pos);
-        _pos += Math::round_up(sizeof(T), sizeof(ulong));
+        _pos += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }
     GateIStream & operator>>(String &value) {
-        assert(_pos + sizeof(size_t) <= length());
-        size_t len = *reinterpret_cast<const size_t*>(_msg->data + _pos);
-        _pos += sizeof(size_t);
+        assert(_pos + sizeof(xfer_t) <= length());
+        size_t len = *reinterpret_cast<const xfer_t*>(_msg->data + _pos);
+        _pos += sizeof(xfer_t);
         assert(_pos + len <= length());
         value.reset(reinterpret_cast<const char*>(_msg->data + _pos), len);
-        _pos += Math::round_up(len, sizeof(ulong));
+        _pos += Math::round_up(len, sizeof(xfer_t));
         return *this;
     }
 

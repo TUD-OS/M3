@@ -39,3 +39,4 @@ using epid_t    = ulong;
 using peid_t    = ulong;
 using gaddr_t   = uint64_t;
 using event_t   = uint64_t;
+using xfer_t    = uint64_t;
