@@ -83,7 +83,9 @@ public:
 
     void pf(GateIStream &is) {
         AddrSpace *sess = is.label<AddrSpace*>();
-        uint64_t virt, access;
+
+        uintptr_t virt;
+        uint access;
         is >> virt >> access;
 
         // we are not interested in that flag
@@ -93,7 +95,7 @@ public:
         // TODO notify the kernel to run the VPE again or migrate it and update the PTEs
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::pf(virt=" << fmt(virt, "p")
-            << ", access " << fmt(access, "#x") << ")");
+            << ", access=" << fmt(access, "#x") << ")");
 
         // we never map page 0 and thus we tell the DTU to remember that there is no mapping
         if((virt & ~PAGE_MASK) == 0) {
