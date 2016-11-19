@@ -20,38 +20,27 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+EXTERN_C void gem5_shutdown(uint64_t delay);
+EXTERN_C void gem5_writefile(const char *str, uint64_t len, uint64_t offset, uint64_t file);
+EXTERN_C ssize_t gem5_readfile(char *dst, uint64_t max, uint64_t offset);
+
 namespace m3 {
 
 void Machine::shutdown() {
-    asm volatile (
-        ".byte 0x0F, 0x04;"
-        ".word 0x21;"
-        : : "D"(0)
-    );
-    while(1)
-        asm volatile ("hlt");
+    gem5_shutdown(0);
+    UNREACHED;
 }
 
 int Machine::write(const char *str, size_t len) {
     DTU::get().print(str, len);
 
     static const char *fileAddr = "stdout";
-    asm volatile (
-        ".byte 0x0F, 0x04;"
-        ".word 0x4F;"
-        : : "D"(str), "S"(len), "d"(0), "c"(fileAddr) : "rax"
-    );
+    gem5_writefile(str, len, 0, reinterpret_cast<uint64_t>(fileAddr));
     return 0;
 }
 
 ssize_t Machine::read(char *dst, size_t max) {
-    ssize_t res;
-    asm volatile (
-        ".byte 0x0F, 0x04;"
-        ".word 0x50;"
-        : "=a"(res) : "D"(dst), "S"(max), "d"(0)
-    );
-    return res;
+    return gem5_readfile(dst, max, 0);
 }
 
 }
