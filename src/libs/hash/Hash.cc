@@ -29,7 +29,7 @@ Hash::Hash()
     : _accel(Accel::create()),
       _srgate(RecvGate::create_for(_accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
       _crgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
-      _send(SendGate::create(&_srgate, Accel::BUF_ADDR, 256, &_crgate)) {
+      _send(SendGate::create(&_srgate, Accel::BUF_ADDR, hash::Accel::RB_SIZE, &_crgate)) {
     // has to be activated
     _crgate.activate();
 
