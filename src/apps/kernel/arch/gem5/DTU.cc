@@ -371,7 +371,7 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     if(sender == static_cast<uint64_t>(-1)) {
         sender = Platform::kernel_pe() |
                  (VPEManager::MAX_VPES << 8) |
-                 (_ep << 24) |
+                 (EP_COUNT << 24) |
                  (static_cast<uint64_t>(replyep) << 32);
     }
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::OFFSET, sender);
