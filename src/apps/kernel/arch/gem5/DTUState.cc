@@ -45,7 +45,7 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
     // and unset COM_DISABLED and IRQ_WAKEUP
     m3::DTU::reg_t features = 0;
-    if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<m3::DTU::reg_t>(-1))
+    if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<epid_t>(-1))
         features = m3::DTU::StatusFlags::PAGEFAULTS;
     _regs.set(m3::DTU::DtuRegs::FEATURES, features);
 
