@@ -14,20 +14,21 @@
 # General Public License version 2 for more details.
 #
 
-.global gem5_shutdown
-.global gem5_writefile
-.global gem5_readfile
+#include <base/Asm.h>
 
-gem5_shutdown:
+BEGIN_FUNC(gem5_shutdown)
     .long   0x0021040F
 
 1:  hlt
     jmp     1b
+END_FUNC(gem5_shutdown)
 
-gem5_writefile:
+BEGIN_FUNC(gem5_writefile)
     .long   0x004F040F
     ret
+END_FUNC(gem5_writefile)
 
-gem5_readfile:
+BEGIN_FUNC(gem5_readfile)
     .long   0x0050040F
     ret
+END_FUNC(gem5_readfile)

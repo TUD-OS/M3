@@ -14,12 +14,12 @@
 # General Public License version 2 for more details.
 #
 
+#include <base/Asm.h>
 #include <base/Config.h>
 
-.global _start
 .extern env_run
 
-_start:
+BEGIN_FUNC(_start)
     mrc     p15, 0, r0, c10, c2, 0  // PRRR
     orr     r0, r0, #0x00000002     // set tr0 = 0x2 (normal memory)
     mcr     p15, 0, r0, c10, c2, 0
@@ -48,3 +48,4 @@ _start:
 
     // just to be sure
 1:  b       1b
+END_FUNC(_start)

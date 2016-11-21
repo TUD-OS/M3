@@ -14,9 +14,9 @@
 # General Public License version 2 for more details.
 #
 
+#include <base/Asm.h>
+
 .global _vector_table
-.global _start
-.global _exc_entry
 .extern exc_handler
 
 .section .vectors
@@ -29,7 +29,7 @@ _vector_table:
 
 .text
 
-_start:
+BEGIN_FUNC(_start)
     // TODO currently required, because the reset lets us start at the next instruction
     nop
 
@@ -56,7 +56,7 @@ _start:
     // check if have an application
     bl      _start_app
     cmp     r0, #0
-    bne     _restore
+    bne     1f
 
     // set idle stack
     ldr     r0, =_idle_stack
@@ -73,7 +73,7 @@ _start:
     // try again
     b       _start
 
-_restore:
+1:
     mov     sp, r0
     // restore CPSR
     pop     {r0}
@@ -82,8 +82,9 @@ _restore:
     pop     {r0-r12, lr}
     // continue execution
     pop     {pc}
+END_FUNC(_start)
 
-_exc_entry:
+BEGIN_FUNC(_exc_entry)
     // repeat last instruction
     sub     lr, lr, #4
 
@@ -125,6 +126,7 @@ _exc_entry:
     // wait for interrupt
     wfi
     b       1b
+END_FUNC(_exc_entry)
 
 .bss
 _tmp:

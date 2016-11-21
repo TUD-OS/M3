@@ -14,7 +14,7 @@
 # General Public License version 2 for more details.
 #
 
-.global _start
+#include <base/Asm.h>
 
 .extern _start_app
 .extern _sleep
@@ -23,8 +23,7 @@
 .text
 
 // put that at the beginning so that we know the address
-.type   _start, @function
-_start:
+BEGIN_FUNC(_start)
     // interrupts in rctmux are always disabled
     cli
     // use a small stack
@@ -33,7 +32,7 @@ _start:
 
     call    _start_app
     test    %rax, %rax
-    jne     _restore
+    jne     1f
 
     // if there is nothing to run yet, sleep
     mov     $_idle_stack, %rsp
@@ -45,7 +44,7 @@ _start:
     // we got waked up; try again
     jmp     _start
 
-_restore:
+1:
     // restore application state
     mov     %rax, %rsp
     pop     %r15
@@ -67,10 +66,9 @@ _restore:
     // remove error-code and interrupt-number from stack and return
     add     $16,%rsp
     iretq
-.size   _start, .-_start
+END_FUNC(_start)
 
-.type   isrCommon, @function
-isrCommon:
+BEGIN_FUNC(isr_common)
     push    %rax
     push    %rbx
     push    %rcx
@@ -93,37 +91,32 @@ isrCommon:
 
     // resume application?
     test    %rax, %rax
-    jne     _restore
+    jne     1b
 
     // the kernel will reset the PE
 1:
     hlt
     jmp     1b
-
-.size   isrCommon, .-isrCommon
+END_FUNC(isr_common)
 
 // macro to build a default-isr-handler
 .macro BUILD_DEF_ISR no
-    .global isr\no
-    .type   isr\no, @function
-    isr\no:
+    BEGIN_FUNC(isr_\no)
     // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
     push    $0                      // error-code (no error here)
     push    $\no                    // the interrupt-number
-    jmp     isrCommon
-    .size   isr\no, .-isr\no
+    jmp     isr_common
+    END_FUNC(isr_\no)
 .endm
 
 // macro to build an error-isr-handler
 .macro BUILD_ERR_ISR no
-    .global isr\no
-    .type   isr\no, @function
-    isr\no:
+    BEGIN_FUNC(isr_\no)
     // interrupts are already disabled here since its a interrupt-gate, not a trap-gate
     // the error-code has already been pushed
     push    $\no                    // the interrupt-number
-    jmp     isrCommon
-    .size   isr\no, .-isr\no
+    jmp     isr_common
+    END_FUNC(isr_\no)
 .endm
 
 // our ISRs
@@ -146,12 +139,11 @@ BUILD_DEF_ISR 15
 BUILD_DEF_ISR 16
 BUILD_DEF_ISR 64
 
-.global isrNull
-.type   isrNull, @function
-isrNull:
+BEGIN_FUNC(isr_null)
     push    $0                      // error-code (no error here)
     push    $32                     // the interrupt-number
-.size   isrNull, .-isrNull
+    jmp     isr_common
+END_FUNC(isr_null)
 
 .bss
 

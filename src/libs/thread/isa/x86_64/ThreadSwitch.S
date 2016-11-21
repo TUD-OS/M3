@@ -14,14 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/Asm.h>
+
 #include <thread/isa/x86_64/Thread.h>
 
-.global thread_save
-.global thread_resume
-
 # bool thread_save(m3::Thread::Regs *regs);
-.type thread_save, function
-thread_save:
+BEGIN_FUNC(thread_save)
     push    %rbp
     mov     %rsp,%rbp
 
@@ -48,10 +46,10 @@ thread_save:
     mov     %rbp,%rsp
     pop     %rbp
     ret
+END_FUNC(thread_save)
 
 # bool thread_resume(m3::Thread::Regs *regs);
-.type thread_resume, function
-thread_resume:
+BEGIN_FUNC(thread_resume)
     push    %rbp
     mov     %rsp,%rbp
 
@@ -84,3 +82,4 @@ thread_resume:
     mov     %rbp,%rsp
     pop     %rbp
     ret
+END_FUNC(thread_resume)

@@ -21,27 +21,27 @@
 #include "Exceptions.h"
 
 // Our ISRs
-EXTERN_C void isr0();
-EXTERN_C void isr1();
-EXTERN_C void isr2();
-EXTERN_C void isr3();
-EXTERN_C void isr4();
-EXTERN_C void isr5();
-EXTERN_C void isr6();
-EXTERN_C void isr7();
-EXTERN_C void isr8();
-EXTERN_C void isr9();
-EXTERN_C void isr10();
-EXTERN_C void isr11();
-EXTERN_C void isr12();
-EXTERN_C void isr13();
-EXTERN_C void isr14();
-EXTERN_C void isr15();
-EXTERN_C void isr16();
+EXTERN_C void isr_0();
+EXTERN_C void isr_1();
+EXTERN_C void isr_2();
+EXTERN_C void isr_3();
+EXTERN_C void isr_4();
+EXTERN_C void isr_5();
+EXTERN_C void isr_6();
+EXTERN_C void isr_7();
+EXTERN_C void isr_8();
+EXTERN_C void isr_9();
+EXTERN_C void isr_10();
+EXTERN_C void isr_11();
+EXTERN_C void isr_12();
+EXTERN_C void isr_13();
+EXTERN_C void isr_14();
+EXTERN_C void isr_15();
+EXTERN_C void isr_16();
 // for the DTU
-EXTERN_C void isr64();
+EXTERN_C void isr_64();
 // the handler for a other interrupts
-EXTERN_C void isrNull();
+EXTERN_C void isr_null();
 
 namespace RCTMux {
 
@@ -81,30 +81,30 @@ void Exceptions::init() {
     tbl.size = sizeof(idt) - 1;
 
     // setup the idt
-    setIDT(0, isr0, Desc::DPL_KERNEL);
-    setIDT(1, isr1, Desc::DPL_KERNEL);
-    setIDT(2, isr2, Desc::DPL_KERNEL);
-    setIDT(3, isr3, Desc::DPL_KERNEL);
-    setIDT(4, isr4, Desc::DPL_KERNEL);
-    setIDT(5, isr5, Desc::DPL_KERNEL);
-    setIDT(6, isr6, Desc::DPL_KERNEL);
-    setIDT(7, isr7, Desc::DPL_KERNEL);
-    setIDT(8, isr8, Desc::DPL_KERNEL);
-    setIDT(9, isr9, Desc::DPL_KERNEL);
-    setIDT(10, isr10, Desc::DPL_KERNEL);
-    setIDT(11, isr11, Desc::DPL_KERNEL);
-    setIDT(12, isr12, Desc::DPL_KERNEL);
-    setIDT(13, isr13, Desc::DPL_KERNEL);
-    setIDT(14, isr14, Desc::DPL_KERNEL);
-    setIDT(15, isr15, Desc::DPL_KERNEL);
-    setIDT(16, isr16, Desc::DPL_KERNEL);
+    setIDT(0, isr_0, Desc::DPL_KERNEL);
+    setIDT(1, isr_1, Desc::DPL_KERNEL);
+    setIDT(2, isr_2, Desc::DPL_KERNEL);
+    setIDT(3, isr_3, Desc::DPL_KERNEL);
+    setIDT(4, isr_4, Desc::DPL_KERNEL);
+    setIDT(5, isr_5, Desc::DPL_KERNEL);
+    setIDT(6, isr_6, Desc::DPL_KERNEL);
+    setIDT(7, isr_7, Desc::DPL_KERNEL);
+    setIDT(8, isr_8, Desc::DPL_KERNEL);
+    setIDT(9, isr_9, Desc::DPL_KERNEL);
+    setIDT(10, isr_10, Desc::DPL_KERNEL);
+    setIDT(11, isr_11, Desc::DPL_KERNEL);
+    setIDT(12, isr_12, Desc::DPL_KERNEL);
+    setIDT(13, isr_13, Desc::DPL_KERNEL);
+    setIDT(14, isr_14, Desc::DPL_KERNEL);
+    setIDT(15, isr_15, Desc::DPL_KERNEL);
+    setIDT(16, isr_16, Desc::DPL_KERNEL);
 
     // all other interrupts
     for(size_t i = 17; i < 63; i++)
-        setIDT(i, isrNull, Desc::DPL_KERNEL);
+        setIDT(i, isr_null, Desc::DPL_KERNEL);
 
     // DTU interrupts
-    setIDT(64, isr64, Desc::DPL_KERNEL);
+    setIDT(64, isr_64, Desc::DPL_KERNEL);
 
     for(size_t i = 0; i < IDT_COUNT; ++i)
         isrs[i] = null_handler;

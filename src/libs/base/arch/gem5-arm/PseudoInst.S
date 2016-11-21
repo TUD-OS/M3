@@ -14,20 +14,21 @@
 # General Public License version 2 for more details.
 #
 
-.global gem5_shutdown
-.global gem5_writefile
-.global gem5_readfile
+#include <base/Asm.h>
 
-gem5_shutdown:
+BEGIN_FUNC(gem5_shutdown)
     .long   0xEE210110
 
 1:  wfi
     b       1b
+END_FUNC(gem5_shutdown)
 
-gem5_writefile:
+BEGIN_FUNC(gem5_writefile)
     .long   0xEE4F0110
     mov     pc, lr
+END_FUNC(gem5_writefile)
 
-gem5_readfile:
+BEGIN_FUNC(gem5_readfile)
     .long   0xEE500110
     mov     pc, lr
+END_FUNC(gem5_readfile)

@@ -14,12 +14,12 @@
 # General Public License version 2 for more details.
 #
 
+#include <base/Asm.h>
 #include <base/Config.h>
 
-.global _start
 .extern env_run
 
-_start:
+BEGIN_FUNC(_start)
     # stack pointer already set?
     mov     $0xDEADBEEF, %rcx
     cmp     %rcx, %rax
@@ -34,3 +34,4 @@ _start:
 
     # just to be sure
     hlt
+END_FUNC(_start)

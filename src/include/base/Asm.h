@@ -14,26 +14,12 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Asm.h>
+#pragma once
 
-#include <thread/isa/arm/Thread.h>
+#define BEGIN_FUNC(name)        \
+    .global name;               \
+    .type   name, %function;    \
+    name:
 
-# bool thread_save(m3::Thread::Regs *regs);
-BEGIN_FUNC(thread_save)
-    stm     r0, {r0-r14}
-    mrs     r1, CPSR
-    str     r1, [r0, #60]
-
-    mov     r0, #0
-    mov     pc, lr
-END_FUNC(thread_save)
-
-# bool thread_resume(m3::Thread::Regs *regs);
-BEGIN_FUNC(thread_resume)
-    ldr     r1, [r0, #60]
-    msr     CPSR_f, r1
-    ldm     r0, {r0-r14}
-
-    mov     r0, #1
-    mov     pc, lr
-END_FUNC(thread_resume)
+#define END_FUNC(name)          \
+    .size   name, . - name
