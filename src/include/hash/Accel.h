@@ -39,8 +39,8 @@ public:
     };
 
     struct Request {
-        word_t algo;
-        word_t len;
+        uint64_t algo;
+        uint64_t len;
     } PACKED;
 
     static Accel *create();
