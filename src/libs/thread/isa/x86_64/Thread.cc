@@ -20,13 +20,11 @@ namespace m3 {
 
 void thread_init(Thread::thread_func func, void *arg, Regs *regs, word_t *stack) {
     // put argument in rdi and function to return to on the stack
-    // take care of alignment for SSE
     regs->rdi = reinterpret_cast<word_t>(arg);
-    stack[T_STACK_WORDS - 4] = reinterpret_cast<word_t>(func);
-    regs->rsp = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 5);
+    stack[T_STACK_WORDS - 1] = reinterpret_cast<word_t>(func);
+    regs->rsp = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 1);
     regs->rbp = regs->rsp;
     regs->rflags = 0x200;  // enable interrupts
-    stack[T_STACK_WORDS - 5] = regs->rbp;
 }
 
 }
