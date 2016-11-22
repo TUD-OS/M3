@@ -19,10 +19,10 @@
 namespace m3 {
 
 void thread_init(Thread::thread_func func, void *arg, Regs *regs, word_t *stack) {
-    regs->r[0] = reinterpret_cast<word_t>(arg);                             // arg
-    regs->r[13] = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 2);      // sp
-    regs->r[11] = regs->r[13];                                              // fp
-    regs->r[14] = reinterpret_cast<word_t>(func);                           // lr
+    regs->r0 = reinterpret_cast<word_t>(arg);                             // arg
+    regs->r13 = reinterpret_cast<word_t>(stack + T_STACK_WORDS - 2);      // sp
+    regs->r11 = 0;                                                        // fp
+    regs->r14 = reinterpret_cast<word_t>(func);                           // lr
     regs->cpsr = 0x13;  // supervisor mode
 }
 

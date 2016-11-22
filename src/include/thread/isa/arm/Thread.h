@@ -24,7 +24,17 @@ namespace m3 {
 typedef void (*_thread_func)(void*);
 
 struct Regs {
-    word_t r[15];
+    word_t r0;
+    word_t r4;
+    word_t r5;
+    word_t r6;
+    word_t r7;
+    word_t r8;
+    word_t r9;
+    word_t r10;
+    word_t r11;
+    word_t r13;
+    word_t r14;
     word_t cpsr;
 };
 
