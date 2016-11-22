@@ -156,12 +156,12 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
     // be resized. thus, we know that a downgrade for the first, is a downgrade for all
     // and that an existing mapping for the first is an existing mapping for all.
 
-    m3::DTU::pte_t npte = phys | perm | m3::DTU::PTE_I;
+    m3::DTU::pte_t npte = phys | static_cast<uint>(perm) | m3::DTU::PTE_I;
     if(npte == pte)
         return true;
 
     bool downgrade = ((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0;
-    downgrade |= (pte & ~m3::DTU::PTE_IRWX) != phys;
+    downgrade |= (pte & ~static_cast<m3::DTU::pte_t>(m3::DTU::PTE_IRWX)) != phys;
     // do not invalidate pages if we are writing to a memory PE
     downgrade &= Platform::pe(vpe.pe).has_virtmem();
     uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
@@ -354,7 +354,7 @@ m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uin
     return m3::Errors::NONE;
 }
 
-void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
     _state.config_recv(ep, buf, order, msgorder);
     write_ep_local(ep);
 }

@@ -66,8 +66,8 @@ static void timer_event(GateIStream &) {
             movie->getline(linebuf, sizeof(linebuf));
             next_tick = ticks + IStringStream::read_from<int>(linebuf) * SPEED;
             for(int i = 0; i < ROWS; ++i) {
-                ssize_t res = movie->getline(linebuf, sizeof(linebuf));
-                if(res < 0)
+                size_t res = movie->getline(linebuf, sizeof(linebuf));
+                if(movie->error())
                     errmsg("Unable to read from movie file");
                 else
                     copy_to_vga(startrow + i, startcol, linebuf, res, COLS);

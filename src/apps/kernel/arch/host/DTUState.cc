@@ -71,11 +71,11 @@ void DTUState::read_ep(const VPEDesc &vpe, epid_t ep) {
     DTU::get().read_ep_remote(vpe, ep, get_ep(ep));
 }
 
-void DTUState::config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+void DTUState::config_recv(epid_t ep, uintptr_t buf, int order, int msgorder) {
     word_t *regs = reinterpret_cast<word_t*>(get_ep(ep));
     regs[m3::DTU::EP_BUF_ADDR]       = buf;
-    regs[m3::DTU::EP_BUF_ORDER]      = order;
-    regs[m3::DTU::EP_BUF_MSGORDER]   = msgorder;
+    regs[m3::DTU::EP_BUF_ORDER]      = static_cast<word_t>(order);
+    regs[m3::DTU::EP_BUF_MSGORDER]   = static_cast<word_t>(msgorder);
     regs[m3::DTU::EP_BUF_ROFF]       = 0;
     regs[m3::DTU::EP_BUF_WOFF]       = 0;
     regs[m3::DTU::EP_BUF_MSGCNT]     = 0;
@@ -94,7 +94,7 @@ void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t, epid_t ds
 void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t size, int perms) {
     word_t *regs = reinterpret_cast<word_t*>(get_ep(ep));
     assert((addr & perms) == 0);
-    regs[m3::DTU::EP_LABEL]         = addr | perms;
+    regs[m3::DTU::EP_LABEL]         = addr | static_cast<uint>(perms);
     regs[m3::DTU::EP_PEID]          = pe;
     regs[m3::DTU::EP_EPID]          = 0;
     regs[m3::DTU::EP_CREDITS]       = size;

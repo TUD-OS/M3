@@ -87,7 +87,7 @@ EXTERN_C int __cxa_atexit(void (*f)(void *),void *p,void *d) {
 }
 
 EXTERN_C void __cxa_finalize(void *) {
-    for(ssize_t i = exit_count - 1; i >= 0; i--)
+    for(ssize_t i = static_cast<ssize_t>(exit_count) - 1; i >= 0; i--)
         exit_funcs[i].f(exit_funcs[i].p);
 }
 

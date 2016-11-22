@@ -31,7 +31,7 @@ void *Cache::get_block(m3::blockno_t bno, bool write) {
     if(b) {
         b->timestamp = _timestamp;
         b->dirty |= write;
-        return _data + (b - _blocks) * _blocksize;
+        return _data + static_cast<size_t>(b - _blocks) * _blocksize;
     }
 
     // find the least recently used block
@@ -71,7 +71,7 @@ void Cache::mark_dirty(m3::blockno_t bno) {
 void Cache::write_back(m3::blockno_t bno) {
     BlockInfo *b = get(bno);
     if(b && b->dirty)
-        flush_block(b - _blocks);
+        flush_block(static_cast<size_t>(b - _blocks));
 }
 
 void Cache::flush() {

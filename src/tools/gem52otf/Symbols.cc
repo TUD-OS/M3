@@ -43,12 +43,12 @@ void Symbols::addFile(const char *file) {
     if(sheader) {
         size_t count = sheader->sh_size / sizeof(Elf64_Sym);
         Elf64_Sym *list = new Elf64_Sym[count];
-        readat(f, sheader->sh_offset, list, sheader->sh_size);
+        readat(f, static_cast<off_t>(sheader->sh_offset), list, sheader->sh_size);
 
         sheader = getSecByName(f, &eheader, shsyms, ".strtab");
         if(sheader) {
             char *names = new char[sheader->sh_size];
-            readat(f, sheader->sh_offset, names, sheader->sh_size);
+            readat(f, static_cast<off_t>(sheader->sh_offset), names, sheader->sh_size);
 
             for(size_t i = 0; i < count; ++i) {
                 if(ELF32_ST_TYPE(list[i].st_info) == STT_FUNC)
@@ -70,7 +70,7 @@ void Symbols::addFile(const char *file) {
     files++;
 }
 
-const char *Symbols::resolve(unsigned long addr, int *bin) {
+const char *Symbols::resolve(unsigned long addr, uint32_t *bin) {
     char *symbolName = (char*)malloc(MAX_FUNC_LEN);
     for(auto it = syms.begin(); it != syms.end(); ++it) {
         auto next = it + 1;
@@ -80,7 +80,7 @@ const char *Symbols::resolve(unsigned long addr, int *bin) {
             return symbolName;
         }
     }
-    *bin = -1;
+    *bin = static_cast<uint32_t>(-1);
     snprintf(symbolName, MAX_FUNC_LEN, "%lu", addr);
     return symbolName;
 }
@@ -98,12 +98,13 @@ char *Symbols::loadShSyms(FILE *f, const Elf64_Ehdr *eheader) {
     Elf64_Shdr sheader;
     unsigned char *datPtr;
     char *shsymbols;
-    datPtr = reinterpret_cast<unsigned char*>(eheader->e_shoff + eheader->e_shstrndx * eheader->e_shentsize);
+    datPtr = reinterpret_cast<unsigned char*>(
+        eheader->e_shoff + static_cast<size_t>(eheader->e_shstrndx) * eheader->e_shentsize);
     readat(f, (off_t)datPtr, &sheader, sizeof(Elf64_Shdr));
     shsymbols = (char*)malloc(sheader.sh_size);
     if(shsymbols == NULL)
         perror("malloc");
-    readat(f, sheader.sh_offset, shsymbols, sheader.sh_size);
+    readat(f, static_cast<off_t>(sheader.sh_offset), shsymbols, sheader.sh_size);
     return shsymbols;
 }
 

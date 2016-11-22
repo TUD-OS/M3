@@ -164,22 +164,22 @@ int main( int argc, char **argv )
     OTF_Writer_writeDefTimerResolution( writer, 0, TH_CLOCK_MHZ * 1000 * 1000 );
 
     // Processes.
-    int stream = 1;
-    int pe1 = 4;
-    for( int i = 0; i < TH_NUM_PES; ++i )
+    uint32_t stream = 1;
+    uint32_t pe1 = 4;
+    for( uint32_t i = 0; i < TH_NUM_PES; ++i )
     {
         char peName[8];
         snprintf( peName, 5, "Pe%d", i + 1 );
         OTF_Writer_writeDefProcess( writer, 0, pe1 + i, peName, 0 );
         OTF_Writer_assignProcess( writer, pe1 + i, stream );
     }
-    int mem = 2;
+    uint32_t mem = 2;
     OTF_Writer_writeDefProcess( writer, 0, mem, "Mem", 0 );
     OTF_Writer_assignProcess( writer, mem, stream );
 
     // Process groups
     uint32_t allPEs[TH_NUM_PES + 1];
-    for( int i = 0; i < TH_NUM_PES; ++i ) allPEs[i] = pe1 + i;
+    for( uint32_t i = 0; i < TH_NUM_PES; ++i ) allPEs[i] = pe1 + i;
     allPEs[TH_NUM_PES] = mem;
     unsigned grp_mem = ( 1 << 20 ) + 1;
     OTF_Writer_writeDefProcessGroup( writer, 0, grp_mem, "Remote Memory Read/Write", TH_NUM_PES + 1, allPEs );

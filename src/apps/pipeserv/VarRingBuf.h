@@ -44,12 +44,12 @@ public:
 
         if(_wrpos >= _rdpos) {
             if(_size - _wrpos >= size)
-                return _wrpos;
+                return static_cast<ssize_t>(_wrpos);
             else if(_rdpos > size)
                 return 0;
         }
         else if(_rdpos - _wrpos > size)
-            return _wrpos;
+            return static_cast<ssize_t>(_wrpos);
         return -1;
     }
 
@@ -64,7 +64,7 @@ public:
             *size = std::min(_wrpos - rpos,*size);
         else
             *size = std::min(_size - rpos,*size);
-        return rpos;
+        return static_cast<ssize_t>(rpos);
     }
 
     void push(size_t size) {

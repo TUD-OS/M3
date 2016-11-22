@@ -47,7 +47,7 @@ int TestSuiteContainer::run() {
              << suites_succ << "\033[0m of " << _suites.length() << " testsuites successfull\n";
     m3::cout << (cases_failed == 0 ? "\033[0;32m" : "\033[0;31m") << cases_succ << "\033[0m of "
              << (cases_succ + cases_failed) << " testcases successfull\n";
-    return ((suites_succ + suites_failed) << 16) | suites_succ;
+    return static_cast<int>(((suites_succ + suites_failed) << 16) | suites_succ);
 }
 
 }

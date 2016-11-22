@@ -36,7 +36,6 @@ using ssize_t   = long;
 using word_t    = unsigned long;
 using label_t   = word_t;
 using capsel_t  = unsigned;
-using off_t     = long;
 using fd_t      = int;
 using cycles_t  = uint64_t;
 

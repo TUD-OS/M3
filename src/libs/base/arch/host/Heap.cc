@@ -46,9 +46,9 @@ void Heap::init() {
 
     _end = _begin + (HEAP_SIZE / sizeof(Area)) - sizeof(Area);
     _end->next = 0;
-    _end->prev = (_end - _begin) * sizeof(Area);
+    _end->prev = static_cast<size_t>(_end - _begin) * sizeof(Area);
     Area *a = _begin;
-    a->next = (_end - _begin) * sizeof(Area);
+    a->next = static_cast<size_t>(_end - _begin) * sizeof(Area);
     a->prev = 0;
     _ready = true;
 }

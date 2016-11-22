@@ -42,11 +42,11 @@ int main(int argc, char **argv) {
     cycles_t start2 = Profile::start(1);
     ssize_t count;
     size_t total = 0;
-    unsigned checksum = 0;
+    uint checksum = 0;
     while((count = file->read(buffer, sizeof(buffer))) > 0) {
-        total += count;
-        unsigned *b = (unsigned*)buffer;
-        unsigned *e = b + count / sizeof(unsigned);
+        total += static_cast<size_t>(count);
+        uint *b = reinterpret_cast<uint*>(buffer);
+        uint *e = b + static_cast<size_t>(count) / sizeof(uint);
         while(b < e)
             checksum += *b++;
     }

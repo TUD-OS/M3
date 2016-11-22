@@ -29,11 +29,11 @@ static void count(FStream &in) {
     long words = 0;
     long bytes = 0;
 
-    ssize_t res;
+    size_t res;
     int last_space = false;
     while((res = in.read(buffer, sizeof(buffer))) > 0) {
         count(buffer, res, &lines, &words, &last_space);
-        bytes += res;
+        bytes += static_cast<long>(res);
     }
 
     cout << fmt(lines, 7) << " " << fmt(words, 7) << " " << fmt(bytes, 7) << "\n";

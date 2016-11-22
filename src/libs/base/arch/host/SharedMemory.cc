@@ -35,7 +35,7 @@ SharedMemory::SharedMemory(const String &name, size_t size, Op op)
     if(_fd == -1)
         PANIC("shm_open: Unable to open '" << os.str() << "': " << strerror(errno));
 
-    if(op == CREATE && ftruncate(_fd, size) == -1)
+    if(op == CREATE && ftruncate(_fd, static_cast<off_t>(size)) == -1)
         PANIC("ftruncate");
 
     _addr = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);

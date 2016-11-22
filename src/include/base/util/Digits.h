@@ -35,7 +35,7 @@ public:
     static uint count_unsigned(T n, uint base) {
         uint width = 1;
         while(n >= base) {
-            long rem;
+            T rem;
             n = divide(n, base, &rem);
             width++;
         }
@@ -56,7 +56,7 @@ public:
             n = -n;
         }
         while(n >= base) {
-            long rem;
+            T rem;
             n = divide(n, base, &rem);
             width++;
         }

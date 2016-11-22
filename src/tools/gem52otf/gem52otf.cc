@@ -80,21 +80,21 @@ static const char *event_names[] = {
 };
 
 struct Event {
-    explicit Event() : pe(), timestamp(), type(), size(), remote(), tag(), bin(-1), name() {
+    explicit Event() : pe(), timestamp(), type(), size(), remote(), tag(), bin(static_cast<uint32_t>(-1)), name() {
     }
-    explicit Event(int pe, uint64_t ts, int type, size_t size, int remote, uint64_t tag)
-        : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag), bin(-1), name() {
+    explicit Event(uint32_t pe, uint64_t ts, int type, size_t size, uint32_t remote, uint64_t tag)
+        : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag), bin(static_cast<uint32_t>(-1)), name() {
     }
-    explicit Event(int pe, uint64_t ts, int type, int bin, const char *name)
+    explicit Event(uint32_t pe, uint64_t ts, int type, uint32_t bin, const char *name)
         : pe(pe), timestamp(ts / 1000), type(type), size(), remote(), tag(), bin(bin), name(name) {
     }
 
     const char *tag_to_string() const {
         static char buf[5];
-        buf[0] = (tag >> 24) & 0xFF;
-        buf[1] = (tag >> 16) & 0xFF;
-        buf[2] = (tag >>  8) & 0xFF;
-        buf[3] = (tag >>  0) & 0xFF;
+        buf[0] = static_cast<char>((tag >> 24) & 0xFF);
+        buf[1] = static_cast<char>((tag >> 16) & 0xFF);
+        buf[2] = static_cast<char>((tag >>  8) & 0xFF);
+        buf[3] = static_cast<char>((tag >>  0) & 0xFF);
         buf[4] = '\0';
         return buf;
     }
@@ -124,16 +124,16 @@ struct Event {
         return os;
     }
 
-    int pe;
+    uint32_t pe;
     uint64_t timestamp;
 
     int type;
 
     size_t size;
-    int remote;
+    uint32_t remote;
     uint64_t tag;
 
-    int bin;
+    uint32_t bin;
     const char *name;
 };
 
@@ -168,7 +168,7 @@ enum Mode {
 
 static Symbols syms;
 
-static Event build_event(event_type type, uint64_t timestamp, int pe,
+static Event build_event(event_type type, uint64_t timestamp, uint32_t pe,
                          const std::string &remote, const std::string &size, uint64_t tag) {
     Event ev(
         pe,
@@ -181,7 +181,7 @@ static Event build_event(event_type type, uint64_t timestamp, int pe,
     return ev;
 }
 
-int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
+uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
     char filename[256];
     char readbuf[256];
     if(path) {
@@ -228,19 +228,19 @@ int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
     State states[GEM5_MAX_PES];
 
-    int last_pe = 0;
-    int tag = 1;
+    uint32_t last_pe = 0;
+    uint64_t tag = 1;
 
     std::smatch match;
 
     while(fgets(readbuf, sizeof(readbuf), fd)) {
         unsigned long long timestamp;
-        int pe;
+        uint32_t pe;
         int numchars;
         int tid;
 
         if(mode == MODE_VPES &&
-                sscanf(readbuf, "%Lu: pe%d.cpu T%d : %n", &timestamp, &pe, &tid, &numchars) == 3) {
+                sscanf(readbuf, "%Lu: pe%u.cpu T%d : %n", &timestamp, &pe, &tid, &numchars) == 3) {
 
             if(!states[pe].in_call && !strstr(readbuf + numchars, "CALL")
                                    && !strstr(readbuf + numchars, "RET"))
@@ -253,7 +253,7 @@ int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
             else if(states[pe].in_call) {
                 std::regex_search(line, match, exec_regex);
                 unsigned long addr = strtoul(match[1].str().c_str(), NULL, 16);
-                int bin;
+                uint32_t bin;
                 const char *name = syms.resolve(addr, &bin);
                 buf.push_back(Event(pe, timestamp, EVENT_UFUNC_ENTER, bin, name));
                 states[pe].in_call = false;
@@ -350,10 +350,10 @@ int read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
     return last_pe + 1;
 }
 
-static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf, int pe_count) {
+static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf, uint32_t pe_count) {
     // Processes.
-    int stream = 1;
-    for(int i = 0; i < pe_count; ++i) {
+    uint32_t stream = 1;
+    for(uint32_t i = 0; i < pe_count; ++i) {
         char peName[8];
         snprintf(peName, sizeof(peName), "PE%d", i);
         OTF_Writer_writeDefProcess(writer, 0, i, peName, 0);
@@ -362,7 +362,7 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
 
     // Process groups
     uint32_t allPEs[pe_count];
-    for(int i = 0; i < pe_count; ++i)
+    for(uint32_t i = 0; i < pe_count; ++i)
         allPEs[i] = i;
 
     unsigned grp_mem = (1 << 20) + 1;
@@ -393,7 +393,7 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
     bool awake[pe_count];
     unsigned cur_vpe[pe_count];
 
-    for(int i = 0; i < pe_count; ++i) {
+    for(uint32_t i = 0; i < pe_count; ++i) {
         awake[i] = true;
         cur_vpe[i] = fn_vpe_invalid;
         OTF_Writer_writeEnter(writer, timestamp, fn_vpe_invalid, i, 0);
@@ -489,7 +489,7 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
         ++stats.total;
     }
 
-    for(int i = 0; i < pe_count; ++i) {
+    for(uint32_t i = 0; i < pe_count; ++i) {
         if(awake[i])
             OTF_Writer_writeLeave(writer, timestamp, cur_vpe[i], i, 0);
         else
@@ -498,7 +498,7 @@ static void gen_pe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &
 }
 
 static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> &trace_buf,
-        int pe_count, int binary_count, char **binaries) {
+        uint32_t pe_count, uint32_t binary_count, char **binaries) {
     // Processes
     std::set<unsigned> vpeIds;
 
@@ -538,7 +538,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
     unsigned grp_func_user = grp_func_count++;
     OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_user, "User");
 
-    for(int i = 0; i < binary_count; ++i)
+    for(uint32_t i = 0; i < binary_count; ++i)
         OTF_Writer_writeDefFunctionGroup(writer, 0, grp_func_count + i, binaries[i]);
 
     // Execution functions
@@ -569,7 +569,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
 
     unsigned cur_vpe[pe_count];
 
-    for(int i = 0; i < pe_count; ++i)
+    for(uint32_t i = 0; i < pe_count; ++i)
         cur_vpe[i] = INVALID_VPEID;
 
     uint32_t ufunc_max_id = ( 3 << 20 );
@@ -697,7 +697,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
                     id = (++ufunc_max_id);
                     ufunc_map.insert(std::make_pair(std::make_pair(event->bin, event->name), id));
                     unsigned group = grp_func_user;
-                    if(event->bin != -1)
+                    if(event->bin != static_cast<uint32_t>(-1))
                         group = grp_func_count + event->bin;
                     OTF_Writer_writeDefFunction(writer, 0, id, event->name, group, 0);
                 }
@@ -807,7 +807,7 @@ int main(int argc,char **argv) {
 
     std::vector<Event> trace_buf;
 
-    int pe_count = read_trace_file(argv[argstart + 1], mode, trace_buf);
+    uint32_t pe_count = read_trace_file(argv[argstart + 1], mode, trace_buf);
 
     // now sort the trace buffer according to timestamps
     printf( "sorting %zu events\n", trace_buf.size());
@@ -836,8 +836,10 @@ int main(int argc,char **argv) {
 
     if(mode == MODE_PES)
         gen_pe_events(writer, stats, trace_buf, pe_count);
-    else
-        gen_vpe_events(writer, stats, trace_buf, pe_count, argc - (argstart + 2), argv + argstart + 2);
+    else {
+        gen_vpe_events(writer, stats, trace_buf, pe_count,
+            static_cast<uint32_t>(argc - (argstart + 2)), argv + argstart + 2);
+    }
 
     if(stats.send != stats.recv) {
         printf("WARNING: #send != #recv\n");

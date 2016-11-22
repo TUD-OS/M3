@@ -44,7 +44,7 @@ int TracePlayer::play(bool keep_time, bool) {
     Platform::logf("Replaying %u operations ...\n", numTraceOps);
 
     Buffer buf;
-    unsigned int lineNo = 1;
+    int lineNo = 1;
     unsigned int numReplayed = 0;
     FSAPI *fs = Platform::fsapi(pathPrefix);
 
@@ -57,7 +57,7 @@ int TracePlayer::play(bool keep_time, bool) {
     op = trace_ops;
     while (op && op->opcode != INVALID_OP) {
 #ifndef __LINUX__
-        m3::Profile::start(lineNo);
+        m3::Profile::start(static_cast<uint>(lineNo));
 #endif
 
         // if (lineNo % 100 == 0)
@@ -199,7 +199,7 @@ int TracePlayer::play(bool keep_time, bool) {
         op++;
 
 #ifndef __LINUX__
-        m3::Profile::stop(lineNo);
+        m3::Profile::stop(static_cast<uint>(lineNo));
 #endif
         lineNo++;
     }

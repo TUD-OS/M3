@@ -63,7 +63,7 @@ public:
     virtual File *open(const char *path, int perms) override;
     virtual Errors::Code stat(const char *path, FileInfo &info) override;
     int fstat(int fd, FileInfo &info);
-    int seek(int fd, off_t off, int whence, size_t &global, size_t &extoff, off_t &pos);
+    int seek(int fd, size_t off, int whence, size_t &global, size_t &extoff, size_t &pos);
     virtual Errors::Code mkdir(const char *path, mode_t mode) override;
     virtual Errors::Code rmdir(const char *path) override;
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;

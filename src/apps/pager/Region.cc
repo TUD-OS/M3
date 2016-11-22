@@ -54,7 +54,7 @@ void Region::limit_to(size_t pos, size_t pages) {
     }
 }
 
-m3::Errors::Code Region::map(uint flags) {
+m3::Errors::Code Region::map(int flags) {
     if(has_mem()) {
         return m3::Syscalls::get().createmap(virt() >> PAGE_BITS,
             _ds->addrspace()->vpe.sel(), mem()->gate->sel(),

@@ -38,18 +38,19 @@ void FS2TestSuite::WriteFileTestCase::check_content(const char *filename, size_t
     if(Errors::occurred())
         exitmsg("open of " << filename << " failed");
 
-    ssize_t count, pos = 0;
+    size_t pos = 0;
+    ssize_t count;
     while((count = file->read(largebuf, sizeof(largebuf))) > 0) {
-        assert_int(count, sizeof(largebuf));
+        assert_size(static_cast<size_t>(count), sizeof(largebuf));
         for(ssize_t i = 0; i < count; ++i)
             assert_int(largebuf[i], pos++ & 0xFF);
     }
-    assert_int(pos, size);
+    assert_size(pos, size);
 
     FileInfo info;
     if(file->stat(info) != 0)
         exitmsg("stat of '" << filename << "' failed");
-    assert_int(info.size, size);
+    assert_size(info.size, size);
 }
 
 void FS2TestSuite::WriteFileTestCase::run() {
@@ -66,7 +67,7 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
         for(int i = 0; i < 129; ++i) {
             ssize_t count = file->write(largebuf, sizeof(largebuf));
-            assert_int(count, sizeof(largebuf));
+            assert_ssize(count, sizeof(largebuf));
         }
     }
 
@@ -83,7 +84,7 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
         for(int i = 0; i < 3; ++i) {
             ssize_t count = file->write(largebuf, sizeof(largebuf));
-            assert_int(count, sizeof(largebuf));
+            assert_ssize(count, sizeof(largebuf));
         }
     }
 
@@ -100,7 +101,7 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
         for(int i = 0; i < 2; ++i) {
             ssize_t count = file->write(largebuf, sizeof(largebuf));
-            assert_int(count, sizeof(largebuf));
+            assert_ssize(count, sizeof(largebuf));
         }
     }
 
@@ -117,7 +118,7 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
         for(int i = 0; i < 2; ++i) {
             ssize_t count = file->write(largebuf, sizeof(largebuf));
-            assert_int(count, sizeof(largebuf));
+            assert_ssize(count, sizeof(largebuf));
         }
     }
 
@@ -134,18 +135,18 @@ void FS2TestSuite::WriteFileTestCase::run() {
 
         for(int i = 0; i < 2; ++i) {
             ssize_t count = file->write(largebuf, sizeof(largebuf));
-            assert_int(count, sizeof(largebuf));
+            assert_ssize(count, sizeof(largebuf));
         }
 
         // there is nothing to read now
-        assert_int(file->read(largebuf, sizeof(largebuf)), 0);
+        assert_ssize(file->read(largebuf, sizeof(largebuf)), 0);
 
         // seek beyond the end
-        assert_int(file->seek(sizeof(largebuf) * 4, SEEK_SET), sizeof(largebuf) * 4);
+        assert_size(file->seek(sizeof(largebuf) * 4, SEEK_SET), sizeof(largebuf) * 4);
         // seek back
-        assert_int(file->seek(sizeof(largebuf) * 2, SEEK_SET), sizeof(largebuf) * 2);
+        assert_size(file->seek(sizeof(largebuf) * 2, SEEK_SET), sizeof(largebuf) * 2);
         // now reading should work
-        assert_int(file->read(largebuf, sizeof(largebuf)), sizeof(largebuf));
+        assert_ssize(file->read(largebuf, sizeof(largebuf)), sizeof(largebuf));
     }
 
     check_content(filename, sizeof(largebuf) * 4);

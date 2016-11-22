@@ -51,10 +51,7 @@ public:
     Errors::Code createsessat(capsel_t dst, capsel_t srv, word_t ident);
     Errors::Code creatergate(capsel_t dst, int order, int msgorder);
     Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);
-    Errors::Code createmgate(capsel_t dst, size_t size, int perms) {
-        return createmgateat(dst, -1, size, perms);
-    }
-    Errors::Code createmgateat(capsel_t dst, uintptr_t addr, size_t size, int perms);
+    Errors::Code createmgate(capsel_t dst, uintptr_t addr, size_t size, int perms);
     Errors::Code createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, const String &name, PEDesc &pe, epid_t ep, bool tmuxable);
     Errors::Code createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, capsel_t first, capsel_t pages, int perms);
 

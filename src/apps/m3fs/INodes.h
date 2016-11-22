@@ -44,7 +44,7 @@ public:
 
     static void stat(FSHandle &h, m3::inodeno_t ino, m3::FileInfo &info);
 
-    static off_t seek(FSHandle &h, m3::inodeno_t ino, off_t &off, int whence, size_t &extent, size_t &extoff);
+    static size_t seek(FSHandle &h, m3::inodeno_t ino, size_t &off, int whence, size_t &extent, size_t &extoff);
 
     static m3::loclist_type *get_locs(FSHandle &h, m3::INode *inode, size_t offset, size_t locs,
         size_t blocks, int perms, m3::KIF::CapRngDesc &crd, bool &extended);

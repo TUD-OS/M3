@@ -51,7 +51,7 @@ int M3FS::fstat(int fd, FileInfo &info) {
     return Errors::NONE;
 }
 
-int M3FS::seek(int fd, off_t off, int whence, size_t &global, size_t &extoff, off_t &pos) {
+int M3FS::seek(int fd, size_t off, int whence, size_t &global, size_t &extoff, size_t &pos) {
     GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, global, extoff);
     reply >> Errors::last;
     if(Errors::last != Errors::NONE)

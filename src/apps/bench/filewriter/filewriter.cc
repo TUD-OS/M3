@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
     size_t size = IStringStream::read_from<size_t>(argv[2]);
     for(size_t i = 0; i < sizeof(buffer); ++i)
-        buffer[i] = i & 0xFF;
+        buffer[i] = static_cast<char>(i & 0xFF);
 
     cycles_t end1,start2,end2,start3;
     cycles_t start1 = Profile::start(0);
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
             ssize_t count = file->write(buffer, sizeof(buffer));
             if(count < 0)
                 exitmsg("Writing failed");
-            total += count;
+            total += static_cast<size_t>(count);
         }
         end2 = Profile::stop(1);
 

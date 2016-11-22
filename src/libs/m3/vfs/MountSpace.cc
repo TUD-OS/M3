@@ -49,7 +49,7 @@ static size_t is_in_mount(const String &mount, const char *in) {
         return 0;
     while(*p2 == '/')
         p2++;
-    return p2 - in;
+    return static_cast<size_t>(p2 - in);
 }
 
 MountSpace::MountSpace(const MountSpace &ms) : _count(ms._count) {

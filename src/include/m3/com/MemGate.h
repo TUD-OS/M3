@@ -56,7 +56,7 @@ public:
      * @return the memory gate
      */
     static MemGate create_global(size_t size, int perms, capsel_t sel = INVALID) {
-        return create_global_for(-1, size, perms, sel);
+        return create_global_for(static_cast<uintptr_t>(-1), size, perms, sel);
     }
 
     /**

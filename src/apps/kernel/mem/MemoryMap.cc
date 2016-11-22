@@ -45,7 +45,7 @@ uintptr_t MemoryMap::allocate(size_t size, size_t align) {
             break;
     }
     if(a == nullptr)
-        return -1;
+        return static_cast<uintptr_t>(-1);
 
     /* if we need to do some alignment, create a new area in front of a */
     size_t diff = m3::Math::round_up(a->addr, align) - a->addr;

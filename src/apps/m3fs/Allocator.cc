@@ -47,7 +47,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
         if(i < max && bm.is_word_set(i)) {
             // within the first word with free bits, the first free bit is not necessarily
             // i % Bitmap::WORD_BITS. thus, start from 0 within each word
-            i = (i + Bitmap::WORD_BITS) & ~(Bitmap::WORD_BITS - 1);
+            i = (i + Bitmap::WORD_BITS) & ~static_cast<uint32_t>(Bitmap::WORD_BITS - 1);
             for(; i < max && bm.is_word_set(i); i += Bitmap::WORD_BITS)
                 ;
             if(i < max) {
@@ -131,7 +131,7 @@ void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
         }
 
         // now clear in word-steps
-        uint32_t wend = end & ~(Bitmap::WORD_BITS - 1);
+        uint32_t wend = end & ~static_cast<uint32_t>(Bitmap::WORD_BITS - 1);
         for(; i < wend; i += Bitmap::WORD_BITS) {
             assert(bm.is_word_set(i));
             bm.clear_word(i);

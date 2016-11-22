@@ -47,7 +47,7 @@
 
 #define C2B(c,ch)           (((((c) & 0xFF) * ch.scale) >> 8) * ch.factor)
 // the first 8 bit specify the alpha-value
-#define RGB2PIXEL(r,g,b)    ((0xFF << 24) | \
+#define RGB2PIXEL(r,g,b)    (((ulong)0xFF << 24) | \
                             C2B(r, vga.red) | \
                             C2B(g, vga.green) | \
                             C2B(b, vga.blue))
@@ -326,12 +326,12 @@ static void initMonitor(int argc, char *argv[]) {
     vga.green = mask2channel(visualInfo[bestMatch].green_mask);
     vga.blue = mask2channel(visualInfo[bestMatch].blue_mask);
     /* create and initialize image */
-    vga.image = XCreateImage(vga.display, visual, bestDepth, ZPixmap, 0, nullptr, WINDOW_SIZE_X,
+    vga.image = XCreateImage(vga.display, visual, (uint)bestDepth, ZPixmap, 0, nullptr, WINDOW_SIZE_X,
             WINDOW_SIZE_Y, 32, 0);
     if(vga.image == nullptr ) {
         PANIC("cannot allocate image");
     }
-    vga.image->data = (char*)mmap(0, vga.image->height * vga.image->bytes_per_line,
+    vga.image->data = (char*)mmap(0, (size_t)vga.image->height * (size_t)vga.image->bytes_per_line,
         PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if(vga.image->data == MAP_FAILED) {
         PANIC("cannot allocate image memory");
@@ -429,7 +429,7 @@ static void *server(void *) {
             case Expose:
                 refreshScreen();
                 XPutImage(vga.display, vga.win, vga.gc, vga.image, event.xexpose.x, event.xexpose.y,
-                        event.xexpose.x, event.xexpose.y, event.xexpose.width, event.xexpose.height);
+                        event.xexpose.x, event.xexpose.y, (uint)event.xexpose.width, (uint)event.xexpose.height);
                 break;
             case ClientMessage:
                 if(event.xclient.message_type == XA_WM_COMMAND && event.xclient.format == 32
@@ -586,7 +586,7 @@ static void displayExit(void) {
 /**************************************************************/
 
 static int keycodeCompare(const void *code1, const void *code2) {
-    return ((Keycode *)code1)->xKeycode - ((Keycode *)code2)->xKeycode;
+    return (int)(((Keycode *)code1)->xKeycode - ((Keycode *)code2)->xKeycode);
 }
 
 static void initKeycode(void) {
@@ -601,7 +601,7 @@ static Keycode *lookupKeycode(unsigned int xKeycode) {
     hi = sizeof(kbdCodeTbl) / sizeof(kbdCodeTbl[0]) - 1;
     while(lo <= hi) {
         tst = (lo + hi) / 2;
-        res = kbdCodeTbl[tst].xKeycode - xKeycode;
+        res = static_cast<int>(kbdCodeTbl[tst].xKeycode - xKeycode);
         if(res == 0) {
             return &kbdCodeTbl[tst];
         }

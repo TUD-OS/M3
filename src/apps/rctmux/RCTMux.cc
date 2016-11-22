@@ -31,7 +31,7 @@ enum Status {
 
 static void *restore();
 
-static uint status = 0;
+static int status = 0;
 static void *state = nullptr;
 
 EXTERN_C void *_start_app() {

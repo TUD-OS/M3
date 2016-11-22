@@ -80,13 +80,13 @@ void MGateCapability::revoke() {
     obj.unref();
 }
 
-MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, uint _attr)
+MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, int _attr)
     : Capability(tbl, sel, MAP, _pages), phys(_phys), attr(_attr) {
     VPE &vpe = VPEManager::get().vpe(tbl->id() - 1);
     DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
 }
 
-void MapCapability::remap(gaddr_t _phys, uint _attr) {
+void MapCapability::remap(gaddr_t _phys, int _attr) {
     phys = _phys;
     attr = _attr;
     VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
@@ -169,7 +169,7 @@ void VPECapability::printInfo(m3::OStream &os) const {
        << ", name=" << obj->name() << "]";
 }
 
-void Capability::printChilds(m3::OStream &os, int layer) const {
+void Capability::printChilds(m3::OStream &os, size_t layer) const {
     const Capability *n = this;
     while(n) {
         os << "\n";

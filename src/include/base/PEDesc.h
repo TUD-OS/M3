@@ -109,7 +109,7 @@ struct PEDesc {
      * @return the memory size (for type() == COMP_IMEM | MEM)
      */
     size_t mem_size() const {
-        return _value & ~0xFFF;
+        return _value & ~static_cast<value_t>(0xFFF);
     }
     /**
      * @return true if the PE has internal memory

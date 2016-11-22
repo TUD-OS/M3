@@ -85,7 +85,7 @@ void VPEManager::init(int argc, char **argv) {
         }
 
         // remember arguments
-        _vpes[id]->set_args(end - i, argv + i);
+        _vpes[id]->set_args(static_cast<size_t>(end - i), argv + i);
 
         // register pending item if necessary
         if(strcmp(argv[i], "idle") != 0 && _vpes[id]->requirements().length() > 0)

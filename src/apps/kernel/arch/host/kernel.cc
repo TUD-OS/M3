@@ -71,7 +71,7 @@ static void copyfromfs(MainMemory &mem, const char *file) {
         PANIC("Reading from '" << file << "' failed");
     close(fd);
 
-    fssize = res;
+    fssize = static_cast<size_t>(res);
     KLOG(MEM, "Copied fs-image '" << file << "' to 0.." << m3::fmt(fssize, "#x"));
 }
 

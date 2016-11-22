@@ -20,8 +20,8 @@ using namespace m3;
 
 alignas(DTU_PKG_SIZE) static char buffer[4096];
 
-static void replace(char *buffer, long res, char c1, char c2) {
-    for(ssize_t i = 0; i < res; ++i) {
+static void replace(char *buffer, size_t res, char c1, char c2) {
+    for(size_t i = 0; i < res; ++i) {
         if(buffer[i] == c1)
             buffer[i] = c2;
     }
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     char c1 = argv[1][0];
     char c2 = argv[2][0];
 
-    ssize_t res;
+    size_t res;
     while((res = cin.read(buffer, sizeof(buffer))) > 0) {
         replace(buffer, res, c1, c2);
         cout.write(buffer, res);

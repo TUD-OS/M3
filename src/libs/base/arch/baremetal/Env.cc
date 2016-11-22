@@ -77,7 +77,7 @@ void Env::run() {
             for(uint64_t i = 0; i < e->argc; ++i)
                 argv[i] = reinterpret_cast<char*>(argv64[i]);
         }
-        res = main(e->argc, argv);
+        res = main(static_cast<int>(e->argc), argv);
     }
 
     e->exit(res);

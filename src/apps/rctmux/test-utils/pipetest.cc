@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
         PANIC("Cannot mount root fs");
 
     int mode = IStringStream::read_from<int>(argv[1]);
-    size_t rargs = IStringStream::read_from<size_t>(argv[2]);
+    int rargs = IStringStream::read_from<int>(argv[2]);
 
     for(int j = 0; j < REPEATS; ++j) {
         App *apps[4];

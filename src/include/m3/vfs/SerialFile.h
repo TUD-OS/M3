@@ -34,7 +34,7 @@ public:
         // not supported
         return -1;
     }
-    virtual off_t seek(off_t, int) override {
+    virtual size_t seek(size_t, int) override {
         // not supported
         return 0;
     }
@@ -48,7 +48,7 @@ public:
     }
     virtual ssize_t write(const void *buffer, size_t count) override {
         int res = Machine::write(reinterpret_cast<const char*>(buffer), count);
-        return res < 0 ? res : count;
+        return res < 0 ? res : static_cast<ssize_t>(count);
     }
 
     virtual char type() const override {
@@ -68,7 +68,7 @@ public:
     }
 
 private:
-    virtual bool seek_to(off_t) override {
+    virtual bool seek_to(size_t) override {
         return false;
     }
 };

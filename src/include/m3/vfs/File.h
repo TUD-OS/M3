@@ -73,7 +73,7 @@ public:
          * @param c the character
          * @return true if successful
          */
-        virtual bool putback(off_t off, char c);
+        virtual bool putback(size_t off, char c);
 
         /**
          * Reads <amount> bytes from the buffer into <dst>.
@@ -84,7 +84,7 @@ public:
          * @param amount the number of bytes to read
          * @return the number of read bytes (0 = EOF, <0 = error)
          */
-        virtual ssize_t read(File *file, off_t off, void *dst, size_t amount);
+        virtual ssize_t read(File *file, size_t off, void *dst, size_t amount);
 
         /**
          * Writes <amount> bytes from <src> into the buffer.
@@ -95,7 +95,7 @@ public:
          * @param amount the number of bytes to write
          * @return the number of written bytes (0 = EOF, <0 =  error)
          */
-        virtual ssize_t write(File *file, off_t off, const void *src, size_t amount);
+        virtual ssize_t write(File *file, size_t off, const void *src, size_t amount);
 
         /**
          * Seeks to given offset.
@@ -105,7 +105,7 @@ public:
          * @param offset the offset to seek to
          * @return >0 on seek, 0 on nothing done and <0 on error
          */
-        virtual int seek(off_t off, int whence, off_t &offset);
+        virtual int seek(size_t off, int whence, size_t &offset);
 
         /**
          * Flushes the buffer.
@@ -118,7 +118,7 @@ public:
         char *buffer;
         size_t size;
         size_t cur;
-        off_t pos;
+        size_t pos;
     };
 
     File(const File &) = delete;
@@ -156,7 +156,7 @@ public:
      * @param whence the seek-type (SEEK_{SET,CUR,END}).
      * @return the new file-position
      */
-    virtual off_t seek(off_t offset, int whence) = 0;
+    virtual size_t seek(size_t offset, int whence) = 0;
 
     /**
      * Reads at most <count> bytes into <buffer>.
@@ -203,7 +203,7 @@ public:
     virtual void serialize(Marshaller &m) = 0;
 
 private:
-    virtual bool seek_to(off_t offset) = 0;
+    virtual bool seek_to(size_t offset) = 0;
 
     int _flags;
 };

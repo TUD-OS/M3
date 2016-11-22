@@ -49,6 +49,7 @@ class VPE : public m3::SListItem, public SlabObject<VPE>, public m3::RefCounted 
 
 public:
     static const uint16_t INVALID_ID    = 0xFFFF;
+    static const epid_t INVALID_EP      = static_cast<epid_t>(-1);
 
     static const cycles_t TIME_SLICE    = 1000000;
 
@@ -73,7 +74,7 @@ public:
         F_WAITING     = 1 << 7,
     };
 
-    explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = -1,
+    explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = INVALID_EP,
         capsel_t pfgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
@@ -150,7 +151,7 @@ public:
     }
     void stop_wait() {
         assert(_flags & F_WAITING);
-        _flags &= ~F_WAITING;
+        _flags ^= F_WAITING;
     }
 
     CapTable &objcaps() {

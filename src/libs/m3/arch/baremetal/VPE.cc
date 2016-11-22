@@ -95,7 +95,8 @@ Errors::Code VPE::run(void *lambda) {
 
     /* write args */
     char *buffer = (char*)Heap::alloc(BUF_SIZE);
-    size_t size = store_arguments(buffer, env()->argc, reinterpret_cast<const char**>(env()->argv));
+    size_t size = store_arguments(buffer, static_cast<int>(env()->argc),
+        reinterpret_cast<const char**>(env()->argv));
     _mem.write(buffer, size, RT_SPACE_START);
     Heap::free(buffer);
 
@@ -121,7 +122,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         return err;
     }
 
-    senv.argc = argc;
+    senv.argc = static_cast<uint32_t>(argc);
     senv.argv = RT_SPACE_START;
     senv.sp = STACK_TOP;
     senv.entry = entry;
@@ -206,7 +207,8 @@ Errors::Code VPE::load_segment(ElfPh &pheader, char *buffer) {
     }
 
     /* seek to that offset and copy it to destination PE */
-    if(_exec->seek(pheader.p_offset, SEEK_SET) != (off_t)pheader.p_offset)
+    size_t off = pheader.p_offset;
+    if(_exec->seek(off, SEEK_SET) != off)
         return Errors::INVALID_ELF;
 
     size_t count = pheader.p_filesz;
@@ -238,7 +240,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
 
     /* copy load segments to destination PE */
     uintptr_t end = 0;
-    off_t off = header.e_phoff;
+    size_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
         ElfPh pheader;
@@ -278,16 +280,16 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
 size_t VPE::store_arguments(char *buffer, int argc, const char **argv) {
     /* copy arguments and arg pointers to buffer */
     uint64_t *argptr = reinterpret_cast<uint64_t*>(buffer);
-    char *args = buffer + argc * sizeof(uint64_t);
+    char *args = buffer + static_cast<size_t>(argc) * sizeof(uint64_t);
     for(int i = 0; i < argc; ++i) {
         size_t len = strlen(argv[i]);
         if(args + len >= buffer + BUF_SIZE)
             return Errors::INV_ARGS;
         strcpy(args, argv[i]);
-        *argptr++ = RT_SPACE_START + (args - buffer);
+        *argptr++ = RT_SPACE_START + static_cast<size_t>(args - buffer);
         args += len + 1;
     }
-    return args - buffer;
+    return static_cast<size_t>(args - buffer);
 }
 
 }

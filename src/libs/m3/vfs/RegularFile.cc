@@ -29,19 +29,19 @@ public:
     explicit RegFileBuffer(size_t size) : File::Buffer(size) {
     }
 
-    virtual bool putback(off_t off, char c) override {
-        if(!cur || off <= pos || off > (off_t)(pos + cur))
+    virtual bool putback(size_t off, char c) override {
+        if(!cur || off <= pos || off > pos + cur)
             return false;
         buffer[off - 1 - pos] = c;
         return true;
     }
 
-    virtual ssize_t read(File *file, off_t off, void *dst, size_t amount) override {
+    virtual ssize_t read(File *file, size_t off, void *dst, size_t amount) override {
         // something in the buffer?
-        if(cur && off >= pos && off < static_cast<off_t>(pos + cur)) {
-            size_t count = std::min<size_t>(amount, pos + cur - off);
+        if(cur && off >= pos && off < pos + cur) {
+            size_t count = std::min(amount, pos + cur - off);
             memcpy(dst, buffer + (off - pos), count);
-            return count;
+            return static_cast<ssize_t>(count);
         }
 
         size_t posoff = off & (DTU_PKG_SIZE - 1);
@@ -52,13 +52,13 @@ public:
         ssize_t res = file->read(buffer, size);
         if(res <= 0)
             return res;
-        cur = res;
-        size_t copyamnt = std::min(std::min(static_cast<size_t>(res), size - posoff), amount);
+        cur = static_cast<size_t>(res);
+        size_t copyamnt = std::min(amount, std::min(static_cast<size_t>(res), size - posoff));
         memcpy(dst, buffer + posoff, copyamnt);
-        return copyamnt;
+        return static_cast<ssize_t>(copyamnt);
     }
 
-    virtual ssize_t write(File *file, off_t off, const void *src, size_t amount) override {
+    virtual ssize_t write(File *file, size_t off, const void *src, size_t amount) override {
         if(cur == 0) {
             size_t posoff = off & (DTU_PKG_SIZE - 1);
             pos = off - posoff;
@@ -79,14 +79,14 @@ public:
         size_t count = std::min(size - cur, amount);
         memcpy(buffer + cur, src, count);
         cur += count;
-        return count;
+        return static_cast<ssize_t>(count);
     }
 
-    virtual int seek(off_t off, int whence, off_t &offset) override {
+    virtual int seek(size_t off, int whence, size_t &offset) override {
         // if we seek within our read-buffer, it's enough to set the position
         offset = whence == SEEK_CUR ? off + offset : offset;
         if(cur) {
-            if(offset >= pos && offset <= static_cast<off_t>(pos + cur))
+            if(offset >= pos && offset <= pos + cur)
                 return 1;
         }
         return 0;
@@ -147,10 +147,10 @@ void RegularFile::adjust_written_part() {
     }
 }
 
-off_t RegularFile::seek(off_t off, int whence) {
+size_t RegularFile::seek(size_t off, int whence) {
     assert((off & (DTU_PKG_SIZE - 1)) == 0);
     size_t global, extoff;
-    off_t pos;
+    size_t pos;
     // optimize that special case
     if(whence == SEEK_SET && off == 0) {
         global = 0;
@@ -210,7 +210,7 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
 
         // determine next off and idx
         size_t memoff = pos.offset;
-        size_t amount = get_amount(extlen, count, pos);
+        size_t amount = get_amount(static_cast<size_t>(extlen), count, pos);
 
         LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") -> ("
             << fmt(pos.global, 2) << ", " << fmt(pos.offset, "#0x", 6) << ")");
@@ -244,7 +244,7 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
         // determine next off and idx
         uint16_t lastglobal = pos.global;
         size_t memoff = pos.offset;
-        size_t amount = get_amount(extlen, count, pos);
+        size_t amount = get_amount(static_cast<size_t>(extlen), count, pos);
 
         // remember the max. position we wrote to
         if(lastglobal >= _last_extent) {
@@ -293,7 +293,7 @@ ssize_t RegularFile::get_location(Position &pos, bool writing) const {
         if(pos.offset == length)
             pos.next_extent();
         _lastmem.rebind(_memcaps.start() + pos.local);
-        return _locs.get(pos.local);
+        return static_cast<ssize_t>(_locs.get(pos.local));
     }
     else {
         // don't read past the so far written part
@@ -304,13 +304,13 @@ ssize_t RegularFile::get_location(Position &pos, bool writing) const {
             // to the next extent (see get_amount).
             if(pos.offset >= _last_off)
                 return 0;
-            return _last_off;
+            return static_cast<ssize_t>(_last_off);
         }
 
         size_t length = _locs.get(pos.local);
         if(length && _lastmem.sel() != _memcaps.start() + pos.local)
             _lastmem.rebind(_memcaps.start() + pos.local);
-        return length;
+        return static_cast<ssize_t>(length);
     }
 }
 
@@ -320,18 +320,18 @@ ssize_t RegularFile::fill(void *buffer, size_t size) {
     ssize_t res = do_read(buffer, size, pos);
     if(res == 0) {
         memset(buffer, 0, size);
-        return size;
+        return static_cast<ssize_t>(size);
     }
     return res;
 }
 
-bool RegularFile::seek_to(off_t newpos) {
+bool RegularFile::seek_to(size_t newpos) {
     // is it already in our local data?
     if(_pos.valid() && newpos >= _begin && newpos < _begin + _length) {
-        off_t begin = _begin;
+        size_t begin = _begin;
         for(size_t i = 0; i < MAX_LOCS; ++i) {
             size_t len = _locs.get(i);
-            if(!len || (newpos >= begin && newpos < static_cast<off_t>(begin + len))) {
+            if(!len || (newpos >= begin && newpos < begin + len)) {
                 _pos.global += i - _pos.local;
                 _pos.local = i;
                 // this has to be aligned. read() will consider this
@@ -346,7 +346,7 @@ bool RegularFile::seek_to(off_t newpos) {
 }
 
 size_t RegularFile::serialize_length() {
-    return ostreamsize<int, int, size_t, bool, off_t, Position, uint16_t, size_t>();
+    return ostreamsize<int, int, size_t, bool, size_t, Position, uint16_t, size_t>();
 }
 
 void RegularFile::delegate(VPE &) {

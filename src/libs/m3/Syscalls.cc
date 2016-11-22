@@ -94,8 +94,8 @@ Errors::Code Syscalls::creatergate(capsel_t dst, int order, int msgorder) {
     KIF::Syscall::CreateRGate req;
     req.opcode = KIF::Syscall::CREATE_RGATE;
     req.dst_sel = dst;
-    req.order = order;
-    req.msgorder = msgorder;
+    req.order = static_cast<xfer_t>(order);
+    req.msgorder = static_cast<xfer_t>(msgorder);
     return send_receive_result(&req, sizeof(req));
 }
 
@@ -112,7 +112,7 @@ Errors::Code Syscalls::createsgate(capsel_t dst, capsel_t rgate, label_t label, 
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createmgateat(capsel_t dst, uintptr_t addr, size_t size, int perms) {
+Errors::Code Syscalls::createmgate(capsel_t dst, uintptr_t addr, size_t size, int perms) {
     LLOG(SYSC, "createmgate(dst=" << dst << ", addr=" << addr << ", size=" << size
         << ", perms=" << perms << ")");
 
@@ -121,7 +121,7 @@ Errors::Code Syscalls::createmgateat(capsel_t dst, uintptr_t addr, size_t size, 
     req.dst_sel = dst;
     req.addr = addr;
     req.size = size;
-    req.perms = perms;
+    req.perms = static_cast<xfer_t>(perms);
     return send_receive_result(&req, sizeof(req));
 }
 
@@ -136,7 +136,7 @@ Errors::Code Syscalls::createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, cap
     req.mgate_sel = mgate;
     req.first = first;
     req.pages = pages;
-    req.perms = perms;
+    req.perms = static_cast<xfer_t>(perms);
     return send_receive_result(&req, sizeof(req));
 }
 
@@ -186,7 +186,7 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg
     KIF::Syscall::VPECtrl req;
     req.opcode = KIF::Syscall::VPE_CTRL;
     req.vpe_sel = vpe;
-    req.op = static_cast<word_t>(op);
+    req.op = static_cast<xfer_t>(op);
     req.arg = *arg;
 
     DTU::Message *msg = send_receive(&req, sizeof(req));
@@ -210,7 +210,7 @@ Errors::Code Syscalls::derivemem(capsel_t dst, capsel_t src, size_t offset, size
     req.src_sel = src;
     req.offset = offset;
     req.size = size;
-    req.perms = perms;
+    req.perms = static_cast<xfer_t>(perms);
     return send_receive_result(&req, sizeof(req));
 }
 
@@ -347,7 +347,7 @@ USED void Syscalls::exit(int exitcode) {
     req.opcode = KIF::Syscall::VPE_CTRL;
     req.vpe_sel = 0;
     req.op = KIF::Syscall::VCTRL_STOP;
-    req.arg = exitcode;
+    req.arg = static_cast<xfer_t>(exitcode);
     DTU::get().send(_gate.ep(), &req, sizeof(req), 0, m3::DTU::SYSC_REP);
 }
 

@@ -111,7 +111,7 @@ public:
     }
     virtual ~M3FSSessionData() {
         for(size_t i = 0; i < MAX_FILES; ++i)
-            release_fd(i);
+            release_fd(static_cast<int>(i));
     }
 
     OpenFile *get(int fd) {
@@ -119,12 +119,12 @@ public:
             return _files[fd];
         return nullptr;
     }
-    int request_fd(inodeno_t ino, int flags, off_t orgsize, size_t orgextent, size_t orgoff) {
+    int request_fd(inodeno_t ino, int flags, size_t orgsize, size_t orgextent, size_t orgoff) {
         assert(flags != 0);
         for(size_t i = 0; i < MAX_FILES; ++i) {
             if(_files[i] == NULL) {
                 _files[i] = new OpenFile(ino, flags, orgsize, orgextent, orgoff);
-                return i;
+                return static_cast<int>(i);
             }
         }
         return -1;
@@ -194,10 +194,10 @@ public:
             blocks = 0;
 
         // determine extent from byte offset
-        off_t firstOff = 0;
+        size_t firstOff = 0;
         if(flags & M3FS::BYTE_OFFSET) {
             size_t extent, extoff;
-            off_t rem = offset;
+            size_t rem = offset;
             INodes::seek(_handle, of->ino, rem, SEEK_SET, extent, extoff);
             offset = extent;
             firstOff = rem;
@@ -279,7 +279,7 @@ public:
         EVENT_TRACER_FS_seek();
         M3FSSessionData *sess = is.label<M3FSSessionData*>();
         int fd, whence;
-        off_t off;
+        size_t off;
         size_t extent, extoff;
         is >> fd >> off >> whence >> extent >> extoff;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::seek(fd=" << fd
@@ -293,7 +293,7 @@ public:
             return;
         }
 
-        off_t pos = INodes::seek(_handle, of->ino, off, whence, extent, extoff);
+        size_t pos = INodes::seek(_handle, of->ino, off, whence, extent, extoff);
         reply_vmsg(is, Errors::NONE, extent, extoff, pos + off);
     }
 
@@ -444,7 +444,7 @@ int main(int argc, char *argv[]) {
     }
 
     const char *name = argc > 2 ? argv[2] : "m3fs";
-    int size = IStringStream::read_from<int>(argv[1]);
+    size_t size = IStringStream::read_from<size_t>(argv[1]);
     Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size));
 
     env()->workloop()->multithreaded(4);

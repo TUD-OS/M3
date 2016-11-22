@@ -85,7 +85,7 @@ public:
         AddrSpace *sess = is.label<AddrSpace*>();
 
         uintptr_t virt;
-        uint access;
+        int access;
         is >> virt >> access;
 
         // we are not interested in that flag

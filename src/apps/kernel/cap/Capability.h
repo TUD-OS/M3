@@ -89,7 +89,7 @@ public:
 
     void print(m3::OStream &os) const;
     virtual void printInfo(m3::OStream &os) const = 0;
-    void printChilds(m3::OStream &os, int layer = 0) const;
+    void printChilds(m3::OStream &os, size_t layer = 0) const;
 
 private:
     virtual void revoke() {
@@ -145,7 +145,7 @@ public:
 
 class MGateObject : public SlabObject<MGateObject>, public m3::RefCounted {
 public:
-    explicit MGateObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, uint _perms)
+    explicit MGateObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, int _perms)
         : RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size), perms(_perms), derived(false) {
     }
     virtual ~MGateObject();
@@ -154,7 +154,7 @@ public:
     vpeid_t vpe;
     uintptr_t addr;
     size_t size;
-    uint perms;
+    int perms;
     bool derived;
 };
 
@@ -215,7 +215,7 @@ public:
 class MGateCapability : public SlabObject<MGateCapability>, public Capability {
 public:
     explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, uintptr_t addr,
-        size_t size, uint perms)
+        size_t size, int perms)
         : Capability(tbl, sel, MGATE), obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }
 
@@ -235,9 +235,9 @@ public:
 
 class MapCapability : public SlabObject<MapCapability>, public Capability {
 public:
-    explicit MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint pages, uint _attr);
+    explicit MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint pages, int _attr);
 
-    void remap(gaddr_t _phys, uint _attr);
+    void remap(gaddr_t _phys, int _attr);
 
     void printInfo(m3::OStream &os) const override;
 
@@ -249,7 +249,7 @@ private:
 
 public:
     gaddr_t phys;
-    uint attr;
+    int attr;
 };
 
 class ServCapability : public SlabObject<ServCapability>, public Capability {

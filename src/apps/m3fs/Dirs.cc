@@ -52,7 +52,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create) {
         while(*end && *end != '/')
             end++;
 
-        namelen = end - path;
+        namelen = static_cast<size_t>(end - path);
         DirEntry *e = find_entry(h, inode, path, namelen);
         // in any case, skip trailing slashes (see if(create) ...)
         while(*end == '/')

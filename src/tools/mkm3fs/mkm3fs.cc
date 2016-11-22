@@ -56,7 +56,7 @@ static m3::blockno_t last_block = 0;
 static m3::Bitmap *block_bitmap;
 static m3::Bitmap *inode_bitmap;
 
-static int blks_per_extent;
+static uint blks_per_extent;
 static bool use_rand;
 
 static m3::blockno_t alloc_block(bool new_ext) {
@@ -70,8 +70,10 @@ static m3::blockno_t alloc_block(bool new_ext) {
     else {
         blk = last_block + 1;
         do {
-            if(use_rand)
-                blk = (rand() % (sb.total_blocks - sb.first_data_block())) + sb.first_data_block();
+            if(use_rand) {
+                size_t size = sb.total_blocks - sb.first_data_block();
+                blk = (static_cast<size_t>(rand()) % size) + sb.first_data_block();
+            }
             else
                 blk++;
         }
@@ -214,7 +216,7 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
             bool new_ext = blks_per_extent > 0 && (i % blks_per_extent) == 0;
             m3::blockno_t bno = store_blockno(path, &ino, alloc_block(new_ext));
             PRINT("Writing block %zu of %s to block %u\n", i, path, bno);
-            write_to_block(buffer, len, bno);
+            write_to_block(buffer, static_cast<size_t>(len), bno);
         }
         ino.size = st.st_size;
     }

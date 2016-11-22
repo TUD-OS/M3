@@ -52,7 +52,7 @@ size_t IStream::getline(char *buffer, size_t max, char delim) {
     }
     while(buffer < end);
     *buffer = '\0';
-    return buffer - begin;
+    return static_cast<size_t>(buffer - begin);
 }
 
 IStream &IStream::read_float(float &f) {

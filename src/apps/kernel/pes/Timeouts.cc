@@ -32,7 +32,7 @@ cycles_t Timeouts::sleep_time() const {
     cycles_t now = DTU::get().get_time();
     // do not sleep if there are timeouts to trigger
     if(_timeouts.begin()->when <= now)
-        return -1;
+        return static_cast<cycles_t>(-1);
 
     // sleep until the next timeout or until we receive a message
     return _timeouts.begin()->when - now;

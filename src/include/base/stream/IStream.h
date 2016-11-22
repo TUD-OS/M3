@@ -160,11 +160,11 @@ private:
         if(Chars::isdigit(c) || (base == 16 && Chars::isxdigit(c))) {
             do {
                 if(c >= 'a' && c <= 'f')
-                    u = u * base + c + 10 - 'a';
+                    u = u * base + static_cast<T>(c) + 10 - 'a';
                 else if(c >= 'A' && c <= 'F')
-                    u = u * base + c + 10 - 'A';
+                    u = u * base + static_cast<T>(c) + 10 - 'A';
                 else
-                    u = u * base + c - '0';
+                    u = u * base + static_cast<T>(c) - '0';
                 c = read();
             }
             while(Chars::isdigit(c) || (base == 16 && Chars::isxdigit(c)));

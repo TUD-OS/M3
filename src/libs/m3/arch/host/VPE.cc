@@ -58,7 +58,7 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
             struct stat st;
             if(fstat(fd, &st) == -1)
                 return nullptr;
-            size = st.st_size;
+            size = static_cast<size_t>(st.st_size);
             dst = Heap::alloc(size);
         }
 
@@ -132,7 +132,7 @@ Errors::Code VPE::run(void *lambda) {
         close(fd[0]);
 
         // let the kernel create the config-file etc. for the given pid
-        word_t arg = pid;
+        xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));
@@ -172,7 +172,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     // copy executable from M3-fs to a temp file
     while((res = bin->read(buffer, sizeof(buffer))) > 0)
-        write(tmp, buffer, res);
+        write(tmp, buffer, static_cast<size_t>(res));
 
     pid = fork();
     if(pid == -1)
@@ -210,7 +210,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         close(tmp);
 
         // let the kernel create the config-file etc. for the given pid
-        word_t arg = pid;
+        xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", _caps, sizeof(*_caps));

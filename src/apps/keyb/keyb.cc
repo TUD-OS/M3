@@ -44,7 +44,7 @@ static void kb_irq(Server<EventHandler<>> *kbserver, GateIStream &) {
     if(regs[KEYBOARD_CTRL] & KEYBOARD_RDY) {
         unsigned data = regs[KEYBOARD_DATA];
         CPU::compiler_barrier();
-        regs[KEYBOARD_CTRL] &= ~KEYBOARD_RDY;
+        regs[KEYBOARD_CTRL] ^= KEYBOARD_RDY;
 
         Keyboard::Event ev;
         ev.scancode = data;

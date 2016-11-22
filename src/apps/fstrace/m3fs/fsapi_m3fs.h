@@ -110,29 +110,29 @@ public:
 
     virtual ssize_t read(int fd, void *buffer, size_t size) override {
         checkFd(fd);
-        return fdMap[fd]->read(buffer, size);
+        return static_cast<ssize_t>(fdMap[fd]->read(buffer, size));
     }
 
     virtual ssize_t write(int fd, const void *buffer, size_t size) override {
         checkFd(fd);
-        return fdMap[fd]->write(buffer, size);
+        return static_cast<ssize_t>(fdMap[fd]->write(buffer, size));
     }
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(offset, SEEK_SET);
-        return fdMap[fd]->read(buffer, size);
+        fdMap[fd]->seek(static_cast<size_t>(offset), SEEK_SET);
+        return static_cast<ssize_t>(fdMap[fd]->read(buffer, size));
     }
 
     virtual ssize_t pwrite(int fd, const void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(offset, SEEK_SET);
-        return fdMap[fd]->write(buffer, size);
+        fdMap[fd]->seek(static_cast<size_t>(offset), SEEK_SET);
+        return static_cast<ssize_t>(fdMap[fd]->write(buffer, size));
     }
 
     virtual void lseek(const lseek_args_t *args, UNUSED int lineNo) override {
         checkFd(args->fd);
-        fdMap[args->fd]->seek(args->offset, args->whence);
+        fdMap[args->fd]->seek(static_cast<size_t>(args->offset), args->whence);
         // if (res != args->err)
         //     THROW1(ReturnValueException, res, args->offset, lineNo);
     }

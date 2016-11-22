@@ -33,7 +33,7 @@ class DirectPipeWriter : public File {
     struct State {
         explicit State(capsel_t caps, size_t size);
 
-        size_t find_spot(size_t *len);
+        ssize_t find_spot(size_t *len);
         void read_replies();
 
         MemGate _mgate;
@@ -63,7 +63,7 @@ public:
         // not supported
         return -1;
     }
-    virtual off_t seek(off_t, int) override {
+    virtual size_t seek(size_t, int) override {
         // not supported
         return 0;
     }
@@ -83,7 +83,7 @@ public:
     static File *unserialize(Unmarshaller &um);
 
 private:
-    virtual bool seek_to(off_t) override {
+    virtual bool seek_to(size_t) override {
         return false;
     }
     void send_eof();

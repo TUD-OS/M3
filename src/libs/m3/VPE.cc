@@ -201,7 +201,7 @@ Errors::Code VPE::stop() {
 int VPE::wait() {
     xfer_t exitcode;
     Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, &exitcode);
-    return exitcode;
+    return static_cast<int>(exitcode);
 }
 
 }

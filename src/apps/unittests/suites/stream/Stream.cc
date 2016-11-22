@@ -35,7 +35,7 @@ void StreamTestSuite::IStreamTestCase::run() {
         is >> a >> b >> d;
         assert_int(a, 1);
         assert_int(b, 2);
-        assert_int(d, 0xAfd2);
+        assert_uint(d, 0xAfd2);
     }
 
     {
@@ -44,7 +44,7 @@ void StreamTestSuite::IStreamTestCase::run() {
         is >> a >> b >> d;
         assert_int(a, -1);
         assert_int(b, 2);
-        assert_int(d, 0XA);
+        assert_uint(d, 0XA);
     }
 
     {
@@ -52,7 +52,7 @@ void StreamTestSuite::IStreamTestCase::run() {
         String in("  1\tabc\n\n12.4");
         IStringStream is(in);
         is >> d >> str >> f;
-        assert_int(d, 1);
+        assert_uint(d, 1);
         assert_str(str.c_str(), "abc");
         assert_float(f, 12.4);
     }

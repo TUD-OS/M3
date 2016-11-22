@@ -30,12 +30,12 @@ class Clock {
     /*
      * @brief Returns the current time in CPU cycles.
      */
-    uint64_t timeStamp() {
+    __time_t timeStamp() {
 
         struct timeval tv;
         gettimeofday(&tv, nullptr);
         //printf("ts=%llu\n", tv.tv_sec * 1000000ULL + tv.tv_usec);
-        return tv.tv_sec * 1000000ULL + tv.tv_usec;
+        return tv.tv_sec * 1000000LL + tv.tv_usec;
     };
 
     /*
@@ -62,9 +62,9 @@ class Clock {
      *
      * @return Duration in the specified time unit.
      */
-    unsigned long long duration(Unit unit) {
+    __time_t duration(Unit unit) {
 
-        uint64_t d = t1 - t0;
+        __time_t d = t1 - t0;
 
         switch (unit) {
             case MicroSeconds:
@@ -79,7 +79,7 @@ class Clock {
     };
 
   private:
-    uint64_t t0, t1;
+    __time_t t0, t1;
 };
 
 #endif /* __TRACE_BENCH_CLOCK_H */

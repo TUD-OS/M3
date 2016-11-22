@@ -62,7 +62,7 @@ void FSTestSuite::DirTestCase::run() {
     // now check file names
     assert_str(entries[0].name, ".");
     assert_str(entries[1].name, "..");
-    for(int i = 0; i < 80; ++i) {
+    for(size_t i = 0; i < 80; ++i) {
         char tmp[16];
         OStringStream os(tmp, sizeof(tmp));
         os << i << ".txt";
@@ -152,19 +152,19 @@ void FSTestSuite::FileTestCase::run() {
             exitmsg("open of " << filename << " failed");
 
         ssize_t count = file->write(content, contentsz);
-        assert_long(count, contentsz);
+        assert_size(static_cast<size_t>(count), contentsz);
 
-        assert_long(file->seek(0, SEEK_CUR), contentsz);
-        assert_long(file->seek(0, SEEK_SET), 0);
+        assert_size(file->seek(0, SEEK_CUR), contentsz);
+        assert_size(file->seek(0, SEEK_SET), 0);
 
         alignas(DTU_PKG_SIZE) char buf[contentsz];
         count = file->read(buf, sizeof(buf));
-        assert_long(count, sizeof(buf));
+        assert_size(static_cast<size_t>(count), sizeof(buf));
         assert_str(buf, content);
 
         // undo the write
         file->seek(0, SEEK_SET);
-        for(uint8_t i = 0; i < contentsz; ++i)
+        for(size_t i = 0; i < contentsz; ++i)
             content[i] = i;
         file->write(content, contentsz);
     }
@@ -180,9 +180,9 @@ void FSTestSuite::BufferedFileTestCase::run() {
             exitmsg("open of " << filename << " failed");
 
         uint8_t buf[16];
-        ssize_t count, pos = 0;
+        size_t count, pos = 0;
         while((count = file.read(buf, sizeof(buf))) > 0) {
-            for(ssize_t i = 0; i < count; ++i)
+            for(size_t i = 0; i < count; ++i)
                 assert_int(buf[i], pos++ & 0xFF);
         }
         assert_true(file.eof() && !file.error());
@@ -195,11 +195,11 @@ void FSTestSuite::BufferedFileTestCase::run() {
             exitmsg("open of " << filename << " failed");
 
         uint8_t buf[32];
-        ssize_t count, pos = 0;
+        size_t count, pos = 0;
         for(int i = 0; i < 10; ++i) {
             count = file.read(buf, sizeof(buf));
             assert_size(count, 32);
-            for(ssize_t i = 0; i < count; ++i)
+            for(size_t i = 0; i < count; ++i)
                 assert_int(buf[i], pos++ & 0xFF);
         }
 
@@ -209,14 +209,14 @@ void FSTestSuite::BufferedFileTestCase::run() {
 
         count = file.read(buf, sizeof(buf));
         assert_size(count, 32);
-        for(ssize_t i = 0; i < count; ++i)
+        for(size_t i = 0; i < count; ++i)
             assert_int(buf[i], pos++ & 0xFF);
 
         pos = 405;
         file.seek(pos, SEEK_SET);
 
         while((count = file.read(buf, sizeof(buf))) > 0) {
-            for(ssize_t i = 0; i < count; ++i)
+            for(size_t i = 0; i < count; ++i)
                 assert_int(buf[i], pos++ & 0xFF);
         }
         assert_true(file.eof() && !file.error());
@@ -228,9 +228,9 @@ void FSTestSuite::BufferedFileTestCase::run() {
         if(Errors::occurred())
             exitmsg("open of " << filename << " failed");
 
-        ssize_t count, pos = 0;
+        size_t count, pos = 0;
         while((count = file.read(largebuf, sizeof(largebuf))) > 0) {
-            for(ssize_t i = 0; i < count; ++i)
+            for(size_t i = 0; i < count; ++i)
                 assert_int(largebuf[i], pos++ & 0xFF);
         }
         assert_true(file.eof() && !file.error());
@@ -248,14 +248,14 @@ void FSTestSuite::BufferedFileTestCase::run() {
         // overwrite it
         uint8_t val = size - 1;
         for(size_t i = 0; i < size; ++i, --val)
-            assert_long(file.write(&val, sizeof(val)), sizeof(val));
+            assert_size(file.write(&val, sizeof(val)), sizeof(val));
 
         // read it again and check content
         file.seek(0, SEEK_SET);
         val = size - 1;
         for(size_t i = 0; i < size; ++i, --val) {
             uint8_t check;
-            assert_long(file.read(&check, sizeof(check)), sizeof(check));
+            assert_size(file.read(&check, sizeof(check)), sizeof(check));
             assert_int(check, val);
         }
 
@@ -263,7 +263,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
         file.seek(0, SEEK_SET);
         val = 0;
         for(size_t i = 0; i < size; ++i, ++val)
-            assert_long(file.write(&val, sizeof(val)), sizeof(val));
+            assert_size(file.write(&val, sizeof(val)), sizeof(val));
         assert_true(file.good());
     }
 

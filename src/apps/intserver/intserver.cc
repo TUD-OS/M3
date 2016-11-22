@@ -65,7 +65,7 @@ public:
                 for(; _pending[i] > 0; _pending[i]--) {
                     for(auto &s : *evhandler) {
                         IntSessionData *sess = static_cast<IntSessionData*>(&s);
-                        if(sess->gate() && sess->irq == i)
+                        if(sess->gate() && sess->irq == static_cast<HWInterrupts::IRQ>(i))
                             send_vmsg(*static_cast<SendGate*>(sess->gate()), sess->irq);
                     }
                 }

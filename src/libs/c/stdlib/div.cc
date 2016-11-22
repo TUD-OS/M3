@@ -29,7 +29,7 @@ T divmod(T n, T d, T *rem) {
         r |= (n >> i) & 0x1;
         if(r >= d) {
             r = r - d;
-            q |= 1 << i;
+            q |= static_cast<T>(1) << i;
         }
     }
     *rem = r;

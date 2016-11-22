@@ -115,7 +115,8 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     int max = 1UL << (order - msgorder);
     for(int i = 0; i < max; ++i) {
         if(unread & (1UL << i)) {
-            m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i << msgorder));
+            m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(
+                base + (static_cast<uintptr_t>(i) << msgorder));
             if(msg->label == label)
                 m3::DTU::get().mark_read(ep, reinterpret_cast<uintptr_t>(msg));
         }
@@ -132,7 +133,7 @@ m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, c
     return m3::Errors::NONE;
 }
 
-void DTU::recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
+void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
     _state.config_recv(ep, buf, order, msgorder);
     write_ep_local(ep);
 }

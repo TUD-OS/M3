@@ -74,7 +74,7 @@ public:
 
 private:
     key_t _key;
-    int _prio;
+    uint _prio;
     N *_left;
     N *_right;
 };
@@ -246,7 +246,7 @@ private:
             *p = nullptr;
     }
 
-    void printRec(OStream &os, T *n, int layer, bool tree) const {
+    void printRec(OStream &os, T *n, size_t layer, bool tree) const {
         n->print(os);
         os << "\n";
         if(n->_left) {
@@ -261,7 +261,7 @@ private:
         }
     }
 
-    int _prio;
+    uint _prio;
     T *_root;
 };
 

@@ -79,7 +79,7 @@ VPE* ContextSwitcher::schedule() {
         VPE *vpe = _ready.remove_first();
         _global_ready--;
         assert(vpe->_flags & VPE::F_READY);
-        vpe->_flags &= ~VPE::F_READY;
+        vpe->_flags ^= VPE::F_READY;
         return vpe;
     }
 
@@ -91,7 +91,7 @@ void ContextSwitcher::init() {
 
 #if !defined(__host__)
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
-        VPE::F_IDLE | VPE::F_INIT, -1, m3::KIF::INV_SEL);
+        VPE::F_IDLE | VPE::F_INIT, VPE::INVALID_EP, m3::KIF::INV_SEL);
 
     KLOG(CTXSW, "CTXSW[" << _pe << "] initialized (idle="
         << _idle->id() << ", muxable=" << _muxable << ")");
@@ -115,7 +115,7 @@ void ContextSwitcher::dequeue(VPE *vpe) {
     if(!(vpe->_flags & VPE::F_READY))
         return;
 
-    vpe->_flags &= ~VPE::F_READY;
+    vpe->_flags ^= VPE::F_READY;
     _ready.remove(vpe);
     _global_ready--;
 }
@@ -145,7 +145,7 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
 VPE *ContextSwitcher::steal_vpe() {
     if(can_mux() && _ready.length() > 0) {
         VPE *vpe = _ready.remove_first();
-        vpe->_flags &= ~VPE::F_READY;
+        vpe->_flags ^= VPE::F_READY;
         _global_ready--;
         return vpe;
     }
@@ -370,7 +370,7 @@ retry:
         case S_RESTORE_DONE: {
             // we have finished the init phase (if it was set)
 #if !defined(__host__)
-            _cur->_flags &= ~VPE::F_INIT;
+            _cur->_flags &= ~static_cast<uint>(VPE::F_INIT);
 #endif
             _cur->notify_resume();
 

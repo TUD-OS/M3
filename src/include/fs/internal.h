@@ -72,7 +72,7 @@ enum {
     MAX_BLOCK_SIZE      = 4096,
 };
 
-constexpr inodeno_t INVALID_INO = -1;
+constexpr inodeno_t INVALID_INO = static_cast<inodeno_t>(-1);
 
 #define M3FS_SEEK_SET 0
 #define M3FS_SEEK_CUR 1
@@ -250,14 +250,16 @@ extern m3::SuperBlock sb;
 extern FILE *file;
 
 static UNUSED inline void read_from_block(void *buffer, size_t len, m3::blockno_t bno, size_t off = 0) {
-    if(fseek(file, bno * sb.blocksize + off, SEEK_SET) != 0)
+    off_t offset = static_cast<off_t>(static_cast<size_t>(bno * sb.blocksize) + off);
+    if(fseek(file, offset, SEEK_SET) != 0)
         err(1, "Unable to seek to block %u+%zu: %s\n", bno, off, strerror(errno));
     if(fread(buffer, 1, len, file) != len)
         err(1, "Unable to read from block %u: %s\n", bno, strerror(errno));
 }
 
 static UNUSED inline void write_to_block(const void *buffer, size_t len, m3::blockno_t bno, size_t off = 0) {
-    if(fseek(file, bno * sb.blocksize + off, SEEK_SET) != 0)
+    off_t offset = static_cast<off_t>(static_cast<size_t>(bno * sb.blocksize) + off);
+    if(fseek(file, offset, SEEK_SET) != 0)
         err(1, "Unable to seek to block %u+%zu: %s\n", bno, off, strerror(errno));
     if(fwrite(buffer, 1, len, file) != len)
         err(1, "Unable to write to block %u: %s\n", bno, strerror(errno));
@@ -304,8 +306,8 @@ static UNUSED m3::blockno_t get_block_no(const m3::INode &ino, size_t no) {
     return get_block_no_rec(ino, ino.dindirect, no, 1);
 }
 
-static UNUSED int first_free(m3::Bitmap &bm, int total) {
-    int i;
+static UNUSED uint first_free(m3::Bitmap &bm, uint total) {
+    uint i;
     for(i = 0; bm.is_set(i) && i < total; ++i)
         ;
     return i;

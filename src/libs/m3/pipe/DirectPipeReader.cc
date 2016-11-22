@@ -24,7 +24,7 @@ namespace m3 {
 DirectPipeReader::State::State(capsel_t caps)
     : _mgate(MemGate::bind(caps + 1)),
       _rgate(RecvGate::bind(caps + 0, nextlog2<DirectPipe::MSG_BUF_SIZE>::val)),
-      _pos(), _rem(), _pkglen(-1), _eof(0), _is(_rgate, nullptr) {
+      _pos(), _rem(), _pkglen(static_cast<size_t>(-1)), _eof(0), _is(_rgate, nullptr) {
 }
 
 DirectPipeReader::DirectPipeReader(capsel_t caps, State *state)
@@ -82,7 +82,7 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
         _state->_pos += aligned_amount;
         _state->_rem -= amount;
     }
-    return amount;
+    return static_cast<ssize_t>(amount);
 }
 
 size_t DirectPipeReader::serialize_length() {

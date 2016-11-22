@@ -22,15 +22,14 @@
 #pragma GCC optimize ("no-tree-loop-distribute-patterns")
 
 void *memmove(void *dest, const void *src, size_t count) {
-    uchar *s,*d;
     /* nothing to do? */
-    if((uchar*)dest == (uchar*)src)
+    if(reinterpret_cast<uint8_t*>(dest) == reinterpret_cast<const uint8_t*>(src))
         return dest;
 
     /* moving forward */
-    if((uchar*)dest > (uchar*)src) {
-        s = (uchar*)src + count - sizeof(uchar);
-        d = (uchar*)dest + count - sizeof(uchar);
+    if(reinterpret_cast<uint8_t*>(dest) > reinterpret_cast<const uint8_t*>(src)) {
+        const uint8_t *s = reinterpret_cast<const uint8_t*>(src) + count - 1;
+        uint8_t *d = reinterpret_cast<uint8_t*>(dest) + count - 1;
         while(count-- > 0)
             *d-- = *s--;
     }

@@ -36,7 +36,8 @@ int main(int argc, char **argv) {
     // damn, we can't send arbitrary data but really have to use this type-header or at least
     // something != 0
     char buf[MSG_SIZE] = "foobar";
-    int id, rc, res;
+    int id;
+    ssize_t rc, res;
 
     if(argc > 1 && strcmp(argv[1], "--perf") == 0)
         perf = true;
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
     }
     else {
         while((rc = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
-            if((res = msgsnd(id, buf, rc, 0)) != 0)
+            if((res = msgsnd(id, buf, static_cast<size_t>(rc), 0)) != 0)
                 perror("msgsnd");
         }
     }

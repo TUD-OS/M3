@@ -72,7 +72,7 @@ public:
         m3::Heap::Area *prev = m3::Heap::backwards(m3::Heap::_end, m3::Heap::_end->prev);
         // if the last area is used, we have to keep _end and put us behind there
         if(m3::Heap::is_used(prev)) {
-            end->prev = (end - m3::Heap::_end) * sizeof(m3::Heap::Area);
+            end->prev = static_cast<size_t>(end - m3::Heap::_end) * sizeof(m3::Heap::Area);
             m3::Heap::_end->next = end->prev;
         }
         // otherwise, merge it into the last area

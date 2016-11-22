@@ -48,7 +48,7 @@ public:
     virtual void checkpoint(int numReplayed, int numTraceOps, bool make_chkpt) override {
         struct timeval tv_iter;
         gettimeofday(&tv_iter, nullptr);
-        uint64_t current_time = tv_iter.tv_sec * 1000000 + tv_iter.tv_usec;
+        __time_t current_time = tv_iter.tv_sec * 1000000 + tv_iter.tv_usec;
         if (current_time - print_progress_time > 30000000) {
             Platform::logf("Replayed %u of %u operations in %llu seconds so far ...\n",
                    numReplayed, numTraceOps,
@@ -63,9 +63,9 @@ public:
         // convert to microseconds
         struct timeval tv;
         gettimeofday(&tv, nullptr);
-        uint64_t now  = tv.tv_sec * 1000000 + tv.tv_usec;
-        uint64_t then = args->timestamp / 1000;
-        static uint64_t time_offset = 0;
+        __time_t now  = tv.tv_sec * 1000000 + tv.tv_usec;
+        __time_t then = static_cast<__time_t>(args->timestamp) / 1000;
+        static __time_t time_offset = 0;
         if (time_offset == 0) {
             time_offset = now - then;
             Platform::logf("time_offset=%llu\n", time_offset);
@@ -241,5 +241,5 @@ private:
     int *fdMap;
     std::string pathPrefix;
     struct timeval tv_start;
-    uint64_t print_progress_time;
+    __time_t print_progress_time;
 };

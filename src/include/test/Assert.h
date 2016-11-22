@@ -25,13 +25,15 @@ namespace test {
 #define assert_int(actual,expected) \
     this->do_assert(test::AssertEqual<int>((expected),(actual),__FILE__,__LINE__))
 #define assert_long(actual,expected) \
-    this->do_assert(test::AssertEqual<int>((expected),(actual),__FILE__,__LINE__))
+    this->do_assert(test::AssertEqual<long>((expected),(actual),__FILE__,__LINE__))
 #define assert_uint(actual,expected) \
     this->do_assert(test::AssertEqual<unsigned int>((expected),(actual),__FILE__,__LINE__))
 #define assert_ulong(actual,expected) \
     this->do_assert(test::AssertEqual<unsigned long>((expected),(actual),__FILE__,__LINE__))
 #define assert_size(actual,expected) \
     this->do_assert(test::AssertEqual<size_t>((expected),(actual),__FILE__,__LINE__))
+#define assert_ssize(actual,expected) \
+    this->do_assert(test::AssertEqual<ssize_t>((expected),(actual),__FILE__,__LINE__))
 #define assert_word(actual,expected) \
     this->do_assert(test::AssertEqual<word_t>((expected),(actual),__FILE__,__LINE__))
 #define assert_str(actual,expected) \

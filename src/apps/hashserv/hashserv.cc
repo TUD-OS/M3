@@ -40,10 +40,10 @@ public:
     explicit HashSessionData() {
     }
     explicit HashSessionData(size_t _id) : RequestSessionData(), id(_id), mem(), sgate() {
-        occupied |= 1 << id;
+        occupied |= static_cast<uint32_t>(1) << id;
     }
     ~HashSessionData() {
-        occupied &= ~(1 << id);
+        occupied &= ~(static_cast<uint32_t>(1) << id);
         delete mem;
         delete sgate;
     }
@@ -108,7 +108,7 @@ public:
 
     Errors::Code handle_open(HashSessionData **sess, word_t) override {
         for(size_t id = 0; id < MAX_CLIENTS; ++id) {
-            if(!(occupied & (1 << id))) {
+            if(!(occupied & (static_cast<uint32_t>(1) << id))) {
                 *sess = new HashSessionData(id);
                 return Errors::NONE;
             }

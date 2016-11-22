@@ -18,7 +18,7 @@
 
 namespace m3 {
 
-bool File::Buffer::putback(off_t, char c) {
+bool File::Buffer::putback(size_t, char c) {
     if(cur > 0 && pos > 0) {
         buffer[--pos] = c;
         return true;
@@ -26,36 +26,36 @@ bool File::Buffer::putback(off_t, char c) {
     return false;
 }
 
-ssize_t File::Buffer::read(File *file, off_t, void *dst, size_t amount) {
-    if(pos < static_cast<off_t>(cur)) {
-        size_t count = Math::min(amount, static_cast<size_t>(cur - pos));
+ssize_t File::Buffer::read(File *file, size_t, void *dst, size_t amount) {
+    if(pos < cur) {
+        size_t count = Math::min(amount, cur - pos);
         memcpy(dst, buffer + pos, count);
         pos += count;
-        return count;
+        return static_cast<ssize_t>(count);
     }
 
     ssize_t res = file->read(buffer, size);
     if(res <= 0)
         return res;
-    cur = res;
+    cur = static_cast<size_t>(res);
 
     size_t copyamnt = Math::min(static_cast<size_t>(res), amount);
     memcpy(dst, buffer, copyamnt);
     pos = copyamnt;
-    return copyamnt;
+    return static_cast<ssize_t>(copyamnt);
 }
 
-ssize_t File::Buffer::write(File *file, off_t, const void *src, size_t amount) {
+ssize_t File::Buffer::write(File *file, size_t, const void *src, size_t amount) {
     if(cur == size)
         flush(file);
 
     size_t count = Math::min(size - cur, amount);
     memcpy(buffer + cur, src, count);
     cur += count;
-    return count;
+    return static_cast<ssize_t>(count);
 }
 
-int File::Buffer::seek(off_t, int, off_t &) {
+int File::Buffer::seek(size_t, int, size_t &) {
     // not supported
     return -1;
 }

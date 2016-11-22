@@ -30,7 +30,7 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     Profile::start(0xaaaa);
     _mem.write(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
     Profile::stop(0xaaaa);
-    return count;
+    return static_cast<ssize_t>(count);
 }
 
 void IndirectPipeWriter::delegate(VPE &vpe) {

@@ -43,9 +43,9 @@ static const size_t BUF_SIZE    = 4096;
 
 int main(int argc, char **argv) {
     size_t memPerVPE = 1024 * 1024;
-    int vpes = 2;
+    size_t vpes = 2;
     if(argc > 1)
-        vpes = IStringStream::read_from<int>(argv[1]);
+        vpes = IStringStream::read_from<size_t>(argv[1]);
     if(argc > 2)
         memPerVPE = IStringStream::read_from<size_t>(argv[2]);
 
@@ -53,19 +53,18 @@ int main(int argc, char **argv) {
     const size_t SUBMEM_SIZE = MEM_SIZE / vpes;
 
     RecvGate rgate = RecvGate::create(getnextlog2(vpes * 64), nextlog2<64>::val);
-
     MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
 
     // create worker
     Worker **worker = new Worker*[vpes];
-    for(int i = 0; i < vpes; ++i) {
-        worker[i] = new Worker(rgate, mem, i * SUBMEM_SIZE, SUBMEM_SIZE);
+    for(size_t i = 0; i < vpes; ++i) {
+        worker[i] = new Worker(rgate, mem, static_cast<size_t>(i) * SUBMEM_SIZE, SUBMEM_SIZE);
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to create worker");
     }
 
     // write data into memory
-    for(int i = 0; i < vpes; ++i) {
+    for(size_t i = 0; i < vpes; ++i) {
         MemGate &vpemem = worker[i]->submem;
         worker[i]->vpe.run([&vpemem, SUBMEM_SIZE] {
             uint *buffer = new uint[BUF_SIZE / sizeof(uint)];
@@ -84,11 +83,11 @@ int main(int argc, char **argv) {
     }
 
     // wait for all workers
-    for(int i = 0; i < vpes; ++i)
+    for(size_t i = 0; i < vpes; ++i)
         worker[i]->vpe.wait();
 
     // now build the checksum
-    for(int i = 0; i < vpes; ++i) {
+    for(size_t i = 0; i < vpes; ++i) {
         worker[i]->vpe.delegate_obj(worker[i]->sgate.sel());
         MemGate &vpemem = worker[i]->submem;
         SendGate &vpegate = worker[i]->sgate;
@@ -114,7 +113,7 @@ int main(int argc, char **argv) {
 
     // reduce
     uint checksum = 0;
-    for(int i = 0; i < vpes; ++i) {
+    for(size_t i = 0; i < vpes; ++i) {
         uint vpechksum;
         receive_vmsg(rgate, vpechksum);
         checksum += vpechksum;
@@ -122,7 +121,7 @@ int main(int argc, char **argv) {
 
     cout << "Checksum: " << checksum << "\n";
 
-    for(int i = 0; i < vpes; ++i) {
+    for(size_t i = 0; i < vpes; ++i) {
         worker[i]->vpe.wait();
         delete worker[i];
     }

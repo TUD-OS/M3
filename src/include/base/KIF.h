@@ -36,7 +36,7 @@ struct KIF {
     /**
      * Represents unlimited credits
      */
-    static const word_t UNLIM_CREDITS   = -1;
+    static const word_t UNLIM_CREDITS   = 0xFFFF;
 
     /**
      * The maximum message length that can be used
@@ -68,7 +68,7 @@ struct KIF {
             : _value(value) {
         }
         explicit CapRngDesc(Type type, capsel_t start, capsel_t count = 1)
-            : _value(type |
+            : _value(static_cast<value_type>(type) |
                     (static_cast<value_type>(start) << 33) |
                     (static_cast<value_type>(count) << 1)) {
         }

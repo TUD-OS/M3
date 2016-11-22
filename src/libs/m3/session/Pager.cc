@@ -41,8 +41,8 @@ Errors::Code Pager::map_ds(uintptr_t *virt, size_t len, int prot, int flags, con
     xfer_t args[5];
     args[0] = *virt;
     args[1] = len;
-    args[2] = prot | flags;
-    args[3] = fd;
+    args[2] = static_cast<xfer_t>(prot | flags);
+    args[3] = static_cast<xfer_t>(fd);
     args[4] = offset;
     size_t argcount = ARRAY_SIZE(args);
     delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess.sel()), &argcount, args);

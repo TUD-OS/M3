@@ -77,10 +77,10 @@ size_t FStream::read(void *dst, size_t count) {
                          Math::is_aligned(count, DTU_PKG_SIZE)) {
         ssize_t res = file()->read(dst, count);
         if(res > 0)
-            _fpos += res;
+            _fpos += static_cast<size_t>(res);
         else
             set_error(res);
-        return res < 0 ? 0 : res;
+        return res < 0 ? 0 : static_cast<size_t>(res);
     }
 
     if(!_rbuf->buffer) {
@@ -96,8 +96,8 @@ size_t FStream::read(void *dst, size_t count) {
             set_error(res);
             return total;
         }
-        total += res;
-        count -= res;
+        total += static_cast<size_t>(res);
+        count -= static_cast<size_t>(res);
     }
 
     _fpos += total;
@@ -109,7 +109,7 @@ void FStream::flush() {
         set_error(_wbuf->flush(file()));
 }
 
-off_t FStream::seek(off_t offset, int whence) {
+size_t FStream::seek(size_t offset, int whence) {
     if(error())
         return 0;
 
@@ -119,7 +119,7 @@ off_t FStream::seek(off_t offset, int whence) {
     }
 
     // if we seek within our read-buffer, it's enough to set the position
-    off_t newpos = offset;
+    size_t newpos = offset;
     int res = _rbuf->seek(_fpos, whence, newpos);
     if(res > 0) {
         _fpos = newpos;
@@ -157,7 +157,7 @@ size_t FStream::write(const void *src, size_t count) {
                          Math::is_aligned(count, DTU_PKG_SIZE)) {
         ssize_t res = file()->write(src, count);
         set_error(res);
-        return res < 0 ? 0 : res;
+        return res < 0 ? 0 : static_cast<size_t>(res);
     }
 
     if(!_wbuf->buffer) {
@@ -171,11 +171,11 @@ size_t FStream::write(const void *src, size_t count) {
         ssize_t res = _wbuf->write(file(), _fpos + total, buf + total, count);
         if(res <= 0) {
             set_error(res);
-            return res;
+            return 0;
         }
 
-        total += res;
-        count -= res;
+        total += static_cast<size_t>(res);
+        count -= static_cast<size_t>(res);
 
         if(count || ((_flags & FL_LINE_BUF) && buf[total - 1] == '\n'))
             flush();

@@ -30,7 +30,7 @@ class AddrSpace;
 
 class DataSpace : public m3::TreapNode<DataSpace, uintptr_t>, public m3::SListItem {
 public:
-    explicit DataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
+    explicit DataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags)
         : TreapNode(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
           _regs(this), _size(size) {
     }
@@ -47,7 +47,7 @@ public:
     AddrSpace *addrspace() {
         return _as;
     }
-    uint flags() const {
+    int flags() const {
         return _flags;
     }
     uintptr_t addr() const {
@@ -68,7 +68,7 @@ public:
 protected:
     AddrSpace *_as;
     ulong _id;
-    uint _flags;
+    int _flags;
     RegionList _regs;
     size_t _size;
     static ulong _next_id;
@@ -78,7 +78,7 @@ class AnonDataSpace : public DataSpace {
 public:
     static constexpr size_t MAX_PAGES = 4;
 
-    explicit AnonDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags)
+    explicit AnonDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags)
         : DataSpace(as, addr, size, flags) {
     }
 
@@ -96,11 +96,11 @@ class ExternalDataSpace : public DataSpace {
 public:
     static constexpr size_t MAX_PAGES = 8;
 
-    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
+    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags, int _id,
             size_t _fileoff, capsel_t sess)
         : DataSpace(as, addr, size, flags), sess(sess), id(_id), fileoff(_fileoff) {
     }
-    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, uint flags, int _id,
+    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags, int _id,
             size_t _fileoff)
         : DataSpace(as, addr, size, flags), sess(m3::VPE::self().alloc_cap()),
           id(_id), fileoff(_fileoff) {

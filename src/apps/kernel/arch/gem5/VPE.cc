@@ -73,8 +73,8 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
 
     for(size_t i = 0; i < count; ++i) {
         if(strcmp(mods[i].name, os.str()) == 0) {
-            *first = (loaded & (1 << i)) == 0;
-            loaded |= 1 << i;
+            *first = (loaded & (static_cast<uint64_t>(1) << i)) == 0;
+            loaded |= static_cast<uint64_t>(1) << i;
             return mods + i;
         }
     }
@@ -116,7 +116,7 @@ static void copy_clear(const VPEDesc &vpe, gaddr_t dst, gaddr_t src, size_t size
     }
 }
 
-static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, uint perms) {
+static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int perms) {
     if(Platform::pe(vpe.pe()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
         size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
@@ -138,7 +138,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
 
     // map load segments
     uintptr_t end = 0;
-    off_t off = header.e_phoff;
+    size_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
         m3::ElfPh pheader;
@@ -236,7 +236,7 @@ void VPE::load_app() {
     uintptr_t entry = load_mod(*this, mod, !appFirst, true);
 
     // count arguments
-    int argc = 1;
+    size_t argc = 1;
     for(size_t i = 0; mod->name[i]; ++i) {
         if(mod->name[i] == ' ')
             argc++;
@@ -246,7 +246,7 @@ void VPE::load_app() {
     uint64_t *argptr = reinterpret_cast<uint64_t*>(buffer);
     char *args = buffer + argc * sizeof(uint64_t);
     char c;
-    size_t i, off = args - buffer;
+    size_t i, off = static_cast<size_t>(args - buffer);
     *argptr++ = RT_SPACE_START + off;
     for(i = 0; i < sizeof(buffer) && (c = mod->name[i]); ++i) {
         if(c == ' ') {

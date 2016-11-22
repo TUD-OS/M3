@@ -344,8 +344,8 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Size or permissions invalid");
 
     MainMemory &mem = MainMemory::get();
-    MainMemory::Allocation alloc =
-        addr == (uintptr_t)-1 ? mem.allocate(size, PAGE_SIZE) : mem.allocate_at(addr, size);
+    MainMemory::Allocation alloc = addr == static_cast<uintptr_t>(-1) ? mem.allocate(size, PAGE_SIZE)
+                                                                      : mem.allocate_at(addr, size);
     if(!alloc)
         SYS_ERROR(vpe, msg, m3::Errors::OUT_OF_MEM, "Not enough memory");
 
@@ -384,7 +384,7 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
             SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap(s)");
     }
     else
-        ep = -1;
+        ep = VPE::INVALID_EP;
 
     // create VPE
     VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe), ep, sgate, tmuxable);
@@ -578,7 +578,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
         case m3::KIF::Syscall::VCTRL_START:
             if(vpe == &*vpecap->obj)
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't start itself");
-            vpecap->obj->start_app(arg);
+            vpecap->obj->start_app(static_cast<int>(arg));
             break;
 
         case m3::KIF::Syscall::VCTRL_YIELD:
@@ -592,7 +592,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
 
         case m3::KIF::Syscall::VCTRL_STOP: {
             bool self = vpe == &*vpecap->obj;
-            vpecap->obj->stop_app(arg, self);
+            vpecap->obj->stop_app(static_cast<int>(arg), self);
             if(self)
                 return;
             break;
@@ -613,7 +613,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
                 LOG_SYS(vpe, ": syscall::vpectrl-cont", "(exitcode=" << vpecap->obj->exitcode() << ")");
             }
 
-            reply.exitcode = vpecap->obj->exitcode();
+            reply.exitcode = static_cast<xfer_t>(vpecap->obj->exitcode());
             reply_msg(vpe, msg, &reply, sizeof(reply));
             return;
     }

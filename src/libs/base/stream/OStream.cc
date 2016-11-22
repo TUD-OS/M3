@@ -26,7 +26,7 @@ USED char OStream::_hexchars_big[]     = "0123456789ABCDEF";
 USED char OStream::_hexchars_small[]   = "0123456789abcdef";
 
 OStream::FormatParams::FormatParams(const char *fmt)
-        : _base(10), _flags(0), _pad(0), _prec(-1) {
+        : _base(10), _flags(0), _pad(0), _prec(~0UL) {
     // read flags
     bool read_flags = true;
     while(read_flags) {
@@ -77,8 +77,8 @@ OStream::FormatParams::FormatParams(const char *fmt)
     }
 }
 
-int OStream::printsignedprefix(llong n, uint flags) {
-    int count = 0;
+size_t OStream::printsignedprefix(llong n, int flags) {
+    size_t count = 0;
     if(n > 0) {
         if(flags & FormatParams::FORCESIGN) {
             write('+');
@@ -92,20 +92,20 @@ int OStream::printsignedprefix(llong n, uint flags) {
     return count;
 }
 
-int OStream::putspad(const char *s, uint pad, uint prec, uint flags) {
-    int count = 0;
+size_t OStream::putspad(const char *s, size_t pad, size_t prec, int flags) {
+    size_t count = 0;
     if(pad > 0 && !(flags & FormatParams::PADRIGHT)) {
-        ulong width = prec != static_cast<uint>(-1) ? Math::min<size_t>(prec, strlen(s)) : strlen(s);
+        size_t width = prec != static_cast<size_t>(-1) ? Math::min<size_t>(prec, strlen(s)) : strlen(s);
         count += printpad(pad - width, flags);
     }
     count += puts(s, prec);
     if(pad > 0 && (flags & FormatParams::PADRIGHT))
-        count += printpad(pad - count, flags);
+        count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
 
-int OStream::printnpad(llong n, uint pad, uint flags) {
-    int count = 0;
+size_t OStream::printnpad(llong n, size_t pad, int flags) {
+    size_t count = 0;
     // pad left
     if(!(flags & FormatParams::PADRIGHT) && pad > 0) {
         size_t width = Digits::count_signed(n, 10);
@@ -117,12 +117,12 @@ int OStream::printnpad(llong n, uint pad, uint flags) {
     count += printn(n);
     // pad right
     if((flags & FormatParams::PADRIGHT) && pad > 0)
-        count += printpad(pad - count, flags);
+        count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
 
-int OStream::printupad(ullong u, uint base, uint pad, uint flags) {
-    int count = 0;
+size_t OStream::printupad(ullong u, uint base, size_t pad, int flags) {
+    size_t count = 0;
     // pad left - spaces
     if(!(flags & FormatParams::PADRIGHT) && !(flags & FormatParams::PADZEROS) && pad > 0) {
         size_t width = Digits::count_unsigned(u, base);
@@ -152,30 +152,30 @@ int OStream::printupad(ullong u, uint base, uint pad, uint flags) {
         count += printu(u, base, _hexchars_small);
     // pad right
     if((flags & FormatParams::PADRIGHT) && pad > 0)
-        count += printpad(pad - count, flags);
+        count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
 
-int OStream::printpad(int count, uint flags) {
-    int res = count;
+size_t OStream::printpad(size_t count, int flags) {
+    size_t res = count;
     char c = flags & FormatParams::PADZEROS ? '0' : ' ';
     while(count-- > 0)
         write(c);
     return res;
 }
 
-USED int OStream::printu(ullong n, uint base, char *chars) {
-    llong rem;
-    llong quot = divide(n, base, &rem);
-    int res = 0;
+USED size_t OStream::printu(ullong n, uint base, char *chars) {
+    ullong rem;
+    ullong quot = divide(n, base, &rem);
+    size_t res = 0;
     if(n >= base)
         res += printu(quot, base, chars);
     write(chars[rem]);
     return res + 1;
 }
 
-USED int OStream::printn(llong n) {
-    int res = 0;
+USED size_t OStream::printn(llong n) {
+    size_t res = 0;
     if(n < 0) {
         write('-');
         n = -n;
@@ -190,8 +190,8 @@ USED int OStream::printn(llong n) {
     return res + 1;
 }
 
-int OStream::printfloat(float d, uint precision) {
-    int c = 0;
+size_t OStream::printfloat(float d, size_t precision) {
+    size_t c = 0;
     if(d < 0) {
         d = -d;
         write('-');
@@ -199,18 +199,18 @@ int OStream::printfloat(float d, uint precision) {
     }
 
     if(Math::is_nan(d))
-        c += puts("nan", -1);
+        c += puts("nan");
     else if(Math::is_inf(d))
-        c += puts("inf", -1);
+        c += puts("inf");
     else {
-        llong val = (llong)d;
+        llong val = static_cast<llong>(d);
         c += printn(val);
         d -= val;
         write('.');
         c++;
         while(precision-- > 0) {
             d *= 10;
-            val = (long)d;
+            val = static_cast<long>(d);
             write((val % 10) + '0');
             d -= val;
             c++;
@@ -219,8 +219,8 @@ int OStream::printfloat(float d, uint precision) {
     return c;
 }
 
-int OStream::printptr(uintptr_t u, uint flags) {
-    int count = 0;
+size_t OStream::printptr(uintptr_t u, int flags) {
+    size_t count = 0;
     size_t size = sizeof(uintptr_t);
     flags |= FormatParams::PADZEROS;
     // 2 hex-digits per byte and a ':' every 2 bytes
@@ -237,14 +237,14 @@ int OStream::printptr(uintptr_t u, uint flags) {
     return count;
 }
 
-USED int OStream::puts(const char *str, ulong prec) {
+USED size_t OStream::puts(const char *str, size_t prec) {
     const char *begin = str;
     char c;
-    while((prec == static_cast<ulong>(-1) || prec-- > 0) && (c = *str)) {
+    while((prec == ~0UL || prec-- > 0) && (c = *str)) {
         write(c);
         str++;
     }
-    return str - begin;
+    return static_cast<size_t>(str - begin);
 }
 
 void OStream::dump(const void *data, size_t size) {

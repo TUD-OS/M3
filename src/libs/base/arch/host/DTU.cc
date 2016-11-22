@@ -94,10 +94,10 @@ void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
     assert((1UL << (order - msgorder)) <= sizeof(word_t) * 8);
 }
 
-int DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
+word_t DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
     if(op == READ || op == WRITE || op == CMPXCHG) {
         uint perms = label & KIF::Perm::RWX;
-        if(!(perms & (1 << op))) {
+        if(!(perms & (1U << op))) {
             LLOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
                     << perms << ", op=" << op << ")");
             return CTRL_ERROR;
@@ -111,7 +111,7 @@ int DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offse
     return 0;
 }
 
-int DTU::prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     const size_t reply = get_cmd(CMD_OFFSET);
@@ -145,7 +145,7 @@ int DTU::prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const word_t credits = get_ep(ep, EP_CREDITS);
     const size_t size = get_cmd(CMD_SIZE);
@@ -170,7 +170,7 @@ int DTU::prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     dstpe = get_ep(ep, EP_PEID);
     dstep = get_ep(ep, EP_EPID);
 
@@ -183,7 +183,7 @@ int DTU::prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     dstpe = get_ep(ep, EP_PEID);
@@ -199,7 +199,7 @@ int DTU::prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const size_t size = get_cmd(CMD_SIZE);
     dstpe = get_ep(ep, EP_PEID);
@@ -221,7 +221,7 @@ int DTU::prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep) {
+word_t DTU::prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const size_t size = get_cmd(CMD_SIZE);
     const epid_t crdep = get_cmd(CMD_OFFSET);
 
@@ -233,7 +233,7 @@ int DTU::prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-int DTU::prepare_ackmsg(epid_t ep) {
+word_t DTU::prepare_ackmsg(epid_t ep) {
     const word_t addr = get_cmd(CMD_OFFSET);
     size_t bufaddr = get_ep(ep, EP_BUF_ADDR);
     size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
@@ -254,7 +254,7 @@ int DTU::prepare_ackmsg(epid_t ep) {
     return 0;
 }
 
-int DTU::prepare_fetchmsg(epid_t ep) {
+word_t DTU::prepare_fetchmsg(epid_t ep) {
     word_t msgs = get_ep(ep, EP_BUF_MSGCNT);
     if(msgs == 0)
         return CTRL_ERROR;
@@ -379,7 +379,7 @@ void DTU::send_msg(epid_t ep, peid_t dstpe, epid_t dstep, bool isreply) {
 }
 
 void DTU::handle_read_cmd(epid_t ep) {
-    word_t base = _buf.label & ~KIF::Perm::RWX;
+    word_t base = _buf.label & ~static_cast<word_t>(KIF::Perm::RWX);
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t dest = reinterpret_cast<word_t*>(_buf.data)[2];
@@ -402,7 +402,7 @@ void DTU::handle_read_cmd(epid_t ep) {
 }
 
 void DTU::handle_write_cmd(epid_t) {
-    word_t base = _buf.label & ~KIF::Perm::RWX;
+    word_t base = _buf.label & ~static_cast<word_t>(KIF::Perm::RWX);
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LLOG(DTU, "(write) " << length << " bytes to #" << fmt(base, "x")
@@ -412,7 +412,7 @@ void DTU::handle_write_cmd(epid_t) {
 }
 
 void DTU::handle_resp_cmd() {
-    word_t base = _buf.label & ~KIF::Perm::RWX;
+    word_t base = _buf.label & ~static_cast<word_t>(KIF::Perm::RWX);
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     word_t resp = reinterpret_cast<word_t*>(_buf.data)[2];
@@ -426,7 +426,7 @@ void DTU::handle_resp_cmd() {
 }
 
 void DTU::handle_cmpxchg_cmd(epid_t ep) {
-    word_t base = _buf.label & ~KIF::Perm::RWX;
+    word_t base = _buf.label & ~static_cast<word_t>(KIF::Perm::RWX);
     word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
     word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
     LLOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
@@ -512,7 +512,7 @@ found:
 
 void DTU::handle_receive(epid_t ep) {
     ssize_t res = _backend->recv(ep, &_buf);
-    if(res == -1)
+    if(res < 0)
         return;
 
     const int op = _buf.opcode;
@@ -531,7 +531,7 @@ void DTU::handle_receive(epid_t ep) {
             break;
         case SEND:
         case REPLY:
-            handle_msg(res, ep);
+            handle_msg(static_cast<size_t>(res), ep);
             break;
     }
 
@@ -548,11 +548,11 @@ void DTU::handle_receive(epid_t ep) {
     }
 
     if(op != SENDCRD) {
-        LLOG(DTU, "<- " << fmt(res - HEADER_SIZE, 3)
-                << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-                << " ep=" << ep
-                << " (cnt=#" << fmt(get_ep(ep, EP_BUF_MSGCNT), "x") << ","
-                << "crd=#" << fmt((long)get_ep(ep, EP_CREDITS), "x") << ")");
+        LLOG(DTU, "<- " << fmt(static_cast<size_t>(res) - HEADER_SIZE, 3)
+               << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
+               << " ep=" << ep
+               << " (cnt=#" << fmt(get_ep(ep, EP_BUF_MSGCNT), "x") << ","
+               << "crd=#" << fmt(get_ep(ep, EP_CREDITS), "x") << ")");
     }
 }
 

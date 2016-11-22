@@ -29,14 +29,14 @@ int Args::strmatch(const char *pattern, const char *str) {
     lastStar = strrchr(pattern, '*');
     /* does the beginning match? */
     if(firstStar != pattern) {
-        if(strncmp(str, pattern, firstStar - pattern) != 0)
+        if(strncmp(str, pattern, static_cast<size_t>(firstStar - pattern)) != 0)
             return false;
     }
     /* does the end match? */
     if(lastStar[1] != '\0') {
         size_t plen = strlen(pattern);
         size_t slen = strlen(str);
-        size_t cmplen = pattern + plen - lastStar - 1;
+        size_t cmplen = static_cast<size_t>(pattern + plen - lastStar - 1);
         if(strncmp(lastStar + 1, str + slen - cmplen, cmplen) != 0)
             return false;
     }

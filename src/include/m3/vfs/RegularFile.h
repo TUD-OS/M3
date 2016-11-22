@@ -88,7 +88,7 @@ public:
 
     virtual Buffer *create_buf(size_t size) override;
     virtual int stat(FileInfo &info) const override;
-    virtual off_t seek(off_t offset, int whence) override;
+    virtual size_t seek(size_t offset, int whence) override;
     virtual ssize_t read(void *buffer, size_t count) override {
         return do_read(buffer, count, _pos);
     }
@@ -105,7 +105,7 @@ public:
     static RegularFile *unserialize(Unmarshaller &um);
 
 private:
-    virtual bool seek_to(off_t offset) override;
+    virtual bool seek_to(size_t offset) override;
     ssize_t fill(void *buffer, size_t size);
     ssize_t do_read(void *buffer, size_t count, Position &pos) const;
     ssize_t do_write(const void *buffer, size_t count, Position &pos) const;
@@ -115,8 +115,8 @@ private:
 
     int _fd;
     mutable bool _extended;
-    mutable off_t _begin;
-    mutable off_t _length;
+    mutable size_t _begin;
+    mutable size_t _length;
     mutable Position _pos;
     mutable KIF::CapRngDesc _memcaps;
     mutable loclist_type _locs;

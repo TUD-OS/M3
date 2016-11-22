@@ -45,8 +45,8 @@ else:
 # build basic environment
 baseenv = Environment(
     CPPFLAGS = '-D__' + target + '__',
-    CXXFLAGS = ' -std=c++11 -Wall -Wextra -fdiagnostics-color=always',
-    CFLAGS = ' -std=c99 -Wall -Wextra',
+    CXXFLAGS = ' -std=c++11 -Wall -Wextra -Wsign-conversion -fdiagnostics-color=always',
+    CFLAGS = ' -std=c99 -Wall -Wextra -Wsign-conversion',
     CPPPATH = ['#src/include'],
     ENV = {
         'PATH' : os.environ['PATH'],

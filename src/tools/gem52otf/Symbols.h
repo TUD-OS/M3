@@ -25,11 +25,11 @@
 
 class Symbols {
     struct Symbol {
-        explicit Symbol(int bin, unsigned long addr, const char *name)
+        explicit Symbol(uint32_t bin, unsigned long addr, const char *name)
             : bin(bin), addr(addr), name(name) {
         }
 
-        int bin;
+        uint32_t bin;
         unsigned long addr;
         std::string name;
     };
@@ -40,7 +40,7 @@ public:
     explicit Symbols();
 
     void addFile(const char *file);
-    const char *resolve(unsigned long addr, int *bin);
+    const char *resolve(unsigned long addr, uint32_t *bin);
 
 private:
     void demangle(char *dst, size_t dstSize, const char *name);

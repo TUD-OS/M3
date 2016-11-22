@@ -45,7 +45,7 @@ void DataSpace::inherit(DataSpace *ds) {
     for(auto reg = ds->_regs.begin(); reg != ds->_regs.end(); ++reg) {
         // make it readonly, if it's writable and we have not done that yet
         if(!(reg->flags() & Region::COW) && ds->_flags & m3::DTU::PTE_W)
-            reg->map(ds->_flags & ~m3::DTU::PTE_W);
+            reg->map(ds->_flags ^ m3::DTU::PTE_W);
 
         Region *nreg = new Region(*reg);
         nreg->ds(this);
@@ -89,7 +89,7 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
         // writable memory needs to be copied
         if(_flags & m3::DTU::PTE_W)
             reg->copy(_as->mem, addr());
-        reg->flags(reg->flags() & ~Region::COW);
+        reg->flags(reg->flags() ^ Region::COW);
     }
     else {
         // otherwise, there is nothing to do
@@ -157,7 +157,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
     else if(reg->flags() & Region::COW) {
         if(_flags & m3::DTU::PTE_W)
             reg->copy(_as->mem, addr());
-        reg->flags(reg->flags() & ~Region::COW);
+        reg->flags(reg->flags() ^ Region::COW);
     }
     else {
         // otherwise, there is nothing to do

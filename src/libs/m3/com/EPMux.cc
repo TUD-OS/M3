@@ -89,8 +89,8 @@ epid_t EPMux::select_victim() {
     epid_t victim = _next_victim;
     while(!VPE::self().is_ep_free(victim) && count++ < EP_COUNT) {
         // victim = (victim + 1) % EP_COUNT
-        long rem;
-        divide(victim + 1, EP_COUNT, &rem);
+        size_t rem;
+        divide(victim + 1, static_cast<size_t>(EP_COUNT), &rem);
         victim = rem;
     }
     if(!VPE::self().is_ep_free(victim))
@@ -99,8 +99,8 @@ epid_t EPMux::select_victim() {
         _gates[victim]->_ep = Gate::UNBOUND;
 
     // _next_victim = (victim + 1) % EP_COUNT
-    long rem;
-    divide(victim + 1, EP_COUNT, &rem);
+    size_t rem;
+    divide(victim + 1, static_cast<size_t>(EP_COUNT), &rem);
     _next_victim = rem;
     return victim;
 }

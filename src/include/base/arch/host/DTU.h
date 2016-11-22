@@ -52,7 +52,7 @@ class DTU {
 #endif
 public:
     struct Header {
-        long int length;        // = mtype -> has to be non-zero
+        size_t length;          // = mtype -> has to be non-zero
         unsigned char opcode;   // should actually be part of length but causes trouble in msgsnd
         label_t label;
         struct {
@@ -319,14 +319,14 @@ private:
             occupied &= ~(static_cast<word_t>(1) << idx);
     }
 
-    int prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    int prepare_fetchmsg(epid_t ep);
-    int prepare_ackmsg(epid_t ep);
+    word_t prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep);
+    word_t prepare_fetchmsg(epid_t ep);
+    word_t prepare_ackmsg(epid_t ep);
 
     void send_msg(epid_t ep, peid_t dstpe, epid_t dstep, bool isreply);
     void handle_read_cmd(epid_t ep);
@@ -337,7 +337,7 @@ private:
     void handle_msg(size_t len, epid_t ep);
     void handle_receive(epid_t ep);
 
-    static int check_cmd(epid_t ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
+    static word_t check_cmd(epid_t ep, int op, word_t addr, word_t credits, size_t offset, size_t length);
     static void *thread(void *arg);
 
     volatile bool _run;

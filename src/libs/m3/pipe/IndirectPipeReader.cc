@@ -56,7 +56,7 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
         Profile::stop(0xaaaa);
         memcpy(buf + count - rem, tmp, rem);
     }
-    return count;
+    return static_cast<ssize_t>(count);
 }
 
 void IndirectPipeReader::delegate(VPE &vpe) {

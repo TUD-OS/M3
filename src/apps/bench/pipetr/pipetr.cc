@@ -59,10 +59,10 @@ int main(int argc, char **argv) {
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");
 
-        size_t res;
+        ssize_t res;
         File *out = VPE::self().fds()->get(STDOUT_FD);
         while((res = input->read(buffer, sizeof(buffer))) > 0)
-            out->write(buffer, res);
+            out->write(buffer, static_cast<size_t>(res));
         return 0;
     });
 
@@ -76,14 +76,14 @@ int main(int argc, char **argv) {
         char c1 = argv[3][0];
         char c2 = argv[4][0];
 
-        size_t res;
+        ssize_t res;
         File *in = VPE::self().fds()->get(pipe.reader_fd());
         while((res = in->read(buffer, sizeof(buffer))) > 0) {
             cycles_t cstart = Profile::start(0xbbbb);
             replace(buffer, res, c1, c2);
             cycles_t cend = Profile::stop(0xbbbb);
             apptime += cend - cstart;
-            output->write(buffer, res);
+            output->write(buffer, static_cast<size_t>(res));
         }
     }
 

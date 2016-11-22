@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     size_t offset = 0;
     while(rem > 0) {
         for(size_t i = 0; i < BUF_SIZE / sizeof(uint); ++i)
-            buffer[i] = Random::get();
+            buffer[i] = static_cast<uint>(Random::get());
         mem.write(buffer, BUF_SIZE, offset);
         offset += BUF_SIZE;
         rem -= BUF_SIZE;

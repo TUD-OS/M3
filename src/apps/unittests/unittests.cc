@@ -38,7 +38,7 @@ int main() {
             exitmsg("Unable to mount m3fs as root-fs");
     }
 
-    int succ = 0;
+    size_t succ = 0;
     for(size_t i = 0; i < ARRAY_SIZE(progs); ++i) {
         VPE t("tests");
         const char *args[] = {progs[i]};
@@ -47,7 +47,7 @@ int main() {
         t.obtain_mountspace();
 
         t.exec(ARRAY_SIZE(args), args);
-        uint32_t res = t.wait();
+        uint32_t res = static_cast<uint32_t>(t.wait());
         if((res >> 16) != 0)
             succ += (res & 0xFFFF) == (res >> 16);
     }

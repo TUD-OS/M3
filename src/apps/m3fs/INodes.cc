@@ -269,7 +269,7 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
     mark_dirty(h, inode->inode);
 }
 
-off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t &off, int whence, size_t &extent, size_t &extoff) {
+size_t INodes::seek(FSHandle &h, inodeno_t ino, size_t &off, int whence, size_t &extent, size_t &extoff) {
     Extent *indir = nullptr;
     INode *inode = get(h, ino);
 
@@ -286,7 +286,7 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t &off, int whence, size_t &e
     }
 
     size_t i = 0;
-    off_t pos = 0;
+    size_t pos = 0;
     // for SEEK_CUR, we need to know the file position until <extent>+<extoff>
     if(whence == SEEK_CUR) {
         for(; i < extent; ++i) {
@@ -305,7 +305,7 @@ off_t INodes::seek(FSHandle &h, inodeno_t ino, off_t &off, int whence, size_t &e
         if(!ch)
             break;
 
-        if(off < (off_t)(ch->length * h.sb().blocksize)) {
+        if(off < ch->length * h.sb().blocksize) {
             extent = i;
             extoff = off;
             return pos;

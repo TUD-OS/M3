@@ -114,7 +114,7 @@ static bool execute(CmdList *list, bool muxed) {
         vpes[i]->obtain_mountspace();
 
         Errors::Code err;
-        if((err = vpes[i]->exec(cmd->args->count, cmd->args->args)) != Errors::NONE) {
+        if((err = vpes[i]->exec(static_cast<int>(cmd->args->count), cmd->args->args)) != Errors::NONE) {
             errmsg("Unable to execute '" << cmd->args->args[0] << "'");
             break;
         }

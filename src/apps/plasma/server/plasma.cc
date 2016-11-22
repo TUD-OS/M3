@@ -163,7 +163,7 @@ public:
         // Double ROW to correct aspect ratio.
         for(unsigned rc = 0; rc < ROW * 2; rc += 2) {
             for(unsigned cc = 0; cc < COL; cc++) {
-                int8_t v1 = lsin(distance(rc, cc, ROW * 2 / 2, COL / 2) * 2 + 2 * t);
+                int8_t v1 = lsin(distance(rc, cc, ROW * 2 / 2, COL / 2) * 2U + 2U * t);
                 int8_t v2 = lsin(distance(rc, cc, (lsin(t >> 5) / 2 + 60), (lcos(t >> 5) / 2 + 60)));
 
                 int8_t v3 = lsin(distance(rc, cc, (lsin(-t * 3) / 2 + 64), (lcos(-t * 3) / 2 + 64)));
@@ -182,19 +182,21 @@ class QuoteAnimator : public TextAnimator<ROW, COL> {
     TextAnimator<ROW, COL> *_background;
     bool _start_init;
     cycles_t _start;
-    ssize_t _quote;
-    ssize_t _next_quote;
+    size_t _quote;
+    size_t _next_quote;
 
 public:
+    static const size_t NO_QUOTE = static_cast<size_t>(-1);
+
     QuoteAnimator(TextAnimator<ROW, COL> *background)
-        : _background(background), _start_init(false), _start(), _quote(-1), _next_quote(0) {
+        : _background(background), _start_init(false), _start(), _quote(NO_QUOTE), _next_quote(0) {
     }
 
     size_t get_quote() const {
-        return _next_quote != -1 ? _next_quote : _quote;
+        return _next_quote != NO_QUOTE ? _next_quote : _quote;
     }
     void to_quote(cycles_t now, size_t i) {
-        if(_next_quote == -1)
+        if(_next_quote == NO_QUOTE)
             _start = now;
         _next_quote = i;
     }
@@ -211,19 +213,19 @@ public:
         }
 
         unsigned t = static_cast<unsigned>((now - _start) >> 22);
-        if(_next_quote != -1) {
-            size_t off = _quote != -1 ? 800 : 0;
+        if(_next_quote != NO_QUOTE) {
+            size_t off = _quote != NO_QUOTE ? 800 : 0;
             if(t < 800 && off)
                 bar_out(text_bg_attr, t, 0);
             else if(t < off + 800)
                 bar_in(text_bg_attr, t, off);
             else {
                 _quote = _next_quote;
-                _next_quote = -1;
+                _next_quote = NO_QUOTE;
             }
         }
 
-        if(_next_quote == -1) {
+        if(_next_quote == NO_QUOTE) {
             bar_empty(text_bg_attr);
             bar_text(text_bg_attr, t, 1700);
         }
@@ -260,7 +262,7 @@ private:
         unsigned msg_len = strlen(cur_msg);
 
         if(t >= start)
-            this->put_text(ROW / 2, COL / 2 - msg_len / 2 - 1, 0x0F, cur_msg, (t - start) / 10);
+            this->put_text(ROW / 2, COL / 2 - msg_len / 2 - 1, 0x0F, cur_msg, static_cast<int>(t - start) / 10);
     }
 
     void bar_in(uint16_t text_bg_attr, unsigned t, unsigned start) {
@@ -315,7 +317,7 @@ public:
         else {
             for(unsigned rc = 0; rc < ROW; rc++) {
                 for(unsigned cc = 0; cc < COL; cc++) {
-                    unsigned target;
+                    char target;
                     uint16_t &chara = this->character(rc, cc);
 
                     unsigned start_row = (ROW - sizeof(intro_text) / sizeof(*intro_text)) / 2;

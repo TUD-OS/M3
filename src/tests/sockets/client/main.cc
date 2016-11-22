@@ -36,7 +36,8 @@ int main(int argc, char *argv[]) {
     bool perf = false;
     struct sockaddr_un srvaddr;
     char buf[MSG_SIZE];
-    int fd, rc, res;
+    int fd;
+    ssize_t res, rc;
 
     if(argc > 1 && strcmp(argv[1], "--perf") == 0)
         perf = true;
@@ -56,7 +57,8 @@ int main(int argc, char *argv[]) {
     }
     else {
         while((rc = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
-            if((res = sendto(fd, buf, rc, 0, (struct sockaddr*)&srvaddr, sizeof(srvaddr))) != rc) {
+            struct sockaddr *addr = reinterpret_cast<struct sockaddr*>(&srvaddr);
+            if((res = sendto(fd, buf, static_cast<size_t>(rc), 0, addr, sizeof(srvaddr))) != rc) {
                 if(res < 0)
                     perror("sendto");
                 else

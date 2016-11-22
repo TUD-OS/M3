@@ -74,12 +74,12 @@ public:
     m3::Errors::Code set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
         const m3::DTU::Header &head);
 
-    void recv_msgs(epid_t ep, uintptr_t buf, uint order, uint msgorder);
+    void recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder);
 
     void reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
 
     void send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep, uint64_t sender = -1);
+        label_t replylbl, epid_t replyep, uint64_t sender = static_cast<uint64_t>(-1));
     void reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg, size_t size,
         uint64_t sender);
 

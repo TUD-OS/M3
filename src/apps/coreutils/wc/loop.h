@@ -16,4 +16,4 @@
 
 #include <base/Common.h>
 
-EXTERN_C void count(const char *buffer, long res, long *lines, long *words, int *last_space);
+EXTERN_C void count(const char *buffer, size_t res, long *lines, long *words, int *last_space);

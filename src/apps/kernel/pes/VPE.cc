@@ -115,7 +115,7 @@ void VPE::stop_app(int exitcode, bool self) {
         exit_app(1);
     else {
         PEManager::get().stop_vpe(this);
-        _flags &= ~F_HASAPP;
+        _flags ^= F_HASAPP;
     }
 
     if(rem_ref())
@@ -132,7 +132,7 @@ void VPE::exit_app(int exitcode) {
 
     _exitcode = exitcode;
 
-    _flags &= ~F_HASAPP;
+    _flags ^= F_HASAPP;
 
     PEManager::get().stop_vpe(this);
 

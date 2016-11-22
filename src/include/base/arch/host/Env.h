@@ -113,7 +113,7 @@ public:
     }
 
 private:
-    static int set_inst(Env *e) {
+    static peid_t set_inst(Env *e) {
         _inst = e;
         // pe id
         return 0;

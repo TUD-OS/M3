@@ -51,7 +51,7 @@ public:
 
     void read_ep(const VPEDesc &vpe, epid_t ep);
 
-    void config_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder);
+    void config_recv(epid_t ep, uintptr_t buf, int order, int msgorder);
     void config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm);
 

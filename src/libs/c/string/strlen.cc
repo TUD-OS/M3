@@ -21,5 +21,5 @@ size_t strlen(const char *s) {
     const char *begin = s;
     while(*s)
         s++;
-    return s - begin;
+    return static_cast<size_t>(s - begin);
 }

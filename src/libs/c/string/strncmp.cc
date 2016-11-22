@@ -17,8 +17,8 @@
 #include <base/Common.h>
 #include <cstring>
 
-int strncmp(const char *str1,const char *str2,size_t count) {
-    ssize_t rem = count;
+int strncmp(const char *str1, const char *str2, size_t count) {
+    ssize_t rem = static_cast<ssize_t>(count);
     while(*str1 && *str2 && rem-- > 0) {
         if(*str1++ != *str2++)
             return str1[-1] < str2[-1] ? -1 : 1;

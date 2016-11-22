@@ -103,27 +103,27 @@ class OStream : public virtual IOSBase {
         uint base() const {
             return _base;
         }
-        uint flags() const {
+        int flags() const {
             return _flags;
         }
-        uint padding() const {
+        size_t padding() const {
             return _pad;
         }
-        void padding(uint pad) {
+        void padding(size_t pad) {
             _pad = pad;
         }
-        uint precision() const {
+        size_t precision() const {
             return _prec;
         }
-        void precision(uint prec) {
+        void precision(size_t prec) {
             _prec = prec;
         }
 
     private:
         uint _base;
-        uint _flags;
-        uint _pad;
-        uint _prec;
+        int _flags;
+        size_t _pad;
+        size_t _prec;
     };
 
     /**
@@ -146,15 +146,15 @@ class OStream : public virtual IOSBase {
         void write(OStream &os, const FormatParams &p, const T &value) {
             // let the user print an integer as a pointer if a wants to. this saves a cast to void*
             if(p.flags() & FormatParams::POINTER)
-                os.printptr(value, p.flags());
+                os.printptr(static_cast<uintptr_t>(value), p.flags());
             // although we rely on the type in most cases, we let the user select between signed
             // and unsigned by specifying certain flags that are only used at one place.
             // this free's the user from having to be really careful whether a value is signed or
             // unsigned, which is especially a problem when using typedefs.
             else if(p.flags() & (FormatParams::FORCESIGN | FormatParams::SPACESIGN))
-                os.printnpad(value, p.padding(), p.flags());
+                os.printnpad(static_cast<llong>(value), p.padding(), p.flags());
             else
-                os.printupad(value, p.base(), p.padding(), p.flags());
+                os.printupad(static_cast<ullong>(value), p.base(), p.padding(), p.flags());
         }
     };
     template<typename T>
@@ -164,9 +164,9 @@ class OStream : public virtual IOSBase {
             // like above; the base is only used in unsigned print, so do that if the user specified
             // a base (10 is default)
             if(p.base() != 10)
-                os.printupad(value, p.base(), p.padding(), p.flags());
+                os.printupad(static_cast<ullong>(value), p.base(), p.padding(), p.flags());
             else
-                os.printnpad(value, p.padding(), p.flags());
+                os.printnpad(static_cast<llong>(value), p.padding(), p.flags());
         }
     };
     template<typename T>
@@ -196,7 +196,7 @@ public:
     template<typename T>
     class Format {
     public:
-        explicit Format(const char *fmt, const T &value, uint pad = 0, uint prec = -1)
+        explicit Format(const char *fmt, const T &value, uint pad, uint prec)
             : _fmt(fmt), _value(value), _pad(pad), _prec(prec) {
         }
 
@@ -316,16 +316,16 @@ public:
     virtual void write(char c) = 0;
 
 private:
-    int printsignedprefix(llong n, uint flags);
-    int putspad(const char *s, uint pad, uint prec, uint flags);
-    int printnpad(llong n, uint pad, uint flags);
-    int printupad(ullong u, uint base, uint pad, uint flags);
-    int printpad(int count, uint flags);
-    int printu(ullong n, uint base, char *chars);
-    int printn(llong n);
-    int printfloat(float d, uint precision);
-    int printptr(uintptr_t u, uint flags);
-    int puts(const char *str, ulong prec = -1);
+    size_t printsignedprefix(llong n, int flags);
+    size_t putspad(const char *s, size_t pad, size_t prec, int flags);
+    size_t printnpad(llong n, size_t pad, int flags);
+    size_t printupad(ullong u, uint base, size_t pad, int flags);
+    size_t printpad(size_t count, int flags);
+    size_t printu(ullong n, uint base, char *chars);
+    size_t printn(llong n);
+    size_t printfloat(float d, size_t precision);
+    size_t printptr(uintptr_t u, int flags);
+    size_t puts(const char *str, size_t prec = ~0UL);
 
     static char _hexchars_big[];
     static char _hexchars_small[];
@@ -438,11 +438,11 @@ class OStream::FormatImpl<volatile char [X]> : public OStream::FormatImplStr<vol
  * @return the Format object
  */
 template<typename T>
-static inline OStream::Format<T> fmt(const T &value, const char *fmt, uint pad = 0, uint prec = -1) {
+static inline OStream::Format<T> fmt(const T &value, const char *fmt, size_t pad = 0, size_t prec = ~0UL) {
     return OStream::Format<T>(fmt, value, pad, prec);
 }
 template<typename T>
-static inline OStream::Format<T> fmt(const T &value, uint pad = 0, uint prec = -1) {
+static inline OStream::Format<T> fmt(const T &value, size_t pad = 0, size_t prec = ~0UL) {
     return OStream::Format<T>("", value, pad, prec);
 }
 

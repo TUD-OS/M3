@@ -55,7 +55,7 @@ int main() {
                 exitmsg("VPE::run failed");
 
             int time = vpe.wait();
-            exec_time += time;
+            exec_time += static_cast<cycles_t>(time);
         }
     }
 

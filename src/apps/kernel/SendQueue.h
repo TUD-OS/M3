@@ -51,7 +51,7 @@ public:
         return _inflight;
     }
     int pending() const {
-        return _queue.length();
+        return static_cast<int>(_queue.length());
     }
 
     event_t send(SendGate *sgate, const void *msg, size_t size, bool onheap);

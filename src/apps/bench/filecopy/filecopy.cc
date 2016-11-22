@@ -56,11 +56,12 @@ int main(int argc, char **argv) {
 
         ssize_t count;
         cycles_t start = Profile::start(1);
-        while((count = input->read(buffer, bufsize)) == (ssize_t)bufsize)
-            output->write(buffer, count);
+        while((count = input->read(buffer, bufsize)) == static_cast<ssize_t>(bufsize))
+            output->write(buffer, bufsize);
         if(count > 0) {
-            memset(buffer + count, 0, DTU_PKG_SIZE - (count % DTU_PKG_SIZE));
-            output->write(buffer, (count + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1));
+            size_t rem = static_cast<size_t>(count);
+            memset(buffer + rem, 0, DTU_PKG_SIZE - (rem % DTU_PKG_SIZE));
+            output->write(buffer, (rem + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1));
         }
         cycles_t end2 = Profile::stop(1);
         cout << "Copy: " << (end2 - start) << "\n";

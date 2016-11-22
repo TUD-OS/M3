@@ -39,8 +39,8 @@ void Serial::init(const char *path, peid_t pe) {
     size_t i = 0;
     strcpy(_inst->_outbuf + i, "\e[0;");
     i += 4;
-    long col;
-    divide(pe,ARRAY_SIZE(_colors),&col);
+    ulong col;
+    divide(pe, ARRAY_SIZE(_colors), &col);
     strcpy(_inst->_outbuf + i, _colors[col]);
     i += 2;
     _inst->_outbuf[i++] = 'm';
@@ -75,7 +75,7 @@ char Serial::read() {
         ssize_t res = Machine::read(_inbuf, INBUF_SIZE);
         if(res < 0)
             return 0;
-        _inlen = res;
+        _inlen = static_cast<size_t>(res);
         _inpos = 0;
     }
     return _inbuf[_inpos++];

@@ -39,10 +39,10 @@ namespace m3 {
 class Gate : public ObjCap {
     friend class EPMux;
 
-    static const size_t NODESTROY   = -2;
+    static const epid_t NODESTROY   = static_cast<epid_t>(-2);
 
 public:
-    static const size_t UNBOUND     = -1;
+    static const epid_t UNBOUND     = static_cast<epid_t>(-1);
 
 protected:
     explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t ep = UNBOUND)

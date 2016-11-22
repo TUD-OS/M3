@@ -95,10 +95,10 @@ USED void *Heap::try_alloc(size_t size) {
         // put a new area behind us
         Area *n = forward(a, size);
         n->next = a->next - size;
-        n->prev = (n - a) * sizeof(Area);
+        n->prev = static_cast<word_t>(n - a) * sizeof(Area);
         // adjust prev of next area, if there is any
         Area *nn = forward(n, n->next);
-        nn->prev = (nn - n) * sizeof(Area);
+        nn->prev = static_cast<word_t>(nn - n) * sizeof(Area);
         a->next = size;
     }
     // mark used

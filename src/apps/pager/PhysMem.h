@@ -36,7 +36,7 @@ class PhysMem : public m3::RefCounted {
     }
 
 public:
-    explicit PhysMem(m3::MemGate *mem, uintptr_t virt, size_t size, uint perm)
+    explicit PhysMem(m3::MemGate *mem, uintptr_t virt, size_t size, int perm)
         : RefCounted(), gate(new m3::MemGate(m3::MemGate::create_global(size, perm))),
           owner_mem(mem), owner_virt(virt) {
     }

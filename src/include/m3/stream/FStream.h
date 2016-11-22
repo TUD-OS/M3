@@ -102,7 +102,7 @@ public:
      * @param whence the seek type (SEEK_*)
      * @return the new position
      */
-    off_t seek(off_t offset, int whence);
+    size_t seek(size_t offset, int whence);
 
     /**
      * Reads <count> bytes into <dst>. If both is aligned by DTU_PKG_SIZE and the buffer is
@@ -149,7 +149,7 @@ private:
     void set_error(ssize_t res);
 
     int _fd;
-    off_t _fpos;
+    size_t _fpos;
     File::Buffer *_rbuf;
     File::Buffer *_wbuf;
     uint _flags;

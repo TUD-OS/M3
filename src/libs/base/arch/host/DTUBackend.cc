@@ -60,13 +60,13 @@ ssize_t MsgBackend::recv(epid_t ep, DTU::Buffer *buf) {
     int msgqid = DTU::get().get_ep(ep, DTU::EP_BUF_MSGQID);
     if(msgqid == 0) {
         msgqid = msgget(get_msgkey(env()->pe, ep), 0);
-        DTU::get().set_ep(ep, DTU::EP_BUF_MSGQID, msgqid);
+        DTU::get().set_ep(ep, DTU::EP_BUF_MSGQID, static_cast<word_t>(msgqid));
     }
 
     ssize_t res = msgrcv(msgqid, buf, sizeof(*buf) - sizeof(buf->length), 0, IPC_NOWAIT);
     if(res == -1)
         return -1;
-    res += sizeof(buf->length);
+    res += static_cast<ssize_t>(sizeof(buf->length));
     return res;
 }
 
