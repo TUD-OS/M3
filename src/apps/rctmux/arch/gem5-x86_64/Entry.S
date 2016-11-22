@@ -28,7 +28,7 @@ BEGIN_FUNC(_start)
     cli
     // use a small stack
     mov     $_rctmux_stack, %rsp
-    mov     %rsp, %rbp
+    mov     $0, %rbp
 
     call    _start_app
     test    %rax, %rax
@@ -36,7 +36,6 @@ BEGIN_FUNC(_start)
 
     // if there is nothing to run yet, sleep
     mov     $_idle_stack, %rsp
-    mov     %rsp, %rbp
     sti
 
     call    _sleep

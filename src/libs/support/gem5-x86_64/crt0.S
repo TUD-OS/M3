@@ -27,7 +27,7 @@ BEGIN_FUNC(_start)
 
     # set default stack pointer
     mov     $(STACK_TOP - 8), %rsp
-    mov     %rsp, %rbp
+    mov     $0, %rbp
 
 1:
     call    env_run

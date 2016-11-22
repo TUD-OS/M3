@@ -58,7 +58,7 @@ void *init_state() {
     state->ss  = (Exceptions::SEG_DATA << 3) | 3;
     state->rip = senv->entry;
     state->rsp = reinterpret_cast<uintptr_t>(state);
-    state->rbp = state->rsp;
+    state->rbp = 0;
     state->rflags = 0x200;  // enable interrupts
 
     return state;
