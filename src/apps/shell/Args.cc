@@ -23,7 +23,7 @@ using namespace m3;
 
 int Args::strmatch(const char *pattern, const char *str) {
     const char *lastStar;
-    char *firstStar = (char*)strchr(pattern, '*');
+    char *firstStar = const_cast<char*>(strchr(pattern, '*'));
     if(firstStar == NULL)
         return strcmp(pattern, str) == 0;
     lastStar = strrchr(pattern, '*');
@@ -46,7 +46,7 @@ int Args::strmatch(const char *pattern, const char *str) {
     while(1) {
         const char *match;
         const char *start = firstStar + 1;
-        firstStar = (char*)strchr(start, '*');
+        firstStar = const_cast<char*>(strchr(start, '*'));
         if(firstStar == NULL)
             break;
 
@@ -90,11 +90,11 @@ void Args::glob(ArgList *list, size_t i) {
                     list->count++;
                 }
                 else
-                    Heap::free((void*)list->args[i]);
+                    Heap::free(const_cast<char*>(list->args[i]));
 
-                list->args[i] = (char*)Heap::alloc(patlen + strlen(e.name) + 1);
-                strcpy((char*)list->args[i], pat);
-                strcpy((char*)list->args[i] + patlen, e.name);
+                list->args[i] = static_cast<char*>(Heap::alloc(patlen + strlen(e.name) + 1));
+                strcpy(const_cast<char*>(list->args[i]), pat);
+                strcpy(const_cast<char*>(list->args[i]) + patlen, e.name);
                 i++;
                 found = true;
                 if(list->count >= ARRAY_SIZE(list->args))
@@ -108,7 +108,7 @@ void Args::glob(ArgList *list, size_t i) {
             slash[1] = old;
 
         // remove wildcard argument
-        Heap::free((void*)list->args[i]);
+        Heap::free(const_cast<char*>(list->args[i]));
         for(size_t x = i; x < list->count - 1; ++x)
             list->args[x] = list->args[x + 1];
         list->count--;
@@ -118,10 +118,10 @@ void Args::glob(ArgList *list, size_t i) {
 void Args::prefix_path(ArgList *args) {
     if(args->args[0][0] != '/') {
         size_t len = strlen(args->args[0]);
-        char *newstr = (char*)Heap::alloc(len + 5 + 1);
+        char *newstr = static_cast<char*>(Heap::alloc(len + 5 + 1));
         strcpy(newstr, "/bin/");
         strcpy(newstr + 5, args->args[0]);
-        Heap::free((void*)args->args[0]);
+        Heap::free(const_cast<char*>(args->args[0]));
         args->args[0] = newstr;
     }
 }

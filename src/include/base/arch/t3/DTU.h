@@ -289,7 +289,8 @@ private:
         return IDMA_DATA_PORT_ADDR | (slot << IDMA_SLOT_POS);
     }
     word_t *get_cmd_addr(int slot,unsigned cmd) const {
-        return (word_t*)((uintptr_t)PE_IDMA_CONFIG_ADDRESS + (cmd << PE_IDMA_CMD_POS) + (slot << PE_IDMA_SLOT_POS));
+        uintptr_t base = PE_IDMA_CONFIG_ADDRESS;
+        return reinterpret_cast<word_t*>(base + (cmd << PE_IDMA_CMD_POS) + (slot << PE_IDMA_SLOT_POS));
     }
     uintptr_t get_external_cmd_addr(int slot, unsigned cmd) const {
         return IDMA_CONFIG_ADDR + (cmd << PE_IDMA_CMD_POS) + (slot << IDMA_SLOT_POS);

@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
         // leave a bit of space for m3 abstractions
         size_t bufsize = 4096;//Heap::contiguous_mem() - 128;
-        char *buffer = (char*)Heap::alloc(bufsize);
+        char *buffer = static_cast<char*>(Heap::alloc(bufsize));
         cout << "Using buffer with " << bufsize << " bytes\n";
 
         ssize_t count;

@@ -203,7 +203,7 @@ public:
 
         if(core == CM_CORE) {
             /* send transfer slot to CM_TU (always 0 for us) */
-            uint *tuFifo = (uint*)CM_TU_SET_FIFO;
+            uint *tuFifo = reinterpret_cast<uint*>(CM_TU_SET_FIFO);
             *tuFifo = 0;
         }
     }

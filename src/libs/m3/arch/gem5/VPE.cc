@@ -30,7 +30,7 @@ extern "C" void *_data_start;
 extern "C" void *_bss_end;
 
 uintptr_t VPE::get_entry() {
-    return (uintptr_t)&_text_start;
+    return reinterpret_cast<uintptr_t>(&_text_start);
 }
 
 void VPE::copy_sections() {
@@ -39,24 +39,26 @@ void VPE::copy_sections() {
         return;
     }
 
+    uintptr_t start_addr, end_addr;
+
     /* copy text */
-    uintptr_t start_addr = Math::round_dn((uintptr_t)&_text_start, DTU_PKG_SIZE);
-    uintptr_t end_addr = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_text_start), DTU_PKG_SIZE);
+    end_addr = Math::round_up(reinterpret_cast<uintptr_t>(&_text_end), DTU_PKG_SIZE);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy data and heap */
-    start_addr = Math::round_dn((uintptr_t)&_data_start, DTU_PKG_SIZE);
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_data_start), DTU_PKG_SIZE);
     end_addr = Math::round_up(Heap::end(), DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy end-area of heap */
     start_addr = Heap::end_area();
-    _mem.write((void*)start_addr, Heap::end_area_size(), start_addr);
+    _mem.write(reinterpret_cast<void*>(start_addr), Heap::end_area_size(), start_addr);
 
     /* copy stack */
     start_addr = CPU::get_sp();
     end_addr = STACK_TOP;
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 }
 
 bool VPE::skip_section(ElfPh *) {

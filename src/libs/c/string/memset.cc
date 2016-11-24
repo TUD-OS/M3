@@ -24,7 +24,7 @@
 void *memset(void *addr, int value, size_t count) {
     uint8_t *baddr = reinterpret_cast<uint8_t*>(addr);
     /* align it */
-    while(count > 0 && (uintptr_t)baddr % sizeof(ulong)) {
+    while(count > 0 && reinterpret_cast<uintptr_t>(baddr) % sizeof(ulong)) {
         *baddr++ = value;
         count--;
     }

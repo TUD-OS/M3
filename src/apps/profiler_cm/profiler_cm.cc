@@ -33,8 +33,8 @@ int main() {
     while(1) {
         uint32_t now = get_cycles();
         if(now < last)
-            major += ((cycles_t)1) << 32;
-        *addr = major | (cycles_t)now;
+            major += static_cast<cycles_t>(1) << 32;
+        *addr = major | static_cast<cycles_t>(now);
         last = now;
     }
     return 0;

@@ -372,7 +372,7 @@ void DTU::send_msg(epid_t ep, peid_t dstpe, epid_t dstep, bool isreply) {
     LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << ep << " to pe:ep=" << dstpe << ":" << dstep
-            << " (crd=#" << fmt((long)get_ep(dstep, EP_CREDITS), "x")
+            << " (crd=#" << fmt(reinterpret_cast<uintptr_t>(get_ep(dstep, EP_CREDITS)), "x")
             << " rep=" << _buf.rpl_ep << ")");
 
     _backend->send(dstpe, dstep, &_buf);

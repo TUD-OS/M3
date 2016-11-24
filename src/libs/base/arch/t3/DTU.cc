@@ -61,14 +61,14 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t reply_lb
 }
 
 Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
-    assert(((uintptr_t)msg & (PACKET_SIZE - 1)) == 0);
+    assert((reinterpret_cast<uintptr_t>(msg) & (PACKET_SIZE - 1)) == 0);
     assert((size & (PACKET_SIZE - 1)) == 0);
 
     LLOG(DTU, ">> " << fmt(size, 4) << "b from " << fmt(msg, "p") << " to msg idx " << msgidx);
 
     word_t *ptr = get_cmd_addr(ep, REPLY_CAP_RESP_CMD);
     store_to(ptr + 0, ((size / DTU_PKG_SIZE) << 16) | msgidx);
-    store_to(ptr + 1, (uintptr_t)msg);
+    store_to(ptr + 1, reinterpret_cast<uintptr_t>(msg));
 
     // TODO what to wait for??
     for(volatile int i = 0; i < 2; ++i)
@@ -85,8 +85,10 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
 }
 
 void DTU::send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits) {
-    word_t *ptr = (word_t*)(PE_IDMA_CONFIG_ADDRESS + (EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD << PE_IDMA_CMD_POS)
-        + (ep << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
+    word_t *ptr = reinterpret_cast<word_t*>(PE_IDMA_CONFIG_ADDRESS
+        + (EXTERN_CFG_ADDRESS_MODULE_CHIP_CTA_INC_CMD << PE_IDMA_CMD_POS)
+        + (ep << PE_IDMA_SLOT_POS)
+        + (0 << PE_IDMA_SLOT_TRG_ID_POS));
     uintptr_t addr = get_slot_addr(dst_ep);
     store_to(ptr + 0, addr);
 
@@ -100,8 +102,10 @@ void DTU::send_credits(epid_t ep, uchar dst, epid_t dst_ep, uint credits) {
     store_to(ptr + 1, data);
     store_to(ptr + 3, credits & ~0x80000000);
 
-    ptr = (word_t*)(PE_IDMA_CONFIG_ADDRESS + (IDMA_CREDIT_RESPONSE_CMD << PE_IDMA_CMD_POS)
-        + (ep << PE_IDMA_SLOT_POS) + (0 << PE_IDMA_SLOT_TRG_ID_POS));
+    ptr = reinterpret_cast<word_t*>(PE_IDMA_CONFIG_ADDRESS
+        + (IDMA_CREDIT_RESPONSE_CMD << PE_IDMA_CMD_POS)
+        + (ep << PE_IDMA_SLOT_POS)
+        + (0 << PE_IDMA_SLOT_TRG_ID_POS));
     store_to(ptr + 0, credits);
 }
 

@@ -168,5 +168,5 @@ void StreamTestSuite::FStreamTestCase::run() {
     // unittests with floats are really bad. the results are slightly different on x86 and Xtensa.
     // thus, we only require that the integer value is correct. this gives us at least some degree
     // of correctness here
-    assert_int((int)totalc, 1107);
+    assert_int(static_cast<int>(totalc), 1107);
 }

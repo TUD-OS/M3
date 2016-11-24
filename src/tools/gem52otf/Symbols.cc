@@ -71,7 +71,7 @@ void Symbols::addFile(const char *file) {
 }
 
 const char *Symbols::resolve(unsigned long addr, uint32_t *bin) {
-    char *symbolName = (char*)malloc(MAX_FUNC_LEN);
+    char *symbolName = static_cast<char*>(malloc(MAX_FUNC_LEN));
     for(auto it = syms.begin(); it != syms.end(); ++it) {
         auto next = it + 1;
         if(next != syms.end() && next->addr > addr) {
@@ -100,8 +100,8 @@ char *Symbols::loadShSyms(FILE *f, const Elf64_Ehdr *eheader) {
     char *shsymbols;
     datPtr = reinterpret_cast<unsigned char*>(
         eheader->e_shoff + static_cast<size_t>(eheader->e_shstrndx) * eheader->e_shentsize);
-    readat(f, (off_t)datPtr, &sheader, sizeof(Elf64_Shdr));
-    shsymbols = (char*)malloc(sheader.sh_size);
+    readat(f, reinterpret_cast<off_t>(datPtr), &sheader, sizeof(Elf64_Shdr));
+    shsymbols = static_cast<char*>(malloc(sheader.sh_size));
     if(shsymbols == NULL)
         perror("malloc");
     readat(f, static_cast<off_t>(sheader.sh_offset), shsymbols, sheader.sh_size);
@@ -113,7 +113,7 @@ Elf64_Shdr *Symbols::getSecByName(FILE *f, const Elf64_Ehdr *eheader, char *syms
     int i;
     unsigned char *datPtr = reinterpret_cast<unsigned char*>(eheader->e_shoff);
     for(i = 0; i < eheader->e_shnum; datPtr += eheader->e_shentsize,  i++) {
-        readat(f, (off_t)datPtr, section, sizeof(Elf64_Shdr));
+        readat(f, reinterpret_cast<off_t>(datPtr), section, sizeof(Elf64_Shdr));
         if(strcmp(syms + section->sh_name, name) == 0)
             return section;
     }

@@ -49,7 +49,7 @@ size_t DTU::regs[2][6] = {
 };
 
 void DTU::reset() {
-    memset((void*)RECV_BUF_LOCAL,0,EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
+    memset(reinterpret_cast<void*>(RECV_BUF_LOCAL), 0, EP_COUNT * RECV_BUF_MSGSIZE * MAX_CORES);
     memset(_pos, 0, sizeof(_pos));
     memset(_last, 0, sizeof(_last));
 }
@@ -64,7 +64,7 @@ retry:
         if(msg->length != 0) {
             LLOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
             EVENT_TRACE_MSG_RECV(msg->core, msg->length,
-                ((uint)msg - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+                (reinterpret_cast<uintptr_t>(msg) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
             assert(_last[ep] == nullptr);
             _last[ep] = const_cast<Message*>(msg);
             _pos[ep] = i + 1;
@@ -86,7 +86,8 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     LLOG(DTU, "-> " << fmt(size, 4) << "b to " << cfg->dstcore << ":" << cfg->dstep
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
-    EVENT_TRACE_MSG_SEND(cfg->dstcore, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+    EVENT_TRACE_MSG_SEND(cfg->dstcore, size,
+        (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival
@@ -115,7 +116,8 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
     LLOG(DTU, ">> " << fmt(size, 4) << "b to " << orgmsg->core << ":" << orgmsg->ep
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
-    EVENT_TRACE_MSG_SEND(orgmsg->core, size, ((uint)destaddr - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+    EVENT_TRACE_MSG_SEND(orgmsg->core, size,
+        (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival

@@ -23,15 +23,15 @@ const char *strstr(const char *str1, const char *str2) {
 char *strstr(const char *str1, const char *str2) {
 #endif
     char *res = nullptr;
-    char *sub;
+    const char *sub;
     /* handle special case to prevent looping the string */
     if(!*str2)
-        return (char*)str1;
+        return const_cast<char*>(str1);
     while(*str1) {
         /* matching char? */
         if(*str1++ == *str2) {
-            res = (char*)--str1;
-            sub = (char*)str2;
+            res = const_cast<char*>(--str1);
+            sub = str2;
             /* continue until the strings don't match anymore */
             while(*sub && *str1 == *sub) {
                 str1++;

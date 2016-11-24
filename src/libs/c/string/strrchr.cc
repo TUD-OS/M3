@@ -25,7 +25,7 @@ char *strrchr(const char *str, int ch) {
     char *pos = NULL;
     while(*str) {
         if(*str++ == ch)
-            pos = (char*)(str - 1);
+            pos = const_cast<char*>(str - 1);
     }
     return pos;
 }

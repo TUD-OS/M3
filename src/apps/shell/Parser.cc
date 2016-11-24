@@ -64,8 +64,8 @@ EXTERN_C int yylex() {
 
     if(i > 0) {
         buf[i] = '\0';
-        yylval.str = (char*)Heap::alloc(i + 1);
-        strcpy((char*)yylval.str, buf);
+        yylval.str = static_cast<char*>(Heap::alloc(i + 1));
+        strcpy(const_cast<char*>(yylval.str), buf);
         return T_STRING;
     }
     return -1;
@@ -119,13 +119,13 @@ RedirList *ast_redirs_create(void) {
 void ast_redirs_set(RedirList *list, int fd, const char *file) {
     assert(fd == STDIN_FD || fd == STDOUT_FD);
     if(list->fds[fd])
-        Heap::free((void*)list->fds[fd]);
+        Heap::free(const_cast<char*>(list->fds[fd]));
     list->fds[fd] = file;
 }
 
 void ast_redirs_destroy(RedirList *list) {
-    Heap::free((void*)list->fds[STDIN_FD]);
-    Heap::free((void*)list->fds[STDOUT_FD]);
+    Heap::free(const_cast<char*>(list->fds[STDIN_FD]));
+    Heap::free(const_cast<char*>(list->fds[STDOUT_FD]));
 }
 
 ArgList *ast_args_create() {
@@ -144,7 +144,7 @@ void ast_args_append(ArgList *list, const char *arg) {
 void ast_args_destroy(ArgList *list) {
     if(list) {
         for(size_t i = 0; i < list->count; ++i)
-            Heap::free((void*)list->args[i]);
+            Heap::free(const_cast<char*>(list->args[i]));
         delete list;
     }
 }
@@ -166,8 +166,8 @@ void ast_vars_set(VarList *list, const char *name, const char *value) {
 
 void ast_vars_destroy(VarList *list) {
     for(size_t i = 0; i < list->count; ++i) {
-        Heap::free((void*)list->vars[i].name);
-        Heap::free((void*)list->vars[i].value);
+        Heap::free(const_cast<char*>(list->vars[i].name));
+        Heap::free(const_cast<char*>(list->vars[i].value));
     }
 }
 

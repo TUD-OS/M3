@@ -79,28 +79,28 @@ static void init_spmem_layout() {
     volatile SPMemLayout *l = spmemlayout();
 
     // reset vector
-    start = Math::round_dn((uintptr_t)&_ResetVector_text_start, DTU_PKG_SIZE);
-    end = Math::round_up((uintptr_t)&_ResetVector_text_end, DTU_PKG_SIZE);
+    start = Math::round_dn(reinterpret_cast<uintptr_t>(&_ResetVector_text_start), DTU_PKG_SIZE);
+    end = Math::round_up(reinterpret_cast<uintptr_t>(&_ResetVector_text_end), DTU_PKG_SIZE);
 
     l->reset_start = start;
     l->reset_size = end - start;
 
     // text
-    start = Math::round_dn((uintptr_t)&_iram0_text_start, DTU_PKG_SIZE);
-    end = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);
+    start = Math::round_dn(reinterpret_cast<uintptr_t>(&_iram0_text_start), DTU_PKG_SIZE);
+    end = Math::round_up(reinterpret_cast<uintptr_t>(&_text_end), DTU_PKG_SIZE);
 
     l->text_start = start;
     l->text_size = end - start;
 
     // data
-    start = Math::round_dn((uintptr_t)&_dram0_rodata_start, DTU_PKG_SIZE);
-    end = Math::round_up((uintptr_t)&_bss_table_end, DTU_PKG_SIZE);
+    start = Math::round_dn(reinterpret_cast<uintptr_t>(&_dram0_rodata_start), DTU_PKG_SIZE);
+    end = Math::round_up(reinterpret_cast<uintptr_t>(&_bss_table_end), DTU_PKG_SIZE);
 
     l->data_start = start;
     l->data_size = end - start; // maintained by heap class
 
     // stack
-    l->stack_top = (uintptr_t)STACK_TOP;
+    l->stack_top = STACK_TOP;
 }
 #endif
 

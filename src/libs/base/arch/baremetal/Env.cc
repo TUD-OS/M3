@@ -35,7 +35,7 @@ OStream &operator<<(OStream &os, const Env &senv) {
 
     os << "pe    : " << senv.pe << "\n";
     os << "argc  : " << senv.argc << "\n";
-    os << "argv  : " << fmt((void*)senv.argv, "p") << "\n";
+    os << "argv  : " << fmt(senv.argv, "p") << "\n";
     os << "sp    : " << fmt(senv.sp, "p") << "\n";
     os << "entry : " << fmt(senv.entry, "p") << "\n";
     os << "lambda: " << fmt(senv.lambda, "p") << "\n";

@@ -271,7 +271,7 @@ public:
 
     Errors::Code fire(epid_t ep, int op, const void *msg, size_t size, size_t offset, size_t len,
             label_t replylbl, epid_t replyep) {
-        assert(((uintptr_t)msg & (DTU_PKG_SIZE - 1)) == 0);
+        assert((reinterpret_cast<uintptr_t>(msg) & (DTU_PKG_SIZE - 1)) == 0);
         assert((size & (DTU_PKG_SIZE - 1)) == 0);
         set_cmd(CMD_ADDR, reinterpret_cast<word_t>(msg));
         set_cmd(CMD_SIZE, size);

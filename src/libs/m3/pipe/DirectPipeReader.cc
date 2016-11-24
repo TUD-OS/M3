@@ -47,7 +47,7 @@ void DirectPipeReader::send_eof() {
         if(_state->_pkglen == static_cast<size_t>(-1))
             _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
         DBG_PIPE("[read] replying len=0\n");
-        reply_vmsg(_state->_is, (size_t)0);
+        reply_vmsg(_state->_is, static_cast<size_t>(0));
         _state->_eof |= DirectPipe::READ_EOF;
     }
 }

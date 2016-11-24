@@ -188,7 +188,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         // copy args to null-terminate them
         char **args = new char*[argc + 1];
         for(int i = 0; i < argc; ++i)
-            args[i] = (char*)argv[i];
+            args[i] = const_cast<char*>(argv[i]);
         args[argc] = nullptr;
 
         // open it readonly again as fexecve requires

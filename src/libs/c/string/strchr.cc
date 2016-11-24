@@ -24,7 +24,7 @@ char *strchr(const char *str, int ch) {
 #endif
     while(*str) {
         if(*str++ == ch)
-            return (char*)(str - 1);
+            return const_cast<char*>(str - 1);
     }
     return NULL;
 }

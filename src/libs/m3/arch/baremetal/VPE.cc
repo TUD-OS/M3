@@ -94,7 +94,7 @@ Errors::Code VPE::run(void *lambda) {
     _mem.write(&senv, sizeof(senv), RT_START);
 
     /* write args */
-    char *buffer = (char*)Heap::alloc(BUF_SIZE);
+    char *buffer = static_cast<char*>(Heap::alloc(BUF_SIZE));
     size_t size = store_arguments(buffer, static_cast<int>(env()->argc),
         reinterpret_cast<const char**>(env()->argv));
     _mem.write(buffer, size, RT_SPACE_START);
@@ -106,7 +106,7 @@ Errors::Code VPE::run(void *lambda) {
 
 Errors::Code VPE::exec(int argc, const char **argv) {
     alignas(DTU_PKG_SIZE) Env senv;
-    char *buffer = (char*)Heap::alloc(BUF_SIZE);
+    char *buffer = static_cast<char*>(Heap::alloc(BUF_SIZE));
 
     if(_exec)
         delete _exec;

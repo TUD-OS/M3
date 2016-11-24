@@ -62,10 +62,10 @@ size_t Backtrace::collect(uintptr_t *addr, size_t max) {
 
         addr[i] = pc - 3;
 
-        psp = (word_t*)a1;
+        psp = reinterpret_cast<word_t*>(a1);
         a0 = *(psp - 4);
         a1 = *(psp - 3);
-        if(!a0 || a1 <= (word_t)psp)
+        if(!a0 || a1 <= reinterpret_cast<word_t>(psp))
             break;
     }
     return i;

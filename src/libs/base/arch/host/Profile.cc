@@ -28,11 +28,11 @@ cycles_t Profile::stop(unsigned) {
 #if defined(__i386__) or defined(__x86_64__)
     uint32_t u, l;
     asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");
-    return (cycles_t)u << 32 | l;
+    return static_cast<cycles_t>(u) << 32 | l;
 #elif defined(__arm__)
     struct timeval tv;
     gettimeofday(&tv,nullptr);
-    return (cycles_t)tv.tv_sec * 1000000 + tv.tv_usec;
+    return static_cast<cycles_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 #else
 #   warning "Cycle counter not supported"
     return 0;

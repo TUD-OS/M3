@@ -44,7 +44,7 @@ static bool test_check_content(uint *ptr, size_t count, uint value) {
 
 static void test_t1alloc() {
     for(size_t size = 0; size < ARRAY_SIZE(sizes); size++) {
-        ptrs[size] = (uint*)Heap::alloc(sizes[size] * sizeof(uint));
+        ptrs[size] = static_cast<uint*>(Heap::alloc(sizes[size] * sizeof(uint)));
         if(ptrs[size] == nullptr)
             cout << "Not enough mem\n";
         else {
@@ -126,7 +126,7 @@ void HeapTestSuite::TestCase5::run() {
         cout << "Allocate and free " << sizes[size] * sizeof(uint)<< " bytes\n";
         check_heap_before();
 
-        ptrs[0] = (uint*)Heap::alloc(sizes[size] * sizeof(uint));
+        ptrs[0] = static_cast<uint*>(Heap::alloc(sizes[size] * sizeof(uint)));
         if(ptrs[0] != nullptr) {
             /* write test */
             *(ptrs[0]) = 1;
@@ -144,7 +144,7 @@ void HeapTestSuite::TestCase6::run() {
     check_heap_before();
 
     for(size_t i = 0; i < SINGLE_BYTE_COUNT; i++) {
-        ptrs_single[i] = (uint*)Heap::alloc(1);
+        ptrs_single[i] = static_cast<uint*>(Heap::alloc(1));
     }
     for(size_t i = 0; i < SINGLE_BYTE_COUNT; i++) {
         Heap::free(ptrs_single[i]);
@@ -157,20 +157,20 @@ void HeapTestSuite::TestCase7::run() {
     uint *ptr1, *ptr2, *ptr3, *ptr4, *ptr5;
     check_heap_before();
 
-    ptr1 = (uint*)Heap::alloc(4 * sizeof(uint));
+    ptr1 = static_cast<uint*>(Heap::alloc(4 * sizeof(uint)));
     for(size_t i = 0; i < 4; i++)
         *(ptr1 + i) = 1;
-    ptr2 = (uint*)Heap::alloc(8 * sizeof(uint));
+    ptr2 = static_cast<uint*>(Heap::alloc(8 * sizeof(uint)));
     for(size_t i = 0; i < 8; i++)
         *(ptr2 + i) = 2;
-    ptr3 = (uint*)Heap::alloc(12 * sizeof(uint));
+    ptr3 = static_cast<uint*>(Heap::alloc(12 * sizeof(uint)));
     for(size_t i = 0; i < 12; i++)
         *(ptr3 + i) = 3;
     Heap::free(ptr2);
-    ptr4 = (uint*)Heap::alloc(6 * sizeof(uint));
+    ptr4 = static_cast<uint*>(Heap::alloc(6 * sizeof(uint)));
     for(size_t i = 0; i < 6; i++)
         *(ptr4 + i) = 4;
-    ptr5 = (uint*)Heap::alloc(2 * sizeof(uint));
+    ptr5 = static_cast<uint*>(Heap::alloc(2 * sizeof(uint)));
     for(size_t i = 0; i < 2; i++)
         *(ptr5 + i) = 5;
 
@@ -193,19 +193,19 @@ void HeapTestSuite::TestCase8::run() {
 
     check_heap_before();
 
-    ptr1 = (uint*)Heap::alloc(10 * sizeof(uint));
+    ptr1 = static_cast<uint*>(Heap::alloc(10 * sizeof(uint)));
     for(p = ptr1, i = 0; i < 10; i++)
         *p++ = 1;
 
-    ptr2 = (uint*)Heap::alloc(5 * sizeof(uint));
+    ptr2 = static_cast<uint*>(Heap::alloc(5 * sizeof(uint)));
     for(p = ptr2, i = 0; i < 5; i++)
         *p++ = 2;
 
-    ptr3 = (uint*)Heap::alloc(2 * sizeof(uint));
+    ptr3 = static_cast<uint*>(Heap::alloc(2 * sizeof(uint)));
     for(p = ptr3, i = 0; i < 2; i++)
         *p++ = 3;
 
-    ptr2 = (uint*)Heap::realloc(ptr2, 10 * sizeof(uint));
+    ptr2 = static_cast<uint*>(Heap::realloc(ptr2, 10 * sizeof(uint)));
 
     /* check content */
     assert_true(test_check_content(ptr1, 10, 1));
@@ -216,7 +216,7 @@ void HeapTestSuite::TestCase8::run() {
     for(p = ptr2, i = 0; i < 10; i++)
         *p++ = 2;
 
-    ptr3 = (uint*)Heap::realloc(ptr3, 6 * sizeof(uint));
+    ptr3 = static_cast<uint*>(Heap::realloc(ptr3, 6 * sizeof(uint)));
 
     /* check content */
     assert_true(test_check_content(ptr1, 10, 1));
@@ -227,7 +227,7 @@ void HeapTestSuite::TestCase8::run() {
     for(p = ptr3, i = 0; i < 6; i++)
         *p++ = 3;
 
-    ptr3 = (uint*)Heap::realloc(ptr3, 7 * sizeof(uint));
+    ptr3 = static_cast<uint*>(Heap::realloc(ptr3, 7 * sizeof(uint)));
 
     /* check content */
     assert_true(test_check_content(ptr1, 10, 1));
@@ -253,7 +253,7 @@ void HeapTestSuite::TestCase9::run() {
 
     // free backwards
     ssize_t i;
-    for(i = 0; i < (ssize_t)ARRAY_SIZE(ptrs); ++i) {
+    for(i = 0; i < static_cast<ssize_t>(ARRAY_SIZE(ptrs)); ++i) {
         ptrs[i] = Heap::try_alloc(0x200);
         if(ptrs[i] == nullptr)
             break;
@@ -263,7 +263,7 @@ void HeapTestSuite::TestCase9::run() {
         Heap::free(ptrs[i]);
 
     // free forward
-    for(i = 0; i < (ssize_t)ARRAY_SIZE(ptrs); ++i) {
+    for(i = 0; i < static_cast<ssize_t>(ARRAY_SIZE(ptrs)); ++i) {
         ptrs[i] = Heap::try_alloc(0x200);
         if(ptrs[i] == nullptr)
             break;

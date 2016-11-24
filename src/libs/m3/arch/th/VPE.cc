@@ -30,33 +30,35 @@ extern "C" void *_text_end;
 extern "C" void *_dram0_rodata_start;
 
 uintptr_t VPE::get_entry() {
-    return (uintptr_t)&_ResetVector_text_start;
+    return reinterpret_cast<uintptr_t>(&_ResetVector_text_start);
 }
 
 void VPE::copy_sections() {
     /* copy reset vector */
-    uintptr_t start_addr = Math::round_dn((uintptr_t)&_ResetVector_text_start, DTU_PKG_SIZE);
-    uintptr_t end_addr = Math::round_up((uintptr_t)&_ResetVector_text_end, DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    uintptr_t start_addr, end_addr;
+
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_ResetVector_text_start), DTU_PKG_SIZE);
+    end_addr = Math::round_up(reinterpret_cast<uintptr_t>(&_ResetVector_text_end), DTU_PKG_SIZE);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy text */
-    start_addr = Math::round_dn((uintptr_t)&_iram0_text_start, DTU_PKG_SIZE);
-    end_addr = Math::round_up((uintptr_t)&_text_end, DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_iram0_text_start), DTU_PKG_SIZE);
+    end_addr = Math::round_up(reinterpret_cast<uintptr_t>(&_text_end), DTU_PKG_SIZE);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy data and heap */
-    start_addr = Math::round_dn((uintptr_t)&_dram0_rodata_start, DTU_PKG_SIZE);
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_dram0_rodata_start), DTU_PKG_SIZE);
     end_addr = Math::round_up(Heap::end(), DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy end-area of heap */
-    start_addr = Math::round_dn((uintptr_t)(RT_START - DTU_PKG_SIZE), DTU_PKG_SIZE);
-    _mem.write((void*)start_addr, DTU_PKG_SIZE, start_addr);
+    start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(RT_START - DTU_PKG_SIZE), DTU_PKG_SIZE);
+    _mem.write(reinterpret_cast<void*>(start_addr), DTU_PKG_SIZE, start_addr);
 
     /* copy stack */
     start_addr = get_sp();
     end_addr = STACK_TOP;
-    _mem.write((void*)start_addr, end_addr - start_addr, start_addr);
+    _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 }
 
 bool VPE::skip_section(ElfPh *ph) {
