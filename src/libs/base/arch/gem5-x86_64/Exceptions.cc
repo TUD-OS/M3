@@ -52,7 +52,7 @@ void Exceptions::init() {
     // TODO put the exception stuff in rctmux into a library and use it in the kernel as well
     if(env()->isrs) {
         auto funcs = reinterpret_cast<Exceptions::isr_func*>(env()->isrs);
-        for(int i = 0; i <= 0x10; ++i)
+        for(size_t i = 0; i < ARRAY_SIZE(exNames); ++i)
             funcs[i] = handler;
     }
 }

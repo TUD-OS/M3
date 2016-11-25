@@ -74,7 +74,8 @@ BEGIN_FUNC(_start)
     b       _start
 
 1:
-    mov     sp, r0
+    // skip vector number
+    add     sp, r0, #4
     // restore CPSR
     pop     {r0}
     msr     CPSR, r0
@@ -84,15 +85,17 @@ BEGIN_FUNC(_start)
     pop     {pc}
 END_FUNC(_start)
 
-BEGIN_FUNC(_exc_entry)
-    // repeat last instruction
-    sub     lr, lr, #4
-
-    // temporarily save lr (old pc) and SPSR (old CPSR)
+.macro BUILD_ENTRY, no
+BEGIN_FUNC(_entry_\no)
+    // temporarily save lr (old pc)
     ldr     sp, =_tmp
     str     lr, [sp]
-    mrs     lr, SPSR
+    // save the vector number
+    mov     lr, #\no
     str     lr, [sp, #4]
+    // save SPRS (old CPRS)
+    mrs     lr, SPSR
+    str     lr, [sp, #8]
 
     // switch back to supervisor mode
     mrs     sp, CPSR
@@ -100,20 +103,36 @@ BEGIN_FUNC(_exc_entry)
     orr     sp, sp, #0x13
     msr     CPSR, sp
 
-    // leave one slot for the pc
+.if \no == 6
+    // use the application's stack; leave one slot for the pc
     sub     sp, sp, #4
+.else
+    // use our own stack
+    ldr     sp, =_rctmux_stack
+.endif
 
+    b       _exc_common
+END_FUNC(_entry_\no)
+.endm
+
+BUILD_ENTRY 0
+BUILD_ENTRY 1
+BUILD_ENTRY 2
+BUILD_ENTRY 3
+BUILD_ENTRY 4
+BUILD_ENTRY 6
+BUILD_ENTRY 7
+
+BEGIN_FUNC(_exc_common)
     // save regs
     push    {r0-r12, lr}
 
-    // save pc
+    // save pc, cpsr and vector number
     ldr     r0, =_tmp
-    ldr     r1, [r0]
+    ldm     r0, {r1, r2, r3}
     str     r1, [sp, #14 * 4]
-
-    // save cpsr
-    ldr     r1, [r0, #4]
-    push    {r1}
+    sub     sp, sp, #8
+    stm     sp, {r2, r3}
 
     // call handler
     mov     r0, sp
@@ -126,15 +145,16 @@ BEGIN_FUNC(_exc_entry)
     // wait for interrupt
     wfi
     b       1b
-END_FUNC(_exc_entry)
+END_FUNC(_exc_common)
 
 .bss
 _tmp:
     .long       0
     .long       0
+    .long       0
 
     .align      2
-    .space 512, 0
+    .space 1024,0
 _rctmux_stack:
 
     .space 512, 0

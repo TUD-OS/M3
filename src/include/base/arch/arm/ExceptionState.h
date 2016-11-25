@@ -22,6 +22,7 @@ namespace m3 {
 
 /* the stack frame for the interrupt-handler */
 struct ExceptionState {
+    word_t vector;
     word_t cpsr;
     word_t r[13]; // r0 .. r12
     word_t lr;

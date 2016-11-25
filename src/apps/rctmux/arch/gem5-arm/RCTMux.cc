@@ -22,11 +22,27 @@
 #include "../../RCTMux.h"
 
 EXTERN_C void *_vector_table;
-EXTERN_C void *_exc_entry;
+EXTERN_C void *_entry_0;
+EXTERN_C void *_entry_1;
+EXTERN_C void *_entry_2;
+EXTERN_C void *_entry_3;
+EXTERN_C void *_entry_4;
+EXTERN_C void *_entry_6;
+EXTERN_C void *_entry_7;
 
 EXTERN_C void _save(void *state);
 
 namespace RCTMux {
+
+static m3::Exceptions::isr_func isrs[8];
+
+static void isr_irq(m3::Exceptions::State *state) {
+    _save(state);
+    m3::DTU::get().clear_irq();
+}
+
+static void isr_null(m3::Exceptions::State *) {
+}
 
 static void install_handler(uint irq, void *handler_func) {
     uint32_t *v = reinterpret_cast<uint32_t*>(&_vector_table);
@@ -36,18 +52,29 @@ static void install_handler(uint irq, void *handler_func) {
 }
 
 EXTERN_C void exc_handler(m3::Exceptions::State *state) {
-    _save(state);
-    m3::DTU::get().clear_irq();
+    // repeat last instruction, except for SWIs
+    if(state->vector != 2)
+        state->pc -= 4;
+    isrs[state->vector](state);
 }
 
 void init() {
-    for(uint i = 0; i < 8; ++i)
-        install_handler(i, &_exc_entry);
+    install_handler(0, &_entry_0);
+    install_handler(1, &_entry_1);
+    install_handler(2, &_entry_2);
+    install_handler(3, &_entry_3);
+    install_handler(4, &_entry_4);
+    install_handler(6, &_entry_6);
+    install_handler(7, &_entry_7);
+
+    for(size_t i = 0; i < ARRAY_SIZE(isrs); ++i)
+        isrs[i] = isr_null;
+    isrs[6] = isr_irq;
 }
 
 void *init_state() {
     m3::Env *senv = m3::env();
-    // senv->isrs = Exceptions::get_table();
+    senv->isrs = reinterpret_cast<uintptr_t>(isrs);
 
     auto state = reinterpret_cast<m3::Exceptions::State*>(senv->sp) - 1;
     for(size_t i = 0; i < ARRAY_SIZE(state->r); ++i)
