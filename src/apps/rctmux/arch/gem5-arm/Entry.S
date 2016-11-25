@@ -49,8 +49,7 @@ BEGIN_FUNC(_start)
     mcr     p15, 0, r0, c1, c0, 0
 
     // setup stack
-    ldr     r0, =_rctmux_stack
-    mov     sp, r0
+    ldr     sp, =_rctmux_stack
     mov     fp, #0
 
     // check if have an application
@@ -59,8 +58,7 @@ BEGIN_FUNC(_start)
     bne     1f
 
     // set idle stack
-    ldr     r0, =_idle_stack
-    mov     sp, r0
+    ldr     sp, =_idle_stack
 
     // enable interrupts
     mrs     r0, CPSR

@@ -39,8 +39,7 @@ BEGIN_FUNC(_start)
     ldr     r0, =#0xDEADBEEF
     cmp     r1, r0
     beq     1f
-    ldr     r0, =#STACK_TOP - 8
-    mov     sp, r0
+    ldr     sp, =#STACK_TOP - 8
 
 1:
     mov     fp, #0
