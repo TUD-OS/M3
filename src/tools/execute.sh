@@ -138,12 +138,13 @@ build_params_gem5() {
         done
     )`
 
+    M3_GEM5_OUT=${M3_GEM5_OUT:-run}
     M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
     export M3_GEM5_PES=$M3_CORES
     export M3_GEM5_FS=$build/$M3_FS
 
     params=`mktemp`
-    echo -n "--outdir=run --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
+    echo -n "--outdir=$M3_GEM5_OUT --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
     echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --isa $M3_ISA --cmd \"$cmd\"" >> $params
     echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
     if [ "$M3_PAUSE_PE" != "" ]; then

@@ -114,6 +114,7 @@ help() {
     echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."
     echo "    M3_GEM5_CPU:             The CPU model (detailed by default)."
     echo "    M3_GEM5_CC:              Enable cache coherence (off by default)."
+    echo "    M3_GEM5_OUT:             The output directory of gem5 ('run' by default)."
     echo "    M3_PAUSE_PE:             Pause the PE with given number until GDB connects"
     echo "                             (only on gem5 and with command dbg=)."
     echo "    M3_SSH_PREFIX:           The prefix for the ssh aliases used for T2."
