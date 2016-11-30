@@ -45,7 +45,7 @@ else:
 # build basic environment
 baseenv = Environment(
     CPPFLAGS = '-D__' + target + '__',
-    CXXFLAGS = ' -std=c++11 -Wall -Wextra -Wsign-conversion -fdiagnostics-color=always',
+    CXXFLAGS = ' -std=c++11 -Wall -Wextra -Wsign-conversion',
     CFLAGS = ' -std=c99 -Wall -Wextra -Wsign-conversion',
     CPPPATH = ['#src/include'],
     ENV = {
@@ -55,6 +55,17 @@ baseenv = Environment(
         'TERM' : os.environ['TERM'],
     }
 )
+
+def CheckCompilerParam(context, param):
+    context.Message('Checking for parameter "' + param + '"...')
+    result = context.TryAction(cross + 'gcc ' + param + ' -c -xc++ /dev/null -o /dev/null')[0]
+    context.Result(result)
+    return result
+
+conf = Configure(baseenv, custom_tests={'CheckCompilerParam': CheckCompilerParam})
+if conf.CheckCompilerParam('-fdiagnostics-color=always'):
+    baseenv.Append(CXXFLAGS = ' -fdiagnostics-color=always')
+conf.Finish()
 
 # print executed commands?
 verbose = os.environ.get('M3_VERBOSE', 0)
