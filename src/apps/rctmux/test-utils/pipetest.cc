@@ -68,16 +68,19 @@ static void wait_for(const char *service) {
     }
 }
 
+static void usage(const char *name) {
+    cerr << "Usage: " << name << " <mode> <rargs> <wargs> ...\n";
+    cerr << " <mode> can be:\n";
+    cerr << " 0: not muxable\n";
+    cerr << " 1: all muxable\n";
+    cerr << " 2: m3fs with pipe\n";
+    cerr << " 3: mux m3fs with pipe\n";
+    exit(1);
+}
+
 int main(int argc, char **argv) {
-    if(argc < 3) {
-        cerr << "Usage: " << argv[0] << " <mode> <rargs> ...\n";
-        cerr << " <mode> can be:\n";
-        cerr << " 0: not muxable\n";
-        cerr << " 1: all muxable\n";
-        cerr << " 2: m3fs with pipe\n";
-        cerr << " 3: mux m3fs with pipe\n";
-        return 1;
-    }
+    if(argc < 4)
+        usage(argv[0]);
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
 
@@ -86,6 +89,10 @@ int main(int argc, char **argv) {
 
     int mode = IStringStream::read_from<int>(argv[1]);
     int rargs = IStringStream::read_from<int>(argv[2]);
+    int wargs = IStringStream::read_from<int>(argv[3]);
+
+    if(argc != 4 + rargs + wargs)
+        usage(argv[0]);
 
     for(int j = 0; j < REPEATS; ++j) {
         App *apps[4];
@@ -95,16 +102,16 @@ int main(int argc, char **argv) {
         const char *pipeserv[] = {"/bin/pipeserv"};
         const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
         if(mode < 2) {
-            apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 1);
+            apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 1);
             apps[1] = nullptr;
-            apps[2] = create(1, rargs, argv + 3, mode == 1);
-            apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, mode == 1);
+            apps[2] = create(1, rargs, argv + 4, mode == 1);
+            apps[3] = create(2, wargs, argv + 4 + rargs, mode == 1);
         }
         else {
-            apps[2] = create(1, rargs, argv + 3, false);
-            apps[3] = create(2, argc - (3 + rargs), argv + 3 + rargs, false);
-            apps[0] = create(0, 1, const_cast<char**>(pipeserv), mode == 3);
-            apps[1] = create(3, 3, const_cast<char**>(m3fs), mode == 3);
+            apps[2] = create(1, rargs, argv + 4, false);
+            apps[3] = create(2, wargs, argv + 4 + rargs, false);
+            apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 3);
+            apps[1] = create(3, ARRAY_SIZE(m3fs), const_cast<char**>(m3fs), mode == 3);
         }
 
         if(VERBOSE) cout << "Starting service...\n";
@@ -178,8 +185,6 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
-
-
 
         if(VERBOSE) cout << "Done\n";
     }
