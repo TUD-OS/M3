@@ -58,21 +58,7 @@ public:
     }
 
     virtual void waituntil(UNUSED const waituntil_args_t *args, int) override {
-#if defined(__xtensa__)
-        int rem = args->timestamp / 4;
-        while(rem > 0)
-            asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
-#elif defined(__x86_64__)
-        int rem = (4 * args->timestamp) / 10;
-        while(rem > 0)
-            asm volatile ("dec %0" : "+r"(rem));
-#elif defined(__arm__)
-        int rem = (4 * args->timestamp) / 10;
-        while(rem > 0)
-            asm volatile ("sub %0, %0, #1" : "+r"(rem));
-#else
-#   error "Unsupported ISA"
-#endif
+        m3::CPU::compute(args->timestamp);
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {

@@ -53,6 +53,12 @@ inline void CPU::jumpto(uintptr_t addr) {
     UNREACHED;
 }
 
+inline void CPU::compute(cycles_t cycles) {
+    word_t rem = cycles / 4;
+    while(rem > 0)
+        asm volatile ("addi.n %0, %0, -1" : "+r"(rem));
+}
+
 inline void CPU::memory_barrier() {
     asm volatile (
         "memw"

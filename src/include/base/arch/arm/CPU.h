@@ -56,6 +56,16 @@ inline void CPU::jumpto(uintptr_t addr) {
     UNREACHED;
 }
 
+inline void CPU::compute(cycles_t cycles) {
+    asm volatile (
+        "1: subs %0, %0, #1;"
+        "bgt     1b;"
+        // let the compiler know that we change the value of cycles
+        // as it seems, inputs are not expected to change
+        : "=r"(cycles) : "0"(cycles)
+    );
+}
+
 inline void CPU::memory_barrier() {
     asm volatile (
         "dmb"

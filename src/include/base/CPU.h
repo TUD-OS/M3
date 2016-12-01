@@ -29,6 +29,8 @@ public:
 
     NORETURN static inline void jumpto(uintptr_t addr);
 
+    static inline void compute(cycles_t cycles);
+
     /**
      * Prevents the compiler from reordering instructions. That is, the code-generator will put all
      * preceding load and store commands before load and store commands that follow this call.
