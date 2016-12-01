@@ -34,7 +34,7 @@ class Dirs {
 public:
     static m3::DirEntry *find_entry(FSHandle &h, m3::INode *inode, const char *name, size_t namelen);
     static m3::inodeno_t search(FSHandle &h, const char *path, bool create = false);
-    static m3::Errors::Code create(FSHandle &h, const char *path, mode_t mode);
+    static m3::Errors::Code create(FSHandle &h, const char *path, m3::mode_t mode);
     static m3::Errors::Code remove(FSHandle &h, const char *path);
     static m3::Errors::Code link(FSHandle &h, const char *oldpath, const char *newpath);
     static m3::Errors::Code unlink(FSHandle &h, const char *path, bool isdir);

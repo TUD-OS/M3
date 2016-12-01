@@ -94,7 +94,7 @@ public:
     struct OpenFile {
         explicit OpenFile() : ino(), flags(), orgsize(), orgextent(), orgoff(), caps() {
         }
-        explicit OpenFile(ino_t _ino, int _flags, uint32_t _orgsize, size_t _orgextent, size_t _orgoff)
+        explicit OpenFile(inodeno_t _ino, int _flags, uint32_t _orgsize, size_t _orgextent, size_t _orgoff)
             : ino(_ino), flags(_flags), orgsize(_orgsize), orgextent(_orgextent), orgoff(_orgoff),
               caps() {
         }

@@ -37,7 +37,7 @@ class INodes {
     INodes() = delete;
 
 public:
-    static m3::INode *create(FSHandle &h, mode_t mode);
+    static m3::INode *create(FSHandle &h, m3::mode_t mode);
     static void free(FSHandle &h, m3::INode *inode);
 
     static m3::INode *get(FSHandle &h, m3::inodeno_t ino);
