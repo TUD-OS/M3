@@ -18,6 +18,8 @@
 
 #include <m3/stream/FStream.h>
 
+#include <cstdlib>
+
 namespace m3 {
 
 static const fd_t STDIN_FD      = 0;
