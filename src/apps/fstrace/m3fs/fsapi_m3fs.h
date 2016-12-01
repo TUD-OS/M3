@@ -120,13 +120,13 @@ public:
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(static_cast<size_t>(offset), SEEK_SET);
+        fdMap[fd]->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
         return static_cast<ssize_t>(fdMap[fd]->read(buffer, size));
     }
 
     virtual ssize_t pwrite(int fd, const void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(static_cast<size_t>(offset), SEEK_SET);
+        fdMap[fd]->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
         return static_cast<ssize_t>(fdMap[fd]->write(buffer, size));
     }
 

@@ -274,7 +274,7 @@ size_t INodes::seek(FSHandle &h, inodeno_t ino, size_t &off, int whence, size_t 
     INode *inode = get(h, ino);
 
     // seeking to the end is easy
-    if(whence == SEEK_END) {
+    if(whence == M3FS_SEEK_END) {
         // TODO support off != 0
         assert(off == 0);
         extent = inode->extents;
@@ -287,8 +287,8 @@ size_t INodes::seek(FSHandle &h, inodeno_t ino, size_t &off, int whence, size_t 
 
     size_t i = 0;
     size_t pos = 0;
-    // for SEEK_CUR, we need to know the file position until <extent>+<extoff>
-    if(whence == SEEK_CUR) {
+    // for M3FS_SEEK_CUR, we need to know the file position until <extent>+<extoff>
+    if(whence == M3FS_SEEK_CUR) {
         for(; i < extent; ++i) {
             Extent *ch = get_extent(h, inode, i, &indir, false);
             if(!ch)

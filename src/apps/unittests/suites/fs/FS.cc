@@ -154,8 +154,8 @@ void FSTestSuite::FileTestCase::run() {
         ssize_t count = file->write(content, contentsz);
         assert_size(static_cast<size_t>(count), contentsz);
 
-        assert_size(file->seek(0, SEEK_CUR), contentsz);
-        assert_size(file->seek(0, SEEK_SET), 0);
+        assert_size(file->seek(0, M3FS_SEEK_CUR), contentsz);
+        assert_size(file->seek(0, M3FS_SEEK_SET), 0);
 
         alignas(DTU_PKG_SIZE) char buf[contentsz];
         count = file->read(buf, sizeof(buf));
@@ -163,7 +163,7 @@ void FSTestSuite::FileTestCase::run() {
         assert_str(buf, content);
 
         // undo the write
-        file->seek(0, SEEK_SET);
+        file->seek(0, M3FS_SEEK_SET);
         for(size_t i = 0; i < contentsz; ++i)
             content[i] = i;
         file->write(content, contentsz);
@@ -205,7 +205,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
 
         // we are at pos 320, i.e. we have 200..399 in our buffer
         pos = 220;
-        file.seek(pos, SEEK_SET);
+        file.seek(pos, M3FS_SEEK_SET);
 
         count = file.read(buf, sizeof(buf));
         assert_size(count, 32);
@@ -213,7 +213,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
             assert_int(buf[i], pos++ & 0xFF);
 
         pos = 405;
-        file.seek(pos, SEEK_SET);
+        file.seek(pos, M3FS_SEEK_SET);
 
         while((count = file.read(buf, sizeof(buf))) > 0) {
             for(size_t i = 0; i < count; ++i)
@@ -242,8 +242,8 @@ void FSTestSuite::BufferedFileTestCase::run() {
         if(Errors::occurred())
             exitmsg("open of " << filename << " failed");
 
-        size_t size = file.seek(0, SEEK_END);
-        file.seek(0, SEEK_SET);
+        size_t size = file.seek(0, M3FS_SEEK_END);
+        file.seek(0, M3FS_SEEK_SET);
 
         // overwrite it
         uint8_t val = size - 1;
@@ -251,7 +251,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
             assert_size(file.write(&val, sizeof(val)), sizeof(val));
 
         // read it again and check content
-        file.seek(0, SEEK_SET);
+        file.seek(0, M3FS_SEEK_SET);
         val = size - 1;
         for(size_t i = 0; i < size; ++i, --val) {
             uint8_t check;
@@ -260,7 +260,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
         }
 
         // restore old content
-        file.seek(0, SEEK_SET);
+        file.seek(0, M3FS_SEEK_SET);
         val = 0;
         for(size_t i = 0; i < size; ++i, ++val)
             assert_size(file.write(&val, sizeof(val)), sizeof(val));
@@ -274,7 +274,7 @@ void FSTestSuite::BufferedFileTestCase::run() {
             exitmsg("open of " << filename << " failed");
 
         // require a read by performing an unaligned write
-        file.seek(DTU_PKG_SIZE * 10, SEEK_SET);
+        file.seek(DTU_PKG_SIZE * 10, M3FS_SEEK_SET);
         file.write("foobar", DTU_PKG_SIZE - 2);
         file.flush();
         assert_true(file.good());
@@ -288,16 +288,16 @@ void FSTestSuite::BufferedFileTestCase::run() {
         if(Errors::occurred())
             exitmsg("open of " << filename << " failed");
 
-        file.seek(2, SEEK_SET);
+        file.seek(2, M3FS_SEEK_SET);
         file.write("test", 4);
 
-        file.seek(8, SEEK_SET);
+        file.seek(8, M3FS_SEEK_SET);
         file.write("foobar", 6);
 
-        file.seek(11, SEEK_SET);
+        file.seek(11, M3FS_SEEK_SET);
         file.write("foo", 3);
 
-        file.seek(1, SEEK_SET);
+        file.seek(1, M3FS_SEEK_SET);
         char buf[16];
         file.read(buf, 16);
         buf[15] = '\0';

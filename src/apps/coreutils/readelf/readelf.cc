@@ -38,7 +38,7 @@ static const char *phtypes[] = {
 
 template<typename ELF_EH,typename ELF_PH>
 static void parse(FStream &bin) {
-    bin.seek(0, SEEK_SET);
+    bin.seek(0, M3FS_SEEK_SET);
 
     ELF_EH header;
     if(bin.read(&header, sizeof(header)) != sizeof(header))
@@ -50,7 +50,7 @@ static void parse(FStream &bin) {
     size_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         ELF_PH pheader;
-        if(bin.seek(off, SEEK_SET) != off)
+        if(bin.seek(off, M3FS_SEEK_SET) != off)
             exitmsg("Invalid ELF-file");
         if(bin.read(&pheader, sizeof(pheader)) != sizeof(pheader))
             exitmsg("Invalid ELF-file");
@@ -66,7 +66,7 @@ static void parse(FStream &bin) {
              << ((pheader.p_flags & PF_X) ? "E" : " ") << " "
              << fmt(pheader.p_align, "#0x") << "\n";
 
-        if(bin.seek(pheader.p_offset, SEEK_SET) != pheader.p_offset)
+        if(bin.seek(pheader.p_offset, M3FS_SEEK_SET) != pheader.p_offset)
             exitmsg("Invalid ELF-file");
 
         size_t count = pheader.p_filesz;

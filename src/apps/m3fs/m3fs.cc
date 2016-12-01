@@ -198,7 +198,7 @@ public:
         if(flags & M3FS::BYTE_OFFSET) {
             size_t extent, extoff;
             size_t rem = offset;
-            INodes::seek(_handle, of->ino, rem, SEEK_SET, extent, extoff);
+            INodes::seek(_handle, of->ino, rem, M3FS_SEEK_SET, extent, extoff);
             offset = extent;
             firstOff = rem;
         }

@@ -84,7 +84,7 @@ public:
 
     virtual int seek(size_t off, int whence, size_t &offset) override {
         // if we seek within our read-buffer, it's enough to set the position
-        offset = whence == SEEK_CUR ? off + offset : offset;
+        offset = whence == M3FS_SEEK_CUR ? off + offset : offset;
         if(cur) {
             if(offset >= pos && offset <= pos + cur)
                 return 1;
@@ -119,7 +119,7 @@ RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
       _memcaps(), _locs(), _lastmem(MemGate::bind(0)), _last_extent(0), _last_off(0),
       _fs(fs) {
     if(flags() & FILE_APPEND)
-        seek(0, SEEK_END);
+        seek(0, M3FS_SEEK_END);
 }
 
 RegularFile::~RegularFile() {
@@ -152,7 +152,7 @@ size_t RegularFile::seek(size_t off, int whence) {
     size_t global, extoff;
     size_t pos;
     // optimize that special case
-    if(whence == SEEK_SET && off == 0) {
+    if(whence == M3FS_SEEK_SET && off == 0) {
         global = 0;
         extoff = 0;
         pos = 0;

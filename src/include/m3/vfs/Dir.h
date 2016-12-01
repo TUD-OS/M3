@@ -65,7 +65,7 @@ public:
      * Resets the file position to the beginning
      */
     void reset() {
-        _f.seek(0, SEEK_SET);
+        _f.seek(0, M3FS_SEEK_SET);
         _f.clearerr();
     }
 

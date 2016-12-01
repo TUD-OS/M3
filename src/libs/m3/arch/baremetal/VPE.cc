@@ -208,7 +208,7 @@ Errors::Code VPE::load_segment(ElfPh &pheader, char *buffer) {
 
     /* seek to that offset and copy it to destination PE */
     size_t off = pheader.p_offset;
-    if(_exec->seek(off, SEEK_SET) != off)
+    if(_exec->seek(off, M3FS_SEEK_SET) != off)
         return Errors::INVALID_ELF;
 
     size_t count = pheader.p_filesz;
@@ -244,7 +244,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
         ElfPh pheader;
-        if(_exec->seek(off, SEEK_SET) != off)
+        if(_exec->seek(off, M3FS_SEEK_SET) != off)
             return Errors::INVALID_ELF;
         if(_exec->read(&pheader, sizeof(pheader)) != sizeof(pheader))
             return Errors::last;

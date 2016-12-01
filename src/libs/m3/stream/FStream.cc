@@ -113,7 +113,7 @@ size_t FStream::seek(size_t offset, int whence) {
     if(error())
         return 0;
 
-    if(whence != SEEK_CUR || offset != 0) {
+    if(whence != M3FS_SEEK_CUR || offset != 0) {
         // TODO for simplicity, we always flush the write-buffer if we're changing the position
         flush();
     }
@@ -131,7 +131,7 @@ size_t FStream::seek(size_t offset, int whence) {
         return 0;
     }
 
-    if(whence != SEEK_END) {
+    if(whence != M3FS_SEEK_END) {
         if(file()->seek_to(newpos)) {
             _fpos = newpos;
             // the buffer is invalid now

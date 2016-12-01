@@ -35,7 +35,7 @@ bool Dir::readdir(Entry &e) {
     // move to next entry
     size_t off = fse.next - (sizeof(fse) + fse.namelen);
     if(off != 0)
-        _f.seek(off, SEEK_CUR);
+        _f.seek(off, M3FS_SEEK_CUR);
     return true;
 }
 
