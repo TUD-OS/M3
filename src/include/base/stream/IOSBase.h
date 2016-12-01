@@ -38,7 +38,7 @@ public:
     /**
      * Resets all flags
      */
-    void clearerr() {
+    void clear_state() {
         _state = 0;
     }
 

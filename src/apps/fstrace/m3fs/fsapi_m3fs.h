@@ -33,7 +33,7 @@ class FSAPI_M3FS : public FSAPI {
     void checkFd(int fd) {
         if(fdMap[fd] == nullptr)
             exitmsg("Using uninitialized file @ " << fd);
-        fdMap[fd]->clearerr();
+        fdMap[fd]->clear_state();
     }
 
 public:

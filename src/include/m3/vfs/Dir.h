@@ -66,7 +66,7 @@ public:
      */
     void reset() {
         _f.seek(0, M3FS_SEEK_SET);
-        _f.clearerr();
+        _f.clear_state();
     }
 
 private:
