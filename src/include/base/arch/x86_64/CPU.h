@@ -58,11 +58,14 @@ inline void CPU::jumpto(uintptr_t addr) {
 }
 
 inline void CPU::compute(cycles_t cycles) {
+    cycles_t iterations = cycles / 2;
     asm volatile (
         "1: dec %0;"
         "test   %0, %0;"
         "ja     1b;"
-        : : "r"(cycles / 2)
+        // let the compiler know that we change the value of iterations
+        // as it seems, inputs are not expected to change
+        : "=r"(iterations) : "0"(iterations)
     );
 }
 
