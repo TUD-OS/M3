@@ -23,7 +23,7 @@
 namespace kernel {
 
 struct Timeout : public m3::SListItem {
-    explicit Timeout(cycles_t when, std::function<void()> callback)
+    explicit Timeout(cycles_t when, std::function<void()> &&callback)
         : m3::SListItem(), when(when), callback(callback) {
     }
 
@@ -44,7 +44,7 @@ public:
 
     void trigger();
 
-    Timeout *wait_for(cycles_t cycles, std::function<void()> callback);
+    Timeout *wait_for(cycles_t cycles, std::function<void()> &&callback);
 
     void cancel(Timeout *to);
 

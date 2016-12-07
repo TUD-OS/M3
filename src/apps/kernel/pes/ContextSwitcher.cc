@@ -202,8 +202,8 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
         uint64_t exectime = now - _cur->_lastsched;
         // if there is some time left in the timeslice, program a timeout
         if(exectime < VPE::TIME_SLICE) {
-            auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
-            _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE - exectime, callback);
+            auto &&callback = std::bind(&ContextSwitcher::start_switch, this, true);
+            _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE - exectime, m3::Util::move(callback));
         }
         // otherwise, switch now
         else
@@ -379,8 +379,8 @@ retry:
 
             // if we are starting a VPE, we might already have a timeout for it
             if(_ready.length() > 0 && !_timeout) {
-                auto callback = std::bind(&ContextSwitcher::start_switch, this, true);
-                _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE, callback);
+                auto &&callback = std::bind(&ContextSwitcher::start_switch, this, true);
+                _timeout = Timeouts::get().wait_for(VPE::TIME_SLICE, m3::Util::move(callback));
             }
             break;
         }

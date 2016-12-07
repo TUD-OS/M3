@@ -60,7 +60,7 @@ void Timeouts::trigger() {
     while(_timeouts.length() > 0);
 }
 
-Timeout *Timeouts::wait_for(cycles_t cycles, std::function<void()> callback) {
+Timeout *Timeouts::wait_for(cycles_t cycles, std::function<void()> &&callback) {
     cycles_t when = DTU::get().get_time() + cycles;
 
     // insert timeouts in ascending order
@@ -71,7 +71,7 @@ Timeout *Timeouts::wait_for(cycles_t cycles, std::function<void()> callback) {
         prev = &*it;
     }
 
-    Timeout *to = new Timeout(when, callback);
+    Timeout *to = new Timeout(when, m3::Util::move(callback));
     KLOG(TIMEOUTS, "Inserting timeout " << to << " (due=" << to->when << ")");
     _timeouts.insert(prev, to);
     return to;
