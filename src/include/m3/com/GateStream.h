@@ -49,18 +49,6 @@ public:
     GateOStream(const GateOStream &) = default;
     GateOStream &operator=(const GateOStream &) = default;
 
-    /**
-     * Replies the current content of this GateOStream as a message to the given message.
-     *
-     * @param rgate the receive gate that hosts the message to reply to
-     * @param msg the message to reply to
-     * @return the error code or Errors::NONE
-     */
-    Errors::Code reply(RecvGate &rgate, const void *msg) {
-        return rgate.reply(bytes(), total(),
-            m3::DTU::get().get_msgoff(rgate.ep(), reinterpret_cast<const m3::DTU::Message*>(msg)));
-    }
-
     using Marshaller::put;
 
     /**
