@@ -119,6 +119,11 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size,
         (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
+    // as soon as we've replied to the other PE, he might send us another message, which we might
+    // miss if we ACK this message after we've got another one. so, ACK it now since the reply marks
+    // the end of the handling anyway.
+    mark_read(ep, msgidx);
+
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival
     set_target(SLOT_NO, orgmsg->core, destaddr + sizeof(Header));

@@ -166,13 +166,6 @@ void RecvGate::stop() {
 }
 
 Errors::Code RecvGate::reply(const void *data, size_t len, size_t msgidx) {
-    // TODO hack to fix the race-condition on T2. as soon as we've replied to the other PE, he
-    // might send us another message, which we might miss if we ACK this message after we've got
-    // another one. so, ACK it now since the reply marks the end of the handling anyway.
-#if defined(__t2__)
-    DTU::get().mark_read(ep(), msgidx);
-#endif
-
     Errors::Code res = DTU::get().reply(ep(), const_cast<void*>(data), len, msgidx);
 
     if(EXPECT_FALSE(res == Errors::VPE_GONE)) {
