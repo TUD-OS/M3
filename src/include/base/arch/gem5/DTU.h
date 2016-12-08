@@ -118,6 +118,7 @@ private:
         INV_TLB             = 4,
         INJECT_IRQ          = 5,
         RESET               = 6,
+        ACK_MSG             = 7,
     };
 
 public:

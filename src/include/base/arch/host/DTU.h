@@ -207,7 +207,9 @@ public:
         return fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
     }
     Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
-        return fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
+        Errors::Code res = fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
+        mark_read(ep, msgidx);
+        return res;
     }
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint) {
         Errors::Code res = fire(ep, READ, msg, size, off, size, label_t(), 0);

@@ -101,6 +101,10 @@ void DTU::write_ep_local(epid_t ep) {
     memcpy(reinterpret_cast<void*>(addr), _state.get_ep(ep), m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
+void DTU::mark_read_remote(const VPEDesc &, epid_t, uintptr_t) {
+    // not supported
+}
+
 void DTU::drop_msgs(epid_t ep, label_t label) {
     word_t *regs = reinterpret_cast<word_t*>(_state.get_ep(ep));
     // we assume that the one that used the label can no longer send messages. thus, if there are

@@ -593,8 +593,11 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
         case m3::KIF::Syscall::VCTRL_STOP: {
             bool self = vpe == &*vpecap->obj;
             vpecap->obj->stop_app(static_cast<int>(arg), self);
-            if(self)
+            if(self) {
+                // if we don't reply, we need to mark it read manually
+                m3::DTU::get().mark_read(ep(), reinterpret_cast<uintptr_t>(msg));
                 return;
+            }
             break;
         }
 
@@ -973,6 +976,10 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     if(rgatecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate cap");
 
+    epid_t ep = vpe->cap_ep(rgatecap);
+    if(ep == 0)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate cap is not activated");
+
     // ensure that the VPE is running, because we need to access it's address space
     while(vpe->state() != VPE::RUNNING) {
         if(!vpe->resume())
@@ -983,6 +990,10 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     m3::Errors::Code res = DTU::get().get_header(vpe->desc(), &*rgatecap->obj, msgaddr, head);
     if(res != m3::Errors::NONE || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
         SYS_ERROR(vpe, msg, res, "Invalid arguments");
+
+    // we have read the header. thus, we can mark the message as read (and have to do that before
+    // doing the reply)
+    DTU::get().mark_read_remote(vpe->desc(), ep, msgaddr);
 
     VPE &tvpe = VPEManager::get().vpe(head.senderVpeId);
     bool async = tvpe.state() != VPE::RUNNING && event;

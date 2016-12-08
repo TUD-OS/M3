@@ -91,7 +91,6 @@ void WorkLoop::run() {
             // we know the subscriber here, so optimize that a bit
             VPE *vpe = reinterpret_cast<VPE*>(msg->label);
             SyscallHandler::handle_message(vpe, msg);
-            m3::DTU::get().mark_read(sysep, reinterpret_cast<uintptr_t>(msg));
             EVENT_TRACE_FLUSH_LIGHT();
         }
 

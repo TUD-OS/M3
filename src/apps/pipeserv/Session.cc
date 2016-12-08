@@ -21,13 +21,10 @@
 using namespace m3;
 
 template<typename... Args>
-static Errors::Code reply_vmsg_late(RecvGate &rgate, const DTU::Message *msg,
-        const Args &... args) {
+static void reply_vmsg_late(RecvGate &rgate, const DTU::Message *msg, const Args &... args) {
     auto reply = create_vmsg(args...);
     size_t idx = DTU::get().get_msgoff(rgate.ep(), msg);
-    Errors::Code res = rgate.reply(reply.bytes(), reply.total(), idx);
-    DTU::get().mark_read(rgate.ep(), idx);
-    return res;
+    rgate.reply(reply.bytes(), reply.total(), idx);
 }
 
 int PipeSessionData::_nextid = 0;

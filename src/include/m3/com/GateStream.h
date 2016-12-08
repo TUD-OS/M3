@@ -245,7 +245,7 @@ public:
      * @param os the GateOStream hosting the message to reply
      * @return the error code or Errors::NONE
      */
-    Errors::Code reply(const GateOStream &os) const {
+    Errors::Code reply(const GateOStream &os) {
         return reply(os.bytes(), os.total());
     }
     /**
@@ -255,8 +255,11 @@ public:
      * @param len the length of the message
      * @return the error code or Errors::NONE
      */
-    Errors::Code reply(const void *data, size_t len) const {
-        return _rgate->reply(data, len, DTU::get().get_msgoff(_rgate->ep(), _msg));
+    Errors::Code reply(const void *data, size_t len) {
+        Errors::Code res = _rgate->reply(data, len, DTU::get().get_msgoff(_rgate->ep(), _msg));
+        // it's already acked
+        _ack = false;
+        return res;
     }
 
     void ignore(size_t bytes) {
@@ -335,7 +338,7 @@ inline void GateOStream::put(const GateIStream &is) {
     _bytecount += is.remaining();
 }
 
-static inline Errors::Code reply_error(const GateIStream &is, m3::Errors::Code error) {
+static inline Errors::Code reply_error(GateIStream &is, m3::Errors::Code error) {
     KIF::DefaultReply reply;
     reply.error = error;
     return is.reply(&reply, sizeof(reply));
@@ -354,7 +357,7 @@ static inline Errors::Code send_msg(SendGate &gate, const void *data, size_t len
     EVENT_TRACER_send_msg();
     return gate.send(data, len);
 }
-static inline Errors::Code reply_msg(const GateIStream &is, const void *data, size_t len) {
+static inline Errors::Code reply_msg(GateIStream &is, const void *data, size_t len) {
     EVENT_TRACER_reply_msg();
     return is.reply(data, len);
 }
@@ -387,7 +390,7 @@ static inline Errors::Code send_vmsg(SendGate &gate, const Args &... args) {
     return gate.send(msg.bytes(), msg.total());
 }
 template<typename... Args>
-static inline Errors::Code reply_vmsg(const GateIStream &is, const Args &... args) {
+static inline Errors::Code reply_vmsg(GateIStream &is, const Args &... args) {
     EVENT_TRACER_reply_vmsg();
     return is.reply(create_vmsg(args...));
 }
