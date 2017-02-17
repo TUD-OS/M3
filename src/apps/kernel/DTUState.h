@@ -60,6 +60,8 @@ public:
     void reset(uintptr_t addr);
 
 private:
+    void move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save);
+
     DTURegs _regs;
 };
 

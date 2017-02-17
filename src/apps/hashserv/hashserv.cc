@@ -14,12 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Services.h>
 #include <base/stream/IStringStream.h>
 #include <base/Panic.h>
 
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
-#include <m3/session/Hash.h>
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
 #include <m3/com/GateStream.h>
@@ -28,7 +28,6 @@
 
 using namespace m3;
 
-static const uintptr_t ACC_BUFS     = 0x3000;
 static const uintptr_t BUF_ADDR     = 0x2000000;
 static const size_t MAX_CLIENTS     = 8;
 
@@ -39,71 +38,53 @@ public:
     // unused
     explicit HashSessionData() {
     }
-    explicit HashSessionData(size_t _id) : RequestSessionData(), id(_id), mem(), sgate() {
+    explicit HashSessionData(size_t _id) : RequestSessionData(), id(_id), mem(), _hash() {
         occupied |= static_cast<uint32_t>(1) << id;
     }
     ~HashSessionData() {
         occupied &= ~(static_cast<uint32_t>(1) << id);
         delete mem;
-        delete sgate;
     }
 
-    SendGate &sendgate() {
-        return *sgate;
-    }
     size_t offset() const {
         return id * hash::Accel::BUF_SIZE;
     }
 
-    capsel_t connect(VPE &acc, RecvGate *buf) {
+    capsel_t connect() {
         label_t label;
-        if(acc.pe().has_virtmem()) {
-            label = ACC_BUFS + offset();
-            mem = new MemGate(acc.mem().derive(label, hash::Accel::BUF_SIZE, MemGate::W));
+        // with VM, the client can directly access the accelerator
+        if(_hash.accel()->vpe().pe().has_virtmem()) {
+            label = hash::Accel::BUF_ADDR + offset();
+            mem = new MemGate(_hash.accel()->vpe().mem().derive(label, hash::Accel::BUF_SIZE, MemGate::W));
         }
+        // otherwise, let him copy to our address space and we copy it over
         else {
-            label = ACC_BUFS;
+            label = hash::Accel::BUF_ADDR;
             mem = new MemGate(VPE::self().mem().derive(
                 BUF_ADDR + offset(), hash::Accel::BUF_SIZE, MemGate::W));
         }
-        sgate = new SendGate(SendGate::create(buf, label, hash::Accel::RB_SIZE));
-        sgate->reply_gate()->activate();
         return mem->sel();
     }
 
     size_t id;
     MemGate *mem;
-    SendGate *sgate;
+    hash::Hash _hash;
 };
 
-class HashReqHandler : public RequestHandler<HashReqHandler, Hash::Operation, Hash::COUNT, HashSessionData> {
+class HashReqHandler : public RequestHandler<HashReqHandler, hash::Accel::Command, 3, HashSessionData> {
 public:
-    explicit HashReqHandler(hash::Accel *accel)
-        : RequestHandler(),
-          _rgate(RecvGate::create_for(accel->get(), getnextlog2(hash::Accel::RB_SIZE), getnextlog2(hash::Accel::RB_SIZE))),
-          _buf(),
-          _mem(accel->get().mem().derive(ACC_BUFS, hash::Accel::BUF_SIZE, MemGate::W)),
-          _accel(accel) {
-        if(!_accel->get().pe().has_virtmem()) {
-            _buf = new MemGate(MemGate::create_global(
-                hash::Accel::BUF_SIZE * MAX_CLIENTS, MemGate::RW));
-            Syscalls::get().createmap(BUF_ADDR / PAGE_SIZE, VPE::self().sel(), _buf->sel(), 0,
-                hash::Accel::BUF_SIZE / PAGE_SIZE, MemGate::RW);
-        }
-        else {
-            assert(_accel->get().pager() != nullptr);
-            uintptr_t virt = ACC_BUFS;
-            _accel->get().pager()->map_anon(&virt, hash::Accel::BUF_SIZE * MAX_CLIENTS, Pager::Prot::RW, 0);
-        }
+    explicit HashReqHandler() : RequestHandler(), _buf() {
+        // TODO note that we do that without pager here, because we cannot run init twice that easily
+        // to start this service with a pager.
 
-        _accel->get().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _rgate.sel(), 1), hash::Accel::RBUF);
-        _rgate.activate(hash::Accel::EPID, _accel->getRBAddr());
-        _accel->get().start();
+        // map the buffer, in case we need it
+        _buf = new MemGate(MemGate::create_global(hash::Accel::BUF_SIZE * MAX_CLIENTS, MemGate::RW));
+        Syscalls::get().createmap(BUF_ADDR / PAGE_SIZE, VPE::self().sel(),
+            _buf->sel(), 0, (hash::Accel::BUF_SIZE * MAX_CLIENTS) / PAGE_SIZE, MemGate::RW);
 
-        add_operation(Hash::CREATE_HASH, &HashReqHandler::create_hash);
-    }
-    ~HashReqHandler() {
-        delete _buf;
+        add_operation(hash::Accel::Command::INIT, &HashReqHandler::init);
+        add_operation(hash::Accel::Command::UPDATE, &HashReqHandler::update);
+        add_operation(hash::Accel::Command::FINISH, &HashReqHandler::finish);
     }
 
     Errors::Code handle_open(HashSessionData **sess, word_t) override {
@@ -123,43 +104,57 @@ public:
         if(data.caps != 1 || data.argcount != 0)
             return Errors::INV_ARGS;
 
-        capsel_t cap = sess->connect(_accel->get(), &_rgate);
+        capsel_t cap = sess->connect();
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, cap, 1).value();
         data.argcount = 0;
         return Errors::NONE;
     }
 
-    void create_hash(GateIStream &is) {
+    void init(GateIStream &is) {
         HashSessionData *sess = is.label<HashSessionData*>();
-        hash::Accel::Request req;
-        is >> req;
+        const hash::Accel::Request *req = reinterpret_cast<const hash::Accel::Request*>(is.buffer());
 
-        if(req.len > hash::Accel::BUF_SIZE) {
+        SLOG(HASH, "init(" << req->arg << ")");
+
+        bool res = sess->_hash.start(static_cast<hash::Accel::Algorithm>(req->arg));
+        reply_vmsg(is, (uint64_t)res);
+    }
+
+    void update(GateIStream &is) {
+        HashSessionData *sess = is.label<HashSessionData*>();
+        const hash::Accel::Request *req = reinterpret_cast<const hash::Accel::Request*>(is.buffer());
+
+        SLOG(HASH, "update(" << req->arg << ")");
+
+        if(req->arg > hash::Accel::BUF_SIZE) {
             reply_error(is, m3::Errors::INV_ARGS);
             return;
         }
 
-        if(!_accel->get().pe().has_virtmem())
-            _mem.write(reinterpret_cast<void*>(BUF_ADDR + sess->offset()), req.len, 0);
+        // if the client writes directly to the VM of the accelerator, don't write again here
+        bool write = !sess->_hash.accel()->vpe().pe().has_virtmem();
+        bool res = sess->_hash.update(reinterpret_cast<void*>(BUF_ADDR + sess->offset()),
+            req->arg, write);
+        reply_vmsg(is, (uint64_t)res);
+    }
 
-        GateIStream areply = send_receive_msg(sess->sendgate(), &req, sizeof(req));
+    void finish(GateIStream &is) {
+        HashSessionData *sess = is.label<HashSessionData*>();
 
-        AutoGateOStream reply(areply.length());
-        reply.put(areply);
-        reply_msg(is, reply.bytes(), reply.total());
+        SLOG(HASH, "finish()");
+
+        char buf[64];
+        size_t len = sess->_hash.finish(buf, sizeof(buf));
+
+        reply_vmsg(is, String(buf, len));
     }
 
 private:
-    RecvGate _rgate;
     MemGate *_buf;
-    MemGate _mem;
-    hash::Accel *_accel;
 };
 
 int main() {
-    hash::Accel *acc = hash::Accel::create();
-
-    HashReqHandler *handler = new HashReqHandler(acc);
+    HashReqHandler *handler = new HashReqHandler();
     Server<HashReqHandler> srv("hash", handler);
     if(Errors::occurred())
         exitmsg("Unable to register service 'hash'");
@@ -167,6 +162,5 @@ int main() {
     env()->workloop()->run();
 
     delete handler;
-    delete acc;
     return 0;
 }

@@ -374,6 +374,12 @@ retry:
 #endif
             _cur->notify_resume();
 
+            // TODO actually, we have to disable the communication between restoring the EPs and
+            // this point, i.e., the ack of rctmux. because if rctmux needs to restore something
+            // before being able to continue, communication should still be blocked. we have that
+            // case with the hash accelerator, that needs to restore the buffer and clients should
+            // not be able to overwrite it until that is finished
+
             DTU::get().write_swflags(_cur->desc(), 0);
             _state = S_IDLE;
 

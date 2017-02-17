@@ -19,8 +19,10 @@
 #include <base/DTU.h>
 
 #include "pes/VPE.h"
+#include "pes/VPEManager.h"
 #include "DTUState.h"
 #include "DTU.h"
+#include "Platform.h"
 
 namespace kernel {
 
@@ -37,11 +39,39 @@ void *DTUState::get_ep(epid_t ep) {
     return _regs._eps + ep * m3::DTU::EP_REGS;
 }
 
+void DTUState::move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save) {
+    VPE &vpeobj = VPEManager::get().vpe(vpe.id);
+    VPEDesc memvpe(vpeobj.recvbuf_copy().pe(), VPE::INVALID_ID);
+    size_t offset = vpeobj.recvbuf_copy().addr;
+
+    for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
+        m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+        // receive EP and msgcount > 0?
+        if(static_cast<m3::DTU::EpType>(r[0] >> 61) == m3::DTU::EpType::RECEIVE && (r[0] & 0xFFFF)) {
+            const uintptr_t addr = r[1];
+            const size_t size = ((r[0] >> 16) & 0xFFFF) * ((r[0] >> 32) & 0xFFFF);
+            if(save)
+                DTU::get().copy_clear(memvpe, offset, vpe, addr, size, false);
+            else
+                DTU::get().copy_clear(VPEDesc(vpe.pe, oldvpe), addr, memvpe, offset, size, false);
+            offset += size;
+        }
+    }
+}
+
 void DTUState::save(const VPEDesc &vpe) {
     DTU::get().read_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
+
+    // copy the receive buffers, which have pending messages, to an external location
+    if(!Platform::pe(vpe.pe).has_virtmem())
+        move_rbufs(vpe, 0, true);
 }
 
 void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
+    // copy the receive buffers back to the SPM
+    if(!Platform::pe(vpe.pe).has_virtmem())
+        move_rbufs(VPEDesc(vpe.pe, vpeid), vpe.id, false);
+
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
     // and unset COM_DISABLED and IRQ_WAKEUP
     m3::DTU::reg_t features = 0;

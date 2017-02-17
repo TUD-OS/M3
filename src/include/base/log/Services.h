@@ -32,6 +32,7 @@ public:
         FS_DBG      = 1 << 2,
         PAGER       = 1 << 3,
         PIPE        = 1 << 4,
+        HASH        = 1 << 5,
     };
 
     static const int level = 0;

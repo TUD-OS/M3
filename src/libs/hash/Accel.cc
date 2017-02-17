@@ -15,6 +15,7 @@
  */
 
 #include <m3/stream/Standard.h>
+#include <m3/Syscalls.h>
 
 #include <hash/Hash.h>
 
@@ -22,8 +23,15 @@ using namespace m3;
 
 namespace hash {
 
+const size_t Accel::BUF_SIZE    = 512;
+const size_t Accel::BUF_ADDR    = 0x4000;
+const size_t Accel::STATE_SIZE  = 1024;
+const size_t Accel::STATE_ADDR  = BUF_ADDR - STATE_SIZE;
+
 AccelIMem::AccelIMem(bool muxable)
-    : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH), nullptr, muxable) {
+    : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH), nullptr, muxable),
+      _spm(MemGate::create_global(STATE_SIZE, MemGate::RW)) {
+    Syscalls::get().activate(_vpe.sel(), _spm.sel(), MEM_EP, 0);
 }
 
 AccelEMem::AccelEMem(bool muxable)
@@ -31,7 +39,7 @@ AccelEMem::AccelEMem(bool muxable)
 }
 
 uintptr_t AccelIMem::getRBAddr() {
-    return _vpe.pe().mem_size() - RECVBUF_SIZE_SPM + SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE;
+    return _vpe.pe().mem_size() - RB_SIZE;
 }
 
 uintptr_t AccelEMem::getRBAddr() {

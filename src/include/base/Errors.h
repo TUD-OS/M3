@@ -30,6 +30,7 @@ struct Errors {
         VPE_GONE,
         PAGEFAULT,
         NO_MAPPING,
+        INV_EP,
         ABORT,
         // SW errors
         INV_ARGS,

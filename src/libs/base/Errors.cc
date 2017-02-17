@@ -22,31 +22,37 @@ namespace m3 {
 Errors::Code Errors::last;
 
 static const char *errmsgs[] = {
-    /*  0 */ "No error",
-    /*  1 */ "Not enough credits",
-    /*  2 */ "Not enough ringbuffer space",
-    /*  3 */ "VPE gone",
-    /*  4 */ "Pagefault",
-    /*  5 */ "No mapping",
-    /*  6 */ "Abort",
-    /*  7 */ "Invalid arguments",
-    /*  8 */ "Out of memory",
-    /*  9 */ "No such file or directory",
-    /* 10 */ "No permissions",
-    /* 11 */ "Not supported",
-    /* 12 */ "No free PE",
-    /* 13 */ "Invalid ELF file",
-    /* 14 */ "No space left",
-    /* 15 */ "Object does already exist",
-    /* 16 */ "Cross-filesystem link not possible",
-    /* 17 */ "Directory not empty",
-    /* 18 */ "Is a directory",
-    /* 19 */ "Is no directory",
-    /* 20 */ "Endpoint is invalid",
-    /* 21 */ "Receive buffer gone",
-    /* 22 */ "End of file",
-    /* 23 */ "Messages are waiting to be handled",
-    /* 24 */ "Reply will be sent via upcall",
+    /* 0 */
+    "No error",
+    "Not enough credits",
+    "Not enough ringbuffer space",
+    "VPE gone",
+    "Pagefault",
+    "No mapping",
+    "Invalid endpoint",
+    "Abort",
+    "Invalid arguments",
+    "Out of memory",
+
+    /* 10 */
+    "No such file or directory",
+    "No permissions",
+    "Not supported",
+    "No free PE",
+    "Invalid ELF file",
+    "No space left",
+    "Object does already exist",
+    "Cross-filesystem link not possible",
+    "Directory not empty",
+    "Is a directory",
+
+    /* 20 */
+    "Is no directory",
+    "Endpoint is invalid",
+    "Receive buffer gone",
+    "End of file",
+    "Messages are waiting to be handled",
+    "Reply will be sent via upcall",
 };
 
 const char *Errors::to_string(Code code) {

@@ -114,6 +114,9 @@ public:
     AddrSpace *address_space() {
         return _as;
     }
+    const MainMemory::Allocation &recvbuf_copy() const {
+        return _rbufcpy;
+    }
 
     uintptr_t ep_addr() const {
         return _epaddr;
@@ -241,6 +244,7 @@ private:
     SendGate _upcsgate;
     SendQueue _upcqueue;
     AddrSpace *_as;
+    MainMemory::Allocation _rbufcpy;
     m3::SList<ServName> _requires;
     size_t _argc;
     char **_argv;

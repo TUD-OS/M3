@@ -18,7 +18,6 @@
 #include <base/util/Profile.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/session/Hash.h>
 
 #include <hash/Hash.h>
 
@@ -29,7 +28,7 @@ static const char *names[] = {
 };
 
 static const int WARMUP    = 10;
-static const int REPEATS   = 10;
+static const int REPEATS   = 50;
 
 static char buffer[4096];
 
@@ -53,35 +52,19 @@ int main(int argc, char **argv) {
         buffer[j] = j;
 
     uint8_t result[64];
-    if(service) {
-        m3::Hash accel(service);
+    hash::Hash *accel = service ? new hash::Hash(service) : new hash::Hash();
 
-        size_t len = accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-        print(Hash::Algorithm::SHA256, result, len);
+    size_t len = accel->get(hash::Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+    print(hash::Hash::Algorithm::SHA256, result, len);
 
-        for(int j = 0; j < WARMUP; ++j)
-            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+    for(int j = 0; j < WARMUP; ++j)
+        accel->get(hash::Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
 
-        for(int j = 0; j < REPEATS; ++j) {
-            Profile::start(0x1234);
-            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-            Profile::stop(0x1234);
-        }
+    for(int j = 0; j < REPEATS; ++j) {
+        Profile::start(0x1234);
+        accel->get(hash::Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
+        Profile::stop(0x1234);
     }
-    else {
-        hash::Hash accel;
-
-        size_t len = accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-        print(Hash::Algorithm::SHA256, result, len);
-
-        for(int j = 0; j < WARMUP; ++j)
-            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-
-        for(int j = 0; j < REPEATS; ++j) {
-            Profile::start(0x1234);
-            accel.get(Hash::Algorithm::SHA256, buffer, sizeof(buffer), result, sizeof(result));
-            Profile::stop(0x1234);
-        }
-    }
+    delete accel;
     return 0;
 }

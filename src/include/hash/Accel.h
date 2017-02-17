@@ -23,11 +23,14 @@ namespace hash {
 class Accel {
 public:
     static const uint RBUF          = 2;
-    static const uint EPID          = 7;
-    static const size_t RB_SIZE     = 1024;
+    static const uint RECV_EP       = 7;
+    static const uint MEM_EP        = 8;
+    static const size_t RB_SIZE     = 64;
 
-    static const size_t BUF_SIZE    = 4096;
-    static const size_t BUF_ADDR    = 0x3000;
+    static const size_t BUF_SIZE;
+    static const size_t BUF_ADDR;
+    static const size_t STATE_SIZE;
+    static const size_t STATE_ADDR;
 
     enum Algorithm {
         SHA1,
@@ -38,9 +41,15 @@ public:
         COUNT
     };
 
+    enum Command {
+        INIT,
+        UPDATE,
+        FINISH,
+    };
+
     struct Request {
-        uint64_t algo;
-        uint64_t len;
+        uint64_t cmd;
+        uint64_t arg;
     } PACKED;
 
     static Accel *create();
@@ -48,7 +57,7 @@ public:
     virtual ~Accel() {
     }
 
-    virtual m3::VPE &get() = 0;
+    virtual m3::VPE &vpe() = 0;
     virtual uintptr_t getRBAddr() = 0;
 };
 
@@ -56,20 +65,21 @@ class AccelIMem : public Accel {
 public:
     explicit AccelIMem(bool muxable);
 
-    m3::VPE &get() override {
+    m3::VPE &vpe() override {
         return _vpe;
     }
     uintptr_t getRBAddr() override;
 
 private:
     m3::VPE _vpe;
+    m3::MemGate _spm;
 };
 
 class AccelEMem : public Accel {
 public:
     explicit AccelEMem(bool muxable);
 
-    m3::VPE &get() override {
+    m3::VPE &vpe() override {
         return _vpe;
     }
     uintptr_t getRBAddr() override;

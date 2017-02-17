@@ -18,27 +18,62 @@
 
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
+#include <m3/session/Session.h>
 
 #include <hash/Accel.h>
 
 namespace hash {
 
 class Hash {
-    static const uintptr_t BUF_ADDR     = 0x3000;
+    class Backend {
+    public:
+        virtual ~Backend() {
+        }
+    };
+
+    class DirectBackend : public Backend {
+    public:
+        explicit DirectBackend();
+        ~DirectBackend();
+
+        Accel *accel;
+        m3::RecvGate srgate;
+    };
+
+    class IndirectBackend : public Backend {
+    public:
+        explicit IndirectBackend(const char *service);
+
+        m3::Session sess;
+    };
 
 public:
     typedef Accel::Algorithm Algorithm;
 
     explicit Hash();
+    explicit Hash(const char *service);
     ~Hash();
+
+    Accel *accel() {
+        return static_cast<DirectBackend*>(_backend)->accel;
+    }
+
+    bool start(Algorithm algo) {
+        return sendRequest(Accel::Command::INIT, algo) == 1;
+    }
+    bool update(const void *data, size_t len, bool write = true);
+    size_t finish(void *res, size_t max);
 
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max);
 
 private:
-    Accel *_accel;
-    m3::RecvGate _srgate;
-    m3::RecvGate _crgate;
-    m3::SendGate _send;
+    uint64_t sendRequest(Accel::Command cmd, uint64_t arg);
+
+    Backend *_backend;
+    m3::RecvGate _rgate;
+    m3::SendGate _sgate;
+    m3::MemGate _mgate;
+    size_t _memoff;
 };
 
 }

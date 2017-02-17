@@ -47,11 +47,15 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
+      _rbufcpy(),
       _requires(),
       _argc(),
       _argv() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MGateCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
+
+    if(!Platform::pe(pe()).has_virtmem())
+        _rbufcpy = MainMemory::get().allocate(RECVBUF_SIZE_SPM, PAGE_SIZE);
 
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get().add(this);
@@ -79,6 +83,9 @@ VPE::~VPE() {
 
     // ensure that there are no syscalls for this VPE anymore
     DTU::get().drop_msgs(SyscallHandler::ep(), reinterpret_cast<label_t>(this));
+
+    if(_rbufcpy)
+        MainMemory::get().free(_rbufcpy);
 
     delete _as;
 
