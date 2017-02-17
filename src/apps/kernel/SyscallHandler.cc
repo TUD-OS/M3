@@ -880,11 +880,13 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe);
 
     if(res == m3::Errors::NONE) {
+        // re-enable the EP first, because the reply to the sent message below might otherwise
+        // pass credits back BEFORE we overwrote the EP
+        vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
+
         uint64_t sender = vpe->pe() | (vpe->id() << 8) | (ep << 24) | (static_cast<uint64_t>(rep) << 32);
         DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, req->msg,
             req->len, req->rlabel, rep, sender);
-
-        vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
     }
     else
         LOG_ERROR(vpe, res, "forwardmsg failed");
