@@ -158,6 +158,20 @@ public:
     bool derived;
 };
 
+class SessObject : public SlabObject<SessObject>, public m3::RefCounted {
+public:
+    explicit SessObject(Service *_srv, word_t _ident)
+        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
+    }
+    ~SessObject();
+
+    void close();
+
+    bool servowned;
+    word_t ident;
+    m3::Reference<Service> srv;
+};
+
 class RGateCapability : public SlabObject<RGateCapability>, public Capability {
 public:
     explicit RGateCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
@@ -176,20 +190,6 @@ protected:
 
 public:
     m3::Reference<RGateObject> obj;
-};
-
-class SessObject : public SlabObject<SessObject>, public m3::RefCounted {
-public:
-    explicit SessObject(Service *_srv, word_t _ident)
-        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
-    }
-    ~SessObject();
-
-    void close();
-
-    bool servowned;
-    word_t ident;
-    m3::Reference<Service> srv;
 };
 
 class SGateCapability : public SlabObject<SGateCapability>, public Capability {
