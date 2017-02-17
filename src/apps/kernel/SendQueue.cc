@@ -24,6 +24,8 @@
 
 namespace kernel {
 
+uint64_t SendQueue::_next_id = 0;
+
 SendQueue::~SendQueue() {
     // ensure that there are no messages left for this SendQueue in the receive buffer
     DTU::get().drop_msgs(SyscallHandler::srvep(), reinterpret_cast<label_t>(this));

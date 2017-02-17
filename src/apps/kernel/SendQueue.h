@@ -40,7 +40,7 @@ class SendQueue {
 
 public:
     explicit SendQueue(VPE &vpe)
-        : _vpe(vpe), _queue(), _next_id(), _cur_event(), _inflight(0), _timeout() {
+        : _vpe(vpe), _queue(), _cur_event(), _inflight(0), _timeout() {
     }
     ~SendQueue();
 
@@ -65,10 +65,10 @@ private:
 
     VPE &_vpe;
     m3::SList<Entry> _queue;
-    uint64_t _next_id;
     event_t _cur_event;
     int _inflight;
     Timeout *_timeout;
+    static uint64_t _next_id;
 };
 
 }
