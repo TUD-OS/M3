@@ -28,6 +28,8 @@
 
 namespace kernel {
 
+static char buffer[4096];
+
 void DTU::do_set_vpeid(const VPEDesc &vpe, vpeid_t nid) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = nid;
     m3::CPU::compiler_barrier();
@@ -42,7 +44,6 @@ void DTU::do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd) {
 
 void DTU::clear_pt(gaddr_t pt) {
     // clear the pagetable
-    char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
     peid_t pe = m3::DTU::gaddr_to_pe(pt);
     uintptr_t addr = m3::DTU::gaddr_to_virt(pt);
@@ -423,6 +424,25 @@ m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *dat
     write_ep_local(_ep);
 
     return m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+}
+
+void DTU::copy_clear(const VPEDesc &dstvpe, uintptr_t dstaddr,
+                     const VPEDesc &srcvpe, uintptr_t srcaddr,
+                     size_t size, bool clear) {
+    if(clear)
+        memset(buffer, 0, sizeof(buffer));
+
+    size_t rem = size;
+    while(rem > 0) {
+        size_t amount = m3::Math::min(rem, sizeof(buffer));
+        // read it from src, if necessary
+        if(!clear)
+            DTU::get().read_mem(srcvpe, srcaddr, buffer, amount);
+        DTU::get().write_mem(dstvpe, dstaddr, buffer, amount);
+        srcaddr += amount;
+        dstaddr += amount;
+        rem -= amount;
+    }
 }
 
 void DTU::write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify) {

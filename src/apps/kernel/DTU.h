@@ -97,6 +97,10 @@ public:
             PANIC("read failed");
     }
 
+    void copy_clear(const VPEDesc &dstvpe, uintptr_t dstaddr,
+                    const VPEDesc &srcvpe, uintptr_t srcaddr,
+                    size_t size, bool clear);
+
     void cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
         size_t off, size_t size);
 

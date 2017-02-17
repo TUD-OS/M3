@@ -35,7 +35,6 @@ static size_t count = 0;
 static BootModule mods[Platform::MAX_MODS];
 static uint64_t loaded = 0;
 static BootModule *idles[Platform::MAX_PES];
-static char buffer[4096];
 
 static BootModule *get_mod(size_t argc, char **argv, bool *first) {
     static_assert(sizeof(loaded) * 8 >= Platform::MAX_MODS, "Too few bits for modules");
@@ -97,25 +96,6 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, data, size);
 }
 
-static void copy_clear(const VPEDesc &vpe, gaddr_t dst, gaddr_t src, size_t size, bool clear) {
-    if(clear)
-        memset(buffer, 0, sizeof(buffer));
-
-    size_t rem = size;
-    while(rem > 0) {
-        size_t amount = m3::Math::min(rem, sizeof(buffer));
-        // read it from src, if necessary
-        if(!clear) {
-            DTU::get().read_mem(VPEDesc(m3::DTU::gaddr_to_pe(src), VPE::INVALID_ID),
-                m3::DTU::gaddr_to_virt(src), buffer, amount);
-        }
-        DTU::get().write_mem(vpe, m3::DTU::gaddr_to_virt(dst), buffer, amount);
-        src += amount;
-        dst += amount;
-        rem -= amount;
-    }
-}
-
 static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int perms) {
     if(Platform::pe(vpe.pe()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
@@ -123,8 +103,11 @@ static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int
         MapCapability *mapcap = new MapCapability(&vpe.mapcaps(), dst, phys, pages, perms);
         vpe.mapcaps().set(dst, mapcap);
     }
-    else
-        copy_clear(vpe.desc(), virt, phys, size, false);
+    else {
+        DTU::get().copy_clear(vpe.desc(), virt,
+            VPEDesc(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID), m3::DTU::gaddr_to_virt(phys),
+            size, false);
+    }
 }
 
 static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
@@ -169,7 +152,10 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
             map_segment(vpe, phys, virt, size, perms);
             end = virt + size;
 
-            copy_clear(vpe.desc(), virt, mod->addr + offset, size, pheader.p_filesz == 0);
+            DTU::get().copy_clear(vpe.desc(), virt,
+                VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
+                m3::DTU::gaddr_to_virt(mod->addr + offset),
+                size, pheader.p_filesz == 0);
         }
         else {
             assert(pheader.p_memsz == pheader.p_filesz);
@@ -199,7 +185,11 @@ static uintptr_t map_idle(VPE &vpe) {
         // copy the ELF file
         size_t size = m3::Math::round_up(static_cast<size_t>(tmp->size), PAGE_SIZE);
         gaddr_t phys = alloc_mem(size);
-        copy_clear(VPEDesc(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID), phys, tmp->addr, tmp->size, false);
+        VPEDesc bootvpe(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID);
+        DTU::get().copy_clear(bootvpe, m3::DTU::gaddr_to_virt(phys),
+            VPEDesc(m3::DTU::gaddr_to_pe(tmp->addr), VPE::INVALID_ID),
+            m3::DTU::gaddr_to_virt(tmp->addr),
+            tmp->size, false);
 
         // remember the copy
         strcpy(idle->name, "rctmux");
@@ -243,6 +233,7 @@ void VPE::load_app() {
     }
 
     // copy arguments and arg pointers to buffer
+    char buffer[512];
     uint64_t *argptr = reinterpret_cast<uint64_t*>(buffer);
     char *args = buffer + argc * sizeof(uint64_t);
     char c;

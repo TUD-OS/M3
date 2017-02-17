@@ -168,6 +168,10 @@ m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *dat
     return m3::Errors::NONE;
 }
 
+void DTU::copy_clear(const VPEDesc &, uintptr_t, const VPEDesc &, uintptr_t, size_t, bool) {
+    // not supported
+}
+
 void DTU::cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
     size_t off, size_t size) {
     m3::DTU::get().configure(_ep, (addr + off) | m3::KIF::Perm::RWX, vpe.pe, 0, datasize);
