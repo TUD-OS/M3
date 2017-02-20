@@ -59,7 +59,7 @@ public:
     }
 
     bool start(Algorithm algo) {
-        return sendRequest(Accel::Command::INIT, algo) == 1;
+        return sendRequest(Accel::Command::INIT, algo, 0) == 1;
     }
     bool update(const void *data, size_t len, bool write = true);
     size_t finish(void *res, size_t max);
@@ -67,7 +67,7 @@ public:
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max);
 
 private:
-    uint64_t sendRequest(Accel::Command cmd, uint64_t arg);
+    uint64_t sendRequest(Accel::Command cmd, uint64_t arg1, uint64_t arg2);
 
     Backend *_backend;
     m3::RecvGate _rgate;

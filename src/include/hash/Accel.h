@@ -49,7 +49,8 @@ public:
 
     struct Request {
         uint64_t cmd;
-        uint64_t arg;
+        uint64_t arg1;
+        uint64_t arg2;
     } PACKED;
 
     static Accel *create();

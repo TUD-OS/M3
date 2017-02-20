@@ -114,9 +114,9 @@ public:
         HashSessionData *sess = is.label<HashSessionData*>();
         const hash::Accel::Request *req = reinterpret_cast<const hash::Accel::Request*>(is.buffer());
 
-        SLOG(HASH, "init(" << req->arg << ")");
+        SLOG(HASH, "init(" << req->arg1 << ")");
 
-        bool res = sess->_hash.start(static_cast<hash::Accel::Algorithm>(req->arg));
+        bool res = sess->_hash.start(static_cast<hash::Accel::Algorithm>(req->arg1));
         reply_vmsg(is, (uint64_t)res);
     }
 
@@ -124,9 +124,9 @@ public:
         HashSessionData *sess = is.label<HashSessionData*>();
         const hash::Accel::Request *req = reinterpret_cast<const hash::Accel::Request*>(is.buffer());
 
-        SLOG(HASH, "update(" << req->arg << ")");
+        SLOG(HASH, "update(" << req->arg1 << ", " << req->arg2 << ")");
 
-        if(req->arg > hash::Accel::BUF_SIZE) {
+        if(req->arg1 > hash::Accel::BUF_SIZE) {
             reply_error(is, m3::Errors::INV_ARGS);
             return;
         }
@@ -134,7 +134,7 @@ public:
         // if the client writes directly to the VM of the accelerator, don't write again here
         bool write = !sess->_hash.accel()->vpe().pe().has_virtmem();
         bool res = sess->_hash.update(reinterpret_cast<void*>(BUF_ADDR + sess->offset()),
-            req->arg, write);
+            req->arg1, write);
         reply_vmsg(is, (uint64_t)res);
     }
 

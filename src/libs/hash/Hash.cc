@@ -49,7 +49,7 @@ Hash::IndirectBackend::IndirectBackend(const char *service)
 Hash::Hash()
     : _backend(new DirectBackend()),
       _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
-      _sgate(SendGate::create(&static_cast<DirectBackend*>(_backend)->srgate, Accel::BUF_ADDR, hash::Accel::RB_SIZE, &_rgate)),
+      _sgate(SendGate::create(&static_cast<DirectBackend*>(_backend)->srgate, 0, hash::Accel::RB_SIZE, &_rgate)),
       _mgate(MemGate::bind(static_cast<DirectBackend*>(_backend)->accel->vpe().mem().sel())),
       _memoff(Accel::BUF_ADDR) {
     // has to be activated
@@ -69,10 +69,11 @@ Hash::~Hash() {
     delete _backend;
 }
 
-uint64_t Hash::sendRequest(Accel::Command cmd, uint64_t arg) {
+uint64_t Hash::sendRequest(Accel::Command cmd, uint64_t arg1, uint64_t arg2) {
     Accel::Request req;
     req.cmd = static_cast<uint64_t>(cmd);
-    req.arg = arg;
+    req.arg1 = arg1;
+    req.arg2 = arg2;
 
     GateIStream is = send_receive_msg(_sgate, &req, sizeof(req));
     uint64_t res;
@@ -87,7 +88,7 @@ bool Hash::update(const void *data, size_t len, bool write) {
         if(write)
             _mgate.write(d, amount, _memoff);
 
-        if(sendRequest(Accel::Command::UPDATE, amount) != 1)
+        if(sendRequest(Accel::Command::UPDATE, amount, Accel::BUF_ADDR) != 1)
             return false;
 
         d += amount;
@@ -99,7 +100,8 @@ bool Hash::update(const void *data, size_t len, bool write) {
 size_t Hash::finish(void *res, size_t max) {
     Accel::Request req;
     req.cmd = static_cast<uint64_t>(Accel::Command::FINISH);
-    req.arg = 0;
+    req.arg1 = 0;
+    req.arg2 = 0;
     GateIStream is = send_receive_msg(_sgate, &req, sizeof(req));
 
     uint64_t count;
