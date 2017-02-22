@@ -23,14 +23,14 @@ using namespace m3;
 
 namespace hash {
 
-const size_t Accel::BUF_SIZE    = 512;
+const size_t Accel::BUF_SIZE    = 8192;
 const size_t Accel::BUF_ADDR    = 0x4000;
 const size_t Accel::STATE_SIZE  = 1024;
 const size_t Accel::STATE_ADDR  = BUF_ADDR - STATE_SIZE;
 
 AccelIMem::AccelIMem(bool muxable)
     : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_HASH), nullptr, muxable),
-      _spm(MemGate::create_global(STATE_SIZE, MemGate::RW)) {
+      _spm(MemGate::create_global(BUF_SIZE + STATE_SIZE, MemGate::RW)) {
     Syscalls::get().activate(_vpe.sel(), _spm.sel(), MEM_EP, 0);
 }
 

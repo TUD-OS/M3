@@ -25,6 +25,7 @@ public:
     static const uint RBUF          = 2;
     static const uint RECV_EP       = 7;
     static const uint MEM_EP        = 8;
+    static const uint DATA_EP       = 9;
     static const size_t RB_SIZE     = 64;
 
     static const size_t BUF_SIZE;

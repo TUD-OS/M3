@@ -19,61 +19,39 @@
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/session/Session.h>
+#include <m3/vfs/File.h>
 
 #include <hash/Accel.h>
 
 namespace hash {
 
 class Hash {
-    class Backend {
-    public:
-        virtual ~Backend() {
-        }
-    };
-
-    class DirectBackend : public Backend {
-    public:
-        explicit DirectBackend();
-        ~DirectBackend();
-
-        Accel *accel;
-        m3::RecvGate srgate;
-    };
-
-    class IndirectBackend : public Backend {
-    public:
-        explicit IndirectBackend(const char *service);
-
-        m3::Session sess;
-    };
-
 public:
     typedef Accel::Algorithm Algorithm;
 
     explicit Hash();
-    explicit Hash(const char *service);
     ~Hash();
 
-    Accel *accel() {
-        return static_cast<DirectBackend*>(_backend)->accel;
+    bool start(bool autonomous, Algorithm algo) {
+        _lastmem = m3::ObjCap::INVALID;
+        return sendRequest(Accel::Command::INIT, autonomous, algo) == 1;
     }
-
-    bool start(Algorithm algo) {
-        return sendRequest(Accel::Command::INIT, algo, 0) == 1;
-    }
-    bool update(const void *data, size_t len, bool write = true);
+    bool update(capsel_t mem, size_t offset, size_t len);
+    bool update(const void *data, size_t len);
     size_t finish(void *res, size_t max);
 
+    size_t get(Algorithm algo, m3::File *file, void *res, size_t max);
+    size_t get_auto(Algorithm algo, m3::File *file, void *res, size_t max);
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max);
 
 private:
     uint64_t sendRequest(Accel::Command cmd, uint64_t arg1, uint64_t arg2);
 
-    Backend *_backend;
+    Accel *_accel;
+    capsel_t _lastmem;
     m3::RecvGate _rgate;
+    m3::RecvGate _srgate;
     m3::SendGate _sgate;
-    m3::MemGate _mgate;
-    size_t _memoff;
 };
 
 }
