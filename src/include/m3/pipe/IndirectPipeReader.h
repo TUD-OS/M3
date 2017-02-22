@@ -42,6 +42,8 @@ public:
         return 0;
     }
 
+    virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+
     virtual char type() const override {
         return 'I';
     }

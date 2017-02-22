@@ -18,6 +18,8 @@
 
 #include <m3/pipe/IndirectPipeReader.h>
 
+#include <limits>
+
 namespace m3 {
 
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
@@ -57,6 +59,18 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
         memcpy(buf + count - rem, tmp, rem);
     }
     return static_cast<ssize_t>(count);
+}
+
+Errors::Code IndirectPipeReader::read_next(capsel_t *memgate, size_t *offset, size_t *length) {
+    size_t pos;
+    size_t count = std::numeric_limits<size_t>::max();
+    Errors::Code res = _pipe->read(&pos, &count, &_lastid);
+    if(res != Errors::NONE)
+        return res;
+    *offset = pos;
+    *length = count;
+    *memgate = _mem.sel();
+    return Errors::NONE;
 }
 
 void IndirectPipeReader::delegate(VPE &vpe) {

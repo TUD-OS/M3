@@ -19,6 +19,7 @@
 #include <base/Machine.h>
 
 #include <m3/vfs/File.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
@@ -49,6 +50,20 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) override {
         int res = Machine::write(reinterpret_cast<const char*>(buffer), count);
         return res < 0 ? res : static_cast<ssize_t>(count);
+    }
+
+    virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override {
+        static char buffer[256];
+        static MemGate bufgate =
+            VPE::self().mem().derive(reinterpret_cast<uintptr_t>(buffer), sizeof(buffer));
+
+        ssize_t res = read(buffer, sizeof(buffer));
+        if(res < 0)
+            return Errors::last;
+        *length = static_cast<size_t>(res);
+        *offset = 0;
+        *memgate = bufgate.sel();
+        return Errors::NONE;
     }
 
     virtual char type() const override {

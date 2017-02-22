@@ -96,6 +96,9 @@ public:
         return do_write(buffer, count, _pos);
     }
 
+    virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+    virtual Errors::Code write_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+
     virtual char type() const override {
         return 'M';
     }
@@ -109,7 +112,7 @@ private:
     ssize_t fill(void *buffer, size_t size);
     ssize_t do_read(void *buffer, size_t count, Position &pos) const;
     ssize_t do_write(const void *buffer, size_t count, Position &pos) const;
-    ssize_t get_location(Position &pos, bool writing) const;
+    ssize_t get_location(Position &pos, bool writing, bool rebind) const;
     size_t get_amount(size_t length, size_t count, Position &pos) const;
     void adjust_written_part();
 

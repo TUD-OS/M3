@@ -33,6 +33,17 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     return static_cast<ssize_t>(count);
 }
 
+Errors::Code IndirectPipeWriter::write_next(capsel_t *memgate, size_t *offset, size_t *length) {
+    size_t pos;
+    *length = 64 * 1024;    // TODO be smarter about that
+    Errors::Code res = _pipe->write(&pos, *length, &_lastid);
+    if(res != Errors::NONE)
+        return res;
+    *offset = pos;
+    *memgate = _mem.sel();
+    return Errors::NONE;
+}
+
 void IndirectPipeWriter::delegate(VPE &vpe) {
     IndirectPipeFile::delegate(vpe);
     vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->write_gate().sel(), 1));

@@ -22,6 +22,8 @@
 #include <m3/vfs/MountSpace.h>
 #include <m3/vfs/VFS.h>
 
+#include <limits>
+
 namespace m3 {
 
 class RegFileBuffer : public File::Buffer {
@@ -202,7 +204,7 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
     char *buf = reinterpret_cast<char*>(buffer);
     while(count > 0) {
         // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(pos, false);
+        ssize_t extlen = get_location(pos, false, true);
         if(extlen < 0)
             return extlen;
         if(extlen == 0)
@@ -235,7 +237,7 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
     const char *buf = reinterpret_cast<const char*>(buffer);
     while(count > 0) {
         // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(pos, true);
+        ssize_t extlen = get_location(pos, true, true);
         if(extlen < 0)
             return extlen;
         if(extlen == 0)
@@ -266,7 +268,48 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
     return buf - reinterpret_cast<const char*>(buffer);
 }
 
-ssize_t RegularFile::get_location(Position &pos, bool writing) const {
+Errors::Code RegularFile::read_next(capsel_t *memgate, size_t *offset, size_t *length) {
+    if(~flags() & FILE_R)
+        return Errors::NO_PERM;
+
+    // figure out where that part of the file is in memory, based on our location db
+    ssize_t extlen = get_location(_pos, false, false);
+    if(extlen < 0)
+        return Errors::last;
+
+    *memgate = _memcaps.start() + _pos.local;
+    *offset = _pos.offset;
+    if(extlen == 0)
+        *length = 0;
+    else
+        *length = get_amount(static_cast<size_t>(extlen), std::numeric_limits<size_t>::max(), _pos);
+    return Errors::NONE;
+}
+
+Errors::Code RegularFile::write_next(capsel_t *memgate, size_t *offset, size_t *length) {
+    if(~flags() & FILE_W)
+        return Errors::NO_PERM;
+
+    // figure out where that part of the file is in memory, based on our location db
+    ssize_t extlen = get_location(_pos, true, false);
+    if(extlen < 0)
+        return Errors::last;
+
+    *memgate = _memcaps.start() + _pos.local;
+    uint16_t lastglobal = _pos.global;
+    *offset = _pos.offset;
+    *length = get_amount(static_cast<size_t>(extlen), std::numeric_limits<size_t>::max(), _pos);
+
+    // remember the max. position we wrote to
+    if(lastglobal >= _last_extent) {
+        if(lastglobal > _last_extent || *offset + *length > _last_off)
+            _last_off = *offset + *length;
+        _last_extent = lastglobal;
+    }
+    return Errors::NONE;
+}
+
+ssize_t RegularFile::get_location(Position &pos, bool writing, bool rebind) const {
     if(!pos.valid() || (writing && _locs.get(pos.local) == 0)) {
         _locs.clear();
 
@@ -292,7 +335,8 @@ ssize_t RegularFile::get_location(Position &pos, bool writing) const {
         size_t length = _locs.get(0);
         if(pos.offset == length)
             pos.next_extent();
-        _lastmem.rebind(_memcaps.start() + pos.local);
+        if(rebind)
+            _lastmem.rebind(_memcaps.start() + pos.local);
         return static_cast<ssize_t>(_locs.get(pos.local));
     }
     else {
@@ -308,7 +352,7 @@ ssize_t RegularFile::get_location(Position &pos, bool writing) const {
         }
 
         size_t length = _locs.get(pos.local);
-        if(length && _lastmem.sel() != _memcaps.start() + pos.local)
+        if(rebind && length && _lastmem.sel() != _memcaps.start() + pos.local)
             _lastmem.rebind(_memcaps.start() + pos.local);
         return static_cast<ssize_t>(length);
     }

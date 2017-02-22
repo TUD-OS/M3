@@ -47,6 +47,8 @@ public:
     }
     virtual ssize_t write(const void *buffer, size_t count) override;
 
+    virtual Errors::Code write_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+
     virtual char type() const override {
         return 'J';
     }

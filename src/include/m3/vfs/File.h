@@ -177,6 +177,21 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) = 0;
 
     /**
+     * Determines the next chunk of data to read/write.
+     *
+     * @param memgate will be set to the selector of the memory gate to access that chunk
+     * @param offset will be set to the offset in that memory gate
+     * @param length will be set to length of the chunk in bytes
+     * @return the error code, if any
+     */
+    virtual Errors::Code read_next(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
+        return Errors::NOT_SUP;
+    }
+    virtual Errors::Code write_next(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
+        return Errors::NOT_SUP;
+    }
+
+    /**
      * @return the unique character for serialization
      */
     virtual char type() const = 0;
