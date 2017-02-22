@@ -148,7 +148,7 @@ public:
 private:
     void set_error(ssize_t res);
 
-    int _fd;
+    fd_t _fd;
     size_t _fpos;
     File::Buffer *_rbuf;
     File::Buffer *_wbuf;
