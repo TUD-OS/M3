@@ -20,6 +20,9 @@
 
 namespace hash {
 
+/**
+ * Base class for the hash accelerators
+ */
 class Accel {
 public:
     static const uint RBUF          = 2;
@@ -33,6 +36,9 @@ public:
     static const size_t STATE_SIZE;
     static const size_t STATE_ADDR;
 
+    /**
+     * The supported hash algorithms
+     */
     enum Algorithm {
         SHA1,
         SHA224,
@@ -42,27 +48,47 @@ public:
         COUNT
     };
 
+    /**
+     * The commands the accelerator supports
+     */
     enum Command {
         INIT,
         UPDATE,
         FINISH,
     };
 
+    /**
+     * The format of all requests
+     */
     struct Request {
         uint64_t cmd;
         uint64_t arg1;
         uint64_t arg2;
     } PACKED;
 
+    /**
+     * Creates an accelerator, depending on which exists
+     *
+     * @return the accelerator
+     */
     static Accel *create();
 
     virtual ~Accel() {
     }
 
+    /**
+     * @return the VPE for the accelerator
+     */
     virtual m3::VPE &vpe() = 0;
+    /**
+     * @return the address of the receive buffer
+     */
     virtual uintptr_t getRBAddr() = 0;
 };
 
+/**
+ * The hash accelerator with SPM, i.e., internal memory.
+ */
 class AccelIMem : public Accel {
 public:
     explicit AccelIMem(bool muxable);
@@ -77,6 +103,9 @@ private:
     m3::MemGate _spm;
 };
 
+/**
+ * The hash accelerator with cache, i.e., external memory.
+ */
 class AccelEMem : public Accel {
 public:
     explicit AccelEMem(bool muxable);
