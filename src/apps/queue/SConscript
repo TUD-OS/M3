@@ -1,2 +1,3 @@
 Import('env')
-env.SConscript(env.Glob('*/SConscript'), 'env')
+if env['ARCH'] == 'host':
+    env.SConscript(env.Glob('*/SConscript'), 'env')

@@ -1,15 +1,16 @@
 Import('env')
 
-myenv = env.Clone()
-# disable lto for gem5 for now, since it doesn't workhere ("plugin needed to handle lto object")
-# I don't know why it works for libm3, but not for libc.
-myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-flto', '')
-lib = myenv.StaticLibrary(
-    target = 'libc',
-    source = [
-        myenv.Glob('*/*.cc'),
-        myenv.Glob('arch/$ARCHTYPE/*.cc'),
-        myenv.Glob('arch/$ARCH/*.cc'),
-    ]
-)
-myenv.Install(myenv['LIBDIR'], lib)
+if env['ARCH'] != 'host':
+    myenv = env.Clone()
+    # disable lto for gem5 for now, since it doesn't workhere ("plugin needed to handle lto object")
+    # I don't know why it works for libm3, but not for libc.
+    myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-flto', '')
+    lib = myenv.StaticLibrary(
+        target = 'libc',
+        source = [
+            myenv.Glob('*/*.cc'),
+            myenv.Glob('arch/$ARCHTYPE/*.cc'),
+            myenv.Glob('arch/$ARCH/*.cc'),
+        ]
+    )
+    myenv.Install(myenv['LIBDIR'], lib)

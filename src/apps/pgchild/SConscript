@@ -1,2 +1,3 @@
 Import('env')
-env.M3Program(env, 'pgchild', env.Glob('*.cc'))
+if env['ARCH'] == 'gem5':
+    env.M3Program(env, 'pgchild', env.Glob('*.cc'))

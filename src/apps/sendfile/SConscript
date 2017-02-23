@@ -1,2 +1,3 @@
 Import('env')
-env.M3Program(env, target = 'sendfile', source = Glob('*.cc'))
+if env['ARCH'] == 't2':
+    env.M3Program(env, target = 'sendfile', source = Glob('*.cc'))

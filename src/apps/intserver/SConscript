@@ -1,2 +1,3 @@
 Import('env')
-env.M3Program(env, 'intserver', env.Glob('*.cc'))
+if env['ARCH'] == 'host':
+    env.M3Program(env, 'intserver', env.Glob('*.cc'))

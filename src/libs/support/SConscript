@@ -1,5 +1,6 @@
 Import('env')
 
-for f in [env.Glob('$ARCHTYPE/*.S'), env.Glob('$ARCHTYPE-$ISA/*.S')]:
-    obj = env.Object(source = f)
-    env.Install(env['LIBDIR'], obj)
+if env['ARCH'] != 'host':
+    for f in [env.Glob('$ARCHTYPE/*.S'), env.Glob('$ARCHTYPE-$ISA/*.S')]:
+        obj = env.Object(source = f)
+        env.Install(env['LIBDIR'], obj)
