@@ -53,16 +53,21 @@ public:
     }
 
     virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override {
-        static char buffer[256];
-        static MemGate bufgate =
-            VPE::self().mem().derive(reinterpret_cast<uintptr_t>(buffer), sizeof(buffer));
+        char buffer[256];
+        // TODO this does not work yet with the non-autonomous API of the hash accelerator. because
+        // the caller will read have to read it back from the global memory, which requires him to
+        // create a new MemGate and activate it. this does not work, since each capability can only
+        // be activated on one EP.
+        static MemGate tmp = MemGate::create_global(sizeof(buffer), MemGate::RW);
 
         ssize_t res = read(buffer, sizeof(buffer));
         if(res < 0)
             return Errors::last;
+
+        tmp.write(buffer, static_cast<size_t>(res), 0);
         *length = static_cast<size_t>(res);
         *offset = 0;
-        *memgate = bufgate.sel();
+        *memgate = tmp.sel();
         return Errors::NONE;
     }
 
