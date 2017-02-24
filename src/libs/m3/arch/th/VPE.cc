@@ -33,7 +33,7 @@ uintptr_t VPE::get_entry() {
     return reinterpret_cast<uintptr_t>(&_ResetVector_text_start);
 }
 
-void VPE::copy_sections() {
+Errors::Code VPE::copy_sections() {
     /* copy reset vector */
     uintptr_t start_addr, end_addr;
 
@@ -59,6 +59,8 @@ void VPE::copy_sections() {
     start_addr = get_sp();
     end_addr = STACK_TOP;
     _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
+
+    return Errors::NONE;
 }
 
 bool VPE::skip_section(ElfPh *ph) {

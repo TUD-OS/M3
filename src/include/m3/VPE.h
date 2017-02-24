@@ -325,7 +325,7 @@ private:
 
     uintptr_t get_entry();
     static bool skip_section(ElfPh *ph);
-    void copy_sections();
+    Errors::Code copy_sections();
 
     PEDesc _pe;
     MemGate _mem;

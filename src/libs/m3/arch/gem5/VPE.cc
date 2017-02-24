@@ -33,13 +33,38 @@ uintptr_t VPE::get_entry() {
     return reinterpret_cast<uintptr_t>(&_text_start);
 }
 
-void VPE::copy_sections() {
-    if(_pager) {
-        _pager->clone();
-        return;
-    }
-
+Errors::Code VPE::copy_sections() {
     uintptr_t start_addr, end_addr;
+
+    if(_pager) {
+        if(VPE::self().pager()) {
+            _pager->clone();
+            return Errors::NONE;
+        }
+
+        Errors::Code err;
+
+        // map text
+        start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_text_start), DTU_PKG_SIZE);
+        end_addr = Math::round_up(reinterpret_cast<uintptr_t>(&_text_end), DTU_PKG_SIZE);
+        err = _pager->map_anon(&start_addr, end_addr - start_addr,
+            Pager::READ | Pager::WRITE | Pager::EXEC, 0);
+        if(err != Errors::NONE)
+            return err;
+
+        // map data
+        start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_data_start), DTU_PKG_SIZE);
+        end_addr = Math::round_up(Heap::end_area() + Heap::end_area_size(), DTU_PKG_SIZE);
+        err = _pager->map_anon(&start_addr, end_addr - start_addr, Pager::READ | Pager::WRITE, 0);
+        if(err != Errors::NONE)
+            return err;
+
+        // map area for stack and boot/runtime stuff
+        start_addr = RT_START;
+        err = _pager->map_anon(&start_addr, STACK_TOP - start_addr, Pager::READ | Pager::WRITE, 0);
+        if(err != Errors::NONE)
+            return err;
+    }
 
     /* copy text */
     start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_text_start), DTU_PKG_SIZE);
@@ -59,6 +84,8 @@ void VPE::copy_sections() {
     start_addr = CPU::get_sp();
     end_addr = STACK_TOP;
     _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
+
+    return Errors::NONE;
 }
 
 bool VPE::skip_section(ElfPh *) {

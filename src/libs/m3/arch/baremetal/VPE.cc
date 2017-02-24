@@ -65,7 +65,9 @@ void VPE::init_fs() {
 }
 
 Errors::Code VPE::run(void *lambda) {
-    copy_sections();
+    Errors::Code err = copy_sections();
+    if(err != Errors::NONE)
+        return err;
 
     alignas(DTU_PKG_SIZE) Env senv;
     senv.pe = 0;
