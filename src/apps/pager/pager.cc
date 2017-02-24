@@ -154,12 +154,12 @@ public:
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
+        len = Math::round_up(len + (virt & PAGE_MASK), PAGE_SIZE);
+        virt = Math::round_dn(virt, PAGE_SIZE);
+
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_anon(virt=" << fmt(virt, "p")
             << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
             << ", flags=" << fmt(flags, "#x") << ")");
-
-        virt = Math::round_dn(virt, PAGE_SIZE);
-        len = Math::round_up(len, PAGE_SIZE);
 
         if(virt + len <= virt || virt >= MAX_VIRT_ADDR) {
             SLOG(PAGER, "Invalid virtual address / size");
@@ -194,12 +194,12 @@ public:
         int id = args[3];
         size_t offset = args[4];
 
+        len = Math::round_up(len + (*virt & PAGE_MASK), PAGE_SIZE);
+        *virt = Math::round_dn(*virt, PAGE_SIZE);
+
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
             << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x") << ", id=" << id
             << ", offset=" << fmt(offset, "#x") << ")");
-
-        *virt = Math::round_dn(*virt, PAGE_SIZE);
-        len = Math::round_up(len, PAGE_SIZE);
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
