@@ -69,18 +69,18 @@ template<bool AUTO, uint NAME>
 static void bench(Hash &accel, const char *path) {
     uint8_t res[64];
 
-    for(size_t i = 0; i < ARRAY_SIZE(algos); ++i) {
-        size_t len = gethash(accel, AUTO, algos[i].algo, path, res, sizeof(res));
-        print(algos[i].name, res, len);
+    const size_t algo = 0;
 
-        for(int j = 0; j < WARMUP; ++j)
-            gethash(accel, AUTO, algos[i].algo, path, res, sizeof(res));
+    size_t len = gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+    print(algos[algo].name, res, len);
 
-        for(int j = 0; j < REPEATS; ++j) {
-            Profile::start(NAME);
-            gethash(accel, AUTO, algos[i].algo, path, res, sizeof(res));
-            Profile::stop(NAME);
-        }
+    for(int j = 0; j < WARMUP; ++j)
+        gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+
+    for(int j = 0; j < REPEATS; ++j) {
+        Profile::start(NAME);
+        gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+        Profile::stop(NAME);
     }
 }
 
