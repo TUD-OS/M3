@@ -86,10 +86,6 @@ class M3FSSessionData : public RequestSessionData {
     static constexpr size_t MAX_FILES   = 16;
 
 public:
-    struct OpenCap : public SListItem {
-        capsel_t sel;
-    };
-
     // TODO reference counting
     struct OpenFile {
         explicit OpenFile() : ino(), flags(), orgsize(), orgextent(), orgoff(), caps() {
