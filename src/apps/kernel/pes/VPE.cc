@@ -209,11 +209,21 @@ void VPE::upcall_notify(m3::Errors::Code res, word_t event) {
     upcall(&msg, sizeof(msg), false);
 }
 
-void VPE::invalidate_ep(epid_t ep) {
+bool VPE::invalidate_ep(epid_t ep, bool cmd) {
     KLOG(EPS, "VPE" << id() << ": EP" << ep << " = invalid");
 
-    _dtustate.invalidate(ep);
-    update_ep(ep);
+    bool res = true;
+    if(cmd) {
+        if(state() == VPE::RUNNING)
+            res = DTU::get().inval_ep_remote(desc(), ep) == m3::Errors::NONE;
+        else
+            res = _dtustate.invalidate(ep, true);
+    }
+    else {
+        _dtustate.invalidate(ep, false);
+        update_ep(ep);
+    }
+    return res;
 }
 
 bool VPE::can_forward_msg(epid_t ep) {

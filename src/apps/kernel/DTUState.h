@@ -42,7 +42,7 @@ public:
     void save(const VPEDesc &vpe);
     void restore(const VPEDesc &vpe, vpeid_t vpeid);
 
-    void invalidate(epid_t ep);
+    bool invalidate(epid_t ep, bool check);
     void invalidate_eps(epid_t first);
 
     bool can_forward_msg(epid_t ep);

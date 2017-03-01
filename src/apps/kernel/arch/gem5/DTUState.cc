@@ -89,8 +89,17 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
 
-void DTUState::invalidate(epid_t ep) {
+bool DTUState::invalidate(epid_t ep, bool check) {
+    if(check) {
+        m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+        if(static_cast<m3::DTU::EpType>(r[0] >> 61) == m3::DTU::EpType::SEND) {
+            if(((r[1] >> 16) & 0xFFFF) != (r[1] & 0xFFFF))
+                return false;
+        }
+    }
+
     memset(get_ep(ep), 0, sizeof(m3::DTU::reg_t) * m3::DTU::EP_REGS);
+    return true;
 }
 
 void DTUState::invalidate_eps(epid_t first) {

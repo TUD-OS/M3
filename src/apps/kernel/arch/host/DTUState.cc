@@ -45,8 +45,9 @@ void DTUState::restore(const VPEDesc &, vpeid_t) {
     // not supported
 }
 
-void DTUState::invalidate(epid_t ep) {
+bool DTUState::invalidate(epid_t ep, bool) {
     memset(get_ep(ep), 0, sizeof(word_t) * m3::DTU::EPS_RCNT);
+    return true;
 }
 
 void DTUState::invalidate_eps(epid_t first) {

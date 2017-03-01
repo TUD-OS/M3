@@ -495,9 +495,8 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             rgatecap->obj->addr = 0;
         }
 
-        m3::Errors::Code res = DTU::get().inval_ep_remote(vpecap->obj->desc(), ep);
-        if(res != m3::Errors::NONE)
-            SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
+        if(!vpecap->obj->invalidate_ep(ep, true))
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Unable to invalidate EP");
     }
 
     if(gatecap) {
