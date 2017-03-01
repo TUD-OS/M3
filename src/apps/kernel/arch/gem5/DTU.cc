@@ -307,7 +307,7 @@ void DTU::write_ep_local(epid_t ep) {
 
 void DTU::mark_read_remote(const VPEDesc &vpe, epid_t ep, uintptr_t msg) {
     m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::ACK_MSG);
-    do_ext_cmd(vpe, cmd | (ep << 3) | (msg << 11));
+    do_ext_cmd(vpe, cmd | (ep << 3) | (static_cast<m3::DTU::reg_t>(msg) << 11));
 }
 
 void DTU::drop_msgs(epid_t ep, label_t label) {
