@@ -46,8 +46,8 @@ void DTUState::move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save) {
 
     for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
         m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
-        // receive EP and msgcount > 0?
-        if(static_cast<m3::DTU::EpType>(r[0] >> 61) == m3::DTU::EpType::RECEIVE && (r[0] & 0xFFFF)) {
+        // receive EP and any slot occupied?
+        if(static_cast<m3::DTU::EpType>(r[0] >> 61) == m3::DTU::EpType::RECEIVE && r[2]) {
             const uintptr_t addr = r[1];
             const size_t size = ((r[0] >> 16) & 0xFFFF) * ((r[0] >> 32) & 0xFFFF);
             if(save)
