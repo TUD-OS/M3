@@ -58,6 +58,7 @@ public:
     void add(MemoryModule *mod);
 
     const MemoryModule &module(size_t id) const;
+    Allocation build_allocation(gaddr_t addr, size_t size) const;
 
     Allocation allocate(size_t size, size_t align);
     Allocation allocate_at(uintptr_t offset, size_t size);

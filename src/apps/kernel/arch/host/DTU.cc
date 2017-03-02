@@ -75,6 +75,10 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
     // unsupported
 }
 
+void remove_pts(vpeid_t) {
+    // unsupported
+}
+
 m3::Errors::Code DTU::inval_ep_remote(const VPEDesc &vpe, epid_t ep) {
     word_t regs[m3::DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));

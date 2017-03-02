@@ -61,6 +61,7 @@ public:
 
     void map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
+    void remove_pts(vpeid_t vpe);
 
     m3::Errors::Code inval_ep_remote(const VPEDesc &vpe, epid_t ep);
     void read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
@@ -114,6 +115,7 @@ private:
         m3::DTU::pte_t pte, int perm, int level);
     bool create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
+    void remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level);
     uintptr_t get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);

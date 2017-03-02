@@ -25,7 +25,7 @@ namespace kernel {
 
 class AddrSpace {
 public:
-    explicit AddrSpace(epid_t ep, capsel_t gate);
+    explicit AddrSpace(vpeid_t vpeid, epid_t ep, capsel_t gate);
     ~AddrSpace();
 
     epid_t ep() const {
@@ -35,12 +35,13 @@ public:
         return _gate;
     }
     gaddr_t root_pt() const {
-        return m3::DTU::build_gaddr(_rootpt.pe(), _rootpt.addr);
+        return _root;
     }
 
+    vpeid_t _vpeid;
     epid_t _ep;
     capsel_t _gate;
-    MainMemory::Allocation _rootpt;
+    gaddr_t _root;
 };
 
 }

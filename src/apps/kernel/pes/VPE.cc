@@ -46,7 +46,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _dtustate(),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
-      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(ep, pfgate) : nullptr),
+      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, ep, pfgate) : nullptr),
       _rbufcpy(),
       _requires(),
       _argc(),

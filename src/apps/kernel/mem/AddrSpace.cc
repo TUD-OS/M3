@@ -19,17 +19,22 @@
 
 #include "mem/AddrSpace.h"
 #include "mem/MainMemory.h"
+#include "DTU.h"
 
 namespace kernel {
 
-AddrSpace::AddrSpace(epid_t ep, capsel_t gate)
-    : _ep(ep),
+AddrSpace::AddrSpace(vpeid_t vpeid, epid_t ep, capsel_t gate)
+    : _vpeid(vpeid),
+      _ep(ep),
       _gate(gate),
-      _rootpt(MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE)) {
+      _root() {
+    MainMemory::Allocation rootpt = MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE);
+    _root = m3::DTU::build_gaddr(rootpt.pe(), rootpt.addr);
 }
 
 AddrSpace::~AddrSpace() {
-    MainMemory::get().free(_rootpt);
+    // the root PT is free'd via the recursive entry
+    DTU::get().remove_pts(_vpeid);
 }
 
 }

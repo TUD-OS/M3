@@ -277,8 +277,38 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
         return;
 
     map_pages(vpe, virt, 0, pages, 0);
+}
 
-    // TODO remove pagetables on demand
+void DTU::remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level) {
+    static_assert(sizeof(buffer) >= PAGE_SIZE, "Buffer smaller than a page");
+
+    // load entire page table
+    peid_t pe = m3::DTU::gaddr_to_pe(pt);
+    read_mem(VPEDesc(pe, VPE::INVALID_ID), m3::DTU::gaddr_to_virt(pt), buffer, PAGE_SIZE);
+
+    // free all PTEs, if they point to page tables
+    size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
+    m3::DTU::pte_t *ptes = reinterpret_cast<m3::DTU::pte_t*>(buffer);
+    for(size_t i = 0; i < 1 << m3::DTU::LEVEL_BITS; ++i) {
+        if(ptes[i]) {
+            gaddr_t gaddr = ptes[i] & ~PAGE_MASK;
+            if(level > 1)
+                remove_pts_rec(vpe, gaddr, virt, level - 1);
+            // free page table
+            KLOG(PTES, "VPE" << vpe << ": lvl 1 PTE for " << m3::fmt(virt, "p") << " removed");
+            MainMemory::get().free(MainMemory::get().build_allocation(gaddr, PAGE_SIZE));
+        }
+
+        virt += ptsize;
+    }
+}
+
+void DTU::remove_pts(vpeid_t vpe) {
+    VPE &v = VPEManager::get().vpe(vpe);
+    assert(v.state() == VPE::DEAD);
+
+    gaddr_t root = v.address_space()->root_pt();
+    remove_pts_rec(vpe, root, 0, m3::DTU::LEVEL_CNT - 1);
 }
 
 m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
