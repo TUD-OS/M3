@@ -122,8 +122,8 @@ void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t ep) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
 }
 
-bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
-        m3::DTU::pte_t pte, int perm) {
+bool DTU::create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t pteAddr,
+        m3::DTU::pte_t pte, int perm, int level) {
     // create the pagetable on demand
     if(pte == 0) {
         // if we don't have a pagetable for that yet, unmapping is a noop
@@ -140,8 +140,9 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
 
         // insert PTE
         pte |= m3::DTU::PTE_RWX;
-        KLOG(PTES, "PE" << vpe.pe << ": lvl 1 PTE for "
-            << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
+        const size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
+        KLOG(PTES, "VPE" << vpeid << ": lvl 1 PTE for "
+            << m3::fmt(virt & ~(ptsize - 1), "p") << ": " << m3::fmt(pte, "#0x", 16));
         write_mem(vpe, pteAddr, &pte, sizeof(pte));
     }
 
@@ -149,8 +150,8 @@ bool DTU::create_pt(const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
     return false;
 }
 
-bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3::DTU::pte_t pte,
-        gaddr_t &phys, uint &pages, int perm) {
+bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintptr_t pteAddr,
+        m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm) {
     // note that we can assume here that map_pages is always called for the same set of
     // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
     // only page 1. this is because we call map_pages with MapCapability, which can't
@@ -174,7 +175,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr, m3
     phys += count << PAGE_BITS;
 
     while(pteAddr < endpte) {
-        KLOG(PTES, "PE" << vpe.pe << ": lvl 0 PTE for "
+        KLOG(PTES, "VPE" << vpeid << ": lvl 0 PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
         write_mem(vpe, pteAddr, &npte, sizeof(npte));
 
@@ -259,11 +260,11 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages
             m3::DTU::pte_t pte;
             read_mem(rvpe, pteAddr, &pte, sizeof(pte));
             if(level > 0) {
-                if(create_pt(rvpe, virt, pteAddr, pte, perm))
+                if(create_pt(rvpe, vpe.id, virt, pteAddr, pte, perm, level))
                     return;
             }
             else {
-                if(create_ptes(rvpe, virt, pteAddr, pte, phys, pages, perm))
+                if(create_ptes(rvpe, vpe.id, virt, pteAddr, pte, phys, pages, perm))
                     return;
             }
         }
