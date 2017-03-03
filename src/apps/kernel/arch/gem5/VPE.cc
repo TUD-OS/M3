@@ -247,8 +247,9 @@ void VPE::load_app() {
         else
             args[i] = c;
     }
-    if(i == sizeof(buffer))
+    if(i + 1 >= sizeof(buffer))
         PANIC("Not enough space for arguments");
+    args[i++] = '\0';
 
     // write buffer to the target PE
     size_t argssize = m3::Math::round_up(off + i, DTU_PKG_SIZE);
