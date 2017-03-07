@@ -103,7 +103,7 @@ static bool execute(CmdList *list, bool muxed) {
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
         }
         else {
-            pipes[i] = new IndirectPipe(64 * 1024);
+            pipes[i] = new IndirectPipe(512 * 1024);
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
 

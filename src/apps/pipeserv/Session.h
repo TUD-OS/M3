@@ -134,12 +134,12 @@ private:
 class PipeWriteHandler : public PipeHandler<PipeWriteHandler> {
 public:
     explicit PipeWriteHandler(PipeSessionData *sess)
-        : PipeHandler<PipeWriteHandler>(sess), lastwrite() {
+        : PipeHandler<PipeWriteHandler>(sess), openWrite() {
         add_operation(&PipeWriteHandler::write);
     }
 
     m3::Errors::Code attach(PipeSessionData *sess);
-    m3::Errors::Code close(PipeSessionData *sess, int id);
+    m3::Errors::Code close(PipeSessionData *sess, int id, size_t lastwrite);
 
     void write(m3::GateIStream &is);
     void handle_pending_write(PipeSessionData *sess);
@@ -147,5 +147,5 @@ public:
 private:
     void append_request(PipeSessionData *sess, m3::GateIStream &is, size_t amount);
 
-    size_t lastwrite;
+    bool openWrite;
 };

@@ -29,16 +29,16 @@ class IndirectPipeWriter : public IndirectPipeFile {
     friend class IndirectPipe;
 
     explicit IndirectPipeWriter(capsel_t mem, Pipe *pipe)
-        : IndirectPipeFile(mem, pipe) {
+        : IndirectPipeFile(mem, pipe), _lastwrite() {
     }
 
 public:
     explicit IndirectPipeWriter(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
-        : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate) {
+        : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate), _lastwrite() {
     }
     ~IndirectPipeWriter() {
-        _pipe->close(false, _lastid);
+        _pipe->close(false, _lastid, _lastwrite);
     }
 
     virtual ssize_t read(void *, size_t) override {
@@ -47,7 +47,8 @@ public:
     }
     virtual ssize_t write(const void *buffer, size_t count) override;
 
-    virtual Errors::Code write_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+    virtual Errors::Code begin_write(capsel_t *memgate, size_t *offset, size_t *length) override;
+    virtual void commit_write(size_t length) override;
 
     virtual char type() const override {
         return 'J';
@@ -55,6 +56,9 @@ public:
 
     virtual void delegate(VPE &vpe) override;
     static File *unserialize(Unmarshaller &um);
+
+private:
+    size_t _lastwrite;
 };
 
 }

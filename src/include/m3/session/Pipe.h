@@ -55,8 +55,8 @@ public:
 
     void attach(bool reading);
     Errors::Code read(size_t *pos, size_t *amount, int *lastid);
-    Errors::Code write(size_t *pos, size_t amount, int *lastid);
-    void close(bool reading, int lastid);
+    Errors::Code write(size_t *pos, size_t amount, size_t lastwrite, int *lastid);
+    void close(bool reading, int lastid, size_t lastwrite = 0);
 
 private:
     SendGate _metagate;

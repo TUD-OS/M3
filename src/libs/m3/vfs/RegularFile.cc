@@ -286,7 +286,7 @@ Errors::Code RegularFile::read_next(capsel_t *memgate, size_t *offset, size_t *l
     return Errors::NONE;
 }
 
-Errors::Code RegularFile::write_next(capsel_t *memgate, size_t *offset, size_t *length) {
+Errors::Code RegularFile::begin_write(capsel_t *memgate, size_t *offset, size_t *length) {
     if(~flags() & FILE_W)
         return Errors::NO_PERM;
 
@@ -296,17 +296,23 @@ Errors::Code RegularFile::write_next(capsel_t *memgate, size_t *offset, size_t *
         return Errors::last;
 
     *memgate = _memcaps.start() + _pos.local;
-    uint16_t lastglobal = _pos.global;
     *offset = _pos.offset;
-    *length = get_amount(static_cast<size_t>(extlen), std::numeric_limits<size_t>::max(), _pos);
+    *length = static_cast<size_t>(extlen) - _pos.offset;
+    return Errors::NONE;
+}
+
+void RegularFile::commit_write(size_t length) {
+    uint16_t lastglobal = _pos.global;
+    size_t extlen = _locs.get(_pos.local);
+    size_t offset = _pos.offset;
+    get_amount(extlen, length, _pos);
 
     // remember the max. position we wrote to
     if(lastglobal >= _last_extent) {
-        if(lastglobal > _last_extent || *offset + *length > _last_off)
-            _last_off = *offset + *length;
+        if(lastglobal > _last_extent || offset + length > _last_off)
+            _last_off = offset + length;
         _last_extent = lastglobal;
     }
-    return Errors::NONE;
 }
 
 ssize_t RegularFile::get_location(Position &pos, bool writing, bool rebind) const {

@@ -77,9 +77,14 @@ public:
 
         bool reading;
         int id;
-        is >> reading >> id;
+        size_t lastwrite;
+        is >> reading >> id >> lastwrite;
 
-        Errors::Code res = reading ? sess->reader->close(sess, id) : sess->writer->close(sess, id);
+        Errors::Code res;
+        if(reading)
+            res = sess->reader->close(sess, id);
+        else
+            res = sess->writer->close(sess, id, lastwrite);
         reply_error(is, res);
     }
 };

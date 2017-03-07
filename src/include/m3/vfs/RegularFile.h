@@ -97,7 +97,8 @@ public:
     }
 
     virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override;
-    virtual Errors::Code write_next(capsel_t *memgate, size_t *offset, size_t *length) override;
+    virtual Errors::Code begin_write(capsel_t *memgate, size_t *offset, size_t *length) override;
+    virtual void commit_write(size_t length) override;
 
     virtual char type() const override {
         return 'M';

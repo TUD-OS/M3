@@ -187,8 +187,16 @@ public:
     virtual Errors::Code read_next(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
         return Errors::NOT_SUP;
     }
-    virtual Errors::Code write_next(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
+    virtual Errors::Code begin_write(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
         return Errors::NOT_SUP;
+    }
+
+    /**
+     * Commits the write, that has been started with begin_write().
+     *
+     * @param length the number of bytes that have actually been written
+     */
+    virtual void commit_write(size_t /*length*/) {
     }
 
     /**

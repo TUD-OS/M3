@@ -22,26 +22,32 @@ namespace m3 {
 
 ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     size_t pos = 0;
-    Errors::Code res = _pipe->write(&pos, count, &_lastid);
+    Errors::Code res = _pipe->write(&pos, count, _lastwrite, &_lastid);
     assert((pos % DTU_PKG_SIZE) == 0);
     if(res != Errors::NONE)
         return -1;
 
+    _lastwrite = count;
     Profile::start(0xaaaa);
     _mem.write(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
     Profile::stop(0xaaaa);
     return static_cast<ssize_t>(count);
 }
 
-Errors::Code IndirectPipeWriter::write_next(capsel_t *memgate, size_t *offset, size_t *length) {
+Errors::Code IndirectPipeWriter::begin_write(capsel_t *memgate, size_t *offset, size_t *length) {
     size_t pos;
-    *length = 64 * 1024;    // TODO be smarter about that
-    Errors::Code res = _pipe->write(&pos, *length, &_lastid);
+    *length = 256 * 1024;    // TODO be smarter about that
+    Errors::Code res = _pipe->write(&pos, *length, _lastwrite, &_lastid);
     if(res != Errors::NONE)
         return res;
     *offset = pos;
     *memgate = _mem.sel();
+    _lastwrite = 0;
     return Errors::NONE;
+}
+
+void IndirectPipeWriter::commit_write(size_t length) {
+    _lastwrite += length;
 }
 
 void IndirectPipeWriter::delegate(VPE &vpe) {
