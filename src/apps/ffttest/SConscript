@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'ffttest', env.Glob('*.cc'), libs = ['accel'])

@@ -44,13 +44,18 @@ for i in range(0, num_mem):
                      content=fsimg if i == 0 else None)
     pes.append(pe)
 
-pe = createHashAccelPE(root=root,
-                   options=options,
-                   no=num_pes + num_mem,
-                   memPE=mem_pe,
-                   spmsize='40kB')
-pe.accelhash.buf_size = '8kB'
-pes.append(pe)
+# create accelerator PEs
+accs = ['hash', 'fft', 'toupper']
+for i in range(0, 3):
+    pe = createAccelPE(root=root,
+                       options=options,
+                       no=num_pes + num_mem + i,
+                       accel=accs[i],
+                       memPE=mem_pe,
+                       spmsize='40kB')
+                       #l1size='32kB')
+    pe.accel.buf_size = '1kB'
+    pes.append(pe)
 
 # pes[1].dtu.watch_range_start  = 0x43d2ff0
 # pes[1].dtu.watch_range_end    = 0x43d2fff

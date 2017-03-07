@@ -41,6 +41,8 @@ enum class PEISA {
     ARM         = 2,
     XTENSA      = 3,
     ACCEL_SHA   = 4,
+    ACCEL_FFT   = 5,
+    ACCEL_TOUP  = 6,
 };
 
 /**
