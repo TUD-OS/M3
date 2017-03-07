@@ -18,12 +18,12 @@
 
 #include <m3/VPE.h>
 
-namespace hash {
+namespace accel {
 
 /**
  * Base class for the hash accelerators
  */
-class Accel {
+class HashAccel {
 public:
     static const uint RBUF          = 2;
     static const uint RECV_EP       = 7;
@@ -71,9 +71,9 @@ public:
      *
      * @return the accelerator
      */
-    static Accel *create();
+    static HashAccel *create();
 
-    virtual ~Accel() {
+    virtual ~HashAccel() {
     }
 
     /**
@@ -89,9 +89,9 @@ public:
 /**
  * The hash accelerator with SPM, i.e., internal memory.
  */
-class AccelIMem : public Accel {
+class HashIAccel : public HashAccel {
 public:
-    explicit AccelIMem(bool muxable);
+    explicit HashIAccel(bool muxable);
 
     m3::VPE &vpe() override {
         return _vpe;
@@ -106,9 +106,9 @@ private:
 /**
  * The hash accelerator with cache, i.e., external memory.
  */
-class AccelEMem : public Accel {
+class HashEAccel : public HashAccel {
 public:
-    explicit AccelEMem(bool muxable);
+    explicit HashEAccel(bool muxable);
 
     m3::VPE &vpe() override {
         return _vpe;

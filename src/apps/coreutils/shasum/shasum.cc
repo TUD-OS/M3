@@ -21,10 +21,10 @@
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
-#include <hash/Hash.h>
+#include <accel/hash/Hash.h>
 
 using namespace m3;
-using namespace hash;
+using namespace accel;
 
 static const struct {
     const char *name;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 
     size_t len;
     if(first == argc) {
-        len = accel.get_auto(algo, VPE::self().fds()->get(STDIN_FD), res, sizeof(res));
+        len = accel.get(algo, VPE::self().fds()->get(STDIN_FD), res, sizeof(res));
         print(res, len, "-");
     }
     else {
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            len = accel.get_auto(algo, VPE::self().fds()->get(fd), res, sizeof(res));
+            len = accel.get(algo, VPE::self().fds()->get(fd), res, sizeof(res));
             print(res, len, argv[i]);
             VFS::close(fd);
         }

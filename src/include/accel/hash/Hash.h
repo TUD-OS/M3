@@ -21,9 +21,9 @@
 #include <m3/session/Session.h>
 #include <m3/vfs/File.h>
 
-#include <hash/Accel.h>
+#include <accel/hash/HashAccel.h>
 
-namespace hash {
+namespace accel {
 
 /**
  * The hash accelerator allows to generate SHA1, SHA224, SHA256, SHA384 and SHA512 hashes for
@@ -31,7 +31,7 @@ namespace hash {
  */
 class Hash {
 public:
-    typedef Accel::Algorithm Algorithm;
+    typedef HashAccel::Algorithm Algorithm;
 
     /**
      * Instantiates the hash accelerator
@@ -51,7 +51,7 @@ public:
      */
     bool start(bool autonomous, Algorithm algo) {
         _lastmem = m3::ObjCap::INVALID;
-        return sendRequest(Accel::Command::INIT, autonomous, algo) == 1;
+        return sendRequest(HashAccel::Command::INIT, autonomous, algo) == 1;
     }
 
     /**
@@ -84,7 +84,7 @@ public:
 
     /**
      * Convenience method that calls start, update and finish for the given file. The method get()
-     * works non-autonomously and get_auto() works autonomously.
+     * works autonomously and get_slow() works non-autonomously.
      *
      * @param algo the hash algorithm to use
      * @param file the file to generate the hash for
@@ -93,7 +93,7 @@ public:
      * @return the number of bytes of the hash (or 0 on error)
      */
     size_t get(Algorithm algo, m3::File *file, void *res, size_t max);
-    size_t get_auto(Algorithm algo, m3::File *file, void *res, size_t max);
+    size_t get_slow(Algorithm algo, m3::File *file, void *res, size_t max);
 
     /**
      * Convenience method that calls start, update and finish for the given data. It works
@@ -109,9 +109,9 @@ public:
     size_t get(Algorithm algo, const void *data, size_t len, void *res, size_t max);
 
 private:
-    uint64_t sendRequest(Accel::Command cmd, uint64_t arg1, uint64_t arg2);
+    uint64_t sendRequest(HashAccel::Command cmd, uint64_t arg1, uint64_t arg2);
 
-    Accel *_accel;
+    HashAccel *_accel;
     capsel_t _lastmem;
     m3::RecvGate _rgate;
     m3::RecvGate _srgate;

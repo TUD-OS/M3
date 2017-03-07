@@ -20,10 +20,10 @@
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 
-#include <hash/Hash.h>
+#include <accel/hash/Hash.h>
 
 using namespace m3;
-using namespace hash;
+using namespace accel;
 
 static const struct {
     const char *name;
@@ -50,17 +50,17 @@ static void print(const char *algo, uint8_t *result, size_t len) {
     }
 }
 
-static size_t gethash(Hash &hash, bool autonomous, Hash::Algorithm algo,
-        const char *path, uint8_t *res, size_t max) {
+template<bool AUTO>
+static size_t gethash(Hash &hash, Hash::Algorithm algo, const char *path, uint8_t *res, size_t max) {
     fd_t fd = VFS::open(path, FILE_R);
     if(fd == FileTable::INVALID)
         exitmsg("Unable to open " << path);
 
     size_t len;
-    if(autonomous)
-        len = hash.get_auto(algo, VPE::self().fds()->get(fd), res, max);
-    else
+    if(AUTO)
         len = hash.get(algo, VPE::self().fds()->get(fd), res, max);
+    else
+        len = hash.get_slow(algo, VPE::self().fds()->get(fd), res, max);
     VFS::close(fd);
     return len;
 }
@@ -71,15 +71,15 @@ static void bench(Hash &accel, const char *path) {
 
     const size_t algo = 0;
 
-    size_t len = gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+    size_t len = gethash<AUTO>(accel, algos[algo].algo, path, res, sizeof(res));
     print(algos[algo].name, res, len);
 
     for(int j = 0; j < WARMUP; ++j)
-        gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+        gethash<AUTO>(accel, algos[algo].algo, path, res, sizeof(res));
 
     for(int j = 0; j < REPEATS; ++j) {
         Profile::start(NAME);
-        gethash(accel, AUTO, algos[algo].algo, path, res, sizeof(res));
+        gethash<AUTO>(accel, algos[algo].algo, path, res, sizeof(res));
         Profile::stop(NAME);
     }
 }
