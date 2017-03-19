@@ -266,6 +266,7 @@ void SyscallHandler::createsessat(VPE *vpe, const m3::DTU::Message *msg) {
 
     auto sesscap = new SessCapability(&vpe->objcaps(), dst, const_cast<Service*>(&*srvcap->inst), ident);
     sesscap->obj->servowned = true;
+    vpe->objcaps().inherit(srvcap, sesscap);
     vpe->objcaps().set(dst, sesscap);
 
     reply_result(vpe, msg, m3::Errors::NONE);
