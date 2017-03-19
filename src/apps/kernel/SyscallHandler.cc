@@ -319,8 +319,9 @@ void SyscallHandler::createsgate(VPE *vpe, const m3::DTU::Message *msg) {
     if(!vpe->objcaps().unused(dst))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap");
 
-    vpe->objcaps().set(dst,
-        new SGateCapability(&vpe->objcaps(), dst, &*rgatecap->obj, label, credits));
+    auto sgcap = new SGateCapability(&vpe->objcaps(), dst, &*rgatecap->obj, label, credits);
+    vpe->objcaps().inherit(rgatecap, sgcap);
+    vpe->objcaps().set(dst, sgcap);
 
     reply_result(vpe, msg, m3::Errors::NONE);
 }
