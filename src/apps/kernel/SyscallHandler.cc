@@ -487,7 +487,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
     if(gate != m3::KIF::INV_SEL) {
         gatecap = vpe->objcaps().get(gate, Capability::SGATE | Capability::MGATE | Capability::RGATE);
         if(gatecap == nullptr)
-            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalidate capability");
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid capability");
     }
 
     Capability *oldcap = vpecap->obj->ep_cap(ep);
