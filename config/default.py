@@ -54,7 +54,6 @@ for i in range(0, 3):
                        memPE=mem_pe,
                        spmsize='40kB')
                        #l1size='32kB')
-    pe.accel.buf_size = '1kB'
     pes.append(pe)
 
 # pes[1].dtu.watch_range_start  = 0x43d2ff0
