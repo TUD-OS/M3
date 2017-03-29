@@ -103,8 +103,7 @@ Errors::Code Stream::execute(File *in, File *out) {
 
         // use the minimum of both, because input and output have to be of the same size atm
         size_t amount = std::min(inlen - inpos, outlen - outpos);
-        if(sendRequest(inoff + inpos, outoff + outpos, amount, true) != 0)
-            return Errors::INV_ARGS;
+        amount = sendRequest(inoff + inpos, outoff + outpos, amount, true);
 
         inpos += amount;
         outpos += amount;
@@ -124,16 +123,12 @@ Errors::Code Stream::execute_slow(File *in, File *out) {
 
         _accel->vpe().mem().write(buffer, amount, StreamAccel::BUF_ADDR);
 
-        if(sendRequest(0, 0, amount, false) != 0) {
-            res = Errors::INV_ARGS;
-            goto error;
-        }
+        amount = sendRequest(0, 0, amount, false);
 
         _accel->vpe().mem().read(buffer, amount, StreamAccel::BUF_ADDR);
         out->write(buffer, amount);
     }
 
-error:
     delete[] buffer;
     return res;
 }
