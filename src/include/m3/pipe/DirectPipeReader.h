@@ -31,6 +31,7 @@ class DirectPipe;
 class DirectPipeReader : public File {
     friend class DirectPipe;
 
+public:
     struct State {
         explicit State(capsel_t caps);
 
@@ -60,7 +61,11 @@ public:
         return Errors::NOT_SUP;
     }
 
-    virtual ssize_t read(void *, size_t) override;
+    virtual ssize_t read(void *buffer, size_t count) override {
+        return read(buffer, count, true);
+    }
+    // returns -1 when in non blocking mode and there is no data to read
+    ssize_t read(void *, size_t, bool blocking);
     virtual ssize_t write(const void *, size_t) override {
         // not supported
         return 0;

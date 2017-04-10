@@ -104,7 +104,7 @@ env.Append(
     CXXFLAGS = ' -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-rtti -gdwarf-2' \
         ' -fno-threadsafe-statics -fno-stack-protector',
     CPPFLAGS = ' -U_FORTIFY_SOURCE',
-    CFLAGS = ' -gdwarf-2',
+    CFLAGS = ' -gdwarf-2 -fno-stack-protector',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch' \
         ' -fno-stack-protector',

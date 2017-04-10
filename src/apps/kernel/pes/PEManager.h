@@ -62,6 +62,7 @@ private:
     void deprivilege_pes();
 
     ContextSwitcher **_ctxswitcher;
+    bool * _used;
     static PEManager *_inst;
 };
 

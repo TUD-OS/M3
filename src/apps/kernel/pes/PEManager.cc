@@ -27,12 +27,14 @@ namespace kernel {
 PEManager *PEManager::_inst;
 
 PEManager::PEManager()
-    : _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
+    : _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]),
+      _used(new bool[Platform::pe_count()]) {
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
         if(Platform::pe(i).supports_vpes())
             _ctxswitcher[i] = new ContextSwitcher(i);
         else
             _ctxswitcher[i] = nullptr;
+        _used[i] = false;
     }
     deprivilege_pes();
 }
@@ -67,6 +69,8 @@ void PEManager::add_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx)
         ctx->add_vpe(vpe);
+    else
+        _used[vpe->pe()] = true;
 
     update_yield(global);
 }
@@ -81,6 +85,8 @@ void PEManager::remove_vpe(VPE *vpe) {
         if(ctx->ready() == 0)
             steal_vpe(vpe->pe());
     }
+    else
+        _used[vpe->pe()] = false;
 
     update_yield(global);
 }
@@ -91,6 +97,11 @@ void PEManager::start_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx)
         ctx->start_vpe(vpe);
+    else {
+        vpe->_dtustate.restore(VPEDesc(vpe->pe(), VPE::INVALID_ID), 0, vpe->id());
+        vpe->_state = VPE::RUNNING;
+        vpe->init_memory();
+    }
 
     update_yield(global);
 }
@@ -103,6 +114,10 @@ void PEManager::stop_vpe(VPE *vpe) {
         ctx->stop_vpe(vpe);
         if(ctx->ready() == 0)
             steal_vpe(vpe->pe());
+    }
+    else {
+        DTU::get().unset_vpeid(vpe->desc());
+        vpe->_state = VPE::SUSPENDED;
     }
 
     update_yield(global);
@@ -215,7 +230,13 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, uint flags, const
            Platform::pe(i).type() != pe.type())
             continue;
 
-        if(!_ctxswitcher[i] || _ctxswitcher[i]->count() == 0)
+        if(!_ctxswitcher[i]) {
+            if(_used[i])
+                continue;
+            return i;
+        }
+
+        if(_ctxswitcher[i]->count() == 0)
             return i;
 
         // TODO temporary

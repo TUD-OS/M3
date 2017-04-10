@@ -1,0 +1,4 @@
+Import('env')
+if env['ARCH'] == 'gem5':
+    env.M3Program(env, 'netecho-client', 'client.cc')
+    env.M3Program(env, 'netecho-server', 'server.cc')

@@ -59,7 +59,7 @@ void DirectPipeReader::send_eof() {
     }
 }
 
-ssize_t DirectPipeReader::read(void *buffer, size_t count) {
+ssize_t DirectPipeReader::read(void *buffer, size_t count, bool blocking) {
     if(!_state)
         _state = new State(_caps);
     if(_state->_eof)
@@ -70,8 +70,23 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
             DBG_PIPE("[read] replying len=" << _state->_pkglen << "\n");
             reply_vmsg(_state->_is, _state->_pkglen);
             _state->_is.finish();
+            // Non blocking mode: Reset pos, so that reply is not sent a second time on next invocation.
+            _state->_pos = 0;
         }
-        _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
+
+        if(blocking) {
+            _state->_is = receive_vmsg(_state->_rgate, _state->_pos, _state->_pkglen);
+        }
+        else {
+            _state->_rgate.activate();
+            DTU::Message *msg = DTU::get().fetch_msg(_state->_rgate.ep());
+            if(msg) {
+                _state->_is = GateIStream(_state->_rgate, msg);
+                _state->_is.vpull(_state->_pos, _state->_pkglen);
+            }
+            else
+                return -1;
+        }
         _state->_rem = _state->_pkglen;
     }
 
@@ -80,9 +95,12 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     if(amount == 0)
         _state->_eof |= DirectPipe::WRITE_EOF;
     else {
-        Time::start(0xaaaa);
-        _state->_mgate.read(buffer, amount, _state->_pos);
-        Time::stop(0xaaaa);
+        // Skip data when no buffer is specified
+        if(buffer) {
+            Time::start(0xaaaa);
+            _state->_mgate.read(buffer, amount, _state->_pos);
+            Time::stop(0xaaaa);
+        }
         _state->_pos += amount;
         _state->_rem -= amount;
     }

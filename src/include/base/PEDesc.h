@@ -48,6 +48,7 @@ enum class PEISA {
     ACCEL_SPMV  = 9,
     ACCEL_AFFT  = 10,
     IDE_DEV     = 11,
+    NIC         = 12
 };
 
 /**
@@ -117,13 +118,13 @@ struct PEDesc {
      * @return if the PE supports multiple contexts
      */
     bool supports_ctxsw() const {
-        return supports_ctx() && (isa() >= PEISA::ACCEL_INDIR || has_cache());
+        return supports_ctx() && (isa() >= PEISA::ACCEL_INDIR || has_cache()) && isa() != PEISA::NIC;
     }
     /**
      * @return if the PE supports the context switching protocol
      */
     bool supports_ctx() const {
-        return supports_vpes() && isa() != PEISA::IDE_DEV;
+        return supports_vpes() && isa() != PEISA::IDE_DEV && isa() != PEISA::NIC;
     }
     /**
      * @return if the PE supports VPEs

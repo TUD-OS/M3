@@ -68,4 +68,19 @@ for i in range(0, num_sto):
                          img0=hard_disk0)
     pes.append(pe)
 
+# create ether PEs
+ether0 = createEtherPE(noc=root.noc,
+                       options=options,
+                       no=num_pes + num_mem + num_sto + 0,
+                       memPE=mem_pe)
+pes.append(ether0)
+
+ether1 = createEtherPE(noc=root.noc,
+                       options=options,
+                       no=num_pes + num_mem + num_sto + 1,
+                       memPE=mem_pe)
+pes.append(ether1)
+
+linkEtherPEs(ether0, ether1)
+
 runSimulation(root, options, pes)

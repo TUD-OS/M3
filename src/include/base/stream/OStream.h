@@ -103,8 +103,17 @@ class OStream : public virtual IOSBase {
         uint base() const {
             return _base;
         }
+        void base(uint base) {
+            _base = base;
+        }
         int flags() const {
             return _flags;
+        }
+        void setf(int flags) {
+            _flags |= flags;
+        }
+        void unsetf(int flags) {
+            _flags &= ~flags;
         }
         size_t padding() const {
             return _pad;

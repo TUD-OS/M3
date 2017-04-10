@@ -23,6 +23,7 @@
 
 using namespace m3;
 
+// more warmup runs because we need to warmup the entire receive buffer at the kernel
 #define WARMUP  50
 #define COUNT   100
 

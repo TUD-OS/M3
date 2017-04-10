@@ -54,6 +54,8 @@ struct Errors {
         MSGS_WAITING,
         UPCALL_REPLY,
         COMMIT_FAILED,
+        IN_USE,
+        INV_STATE,
     };
 
     /**

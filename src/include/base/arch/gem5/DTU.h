@@ -55,7 +55,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 9;
+    static const size_t DTU_REGS            = 10;
     static const size_t REQ_REGS            = 3;
     static const size_t CMD_REGS            = 5;
     static const size_t EP_REGS             = 3;
@@ -74,6 +74,7 @@ private:
         MSG_CNT             = 6,
         EXT_CMD             = 7,
         CLEAR_IRQ           = 8,
+        CLOCK               = 9,
     };
 
     enum class ReqRegs {
@@ -287,6 +288,10 @@ public:
 
     cycles_t tsc() const {
         return read_reg(DtuRegs::CUR_TIME);
+    }
+
+    cycles_t clock() const {
+        return read_reg(DtuRegs::CLOCK);
     }
 
     void try_sleep(bool yield = true, uint64_t cycles = 0);

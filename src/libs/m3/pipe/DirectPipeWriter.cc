@@ -92,7 +92,7 @@ void DirectPipeWriter::send_eof() {
     }
 }
 
-ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
+ssize_t DirectPipeWriter::write(const void *buffer, size_t count, bool blocking) {
     if(!_state)
         _state = new State(_caps, _size);
     if(_state->_eof)
@@ -105,7 +105,19 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
         ssize_t off = _state->find_spot(&amount);
         if(_state->_capacity == 0 || off == -1) {
             size_t len;
-            receive_vmsg(_state->_rgate, len);
+            if(blocking) {
+                receive_vmsg(_state->_rgate, len);
+            }
+            else {
+                _state->_rgate.activate();
+                DTU::Message *msg = DTU::get().fetch_msg(_state->_rgate.ep());
+                if(msg) {
+                    GateIStream is(_state->_rgate, msg);
+                    is.vpull(len);
+                }
+                else
+                    return -1;
+            }
             DBG_PIPE("[write] got len=" << len << "\n");
             len = Math::round_up(len, DTU_PKG_SIZE);
             _state->_rdpos = (_state->_rdpos + len) % _state->_size;

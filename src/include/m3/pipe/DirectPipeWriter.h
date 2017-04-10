@@ -30,6 +30,7 @@ class DirectPipe;
 class DirectPipeWriter : public File {
     friend class DirectPipe;
 
+public:
     struct State {
         explicit State(capsel_t caps, size_t size);
 
@@ -68,7 +69,11 @@ public:
         // not supported
         return 0;
     }
-    virtual ssize_t write(const void *buffer, size_t count) override;
+    virtual ssize_t write(const void *buffer, size_t count) override {
+        return write(buffer, count, true);
+    }
+    // returns -1 when in non blocking mode and there is not enough space left in buffer
+    ssize_t write(const void *buffer, size_t count, bool blocking);
 
     virtual File *clone() const override {
         return nullptr;

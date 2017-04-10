@@ -17,12 +17,14 @@
 #include <base/Common.h>
 #include <cstring>
 
-int memcmp(const void *str1, const void *str2, size_t count) {
-    const uint8_t *s1 = reinterpret_cast<const uint8_t*>(str1);
-    const uint8_t *s2 = reinterpret_cast<const uint8_t*>(str2);
-    while(count-- > 0) {
-        if(*s1++ != *s2++)
-            return s1[-1] < s2[-1] ? -1 : 1;
+int memcmp(const void *mem1, const void *mem2, size_t count) {
+    const uint8_t *bmem1 = static_cast<const uint8_t*>(mem1);
+    const uint8_t *bmem2 = static_cast<const uint8_t*>(mem2);
+    for(size_t i = 0; i < count; i++) {
+        if(bmem1[i] > bmem2[i])
+            return 1;
+        else if(bmem1[i] < bmem2[i])
+            return -1;
     }
     return 0;
 }

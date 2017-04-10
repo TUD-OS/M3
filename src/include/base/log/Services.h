@@ -36,6 +36,8 @@ public:
         IDE         = 1 << 6,
         IDE_ALL     = 1 << 7,
         LOADGEN     = 1 << 8,
+        NIC         = 1 << 9,
+        NET         = 1 << 10,
     };
 
     static const int level = 0;
