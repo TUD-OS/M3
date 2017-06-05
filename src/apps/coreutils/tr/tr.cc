@@ -18,7 +18,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static char buffer[4096];
+alignas(64) static char buffer[4096];
 
 static void replace(char *buffer, size_t res, char c1, char c2) {
     for(size_t i = 0; i < res; ++i) {

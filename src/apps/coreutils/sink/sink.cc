@@ -18,7 +18,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static char buffer[4096];
+alignas(64) static char buffer[4096];
 
 static void read(FStream &in) {
     while(in.read(buffer, sizeof(buffer)) > 0)

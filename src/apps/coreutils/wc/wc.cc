@@ -22,7 +22,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static char buffer[4096 * 4];
+alignas(64) static char buffer[4096];
 
 static void count(FStream &in) {
     long lines = 0;

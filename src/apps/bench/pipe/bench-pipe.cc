@@ -29,7 +29,7 @@ enum {
     COUNT       = TOTAL / BUF_SIZE,
 };
 
-alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
+alignas(64) static char buffer[BUF_SIZE];
 
 template<class PIPE>
 static void child_to_parent(const char *name, VPE &writer, PIPE &pipe) {

@@ -27,7 +27,7 @@ enum {
     MEM_SIZE    = BUF_SIZE * 128,
 };
 
-alignas(DTU_PKG_SIZE) static char buffer[BUF_SIZE];
+alignas(64) static char buffer[BUF_SIZE];
 
 NOINLINE void replace(char *buffer, long res, char c1, char c2) {
     long i;

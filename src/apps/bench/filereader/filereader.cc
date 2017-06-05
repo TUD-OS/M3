@@ -24,7 +24,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static char buffer[4096];
+alignas(64) static char buffer[4096];
 
 int main(int argc, char **argv) {
     if(argc < 2)
