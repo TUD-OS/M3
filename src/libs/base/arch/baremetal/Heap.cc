@@ -40,6 +40,9 @@ void Heap::init() {
         end = Math::round_dn<size_t>(RT_START, sizeof(Area));
 #endif
     }
+    // TODO temporary
+    else if(env()->pedesc.has_mmu() && env()->pe == 0)
+        end = Math::round_up<size_t>(begin, PAGE_SIZE) + 1024 * 1024;
     else
         end = Math::round_up<size_t>(begin, PAGE_SIZE) + env()->heapsize;
     _end = reinterpret_cast<Area*>(end) - 1;

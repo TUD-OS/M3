@@ -141,19 +141,22 @@ Errors::Code Syscalls::createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, cap
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, const String &name,
-                                 PEDesc &pe, epid_t ep, bool tmuxable) {
+Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, capsel_t rgate,
+                                 const String &name, PEDesc &pe, epid_t sep, epid_t rep,
+                                 bool tmuxable) {
     LLOG(SYSC, "createvpe(dst=" << dst << ", mgate=" << mgate << ", sgate=" << sgate
         << ", name=" << name << ", type=" << static_cast<int>(pe.type())
-        << ", pfep=" << ep << ", tmuxable=" << tmuxable << ")");
+        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable << ")");
 
     KIF::Syscall::CreateVPE req;
     req.opcode = KIF::Syscall::CREATE_VPE;
     req.dst_sel = dst;
     req.mgate_sel = mgate;
     req.sgate_sel = sgate;
+    req.rgate_sel = rgate;
     req.pe = pe.value();
-    req.ep = ep;
+    req.sep = sep;
+    req.rep = rep;
     req.muxable = tmuxable;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);

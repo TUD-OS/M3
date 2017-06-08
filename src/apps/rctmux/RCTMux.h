@@ -30,4 +30,8 @@ extern void resume();
 extern uint64_t flags_get();
 extern void flags_set(uint64_t flags);
 
+extern void print(const char *str, size_t len);
+
+#define PRINTSTR(str)   print(str, sizeof(#str) - 1)
+
 } /* namespace RCTMux */

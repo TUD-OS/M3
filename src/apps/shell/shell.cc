@@ -32,9 +32,10 @@ static struct {
     const char *name;
     PEDesc pe;
 } petypes[] = {
-    /* COMP_IMEM */ {"imem", PEDesc(PEType::COMP_IMEM, PEISA::NONE)},
-    /* COMP_EMEM */ {"emem", PEDesc(PEType::COMP_EMEM, PEISA::NONE)},
-    /* MEM       */ {"mem",  PEDesc(PEType::MEM, PEISA::NONE)},
+    /* COMP_IMEM */  {"imem",  PEDesc(PEType::COMP_IMEM, PEISA::NONE)},
+    /* COMP_DTUVM */ {"dtuvm", PEDesc(PEType::COMP_DTUVM, PEISA::NONE)},
+    /* COMP_MMU */   {"mmu",   PEDesc(PEType::COMP_MMU, PEISA::NONE)},
+    /* MEM       */  {"mem",   PEDesc(PEType::MEM, PEISA::NONE)},
 };
 
 static PEDesc get_pe_type(const char *name) {

@@ -170,6 +170,11 @@ public:
     void activate(epid_t ep, uintptr_t addr);
 
     /**
+     * Deactivates and stops the receive gate.
+     */
+    void deactivate();
+
+    /**
      * Starts to listen for received messages, i.e., creates a WorkLoop item.
      *
      * @param handler the handler to call for received messages
@@ -204,8 +209,6 @@ public:
 private:
     static void *allocate(epid_t ep, size_t size);
     static void free(void *);
-
-    void deactivate();
 
     VPE &_vpe;
     void *_buf;

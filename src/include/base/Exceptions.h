@@ -33,12 +33,12 @@ class Exceptions {
 public:
     typedef ExceptionState State;
 
-    typedef void (*isr_func)(State *state);
+    typedef void *(*isr_func)(State *state);
 
     static void init();
 
 private:
-    static void handler(State *state);
+    static void *handler(State *state);
 };
 
 }

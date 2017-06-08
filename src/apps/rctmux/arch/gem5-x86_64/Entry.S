@@ -16,9 +16,8 @@
 
 #include <base/Asm.h>
 
-.extern _start_app
-.extern _sleep
 .extern interrupt_handler
+.global _rctmux_stack
 
 .text
 
@@ -37,42 +36,23 @@ BEGIN_FUNC(_start)
     mov     $_rctmux_stack, %rsp
     mov     $0, %rbp
 
-    call    _start_app
+    call    _init
     test    %rax, %rax
-    jne     1f
+    jne     2f
 
-    // if there is nothing to run yet, sleep
-    mov     $_idle_stack, %rsp
-    sti
-
-    call    _sleep
-
-    // we got waked up; try again
-    jmp     _start
-
-1:
-    // restore application state
-    mov     %rax, %rsp
-    pop     %r15
-    pop     %r14
-    pop     %r13
-    pop     %r12
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rbp
-    pop     %rsi
-    pop     %rdi
-    pop     %rdx
-    pop     %rcx
-    pop     %rbx
-    pop     %rax
-
-    // remove error-code and interrupt-number from stack and return
-    add     $16,%rsp
+    // return to idle code
+    pushq   $(2 << 3) | 3   // ss
+    pushq   $_rctmux_stack  // rsp
+    pushq   $0x200          // rflags: interrupts enabled
+    pushq   $(1 << 3) | 3   // cs
+    pushq   $_idle          // rip
     iretq
 END_FUNC(_start)
+
+BEGIN_FUNC(_idle)
+1:  hlt
+    jmp     1b
+END_FUNC(_idle)
 
 BEGIN_FUNC(isr_common)
     push    %rax
@@ -95,14 +75,28 @@ BEGIN_FUNC(isr_common)
     mov     %rsp, %rdi
     call    interrupt_handler
 
-    // resume application?
-    test    %rax, %rax
-    jne     1b
+    // restore application state
+2:
+    mov     %rax, %rsp
+    pop     %r15
+    pop     %r14
+    pop     %r13
+    pop     %r12
+    pop     %r11
+    pop     %r10
+    pop     %r9
+    pop     %r8
+    pop     %rbp
+    pop     %rsi
+    pop     %rdi
+    pop     %rdx
+    pop     %rcx
+    pop     %rbx
+    pop     %rax
 
-    // the kernel will reset the PE
-1:
-    hlt
-    jmp     1b
+    // remove error-code and interrupt-number from stack and return
+    add     $16,%rsp
+    iretq
 END_FUNC(isr_common)
 
 // macro to build a default-isr-handler
@@ -151,11 +145,13 @@ BEGIN_FUNC(isr_null)
     jmp     isr_common
 END_FUNC(isr_null)
 
+BEGIN_FUNC(gem5_writefile)
+    .long   0x004F040F
+    ret
+END_FUNC(gem5_writefile)
+
 .bss
 
     .align 16
-    .space 512, 0
+    .space 1024, 0
 _rctmux_stack:
-
-    .space 512, 0
-_idle_stack:

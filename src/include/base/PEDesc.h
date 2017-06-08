@@ -26,10 +26,12 @@ namespace m3 {
 enum class PEType {
     // Compute PE with internal memory
     COMP_IMEM   = 0,
-    // Compute PE with external memory, i.e., with cache
-    COMP_EMEM   = 1,
+    // Compute PE with cache and a DTU with VM
+    COMP_DTUVM  = 1,
+    // Compute PE with cache and MMU
+    COMP_MMU    = 2,
     // memory PE
-    MEM         = 2,
+    MEM         = 3,
 };
 
 /**
@@ -117,19 +119,31 @@ struct PEDesc {
      * @return true if the PE has internal memory
      */
     bool has_memory() const {
-        return type() != PEType::COMP_EMEM;
+        return type() == PEType::COMP_IMEM || type() == PEType::MEM;
     }
     /**
      * @return true if the PE has a cache, i.e., external memory
      */
     bool has_cache() const {
-        return type() == PEType::COMP_EMEM;
+        return type() == PEType::COMP_DTUVM || type() == PEType::COMP_MMU;
     }
     /**
-     * @return true if the PE has virtual memory support
+     * @return true if the PE has virtual memory support of some form
      */
     bool has_virtmem() const {
-        return type() == PEType::COMP_EMEM;
+        return has_dtuvm() || has_mmu();
+    }
+    /**
+     * @return true if the PE has virtual memory support in the DTU
+     */
+    bool has_dtuvm() const {
+        return type() == PEType::COMP_DTUVM;
+    }
+    /**
+     * @return true if the PE has a core with MMU
+     */
+    bool has_mmu() const {
+        return type() == PEType::COMP_MMU;
     }
 
 private:

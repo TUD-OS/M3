@@ -19,13 +19,17 @@
 #include <m3/session/Session.h>
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
+#include <m3/com/RecvGate.h>
 
 namespace m3 {
 
 class Pager : public Session {
 private:
-    explicit Pager(capsel_t sess)
-        : Session(sess, 0), _gate(SendGate::bind(obtain(1).start())) {
+    explicit Pager(VPE &vpe, capsel_t sess)
+        : Session(sess, 0), _rep(vpe.alloc_ep()),
+          _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
+                                    : RecvGate::bind(ObjCap::INVALID, 0)),
+          _gate(SendGate::bind(obtain(1).start())) {
     }
 
 public:
@@ -45,18 +49,37 @@ public:
         RWX     = READ | WRITE | EXEC,
     };
 
-    explicit Pager(capsel_t sess, capsel_t gate)
-        : Session(sess), _gate(SendGate::bind(gate)) {
+    explicit Pager(capsel_t sess, capsel_t sgate, capsel_t rgate)
+        : Session(sess), _rep(0), _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
+          _gate(SendGate::bind(sgate)) {
     }
-    explicit Pager(const String &service)
-        : Session(service), _gate(SendGate::bind(obtain(1).start())) {
+    explicit Pager(VPE &vpe, const String &service)
+        : Session(service), _rep(vpe.alloc_ep()),
+          _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
+                                    : RecvGate::bind(ObjCap::INVALID, 0)),
+          _gate(SendGate::bind(obtain(1).start())) {
+    }
+
+    void activate_rgate() {
+        if(_rgate.sel() != ObjCap::INVALID) {
+            // force activation
+            _rgate.deactivate();
+            _rgate.activate(_rep);
+        }
     }
 
     const SendGate &gate() const {
         return _gate;
     }
 
-    Pager *create_clone();
+    epid_t rep() const {
+        return _rep;
+    }
+    const RecvGate &rgate() const {
+        return _rgate;
+    }
+
+    Pager *create_clone(VPE &vpe);
     Errors::Code clone();
     Errors::Code pagefault(uintptr_t addr, uint access);
     Errors::Code map_anon(uintptr_t *virt, size_t len, int prot, int flags);
@@ -65,6 +88,10 @@ public:
     Errors::Code unmap(uintptr_t virt);
 
 private:
+    // the receive gate is only necessary for the PF handler in RCTMux. it needs a dedicated one
+    // in order to prevent interference with the application
+    epid_t _rep;
+    RecvGate _rgate;
     SendGate _gate;
 };
 

@@ -21,6 +21,8 @@
 #include "RCTMux.h"
 
 EXTERN_C void _start();
+EXTERN_C void *_restore();
+EXTERN_C void _signal();
 
 namespace RCTMux {
 
@@ -29,46 +31,23 @@ enum Status {
     STARTED     = 2,
 };
 
-static void *restore();
-
 static int status = 0;
 static void *state = nullptr;
 
-EXTERN_C void *_start_app() {
-    uint64_t flags = flags_get();
-
+EXTERN_C void *_init() {
     // if we're here for the first time, setup exception handling
     if(!(status & INITIALIZED)) {
         init();
         status |= INITIALIZED;
     }
 
+    uint64_t flags = flags_get();
     if(flags & m3::RESTORE)
-        return restore();
+        return _restore();
 
-    if(flags & m3::WAITING) {
-        m3::CPU::memory_barrier();
-        flags_set(m3::SIGNAL);
-
-        // no application anymore; only reset that if the kernel actually requested that
-        // because it might happen that we are waked up by a message before the kernel has written
-        // the flags register. in this case, we don't want to lose the application.
-        status &= ~STARTED;
-        state = nullptr;
-    }
-
-    return nullptr;
-}
-
-EXTERN_C void _sleep() {
-    m3::CPU::memory_barrier();
-    sleep();
-
-    // it might happen that IRQs are issued late, so that, if we're idling, the STORE flag is set
-    // when we get here. just wait until the IRQ is issued.
-    m3::CPU::memory_barrier();
-    while(flags_get() & m3::STORE)
-        ;
+    if(flags & m3::WAITING)
+        _signal();
+    return 0;
 }
 
 EXTERN_C void _save(void *s) {
@@ -80,7 +59,7 @@ EXTERN_C void _save(void *s) {
     flags_set(m3::SIGNAL);
 }
 
-static void *restore() {
+EXTERN_C void *_restore() {
     uint64_t flags = flags_get();
 
     m3::Env *senv = m3::env();
@@ -103,8 +82,18 @@ static void *restore() {
     // tell the kernel that we are ready
     m3::CPU::memory_barrier();
     flags_set(m3::SIGNAL);
-
     return state;
+}
+
+EXTERN_C void _signal() {
+    m3::CPU::memory_barrier();
+    flags_set(m3::SIGNAL);
+
+    // no application anymore; only reset that if the kernel actually requested that
+    // because it might happen that we are waked up by a message before the kernel has written
+    // the flags register. in this case, we don't want to lose the application.
+    status &= ~STARTED;
+    state = nullptr;
 }
 
 }

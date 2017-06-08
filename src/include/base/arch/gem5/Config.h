@@ -34,8 +34,8 @@
 #define RT_END              (RT_START + RT_SIZE)
 
 #define RCTMUX_ENTRY        0x1000
-#define RCTMUX_YIELD        0x2FF0
-#define RCTMUX_FLAGS        0x2FF8
+#define RCTMUX_YIELD        0x5FF0
+#define RCTMUX_FLAGS        0x5FF8
 
 #define STACK_SIZE          0x1000
 #define STACK_TOP           (RT_END + STACK_SIZE)

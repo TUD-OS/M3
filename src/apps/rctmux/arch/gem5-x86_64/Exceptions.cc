@@ -20,6 +20,8 @@
 
 #include "Exceptions.h"
 
+EXTERN_C void *_rctmux_stack;
+
 // Our ISRs
 EXTERN_C void isr_0();
 EXTERN_C void isr_1();
@@ -50,13 +52,12 @@ Exceptions::Desc Exceptions::gdt[GDT_ENTRY_COUNT];
 Exceptions::Desc64 Exceptions::idt[IDT_COUNT];
 Exceptions::TSS Exceptions::tss ALIGNED(PAGE_SIZE);
 
-bool Exceptions::handler(m3::Exceptions::State *state) {
-    // TODO move that to Entry.S
-    isrs[state->intrptNo](state);
-    return state->intrptNo != 64;
+void *Exceptions::handler(m3::Exceptions::State *state) {
+    return isrs[state->intrptNo](state);
 }
 
-void Exceptions::null_handler(m3::Exceptions::State *) {
+void *Exceptions::null_handler(m3::Exceptions::State *state) {
+    return state;
 }
 
 void Exceptions::init() {
@@ -66,10 +67,11 @@ void Exceptions::init() {
     gdtTable.size = GDT_ENTRY_COUNT * sizeof(Desc) - 1;
 
     // code+data
-    setDesc(gdt + SEG_CODE, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::CODE_XR, Desc::DPL_KERNEL);
-    setDesc(gdt + SEG_DATA, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::DATA_RW, Desc::DPL_KERNEL);
-    // tss (we don't need a valid stack pointer because we don't switch the ring)
-    setTSS(gdt, &tss, 0);
+    setDesc(gdt + SEG_KCODE, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::CODE_XR, Desc::DPL_KERNEL);
+    setDesc(gdt + SEG_KDATA, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::DATA_RW, Desc::DPL_KERNEL);
+    setDesc(gdt + SEG_UCODE, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::CODE_XR, Desc::DPL_USER);
+    setDesc(gdt + SEG_UDATA, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::DATA_RW, Desc::DPL_USER);
+    setTSS(gdt, &tss, reinterpret_cast<uintptr_t>(&_rctmux_stack));
 
     // now load GDT and TSS
     loadGDT(&gdtTable);
@@ -137,7 +139,7 @@ void Exceptions::setIDT(size_t number, entry_func handler, uint8_t dpl) {
     e->type = Desc::SYS_INTR_GATE;
     e->dpl = dpl;
     e->present = number != 2 && number != 15; /* reserved by intel */
-    e->addrLow = SEG_CODE << 3;
+    e->addrLow = SEG_KCODE << 3;
     e->addrHigh = (reinterpret_cast<uintptr_t>(handler) >> 16) & 0xFFFF;
     e->limitLow = reinterpret_cast<uintptr_t>(handler) & 0xFFFF;
     e->addrUpper = reinterpret_cast<uintptr_t>(handler) >> 32;

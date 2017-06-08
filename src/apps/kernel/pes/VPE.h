@@ -74,8 +74,8 @@ public:
         F_WAITING     = 1 << 7,
     };
 
-    explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep = INVALID_EP,
-        capsel_t pfgate = m3::KIF::INV_SEL);
+    explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,
+        capsel_t sgate = m3::KIF::INV_SEL, epid_t rep = INVALID_EP, capsel_t rgate = m3::KIF::INV_SEL);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
     ~VPE();
@@ -103,6 +103,9 @@ public:
 
     bool is_daemon() const {
         return _flags & F_DAEMON;
+    }
+    bool is_idle() const {
+        return _flags & F_IDLE;
     }
     bool has_app() const {
         return _flags & F_HASAPP;

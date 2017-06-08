@@ -40,7 +40,8 @@ OStream &operator<<(OStream &os, const Env &senv) {
     os << "entry : " << fmt(senv.entry, "p") << "\n";
     os << "lambda: " << fmt(senv.lambda, "p") << "\n";
     os << "pgsess: " << senv.pager_sess << "\n";
-    os << "pggate: " << senv.pager_gate << "\n";
+    os << "psgate: " << senv.pager_sgate << "\n";
+    os << "prgate: " << senv.pager_rgate << "\n";
     os << "mounts: " << senv.mounts << "\n";
     os << "mntlen: " << senv.mounts_len << "\n";
     os << "fds   : " << senv.fds << "\n";

@@ -343,6 +343,8 @@ retry:
 
             if(_cur->_flags & VPE::F_INIT)
                 _cur->init_memory();
+            else if(Platform::pe(_pe).has_mmu())
+                DTU::get().set_rootpt_remote(_cur->desc(), _cur->address_space()->root_pt());
 
             // fall through
         }
@@ -360,7 +362,12 @@ retry:
                 << report << " flags=" << m3::fmt(flags, "#x"));
 
             DTU::get().write_swstate(_cur->desc(), flags, report);
-            DTU::get().wakeup(_cur->desc());
+            // if we're doing that for the first time without MMU, we need to setup interrupts first
+            // before we can inject one
+            if(!Platform::pe(_pe).has_mmu() && (_cur->_flags & VPE::F_INIT))
+                DTU::get().wakeup(_cur->desc());
+            else
+                DTU::get().injectIRQ(_cur->desc());
             _state = S_RESTORE_DONE;
 
             _wait_time = INIT_WAIT_TIME;

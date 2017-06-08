@@ -55,7 +55,7 @@ public:
     void config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm);
 
-    void config_pf(gaddr_t rootpt, epid_t ep);
+    void config_pf(gaddr_t rootpt, epid_t sep, epid_t rep);
     void config_rwb(uintptr_t addr);
     void reset(uintptr_t addr);
 

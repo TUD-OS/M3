@@ -93,30 +93,113 @@ void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
     write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
 }
 
-void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t ep) {
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
-    static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
+void DTU::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[2];
+    regs[0] = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ);
+    regs[1] = arg;
+    m3::CPU::compiler_barrier();
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), regs, sizeof(regs));
 
-    // init root PT
-    clear_pt(rootpt);
+    // wait until the remote core sends us an ACK (writes 0 to EXT_ARG)
+    m3::DTU::reg_t extarg = 1;
+    uintptr_t extarg_addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_ARG);
+    while(extarg != 0)
+        read_mem(vpe, extarg_addr, &extarg, sizeof(extarg));
+}
 
+void DTU::set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt) {
+    assert(Platform::pe(vpe.pe).has_mmu());
+    mmu_cmd_remote(vpe, rootpt | m3::DTU::ExtPFCmdOpCode::SET_ROOTPT);
+}
+
+void DTU::invlpg_remote(const VPEDesc &vpe, uintptr_t virt) {
+    virt &= ~static_cast<uintptr_t>(PAGE_MASK);
+    if(Platform::pe(vpe.pe).has_mmu())
+        mmu_cmd_remote(vpe, virt | m3::DTU::ExtPFCmdOpCode::INV_PAGE);
+    do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3));
+}
+
+typedef uint64_t mmu_pte_t;
+
+static const mmu_pte_t X86_PTE_PRESENT  = 0x1;
+static const mmu_pte_t X86_PTE_WRITE    = 0x2;
+static const mmu_pte_t X86_PTE_USER     = 0x4;
+static const mmu_pte_t X86_PTE_UNCACHED = 0x10;
+static const mmu_pte_t X86_PTE_NOEXEC   = 1ULL << 63;
+
+static mmu_pte_t to_mmu_pte(peid_t pe, m3::DTU::pte_t pte) {
+    // the current implementation is based on some equal properties of MMU and DTU paging
+    static_assert(sizeof(mmu_pte_t) == sizeof(m3::DTU::pte_t), "MMU and DTU PTEs incompatible");
+    static_assert(m3::DTU::LEVEL_CNT == 4, "MMU and DTU PTEs incompatible: levels != 4");
+    static_assert(PAGE_SIZE == 4096, "MMU and DTU PTEs incompatible: pagesize != 4k");
+    static_assert(m3::DTU::LEVEL_BITS == 9, "MMU and DTU PTEs incompatible: level bits != 9");
+
+    if(Platform::pe(pe).has_dtuvm())
+        return pte;
+
+    mmu_pte_t res = pte & ~static_cast<m3::DTU::pte_t>(PAGE_MASK);
+    if(pte & m3::DTU::PTE_RWX)
+        res |= X86_PTE_PRESENT;
+    if(pte & m3::DTU::PTE_W)
+        res |= X86_PTE_WRITE;
+    if(pte & m3::DTU::PTE_I)
+        res |= X86_PTE_USER;
+    if(pte & m3::DTU::PTE_UNCACHED)
+        res |= X86_PTE_UNCACHED;
+    if(~pte & m3::DTU::PTE_X)
+        res |= X86_PTE_NOEXEC;
+    return res;
+}
+
+static m3::DTU::pte_t to_dtu_pte(peid_t pe, mmu_pte_t pte) {
+    if(Platform::pe(pe).has_dtuvm() || pte == 0)
+        return pte;
+
+    m3::DTU::pte_t res = pte & ~static_cast<m3::DTU::pte_t>(PAGE_MASK);
+    if(pte & X86_PTE_PRESENT)
+        res |= m3::DTU::PTE_R;
+    if(pte & X86_PTE_WRITE)
+        res |= m3::DTU::PTE_W;
+    if(pte & X86_PTE_USER)
+        res |= m3::DTU::PTE_I;
+    if(~pte & X86_PTE_NOEXEC)
+        res |= m3::DTU::PTE_X;
+    return res;
+}
+
+void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep) {
     // insert recursive entry
     uintptr_t addr = m3::DTU::gaddr_to_virt(rootpt);
-    m3::DTU::pte_t pte = rootpt | m3::DTU::PTE_RWX;
+    m3::DTU::pte_t pte = to_mmu_pte(vpe.pe, rootpt | m3::DTU::PTE_RWX);
     write_mem(VPEDesc(m3::DTU::gaddr_to_pe(rootpt), VPE::INVALID_ID),
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
 
-    // init DTU registers
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
-    uint features = 0;
-    if(ep != static_cast<epid_t>(-1))
-        features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-    regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
-    regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
-    regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = ep;
-    m3::CPU::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), regs, sizeof(regs));
+    if(Platform::pe(vpe.pe).has_dtuvm()) {
+        static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
+        static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
+        static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
+
+        // init DTU registers
+        alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
+        uint features = 0;
+        if(sep != static_cast<epid_t>(-1))
+            features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
+        regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
+        regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
+        regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = sep | (rep << 8);
+        m3::CPU::compiler_barrier();
+        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), regs, sizeof(regs));
+    }
+    else {
+        static_assert(static_cast<int>(m3::DTU::DtuRegs::EXT_ARG) ==
+                      static_cast<int>(m3::DTU::DtuRegs::EXT_CMD) + 1, "EXT_ARG wrong");
+
+        alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = sep | (rep << 8);
+        m3::CPU::compiler_barrier();
+        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::PF_EP), &reg, sizeof(reg));
+
+        set_rootpt_remote(vpe, rootpt);
+    }
 
     // invalidate TLB, because we have changed the root PT
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
@@ -139,14 +222,13 @@ bool DTU::create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t
         clear_pt(pte);
 
         // insert PTE
-        pte |= m3::DTU::PTE_RWX;
+        pte |= m3::DTU::PTE_IRWX;
+        pte = to_mmu_pte(vpe.pe, pte);
         const size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
-        KLOG(PTES, "VPE" << vpeid << ": lvl 1 PTE for "
+        KLOG(PTES, "VPE" << vpeid << ": lvl " << level << " PTE for "
             << m3::fmt(virt & ~(ptsize - 1), "p") << ": " << m3::fmt(pte, "#0x", 16));
         write_mem(vpe, pteAddr, &pte, sizeof(pte));
     }
-
-    assert((pte & m3::DTU::PTE_IRWX) == m3::DTU::PTE_RWX);
     return false;
 }
 
@@ -158,14 +240,16 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
     // be resized. thus, we know that a downgrade for the first, is a downgrade for all
     // and that an existing mapping for the first is an existing mapping for all.
 
+    m3::DTU::pte_t pteDTU = to_dtu_pte(vpe.pe, pte);
     m3::DTU::pte_t npte = phys | static_cast<uint>(perm) | m3::DTU::PTE_I;
-    if(npte == pte)
+    if(npte == pteDTU)
         return true;
 
-    bool downgrade = ((pte & m3::DTU::PTE_RWX) & ~(npte & m3::DTU::PTE_RWX)) != 0;
-    downgrade |= (pte & ~static_cast<m3::DTU::pte_t>(m3::DTU::PTE_IRWX)) != phys;
+    bool downgrade = false;
     // do not invalidate pages if we are writing to a memory PE
-    downgrade &= Platform::pe(vpe.pe).has_virtmem();
+    if((pteDTU & m3::DTU::PTE_RWX) && Platform::pe(vpe.pe).has_virtmem())
+        downgrade = ((pteDTU & m3::DTU::PTE_RWX) & (~npte & m3::DTU::PTE_RWX)) != 0;
+
     uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
         m3::Math::round_up(pteAddr + sizeof(npte), PAGE_SIZE));
 
@@ -174,20 +258,16 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
     pages -= count;
     phys += count << PAGE_BITS;
 
+    npte = to_mmu_pte(vpe.pe, npte);
     while(pteAddr < endpte) {
         KLOG(PTES, "VPE" << vpeid << ": lvl 0 PTE for "
-            << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16));
+            << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16)
+            << (downgrade ? " (invalidating)" : ""));
         write_mem(vpe, pteAddr, &npte, sizeof(npte));
 
         // permissions downgraded?
-        if(downgrade) {
-            // do that manually instead of with do_ext_cmd, because we don't want to reconfigure
-            // the endpoint
-            alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
-                static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3);
-            m3::CPU::compiler_barrier();
-            write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
-        }
+        if(downgrade)
+            invlpg_remote(vpe, virt);
 
         pteAddr += sizeof(npte);
         virt += PAGE_SIZE;
@@ -198,6 +278,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
 
 static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     static uintptr_t recMask =
+        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 3)) |
         (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
         (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 1)) |
         (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 0));
@@ -319,8 +400,11 @@ void DTU::remove_pts(vpeid_t vpe) {
     VPE &v = VPEManager::get().vpe(vpe);
     assert(v.state() == VPE::DEAD);
 
-    gaddr_t root = v.address_space()->root_pt();
-    remove_pts_rec(vpe, root, 0, m3::DTU::LEVEL_CNT - 1);
+    // don't destroy page tables of idle VPEs. we need them to execute something on the other PEs
+    if(!v.is_idle()) {
+        gaddr_t root = v.address_space()->root_pt();
+        remove_pts_rec(vpe, root, 0, m3::DTU::LEVEL_CNT - 1);
+    }
 }
 
 m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
@@ -414,8 +498,7 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
 
-    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(msg));
-    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA_SIZE, size);
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA, reinterpret_cast<uintptr_t>(msg) | (size << 48));
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_LABEL, replylbl);
     if(sender == static_cast<uint64_t>(-1)) {
         sender = Platform::kernel_pe() |

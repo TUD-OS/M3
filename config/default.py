@@ -23,8 +23,10 @@ for i in range(0, num_pes - num_spm):
                       no=i,
                       cmdline=cmd_list[i],
                       memPE=mem_pe,
-                      l1size='64kB',
-                      l2size='256kB')
+                      l1size='32kB',
+                      l2size='256kB',
+                      dtupos=0,
+                      mmu=False)
     pes.append(pe)
 for i in range(num_pes - num_spm, num_pes):
     pe = createCorePE(root=root,

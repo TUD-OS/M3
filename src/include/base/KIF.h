@@ -210,8 +210,10 @@ struct KIF {
             xfer_t dst_sel;
             xfer_t mgate_sel;
             xfer_t sgate_sel;
+            xfer_t rgate_sel;
             xfer_t pe;
-            xfer_t ep;
+            xfer_t sep;
+            xfer_t rep;
             xfer_t muxable;
             xfer_t namelen;
             char name[32];

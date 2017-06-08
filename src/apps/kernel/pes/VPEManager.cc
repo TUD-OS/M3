@@ -34,7 +34,8 @@ VPEManager::VPEManager()
 void VPEManager::init(int argc, char **argv) {
     // TODO the required PE depends on the boot module, not the kernel PE
     m3::PEDesc pedesc = Platform::pe(Platform::kernel_pe());
-    m3::PEDesc pedesc_cache(m3::PEType::COMP_EMEM, pedesc.isa(), pedesc.mem_size());
+    m3::PEDesc pedesc_dtuvm(m3::PEType::COMP_DTUVM, pedesc.isa(), pedesc.mem_size());
+    m3::PEDesc pedesc_mmu(m3::PEType::COMP_MMU, pedesc.isa(), pedesc.mem_size());
     m3::PEDesc pedesc_spm(m3::PEType::COMP_IMEM, pedesc.isa(), pedesc.mem_size());
 
     for(int i = 0; i < argc; ++i) {
@@ -46,13 +47,17 @@ void VPEManager::init(int argc, char **argv) {
 
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
-            // try to find a PE with the required ISA and a cache first
-            peid_t peid = PEManager::get().find_pe(pedesc_cache, 0, false);
+            // try to find a PE with the required ISA and an MMU first
+            peid_t peid = PEManager::get().find_pe(pedesc_mmu, 0, false);
             if(peid == 0) {
                 // if that failed, try to find a SPM PE
-                peid = PEManager::get().find_pe(pedesc_spm, 0, false);
-                if(peid == 0)
-                    PANIC("Unable to find a free PE for boot module " << argv[i]);
+                peid = PEManager::get().find_pe(pedesc_dtuvm, 0, false);
+                if(peid == 0) {
+                    // if that failed, try to find a SPM PE
+                    peid = PEManager::get().find_pe(pedesc_spm, 0, false);
+                    if(peid == 0)
+                        PANIC("Unable to find a free PE for boot module " << argv[i]);
+                }
             }
 
             // allow multiple applications with the same name
@@ -148,13 +153,14 @@ vpeid_t VPEManager::get_id() {
     return id;
 }
 
-VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, capsel_t pfgate, bool tmuxable) {
+VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, capsel_t sgate,
+                        epid_t rep, capsel_t rgate, bool tmuxable) {
     peid_t i = PEManager::get().find_pe(pe, 0, tmuxable);
     if(i == 0)
         return nullptr;
 
     // a pager without virtual memory support, doesn't work
-    if(!Platform::pe(i).has_virtmem() && pfgate != m3::KIF::INV_SEL)
+    if(!Platform::pe(i).has_virtmem() && sgate != m3::KIF::INV_SEL)
         return nullptr;
 
     vpeid_t id = get_id();
@@ -162,7 +168,7 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t ep, caps
         return nullptr;
 
     uint flags = tmuxable ? VPE::F_MUXABLE : 0;
-    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, ep, pfgate);
+    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, sep, sgate, rep, rgate);
     assert(vpe == _vpes[id]);
 
     return vpe;

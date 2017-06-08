@@ -25,22 +25,31 @@ namespace kernel {
 
 class AddrSpace {
 public:
-    explicit AddrSpace(vpeid_t vpeid, epid_t ep, capsel_t gate);
+    explicit AddrSpace(vpeid_t vpeid, epid_t sep, capsel_t sgate, epid_t rep, capsel_t rgate);
     ~AddrSpace();
 
-    epid_t ep() const {
-        return _ep;
+    epid_t sep() const {
+        return _sep;
     }
-    capsel_t gate() const {
-        return _gate;
+    capsel_t sgate() const {
+        return _sgate;
     }
+    epid_t rep() const {
+        return _rep;
+    }
+    capsel_t rgate() const {
+        return _rgate;
+    }
+
     gaddr_t root_pt() const {
         return _root;
     }
 
     vpeid_t _vpeid;
-    epid_t _ep;
-    capsel_t _gate;
+    epid_t _sep;
+    epid_t _rep;
+    capsel_t _sgate;
+    capsel_t _rgate;
     gaddr_t _root;
 };
 

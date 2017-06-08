@@ -64,26 +64,31 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
     // create pager first, to create session and obtain gate cap
     if(_pe.has_virtmem()) {
         if(pager)
-            _pager = new Pager(pager);
+            _pager = new Pager(*this, pager);
         else if(VPE::self().pager())
-            _pager = VPE::self().pager()->create_clone();
+            _pager = VPE::self().pager()->create_clone(*this);
         if(Errors::last != Errors::NONE)
             return;
     }
 
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(), name, _pe, alloc_ep(), tmuxable);
-        // mark the pfgate cap allocated
+        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(), _pager->rgate().sel(),
+            name, _pe, alloc_ep(), _pager->rep(), tmuxable);
+        // mark the pager caps allocated
         assert(!_caps->is_set(_pager->gate().sel()));
         _caps->set(_pager->gate().sel());
+        if(_pager->rgate().sel() != ObjCap::INVALID)
+            _caps->set(_pager->rgate().sel());
         // now delegate our VPE cap and memory cap to the pager
         _pager->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel(), 2));
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }
-    else
-        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, name, _pe, 0, tmuxable);
+    else {
+        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, ObjCap::INVALID, name, _pe,
+            0, 0, tmuxable);
+    }
 }
 
 VPE::~VPE() {

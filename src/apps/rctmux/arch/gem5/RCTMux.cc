@@ -21,6 +21,8 @@
 
 #include "../../RCTMux.h"
 
+EXTERN_C void gem5_writefile(const char *str, uint64_t len, uint64_t offset, uint64_t file);
+
 namespace RCTMux {
 
 static m3::DTU::reg_t cmdreg;
@@ -43,6 +45,11 @@ void save() {
 
 void resume() {
     m3::DTU::get().retry(cmdreg);
+}
+
+void print(const char *str, size_t len) {
+    const char *fileAddr = "stdout";
+    gem5_writefile(str, len, 0, reinterpret_cast<uint64_t>(fileAddr));
 }
 
 } /* namespace RCTMux */

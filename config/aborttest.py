@@ -15,7 +15,8 @@ for i in range(0, num_pes):
                            options=options,
                            no=i,
                            memPE=mem_pe,
-                           l1size='64kB')
+                           l1size='32kB',
+                           l2size='256kB')
     pes.append(pe)
 
 pe = createMemPE(root=root,

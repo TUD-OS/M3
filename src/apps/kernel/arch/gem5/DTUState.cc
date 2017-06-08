@@ -85,6 +85,8 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // reset idle time and msg count; msg count will be recalculated from the EPs
     _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
+    _regs.set(m3::DTU::DtuRegs::RW_BARRIER, Platform::rw_barrier(vpe.pe));
+
     m3::CPU::compiler_barrier();
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
 }
@@ -163,13 +165,13 @@ void DTUState::config_rwb(uintptr_t addr) {
     _regs.set(m3::DTU::DtuRegs::RW_BARRIER, addr);
 }
 
-void DTUState::config_pf(gaddr_t rootpt, epid_t ep) {
+void DTUState::config_pf(gaddr_t rootpt, epid_t sep, epid_t rep) {
     uint features = 0;
-    if(ep != static_cast<epid_t>(-1))
+    if(sep != static_cast<epid_t>(-1))
         features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
     _regs.set(m3::DTU::DtuRegs::FEATURES, features);
     _regs.set(m3::DTU::DtuRegs::ROOT_PT, rootpt);
-    _regs.set(m3::DTU::DtuRegs::PF_EP, ep);
+    _regs.set(m3::DTU::DtuRegs::PF_EP, sep | (rep << 8));
 }
 
 void DTUState::reset(uintptr_t addr) {

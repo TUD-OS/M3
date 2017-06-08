@@ -57,7 +57,11 @@ public:
     void injectIRQ(const VPEDesc &vpe);
 
     void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
-    void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t ep);
+    void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
+
+    void mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg);
+    void set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt);
+    void invlpg_remote(const VPEDesc &vpe, uintptr_t virt);
 
     void map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);

@@ -35,7 +35,7 @@ HashIAccel::HashIAccel(bool muxable)
 }
 
 HashEAccel::HashEAccel(bool muxable)
-    : _vpe("acc", PEDesc(PEType::COMP_EMEM, PEISA::ACCEL_SHA), "pager", muxable) {
+    : _vpe("acc", PEDesc(PEType::COMP_DTUVM, PEISA::ACCEL_SHA), "pager", muxable) {
 }
 
 uintptr_t HashIAccel::getRBAddr() {

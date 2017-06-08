@@ -34,9 +34,11 @@ public:
 
     /* segments numbers */
     enum {
-        SEG_CODE           = 1,
-        SEG_DATA           = 2,
-        SEG_TSS            = 3,
+        SEG_KCODE          = 1,
+        SEG_KDATA          = 2,
+        SEG_UCODE          = 3,
+        SEG_UDATA          = 4,
+        SEG_TSS            = 5,
     };
 
     /* a descriptor */
@@ -125,8 +127,8 @@ public:
 
     static const size_t IDT_COUNT       = 66;
 
-    /* we need 5 entries: null-entry, code for kernel, data for kernel, 2 for TSS (on x86_64) */
-    static const size_t GDT_ENTRY_COUNT = 5;
+    /* we need 5 entries: null-entry, code+data for kernel/user, 2 for TSS (on x86_64) */
+    static const size_t GDT_ENTRY_COUNT = 7;
 
 public:
     static void init();
@@ -136,8 +138,8 @@ public:
     }
 
 private:
-    static bool handler(m3::Exceptions::State *state) asm("interrupt_handler");
-    static void null_handler(m3::Exceptions::State *state);
+    static void *handler(m3::Exceptions::State *state) asm("interrupt_handler");
+    static void *null_handler(m3::Exceptions::State *state);
 
     static void loadIDT(DescTable *tbl) {
         asm volatile ("lidt %0" : : "m"(*tbl));

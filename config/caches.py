@@ -22,8 +22,10 @@ for i in range(0, num_pes):
                       no=i,
                       cmdline=cmd_list[i],
                       memPE=mem_pe,
-                      l1size='64kB',
-                      l2size='256kB')
+                      l1size='32kB',
+                      l2size='256kB',
+                      dtupos=2,
+                      mmu=True)
     pes.append(pe)
 
 # create the memory PEs

@@ -32,6 +32,10 @@ class DTUState;
 class VPE;
 }
 
+namespace RCTMux {
+struct PFHandler;
+}
+
 namespace m3 {
 
 class DTU {
@@ -39,6 +43,7 @@ class DTU {
     friend class kernel::DTURegs;
     friend class kernel::DTUState;
     friend class kernel::VPE;
+    friend struct RCTMux::PFHandler;
 
     explicit DTU() {
     }
@@ -48,8 +53,8 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 9;
-    static const size_t CMD_REGS            = 7;
+    static const size_t DTU_REGS            = 12;
+    static const size_t CMD_REGS            = 5;
     static const size_t EP_REGS             = 3;
 
     static const size_t CREDITS_UNLIM       = 0xFFFF;
@@ -65,16 +70,17 @@ private:
         IDLE_TIME           = 6,
         MSG_CNT             = 7,
         EXT_CMD             = 8,
+        EXT_ARG             = 9,
+        XLATE_REQ           = 10,
+        XLATE_RESP          = 11,
     };
 
     enum class CmdRegs {
         COMMAND             = DTU_REGS + 0,
         ABORT               = DTU_REGS + 1,
-        DATA_ADDR           = DTU_REGS + 2,
-        DATA_SIZE           = DTU_REGS + 3,
-        OFFSET              = DTU_REGS + 4,
-        REPLY_EP            = DTU_REGS + 5,
-        REPLY_LABEL         = DTU_REGS + 6,
+        DATA                = DTU_REGS + 2,
+        OFFSET              = DTU_REGS + 3,
+        REPLY_LABEL         = DTU_REGS + 4,
     };
 
     enum MemFlags : reg_t {
@@ -131,10 +137,10 @@ public:
     enum {
         PTE_BITS            = 3,
         PTE_SIZE            = 1 << PTE_BITS,
-        LEVEL_CNT           = 2,
+        LEVEL_CNT           = 4,
         LEVEL_BITS          = PAGE_BITS - PTE_BITS,
         LEVEL_MASK          = (1 << LEVEL_BITS) - 1,
-        PTE_REC_IDX         = LEVEL_MASK,
+        PTE_REC_IDX         = 0x10,
     };
 
     enum {
@@ -143,6 +149,7 @@ public:
         PTE_X               = 4,
         PTE_I               = 8,
         PTE_GONE            = 16,
+        PTE_UNCACHED        = 32, // unsupported by DTU, but used for MMU
         PTE_RW              = PTE_R | PTE_W,
         PTE_RWX             = PTE_RW | PTE_X,
         PTE_IRWX            = PTE_RWX | PTE_I,
@@ -151,6 +158,11 @@ public:
     enum {
         ABORT_VPE           = 1,
         ABORT_CMD           = 2,
+    };
+
+    enum ExtPFCmdOpCode {
+        SET_ROOTPT          = 0,
+        INV_PAGE            = 1,
     };
 
     struct Header {
@@ -198,13 +210,13 @@ public:
     }
 
     static peid_t gaddr_to_pe(gaddr_t noc) {
-        return (noc >> 52) - 0x80;
+        return (noc >> 44) - 0x80;
     }
     static uintptr_t gaddr_to_virt(gaddr_t noc) {
-        return noc & ((static_cast<gaddr_t>(1) << 52) - 1);
+        return noc & ((static_cast<gaddr_t>(1) << 44) - 1);
     }
     static gaddr_t build_gaddr(peid_t pe, uintptr_t virt) {
-        return (static_cast<gaddr_t>(0x80 + pe) << 52) | virt;
+        return (static_cast<gaddr_t>(0x80 + pe) << 44) | virt;
     }
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);
@@ -245,10 +257,9 @@ public:
     }
 
     void mark_read(epid_t ep, size_t off) {
-        write_reg(CmdRegs::OFFSET, off);
         // ensure that we are really done with the message before acking it
         CPU::memory_barrier();
-        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::ACK_MSG));
+        write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::ACK_MSG, 0, off));
         // ensure that we don't do something else before the ack
         CPU::memory_barrier();
     }
@@ -263,9 +274,7 @@ public:
 
     void try_sleep(bool yield = true, uint64_t cycles = 0);
     void sleep(uint64_t cycles = 0) {
-        write_reg(CmdRegs::OFFSET, cycles);
-        CPU::memory_barrier();
-        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::SLEEP));
+        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::SLEEP, 0, cycles));
     }
 
     void wait_until_ready(epid_t) const {
@@ -286,8 +295,7 @@ public:
     }
 
     void print(const char *str, size_t len) {
-        write_reg(CmdRegs::DATA_ADDR, reinterpret_cast<uintptr_t>(str));
-        write_reg(CmdRegs::DATA_SIZE, len);
+        write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(str) | (len << 48));
         CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::PRINT));
     }
@@ -297,13 +305,35 @@ public:
     }
 
 private:
-    Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, size_t off);
+    reg_t get_pfep() const {
+        return read_reg(DtuRegs::PF_EP);
+    }
+    bool ep_valid(epid_t ep) const {
+        return (read_reg(ep, 0) >> 61) != 0;
+    }
+
+    reg_t get_xlate_req() const {
+        return read_reg(DtuRegs::XLATE_REQ);
+    }
+    void set_xlate_req(reg_t val) {
+        write_reg(DtuRegs::XLATE_REQ, val);
+    }
+    void set_xlate_resp(reg_t val) {
+        write_reg(DtuRegs::XLATE_RESP, val);
+    }
+
+    reg_t get_ext_arg() const {
+        return read_reg(DtuRegs::EXT_ARG);
+    }
+    void set_ext_arg(reg_t val) {
+        write_reg(DtuRegs::EXT_ARG, val);
+    }
 
     static Errors::Code get_error() {
         while(true) {
             reg_t cmd = read_reg(CmdRegs::COMMAND);
             if(static_cast<CmdOpCode>(cmd & 0xF) == CmdOpCode::IDLE)
-                return static_cast<Errors::Code>(cmd >> 13);
+                return static_cast<Errors::Code>((cmd >> 13) & 0x7);
         }
         UNREACHED;
     }
@@ -341,10 +371,11 @@ private:
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
-    static reg_t buildCommand(epid_t ep, CmdOpCode c, uint flags = 0) {
+    static reg_t buildCommand(epid_t ep, CmdOpCode c, uint flags = 0, reg_t arg = 0) {
         return static_cast<reg_t>(c) |
                 (static_cast<reg_t>(ep) << 4) |
-                (static_cast<reg_t>(flags) << 12);
+                (static_cast<reg_t>(flags) << 12 |
+                arg << 16);
     }
 
     static DTU inst;

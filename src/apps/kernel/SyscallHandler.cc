@@ -142,15 +142,15 @@ void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
 
     // if we don't have a pager, it was probably because of speculative execution. just return an
     // error in this case and don't print anything
-    capsel_t gcap = vpe->address_space()->gate();
-    auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(gcap, Capability::SGATE));
+    capsel_t sgcap = vpe->address_space()->sgate();
+    auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgcap, Capability::SGATE));
     if(sgatecap == nullptr) {
         reply_result(vpe, msg, m3::Errors::INV_ARGS);
         return;
     }
 
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-    vpe->config_snd_ep(vpe->address_space()->ep(), *sgatecap->obj);
+    vpe->config_snd_ep(vpe->address_space()->sep(), *sgatecap->obj);
 #endif
 
     reply_result(vpe, msg, m3::Errors::NONE);
@@ -365,15 +365,17 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     capsel_t dst = req->dst_sel;
     capsel_t mgate = req->mgate_sel;
     capsel_t sgate = req->sgate_sel;
+    capsel_t rgate = req->rgate_sel;
     m3::PEDesc::value_t pe = req->pe;
-    epid_t ep = req->ep;
+    epid_t sep = req->sep;
+    epid_t rep = req->rep;
     bool tmuxable = req->muxable;
     m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createvpe", "(dst=" << dst << ", mgate=" << mgate
         << ", sgate=" << sgate << ", name=" << name
         << ", pe=" << static_cast<int>(m3::PEDesc(pe).type())
-        << ", pfep=" << ep << ", tmuxable=" << tmuxable << ")");
+        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable << ")");
 
     if(!vpe->objcaps().unused(dst) || !vpe->objcaps().unused(mgate))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE or memory cap");
@@ -383,13 +385,27 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     if(sgate != m3::KIF::INV_SEL) {
         sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgate, Capability::SGATE));
         if(sgatecap == nullptr)
-            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap(s)");
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid SendGate cap(s)");
     }
     else
-        ep = VPE::INVALID_EP;
+        sep = VPE::INVALID_EP;
+
+    // with an MMU, we need an rgatecap
+    RGateCapability *rgatecap = nullptr;
+    if(rgate != m3::KIF::INV_SEL) {
+        rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
+        if(rgatecap == nullptr)
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid RecvGate cap(s)");
+    }
+    else {
+        if(m3::PEDesc(pe).has_mmu())
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "MMU requires a RecvGate");
+        rep = VPE::INVALID_EP;
+    }
 
     // create VPE
-    VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe), ep, sgate, tmuxable);
+    VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe), sep, sgate,
+        rep, rgate, tmuxable);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 
@@ -404,6 +420,8 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     // delegate pf gate to the new VPE
     if(sgate != m3::KIF::INV_SEL)
         nvpe->objcaps().obtain(sgate, sgatecap);
+    if(rgate != m3::KIF::INV_SEL)
+        nvpe->objcaps().obtain(rgate, rgatecap);
 
     m3::KIF::Syscall::CreateVPEReply reply;
     reply.error = m3::Errors::NONE;
@@ -733,7 +751,7 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::Ca
         return m3::Errors::INV_ARGS;
     }
     if(!dst.objcaps().range_unused(dstrng)) {
-        LOG_ERROR(v1, m3::Errors::INV_ARGS, "Invalid destination caps");
+        LOG_ERROR(v1, m3::Errors::INV_ARGS, "Invalid destination caps: " << dstrng);
         return m3::Errors::INV_ARGS;
     }
 

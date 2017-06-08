@@ -114,9 +114,9 @@ build_params_gem5() {
     fi
     if [ "$M3_GEM5_CPU" = "" ]; then
         if [ "$debug" != "" ]; then
-            M3_GEM5_CPU="timing"
+            M3_GEM5_CPU="TimingSimpleCPU"
         else
-            M3_GEM5_CPU="detailed"
+            M3_GEM5_CPU="DerivO3CPU"
         fi
     fi
 
@@ -145,6 +145,9 @@ build_params_gem5() {
 
     params=`mktemp`
     echo -n "--outdir=$M3_GEM5_OUT --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params
+    if [ "$M3_PAUSE_PE" != "" ]; then
+        echo -n " --listener-mode=on" >> $params
+    fi
     echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --isa $M3_ISA --cmd \"$cmd\"" >> $params
     echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
     if [ "$M3_PAUSE_PE" != "" ]; then

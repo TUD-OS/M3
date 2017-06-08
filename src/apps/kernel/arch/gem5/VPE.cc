@@ -52,7 +52,7 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
             count++;
         }
 
-        static const char *types[] = {"imem", "emem", " mem"};
+        static const char *types[] = {" imem", "dtuvm", "  mmu", "  mem"};
         static const char *isas[] = {"non", "x86", "arm", "xte", "sha", "fft", "tou"};
         for(size_t i = 0; i < Platform::pe_count(); ++i) {
             KLOG(KENV, "PE" << m3::fmt(i, 2) << ": "
@@ -110,7 +110,7 @@ static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int
     }
 }
 
-static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap) {
+static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bool to_mem) {
     // load and check ELF header
     m3::ElfEh header;
     read_from_mod(mod, &header, sizeof(header), 0);
@@ -152,10 +152,20 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap)
             map_segment(vpe, phys, virt, size, perms);
             end = virt + size;
 
-            DTU::get().copy_clear(vpe.desc(), virt,
-                VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
-                m3::DTU::gaddr_to_virt(mod->addr + offset),
-                size, pheader.p_filesz == 0);
+            if(to_mem) {
+                VPEDesc memvpe(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID);
+                DTU::get().copy_clear(memvpe, m3::DTU::gaddr_to_virt(phys),
+                    VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
+                    m3::DTU::gaddr_to_virt(mod->addr + offset),
+                    size, pheader.p_filesz == 0);
+
+            }
+            else {
+                DTU::get().copy_clear(vpe.desc(), virt,
+                    VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
+                    m3::DTU::gaddr_to_virt(mod->addr + offset),
+                    size, pheader.p_filesz == 0);
+            }
         }
         else {
             assert(pheader.p_memsz == pheader.p_filesz);
@@ -201,7 +211,21 @@ static uintptr_t map_idle(VPE &vpe) {
         PANIC("Unable to find boot module 'idle'");
 
     // load idle
-    return load_mod(vpe, idle, false, false);
+    uintptr_t res = load_mod(vpe, idle, false, false, Platform::pe(vpe.pe()).has_mmu());
+
+    // clear RCTMUX_*
+    if(Platform::pe(vpe.pe()).has_mmu()) {
+        gaddr_t phys = idle->addr + RCTMUX_YIELD;
+        DTU::get().copy_clear(VPEDesc(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID),
+            m3::DTU::gaddr_to_virt(phys),
+            VPEDesc(0, 0), 0, // unused
+            16, true);
+
+        // map DTU
+        int perm = m3::DTU::PTE_RW | m3::DTU::PTE_I | m3::DTU::PTE_UNCACHED;
+        map_segment(vpe, 0xF0000000, 0xF0000000, PAGE_SIZE, perm);
+    }
+    return res;
 }
 
 void VPE::load_app() {
@@ -223,7 +247,7 @@ void VPE::load_app() {
     }
 
     // load app
-    uintptr_t entry = load_mod(*this, mod, !appFirst, true);
+    uintptr_t entry = load_mod(*this, mod, !appFirst, true, false);
 
     // count arguments
     size_t argc = 1;
@@ -272,8 +296,21 @@ void VPE::load_app() {
 void VPE::init_memory() {
     bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
-        _dtustate.config_pf(address_space()->root_pt(), address_space()->ep());
-        DTU::get().config_pf_remote(desc(), address_space()->root_pt(), address_space()->ep());
+        // clear root pt
+        gaddr_t rootpt = address_space()->root_pt();
+        DTU::get().copy_clear(
+            VPEDesc(m3::DTU::gaddr_to_pe(rootpt), VPE::INVALID_ID), m3::DTU::gaddr_to_virt(rootpt),
+            VPEDesc(0, 0), 0,
+            PAGE_SIZE, true);
+
+        if(Platform::pe(pe()).has_mmu())
+            _state = VPE::SUSPENDED;
+        else {
+            _dtustate.config_pf(address_space()->root_pt(),
+                address_space()->sep(), address_space()->rep());
+            DTU::get().config_pf_remote(desc(), address_space()->root_pt(),
+                address_space()->sep(), address_space()->rep());
+        }
     }
 
     if(Platform::pe(pe()).is_programmable())
@@ -284,15 +321,19 @@ void VPE::init_memory() {
         map_segment(*this, phys, RCTMUX_FLAGS & ~PAGE_MASK, PAGE_SIZE, m3::DTU::PTE_RW);
     }
 
+    if(Platform::pe(pe()).has_mmu()) {
+        _state = VPE::RUNNING;
+        _dtustate.config_pf(address_space()->root_pt(),
+            address_space()->sep(), address_space()->rep());
+        DTU::get().config_pf_remote(desc(), address_space()->root_pt(),
+            address_space()->sep(), address_space()->rep());
+    }
+
     if(vm) {
         // map receive buffer
         gaddr_t phys = alloc_mem(RECVBUF_SIZE);
         map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
-
-    uintptr_t barrier = Platform::rw_barrier(pe());
-    _dtustate.config_rwb(barrier);
-    DTU::get().config_rwb_remote(desc(), barrier);
 
     // boot modules are started implicitly
     if(_flags & F_BOOTMOD)

@@ -59,14 +59,14 @@ Errors::Code Pager::unmap(uintptr_t virt) {
     return res;
 }
 
-Pager *Pager::create_clone() {
+Pager *Pager::create_clone(VPE &vpe) {
     KIF::CapRngDesc caps;
     {
         caps = obtain(1);
         if(Errors::last != Errors::NONE)
             return nullptr;
     }
-    return new Pager(caps.start());
+    return new Pager(vpe, caps.start());
 }
 
 Errors::Code Pager::clone() {

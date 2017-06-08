@@ -29,7 +29,8 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, capsel_t pfgate)
+VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, capsel_t sgate,
+         epid_t rep, capsel_t rgate)
     : SListItem(),
       SlabObject<VPE>(),
       _desc(peid, id),
@@ -46,7 +47,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t ep, caps
       _dtustate(),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
-      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, ep, pfgate) : nullptr),
+      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, sep, sgate, rep, rgate) : nullptr),
       _rbufcpy(),
       _requires(),
       _argc(),
@@ -247,7 +248,8 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
 }
 
 m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
-    if(obj.addr < Platform::rw_barrier(pe()))
+    // TODO how to handle that with an MMU?
+    if(!Platform::pe(pe()).has_mmu() && obj.addr < Platform::rw_barrier(pe()))
         return m3::Errors::INV_ARGS;
 
     for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {

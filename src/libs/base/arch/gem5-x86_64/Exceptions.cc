@@ -51,13 +51,17 @@ static const char *exNames[] = {
 void Exceptions::init() {
     // TODO put the exception stuff in rctmux into a library and use it in the kernel as well
     if(env()->isrs) {
+        // the PF exception is handled by RCTMux if we have an MMU
+        bool want_pf = !env()->pedesc.has_mmu();
         auto funcs = reinterpret_cast<Exceptions::isr_func*>(env()->isrs);
-        for(size_t i = 0; i < ARRAY_SIZE(exNames); ++i)
-            funcs[i] = handler;
+        for(size_t i = 0; i < ARRAY_SIZE(exNames); ++i) {
+            if(want_pf || i != 0xe)
+                funcs[i] = handler;
+        }
     }
 }
 
-void Exceptions::handler(State *state) {
+void *Exceptions::handler(State *state) {
     auto &ser = Serial::get();
     ser << "Interruption @ " << fmt(state->rip, "p");
     if(state->intrptNo == 0xe)
@@ -93,6 +97,7 @@ void Exceptions::handler(State *state) {
     ser << "  flg: " << fmt(state->rflags, "#0x", 16) << "\n";
 
     env()->exit(1);
+    return state;
 }
 
 }

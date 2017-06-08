@@ -50,8 +50,8 @@ void VPE::init_fs() {
     if(Heap::is_on_heap(_ms))
         delete _ms;
 
-    if(env()->pager_sess && env()->pager_gate)
-        _pager = new Pager(env()->pager_sess, env()->pager_gate);
+    if(env()->pager_sess && env()->pager_sgate)
+        _pager = new Pager(env()->pager_sess, env()->pager_sgate, env()->pager_rgate);
 
     if(env()->mounts_len)
         _ms = MountSpace::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
@@ -65,6 +65,9 @@ void VPE::init_fs() {
 }
 
 Errors::Code VPE::run(void *lambda) {
+    if(_pager)
+        _pager->activate_rgate();
+
     Errors::Code err = copy_sections();
     if(err != Errors::NONE)
         return err;
@@ -84,7 +87,8 @@ Errors::Code VPE::run(void *lambda) {
     senv.fds = reinterpret_cast<uintptr_t>(_fds);
     senv.caps = reinterpret_cast<uintptr_t>(_caps);
     senv.eps = reinterpret_cast<uintptr_t>(_eps);
-    senv.pager_gate = 0;
+    senv.pager_sgate = 0;
+    senv.pager_rgate = 0;
     senv.pager_sess = 0;
 
     senv._backend = env()->_backend;
@@ -115,6 +119,9 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     _exec = new FStream(argv[0], FILE_RWX);
     if(!*_exec)
         return Errors::last;
+
+    if(_pager)
+        _pager->activate_rgate();
 
     uintptr_t entry;
     size_t size;
@@ -163,7 +170,8 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     /* set pager info */
     senv.pager_sess = _pager ? _pager->sel() : 0;
-    senv.pager_gate = _pager ? _pager->gate().sel() : 0;
+    senv.pager_sgate = _pager ? _pager->gate().sel() : 0;
+    senv.pager_rgate = _pager ? _pager->rgate().sel() : 0;
 
     senv._backend = 0;
     senv.pedesc = _pe;
