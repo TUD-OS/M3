@@ -284,18 +284,30 @@ void DTU::remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level) {
 
     // load entire page table
     peid_t pe = m3::DTU::gaddr_to_pe(pt);
-    read_mem(VPEDesc(pe, VPE::INVALID_ID), m3::DTU::gaddr_to_virt(pt), buffer, PAGE_SIZE);
+    VPEDesc memvpe(pe, VPE::INVALID_ID);
+    read_mem(memvpe, m3::DTU::gaddr_to_virt(pt), buffer, PAGE_SIZE);
 
     // free all PTEs, if they point to page tables
     size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
     m3::DTU::pte_t *ptes = reinterpret_cast<m3::DTU::pte_t*>(buffer);
     for(size_t i = 0; i < 1 << m3::DTU::LEVEL_BITS; ++i) {
         if(ptes[i]) {
+            /* skip recursive entry */
+            if(level == m3::DTU::LEVEL_CNT - 1 && i == m3::DTU::PTE_REC_IDX) {
+                virt += ptsize;
+                continue;
+            }
+
             gaddr_t gaddr = ptes[i] & ~PAGE_MASK;
-            if(level > 1)
+            if(level > 1) {
                 remove_pts_rec(vpe, gaddr, virt, level - 1);
+
+                // reload the rest of the buffer
+                size_t off = i * sizeof(*ptes);
+                read_mem(memvpe, m3::DTU::gaddr_to_virt(pt + off), buffer + off, PAGE_SIZE - off);
+            }
             // free page table
-            KLOG(PTES, "VPE" << vpe << ": lvl 1 PTE for " << m3::fmt(virt, "p") << " removed");
+            KLOG(PTES, "VPE" << vpe << ": lvl " << level << " PTE for " << m3::fmt(virt, "p") << " removed");
             MainMemory::get().free(MainMemory::get().build_allocation(gaddr, PAGE_SIZE));
         }
 
