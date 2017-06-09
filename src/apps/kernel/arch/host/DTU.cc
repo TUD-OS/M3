@@ -59,11 +59,11 @@ void DTU::injectIRQ(const VPEDesc &) {
     // unsupported
 }
 
-void DTU::config_rwb_remote(const VPEDesc &, uintptr_t) {
+void DTU::config_pf_remote(const VPEDesc &, gaddr_t, epid_t, epid_t) {
     // unsupported
 }
 
-void DTU::config_pf_remote(const VPEDesc &, gaddr_t, epid_t) {
+void DTU::set_rootpt_remote(const VPEDesc &, gaddr_t) {
     // unsupported
 }
 
@@ -75,7 +75,7 @@ void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
     // unsupported
 }
 
-void remove_pts(vpeid_t) {
+void DTU::remove_pts(vpeid_t) {
     // unsupported
 }
 

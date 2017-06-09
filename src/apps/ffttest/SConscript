@@ -1,2 +1,3 @@
 Import('env')
-env.M3Program(env, 'ffttest', env.Glob('*.cc'), libs = ['accel'])
+if env['ARCH'] == 'gem5':
+    env.M3Program(env, 'ffttest', env.Glob('*.cc'), libs = ['accel'])

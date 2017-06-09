@@ -59,7 +59,6 @@ public:
     void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
     void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
 
-    void mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg);
     void set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt);
     void invlpg_remote(const VPEDesc &vpe, uintptr_t virt);
 
@@ -123,6 +122,7 @@ private:
     uintptr_t get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
+    void mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg);
     void clear_pt(gaddr_t);
 #endif
 

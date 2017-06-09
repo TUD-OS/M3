@@ -101,11 +101,7 @@ void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t 
     regs[m3::DTU::EP_CREDITS]       = size;
 }
 
-void DTUState::config_rwb(uintptr_t) {
-    // not supported
-}
-
-void DTUState::config_pf(gaddr_t, epid_t) {
+void DTUState::config_pf(gaddr_t, epid_t, epid_t) {
     // not supported
 }
 

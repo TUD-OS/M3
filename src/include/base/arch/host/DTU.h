@@ -161,7 +161,9 @@ public:
         return inst;
     }
 
-    /* unused */
+    static peid_t gaddr_to_pe(gaddr_t) {
+        return 0;
+    }
     static uintptr_t gaddr_to_virt(gaddr_t) {
         return 0;
     }
