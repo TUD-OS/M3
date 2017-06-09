@@ -161,6 +161,27 @@ void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, siz
     r[2] = ((vpe & 0xFFFF) << 12) | ((pe & 0xFF) << 4) | (perm & 0x7);
 }
 
+bool DTUState::config_mem_cached(epid_t ep, peid_t pe, vpeid_t vpe) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+    m3::DTU::reg_t r0, r2;
+    r0 = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::MEMORY) << 61) | 0x1FFFFFFFFFFFFFFF;
+    r2 = ((vpe & 0xFFFF) << 12) | ((pe & 0xFF) << 4) | m3::DTU::RW;
+    bool res = false;
+    if(r0 != r[0]) {
+        r[0] = r0;
+        res = true;
+    }
+    if(r[1] != 0) {
+        r[1] = 0;
+        res = true;
+    }
+    if(r2 != r[2]) {
+        r[2] = r2;
+        res = true;
+    }
+    return res;
+}
+
 void DTUState::config_pf(gaddr_t rootpt, epid_t sep, epid_t rep) {
     uint features = 0;
     if(sep != static_cast<epid_t>(-1))

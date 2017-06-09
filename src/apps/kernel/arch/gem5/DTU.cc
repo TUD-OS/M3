@@ -532,18 +532,18 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *ms
 }
 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
-    _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::W);
-    write_ep_local(_ep);
+    if(_state.config_mem_cached(_ep, vpe.pe, vpe.id))
+        write_ep_local(_ep);
 
     // the kernel can never cause pagefaults with reads/writes
-    return m3::DTU::get().write(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    return m3::DTU::get().write(_ep, data, size, addr, m3::DTU::CmdFlags::NOPF);
 }
 
 m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
-    _state.config_mem(_ep, vpe.pe, vpe.id, addr, size, m3::DTU::R);
-    write_ep_local(_ep);
+    if(_state.config_mem_cached(_ep, vpe.pe, vpe.id))
+        write_ep_local(_ep);
 
-    return m3::DTU::get().read(_ep, data, size, 0, m3::DTU::CmdFlags::NOPF);
+    return m3::DTU::get().read(_ep, data, size, addr, m3::DTU::CmdFlags::NOPF);
 }
 
 void DTU::copy_clear(const VPEDesc &dstvpe, uintptr_t dstaddr,

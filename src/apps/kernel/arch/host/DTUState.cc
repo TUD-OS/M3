@@ -101,6 +101,11 @@ void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t 
     regs[m3::DTU::EP_CREDITS]       = size;
 }
 
+bool DTUState::config_mem_cached(epid_t, peid_t, vpeid_t) {
+    // unused
+    return true;
+}
+
 void DTUState::config_pf(gaddr_t, epid_t, epid_t) {
     // not supported
 }

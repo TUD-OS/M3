@@ -54,6 +54,7 @@ public:
     void config_recv(epid_t ep, uintptr_t buf, int order, int msgorder);
     void config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep, size_t msgsize, word_t crd);
     void config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm);
+    bool config_mem_cached(epid_t ep, peid_t pe, vpeid_t vpe);
 
     void config_pf(gaddr_t rootpt, epid_t sep, epid_t rep);
     void reset(uintptr_t addr);

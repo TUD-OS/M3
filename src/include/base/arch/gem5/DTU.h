@@ -86,6 +86,7 @@ private:
     enum MemFlags : reg_t {
         R                   = 1 << 0,
         W                   = 1 << 1,
+        RW                  = R | W,
     };
 
     enum StatusFlags : reg_t {
