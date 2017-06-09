@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <ostream>
 #include <stddef.h>
 #include <stdio.h>
 #include <string>
@@ -34,20 +35,27 @@ class Symbols {
         std::string name;
     };
 
+public:
     static const size_t MAX_FUNC_LEN    = 255;
 
-public:
+    typedef std::vector<Symbols::Symbol>::const_iterator symbol_t;
+
     explicit Symbols();
 
     void addFile(const char *file);
-    const char *resolve(unsigned long addr, uint32_t *bin);
+    symbol_t resolve(unsigned long addr);
+    bool valid(symbol_t sym) const {
+        return sym != syms.end();
+    }
+    void demangle(char *dst, size_t dstSize, const char *name);
+    void print(std::ostream &os);
 
 private:
-    void demangle(char *dst, size_t dstSize, const char *name);
     char *loadShSyms(FILE *f, const Elf64_Ehdr *eheader);
     Elf64_Shdr *getSecByName(FILE *f, const Elf64_Ehdr *eheader, char *syms, const char *name);
     void readat(FILE *f, off_t offset, void *buffer, size_t count);
 
     size_t files;
+    symbol_t last;
     std::vector<Symbol> syms;
 };

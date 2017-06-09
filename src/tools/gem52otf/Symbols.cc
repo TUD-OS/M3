@@ -21,13 +21,14 @@
 #include <cxxabi.h>
 
 #include <algorithm>
+#include <iomanip>
 #include <string>
 
 #include <linux/elf.h>
 
 #include "Symbols.h"
 
-Symbols::Symbols() : files(), syms() {
+Symbols::Symbols() : files(), last(), syms() {
 }
 
 void Symbols::addFile(const char *file) {
@@ -68,21 +69,32 @@ void Symbols::addFile(const char *file) {
     fclose(f);
 
     files++;
+    last = syms.end();
 }
 
-const char *Symbols::resolve(unsigned long addr, uint32_t *bin) {
-    char *symbolName = static_cast<char*>(malloc(MAX_FUNC_LEN));
+void Symbols::print(std::ostream &os) {
+    for(auto it = syms.begin(); it != syms.end(); ++it) {
+        os << it->bin << ": " << std::hex << it->addr << std::dec;
+        os << " -> " << it->name << "\n";
+    }
+}
+
+Symbols::symbol_t Symbols::resolve(unsigned long addr) {
+    if(last != syms.end()) {
+        auto next = last + 1;
+        if(addr >= last->addr && (next == syms.end() || addr < next->addr))
+            return last;
+    }
+
     for(auto it = syms.begin(); it != syms.end(); ++it) {
         auto next = it + 1;
         if(next != syms.end() && next->addr > addr) {
-            demangle(symbolName, MAX_FUNC_LEN, it->name.c_str());
-            *bin = it->bin;
-            return symbolName;
+            last = it;
+            return last;
         }
     }
-    *bin = static_cast<uint32_t>(-1);
-    snprintf(symbolName, MAX_FUNC_LEN, "%lu", addr);
-    return symbolName;
+
+    return syms.end();
 }
 
 void Symbols::demangle(char *dst, size_t dstSize, const char *name) {

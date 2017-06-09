@@ -138,10 +138,11 @@ struct Event {
 };
 
 struct State {
-    explicit State() : in_call(), in_cmd(), have_start(), start_event() {
+    explicit State() : addr(), sym(), in_cmd(), have_start(), start_event() {
     }
 
-    bool in_call;
+    unsigned long addr;
+    Symbols::symbol_t sym;
     bool in_cmd;
     bool have_start;
     Event start_event;
@@ -233,39 +234,44 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
     std::smatch match;
 
+    unsigned long long timestamp;
     while(fgets(readbuf, sizeof(readbuf), fd)) {
-        unsigned long long timestamp;
+        unsigned long addr;
         uint32_t pe;
         int numchars;
         int tid;
 
         if(mode == MODE_VPES &&
-                sscanf(readbuf, "%Lu: pe%u.cpu T%d : %n", &timestamp, &pe, &tid, &numchars) == 3) {
+                sscanf(readbuf, "%Lu: pe%u.cpu T%d : %lx @", &timestamp, &pe, &tid, &addr) == 4) {
 
-            if(!states[pe].in_call && !strstr(readbuf + numchars, "CALL")
-                                   && !strstr(readbuf + numchars, "RET"))
+            if(states[pe].addr == addr)
                 continue;
 
-            std::string line(readbuf + numchars);
+            unsigned long oldaddr = states[pe].addr;
+            states[pe].addr = addr;
 
-            if(std::regex_search(line, match, call_regex))
-                states[pe].in_call = true;
-            else if(states[pe].in_call) {
-                std::regex_search(line, match, exec_regex);
-                unsigned long addr = strtoul(match[1].str().c_str(), NULL, 16);
-                uint32_t bin;
-                const char *name = syms.resolve(addr, &bin);
-                buf.push_back(Event(pe, timestamp, EVENT_UFUNC_ENTER, bin, name));
-                states[pe].in_call = false;
+            Symbols::symbol_t sym = syms.resolve(addr);
+            if(states[pe].sym == sym)
+                continue;
 
-                last_pe = std::max(pe, last_pe);
-            }
-            else if(std::regex_search(line, match, ret_regex)) {
+            if(oldaddr)
                 buf.push_back(Event(pe, timestamp, EVENT_UFUNC_EXIT, 0, ""));
 
-                last_pe = std::max(pe, last_pe);
+            uint32_t bin;
+            char *namebuf = (char*)malloc(Symbols::MAX_FUNC_LEN + 1);
+            if(!syms.valid(sym)) {
+                bin = static_cast<uint32_t>(-1);
+                snprintf(namebuf, Symbols::MAX_FUNC_LEN, "%#lx", addr);
+            }
+            else {
+                bin = sym->bin;
+                syms.demangle(namebuf, Symbols::MAX_FUNC_LEN, sym->name.c_str());
             }
 
+            buf.push_back(Event(pe, timestamp, EVENT_UFUNC_ENTER, bin, namebuf));
+
+            states[pe].sym = sym;
+            last_pe = std::max(pe, last_pe);
             continue;
         }
 
@@ -344,6 +350,11 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
                 }
             }
         }
+    }
+
+    for(size_t i = 0; i <= last_pe; ++i) {
+        if(states[i].addr)
+            buf.push_back(Event(i, ++timestamp, EVENT_UFUNC_EXIT, 0, ""));
     }
 
     fclose(fd);
@@ -617,7 +628,9 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
 
         switch(event->type) {
             case EVENT_MSG_SEND_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_msg_send, vpe, 0);
+                // TODO currently, we don't display that as functions, because it interferes with
+                // the UFUNCs.
+                // OTF_Writer_writeEnter(writer, timestamp, fn_msg_send, vpe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     vpe, remote_vpe, grp_msg, event->tag, event->size, 0);
                 ++stats.send;
@@ -630,25 +643,25 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
                 break;
 
             case EVENT_MSG_SEND_DONE:
-                OTF_Writer_writeLeave(writer, timestamp, fn_msg_send, vpe, 0);
+                // OTF_Writer_writeLeave(writer, timestamp, fn_msg_send, vpe, 0);
                 break;
 
             case EVENT_MEM_READ_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_mem_read, vpe, 0);
+                // OTF_Writer_writeEnter(writer, timestamp, fn_mem_read, vpe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     vpe, remote_vpe, grp_mem, event->tag, event->size, 0);
                 ++stats.read;
                 break;
 
             case EVENT_MEM_READ_DONE:
-                OTF_Writer_writeLeave(writer, timestamp, fn_mem_read, vpe, 0);
+                // OTF_Writer_writeLeave(writer, timestamp, fn_mem_read, vpe, 0);
                 OTF_Writer_writeRecvMsg(writer, timestamp,
                     remote_vpe, vpe, grp_mem, event->tag, event->size, 0);
                 ++stats.finish;
                 break;
 
             case EVENT_MEM_WRITE_START:
-                OTF_Writer_writeEnter(writer, timestamp, fn_mem_write, vpe, 0);
+                // OTF_Writer_writeEnter(writer, timestamp, fn_mem_write, vpe, 0);
                 OTF_Writer_writeSendMsg(writer, timestamp,
                     vpe, remote_vpe, grp_mem, event->tag, event->size, 0);
                 ++stats.write;
@@ -656,7 +669,7 @@ static void gen_vpe_events(OTF_Writer *writer, Stats &stats, std::vector<Event> 
 
             case EVENT_MEM_WRITE_DONE:
                 if(stats.read || stats.write) {
-                    OTF_Writer_writeLeave(writer, timestamp, fn_mem_write, vpe, 0);
+                    // OTF_Writer_writeLeave(writer, timestamp, fn_mem_write, vpe, 0);
                     OTF_Writer_writeRecvMsg(writer, timestamp,
                         remote_vpe, vpe, grp_mem, event->tag, event->size, 0);
                     ++stats.finish;
