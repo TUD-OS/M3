@@ -27,15 +27,11 @@ static const uint COUNT = 32;
 int main() {
     Syscalls::get().noop();
 
-    cycles_t total = 0;
-
-    for(uint i = 0; i < COUNT; ++i) {
-        cycles_t begin = Profile::start(0x1234);
+    cycles_t begin = Profile::start(0x1234);
+    for(uint i = 0; i < COUNT; ++i)
         Session sess("test");
-        cycles_t end = Profile::stop(0x1234);
-        total += end - begin;
-    }
+    cycles_t end = Profile::stop(0x1234);
 
-    cout << "Per session creation: " << (total / COUNT) << " cycles\n";
+    cout << "Per session creation: " << ((end - begin) / COUNT) << " cycles\n";
     return 0;
 }
