@@ -47,6 +47,7 @@ enum class PEISA {
     ACCEL_MD    = 8,
     ACCEL_SPMV  = 9,
     ACCEL_AFFT  = 10,
+    IDE_DEV     = 11,
 };
 
 /**

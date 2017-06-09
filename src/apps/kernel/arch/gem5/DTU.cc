@@ -19,6 +19,7 @@
 #include <base/util/Math.h>
 #include <base/CPU.h>
 #include <base/DTU.h>
+#include <base/RCTMux.h>
 
 #include "mem/MainMemory.h"
 #include "pes/VPEManager.h"
@@ -271,15 +272,23 @@ void DTU::copy_clear(const VPEDesc &dstvpe, goff_t dstaddr,
 }
 
 void DTU::write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify) {
+    if(Platform::pe(vpe.pe).isa() == m3::PEISA::IDE_DEV)
+        return;
     uint64_t vals[2] = {notify, flags};
     write_mem(vpe, RCTMUX_YIELD, &vals, sizeof(vals));
 }
 
 void DTU::write_swflags(const VPEDesc &vpe, uint64_t flags) {
+    if(Platform::pe(vpe.pe).isa() == m3::PEISA::IDE_DEV)
+        return;
     write_mem(vpe, RCTMUX_FLAGS, &flags, sizeof(flags));
 }
 
 void DTU::read_swflags(const VPEDesc &vpe, uint64_t *flags) {
+    if(Platform::pe(vpe.pe).isa() == m3::PEISA::IDE_DEV) {
+        *flags = m3::RCTMuxCtrl::SIGNAL;
+        return;
+    }
     read_mem(vpe, RCTMUX_FLAGS, flags, sizeof(*flags));
 }
 

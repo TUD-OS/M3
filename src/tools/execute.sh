@@ -42,6 +42,11 @@ if [ "$M3_FS" = "" ]; then
 fi
 export M3_FS
 
+if [ "$M3_HDD" = "" ]; then
+    M3_HDD="disk.img"
+fi
+export M3_HDD
+
 error() {
     echo $1 1>&2
     exit 1
@@ -154,6 +159,7 @@ build_params_gem5() {
     M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
     export M3_GEM5_PES=$M3_CORES
     export M3_GEM5_FS=$build/$M3_FS
+    export M3_GEM5_IDE_DRIVE=$build/$M3_HDD
 
     params=`mktemp`
     echo -n "--outdir=$M3_GEM5_OUT --debug-file=gem5.log --debug-flags=$M3_GEM5_DBG" >> $params

@@ -1,4 +1,5 @@
 import os, sys
+from subprocess import call
 
 sys.path.append(os.path.realpath('hw/gem5/configs/example'))
 from dtu_fs import *
@@ -9,12 +10,19 @@ root = createRoot(options)
 cmd_list = options.cmd.split(",")
 
 num_mem = 1
+num_sto = 1 # Number of PEs for IDE storage
 num_pes = int(os.environ.get('M3_GEM5_PES'))
-fsimg = os.environ.get('M3_GEM5_FS')
-dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
-mmu = int(os.environ.get('M3_GEM5_MMU', 0))
 num_spm = 4 if num_pes >= 4 else 4 - num_pes
 mem_pe = num_pes
+
+fsimg = os.environ.get('M3_GEM5_FS')
+
+# create disk image
+hard_disk0 = os.environ.get('M3_GEM5_IDE_DRIVE')
+call(['dd', 'if=/dev/zero', 'of=' + hard_disk0, 'bs=1024', 'count=1024'])
+
+dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
+mmu = int(os.environ.get('M3_GEM5_MMU', 0))
 
 pes = []
 
@@ -30,6 +38,7 @@ for i in range(0, num_pes - num_spm):
                       dtupos=dtupos,
                       mmu=mmu == 1)
     pes.append(pe)
+
 for i in range(num_pes - num_spm, num_pes):
     pe = createCorePE(noc=root.noc,
                       options=options,
@@ -46,6 +55,16 @@ for i in range(0, num_mem):
                      no=num_pes + i,
                      size='1024MB',
                      content=fsimg if i == 0 else None)
+    pes.append(pe)
+
+# create the persistent storage PEs
+for i in range(0, num_sto):
+    pe = createPersistIdePE(noc=root.noc,
+                            options=options,
+                            no=num_pes + num_mem + i,
+                            memPE=mem_pe,
+                            cache_size=None,
+                            img0=hard_disk0)
     pes.append(pe)
 
 runSimulation(root, options, pes)

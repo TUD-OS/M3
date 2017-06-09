@@ -110,6 +110,7 @@ help() {
     echo "                             added idle-cores."
     echo "    M3_NOTRACE:              Disable per-core tracing on t3."
     echo "    M3_FS:                   The filesystem to use (filename only)."
+    echo "    M3_HDD:                  The hard drive image to use (filename only)."
     echo "    M3_FSBPE:                The blocks per extent (0 = unlimited)."
     echo "    M3_FSBLKS:               The fs block count (default=16384)."
     echo "    M3_GEM5_DBG:             The trace-flags for gem5 (--debug-flags)."

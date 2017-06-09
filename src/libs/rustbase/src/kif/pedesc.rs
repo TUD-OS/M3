@@ -37,6 +37,8 @@ int_enum! {
         const ACCEL_SPMV    = 0x9;
         /// Dummy ISA to represent the ALADDIN-based fft accelerator
         const ACCEL_AFFT    = 0xA;
+        /// Dummy ISA to represent the IDE controller
+        const IDE_DEV       = 0xB;
     }
 }
 

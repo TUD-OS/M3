@@ -55,7 +55,7 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
         static const char *types[] = {"imem", "emem", " mem"};
         static const char *isas[] = {
             "none ", "x86  ", "arm  ", "xtens", "indir", "fft  ", "toupp",
-            "stenc", "md   ", "spmv ", "afft ",
+            "stenc", "md   ", "spmv ", "afft ", "ide  ",
         };
         for(size_t i = 0; i < Platform::pe_count(); ++i) {
             KLOG(KENV, "PE" << m3::fmt(i, 2) << ": "
