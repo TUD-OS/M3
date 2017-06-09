@@ -161,10 +161,6 @@ void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, siz
     r[2] = ((vpe & 0xFFFF) << 12) | ((pe & 0xFF) << 4) | (perm & 0x7);
 }
 
-void DTUState::config_rwb(uintptr_t addr) {
-    _regs.set(m3::DTU::DtuRegs::RW_BARRIER, addr);
-}
-
 void DTUState::config_pf(gaddr_t rootpt, epid_t sep, epid_t rep) {
     uint features = 0;
     if(sep != static_cast<epid_t>(-1))

@@ -56,7 +56,6 @@ public:
     void suspend(const VPEDesc &vpe);
     void injectIRQ(const VPEDesc &vpe);
 
-    void config_rwb_remote(const VPEDesc &vpe, uintptr_t addr);
     void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
 
     void set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt);

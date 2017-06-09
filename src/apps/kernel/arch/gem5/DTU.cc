@@ -87,12 +87,6 @@ void DTU::injectIRQ(const VPEDesc &vpe) {
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ));
 }
 
-void DTU::config_rwb_remote(const VPEDesc &vpe, uintptr_t addr) {
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t barrier = addr;
-    m3::CPU::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::RW_BARRIER), &barrier, sizeof(barrier));
-}
-
 void DTU::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[2];
     regs[0] = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ);

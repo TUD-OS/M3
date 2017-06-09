@@ -62,10 +62,6 @@ void DTU::injectIRQ(const VPEDesc &vpe) {
     write_mem(vpe, IRQ_ADDR_EXTERN, &val, sizeof(val));
 }
 
-void DTU::set_rw_barrier(const VPEDesc &, uintptr_t) {
-    // unsupported
-}
-
 void DTU::config_pf_remote(const VPEDesc &, gaddr_t, int) {
 }
 
