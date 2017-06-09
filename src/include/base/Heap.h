@@ -53,6 +53,7 @@ class Heap {
     struct Area {
         word_t next;    /* MSB set = used */
         word_t prev;
+        uint8_t _pad[64 - sizeof(word_t) * 2];
     } PACKED;
 
     static const word_t USED_BIT    = 0x5UL << (sizeof(word_t) * 8 - 3);
