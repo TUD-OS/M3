@@ -254,18 +254,25 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
 
     npte = to_mmu_pte(vpe.pe, npte);
     while(pteAddr < endpte) {
-        KLOG(PTES, "VPE" << vpeid << ": lvl 0 PTE for "
-            << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16)
-            << (downgrade ? " (invalidating)" : ""));
-        write_mem(vpe, pteAddr, &npte, sizeof(npte));
+        size_t i = 0;
+        uintptr_t startAddr = pteAddr;
+        m3::DTU::pte_t buf[16];
+        for(; pteAddr < endpte && i < ARRAY_SIZE(buf); ++i) {
+            KLOG(PTES, "VPE" << vpeid << ": lvl 0 PTE for "
+                << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16)
+                << (downgrade ? " (invalidating)" : ""));
 
-        // permissions downgraded?
-        if(downgrade)
-            invlpg_remote(vpe, virt);
+            if(downgrade)
+                invlpg_remote(vpe, virt);
 
-        pteAddr += sizeof(npte);
-        virt += PAGE_SIZE;
-        npte += PAGE_SIZE;
+            buf[i] = npte;
+
+            pteAddr += sizeof(npte);
+            virt += PAGE_SIZE;
+            npte += PAGE_SIZE;
+        }
+
+        write_mem(vpe, startAddr, buf, i * sizeof(buf[0]));
     }
     return false;
 }
