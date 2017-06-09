@@ -248,8 +248,10 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
 }
 
 m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
-    // TODO how to handle that with an MMU?
-    if(!Platform::pe(pe()).has_mmu() && obj.addr < Platform::rw_barrier(pe()))
+    // it needs to be in the receive buffer space
+    const uintptr_t addr = Platform::def_recvbuf(pe());
+    const size_t size = Platform::pe(pe()).has_virtmem() ? RECVBUF_SIZE : RECVBUF_SIZE_SPM;
+    if(obj.addr < addr || obj.addr > addr + size || obj.addr + obj.size() > addr + size)
         return m3::Errors::INV_ARGS;
 
     for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
