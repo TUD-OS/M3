@@ -262,9 +262,6 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
                 << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16)
                 << (downgrade ? " (invalidating)" : ""));
 
-            if(downgrade)
-                invlpg_remote(vpe, virt);
-
             buf[i] = npte;
 
             pteAddr += sizeof(npte);
@@ -273,6 +270,11 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
         }
 
         write_mem(vpe, startAddr, buf, i * sizeof(buf[0]));
+
+        if(downgrade) {
+            for(uintptr_t vaddr = virt - i * PAGE_SIZE; vaddr < virt; vaddr += PAGE_SIZE)
+                invlpg_remote(vpe, vaddr);
+        }
     }
     return false;
 }
