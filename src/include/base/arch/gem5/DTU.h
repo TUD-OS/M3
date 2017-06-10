@@ -113,8 +113,7 @@ private:
         ACK_MSG             = 6,
         SLEEP               = 7,
         CLEAR_IRQ           = 8,
-        DEBUG_MSG           = 9,
-        PRINT               = 10,
+        PRINT               = 9,
     };
 
     enum class ExtCmdOpCode {
@@ -287,12 +286,6 @@ public:
     bool wait_for_mem_cmd() const {
         // we've already waited
         return true;
-    }
-
-    void debug_msg(uint64_t msg) {
-        write_reg(CmdRegs::OFFSET, msg);
-        CPU::memory_barrier();
-        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::DEBUG_MSG));
     }
 
     void print(const char *str, size_t len) {

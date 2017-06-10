@@ -17,17 +17,25 @@
 #include <base/util/Profile.h>
 #include <base/DTU.h>
 
+static inline cycles_t gem5_debug(unsigned msg) {
+    cycles_t res;
+    asm volatile (
+        ".byte 0x0F, 0x04;"
+        ".word 0x63;"
+        : "=a"(res) : "D"(msg)
+    );
+    return res;
+}
+
 namespace m3 {
 
 cycles_t Profile::start(unsigned msg) {
     CPU::compiler_barrier();
-    DTU::get().debug_msg(START_TSC | msg);
-    return DTU::get().tsc();
+    return gem5_debug(START_TSC | msg);
 }
 
 cycles_t Profile::stop(unsigned msg) {
-    DTU::get().debug_msg(STOP_TSC | msg);
-    cycles_t res = DTU::get().tsc();
+    cycles_t res = gem5_debug(STOP_TSC | msg);
     CPU::compiler_barrier();
     return res;
 }
