@@ -11,6 +11,8 @@ cmd_list = options.cmd.split(",")
 num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
+dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
+mmu = int(os.environ.get('M3_GEM5_MMU', 0))
 num_spm = 4 if num_pes >= 4 else 4 - num_pes
 mem_pe = num_pes
 
@@ -25,8 +27,8 @@ for i in range(0, num_pes - num_spm):
                       memPE=mem_pe,
                       l1size='32kB',
                       l2size='256kB',
-                      dtupos=0,
-                      mmu=False)
+                      dtupos=dtupos,
+                      mmu=mmu == 1)
     pes.append(pe)
 for i in range(num_pes - num_spm, num_pes):
     pe = createCorePE(root=root,

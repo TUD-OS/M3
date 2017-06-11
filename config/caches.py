@@ -11,6 +11,8 @@ cmd_list = options.cmd.split(",")
 num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
+dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
+mmu = int(os.environ.get('M3_GEM5_MMU', 0))
 mem_pe = num_pes
 
 pes = []
@@ -24,8 +26,8 @@ for i in range(0, num_pes):
                       memPE=mem_pe,
                       l1size='32kB',
                       l2size='256kB',
-                      dtupos=2,
-                      mmu=True)
+                      dtupos=dtupos,
+                      mmu=mmu == 1)
     pes.append(pe)
 
 # create the memory PEs
