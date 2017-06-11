@@ -648,6 +648,8 @@ OpDescr *OpDescrFactory::create(const string &line) {
         return new StatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "lstat64("))
         return new StatOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "stat("))
+        return new StatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "rename("))
         return new RenameOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "unlink("))
