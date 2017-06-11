@@ -27,15 +27,19 @@ using namespace m3;
 #define COUNT   100
 
 int main() {
+    cycles_t total = 0;
+
     // do some warmup
     for(int i = 0; i < WARMUP; ++i)
         Syscalls::get().noop();
 
     cout << "Starting...\n";
-    cycles_t start = Profile::start(0);
-    for(int i = 0; i < COUNT; ++i)
+    for(int i = 0; i < COUNT; ++i) {
+        cycles_t start = Profile::start(0);
         Syscalls::get().noop();
-    cycles_t end = Profile::stop(0);
-    cout << "Per syscall: " << ((end - start) / COUNT) << "\n";
+        cycles_t end = Profile::stop(0);
+        total += end - start;
+    }
+    cout << "Per syscall: " << (total / COUNT) << "\n";
     return 0;
 }

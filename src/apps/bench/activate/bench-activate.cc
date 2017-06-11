@@ -30,10 +30,13 @@ static word_t buffer[4];
 int main() {
     MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
     mem.read(buffer, sizeof(buffer), 0);
-    cycles_t start = Profile::start(0);
-    for(int i = 0; i < COUNT; ++i)
+    cycles_t total = 0;
+    for(int i = 0; i < COUNT; ++i) {
+        cycles_t start = Profile::start(0);
         Syscalls::get().activate(VPE::self().sel(), mem.sel(), mem.ep(), 0);
-    cycles_t end = Profile::stop(0);
-    cout << "Per activate: " << ((end - start) / COUNT) << "\n";
+        cycles_t end = Profile::stop(0);
+        total += end - start;
+    }
+    cout << "Per activate: " << (total / COUNT) << "\n";
     return 0;
 }
