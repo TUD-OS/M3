@@ -205,9 +205,6 @@ static void handle_master_req(m3::DTU::reg_t mst_req) {
 
     switch(cmd) {
         case m3::DTU::MstReqOpCode::SET_ROOTPT:
-            // TODO workaround to clear irqPending in DTU
-            dtu.set_xlate_resp(0);
-
             // ack before jumping away
             dtu.set_master_req(0);
 
