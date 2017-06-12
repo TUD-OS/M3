@@ -20,8 +20,8 @@
 #include "DataSpace.h"
 #include "Region.h"
 
-static char zeros[4096];
-static char tmpbuf[4096];
+alignas(64) static char zeros[4096];
+alignas(64) static char tmpbuf[4096];
 
 void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size) {
     size_t pages = size >> PAGE_BITS;
