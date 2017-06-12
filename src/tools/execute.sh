@@ -138,6 +138,8 @@ build_params_gem5() {
         done
     )`
 
+    M3_GEM5_CPUFREQ=${M3_GEM5_CPUFREQ:-1GHz}
+    M3_GEM5_MEMFREQ=${M3_GEM5_MEMFREQ:-333MHz}
     M3_GEM5_OUT=${M3_GEM5_OUT:-run}
     M3_GEM5_CFG=${M3_GEM5_CFG:-config/default.py}
     export M3_GEM5_PES=$M3_CORES
@@ -149,7 +151,7 @@ build_params_gem5() {
         echo -n " --listener-mode=on" >> $params
     fi
     echo -n " $M3_GEM5_CFG --cpu-type $M3_GEM5_CPU --isa $M3_ISA --cmd \"$cmd\"" >> $params
-    echo -n " --cpu-clock=1GHz --sys-clock=333MHz" >> $params
+    echo -n " --cpu-clock=$M3_GEM5_CPUFREQ --sys-clock=$M3_GEM5_MEMFREQ" >> $params
     if [ "$M3_PAUSE_PE" != "" ]; then
         echo -n " --pausepe=$M3_PAUSE_PE" >> $params
     fi
