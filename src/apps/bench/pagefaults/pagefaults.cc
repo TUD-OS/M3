@@ -24,37 +24,36 @@
 
 using namespace m3;
 
+static const size_t COUNT       = 8;
 static const size_t PAGES       = 64;
-static const size_t STEPWIDTH   = 1;
 
-static cycles_t do_bench(uint no, volatile char *data) {
-    cycles_t total = 0;
-    for(size_t i = 0; i < PAGES; i += STEPWIDTH) {
-        cycles_t start = Profile::start(no);
+static void do_bench(volatile char *data) {
+    for(size_t i = 0; i < PAGES; ++i)
         UNUSED char d = data[i * PAGE_SIZE];
-        cycles_t end = Profile::stop(no);
-        total += end - start;
-    }
-    return total;
 }
 
 int main() {
     if(!VPE::self().pager())
         exitmsg("No pager");
 
-    cycles_t anon, file;
-
-    {
+    cycles_t anon = 0;
+    for(size_t i = 0; i < COUNT; ++i) {
         uintptr_t virt = 0x30000000;
         Errors::Code res = VPE::self().pager()->map_anon(&virt, PAGES * PAGE_SIZE,
             Pager::READ, 0);
         if(res != Errors::NONE)
             exitmsg("Unable to map anonymous memory");
 
-        anon = do_bench(0, reinterpret_cast<char*>(virt));
+        cycles_t start = Profile::start(0);
+        do_bench(reinterpret_cast<char*>(virt));
+        cycles_t end = Profile::stop(0);
+        anon += end - start;
+
+        VPE::self().pager()->unmap(virt);
     }
 
-    {
+    cycles_t file = 0;
+    for(size_t i = 0; i < COUNT; ++i) {
         FileRef f("/zeros.bin", FILE_R);
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to open /zeros.bin");
@@ -66,10 +65,15 @@ int main() {
         if(res != Errors::NONE)
             exitmsg("Unable to map /test.txt");
 
-        file = do_bench(1, reinterpret_cast<char*>(virt));
+        cycles_t start = Profile::start(1);
+        do_bench(reinterpret_cast<char*>(virt));
+        cycles_t end = Profile::stop(1);
+        file += end - start;
+
+        VPE::self().pager()->unmap(virt);
     }
 
-    cout << "anon/page: " << (anon / PAGES) << "\n";
-    cout << "file/page: " << (file / PAGES) << "\n";
+    cout << "anon: " << (anon / COUNT) << "\n";
+    cout << "file: " << (file / COUNT) << "\n";
     return 0;
 }
