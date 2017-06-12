@@ -76,33 +76,33 @@ protected:
 
 class AnonDataSpace : public DataSpace {
 public:
-    static constexpr size_t MAX_PAGES = 4;
-
-    explicit AnonDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags)
-        : DataSpace(as, addr, size, flags) {
+    explicit AnonDataSpace(AddrSpace *as, size_t _maxpages, uintptr_t addr, size_t size, int flags)
+        : DataSpace(as, addr, size, flags), maxpages(_maxpages) {
     }
 
     const char *type() const override {
         return "Anon";
     }
     DataSpace *clone(AddrSpace *as) override {
-        return new AnonDataSpace(as, addr(), size(), _flags);
+        return new AnonDataSpace(as, maxpages, addr(), size(), _flags);
     }
 
     m3::Errors::Code handle_pf(uintptr_t vaddr) override;
+
+private:
+    const size_t maxpages;
 };
 
 class ExternalDataSpace : public DataSpace {
 public:
-    static constexpr size_t MAX_PAGES = 8;
-
-    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags, int _id,
-            size_t _fileoff, capsel_t sess)
-        : DataSpace(as, addr, size, flags), sess(sess), id(_id), fileoff(_fileoff) {
+    explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, uintptr_t addr, size_t size,
+            int flags, int _id, size_t _fileoff, capsel_t sess)
+        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(sess),
+          id(_id), fileoff(_fileoff) {
     }
-    explicit ExternalDataSpace(AddrSpace *as, uintptr_t addr, size_t size, int flags, int _id,
-            size_t _fileoff)
-        : DataSpace(as, addr, size, flags), sess(m3::VPE::self().alloc_cap()),
+    explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, uintptr_t addr, size_t size,
+            int flags, int _id, size_t _fileoff)
+        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(m3::VPE::self().alloc_cap()),
           id(_id), fileoff(_fileoff) {
     }
 
@@ -110,11 +110,12 @@ public:
         return "External";
     }
     DataSpace *clone(AddrSpace *as) override {
-        return new ExternalDataSpace(as, addr(), size(), _flags, id, fileoff, sess.sel());
+        return new ExternalDataSpace(as, maxpages, addr(), size(), _flags, id, fileoff, sess.sel());
     }
 
     m3::Errors::Code handle_pf(uintptr_t vaddr) override;
 
+    const size_t maxpages;
     m3::Session sess;
     int id;
     size_t fileoff;

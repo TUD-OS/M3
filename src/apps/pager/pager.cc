@@ -15,6 +15,7 @@
  */
 
 #include <base/col/Treap.h>
+#include <base/stream/IStringStream.h>
 #include <base/log/Services.h>
 
 #include <m3/com/GateStream.h>
@@ -34,6 +35,8 @@ class MemReqHandler;
 typedef RequestHandler<MemReqHandler, Pager::Operation, Pager::COUNT, AddrSpace> base_class_t;
 
 static Server<MemReqHandler> *srv;
+static size_t maxAnonPages = 4;
+static size_t maxExternPages = 8;
 
 class MemReqHandler : public base_class_t {
 public:
@@ -178,7 +181,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        AnonDataSpace *ds = new AnonDataSpace(sess, virt, len, prot | flags);
+        AnonDataSpace *ds = new AnonDataSpace(sess, maxAnonPages, virt, len, prot | flags);
         sess->add(ds);
 
         reply_vmsg(is, Errors::NONE, virt);
@@ -207,7 +210,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        ExternalDataSpace *ds = new ExternalDataSpace(sess, *virt, len, flags, id, offset);
+        ExternalDataSpace *ds = new ExternalDataSpace(sess, maxExternPages, *virt, len, flags, id, offset);
         sess->add(ds);
 
         return ds->sess.sel();
@@ -234,7 +237,12 @@ public:
     }
 };
 
-int main() {
+int main(int argc, char **argv) {
+    if(argc > 1)
+        maxAnonPages = IStringStream::read_from<size_t>(argv[1]);
+    if(argc > 2)
+        maxExternPages = IStringStream::read_from<size_t>(argv[2]);
+
     srv = new Server<MemReqHandler>("pager", new MemReqHandler());
     env()->workloop()->run();
     return 0;

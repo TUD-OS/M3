@@ -74,7 +74,7 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
     // if it isn't backed with memory yet, allocate memory for it
     if(!reg->has_mem()) {
         // don't allocate too much at once
-        reg->limit_to(offset, MAX_PAGES);
+        reg->limit_to(offset, maxpages);
 
         SLOG(PAGER, "Allocating anonymous memory for "
             << m3::fmt(reg->virt(), "p") << ".."
@@ -119,7 +119,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
         }
 
         // first, resize the region to not be too large
-        reg->limit_to(pfoff, MAX_PAGES);
+        reg->limit_to(pfoff, maxpages);
 
         // now, align the region with the memory capability that we got
         size_t capbegin = fileoff + pfoff - off;
