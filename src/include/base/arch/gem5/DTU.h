@@ -53,14 +53,15 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 12;
+    static const size_t MASTER_REGS         = 9;
+    static const size_t PRIV_REGS           = 3;
     static const size_t CMD_REGS            = 5;
     static const size_t EP_REGS             = 3;
 
     static const size_t CREDITS_UNLIM       = 0xFFFF;
     static const size_t MAX_PKT_SIZE        = 1024;
 
-    enum class DtuRegs {
+    enum class MasterRegs {
         FEATURES            = 0,
         ROOT_PT             = 1,
         PF_EP               = 2,
@@ -70,17 +71,20 @@ private:
         IDLE_TIME           = 6,
         MSG_CNT             = 7,
         EXT_CMD             = 8,
-        EXT_ARG             = 9,
-        XLATE_REQ           = 10,
-        XLATE_RESP          = 11,
+    };
+
+    enum class PrivRegs {
+        MASTER_REQ          = 0,
+        XLATE_REQ           = 1,
+        XLATE_RESP          = 2,
     };
 
     enum class CmdRegs {
-        COMMAND             = DTU_REGS + 0,
-        ABORT               = DTU_REGS + 1,
-        DATA                = DTU_REGS + 2,
-        OFFSET              = DTU_REGS + 3,
-        REPLY_LABEL         = DTU_REGS + 4,
+        COMMAND             = MASTER_REGS + 0,
+        ABORT               = MASTER_REGS + 1,
+        DATA                = MASTER_REGS + 2,
+        OFFSET              = MASTER_REGS + 3,
+        REPLY_LABEL         = MASTER_REGS + 4,
     };
 
     enum MemFlags : reg_t {
@@ -90,10 +94,11 @@ private:
     };
 
     enum StatusFlags : reg_t {
-        PRIV                = 1 << 0,
-        PAGEFAULTS          = 1 << 1,
-        COM_DISABLED        = 1 << 2,
-        IRQ_WAKEUP          = 1 << 3,
+        MASTER              = 1 << 0,
+        PRIV                = 1 << 1,
+        PAGEFAULTS          = 1 << 2,
+        COM_DISABLED        = 1 << 3,
+        IRQ_WAKEUP          = 1 << 4,
     };
 
     enum class EpType {
@@ -160,7 +165,7 @@ public:
         ABORT_CMD           = 2,
     };
 
-    enum ExtPFCmdOpCode {
+    enum MstReqOpCode {
         SET_ROOTPT          = 0,
         INV_PAGE            = 1,
     };
@@ -265,11 +270,11 @@ public:
     }
 
     uint msgcnt() {
-        return read_reg(DtuRegs::MSG_CNT);
+        return read_reg(MasterRegs::MSG_CNT);
     }
 
     cycles_t tsc() const {
-        return read_reg(DtuRegs::CUR_TIME);
+        return read_reg(MasterRegs::CUR_TIME);
     }
 
     void try_sleep(bool yield = true, uint64_t cycles = 0);
@@ -300,27 +305,27 @@ public:
 
 private:
     reg_t get_pfep() const {
-        return read_reg(DtuRegs::PF_EP);
+        return read_reg(MasterRegs::PF_EP);
     }
     bool ep_valid(epid_t ep) const {
         return (read_reg(ep, 0) >> 61) != 0;
     }
 
     reg_t get_xlate_req() const {
-        return read_reg(DtuRegs::XLATE_REQ);
+        return read_reg(PrivRegs::XLATE_REQ);
     }
     void set_xlate_req(reg_t val) {
-        write_reg(DtuRegs::XLATE_REQ, val);
+        write_reg(PrivRegs::XLATE_REQ, val);
     }
     void set_xlate_resp(reg_t val) {
-        write_reg(DtuRegs::XLATE_RESP, val);
+        write_reg(PrivRegs::XLATE_RESP, val);
     }
 
-    reg_t get_ext_arg() const {
-        return read_reg(DtuRegs::EXT_ARG);
+    reg_t get_master_req() const {
+        return read_reg(PrivRegs::MASTER_REQ);
     }
-    void set_ext_arg(reg_t val) {
-        write_reg(DtuRegs::EXT_ARG, val);
+    void set_master_req(reg_t val) {
+        write_reg(PrivRegs::MASTER_REQ, val);
     }
 
     static Errors::Code get_error() {
@@ -332,21 +337,27 @@ private:
         UNREACHED;
     }
 
-    static reg_t read_reg(DtuRegs reg) {
+    static reg_t read_reg(MasterRegs reg) {
         return read_reg(static_cast<size_t>(reg));
+    }
+    static reg_t read_reg(PrivRegs reg) {
+        return read_reg((PAGE_SIZE / sizeof(reg_t)) + static_cast<size_t>(reg));
     }
     static reg_t read_reg(CmdRegs reg) {
         return read_reg(static_cast<size_t>(reg));
     }
     static reg_t read_reg(epid_t ep, size_t idx) {
-        return read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + idx);
+        return read_reg(MASTER_REGS + CMD_REGS + EP_REGS * ep + idx);
     }
     static reg_t read_reg(size_t idx) {
         return CPU::read8b(BASE_ADDR + idx * sizeof(reg_t));
     }
 
-    static void write_reg(DtuRegs reg, reg_t value) {
+    static void write_reg(MasterRegs reg, reg_t value) {
         write_reg(static_cast<size_t>(reg), value);
+    }
+    static void write_reg(PrivRegs reg, reg_t value) {
+        write_reg((PAGE_SIZE / sizeof(reg_t)) + static_cast<size_t>(reg), value);
     }
     static void write_reg(CmdRegs reg, reg_t value) {
         write_reg(static_cast<size_t>(reg), value);
@@ -355,14 +366,17 @@ private:
         CPU::write8b(BASE_ADDR + idx * sizeof(reg_t), value);
     }
 
-    static uintptr_t dtu_reg_addr(DtuRegs reg) {
+    static uintptr_t dtu_reg_addr(MasterRegs reg) {
         return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
+    }
+    static uintptr_t dtu_reg_addr(PrivRegs reg) {
+        return BASE_ADDR + PAGE_SIZE + static_cast<size_t>(reg) * sizeof(reg_t);
     }
     static uintptr_t cmd_reg_addr(CmdRegs reg) {
         return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
     }
     static uintptr_t ep_regs_addr(epid_t ep) {
-        return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
+        return BASE_ADDR + (MASTER_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
     }
 
     static reg_t buildCommand(epid_t ep, CmdOpCode c, uint flags = 0, reg_t arg = 0) {

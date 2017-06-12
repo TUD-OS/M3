@@ -27,7 +27,7 @@ INIT_PRIO_DTU DTU DTU::inst;
 void DTU::try_sleep(bool yield, uint64_t cycles) {
     // check for messages a few times
     for(int i = 0; i < 100; ++i) {
-        if(read_reg(DtuRegs::MSG_CNT) > 0)
+        if(read_reg(MasterRegs::MSG_CNT) > 0)
             return;
     }
 
@@ -36,11 +36,11 @@ void DTU::try_sleep(bool yield, uint64_t cycles) {
         // if we want to wait longer than our yield time, sleep first for a while until we yield
         if(cycles == 0 || cycles > yield_time) {
             // sleep a bit
-            uint64_t now = read_reg(DtuRegs::CUR_TIME);
+            uint64_t now = read_reg(MasterRegs::CUR_TIME);
             CPU::memory_barrier();
             sleep(yield_time);
             CPU::memory_barrier();
-            uint64_t sleep_time = read_reg(DtuRegs::CUR_TIME) - now;
+            uint64_t sleep_time = read_reg(MasterRegs::CUR_TIME) - now;
 
             // if we were waked up early, there is something to do
             if(sleep_time < yield_time)

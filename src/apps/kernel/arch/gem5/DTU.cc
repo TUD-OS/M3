@@ -33,13 +33,13 @@ static char buffer[4096];
 void DTU::do_set_vpeid(const VPEDesc &vpe, vpeid_t nid) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t vpeId = nid;
     m3::CPU::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::VPE_ID), &vpeId, sizeof(vpeId));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::VPE_ID), &vpeId, sizeof(vpeId));
 }
 
 void DTU::do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = cmd;
     m3::CPU::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), &reg, sizeof(reg));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::EXT_CMD), &reg, sizeof(reg));
 }
 
 void DTU::clear_pt(gaddr_t pt) {
@@ -64,7 +64,7 @@ void DTU::deprivilege(peid_t pe) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t features = 0;
     m3::CPU::compiler_barrier();
     write_mem(VPEDesc(pe, VPE::INVALID_ID),
-        m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), &features, sizeof(features));
+        m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::FEATURES), &features, sizeof(features));
 }
 
 cycles_t DTU::get_time() {
@@ -88,28 +88,26 @@ void DTU::injectIRQ(const VPEDesc &vpe) {
 }
 
 void DTU::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
-    alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[2];
-    regs[0] = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INJECT_IRQ);
-    regs[1] = arg;
+    alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = arg;
     m3::CPU::compiler_barrier();
-    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD), regs, sizeof(regs));
+    write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::PrivRegs::MASTER_REQ), &reg, sizeof(reg));
 
-    // wait until the remote core sends us an ACK (writes 0 to EXT_ARG)
-    m3::DTU::reg_t extarg = 1;
-    uintptr_t extarg_addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_ARG);
-    while(extarg != 0)
-        read_mem(vpe, extarg_addr, &extarg, sizeof(extarg));
+    // wait until the remote core sends us an ACK (writes 0 to MASTER_REQ)
+    m3::DTU::reg_t mstreq = 1;
+    uintptr_t extarg_addr = m3::DTU::dtu_reg_addr(m3::DTU::PrivRegs::MASTER_REQ);
+    while(mstreq != 0)
+        read_mem(vpe, extarg_addr, &mstreq, sizeof(mstreq));
 }
 
 void DTU::set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt) {
     assert(Platform::pe(vpe.pe).has_mmu());
-    mmu_cmd_remote(vpe, rootpt | m3::DTU::ExtPFCmdOpCode::SET_ROOTPT);
+    mmu_cmd_remote(vpe, rootpt | m3::DTU::MstReqOpCode::SET_ROOTPT);
 }
 
 void DTU::invlpg_remote(const VPEDesc &vpe, uintptr_t virt) {
     virt &= ~static_cast<uintptr_t>(PAGE_MASK);
     if(Platform::pe(vpe.pe).has_mmu())
-        mmu_cmd_remote(vpe, virt | m3::DTU::ExtPFCmdOpCode::INV_PAGE);
+        mmu_cmd_remote(vpe, virt | m3::DTU::MstReqOpCode::INV_PAGE);
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3));
 }
 
@@ -169,28 +167,25 @@ void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
 
     if(Platform::pe(vpe.pe).has_dtuvm()) {
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
+        static_assert(static_cast<int>(m3::DTU::MasterRegs::FEATURES) == 0, "FEATURES wrong");
+        static_assert(static_cast<int>(m3::DTU::MasterRegs::ROOT_PT) == 1, "ROOT_PT wrong");
+        static_assert(static_cast<int>(m3::DTU::MasterRegs::PF_EP) == 2, "PF_EP wrong");
 
         // init DTU registers
         alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
         uint features = 0;
         if(sep != static_cast<epid_t>(-1))
             features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = rootpt;
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = sep | (rep << 8);
+        regs[static_cast<size_t>(m3::DTU::MasterRegs::FEATURES)] = features;
+        regs[static_cast<size_t>(m3::DTU::MasterRegs::ROOT_PT)] = rootpt;
+        regs[static_cast<size_t>(m3::DTU::MasterRegs::PF_EP)] = sep | (rep << 8);
         m3::CPU::compiler_barrier();
-        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES), regs, sizeof(regs));
+        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::FEATURES), regs, sizeof(regs));
     }
     else {
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::EXT_ARG) ==
-                      static_cast<int>(m3::DTU::DtuRegs::EXT_CMD) + 1, "EXT_ARG wrong");
-
         alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = sep | (rep << 8);
         m3::CPU::compiler_barrier();
-        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::PF_EP), &reg, sizeof(reg));
+        write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::PF_EP), &reg, sizeof(reg));
 
         set_rootpt_remote(vpe, rootpt);
     }
@@ -414,7 +409,7 @@ m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
         static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_EP) | (ep << 3);
     m3::CPU::compiler_barrier();
-    uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD);
+    uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::MasterRegs::EXT_CMD);
     return try_write_mem(vpe, addr, &reg, sizeof(reg));
 }
 

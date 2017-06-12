@@ -197,35 +197,35 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
     return pf;
 }
 
-static void handle_extreq(m3::DTU::reg_t ext_arg) {
+static void handle_master_req(m3::DTU::reg_t mst_req) {
     m3::DTU &dtu = m3::DTU::get();
 
-    uint cmd = ext_arg & 0x1;
-    ext_arg &= ~static_cast<m3::DTU::reg_t>(0x1);
+    uint cmd = mst_req & 0x1;
+    mst_req &= ~static_cast<m3::DTU::reg_t>(0x1);
 
     switch(cmd) {
-        case m3::DTU::ExtPFCmdOpCode::SET_ROOTPT:
+        case m3::DTU::MstReqOpCode::SET_ROOTPT:
             // TODO workaround to clear irqPending in DTU
             dtu.set_xlate_resp(0);
 
             // ack before jumping away
-            dtu.set_ext_arg(0);
+            dtu.set_master_req(0);
 
             asm volatile (
                 "mov %0, %%cr3;"
                 "jmp _start;"
-                : : "r"(ext_arg)
+                : : "r"(mst_req)
             );
             UNREACHED;
             break;
 
-        case m3::DTU::ExtPFCmdOpCode::INV_PAGE:
-            asm volatile ("invlpg (%0)" : : "r" (ext_arg));
+        case m3::DTU::MstReqOpCode::INV_PAGE:
+            asm volatile ("invlpg (%0)" : : "r" (mst_req));
             break;
     }
 
     // ack to kernel
-    dtu.set_ext_arg(0);
+    dtu.set_master_req(0);
 }
 
 static void *dtu_irq(m3::Exceptions::State *state) {
@@ -253,9 +253,9 @@ static void *dtu_irq(m3::Exceptions::State *state) {
     }
 
     // paging request from kernel?
-    m3::DTU::reg_t ext_arg = dtu.get_ext_arg();
-    if(ext_arg != 0)
-        handle_extreq(ext_arg);
+    m3::DTU::reg_t mst_req = dtu.get_master_req();
+    if(mst_req != 0)
+        handle_master_req(mst_req);
 
     if(!inpf) {
         // context switch request from kernel?
@@ -289,7 +289,7 @@ static void *mmu_pf(m3::Exceptions::State *state) {
     uintptr_t cr2;
     asm volatile ("mov %%cr2, %0" : "=r"(cr2));
     if(!handle_pf(0, cr2, to_dtu_pte(state->errorCode & 0x7)))
-        PRINTSTR("RCTMux: nested pagefault");
+        PRINTSTR("RCTMux: nested pagefault\n");
     resume_cmd();
     return state;
 }
