@@ -279,9 +279,6 @@ static void *dtu_irq(m3::Exceptions::State *state) {
             _signal();
     }
 
-    // TODO workaround to clear irqPending in DTU
-    dtu.set_xlate_resp(0);
-
     return state;
 }
 
