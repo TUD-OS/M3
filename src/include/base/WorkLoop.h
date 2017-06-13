@@ -48,6 +48,7 @@ public:
 
     virtual void multithreaded(uint count) = 0;
 
+    void tick();
     virtual void run();
     void stop() {
         _permanents = _count;
