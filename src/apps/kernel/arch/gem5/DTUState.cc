@@ -76,7 +76,7 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // and unset COM_DISABLED and IRQ_WAKEUP
     m3::DTU::reg_t features = 0;
     if(_regs.get(m3::DTU::MasterRegs::PF_EP) != static_cast<epid_t>(-1))
-        features = m3::DTU::StatusFlags::PAGEFAULTS;
+        features |= m3::DTU::StatusFlags::PAGEFAULTS;
     if(Platform::pe(vpe.pe).has_mmu())
         features |= m3::DTU::StatusFlags::PRIV;
     _regs.set(m3::DTU::MasterRegs::FEATURES, features);
