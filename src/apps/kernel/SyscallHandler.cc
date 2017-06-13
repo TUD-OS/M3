@@ -308,11 +308,6 @@ void SyscallHandler::createsgate(VPE *vpe, const m3::DTU::Message *msg) {
         << ", label=" << m3::fmt(label, "#0x", sizeof(label_t) * 2)
         << ", crd=#" << m3::fmt(credits, "0x") << ")");
 
-#if defined(__gem5__)
-    if(credits == m3::KIF::UNLIM_CREDITS)
-        PANIC("Unlimited credits are not yet supported on gem5");
-#endif
-
     auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
     if(rgatecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate capability is invalid");
