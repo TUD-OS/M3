@@ -84,7 +84,8 @@ void Region::copy(m3::MemGate *mem, uintptr_t virt) {
     SLOG(PAGER, "Copying memory "
         << m3::fmt(_ds->addr() + _offset, "p") << ".."
         << m3::fmt(_ds->addr() + _offset + size() - 1, "p")
-        << " from " << (_mem->owner_mem ? "owner" : "origin"));
+        << " from " << (_mem->owner_mem ? "owner" : "origin")
+        << " (we are " << (mem == _mem->owner_mem ? "owner" : "not owner") << ")");
 
     copy_block(ogate, ngate, off + _offset, size());
 
