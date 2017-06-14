@@ -26,6 +26,11 @@ void CapTable::revoke_all() {
     // with leaf nodes.
     while((c = static_cast<Capability*>(_caps.remove_root())) != nullptr) {
         revoke(c, false);
+        // hack for self-referencing VPE capability. we can't dereference it here, because if we
+        // force-destruct a VPE, there might be other references, so that it breaks if we decrease
+        // the counter (the self-reference did not increase it).
+        if(c->sel() == 0)
+            static_cast<VPECapability*>(c)->obj.forget();
         delete c;
     }
 }

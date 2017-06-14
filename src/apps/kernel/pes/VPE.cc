@@ -33,6 +33,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, cap
          epid_t rep, capsel_t rgate)
     : SListItem(),
       SlabObject<VPE>(),
+      RefCounted(),
       _desc(peid, id),
       _flags(flags | F_INIT),
       _pid(),
@@ -61,7 +62,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, cap
     // let the VPEManager know about us before we continue with initialization
     VPEManager::get().add(this);
 
-    // we have one reference to itself
+    // we have one reference to ourself
     rem_ref();
 
     if(~_flags & F_IDLE)

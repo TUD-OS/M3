@@ -83,6 +83,9 @@ public:
             delete _obj;
         _obj = nullptr;
     }
+    void forget() {
+        _obj = nullptr;
+    }
 
 private:
     void attach() {
