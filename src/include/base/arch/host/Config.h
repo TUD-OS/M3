@@ -29,8 +29,8 @@
 #define STACK_SIZE          0x1000
 
 #define RECVBUF_SPACE       1   // no limit here
-#define RECVBUF_SIZE        16384
-#define RECVBUF_SIZE_SPM    16384
+#define RECVBUF_SIZE        16384U
+#define RECVBUF_SIZE_SPM    16384U
 
 #define MAX_RB_SIZE         32
 
