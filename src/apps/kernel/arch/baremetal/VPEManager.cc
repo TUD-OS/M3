@@ -23,6 +23,7 @@ VPEManager::~VPEManager() {
         if(_vpes[i])
             delete _vpes[i];
     }
+    delete[] _vpes;
 }
 
 }

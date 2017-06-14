@@ -32,6 +32,7 @@ VPEManager::~VPEManager() {
             delete _vpes[i];
         }
     }
+    delete[] _vpes;
 }
 
 VPE *VPEManager::vpe_by_pid(int pid) {
