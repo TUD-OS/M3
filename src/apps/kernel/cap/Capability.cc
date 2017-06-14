@@ -67,17 +67,14 @@ void RGateCapability::revoke() {
     m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&*obj));
     invalidate_ep(table()->id() - 1, this);
     obj->addr = 0;
-    obj.unref();
 }
 
 void SGateCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
-    obj.unref();
 }
 
 void MGateCapability::revoke() {
     invalidate_ep(table()->id() - 1, this);
-    obj.unref();
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, int _attr)
@@ -102,7 +99,6 @@ void SessCapability::revoke() {
     // if the server created that, we want to close it as soon as there are no clients using it anymore
     if(obj->servowned && obj->refcount() == 2)
         obj->close();
-    obj.unref();
 }
 
 void ServCapability::revoke() {
@@ -114,7 +110,6 @@ void ServCapability::revoke() {
 }
 
 void VPECapability::revoke() {
-    obj.unref();
 }
 
 void Capability::print(m3::OStream &os) const {
