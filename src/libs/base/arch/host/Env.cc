@@ -90,6 +90,7 @@ HostEnvBackend::HostEnvBackend() {
 }
 
 HostEnvBackend::~HostEnvBackend() {
+    delete _workloop;
 }
 
 Env::Init::Init() {

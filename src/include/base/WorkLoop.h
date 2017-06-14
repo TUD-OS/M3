@@ -38,6 +38,8 @@ class WorkLoop {
 public:
     explicit WorkLoop() : _changed(false), _permanents(0), _count(), _items() {
     }
+    virtual ~WorkLoop() {
+    }
 
     bool has_items() const {
         return _count > _permanents;

@@ -26,13 +26,16 @@
 
 namespace kernel {
 
-class HostKEnvBackend : public m3::HostEnvBackend {
+class HostKEnvBackend : public m3::EnvBackend {
 public:
     explicit HostKEnvBackend() {
         _workloop = new WorkLoop();
     }
+    ~HostKEnvBackend() {
+        delete _workloop;
+    }
 
-    virtual void exit(int) override {
+    void exit(int) override {
     }
 };
 
