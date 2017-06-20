@@ -57,7 +57,7 @@ public:
     bool config_mem_cached(epid_t ep, peid_t pe, vpeid_t vpe);
 
     void config_pf(gaddr_t rootpt, epid_t sep, epid_t rep);
-    void reset(uintptr_t addr);
+    void reset();
 
 private:
     void move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save);

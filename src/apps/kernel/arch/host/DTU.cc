@@ -47,7 +47,7 @@ cycles_t DTU::get_time() {
     return 0;
 }
 
-void DTU::wakeup(const VPEDesc &) {
+void DTU::wakeup(const VPEDesc &, uintptr_t) {
     // nothing to do
 }
 
@@ -55,7 +55,7 @@ void DTU::suspend(const VPEDesc &) {
     // nothing to do
 }
 
-void DTU::injectIRQ(const VPEDesc &) {
+void DTU::inject_irq(const VPEDesc &) {
     // unsupported
 }
 

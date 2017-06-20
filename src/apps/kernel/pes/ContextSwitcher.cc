@@ -224,7 +224,7 @@ void ContextSwitcher::update_yield() {
         uint64_t val = yield ? YIELD_TIME : 0;
         DTU::get().write_mem(_cur->desc(), RCTMUX_YIELD, &val, sizeof(val));
         if(yield)
-            DTU::get().wakeup(_cur->desc());
+            DTU::get().inject_irq(_cur->desc());
     }
 }
 
@@ -289,7 +289,7 @@ retry:
 
         case S_STORE_WAIT: {
             DTU::get().write_swflags(_cur->desc(), m3::RCTMuxCtrl::STORE | m3::RCTMuxCtrl::WAITING);
-            DTU::get().injectIRQ(_cur->desc());
+            DTU::get().inject_irq(_cur->desc());
 
             _state = S_STORE_DONE;
 
@@ -337,7 +337,7 @@ retry:
             _cur->_state = VPE::RUNNING;
             _cur->_lastsched = DTU::get().get_time();
 
-            _cur->_dtustate.reset(RCTMUX_ENTRY);
+            _cur->_dtustate.reset();
 
             _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->id());
 
@@ -365,9 +365,9 @@ retry:
             // if we're doing that for the first time without MMU, we need to setup interrupts first
             // before we can inject one
             if(!Platform::pe(_pe).has_mmu() && (_cur->_flags & VPE::F_INIT))
-                DTU::get().wakeup(_cur->desc());
+                DTU::get().wakeup(_cur->desc(), RCTMUX_ENTRY);
             else
-                DTU::get().injectIRQ(_cur->desc());
+                DTU::get().inject_irq(_cur->desc());
             _state = S_RESTORE_DONE;
 
             _wait_time = INIT_WAIT_TIME;

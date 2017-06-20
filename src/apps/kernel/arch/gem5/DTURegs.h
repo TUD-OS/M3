@@ -23,17 +23,17 @@ namespace kernel {
 
 class DTURegs {
 public:
-    explicit DTURegs() : _master(), _cmd(), _eps() {
+    explicit DTURegs() : _dtu(), _cmd(), _eps() {
     }
 
-    m3::DTU::reg_t get(m3::DTU::MasterRegs reg) const {
-        return _master[static_cast<size_t>(reg)];
+    m3::DTU::reg_t get(m3::DTU::DtuRegs reg) const {
+        return _dtu[static_cast<size_t>(reg)];
     }
-    void set(m3::DTU::MasterRegs reg, m3::DTU::reg_t value) {
-        _master[static_cast<size_t>(reg)] = value;
+    void set(m3::DTU::DtuRegs reg, m3::DTU::reg_t value) {
+        _dtu[static_cast<size_t>(reg)] = value;
     }
 
-    m3::DTU::reg_t _master[m3::DTU::MASTER_REGS];
+    m3::DTU::reg_t _dtu[m3::DTU::DTU_REGS];
     m3::DTU::reg_t _cmd[m3::DTU::CMD_REGS];
     m3::DTU::reg_t _eps[m3::DTU::EP_REGS * EP_COUNT];
 } PACKED;

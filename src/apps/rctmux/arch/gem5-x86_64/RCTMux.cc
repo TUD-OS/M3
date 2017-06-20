@@ -197,17 +197,17 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
     return pf;
 }
 
-static void handle_master_req(m3::DTU::reg_t mst_req) {
+static void *handle_ext_req(m3::Exceptions::State *state, m3::DTU::reg_t mst_req) {
     m3::DTU &dtu = m3::DTU::get();
 
-    uint cmd = mst_req & 0x1;
-    mst_req &= ~static_cast<m3::DTU::reg_t>(0x1);
+    uint cmd = mst_req & 0x3;
+    mst_req &= ~static_cast<m3::DTU::reg_t>(0x3);
+
+    // ack
+    dtu.set_ext_req(0);
 
     switch(cmd) {
-        case m3::DTU::MstReqOpCode::SET_ROOTPT:
-            // ack before jumping away
-            dtu.set_master_req(0);
-
+        case m3::DTU::ExtReqOpCode::SET_ROOTPT:
             asm volatile (
                 "mov %0, %%cr3;"
                 "jmp _start;"
@@ -216,13 +216,37 @@ static void handle_master_req(m3::DTU::reg_t mst_req) {
             UNREACHED;
             break;
 
-        case m3::DTU::MstReqOpCode::INV_PAGE:
+        case m3::DTU::ExtReqOpCode::INV_PAGE:
             asm volatile ("invlpg (%0)" : : "r" (mst_req));
             break;
+
+        case m3::DTU::ExtReqOpCode::RCTMUX: {
+            if(inpf)
+                return state;
+
+            // context switch request from kernel?
+            uint64_t flags = flags_get();
+
+            if(flags & m3::RESTORE)
+                return _restore();
+
+            if(flags & m3::STORE) {
+                _save(state);
+
+                // stay here until reset
+                asm volatile ("sti");
+                while(1)
+                    sleep();
+                UNREACHED;
+            }
+
+            if(flags & m3::WAITING)
+                _signal();
+            break;
+        }
     }
 
-    // ack to kernel
-    dtu.set_master_req(0);
+    return state;
 }
 
 static void *dtu_irq(m3::Exceptions::State *state) {
@@ -250,31 +274,9 @@ static void *dtu_irq(m3::Exceptions::State *state) {
     }
 
     // paging request from kernel?
-    m3::DTU::reg_t mst_req = dtu.get_master_req();
-    if(mst_req != 0)
-        handle_master_req(mst_req);
-
-    if(!inpf) {
-        // context switch request from kernel?
-        uint64_t flags = flags_get();
-
-        if(flags & m3::RESTORE)
-            return _restore();
-
-        if(flags & m3::STORE) {
-            _save(state);
-
-            // stay here until reset
-            asm volatile (
-                "hlt;"
-                "1: jmp 1b;"
-            );
-            UNREACHED;
-        }
-
-        if(flags & m3::WAITING)
-            _signal();
-    }
+    m3::DTU::reg_t ext_req = dtu.get_ext_req();
+    if(ext_req != 0)
+        return handle_ext_req(state, ext_req);
 
     return state;
 }

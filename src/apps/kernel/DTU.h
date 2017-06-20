@@ -52,9 +52,9 @@ public:
     void unset_vpeid(const VPEDesc &vpe);
 
     cycles_t get_time();
-    void wakeup(const VPEDesc &vpe);
+    void wakeup(const VPEDesc &vpe, uintptr_t addr = 0);
     void suspend(const VPEDesc &vpe);
-    void injectIRQ(const VPEDesc &vpe);
+    void inject_irq(const VPEDesc &vpe);
 
     void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
 
@@ -119,6 +119,7 @@ private:
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
     void remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level);
     uintptr_t get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level);
+    void do_inject_irq(const VPEDesc &vpe, uint64_t cmd);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
     void mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg);

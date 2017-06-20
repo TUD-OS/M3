@@ -27,12 +27,12 @@
 namespace kernel {
 
 bool DTUState::was_idling() const {
-    return _regs.get(m3::DTU::MasterRegs::MSG_CNT) == 0 &&
-        (_regs.get(m3::DTU::MasterRegs::FEATURES) & m3::DTU::IRQ_WAKEUP);
+    return _regs.get(m3::DTU::DtuRegs::MSG_CNT) == 0 &&
+        (_regs.get(m3::DTU::DtuRegs::FEATURES) & m3::DTU::IRQ_WAKEUP);
 }
 
 cycles_t DTUState::get_idle_time() const {
-    return _regs.get(m3::DTU::MasterRegs::IDLE_TIME);
+    return _regs.get(m3::DTU::DtuRegs::IDLE_TIME);
 }
 
 void *DTUState::get_ep(epid_t ep) {
@@ -75,19 +75,17 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
     // and unset COM_DISABLED and IRQ_WAKEUP
     m3::DTU::reg_t features = 0;
-    if(_regs.get(m3::DTU::MasterRegs::PF_EP) != static_cast<epid_t>(-1))
+    if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<epid_t>(-1))
         features |= m3::DTU::StatusFlags::PAGEFAULTS;
-    if(Platform::pe(vpe.pe).has_mmu())
-        features |= m3::DTU::StatusFlags::PRIV;
-    _regs.set(m3::DTU::MasterRegs::FEATURES, features);
+    _regs.set(m3::DTU::DtuRegs::FEATURES, features);
 
     // similarly, set the vpeid again, because abort invalidates it
-    _regs.set(m3::DTU::MasterRegs::VPE_ID, vpeid);
+    _regs.set(m3::DTU::DtuRegs::VPE_ID, vpeid);
 
     // reset idle time and msg count; msg count will be recalculated from the EPs
-    _regs.set(m3::DTU::MasterRegs::IDLE_TIME, 0);
+    _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
-    _regs.set(m3::DTU::MasterRegs::RW_BARRIER, Platform::rw_barrier(vpe.pe));
+    _regs.set(m3::DTU::DtuRegs::RW_BARRIER, Platform::rw_barrier(vpe.pe));
 
     m3::CPU::compiler_barrier();
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
@@ -188,14 +186,14 @@ void DTUState::config_pf(gaddr_t rootpt, epid_t sep, epid_t rep) {
     uint features = 0;
     if(sep != static_cast<epid_t>(-1))
         features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-    _regs.set(m3::DTU::MasterRegs::FEATURES, features);
-    _regs.set(m3::DTU::MasterRegs::ROOT_PT, rootpt);
-    _regs.set(m3::DTU::MasterRegs::PF_EP, sep | (rep << 8));
+    _regs.set(m3::DTU::DtuRegs::FEATURES, features);
+    _regs.set(m3::DTU::DtuRegs::ROOT_PT, rootpt);
+    _regs.set(m3::DTU::DtuRegs::PF_EP, sep | (rep << 8));
 }
 
-void DTUState::reset(uintptr_t addr) {
-    m3::DTU::reg_t value = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::RESET) | (addr << 3);
-    _regs.set(m3::DTU::MasterRegs::EXT_CMD, value);
+void DTUState::reset() {
+    m3::DTU::reg_t value = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::RESET);
+    _regs.set(m3::DTU::DtuRegs::EXT_CMD, value);
 }
 
 }

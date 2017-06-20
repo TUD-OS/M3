@@ -57,7 +57,7 @@ void DTU::unset_vpeid(const VPEDesc &) {
     // unsupported
 }
 
-void DTU::wakeup(const VPEDesc &vpe) {
+void DTU::wakeup(const VPEDesc &vpe, uintptr_t) {
     // first, invalidate all endpoints to start fresh
     invalidate_eps(vpe);
 
@@ -72,14 +72,14 @@ void DTU::wakeup(const VPEDesc &vpe) {
         Platform::kernel_pe(), Platform::kernel_pe(), m3::DTU::SYSC_EP,
         1 << VPE::SYSC_MSGSIZE_ORD, 1 << VPE::SYSC_CREDIT_ORD);
 
-    injectIRQ(vpe);
+    inject_irq(vpe);
 }
 
 void DTU::suspend(const VPEDesc &) {
     // nothing to do
 }
 
-void DTU::injectIRQ(const VPEDesc &vpe) {
+void DTU::inject_irq(const VPEDesc &vpe) {
     // inject an IRQ
     uint64_t val = 1;
     m3::CPU::memory_barrier();

@@ -209,7 +209,7 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
         " with EP\\d+ (?:from|into) (?:0x)?[0-9a-f]+:(\\d+)"
     );
     std::regex suswake_regex(
-        "^\\.connector: (Suspending|Waking)"
+        "^: (Suspending|Waking)"
     );
     std::regex setvpe_regex(
         "^\\.regFile: NOC-> DTU\\[VPE_ID      \\]: 0x([0-9a-f]+)"

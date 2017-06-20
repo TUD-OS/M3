@@ -50,6 +50,10 @@ EXTERN_C void *_init() {
     return 0;
 }
 
+EXTERN_C void _sleep() {
+    sleep();
+}
+
 EXTERN_C void _save(void *s) {
     save();
 

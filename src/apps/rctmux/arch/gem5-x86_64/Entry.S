@@ -17,6 +17,7 @@
 #include <base/Asm.h>
 
 .extern interrupt_handler
+.extern _sleep
 .global _rctmux_stack
 
 .text
@@ -30,8 +31,6 @@ BEGIN_FUNC(_start)
     nop
 .endr
 
-    // interrupts in rctmux are always disabled
-    cli
     // use a small stack
     mov     $_rctmux_stack, %rsp
     mov     $0, %rbp
@@ -50,7 +49,7 @@ BEGIN_FUNC(_start)
 END_FUNC(_start)
 
 BEGIN_FUNC(_idle)
-1:  hlt
+1:  call    _sleep
     jmp     1b
 END_FUNC(_idle)
 
