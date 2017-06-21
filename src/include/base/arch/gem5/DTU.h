@@ -232,7 +232,7 @@ public:
         return Errors::NONE;
     }
 
-    void abort(uint flags, reg_t *cmdreg) {
+    m3::DTU::reg_t abort(uint flags, reg_t *cmdreg) {
         // save the old value before aborting
         *cmdreg = read_reg(CmdRegs::COMMAND);
         write_reg(CmdRegs::ABORT, flags);
@@ -240,6 +240,7 @@ public:
         // retry it later. if no command was running, we want to keep the error code though.
         if(get_error() != Errors::ABORT && (*cmdreg & 0xF) != static_cast<reg_t>(CmdOpCode::IDLE))
             *cmdreg = static_cast<reg_t>(CmdOpCode::IDLE);
+        return read_reg(CmdRegs::ABORT);
     }
     void retry(reg_t cmd) {
         write_reg(CmdRegs::COMMAND, cmd);

@@ -31,6 +31,7 @@ namespace RCTMux {
 
 static volatile size_t req_count = 0;
 static bool inpf = false;
+static m3::DTU::reg_t cmdXferBuf = static_cast<m3::DTU::reg_t>(-1);
 static m3::DTU::reg_t reqs[4];
 static m3::DTU::reg_t cmdregs[2] = {0, 0};
 
@@ -101,7 +102,7 @@ static bool handle_pf(m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm) {
     inpf = true;
 
     // abort the current command, if there is any
-    dtu.abort(m3::DTU::ABORT_CMD, cmdregs + 0);
+    cmdXferBuf = dtu.abort(m3::DTU::ABORT_CMD, cmdregs + 0);
     // if a command was being executed, save the DATA register, because we'll overwrite it
     if(cmdregs[0] != static_cast<m3::DTU::reg_t>(m3::DTU::CmdOpCode::IDLE))
         cmdregs[1] = dtu.read_reg(m3::DTU::CmdRegs::DATA);
@@ -184,11 +185,12 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
         }
     }
 
-    // tell DTU the result; but only if the command has not been aborted
+    // tell DTU the result; but only if the command has not been aborted or the aborted command
+    // did not trigger the translation (in this case, the translation is already aborted, too).
     // TODO that means that aborted commands cause another TLB miss in the DTU, which can then
     // (hopefully) be handled with a simple PT walk. we could improve that by setting the TLB entry
     // right away without continuing the transfer (because that's aborted)
-    if(!pf || cmdregs[0] == 0)
+    if(!pf || cmdregs[0] == 0 || cmdXferBuf != ((xlate_req & 0x70) >> 4))
         dtu.set_xlate_resp(pte | (xlate_req & 0x70));
 
     if(pf)
