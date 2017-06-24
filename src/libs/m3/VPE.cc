@@ -34,7 +34,8 @@ INIT_PRIO_VPE VPE VPE::_self;
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
     : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _pe(env()->pedesc),
-      _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _ms(), _fds(), _exec() {
+      _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _rbufcur(), _rbufend(),
+      _ms(), _fds(), _exec() {
     init_state();
     init();
     init_fs();
@@ -57,8 +58,8 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
-          _pager(), _ms(new MountSpace()), _fds(new FileTable()), _exec(),
-          _tmuxable(tmuxable) {
+          _pager(), _rbufcur(), _rbufend(),
+          _ms(new MountSpace()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
     init();
 
     // create pager first, to create session and obtain gate cap

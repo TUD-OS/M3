@@ -36,6 +36,7 @@ class MountSpace;
 class Pager;
 class FStream;
 class EnvUserBackend;
+class RecvGate;
 
 /**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
@@ -48,6 +49,7 @@ class EnvUserBackend;
 class VPE : public ObjCap {
     friend class EnvUserBackend;
     friend class CapRngDesc;
+    friend class RecvGate;
     friend class VFS;
 
     static const size_t BUF_SIZE;
@@ -332,6 +334,8 @@ private:
     BitField<SEL_TOTAL> *_caps;
     BitField<EP_COUNT> *_eps;
     Pager *_pager;
+    uint64_t _rbufcur;
+    uint64_t _rbufend;
     MountSpace *_ms;
     FileTable *_fds;
     FStream *_exec;

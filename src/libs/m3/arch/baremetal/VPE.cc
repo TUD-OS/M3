@@ -42,6 +42,9 @@ void VPE::init_state() {
     _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
     if(_eps == nullptr)
         _eps = new BitField<EP_COUNT>();
+
+    _rbufcur = env()->rbufcur;
+    _rbufend = env()->rbufend;
 }
 
 void VPE::init_fs() {
@@ -85,6 +88,8 @@ Errors::Code VPE::run(void *lambda) {
     senv.mounts = reinterpret_cast<uintptr_t>(_ms);
     senv.fds_len = 0;
     senv.fds = reinterpret_cast<uintptr_t>(_fds);
+    senv.rbufcur = _rbufcur;
+    senv.rbufend = _rbufend;
     senv.caps = reinterpret_cast<uintptr_t>(_caps);
     senv.eps = reinterpret_cast<uintptr_t>(_eps);
     senv.pager_sgate = 0;
@@ -167,6 +172,9 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     _mem.write(buffer, offset, RT_SPACE_START);
 
     Heap::free(buffer);
+
+    senv.rbufcur = _rbufcur;
+    senv.rbufend = _rbufend;
 
     /* set pager info */
     senv.pager_sess = _pager ? _pager->sel() : 0;

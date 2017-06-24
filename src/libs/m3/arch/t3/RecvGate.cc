@@ -18,7 +18,7 @@
 
 namespace m3 {
 
-void *RecvGate::allocate(epid_t, size_t size) {
+void *RecvGate::allocate(VPE &, epid_t, size_t size) {
     return new uint8_t[size];
 }
 

@@ -207,7 +207,7 @@ public:
     Errors::Code reply(const void *data, size_t len, size_t msgidx);
 
 private:
-    static void *allocate(epid_t ep, size_t size);
+    static void *allocate(VPE &vpe, epid_t ep, size_t size);
     static void free(void *);
 
     VPE &_vpe;

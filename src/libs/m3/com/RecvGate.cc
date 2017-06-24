@@ -27,9 +27,22 @@
 
 namespace m3 {
 
+static void *get_rgate_buf(UNUSED size_t off) {
+#if defined(__gem5__)
+    PEDesc desc(env()->pe);
+    if(desc.has_virtmem())
+        return reinterpret_cast<void*>(RECVBUF_SPACE + off);
+    else
+        return reinterpret_cast<void*>((desc.mem_size() - RECVBUF_SIZE_SPM) + off);
+#else
+    return nullptr;
+#endif
+}
+
 INIT_PRIO_RECVBUF RecvGate RecvGate::_syscall (
 #if defined(__host__) || defined(__gem5__)
-    VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, nullptr, m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0
+    VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, get_rgate_buf(0),
+        m3::nextlog2<SYSC_RBUF_SIZE>::val, SYSC_RBUF_ORDER, 0
 #else
     VPE::self(), ObjCap::INVALID, DTU::SYSC_REP, reinterpret_cast<void*>(DEF_RCVBUF),
         DEF_RCVBUF_MSGORDER, DEF_RCVBUF_MSGORDER, 0
@@ -37,11 +50,13 @@ INIT_PRIO_RECVBUF RecvGate RecvGate::_syscall (
 );
 
 INIT_PRIO_RECVBUF RecvGate RecvGate::_upcall (
-    VPE::self(), ObjCap::INVALID, DTU::UPCALL_REP, nullptr, m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0
+    VPE::self(), ObjCap::INVALID, DTU::UPCALL_REP, get_rgate_buf(SYSC_RBUF_SIZE),
+        m3::nextlog2<UPCALL_RBUF_SIZE>::val, UPCALL_RBUF_ORDER, 0
 );
 
 INIT_PRIO_RECVBUF RecvGate RecvGate::_default (
-    VPE::self(), ObjCap::INVALID, DTU::DEF_REP, nullptr, m3::nextlog2<DEF_RBUF_SIZE>::val, DEF_RBUF_ORDER, 0
+    VPE::self(), ObjCap::INVALID, DTU::DEF_REP, get_rgate_buf(SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE),
+        m3::nextlog2<DEF_RBUF_SIZE>::val, DEF_RBUF_ORDER, 0
 );
 
 void RecvGate::RecvGateWorkItem::work() {
@@ -108,7 +123,7 @@ void RecvGate::activate() {
 void RecvGate::activate(epid_t _ep) {
     if(ep() == UNBOUND) {
         if(_buf == nullptr) {
-            _buf = allocate(_ep, 1UL << _order);
+            _buf = allocate(_vpe, _ep, 1UL << _order);
             _free |= FREE_BUF;
         }
 

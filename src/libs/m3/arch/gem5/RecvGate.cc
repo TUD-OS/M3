@@ -23,29 +23,33 @@
 
 namespace m3 {
 
-void *RecvGate::allocate(epid_t, size_t size) {
+void *RecvGate::allocate(VPE &vpe, epid_t, size_t size) {
+    // use values in env for VPE::self to work around initialization order problems
+    uint64_t *cur = vpe.sel() == 0 ? &env()->rbufcur : &vpe._rbufcur;
+    uint64_t *end = vpe.sel() == 0 ? &env()->rbufend : &vpe._rbufend;
+
     // TODO this assumes that we don't VPE::run between SPM and non-SPM PEs
-    static uintptr_t nextbuf = 0;
-    static size_t total = 0;
-    static uintptr_t begin = 0;
-    if(nextbuf == 0) {
-        if(env()->pedesc.has_virtmem()) {
-            begin = nextbuf = RECVBUF_SPACE;
-            total = RECVBUF_SIZE;
+    if(*end == 0) {
+        PEDesc desc = vpe.sel() == 0 ? env()->pedesc : vpe.pe();
+        if(desc.has_virtmem()) {
+            *cur = RECVBUF_SPACE;
+            *cur += SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
+            *end = RECVBUF_SPACE + RECVBUF_SIZE;
         }
         else {
-            begin = nextbuf = env()->pedesc.mem_size() - RECVBUF_SIZE_SPM;
-            total = RECVBUF_SIZE_SPM;
+            *cur = desc.mem_size() - RECVBUF_SIZE_SPM;
+            *cur += SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
+            *end = desc.mem_size();
         }
     }
 
     // TODO atm, the kernel allocates the complete receive buffer space
-    size_t left = total - (nextbuf - begin);
+    size_t left = *end - *cur;
     if(size > left)
         PANIC("Not enough receive buffer space for " << size << "b (" << left << "b left)");
 
-    uint8_t *res = reinterpret_cast<uint8_t*>(nextbuf);
-    nextbuf += size;
+    uint8_t *res = reinterpret_cast<uint8_t*>(*cur);
+    *cur += size;
     return res;
 }
 

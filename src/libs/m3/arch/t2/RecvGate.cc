@@ -18,7 +18,7 @@
 
 namespace m3 {
 
-void *RecvGate::allocate(epid_t ep, size_t size) {
+void *RecvGate::allocate(VPE &, epid_t ep, size_t size) {
     uintptr_t offset = DTU::get().recvbuf_offset(env()->pe, ep);
     return reinterpret_cast<void*>(RECV_BUF_LOCAL + offset);
 }
