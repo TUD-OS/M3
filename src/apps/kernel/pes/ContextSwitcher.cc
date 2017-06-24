@@ -364,7 +364,7 @@ retry:
             DTU::get().write_swstate(_cur->desc(), flags, report);
             // if we're doing that for the first time without MMU, we need to setup interrupts first
             // before we can inject one
-            if(!Platform::pe(_pe).has_mmu() && (_cur->_flags & VPE::F_INIT))
+            if(!Platform::pe(_pe).has_mmu() && Platform::pe(_pe).is_programmable() && (_cur->_flags & VPE::F_INIT))
                 DTU::get().wakeup(_cur->desc(), RCTMUX_ENTRY);
             else
                 DTU::get().inject_irq(_cur->desc());
