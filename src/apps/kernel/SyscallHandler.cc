@@ -552,7 +552,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
             m3::Errors::Code res = vpecap->obj->config_rcv_ep(ep, *rgatecap->obj);
             if(res != m3::Errors::NONE) {
                 rgatecap->obj->addr = 0;
-                SYS_ERROR(vpe, msg, res, "Unable to invalidate EP");
+                SYS_ERROR(vpe, msg, res, "Unable to configure receive EP");
             }
         }
     }
