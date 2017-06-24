@@ -49,6 +49,8 @@ void VPE::init() {
     rgate.msgorder = DEF_RBUF_ORDER;
     rgate.addr += UPCALL_RBUF_SIZE;
     config_rcv_ep(m3::DTU::DEF_REP, rgate);
+
+    _rbufs_size = rgate.addr + (1UL << rgate.order) - Platform::def_recvbuf(pe());
 }
 
 }

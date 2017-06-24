@@ -242,6 +242,7 @@ private:
     CapTable _objcaps;
     CapTable _mapcaps;
     uint64_t _lastsched;
+    size_t _rbufs_size;
     Capability *_epcaps[EP_COUNT - m3::DTU::FIRST_FREE_EP];
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     SendGate _upcsgate;

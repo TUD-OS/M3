@@ -44,6 +44,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, cap
       _objcaps(id + 1),
       _mapcaps(id + 1),
       _lastsched(),
+      _rbufs_size(),
       _epcaps(),
       _dtustate(),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
@@ -254,6 +255,8 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     const size_t size = Platform::pe(pe()).has_virtmem() ? RECVBUF_SIZE : RECVBUF_SIZE_SPM;
     // def_recvbuf() == 0 means that we do not validate it
     if(addr && (obj.addr < addr || obj.addr > addr + size || obj.addr + obj.size() > addr + size))
+        return m3::Errors::INV_ARGS;
+    if(obj.addr < addr + _rbufs_size)
         return m3::Errors::INV_ARGS;
 
     for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
