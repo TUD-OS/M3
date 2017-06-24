@@ -23,6 +23,8 @@
 
 namespace m3 {
 
+class VPE;
+
 /**
  * A memory gate is used to access PE-external memory via the DTU. You can either create a MemGate
  * by requesting PE-external memory from the kernel or bind a MemGate to an existing capability.
@@ -80,6 +82,17 @@ public:
     static MemGate bind(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
         return MemGate(flags, sel);
     }
+
+    /**
+     * Activates this gate for <vpe> at EP <ep> with the given offset. That is, the EP <ep> will be
+     * configured to start at this memory region plus <offset>.
+     *
+     * @param vpe the VPE to activate it for
+     * @param ep the ep id
+     * @param offset the offset within this memory region
+     * @return the result
+     */
+    Errors::Code activate_for(VPE &vpe, epid_t ep, size_t offset = 0);
 
     /**
      * @return the command flags

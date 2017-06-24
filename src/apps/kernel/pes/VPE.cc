@@ -298,17 +298,21 @@ void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
     update_ep(ep);
 }
 
-void VPE::config_mem_ep(epid_t ep, const MGateObject &obj) {
+m3::Errors::Code VPE::config_mem_ep(epid_t ep, const MGateObject &obj, uintptr_t off) {
+    if(off >= obj.size || obj.addr + off < off)
+        return m3::Errors::INV_ARGS;
+
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "Mem [vpe=" << obj.vpe
         << ", pe=" << obj.pe
-        << ", addr=#" << m3::fmt(obj.addr, "x")
-        << ", size=#" << m3::fmt(obj.size, "x")
+        << ", addr=#" << m3::fmt(obj.addr + off, "x")
+        << ", size=#" << m3::fmt(obj.size - off, "x")
         << ", perms=#" << m3::fmt(obj.perms, "x") << "]");
 
     // TODO
-    _dtustate.config_mem(ep, obj.pe, obj.vpe, obj.addr, obj.size, obj.perms);
+    _dtustate.config_mem(ep, obj.pe, obj.vpe, obj.addr + off, obj.size - off, obj.perms);
     update_ep(ep);
+    return m3::Errors::NONE;
 }
 
 void VPE::update_ep(epid_t ep) {

@@ -521,7 +521,9 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
 
         if(gatecap->type == Capability::MGATE) {
             auto mgatecap = static_cast<MGateCapability*>(gatecap);
-            vpecap->obj->config_mem_ep(ep, *mgatecap->obj);
+            m3::Errors::Code res = vpecap->obj->config_mem_ep(ep, *mgatecap->obj, addr);
+            if(res != m3::Errors::NONE)
+                SYS_ERROR(vpe, msg, res, "Unable to configure memory EP");
         }
         else if(gatecap->type == Capability::SGATE) {
             auto sgatecap = static_cast<SGateCapability*>(gatecap);

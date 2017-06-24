@@ -63,6 +63,14 @@ public:
     epid_t ep() const {
         return _ep;
     }
+    /**
+     * Sets the endpoint for this gate, which assumes that it is already activated on this EP.
+     *
+     * @param ep the endpoint id
+     */
+    void ep(epid_t ep) {
+        _ep = ep;
+    }
 
     /**
      * Rebinds this gate to the given capability selector. Note that this will release the so far
@@ -79,10 +87,6 @@ public:
     }
 
 protected:
-    void ep(epid_t ep) {
-        _ep = ep;
-    }
-
     void ensure_activated() {
         if(_ep == UNBOUND && sel() != ObjCap::INVALID)
             EPMux::get().switch_to(this);

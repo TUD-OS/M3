@@ -204,7 +204,7 @@ public:
 
     m3::Errors::Code config_rcv_ep(epid_t ep, const RGateObject &obj);
     void config_snd_ep(epid_t ep, const SGateObject &obj);
-    void config_mem_ep(epid_t ep, const MGateObject &obj);
+    m3::Errors::Code config_mem_ep(epid_t ep, const MGateObject &obj, uintptr_t off = 0);
 
     void make_daemon();
 

@@ -88,6 +88,15 @@ public:
     }
 
     /**
+     * Activates this gate for <vpe> at EP <ep>.
+     *
+     * @param vpe the VPE to activate it for
+     * @param ep the ep id
+     * @return the result
+     */
+    Errors::Code activate_for(VPE &vpe, epid_t ep);
+
+    /**
      * Sends <data> of length <len> to the associated RecvGate.
      *
      * @param data the data to send
