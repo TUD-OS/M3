@@ -25,23 +25,35 @@ namespace accel {
  */
 class StreamAccel {
 public:
-    static const size_t RB_SIZE     = 64;
-    static const capsel_t RBUF_SEL  = 2;
+    static const size_t MSG_SIZE    = 64;
+    static const size_t RB_SIZE     = MSG_SIZE * 8;
+    static const capsel_t RGATE_SEL = 2;
+    static const capsel_t SGATE_SEL = 3;
     static const size_t EP_RECV     = 7;
     static const size_t EP_INPUT    = 8;
     static const size_t EP_OUTPUT   = 9;
+    static const size_t EP_SEND     = 10;
 
-    static const size_t BUF_SIZE;
+    static const size_t BUF_MAX_SIZE;
     static const size_t BUF_ADDR;
 
-    /**
-     * The format of the request
-     */
-    struct Request {
-        uint64_t inoff;
-        uint64_t outoff;
+    enum class Command {
+        INIT,
+        UPDATE,
+    };
+
+    struct InitCommand {
+        uint64_t cmd;
+        uint64_t buf_size;
+        uint64_t out_size;
+        uint64_t report_size;
+    } PACKED;
+
+    struct UpdateCommand {
+        uint64_t cmd;
+        uint64_t off;
         uint64_t len;
-        uint64_t autonomous;
+        uint64_t eof;
     } PACKED;
 
     /**

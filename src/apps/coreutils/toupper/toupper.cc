@@ -22,12 +22,13 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
+    size_t bufsize = accel::StreamAccel::BUF_MAX_SIZE;
     File *in = VPE::self().fds()->get(STDIN_FD);
     File *out = VPE::self().fds()->get(STDOUT_FD);
 
     accel::Stream str(PEISA::ACCEL_TOUP);
     if(argc == 1)
-        str.execute(in, out);
+        str.execute(in, out, bufsize);
     else {
         for(int i = 1; i < argc; ++i) {
             fd_t fd = VFS::open(argv[i], FILE_R);
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
                 continue;
             }
 
-            str.execute(VPE::self().fds()->get(fd), out);
+            str.execute(VPE::self().fds()->get(fd), out, bufsize);
             VFS::close(fd);
         }
     }

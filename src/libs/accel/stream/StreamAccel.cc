@@ -23,8 +23,8 @@ using namespace m3;
 
 namespace accel {
 
-const size_t StreamAccel::BUF_SIZE  = 0x1000;
-const size_t StreamAccel::BUF_ADDR  = 0x4000;
+const size_t StreamAccel::BUF_MAX_SIZE  = 0x10000;
+const size_t StreamAccel::BUF_ADDR      = 0x6000;
 
 StreamIAccel::StreamIAccel(m3::PEISA isa, bool muxable)
     : _vpe("acc", PEDesc(PEType::COMP_IMEM, isa), nullptr, muxable) {

@@ -24,7 +24,7 @@ using namespace m3;
 namespace accel {
 
 const size_t HashAccel::BUF_SIZE    = 8192;
-const size_t HashAccel::BUF_ADDR    = 0x4000;
+const size_t HashAccel::BUF_ADDR    = 0x6000;
 const size_t HashAccel::STATE_SIZE  = 1024;
 const size_t HashAccel::STATE_ADDR  = BUF_ADDR - STATE_SIZE;
 

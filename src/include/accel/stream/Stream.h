@@ -40,24 +40,25 @@ public:
     ~Stream();
 
     /**
-     * Convenience method that calls start, update and finish for the given file. The method get()
-     * works non-autonomously and get_auto() works autonomously.
+     * Pumps <in> through the accelerator and stores the result into <out>. The slow version performs
+     * the reading and writing from/to the file in software.
      *
-     * @param algo the hash algorithm to use
-     * @param file the file to generate the hash for
-     * @param res the array to store the hash to
-     * @param max the size of the array
+     * @param in the input file
+     * @param out the output file
+     * @param bufsize the buffer size to use (<= StreamAccel::BUF_MAX_SIZE)
      * @return the number of bytes of the hash (or 0 on error)
      */
-    m3::Errors::Code execute(m3::File *in, m3::File *out);
-    m3::Errors::Code execute_slow(m3::File *in, m3::File *out);
+    m3::Errors::Code execute(m3::File *in, m3::File *out, size_t bufsize);
+    m3::Errors::Code execute_slow(m3::File *in, m3::File *out, size_t bufsize);
 
 private:
-    uint64_t sendRequest(uint64_t inoff, uint64_t outoff, uint64_t len, bool autonomous);
+    void sendInit(size_t bufsize, size_t outsize, size_t reportsize);
+    uint64_t sendRequest(uint64_t off, uint64_t len);
 
     StreamAccel *_accel;
     m3::RecvGate _rgate;
-    m3::RecvGate _srgate;
+    m3::RecvGate _argate;
+    m3::SendGate _asgate;
     m3::SendGate _sgate;
 };
 

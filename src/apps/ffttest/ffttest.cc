@@ -30,7 +30,7 @@ static const int WARMUP    = 1;
 static const int REPEATS   = 2;
 
 template<bool AUTO>
-static void execute(Stream &str, const char *in, const char *out) {
+static void execute(Stream &str, const char *in, const char *out, size_t bufsize) {
     fd_t infd = VFS::open(in, FILE_R);
     if(infd == FileTable::INVALID)
         exitmsg("Unable to open " << in);
@@ -39,21 +39,21 @@ static void execute(Stream &str, const char *in, const char *out) {
         exitmsg("Unable to open " << out << " for writing");
 
     if(AUTO)
-        str.execute(VPE::self().fds()->get(infd), VPE::self().fds()->get(outfd));
+        str.execute(VPE::self().fds()->get(infd), VPE::self().fds()->get(outfd), bufsize);
     else
-        str.execute_slow(VPE::self().fds()->get(infd), VPE::self().fds()->get(outfd));
+        str.execute_slow(VPE::self().fds()->get(infd), VPE::self().fds()->get(outfd), bufsize);
     VFS::close(outfd);
     VFS::close(infd);
 }
 
 template<bool AUTO, uint NAME>
-static void bench(Stream &str, const char *in, const char *out) {
+static void bench(Stream &str, const char *in, const char *out, size_t bufsize) {
     for(int j = 0; j < WARMUP; ++j)
-        execute<AUTO>(str, in, out);
+        execute<AUTO>(str, in, out, bufsize);
 
     for(int j = 0; j < REPEATS; ++j) {
         Profile::start(NAME);
-        execute<AUTO>(str, in, out);
+        execute<AUTO>(str, in, out, bufsize);
         Profile::stop(NAME);
     }
 }
@@ -68,7 +68,8 @@ int main(int argc, char **argv) {
     }
 
     Stream accel(PEISA::ACCEL_FFT);
-    bench<false, 0x1234>(accel, argv[1], argv[2]);
-    bench<true,  0x1235>(accel, argv[1], argv[2]);
+    const size_t bufsize = 4096;
+    bench<false, 0x1234>(accel, argv[1], argv[2], bufsize);
+    bench<true,  0x1235>(accel, argv[1], argv[2], bufsize);
     return 0;
 }
