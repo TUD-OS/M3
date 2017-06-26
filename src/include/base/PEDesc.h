@@ -26,12 +26,10 @@ namespace m3 {
 enum class PEType {
     // Compute PE with internal memory
     COMP_IMEM   = 0,
-    // Compute PE with cache and a DTU with VM
-    COMP_DTUVM  = 1,
-    // Compute PE with cache and MMU
-    COMP_MMU    = 2,
+    // Compute PE with cache and external memory
+    COMP_EMEM   = 1,
     // memory PE
-    MEM         = 3,
+    MEM         = 2,
 };
 
 /**
@@ -45,6 +43,14 @@ enum class PEISA {
     ACCEL_SHA   = 4,
     ACCEL_FFT   = 5,
     ACCEL_TOUP  = 6,
+};
+
+/**
+ * The flags
+ */
+enum PEFlags {
+    MMU_VM      = 1,
+    DTU_VM      = 2,
 };
 
 /**
@@ -90,6 +96,12 @@ struct PEDesc {
         return static_cast<PEISA>((_value >> 3) & 0x7);
     }
     /**
+     * @return the flags
+     */
+    PEFlags flags() const {
+        return static_cast<PEFlags>((_value >> 6) & 0x3);
+    }
+    /**
      * @return if the PE has a core that is programmable
      */
     bool is_programmable() const {
@@ -125,7 +137,7 @@ struct PEDesc {
      * @return true if the PE has a cache, i.e., external memory
      */
     bool has_cache() const {
-        return type() == PEType::COMP_DTUVM || type() == PEType::COMP_MMU;
+        return type() == PEType::COMP_EMEM;
     }
     /**
      * @return true if the PE has virtual memory support of some form
@@ -137,13 +149,13 @@ struct PEDesc {
      * @return true if the PE has virtual memory support in the DTU
      */
     bool has_dtuvm() const {
-        return type() == PEType::COMP_DTUVM;
+        return flags() & PEFlags::DTU_VM;
     }
     /**
      * @return true if the PE has a core with MMU
      */
     bool has_mmu() const {
-        return type() == PEType::COMP_MMU;
+        return flags() & PEFlags::MMU_VM;
     }
 
 private:

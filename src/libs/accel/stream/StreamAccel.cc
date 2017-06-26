@@ -31,7 +31,7 @@ StreamIAccel::StreamIAccel(m3::PEISA isa, bool muxable)
 }
 
 StreamEAccel::StreamEAccel(m3::PEISA isa, bool muxable)
-    : _vpe("acc", PEDesc(PEType::COMP_DTUVM, isa), "pager", muxable) {
+    : _vpe("acc", PEDesc(PEType::COMP_EMEM, isa), "pager", muxable) {
 }
 
 uintptr_t StreamIAccel::getRBAddr() {

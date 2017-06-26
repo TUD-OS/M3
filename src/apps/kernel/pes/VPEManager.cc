@@ -34,9 +34,8 @@ VPEManager::VPEManager()
 void VPEManager::init(int argc, char **argv) {
     // TODO the required PE depends on the boot module, not the kernel PE
     m3::PEDesc pedesc = Platform::pe(Platform::kernel_pe());
-    m3::PEDesc pedesc_dtuvm(m3::PEType::COMP_DTUVM, pedesc.isa(), pedesc.mem_size());
-    m3::PEDesc pedesc_mmu(m3::PEType::COMP_MMU, pedesc.isa(), pedesc.mem_size());
-    m3::PEDesc pedesc_spm(m3::PEType::COMP_IMEM, pedesc.isa(), pedesc.mem_size());
+    m3::PEDesc pedesc_emem(m3::PEType::COMP_EMEM, pedesc.isa(), pedesc.mem_size());
+    m3::PEDesc pedesc_imem(m3::PEType::COMP_IMEM, pedesc.isa(), pedesc.mem_size());
 
     for(int i = 0; i < argc; ++i) {
         if(strcmp(argv[i], "--") == 0)
@@ -47,17 +46,13 @@ void VPEManager::init(int argc, char **argv) {
 
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
-            // try to find a PE with the required ISA and an MMU first
-            peid_t peid = PEManager::get().find_pe(pedesc_mmu, 0, false);
+            // try to find a PE with the required ISA and external memory first
+            peid_t peid = PEManager::get().find_pe(pedesc_emem, 0, false);
             if(peid == 0) {
                 // if that failed, try to find a SPM PE
-                peid = PEManager::get().find_pe(pedesc_dtuvm, 0, false);
-                if(peid == 0) {
-                    // if that failed, try to find a SPM PE
-                    peid = PEManager::get().find_pe(pedesc_spm, 0, false);
-                    if(peid == 0)
-                        PANIC("Unable to find a free PE for boot module " << argv[i]);
-                }
+                peid = PEManager::get().find_pe(pedesc_imem, 0, false);
+                if(peid == 0)
+                    PANIC("Unable to find a free PE for boot module " << argv[i]);
             }
 
             // allow multiple applications with the same name
