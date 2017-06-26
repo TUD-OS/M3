@@ -28,12 +28,6 @@
 using namespace m3;
 using namespace accel;
 
-enum {
-    IFFT    = 2,
-    MUL     = 1,
-    SFFT    = 0,
-};
-
 static const int WARMUP    = 1;
 static const int REPEATS   = 2;
 
@@ -203,7 +197,7 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
         goto error;
     }
     buf1.write(buffer, static_cast<size_t>(count), 0);
-    sendRequest(*sgates[SFFT], 0, static_cast<size_t>(count));
+    sendRequest(*sgates[0], 0, static_cast<size_t>(count));
     total += static_cast<size_t>(count);
 
     count = in->read(buffer, bufsize);
@@ -214,35 +208,31 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
 
         // cout << "got msg from " << label << "\n";
 
-        switch(label) {
-            case SFFT:
-                send_msg(*sgates[MUL], is.message().data, is.message().length);
+        if(label == 0) {
+            send_msg(*sgates[1], is.message().data, is.message().length);
 
-                total += static_cast<size_t>(count);
-                if(count > 0) {
-                    buf1.write(buffer, static_cast<size_t>(count), 0);
-                    sendRequest(*sgates[SFFT], 0, static_cast<size_t>(count));
+            total += static_cast<size_t>(count);
+            if(count > 0) {
+                buf1.write(buffer, static_cast<size_t>(count), 0);
+                sendRequest(*sgates[0], 0, static_cast<size_t>(count));
 
-                    count = in->read(buffer, bufsize);
-                    // cout << "read " << count << " bytes\n";
-                    if(count < 0) {
-                        err = Errors::last;
-                        goto error;
-                    }
+                count = in->read(buffer, bufsize);
+                // cout << "read " << count << " bytes\n";
+                if(count < 0) {
+                    err = Errors::last;
+                    goto error;
                 }
-                break;
-
-            case MUL:
-                send_msg(*sgates[IFFT], is.message().data, is.message().length);
-                break;
-
-            case IFFT:
-                auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
-                bufn.read(buffer, upd->len, 0);
-                // cout << "write " << upd->len << " bytes\n";
-                out->write(buffer, upd->len);
-                seen += upd->len;
-                break;
+            }
+        }
+        else if(label == num - 1) {
+            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
+            bufn.read(buffer, upd->len, 0);
+            // cout << "write " << upd->len << " bytes\n";
+            out->write(buffer, upd->len);
+            seen += upd->len;
+        }
+        else {
+            send_msg(*sgates[label + 1], is.message().data, is.message().length);
         }
 
         // cout << seen << " / " << total << "\n";
@@ -258,7 +248,7 @@ error:
     return err;
 }
 
-static void fftchain(const char *in, const char *out, size_t bufsize) {
+static void fftchain(const char *in, const char *out, size_t bufsize, bool direct) {
     RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
     rgate.activate();
 
@@ -269,12 +259,12 @@ static void fftchain(const char *in, const char *out, size_t bufsize) {
 
     accel[NUM - 1] = StreamAccel::create(PEISA::ACCEL_FFT);
     chain[NUM - 1] = new ChainMember(accel[NUM - 1]->vpe(), accel[NUM - 1]->getRBAddr(),
-        StreamAccel::RB_SIZE, rgate, 0);
+        StreamAccel::RB_SIZE, rgate, NUM - 1);
 
     for(ssize_t i = NUM - 2; i >= 0; --i) {
         accel[i] = StreamAccel::create(PEISA::ACCEL_FFT);
         chain[i] = new ChainMember(accel[i]->vpe(), accel[i]->getRBAddr(),
-            StreamAccel::RB_SIZE, chain[i + 1]->rgate, 0);
+            StreamAccel::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
     }
 
     for(auto *m : chain) {
@@ -283,7 +273,7 @@ static void fftchain(const char *in, const char *out, size_t bufsize) {
     }
 
     for(auto *m : chain) {
-        chain[0]->vpe.start();
+        m->vpe.start();
         m->activate_send();
     }
 
@@ -292,12 +282,18 @@ static void fftchain(const char *in, const char *out, size_t bufsize) {
             chain[i + 1]->vpe.mem().derive(StreamAccel::BUF_ADDR, bufsize));
         buf->activate_for(chain[i]->vpe, StreamAccel::EP_OUTPUT);
 
-        chain[i]->init(bufsize, bufsize, bufsize / 2);
+        chain[i]->init(bufsize, bufsize, direct ? bufsize / 2 : bufsize);
     }
 
-    chain[NUM - 1]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1));
-
-    Errors::Code res = execute(rgate, chain, NUM, in, out);
+    Errors::Code res;
+    if(direct) {
+        chain[NUM - 1]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1));
+        res = execute(rgate, chain, NUM, in, out);
+    }
+    else {
+        chain[NUM - 1]->init(bufsize, bufsize, bufsize);
+        res = execute_indirect(rgate, chain, NUM, in, out, bufsize);
+    }
     if(res != Errors::NONE)
         errmsg("Operation failed: " << Errors::to_string(res));
 
@@ -394,6 +390,12 @@ static void fftconvolution(const char *in, const char *out, size_t bufsize, bool
         requestResponse(sgate, rgate, 0, sizeof(kernel_freq));
         delete a;
     }
+
+    enum {
+        IFFT    = 2,
+        MUL     = 1,
+        SFFT    = 0,
+    };
 
     StreamAccel *accel[2];
     ChainMember *chain[3];
@@ -500,7 +502,7 @@ int main(int argc, char **argv) {
 
     cycles_t start = Profile::start(0);
     if(String(mode) == "chain")
-        fftchain(in, out, bufsize);
+        fftchain(in, out, bufsize, direct);
     else
         fftconvolution(in, out, bufsize, direct);
     cycles_t end = Profile::stop(0);
