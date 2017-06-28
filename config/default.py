@@ -20,7 +20,7 @@ pes = []
 
 # create the core PEs
 for i in range(0, num_pes - num_spm):
-    pe = createCorePE(root=root,
+    pe = createCorePE(noc=root.noc,
                       options=options,
                       no=i,
                       cmdline=cmd_list[i],
@@ -31,7 +31,7 @@ for i in range(0, num_pes - num_spm):
                       mmu=mmu == 1)
     pes.append(pe)
 for i in range(num_pes - num_spm, num_pes):
-    pe = createCorePE(root=root,
+    pe = createCorePE(noc=root.noc,
                       options=options,
                       no=i,
                       cmdline=cmd_list[i],
@@ -41,7 +41,7 @@ for i in range(num_pes - num_spm, num_pes):
 
 # create the memory PEs
 for i in range(0, num_mem):
-    pe = createMemPE(root=root,
+    pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + i,
                      size='1024MB',
@@ -51,7 +51,7 @@ for i in range(0, num_mem):
 # create accelerator PEs
 accs = ['hash', 'fft', 'toupper']
 for i in range(0, 3):
-    pe = createAccelPE(root=root,
+    pe = createAccelPE(noc=root.noc,
                        options=options,
                        no=num_pes + num_mem + i,
                        accel=accs[i],
@@ -63,4 +63,4 @@ for i in range(0, 3):
 # pes[1].dtu.watch_range_start  = 0x43d2ff0
 # pes[1].dtu.watch_range_end    = 0x43d2fff
 
-runSimulation(options, pes)
+runSimulation(root, options, pes)

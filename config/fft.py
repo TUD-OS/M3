@@ -19,7 +19,7 @@ pes = []
 # create the core PEs
 for i in range(0, num_pes):
     options.cpu_clock = '3GHz' if i < num_pes - 1 else '1GHz'
-    pe = createCorePE(root=root,
+    pe = createCorePE(noc=root.noc,
                       options=options,
                       no=i,
                       cmdline=cmd_list[i],
@@ -32,7 +32,7 @@ for i in range(0, num_pes):
 
 # create the memory PEs
 for i in range(0, num_mem):
-    pe = createMemPE(root=root,
+    pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + i,
                      size='1024MB',
@@ -41,8 +41,8 @@ for i in range(0, num_mem):
 
 # create accelerator PEs
 for i in range(0, num_fft):
-    options.cpu_clock = '1GHz'
-    pe = createAccelPE(root=root,
+    options.cpu_clock = '500MHz'
+    pe = createAccelPE(noc=root.noc,
                        options=options,
                        no=num_pes + num_mem + i,
                        accel='fft',
@@ -51,4 +51,4 @@ for i in range(0, num_fft):
                        #l1size='32kB')
     pes.append(pe)
 
-runSimulation(options, pes)
+runSimulation(root, options, pes)

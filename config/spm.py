@@ -17,7 +17,7 @@ pes = []
 
 # create the core PEs
 for i in range(0, num_pes):
-    pe = createCorePE(root=root,
+    pe = createCorePE(noc=root.noc,
                       options=options,
                       no=i,
                       cmdline=cmd_list[i],
@@ -27,11 +27,11 @@ for i in range(0, num_pes):
 
 # create the memory PEs
 for i in range(0, num_mem):
-    pe = createMemPE(root=root,
+    pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + i,
                      size='1024MB',
                      content=fsimg if i == 0 else None)
     pes.append(pe)
 
-runSimulation(options, pes)
+runSimulation(root, options, pes)

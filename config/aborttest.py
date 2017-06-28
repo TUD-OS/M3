@@ -11,7 +11,7 @@ mem_pe = num_pes
 pes = []
 
 for i in range(0, num_pes):
-    pe = createAbortTestPE(root=root,
+    pe = createAbortTestPE(noc=root.noc,
                            options=options,
                            no=i,
                            memPE=mem_pe,
@@ -19,7 +19,7 @@ for i in range(0, num_pes):
                            l2size='256kB')
     pes.append(pe)
 
-pe = createMemPE(root=root,
+pe = createMemPE(noc=root.noc,
                  options=options,
                  no=num_pes,
                  size='1024MB',
@@ -31,4 +31,4 @@ pes.append(pe)
 # longer amount of time as we need to handle the request on the remote side
 root.noc.width = 64
 
-runSimulation(options, pes)
+runSimulation(root, options, pes)
