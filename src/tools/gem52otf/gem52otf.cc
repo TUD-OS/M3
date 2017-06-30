@@ -138,14 +138,16 @@ struct Event {
 };
 
 struct State {
-    explicit State() : addr(), sym(), in_cmd(), have_start(), start_event() {
+    static const size_t INVALID_IDX = static_cast<size_t>(-1);
+
+    explicit State() : addr(), sym(), in_cmd(), have_start(), start_idx(INVALID_IDX) {
     }
 
     unsigned long addr;
     Symbols::symbol_t sym;
     bool in_cmd;
     bool have_start;
-    Event start_event;
+    size_t start_idx;
 };
 
 struct Stats {
@@ -318,35 +320,44 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
             if(strncmp(line.c_str(), ": Finished command ", 19) == 0) {
                 if(states[pe].have_start) {
                     int type;
-                    if(states[pe].start_event.type == EVENT_MSG_SEND_START)
+                    assert(states[pe].start_idx != State::INVALID_IDX);
+                    const Event &start_ev = buf[states[pe].start_idx];
+                    if(start_ev.type == EVENT_MSG_SEND_START)
                         type = EVENT_MSG_SEND_DONE;
-                    else if(states[pe].start_event.type == EVENT_MEM_READ_START)
+                    else if(start_ev.type == EVENT_MEM_READ_START)
                         type = EVENT_MEM_READ_DONE;
                     else
                         type = EVENT_MEM_WRITE_DONE;
-                    Event ev(pe, timestamp, type,
-                        states[pe].start_event.size, states[pe].start_event.remote, tag++);
+                    uint32_t remote = start_ev.remote;
+                    Event ev(pe, timestamp, type, start_ev.size, remote, tag++);
                     buf.push_back(ev);
 
-                    last_pe = std::max(pe, std::max(last_pe, ev.remote));
+                    last_pe = std::max(pe, std::max(last_pe, remote));
+                    states[pe].start_idx = State::INVALID_IDX;
                 }
 
                 states[pe].in_cmd = false;
             }
             else {
                 if (std::regex_search(line, match, msg_snd_regex)) {
-                    states[pe].start_event = build_event(EVENT_MSG_SEND_START,
+                    Event ev = build_event(EVENT_MSG_SEND_START,
                         timestamp, pe, match[1].str(), match[2].str(), tag);
                     states[pe].have_start = true;
-                    buf.push_back(states[pe].start_event);
+                    buf.push_back(ev);
+                    states[pe].start_idx = buf.size() - 1;
                 }
                 else if(std::regex_search(line, match, msg_rw_regex)) {
                     event_type type = match[1].str() == "rd" ? EVENT_MEM_READ_START
                                                              : EVENT_MEM_WRITE_START;
-                    states[pe].start_event = build_event(type,
-                        timestamp, pe, match[2].str(), match[3].str(), tag);
-                    states[pe].have_start = true;
-                    buf.push_back(states[pe].start_event);
+                    if(states[pe].start_idx != State::INVALID_IDX)
+                        buf[states[pe].start_idx].size += strtoull(match[3].str().c_str(), nullptr, 10);
+                    else {
+                        Event ev = build_event(type,
+                            timestamp, pe, match[2].str(), match[3].str(), tag);
+                        states[pe].have_start = true;
+                        buf.push_back(ev);
+                        states[pe].start_idx = buf.size() - 1;
+                    }
                 }
             }
         }
