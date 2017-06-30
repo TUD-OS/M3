@@ -282,7 +282,7 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
         std::string line(readbuf + numchars);
 
-        if(std::regex_search(line, match, msg_rcv_regex)) {
+        if(strstr(line.c_str(), "rv") && std::regex_search(line, match, msg_rcv_regex)) {
             Event ev = build_event(EVENT_MSG_RECV,
                 timestamp, pe, match[1].str(), match[2].str(), 0);
             ev.tag = tag;
@@ -290,13 +290,13 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
             last_pe = std::max(pe, std::max(last_pe, ev.remote));
         }
-        else if(std::regex_search(line, match, suswake_regex)) {
+        else if(strstr(line.c_str(), "ing") && std::regex_search(line, match, suswake_regex)) {
             event_type type = match[1].str() == "Waking" ? EVENT_WAKEUP : EVENT_SUSPEND;
             buf.push_back(build_event(type, timestamp, pe, "", "", 0));
 
             last_pe = std::max(pe, last_pe);
         }
-        else if(std::regex_search(line, match, setvpe_regex)) {
+        else if(strstr(line.c_str(), "VPE_ID") && std::regex_search(line, match, setvpe_regex)) {
             uint32_t tag = strtoul(match[1].str().c_str(), NULL, 16);
             buf.push_back(build_event(EVENT_SET_VPEID, timestamp, pe, "", "", tag));
 
@@ -339,14 +339,16 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
                 states[pe].in_cmd = false;
             }
             else {
-                if (std::regex_search(line, match, msg_snd_regex)) {
+                if ((strstr(line.c_str(), "sd") || strstr(line.c_str(), "rp")) &&
+                        std::regex_search(line, match, msg_snd_regex)) {
                     Event ev = build_event(EVENT_MSG_SEND_START,
                         timestamp, pe, match[1].str(), match[2].str(), tag);
                     states[pe].have_start = true;
                     buf.push_back(ev);
                     states[pe].start_idx = buf.size() - 1;
                 }
-                else if(std::regex_search(line, match, msg_rw_regex)) {
+                else if((strstr(line.c_str(), "rd") || strstr(line.c_str(), "wr")) &&
+                        std::regex_search(line, match, msg_rw_regex)) {
                     event_type type = match[1].str() == "rd" ? EVENT_MEM_READ_START
                                                              : EVENT_MEM_WRITE_START;
                     if(states[pe].start_idx != State::INVALID_IDX)
