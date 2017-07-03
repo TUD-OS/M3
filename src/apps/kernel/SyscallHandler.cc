@@ -700,9 +700,7 @@ void SyscallHandler::exchange(VPE *vpe, const m3::DTU::Message *msg) {
     if(vpecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE cap");
 
-    VPE *t1 = obtain ? &*vpecap->obj : vpe;
-    VPE *t2 = obtain ? vpe : &*vpecap->obj;
-    m3::Errors::Code res = do_exchange(t1, t2, own, other, obtain);
+    m3::Errors::Code res = do_exchange(vpe, &*vpecap->obj, own, other, obtain);
 
     reply_result(vpe, msg, res);
 }
