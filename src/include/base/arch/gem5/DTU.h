@@ -59,7 +59,8 @@ private:
     static const size_t EP_REGS             = 3;
 
     static const size_t CREDITS_UNLIM       = 0xFFFF;
-    static const size_t MAX_PKT_SIZE        = 1024;
+    // actual max is 64k - 1; use less for better alignment
+    static const size_t MAX_PKT_SIZE        = 60 * 1024;
 
     enum class DtuRegs {
         FEATURES            = 0,
@@ -305,6 +306,8 @@ public:
     }
 
 private:
+    Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, size_t off);
+
     reg_t get_pfep() const {
         return read_reg(DtuRegs::PF_EP);
     }

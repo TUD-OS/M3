@@ -87,22 +87,37 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t off) {
     return get_error();
 }
 
-Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {
-    write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(data) | (size << 48));
-    CPU::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::READ, flags, off));
+Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
+    size_t left = size;
+    while(left > 0) {
+        size_t amount = Math::min<size_t>(left, MAX_PKT_SIZE);
+        write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(data) | (amount << 48));
+        CPU::compiler_barrier();
+        write_reg(CmdRegs::COMMAND, cmd | (off << 16));
 
-    Errors::Code res = get_error();
+        left -= amount;
+        data += amount;
+        off += amount;
+
+        Errors::Code res = get_error();
+        if(EXPECT_FALSE(res != Errors::NONE))
+            return res;
+    }
+    return Errors::NONE;
+}
+
+Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags, 0);
+    Errors::Code res = transfer(cmd, dataaddr, size, off);
     CPU::memory_barrier();
     return res;
 }
 
 Errors::Code DTU::write(epid_t ep, const void *data, size_t size, size_t off, uint flags) {
-    write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(data) | (size << 48));
-    CPU::compiler_barrier();
-    write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::WRITE, flags, off));
-
-    return get_error();
+    uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
+    reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags, 0);
+    return transfer(cmd, dataaddr, size, off);
 }
 
 }
