@@ -216,8 +216,10 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
             out->write(buffer, upd->len);
             seen += upd->len;
         }
-        else if(label == 0) {
-            send_msg(*sgates[1], is.message().data, is.message().length);
+
+        if(label == 0) {
+            if(num > 1)
+                send_msg(*sgates[1], is.message().data, is.message().length);
 
             total += static_cast<size_t>(count);
             if(count > 0) {
@@ -232,9 +234,8 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
                 }
             }
         }
-        else {
+        else if(label != num - 1)
             send_msg(*sgates[label + 1], is.message().data, is.message().length);
-        }
 
         // cout << seen << " / " << total << "\n";
     }
