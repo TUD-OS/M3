@@ -209,7 +209,14 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
 
         // cout << "got msg from " << label << "\n";
 
-        if(label == 0) {
+        if(label == num - 1) {
+            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
+            bufn.read(buffer, upd->len, 0);
+            // cout << "write " << upd->len << " bytes\n";
+            out->write(buffer, upd->len);
+            seen += upd->len;
+        }
+        else if(label == 0) {
             send_msg(*sgates[1], is.message().data, is.message().length);
 
             total += static_cast<size_t>(count);
@@ -224,13 +231,6 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
                     goto error;
                 }
             }
-        }
-        else if(label == num - 1) {
-            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
-            bufn.read(buffer, upd->len, 0);
-            // cout << "write " << upd->len << " bytes\n";
-            out->write(buffer, upd->len);
-            seen += upd->len;
         }
         else {
             send_msg(*sgates[label + 1], is.message().data, is.message().length);
