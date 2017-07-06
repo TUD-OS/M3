@@ -47,6 +47,7 @@ public:
         uint64_t buf_size;
         uint64_t out_size;
         uint64_t report_size;
+        uint64_t comp_time;
     } PACKED;
 
     struct UpdateCommand {

@@ -64,12 +64,13 @@ struct ChainMember {
         sgate.activate_for(vpe, StreamAccel::EP_SEND);
     }
 
-    void init(size_t bufsize, size_t outsize, size_t reportsize) {
+    void init(size_t bufsize, size_t outsize, size_t reportsize, cycles_t comptime) {
         StreamAccel::InitCommand init;
         init.cmd = static_cast<int64_t>(StreamAccel::Command::INIT);
         init.buf_size = bufsize;
         init.out_size = outsize;
         init.report_size = reportsize;
+        init.comp_time = comptime;
 
         SendGate sgate = SendGate::create(&rgate);
         send_msg(sgate, &init, sizeof(init));
@@ -248,20 +249,18 @@ error:
     return err;
 }
 
-static void fftchain(const char *in, const char *out, size_t bufsize, bool direct) {
+static void fftchain(const char *in, const char *out, size_t num, size_t bufsize, cycles_t comptime, bool direct) {
     RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
     rgate.activate();
 
-    const constexpr size_t NUM = 3;
-    static_assert(NUM >= 2, "Not supported");
-    ChainMember *chain[NUM];
-    StreamAccel *accel[NUM];
+    ChainMember *chain[num];
+    StreamAccel *accel[num];
 
-    accel[NUM - 1] = StreamAccel::create(PEISA::ACCEL_FFT);
-    chain[NUM - 1] = new ChainMember(accel[NUM - 1]->vpe(), accel[NUM - 1]->getRBAddr(),
-        StreamAccel::RB_SIZE, rgate, NUM - 1);
+    accel[num - 1] = StreamAccel::create(PEISA::ACCEL_FFT);
+    chain[num - 1] = new ChainMember(accel[num - 1]->vpe(), accel[num - 1]->getRBAddr(),
+        StreamAccel::RB_SIZE, rgate, num - 1);
 
-    for(ssize_t i = NUM - 2; i >= 0; --i) {
+    for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
         accel[i] = StreamAccel::create(PEISA::ACCEL_FFT);
         chain[i] = new ChainMember(accel[i]->vpe(), accel[i]->getRBAddr(),
             StreamAccel::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
@@ -277,22 +276,22 @@ static void fftchain(const char *in, const char *out, size_t bufsize, bool direc
         m->activate_send();
     }
 
-    for(size_t i = 0; i < NUM - 1; ++i) {
+    for(size_t i = 0; i < num - 1; ++i) {
         MemGate *buf = new MemGate(
             chain[i + 1]->vpe.mem().derive(StreamAccel::BUF_ADDR, bufsize));
         buf->activate_for(chain[i]->vpe, StreamAccel::EP_OUTPUT);
 
-        chain[i]->init(bufsize, bufsize, direct ? bufsize / 2 : bufsize);
+        chain[i]->init(bufsize, bufsize, direct ? bufsize / 2 : bufsize, comptime);
     }
 
     Errors::Code res;
     if(direct) {
-        chain[NUM - 1]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1));
-        res = execute(rgate, chain, NUM, in, out);
+        chain[num - 1]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1), comptime);
+        res = execute(rgate, chain, num, in, out);
     }
     else {
-        chain[NUM - 1]->init(bufsize, bufsize, bufsize);
-        res = execute_indirect(rgate, chain, NUM, in, out, bufsize);
+        chain[num - 1]->init(bufsize, bufsize, bufsize, comptime);
+        res = execute_indirect(rgate, chain, num, in, out, bufsize);
     }
     if(res != Errors::NONE)
         errmsg("Operation failed: " << Errors::to_string(res));
@@ -384,7 +383,7 @@ static void fftconvolution(const char *in, const char *out, size_t bufsize, bool
 
         fft.vpe.start();
 
-        fft.init(bufsize, sizeof(kernel_freq), sizeof(kernel_freq));
+        fft.init(bufsize, sizeof(kernel_freq), sizeof(kernel_freq), 0);
 
         SendGate sgate = SendGate::create(&fft.rgate);
         requestResponse(sgate, rgate, 0, sizeof(kernel_freq));
@@ -440,15 +439,11 @@ static void fftconvolution(const char *in, const char *out, size_t bufsize, bool
     MemGate ifftbuf = chain[IFFT]->vpe.mem().derive(StreamAccel::BUF_ADDR, bufsize);
     ifftbuf.activate_for(chain[MUL]->vpe, StreamAccel::EP_OUTPUT);
 
-    chain[SFFT]->init(bufsize, INPUT_BUF_SIZE, INPUT_BUF_SIZE / 2);
-    chain[MUL]->init(0, bufsize, bufsize / 2);
-    chain[IFFT]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1));
-
     Errors::Code res;
     if(direct) {
-        chain[SFFT]->init(bufsize, bufsize * 2, bufsize);
-        chain[MUL]->init(0, bufsize, bufsize / 2);
-        chain[IFFT]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1));
+        chain[SFFT]->init(bufsize, bufsize * 2, bufsize, 0);
+        chain[MUL]->init(0, bufsize, bufsize / 2, 0);
+        chain[IFFT]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1), 0);
 
         cycles_t start = Profile::start(1);
         res = execute(rgate, chain, 3, in, out);
@@ -456,9 +451,9 @@ static void fftconvolution(const char *in, const char *out, size_t bufsize, bool
         cout << "Exec time: " << (end - start) << " cycles\n";
     }
     else {
-        chain[SFFT]->init(bufsize, bufsize, bufsize);
-        chain[MUL]->init(0, bufsize, bufsize);
-        chain[IFFT]->init(bufsize, bufsize, bufsize);
+        chain[SFFT]->init(bufsize, bufsize, bufsize, 0);
+        chain[MUL]->init(0, bufsize, bufsize, 0);
+        chain[IFFT]->init(bufsize, bufsize, bufsize, 0);
 
         cycles_t start = Profile::start(1);
         res = execute_indirect(rgate, chain, 3, in, out, bufsize);
@@ -486,8 +481,8 @@ static void fftconvolution(const char *in, const char *out, size_t bufsize, bool
 }
 
 int main(int argc, char **argv) {
-    if(argc < 6)
-        exitmsg("Usage: " << argv[0] << " <in> <out> (chain|convol) <direct> <bufsize>");
+    if(argc < 8)
+        exitmsg("Usage: " << argv[0] << " <in> <out> (chain|convol) <direct> <bufsize> <comptime> <num>");
 
     if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
@@ -499,10 +494,12 @@ int main(int argc, char **argv) {
     const char *mode = argv[3];
     bool direct = IStringStream::read_from<int>(argv[4]);
     size_t bufsize = IStringStream::read_from<size_t>(argv[5]);
+    cycles_t comptime = IStringStream::read_from<cycles_t>(argv[6]);
+    size_t num = IStringStream::read_from<size_t>(argv[7]);
 
     cycles_t start = Profile::start(0);
     if(String(mode) == "chain")
-        fftchain(in, out, bufsize, direct);
+        fftchain(in, out, num, bufsize, comptime, direct);
     else
         fftconvolution(in, out, bufsize, direct);
     cycles_t end = Profile::stop(0);

@@ -61,6 +61,7 @@ void Stream::sendInit(size_t bufsize, size_t outsize, size_t reportsize) {
     init.buf_size = bufsize;
     init.out_size = outsize;
     init.report_size = reportsize;
+    init.comp_time = 0;
 
     send_msg(_sgate, &init, sizeof(init));
 }
