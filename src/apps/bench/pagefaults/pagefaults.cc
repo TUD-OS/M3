@@ -29,7 +29,7 @@ static const size_t PAGES       = 64;
 
 static void do_bench(volatile char *data) {
     for(size_t i = 0; i < PAGES; ++i)
-        UNUSED char d = data[i * PAGE_SIZE];
+        data[i * PAGE_SIZE] = i;
 }
 
 int main() {
@@ -40,7 +40,7 @@ int main() {
     for(size_t i = 0; i < COUNT; ++i) {
         uintptr_t virt = 0x30000000;
         Errors::Code res = VPE::self().pager()->map_anon(&virt, PAGES * PAGE_SIZE,
-            Pager::READ, 0);
+            Pager::READ | Pager::WRITE, 0);
         if(res != Errors::NONE)
             exitmsg("Unable to map anonymous memory");
 
