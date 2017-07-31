@@ -114,7 +114,7 @@ public:
 private:
 #if defined(__gem5__)
     bool create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t pteAddr,
-        m3::DTU::pte_t pte, int perm, int level);
+        m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level);
     bool create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
     void remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level);

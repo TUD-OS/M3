@@ -70,6 +70,8 @@ static m3::DTU::pte_t to_dtu_pte(uint64_t pte) {
         res |= m3::DTU::PTE_W;
     if(pte & 0x4) // not-supervisor
         res |= m3::DTU::PTE_I;
+    if(pte & 0x80)
+        res |= m3::DTU::PTE_LARGE;
     return res;
 }
 
@@ -148,6 +150,7 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
 
     uintptr_t virt = xlate_req & ~PAGE_MASK;
     uint perm = xlate_req & 0xF;
+    uint xferbuf = (xlate_req >> 5) & 0x7;
 
     // translate to physical
     m3::DTU::pte_t pte;
@@ -163,7 +166,7 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
     else {
         for(int lvl = 3; lvl >= 0; lvl--) {
             pte = to_dtu_pte(*reinterpret_cast<uint64_t*>(get_pte_addr(virt, lvl)));
-            if(~(pte & 0xF) & perm)
+            if((~(pte & 0xF) & perm) || (pte & m3::DTU::PTE_LARGE))
                 break;
         }
     }
@@ -171,7 +174,7 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
     bool pf = false;
     if(~(pte & 0xF) & perm) {
         // the first xfer buffer can't raise pagefaults
-        if((xlate_req & 0x70) == 0) {
+        if(xferbuf == 0) {
             // the xlate response has to be non-zero, but have no permission bits set
             pte = PAGE_SIZE;
         }
@@ -190,8 +193,8 @@ static bool handle_xlate(m3::DTU::reg_t xlate_req) {
     // TODO that means that aborted commands cause another TLB miss in the DTU, which can then
     // (hopefully) be handled with a simple PT walk. we could improve that by setting the TLB entry
     // right away without continuing the transfer (because that's aborted)
-    if(!pf || cmdregs[0] == 0 || cmdXferBuf != ((xlate_req & 0x70) >> 4))
-        dtu.set_xlate_resp(pte | (xlate_req & 0x70));
+    if(!pf || cmdregs[0] == 0 || cmdXferBuf != xferbuf)
+        dtu.set_xlate_resp(pte | (xferbuf << 5));
 
     if(pf)
         resume_cmd();

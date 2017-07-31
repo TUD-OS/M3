@@ -144,6 +144,9 @@ public:
         LEVEL_CNT           = 4,
         LEVEL_BITS          = PAGE_BITS - PTE_BITS,
         LEVEL_MASK          = (1 << LEVEL_BITS) - 1,
+        LPAGE_BITS          = PAGE_BITS + LEVEL_BITS,
+        LPAGE_SIZE          = 1UL << LPAGE_BITS,
+        LPAGE_MASK          = LPAGE_SIZE - 1,
         PTE_REC_IDX         = 0x10,
     };
 
@@ -152,7 +155,7 @@ public:
         PTE_W               = 2,
         PTE_X               = 4,
         PTE_I               = 8,
-        PTE_GONE            = 16,
+        PTE_LARGE           = 16,
         PTE_UNCACHED        = 32, // unsupported by DTU, but used for MMU
         PTE_RW              = PTE_R | PTE_W,
         PTE_RWX             = PTE_RW | PTE_X,

@@ -341,7 +341,12 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Size or permissions invalid");
 
     MainMemory &mem = MainMemory::get();
-    MainMemory::Allocation alloc = addr == static_cast<uintptr_t>(-1) ? mem.allocate(size, PAGE_SIZE)
+    size_t align = PAGE_SIZE;
+#if defined(__gem5__)
+    if(size >= m3::DTU::LPAGE_SIZE)
+        align = m3::DTU::LPAGE_SIZE;
+#endif
+    MainMemory::Allocation alloc = addr == static_cast<uintptr_t>(-1) ? mem.allocate(size, align)
                                                                       : mem.allocate_at(addr, size);
     if(!alloc)
         SYS_ERROR(vpe, msg, m3::Errors::OUT_OF_MEM, "Not enough memory");

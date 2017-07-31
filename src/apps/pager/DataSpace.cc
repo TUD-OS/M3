@@ -73,8 +73,11 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
 
     // if it isn't backed with memory yet, allocate memory for it
     if(!reg->has_mem()) {
+        size_t max = maxpages;
+        if(m3::Math::is_aligned(vaddr, m3::DTU::LPAGE_SIZE) && reg->size() >= m3::DTU::LPAGE_SIZE)
+            max = m3::DTU::LPAGE_SIZE / PAGE_SIZE;
         // don't allocate too much at once
-        reg->limit_to(offset, maxpages);
+        reg->limit_to(offset, max);
 
         SLOG(PAGER, "Allocating anonymous memory for "
             << m3::fmt(reg->virt(), "p") << ".."
