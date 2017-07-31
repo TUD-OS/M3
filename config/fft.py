@@ -11,14 +11,14 @@ cmd_list = options.cmd.split(",")
 num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
-num_fft = 4
-mem_pe = num_pes
+num_fft = 2
+mem_pe = num_pes + 1 + num_fft
 
 pes = []
 
 # create the core PEs
+options.cpu_clock = '3GHz'
 for i in range(0, num_pes):
-    options.cpu_clock = '3GHz' if i < num_pes - 1 else '1GHz'
     pe = createCorePE(noc=root.noc,
                       options=options,
                       no=i,
@@ -26,29 +26,40 @@ for i in range(0, num_pes):
                       memPE=mem_pe,
                       l1size='32kB',
                       l2size='256kB',
-                      dtupos=2 if i < num_pes - 1 else 0,
-                      mmu=1 if i < num_pes - 1 else 0)
+                      dtupos=0,
+                      mmu=0)
+    pes.append(pe)
+
+# create accelerator PEs
+options.cpu_clock = '800MHz'
+pe = createCorePE(noc=root.noc,
+                  options=options,
+                  no=num_pes,
+                  cmdline=cmd_list[num_pes - 1],
+                  memPE=mem_pe,
+                  spmsize='8MB',
+                  dtupos=0,
+                  mmu=0)
+pes.append(pe)
+
+options.cpu_clock = '200MHz'
+for i in range(0, num_fft):
+    pe = createAccelPE(noc=root.noc,
+                       options=options,
+                       no=num_pes + 1 + i,
+                       accel='fft',
+                       memPE=mem_pe,
+                       spmsize='128kB')
+                       #l1size='32kB')
     pes.append(pe)
 
 # create the memory PEs
 for i in range(0, num_mem):
     pe = createMemPE(noc=root.noc,
                      options=options,
-                     no=num_pes + i,
+                     no=num_pes + 1 + num_fft + i,
                      size='1024MB',
                      content=fsimg if i == 0 else None)
-    pes.append(pe)
-
-# create accelerator PEs
-for i in range(0, num_fft):
-    options.cpu_clock = '500MHz'
-    pe = createAccelPE(noc=root.noc,
-                       options=options,
-                       no=num_pes + num_mem + i,
-                       accel='fft',
-                       memPE=mem_pe,
-                       spmsize='128kB')
-                       #l1size='32kB')
     pes.append(pe)
 
 runSimulation(root, options, pes)

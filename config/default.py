@@ -56,7 +56,7 @@ for i in range(0, 3):
                        no=num_pes + num_mem + i,
                        accel=accs[i],
                        memPE=mem_pe,
-                       spmsize='40kB')
+                       spmsize='64kB')
                        #l1size='32kB')
     pes.append(pe)
 

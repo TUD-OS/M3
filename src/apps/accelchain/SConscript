@@ -1,0 +1,5 @@
+Import('env')
+if env['ARCH'] == 'gem5':
+    env.M3Program(env, 'accelchain', env.Glob('accelchain.cc'), libs = ['accel'])
+    env.M3Program(env, 'fft1d', env.Glob('fft1d.cc'), libs = ['accel'])
+    env.M3Program(env, 'swfilter', env.Glob('swfilter.cc'))
