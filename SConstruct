@@ -155,15 +155,15 @@ env.Replace(F90 = cross + 'gfortran')
 btype = os.environ.get('M3_BUILD', 'release')
 if btype == 'debug':
     if target == 'host' or target == 'gem5':
-        env.Append(CXXFLAGS = ' -Og -g')
-        env.Append(CFLAGS = ' -Og -g')
+        env.Append(CXXFLAGS = ' -O0 -g')
+        env.Append(CFLAGS = ' -O0 -g')
     else:
         # use -Os here because otherwise the binaries tend to get larger than 32k
         env.Append(CXXFLAGS = ' -Os -g')
         env.Append(CFLAGS = ' -Os -g')
     env.Append(ASFLAGS = ' -g')
-    hostenv.Append(CXXFLAGS = ' -Og -g')
-    hostenv.Append(CFLAGS = ' -Og -g')
+    hostenv.Append(CXXFLAGS = ' -O0 -g')
+    hostenv.Append(CFLAGS = ' -O0 -g')
 else:
     if target == 't2':
         env.Append(CXXFLAGS = ' -Os -DNDEBUG -flto')

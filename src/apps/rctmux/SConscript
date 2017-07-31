@@ -24,6 +24,9 @@ if env['ARCH'] == 't3':
 elif env['ARCH'] == 'gem5':
     myenv = env.Clone()
 
+    # -O0 makes the code too large. Better use -Og here.
+    myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-O0', '-Og')
+
     myenv.M3CPP('ld-final.conf', '#src/apps/rctmux/arch/gem5/ld.conf')
 
     myenv.M3Program(
