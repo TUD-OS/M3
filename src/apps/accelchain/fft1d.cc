@@ -31,7 +31,7 @@
 using namespace m3;
 using namespace accel;
 
-static const cycles_t FFT1D_CYCLES      = 700; // for 2k
+static const cycles_t FFT1D_CYCLES      = 16942 / 2; // for 2k
 
 static Errors::Code execute(size_t arrsize, RecvGate &rgate, ChainMember **chain) {
     SendGate sgate = SendGate::create(&chain[0]->rgate);
