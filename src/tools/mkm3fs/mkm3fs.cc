@@ -69,7 +69,7 @@ static m3::blockno_t alloc_block(bool new_ext) {
         blk = last_block + 1;
     else {
         blk = last_block + 1;
-        do {
+        while(block_bitmap->is_set(blk)) {
             if(use_rand) {
                 size_t size = sb.total_blocks - sb.first_data_block();
                 blk = (static_cast<size_t>(rand()) % size) + sb.first_data_block();
@@ -77,7 +77,6 @@ static m3::blockno_t alloc_block(bool new_ext) {
             else
                 blk++;
         }
-        while(block_bitmap->is_set(blk));
     }
 
     PRINT("Allocated block %u\n", blk);
@@ -88,21 +87,21 @@ static m3::blockno_t alloc_block(bool new_ext) {
     return blk;
 }
 
-static bool append_to_extent(m3::INode *ino, m3::Extent *extent, m3::blockno_t bno) {
+static bool append_to_extent(m3::INode *ino, m3::Extent *extent, m3::blockno_t bno, bool new_ext) {
     if(extent->length == 0) {
         extent->start = bno;
         extent->length = 1;
         ino->extents++;
         return true;
     }
-    if(bno == extent->start + extent->length) {
+    if(!new_ext && bno == extent->start + extent->length) {
         extent->length++;
         return true;
     }
     return false;
 }
 
-static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3::blockno_t bno, int level, uint div) {
+static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3::blockno_t bno, int level, uint div, bool new_ext) {
     m3::Extent *extents = new m3::Extent[sb.extents_per_block()];
     if(*indir == 0) {
         *indir = alloc_block(false);
@@ -114,10 +113,10 @@ static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3:
     bool res;
     if(level == 0) {
         assert(i < sb.extents_per_block());
-        res = append_to_extent(ino, extents + i, bno);
+        res = append_to_extent(ino, extents + i, bno, new_ext);
     }
     else {
-        res = create_indir_block(ino, &(extents[i / div].start), i % div, bno, level - 1, div / sb.extents_per_block());
+        res = create_indir_block(ino, &(extents[i / div].start), i % div, bno, level - 1, div / sb.extents_per_block(), new_ext);
         extents[i / div].length = 1;
     }
 
@@ -126,20 +125,20 @@ static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3:
     return res;
 }
 
-static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno_t bno) {
+static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno_t bno, bool new_ext) {
     uint i = ino->extents == 0 ? 0 : ino->extents - 1;
     // if the block number does not fit into the last extent, try the next one (this will always
     // be empty and thus we can use it)
     for(bool res = false; !res; i++) {
         if(i < m3::INODE_DIR_COUNT)
-            res = append_to_extent(ino, ino->direct + i, bno);
+            res = append_to_extent(ino, ino->direct + i, bno, new_ext);
         else if(i < m3::INODE_DIR_COUNT + sb.extents_per_block()) {
             res = create_indir_block(ino, &ino->indirect,
-                i - m3::INODE_DIR_COUNT, bno, 0, 1);
+                i - m3::INODE_DIR_COUNT, bno, 0, 1, new_ext);
         }
         else if(i < m3::INODE_DIR_COUNT + sb.extents_per_block() + sb.extents_per_block() * sb.extents_per_block()) {
             res = create_indir_block(ino, &ino->dindirect,
-                i - (m3::INODE_DIR_COUNT + sb.extents_per_block()), bno, 1, sb.extents_per_block());
+                i - (m3::INODE_DIR_COUNT + sb.extents_per_block()), bno, 1, sb.extents_per_block(), new_ext);
         }
         else {
             errx(1, "File '%s' is too large. Max no. of extents is %u\n",
@@ -159,7 +158,7 @@ static m3::DirEntry *write_dirent(m3::INode *dir, m3::DirEntry *prev, const char
         write_to_block(prev, total, block, off - (sizeof(m3::DirEntry) + prev->namelen));
 
         bool new_ext = blks_per_extent > 0 && ((dir->size / sb.blocksize) % blks_per_extent) == 0;
-        block = store_blockno(path, dir, alloc_block(new_ext));
+        block = store_blockno(path, dir, alloc_block(new_ext), new_ext);
         off = 0;
     }
 
@@ -214,7 +213,7 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
         ssize_t len;
         for(size_t i = 0; (len = read(fd, buffer, sb.blocksize)) > 0; i++) {
             bool new_ext = blks_per_extent > 0 && (i % blks_per_extent) == 0;
-            m3::blockno_t bno = store_blockno(path, &ino, alloc_block(new_ext));
+            m3::blockno_t bno = store_blockno(path, &ino, alloc_block(new_ext), new_ext);
             PRINT("Writing block %zu of %s to block %u\n", i, path, bno);
             write_to_block(buffer, static_cast<size_t>(len), bno);
         }
