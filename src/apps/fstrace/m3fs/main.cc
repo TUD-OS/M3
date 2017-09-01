@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     VFS::mount("/", new M3FS("m3fs"));
 
     // defaults
-    long num_iterations = 1;
+    long num_iterations = 4;
     bool keep_time   = true;
     bool make_ckpt   = false;
 
@@ -49,7 +49,8 @@ int main(int argc, char **argv) {
          << "keeptime=" << (keep_time   ? "yes" : "no")
          << "]\n";
 
-    player.play(keep_time, make_ckpt);
+    for(int i = 0; i < num_iterations; ++i)
+        player.play(keep_time, make_ckpt);
 
     cout << "VPFS trace_bench benchmark terminated\n";
 
