@@ -48,7 +48,6 @@ public:
     }
 
     static uintptr_t def_recvbuf(peid_t no);
-    static uintptr_t rw_barrier(peid_t no);
 
 private:
     static KEnv _kenv;

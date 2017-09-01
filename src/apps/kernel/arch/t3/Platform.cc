@@ -55,9 +55,4 @@ uintptr_t Platform::def_recvbuf(peid_t) {
     return DEF_RCVBUF;
 }
 
-uintptr_t Platform::rw_barrier(peid_t) {
-    // no rw barrier here
-    return 1;
-}
-
 }

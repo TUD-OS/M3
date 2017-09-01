@@ -69,12 +69,6 @@ peid_t Platform::last_pe() {
 uintptr_t Platform::def_recvbuf(peid_t no) {
     if(pe(no).has_virtmem())
         return RECVBUF_SPACE;
-    return rw_barrier(no);
-}
-
-uintptr_t Platform::rw_barrier(peid_t no) {
-    if(pe(no).has_virtmem())
-        return 0xFFFFFFFFFFFFFFFF;
     return pe(no).mem_size() - RECVBUF_SIZE_SPM;
 }
 

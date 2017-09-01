@@ -53,7 +53,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 9;
+    static const size_t DTU_REGS            = 8;
     static const size_t REQ_REGS            = 3;
     static const size_t CMD_REGS            = 5;
     static const size_t EP_REGS             = 3;
@@ -66,12 +66,11 @@ private:
         FEATURES            = 0,
         ROOT_PT             = 1,
         PF_EP               = 2,
-        RW_BARRIER          = 3,
-        VPE_ID              = 4,
-        CUR_TIME            = 5,
-        IDLE_TIME           = 6,
-        MSG_CNT             = 7,
-        EXT_CMD             = 8,
+        VPE_ID              = 3,
+        CUR_TIME            = 4,
+        IDLE_TIME           = 5,
+        MSG_CNT             = 6,
+        EXT_CMD             = 7,
     };
 
     enum class ReqRegs {
