@@ -75,12 +75,15 @@ protected:
             return Errors::INV_ARGS;
 
         label_t label = reinterpret_cast<label_t>(sess);
-        word_t credits = 1UL << _msgorder;
-        sess->_sgate = new SendGate(SendGate::create(&_rgate, label, credits));
+        sess->_sgate = new SendGate(SendGate::create(&_rgate, label, credits()));
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
         data.caps = crd.value();
         return Errors::NONE;
+    }
+
+    virtual word_t credits() const {
+        return 1UL << _msgorder;
     }
 
     virtual void handle_shutdown() override {
