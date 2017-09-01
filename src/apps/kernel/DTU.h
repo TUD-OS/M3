@@ -75,9 +75,9 @@ public:
     void drop_msgs(epid_t ep, label_t label);
 
     m3::Errors::Code get_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
-        m3::DTU::Header &head);
+        void *head);
     m3::Errors::Code set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
-        const m3::DTU::Header &head);
+        const void *head);
 
     void recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder);
 

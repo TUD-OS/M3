@@ -173,7 +173,7 @@ public:
         RCTMUX              = 2,
     };
 
-    struct Header {
+    struct ReplyHeader {
         enum {
             FL_REPLY            = 1 << 0,
             FL_GRANT_CREDITS    = 1 << 1,
@@ -190,8 +190,11 @@ public:
         uint16_t length;
         uint16_t senderVpeId;
 
-        uint64_t label;
         uint64_t replylabel;
+    } PACKED;
+
+    struct Header : public ReplyHeader {
+        uint64_t label;
     } PACKED;
 
     struct Message : Header {
@@ -206,6 +209,8 @@ public:
     } PACKED;
 
     static const size_t HEADER_SIZE         = sizeof(Header);
+    static const size_t HEADER_COUNT        = 128;
+    static const size_t HEADER_REGS         = 2;
 
     static const epid_t SYSC_SEP            = 0;
     static const epid_t SYSC_REP            = 1;
@@ -384,6 +389,10 @@ private:
     }
     static uintptr_t ep_regs_addr(epid_t ep) {
         return BASE_ADDR + (DTU_REGS + CMD_REGS + ep * EP_REGS) * sizeof(reg_t);
+    }
+    static uintptr_t header_addr(size_t idx) {
+        size_t regCount = DTU_REGS + CMD_REGS + EP_COUNT * EP_REGS;
+        return BASE_ADDR + regCount * sizeof(reg_t) + idx * sizeof(ReplyHeader);
     }
 
     static reg_t buildCommand(epid_t ep, CmdOpCode c, uint flags = 0, reg_t arg = 0) {

@@ -334,7 +334,7 @@ void VPE::init_memory() {
     if(vm) {
         // map receive buffer
         gaddr_t phys = alloc_mem(RECVBUF_SIZE);
-        map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_R);
+        map_segment(*this, phys, RECVBUF_SPACE, RECVBUF_SIZE, m3::DTU::PTE_RW);
     }
 
     // boot modules are started implicitly

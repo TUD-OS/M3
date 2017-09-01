@@ -131,18 +131,18 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     }
 }
 
-m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, uintptr_t &, m3::DTU::Header &) {
+m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, uintptr_t &, void *) {
     // unused
     return m3::Errors::NONE;
 }
 
-m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, const m3::DTU::Header &) {
+m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, const void *) {
     // unused
     return m3::Errors::NONE;
 }
 
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
-    _state.config_recv(ep, buf, order, msgorder);
+    _state.config_recv(ep, buf, order, msgorder, 0);
     write_ep_local(ep);
 }
 

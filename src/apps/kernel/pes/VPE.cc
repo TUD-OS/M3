@@ -50,6 +50,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, cap
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
       _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, sep, sgate, rep, rgate) : nullptr),
+      _headers(),
       _rbufcpy(),
       _requires(),
       _argc(),
@@ -249,7 +250,7 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
     update_ep(ep);
 }
 
-m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
+m3::Errors::Code VPE::config_rcv_ep(epid_t ep, RGateObject &obj) {
     // it needs to be in the receive buffer space
     const uintptr_t addr = Platform::def_recvbuf(pe());
     const size_t size = Platform::pe(pe()).has_virtmem() ? RECVBUF_SIZE : RECVBUF_SIZE_SPM;
@@ -259,25 +260,23 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, const RGateObject &obj) {
     if(obj.addr < addr + _rbufs_size)
         return m3::Errors::INV_ARGS;
 
-    for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
-        if(m3::DTU::FIRST_FREE_EP + i == ep || !_epcaps[i] || _epcaps[i]->type != Capability::RGATE)
-            continue;
+    // no free headers left?
+    size_t msgSlots = 1UL << (obj.order - obj.msgorder);
+    if(_headers + msgSlots > m3::DTU::HEADER_COUNT)
+        return m3::Errors::OUT_OF_MEM;
 
-        RGateCapability *cap = static_cast<RGateCapability*>(_epcaps[i]);
-        if(m3::Math::overlap(cap->obj->addr, cap->obj->addr + cap->obj->size(),
-            obj.addr, obj.addr + cap->obj->size()))
-            return m3::Errors::INV_ARGS;
-    }
-
-    // TODO zero the receive buffer first in case this memory is reused
-
+    obj.header = _headers;
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "RGate[addr=#" << m3::fmt(obj.addr, "x")
         << ", order=" << obj.order
-        << ", msgorder=" << obj.msgorder << "]");
+        << ", msgorder=" << obj.msgorder
+        << ", header=" << obj.header << "]");
 
-    _dtustate.config_recv(ep, obj.addr, obj.order, obj.msgorder);
+    _dtustate.config_recv(ep, obj.addr, obj.order, obj.msgorder, obj.header);
     update_ep(ep);
+
+    // TODO really manage the header space and zero the headers first in case they are reused
+    _headers += msgSlots;
 
     m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&obj));
     return m3::Errors::NONE;

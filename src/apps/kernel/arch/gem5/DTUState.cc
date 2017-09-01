@@ -88,7 +88,13 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     _regs.set(m3::DTU::DtuRegs::RW_BARRIER, Platform::rw_barrier(vpe.pe));
 
     m3::CPU::compiler_barrier();
-    DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
+    size_t regsSize = sizeof(_regs._dtu) + sizeof(_regs._cmd) + sizeof(_regs._eps);
+    DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, regsSize);
+
+    // we've already set the VPE id
+    DTU::get().write_mem(VPEDesc(vpe.pe, vpeid),
+                         m3::DTU::BASE_ADDR + regsSize, _regs._header,
+                         sizeof(_regs._header));
 }
 
 bool DTUState::invalidate(epid_t ep, bool check) {
@@ -128,16 +134,21 @@ void DTUState::forward_mem(epid_t ep, peid_t pe) {
     r[2] |= pe << 4;
 }
 
+size_t DTUState::get_header_idx(epid_t ep, uintptr_t msgaddr) {
+    m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
+    return ((r[0] >> 5) & 0x7FF) + ((msgaddr - r[1]) / ((r[0] >> 32) & 0xFFFF));
+}
+
 void DTUState::read_ep(const VPEDesc &vpe, epid_t ep) {
     DTU::get().read_ep_remote(vpe, ep, get_ep(ep));
 }
 
-void DTUState::config_recv(epid_t ep, uintptr_t buf, int order, int msgorder) {
+void DTUState::config_recv(epid_t ep, uintptr_t buf, int order, int msgorder, uint header) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     m3::DTU::reg_t bufSize = static_cast<m3::DTU::reg_t>(1) << (order - msgorder);
     m3::DTU::reg_t msgSize = static_cast<m3::DTU::reg_t>(1) << msgorder;
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::RECEIVE) << 61) |
-            ((msgSize & 0xFFFF) << 32) | ((bufSize & 0xFFFF) << 16) | 0;
+            ((msgSize & 0xFFFF) << 32) | ((bufSize & 0xFFFF) << 16) | (header << 5);
     r[1] = buf;
     r[2] = 0;
 }

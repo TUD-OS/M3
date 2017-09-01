@@ -478,39 +478,43 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     }
 }
 
-static uintptr_t get_msgaddr(const RGateObject *obj, uintptr_t msgaddr) {
+static size_t get_msgidx(const RGateObject *obj, uintptr_t msgaddr) {
     // the message has to be within the receive buffer
     if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
-        return 0;
+        return m3::DTU::HEADER_COUNT;
 
     // ensure that we start at a message boundary
     size_t idx = (msgaddr - obj->addr) >> obj->msgorder;
-    return obj->addr + (idx << obj->msgorder);
+    return idx + obj->header;
 }
 
 m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
-        m3::DTU::Header &head) {
-    msgaddr = get_msgaddr(obj, msgaddr);
-    if(!msgaddr)
+                                 void *head) {
+    size_t idx = get_msgidx(obj, msgaddr);
+    if(idx == m3::DTU::HEADER_COUNT)
         return m3::Errors::INV_ARGS;
 
-    read_mem(vpe, msgaddr, &head, sizeof(head));
+    read_mem(vpe, m3::DTU::header_addr(idx), &head, sizeof(head));
     return m3::Errors::NONE;
 }
 
 m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
-        const m3::DTU::Header &head) {
-    msgaddr = get_msgaddr(obj, msgaddr);
-    if(!msgaddr)
+                                 const void *head) {
+    size_t idx = get_msgidx(obj, msgaddr);
+    if(idx == m3::DTU::HEADER_COUNT)
         return m3::Errors::INV_ARGS;
 
-    write_mem(vpe, msgaddr, &head, sizeof(head));
+    write_mem(vpe, m3::DTU::header_addr(idx), &head, sizeof(head));
     return m3::Errors::NONE;
 }
 
 void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
-    _state.config_recv(ep, buf, order, msgorder);
+    static size_t header_off = 0;
+
+    _state.config_recv(ep, buf, order, msgorder, header_off);
     write_ep_local(ep);
+
+    header_off += 1UL << (order - msgorder);
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
@@ -540,13 +544,20 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
 void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     m3::Errors::Code res = m3::DTU::get().reply(ep, msg, size, msgidx);
     if(res == m3::Errors::VPE_GONE) {
-        m3::DTU::Message *rmsg = reinterpret_cast<m3::DTU::Message*>(msgidx);
+        size_t idx = _state.get_header_idx(ep, msgidx);
+        alignas(m3::DTU::reg_t) m3::DTU::ReplyHeader rmsg;
+        // this assumes that memcpy accesses the headers in 8-byte granularity
+        memcpy(&rmsg, (void*)m3::DTU::header_addr(idx), sizeof(rmsg));
+
         // senderVpeId can't be invalid
-        VPE &v = VPEManager::get().vpe(rmsg->senderVpeId);
+        VPE &v = VPEManager::get().vpe(rmsg.senderVpeId);
         // the VPE might have been migrated
-        rmsg->senderPe = v.pe();
+        rmsg.senderPe = v.pe();
         // re-enable replies
-        rmsg->flags |= 1 << 2;
+        rmsg.flags |= 1 << 2;
+
+        memcpy((void*)m3::DTU::header_addr(idx), &rmsg, sizeof(rmsg));
+
         res = m3::DTU::get().reply(ep, msg, size, msgidx);
     }
     if(res != m3::Errors::NONE)

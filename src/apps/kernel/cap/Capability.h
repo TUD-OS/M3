@@ -111,7 +111,7 @@ private:
 class RGateObject : public SlabObject<RGateObject>, public m3::RefCounted {
 public:
     explicit RGateObject(int _order, int _msgorder)
-        : RefCounted(), vpe(), ep(), addr(), order(_order), msgorder(_msgorder) {
+        : RefCounted(), vpe(), ep(), addr(), order(_order), msgorder(_msgorder), header() {
     }
     virtual ~RGateObject() {
     }
@@ -128,6 +128,7 @@ public:
     uintptr_t addr;
     int order;
     int msgorder;
+    uint header;
 };
 
 class SGateObject : public SlabObject<SGateObject>, public m3::RefCounted {

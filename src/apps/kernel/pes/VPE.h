@@ -202,7 +202,7 @@ public:
     void forward_msg(epid_t ep, peid_t pe, vpeid_t vpe);
     void forward_mem(epid_t ep, peid_t pe);
 
-    m3::Errors::Code config_rcv_ep(epid_t ep, const RGateObject &obj);
+    m3::Errors::Code config_rcv_ep(epid_t ep, RGateObject &obj);
     void config_snd_ep(epid_t ep, const SGateObject &obj);
     m3::Errors::Code config_mem_ep(epid_t ep, const MGateObject &obj, uintptr_t off = 0);
 
@@ -248,6 +248,7 @@ private:
     SendGate _upcsgate;
     SendQueue _upcqueue;
     AddrSpace *_as;
+    size_t _headers;
     MainMemory::Allocation _rbufcpy;
     m3::SList<ServName> _requires;
     size_t _argc;

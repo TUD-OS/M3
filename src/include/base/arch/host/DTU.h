@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include <ostream>
 #include <iomanip>
+#include <limits>
 #include <assert.h>
 
 // bad place, but prevents circular dependencies of headers
@@ -92,6 +93,7 @@ public:
     };
 
     static constexpr size_t HEADER_SIZE         = sizeof(Buffer) - MAX_DATA_SIZE;
+    static const size_t HEADER_COUNT            = std::numeric_limits<size_t>::max();
 
     static constexpr size_t MAX_MSGS            = sizeof(word_t) * 8;
 

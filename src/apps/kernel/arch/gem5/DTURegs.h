@@ -23,7 +23,7 @@ namespace kernel {
 
 class DTURegs {
 public:
-    explicit DTURegs() : _dtu(), _cmd(), _eps() {
+    explicit DTURegs() : _dtu(), _cmd(), _eps(), _header() {
     }
 
     m3::DTU::reg_t get(m3::DTU::DtuRegs reg) const {
@@ -36,6 +36,7 @@ public:
     m3::DTU::reg_t _dtu[m3::DTU::DTU_REGS];
     m3::DTU::reg_t _cmd[m3::DTU::CMD_REGS];
     m3::DTU::reg_t _eps[m3::DTU::EP_REGS * EP_COUNT];
+    m3::DTU::ReplyHeader _header[m3::DTU::HEADER_COUNT];
 } PACKED;
 
 }

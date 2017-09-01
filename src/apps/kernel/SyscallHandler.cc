@@ -1007,8 +1007,8 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
             return;
     }
 
-    m3::DTU::Header head;
-    m3::Errors::Code res = DTU::get().get_header(vpe->desc(), &*rgatecap->obj, msgaddr, head);
+    m3::DTU::ReplyHeader head;
+    m3::Errors::Code res = DTU::get().get_header(vpe->desc(), &*rgatecap->obj, msgaddr, &head);
     if(res != m3::Errors::NONE || !(head.flags & m3::DTU::Header::FL_REPLY_FAILED))
         SYS_ERROR(vpe, msg, res, "Invalid arguments");
 
@@ -1035,7 +1035,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         }
 
         head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
-        res = DTU::get().set_header(vpe->desc(), &*rgatecap->obj, msgaddr, head);
+        res = DTU::get().set_header(vpe->desc(), &*rgatecap->obj, msgaddr, &head);
     }
     if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "forwardreply failed");
