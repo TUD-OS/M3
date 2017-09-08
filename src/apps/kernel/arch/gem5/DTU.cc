@@ -207,23 +207,23 @@ void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_
 
 bool DTU::create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level) {
+    // use a large page, if possible
+    if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
+                     pages * PAGE_SIZE >= m3::DTU::LPAGE_SIZE) {
+        pte = to_mmu_pte(vpe.pe, phys | static_cast<uint>(perm) | m3::DTU::PTE_I | m3::DTU::PTE_LARGE);
+        KLOG(PTES, "VPE" << vpeid << ": lvl " << level << " PTE for "
+            << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
+        write_mem(vpe, pteAddr, &pte, sizeof(pte));
+        phys += m3::DTU::LPAGE_SIZE;
+        pages -= m3::DTU::LPAGE_SIZE / PAGE_SIZE;
+        return true;
+    }
+
     // create the pagetable on demand
     if(pte == 0) {
         // if we don't have a pagetable for that yet, unmapping is a noop
         if(perm == 0)
             return true;
-
-        // use a large page, if possible
-        if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
-                         pages * PAGE_SIZE >= m3::DTU::LPAGE_SIZE) {
-            pte = to_mmu_pte(vpe.pe, phys | static_cast<uint>(perm) | m3::DTU::PTE_I | m3::DTU::PTE_LARGE);
-            KLOG(PTES, "VPE" << vpeid << ": lvl " << level << " PTE for "
-                << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-            write_mem(vpe, pteAddr, &pte, sizeof(pte));
-            phys += m3::DTU::LPAGE_SIZE;
-            pages -= m3::DTU::LPAGE_SIZE / PAGE_SIZE;
-            return true;
-        }
 
         // TODO this is prelimilary
         MainMemory::Allocation alloc = MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE);
