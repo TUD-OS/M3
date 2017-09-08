@@ -33,7 +33,7 @@ public:
         : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate) {
     }
     ~IndirectPipeReader() {
-        _pipe->close(true, _lastid);
+        _pipe->close(true);
     }
 
     virtual ssize_t read(void *, size_t) override;

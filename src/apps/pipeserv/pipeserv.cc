@@ -76,15 +76,14 @@ public:
         PipeSessionData *sess = is.label<PipeSessionData*>();
 
         bool reading;
-        int id;
         size_t lastwrite;
-        is >> reading >> id >> lastwrite;
+        is >> reading >> lastwrite;
 
         Errors::Code res;
         if(reading)
-            res = sess->reader->close(sess, id);
+            res = sess->reader->close(sess);
         else
-            res = sess->writer->close(sess, id, lastwrite);
+            res = sess->writer->close(sess, lastwrite);
         reply_error(is, res);
     }
 };

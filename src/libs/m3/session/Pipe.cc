@@ -22,24 +22,24 @@ void Pipe::attach(bool reading) {
     send_receive_vmsg(_metagate, ATTACH, reading);
 }
 
-Errors::Code Pipe::read(size_t *pos, size_t *amount, int *lastid) {
-    GateIStream reply = send_receive_vmsg(_rdgate, *amount, *lastid);
+Errors::Code Pipe::read(size_t *pos, size_t *amount) {
+    GateIStream reply = send_receive_vmsg(_rdgate, *amount);
     reply >> Errors::last;
     if(Errors::last == Errors::NONE)
-        reply >> *pos >> *amount >> *lastid;
+        reply >> *pos >> *amount;
     return Errors::last;
 }
 
-Errors::Code Pipe::write(size_t *pos, size_t amount, size_t lastwrite, int *lastid) {
-    GateIStream reply = send_receive_vmsg(_wrgate, amount, lastwrite, *lastid);
+Errors::Code Pipe::write(size_t *pos, size_t amount, size_t lastwrite) {
+    GateIStream reply = send_receive_vmsg(_wrgate, amount, lastwrite);
     reply >> Errors::last;
     if(Errors::last == Errors::NONE)
-        reply >> *pos >> *lastid;
+        reply >> *pos;
     return Errors::last;
 }
 
-void Pipe::close(bool reading, int lastid, size_t lastwrite) {
-    send_receive_vmsg(_metagate, CLOSE, reading, lastid, lastwrite);
+void Pipe::close(bool reading, size_t lastwrite) {
+    send_receive_vmsg(_metagate, CLOSE, reading, lastwrite);
 }
 
 }

@@ -80,7 +80,6 @@ public:
         : refs(1),
           _rgate(m3::RecvGate::create(m3::nextlog2<BUFSIZE>::val, m3::nextlog2<MSGSIZE>::val)),
           _sgate(m3::SendGate::create(&_rgate, reinterpret_cast<label_t>(sess), MSGSIZE)),
-          _lastid(),
           _pending(),
           _callbacks() {
         using std::placeholders::_1;
@@ -105,7 +104,6 @@ protected:
     int refs;
     m3::RecvGate _rgate;
     m3::SendGate _sgate;
-    int _lastid;
     m3::SList<RdWrRequest> _pending;
 
 private:
@@ -115,12 +113,12 @@ private:
 class PipeReadHandler : public PipeHandler<PipeReadHandler> {
 public:
     explicit PipeReadHandler(PipeSessionData *sess)
-        : PipeHandler<PipeReadHandler>(sess), lastread() {
+        : PipeHandler<PipeReadHandler>(sess), lastreader(), lastread() {
         add_operation(&PipeReadHandler::read);
     }
 
     m3::Errors::Code attach(PipeSessionData *sess);
-    m3::Errors::Code close(PipeSessionData *sess, int id);
+    m3::Errors::Code close(PipeSessionData *sess);
 
     void read(m3::GateIStream &is);
     void handle_pending_read(PipeSessionData *sess);
@@ -128,18 +126,19 @@ public:
 private:
     void append_request(PipeSessionData *sess, m3::GateIStream &is, size_t amount);
 
+    PipeSessionData *lastreader;
     size_t lastread;
 };
 
 class PipeWriteHandler : public PipeHandler<PipeWriteHandler> {
 public:
     explicit PipeWriteHandler(PipeSessionData *sess)
-        : PipeHandler<PipeWriteHandler>(sess), openWrite() {
+        : PipeHandler<PipeWriteHandler>(sess), lastwriter() {
         add_operation(&PipeWriteHandler::write);
     }
 
     m3::Errors::Code attach(PipeSessionData *sess);
-    m3::Errors::Code close(PipeSessionData *sess, int id, size_t lastwrite);
+    m3::Errors::Code close(PipeSessionData *sess, size_t lastwrite);
 
     void write(m3::GateIStream &is);
     void handle_pending_write(PipeSessionData *sess);
@@ -147,5 +146,5 @@ public:
 private:
     void append_request(PipeSessionData *sess, m3::GateIStream &is, size_t amount);
 
-    bool openWrite;
+    PipeSessionData *lastwriter;
 };

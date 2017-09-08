@@ -61,13 +61,13 @@ class IndirectPipeFile : public File {
 
 protected:
     explicit IndirectPipeFile(capsel_t mem, Pipe *pipe)
-        : _lastid(), _mem(MemGate::bind(mem)), _pipe(pipe), _destroy(false) {
+        : _mem(MemGate::bind(mem)), _pipe(pipe), _destroy(false) {
     }
 
 public:
     explicit IndirectPipeFile(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
-        : _lastid(), _mem(MemGate::bind(mem)), _pipe(new Pipe(sess, metagate, rdgate, wrgate)),
+        : _mem(MemGate::bind(mem)), _pipe(new Pipe(sess, metagate, rdgate, wrgate)),
           _destroy(true) {
     }
     ~IndirectPipeFile() {
@@ -99,7 +99,6 @@ private:
     }
 
 protected:
-    int _lastid;
     MemGate _mem;
     Pipe *_pipe;
     bool _destroy;

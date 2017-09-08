@@ -22,7 +22,7 @@ namespace m3 {
 
 ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     size_t pos = 0;
-    Errors::Code res = _pipe->write(&pos, count, _lastwrite, &_lastid);
+    Errors::Code res = _pipe->write(&pos, count, _lastwrite);
     assert((pos % DTU_PKG_SIZE) == 0);
     if(res != Errors::NONE)
         return -1;
@@ -37,7 +37,7 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
 Errors::Code IndirectPipeWriter::begin_write(capsel_t *memgate, size_t *offset, size_t *length) {
     size_t pos;
     *length = 256 * 1024;    // TODO be smarter about that
-    Errors::Code res = _pipe->write(&pos, *length, _lastwrite, &_lastid);
+    Errors::Code res = _pipe->write(&pos, *length, _lastwrite);
     if(res != Errors::NONE)
         return res;
     *offset = pos;

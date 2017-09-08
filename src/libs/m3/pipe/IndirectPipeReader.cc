@@ -24,7 +24,7 @@ namespace m3 {
 
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     size_t pos;
-    Errors::Code res = _pipe->read(&pos, &count, &_lastid);
+    Errors::Code res = _pipe->read(&pos, &count);
     if(res != Errors::NONE)
         return -1;
     if(count == 0)
@@ -64,7 +64,7 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
 Errors::Code IndirectPipeReader::read_next(capsel_t *memgate, size_t *offset, size_t *length) {
     size_t pos;
     size_t count = std::numeric_limits<size_t>::max();
-    Errors::Code res = _pipe->read(&pos, &count, &_lastid);
+    Errors::Code res = _pipe->read(&pos, &count);
     if(res != Errors::NONE)
         return res;
     *offset = pos;
