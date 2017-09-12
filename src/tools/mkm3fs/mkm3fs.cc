@@ -218,7 +218,7 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
             PRINT("Writing block %zu of %s to block %u\n", i, path, bno);
             write_to_block(buffer, static_cast<size_t>(len), bno);
         }
-        ino.size = st.st_size;
+        ino.size = static_cast<uint64_t>(st.st_size);
     }
     else if(S_ISDIR(ino.mode)) {
         DIR *d = opendir(path);

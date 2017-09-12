@@ -116,11 +116,11 @@ struct FileInfo {
 // should be 64 bytes large
 struct alignas(DTU_PKG_SIZE) INode {
     dev_t devno;
-    uint32_t : 24;
+    uint16_t links;
+    uint8_t : 8;
     inodeno_t inode;
     mode_t mode;
-    uint32_t links;
-    uint32_t size;
+    uint64_t size;
     time_t lastaccess;
     time_t lastmod;
     uint32_t extents;
