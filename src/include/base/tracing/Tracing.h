@@ -70,13 +70,14 @@
 #define EVENT_TRACER_FS_rmdir()             EVENT_TRACER(43);
 #define EVENT_TRACER_FS_link()              EVENT_TRACER(44);
 #define EVENT_TRACER_FS_unlink()            EVENT_TRACER(45);
-#define EVENT_TRACER_FS_close()             EVENT_TRACER(46);
-#define EVENT_TRACER_FS_getlocs()           EVENT_TRACER(47);
+#define EVENT_TRACER_FS_commit()            EVENT_TRACER(46);
+#define EVENT_TRACER_FS_close()             EVENT_TRACER(47);
+#define EVENT_TRACER_FS_getlocs()           EVENT_TRACER(48);
 // main
-#define EVENT_TRACER_Main()                 EVENT_TRACER(48);
-#define EVENT_TRACER_Lambda()               EVENT_TRACER(49);
+#define EVENT_TRACER_Main()                 EVENT_TRACER(49);
+#define EVENT_TRACER_Lambda()               EVENT_TRACER(50);
 // kernel
-#define EVENT_TRACER_Kernel_Timeouts()      EVENT_TRACER(50);
+#define EVENT_TRACER_Kernel_Timeouts()      EVENT_TRACER(51);
 
 #if defined(TRACE_ENABLED)
 

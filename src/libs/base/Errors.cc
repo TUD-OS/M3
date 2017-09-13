@@ -53,6 +53,7 @@ static const char *errmsgs[] = {
     "End of file",
     "Messages are waiting to be handled",
     "Reply will be sent via upcall",
+    "Commit failed",
 };
 
 const char *Errors::to_string(Code code) {

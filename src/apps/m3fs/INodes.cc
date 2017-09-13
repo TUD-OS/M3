@@ -50,9 +50,7 @@ INode *INodes::get(FSHandle &h, inodeno_t ino) {
     return inos + ino % inos_per_blk;
 }
 
-void INodes::stat(FSHandle &h, inodeno_t ino, FileInfo &info) {
-    m3::INode *inode = INodes::get(h, ino);
-
+void INodes::stat(FSHandle &, const m3::INode *inode, FileInfo &info) {
     info.devno = inode->devno;
     info.inode = inode->inode;
     info.mode = inode->mode;
@@ -269,9 +267,8 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
     mark_dirty(h, inode->inode);
 }
 
-size_t INodes::seek(FSHandle &h, inodeno_t ino, size_t &off, int whence, size_t &extent, size_t &extoff) {
+size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff) {
     Extent *indir = nullptr;
-    INode *inode = get(h, ino);
 
     // seeking to the end is easy
     if(whence == M3FS_SEEK_END) {
@@ -335,24 +332,25 @@ void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff) {
 
         // get <extent> and determine length
         Extent *ch = change_extent(h, inode, extent, &indir, extoff == 0);
-        assert(ch && ch->length > 0);
-        size_t curlen = ch->length * h.sb().blocksize;
-        size_t mod;
-        if((mod = (inode->size % h.sb().blocksize)) != 0)
-            curlen -= h.sb().blocksize - mod;
+        if(ch && ch->length > 0) {
+            size_t curlen = ch->length * h.sb().blocksize;
+            size_t mod;
+            if((mod = (inode->size % h.sb().blocksize)) != 0)
+                curlen -= h.sb().blocksize - mod;
 
-        // do we need to reduce the size of <extent>?
-        if(extoff < curlen) {
-            size_t diff = curlen - extoff;
-            size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, h.sb().blocksize) : diff;
-            size_t blocks = bdiff / h.sb().blocksize;
-            if(blocks > 0)
-                h.blocks().free(h, ch->start + ch->length - blocks, blocks);
-            inode->size -= diff;
-            ch->length -= blocks;
-            if(ch->length == 0) {
-                ch->start = 0;
-                inode->extents--;
+            // do we need to reduce the size of <extent>?
+            if(extoff < curlen) {
+                size_t diff = curlen - extoff;
+                size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, h.sb().blocksize) : diff;
+                size_t blocks = bdiff / h.sb().blocksize;
+                if(blocks > 0)
+                    h.blocks().free(h, ch->start + ch->length - blocks, blocks);
+                inode->size -= diff;
+                ch->length -= blocks;
+                if(ch->length == 0) {
+                    ch->start = 0;
+                    inode->extents--;
+                }
             }
         }
         mark_dirty(h, inode->inode);

@@ -38,6 +38,7 @@ public:
         RMDIR,
         LINK,
         UNLINK,
+        COMMIT,
         CLOSE,
         COUNT
     };
@@ -68,7 +69,8 @@ public:
     virtual Errors::Code rmdir(const char *path) override;
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;
     virtual Errors::Code unlink(const char *path) override;
-    void close(int fd, size_t extent, size_t off);
+    Errors::Code commit(int fd, size_t extent, size_t off);
+    Errors::Code close(int fd, size_t extent, size_t off);
 
     template<size_t N>
     bool get_locs(int fd, size_t offset, size_t count, size_t blocks, KIF::CapRngDesc &crd, LocList<N> &locs) {

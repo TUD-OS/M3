@@ -84,9 +84,16 @@ Errors::Code M3FS::unlink(const char *path) {
     return Errors::last;
 }
 
-void M3FS::close(int fd, size_t extent, size_t off) {
-    // wait for the reply because we want to get our credits back
-    send_receive_vmsg(_gate, CLOSE, fd, extent, off);
+Errors::Code M3FS::commit(int fd, size_t extent, size_t off) {
+    GateIStream reply = send_receive_vmsg(_gate, COMMIT, fd, extent, off);
+    reply >> Errors::last;
+    return Errors::last;
+}
+
+Errors::Code M3FS::close(int fd, size_t extent, size_t off) {
+    GateIStream reply = send_receive_vmsg(_gate, CLOSE, fd, extent, off);
+    reply >> Errors::last;
+    return Errors::last;
 }
 
 }

@@ -51,6 +51,7 @@ struct Errors {
         END_OF_FILE,
         MSGS_WAITING,
         UPCALL_REPLY,
+        COMMIT_FAILED,
     };
 
     /**
