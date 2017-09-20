@@ -32,7 +32,7 @@ namespace m3 {
 
 class VFS;
 class FileTable;
-class MountSpace;
+class MountTable;
 class Pager;
 class FStream;
 class EnvUserBackend;
@@ -111,23 +111,23 @@ public:
     }
 
     /**
-     * @return the mountspace
+     * @return the mount table
      */
-    MountSpace *mountspace() {
+    MountTable *mounts() {
         return _ms;
     }
 
     /**
-     * Clones the given mountspace into this VPE.
+     * Clones the given mount table into this VPE.
      *
-     * @param ms the mountspace
+     * @param ms the mount table
      */
-    void mountspace(const MountSpace &ms);
+    void mounts(const MountTable &ms);
 
     /**
-     * Lets this VPE obtain all capabilities that are necessary for the current mountspace.
+     * Lets this VPE obtain all capabilities that are necessary for the current mount table.
      */
-    void obtain_mountspace();
+    void obtain_mounts();
 
     /**
      * @return the file descriptors
@@ -138,7 +138,7 @@ public:
 
     /**
      * Clones the given file descriptors into this VPE. Note that the file descriptors depend
-     * on the mountspace, so that you should always prepare the mountspace first.
+     * on the mount table, so that you should always prepare the mount table first.
      *
      * @param fds the file descriptors
      */
@@ -336,7 +336,7 @@ private:
     Pager *_pager;
     uint64_t _rbufcur;
     uint64_t _rbufend;
-    MountSpace *_ms;
+    MountTable *_ms;
     FileTable *_fds;
     FStream *_exec;
     bool _tmuxable;

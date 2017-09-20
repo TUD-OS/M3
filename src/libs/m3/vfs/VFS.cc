@@ -20,7 +20,7 @@
 #include <m3/com/Marshalling.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/FileTable.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
@@ -34,8 +34,8 @@ VFS::Cleanup::~Cleanup() {
         delete VPE::self().fds()->free(i);
 }
 
-MountSpace *VFS::ms() {
-    return VPE::self().mountspace();
+MountTable *VFS::ms() {
+    return VPE::self().mounts();
 }
 
 Errors::Code VFS::mount(const char *path, const char *fs, const char *options) {
@@ -121,7 +121,7 @@ Errors::Code VFS::unlink(const char *path) {
 }
 
 void VFS::print(OStream &os) {
-    VPE::self().mountspace()->print(os);
+    VPE::self().mounts()->print(os);
 }
 
 }

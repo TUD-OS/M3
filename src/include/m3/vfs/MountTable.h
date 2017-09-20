@@ -30,14 +30,14 @@ class VPE;
 /**
  * Contains a list of mount points and offers operations to manage them.
  *
- * The mountspace itself does not create or delete mount points. Instead, it only works with
+ * The mount table itself does not create or delete mount points. Instead, it only works with
  * pointers. The creation and deletion is done in VFS. The rational is, that VFS is used to
- * manipulate the mounts of the own VPE, while MountSpace is used to manipulate the mounts of
+ * manipulate the mounts of the own VPE, while MountTable is used to manipulate the mounts of
  * created VPEs. Thus, one can simply add a mointpoint from VPE::self() to a different VPE by
- * passing a pointer around. If the mountspace of a child VPE is completely setup, it is serialized
+ * passing a pointer around. If the mount table of a child VPE is completely setup, it is serialized
  * and transferred to the child VPE.
  */
-class MountSpace {
+class MountTable {
     static const size_t MAX_MOUNTS  = 4;
 
     class MountPoint {
@@ -62,11 +62,11 @@ public:
     /**
      * Constructor
      */
-    explicit MountSpace() : _count(), _mounts() {
+    explicit MountTable() : _count(), _mounts() {
     }
 
-    explicit MountSpace(const MountSpace &ms);
-    MountSpace &operator=(const MountSpace &ms);
+    explicit MountTable(const MountTable &ms);
+    MountTable &operator=(const MountTable &ms);
 
     /**
      * @param fs the filesystem instance
@@ -122,13 +122,13 @@ public:
     size_t serialize(void *buffer, size_t size) const;
 
     /**
-     * Unserializes the mounts from the buffer into a new MountSpace object.
+     * Unserializes the mounts from the buffer into a new MountTable object.
      *
      * @param buffer the buffer
      * @param size the length of the data
-     * @return the mountspace
+     * @return the mount table
      */
-    static MountSpace *unserialize(const void *buffer, size_t size);
+    static MountTable *unserialize(const void *buffer, size_t size);
 
     /**
      * Prints the current mounts to <os>.

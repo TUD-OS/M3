@@ -37,8 +37,8 @@ int main(int argc, char **argv) {
         child.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
         child.obtain_fds();
 
-        child.mountspace(*VPE::self().mountspace());
-        child.obtain_mountspace();
+        child.mounts(*VPE::self().mounts());
+        child.obtain_mounts();
 
         Errors::Code err = child.exec(argc - 1, const_cast<const char**>(argv) + 1);
         if(err != Errors::NONE)

@@ -35,8 +35,8 @@ int main(int argc, const char **argv) {
     if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE");
 
-    sh.mountspace(*VPE::self().mountspace());
-    sh.obtain_mountspace();
+    sh.mounts(*VPE::self().mounts());
+    sh.obtain_mounts();
 
     if(sh.exec(argc - 1, argv + 1) != Errors::NONE)
         exitmsg("Unable to exec " << argv[1]);

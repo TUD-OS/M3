@@ -20,7 +20,7 @@
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/FileTable.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/vfs/SerialFile.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
@@ -41,7 +41,7 @@ VPE::VPE()
     init_fs();
 
     if(!_ms)
-        _ms = new MountSpace();
+        _ms = new MountTable();
     if(!_fds)
         _fds = new FileTable();
 
@@ -59,7 +59,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
           _pager(), _rbufcur(), _rbufend(),
-          _ms(new MountSpace()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
+          _ms(new MountTable()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
     init();
 
     // create pager first, to create session and obtain gate cap
@@ -152,12 +152,12 @@ epid_t VPE::alloc_ep() {
     return ep;
 }
 
-void VPE::mountspace(const MountSpace &ms) {
+void VPE::mounts(const MountTable &ms) {
     delete _ms;
-    _ms = new MountSpace(ms);
+    _ms = new MountTable(ms);
 }
 
-void VPE::obtain_mountspace() {
+void VPE::obtain_mounts() {
     _ms->delegate(*this);
 }
 

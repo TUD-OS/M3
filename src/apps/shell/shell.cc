@@ -110,8 +110,8 @@ static bool execute(CmdList *list, bool muxed) {
         vpes[i]->fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
         vpes[i]->obtain_fds();
 
-        vpes[i]->mountspace(*VPE::self().mountspace());
-        vpes[i]->obtain_mountspace();
+        vpes[i]->mounts(*VPE::self().mounts());
+        vpes[i]->obtain_mounts();
 
         Errors::Code err;
         if((err = vpes[i]->exec(static_cast<int>(cmd->args->count), cmd->args->args)) != Errors::NONE) {

@@ -17,7 +17,7 @@
 #include <m3/com/Marshalling.h>
 #include <m3/com/GateStream.h>
 #include <m3/session/M3FS.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 
 namespace m3 {
 
@@ -52,11 +52,11 @@ static size_t is_in_mount(const String &mount, const char *in) {
     return static_cast<size_t>(p2 - in);
 }
 
-MountSpace::MountSpace(const MountSpace &ms) : _count(ms._count) {
+MountTable::MountTable(const MountTable &ms) : _count(ms._count) {
     memcpy(_mounts, ms._mounts, sizeof(_mounts));
 }
 
-MountSpace &MountSpace::operator=(const MountSpace &ms) {
+MountTable &MountTable::operator=(const MountTable &ms) {
     if(&ms != this) {
         _count = ms._count;
         memcpy(_mounts, ms._mounts, sizeof(_mounts));
@@ -64,7 +64,7 @@ MountSpace &MountSpace::operator=(const MountSpace &ms) {
     return *this;
 }
 
-Errors::Code MountSpace::add(const char *path, FileSystem *fs) {
+Errors::Code MountTable::add(const char *path, FileSystem *fs) {
     if(_count == MAX_MOUNTS)
         return Errors::NO_SPACE;
 
@@ -94,7 +94,7 @@ Errors::Code MountSpace::add(const char *path, FileSystem *fs) {
     return Errors::NONE;
 }
 
-Reference<FileSystem> MountSpace::resolve(const char *path, size_t *pos) {
+Reference<FileSystem> MountTable::resolve(const char *path, size_t *pos) {
     for(size_t i = 0; i < _count; ++i) {
         *pos = is_in_mount(_mounts[i]->path(), path);
         if(*pos != 0)
@@ -103,7 +103,7 @@ Reference<FileSystem> MountSpace::resolve(const char *path, size_t *pos) {
     return Reference<FileSystem>();
 }
 
-void MountSpace::remove(const char *path) {
+void MountTable::remove(const char *path) {
     for(size_t i = 0; i < _count; ++i) {
         if(strcmp(_mounts[i]->path().c_str(), path) == 0) {
             MountPoint *mp = _mounts[i];
@@ -114,7 +114,7 @@ void MountSpace::remove(const char *path) {
     }
 }
 
-void MountSpace::remove(size_t i) {
+void MountTable::remove(size_t i) {
     assert(_mounts[i]);
     assert(_count > 0);
     _mounts[i] = nullptr;
@@ -124,7 +124,7 @@ void MountSpace::remove(size_t i) {
     _count--;
 }
 
-size_t MountSpace::get_mount_id(FileSystem *fs) const {
+size_t MountTable::get_mount_id(FileSystem *fs) const {
     for(size_t i = 0; i < _count; ++i) {
         if(&*_mounts[i]->fs() == fs)
             return i;
@@ -132,7 +132,7 @@ size_t MountSpace::get_mount_id(FileSystem *fs) const {
     return MAX_MOUNTS;
 }
 
-FileSystem *MountSpace::get_mount(size_t id) const {
+FileSystem *MountTable::get_mount(size_t id) const {
     for(size_t i = 0; i < _count; ++i) {
         if(id-- == 0)
             return const_cast<FileSystem*>(&*_mounts[i]->fs());
@@ -140,7 +140,7 @@ FileSystem *MountSpace::get_mount(size_t id) const {
     return nullptr;
 }
 
-size_t MountSpace::serialize(void *buffer, size_t size) const {
+size_t MountTable::serialize(void *buffer, size_t size) const {
     Marshaller m(static_cast<unsigned char*>(buffer), size);
 
     m << _count;
@@ -162,7 +162,7 @@ size_t MountSpace::serialize(void *buffer, size_t size) const {
     return m.total();
 }
 
-void MountSpace::delegate(VPE &vpe) const {
+void MountTable::delegate(VPE &vpe) const {
     for(size_t i = 0; i < _count; ++i) {
         char type = _mounts[i]->fs()->type();
         switch(type) {
@@ -182,8 +182,8 @@ void MountSpace::delegate(VPE &vpe) const {
     }
 }
 
-MountSpace *MountSpace::unserialize(const void *buffer, size_t size) {
-    MountSpace *ms = new MountSpace();
+MountTable *MountTable::unserialize(const void *buffer, size_t size) {
+    MountTable *ms = new MountTable();
     Unmarshaller um(static_cast<const unsigned char*>(buffer), size);
     size_t count;
     um >> count;
@@ -202,7 +202,7 @@ MountSpace *MountSpace::unserialize(const void *buffer, size_t size) {
     return ms;
 }
 
-void MountSpace::print(OStream &os) const {
+void MountTable::print(OStream &os) const {
     os << "Mounts:\n";
     for(size_t i = 0; i < _count; ++i)
         os << "  " << _mounts[i]->path() << ": " << _mounts[i]->fs()->type() << "\n";

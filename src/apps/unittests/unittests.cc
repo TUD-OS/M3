@@ -43,8 +43,8 @@ int main() {
         VPE t("tests");
         const char *args[] = {progs[i]};
 
-        t.mountspace(*VPE::self().mountspace());
-        t.obtain_mountspace();
+        t.mounts(*VPE::self().mounts());
+        t.obtain_mounts();
 
         t.exec(ARRAY_SIZE(args), args);
         uint32_t res = static_cast<uint32_t>(t.wait());

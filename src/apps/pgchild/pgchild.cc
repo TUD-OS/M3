@@ -62,8 +62,8 @@ int main() {
 
     {
         VPE cc("childchild");
-        cc.mountspace(*VPE::self().mountspace());
-        cc.obtain_mountspace();
+        cc.mounts(*VPE::self().mounts());
+        cc.obtain_mounts();
 
         const char *args[] = {"/bin/hello"};
         cc.exec(ARRAY_SIZE(args), args);

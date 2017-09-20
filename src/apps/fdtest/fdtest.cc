@@ -19,7 +19,7 @@
 #include <m3/session/M3FS.h>
 #include <m3/stream/FStream.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/vfs/SerialFile.h>
 #include <m3/vfs/VFS.h>
 
@@ -50,8 +50,8 @@ int main() {
 
         VPE child("child");
 
-        child.mountspace(*VPE::self().mountspace());
-        child.obtain_mountspace();
+        child.mounts(*VPE::self().mounts());
+        child.obtain_mounts();
 
         child.fds(*VPE::self().fds());
         child.obtain_fds();
@@ -73,8 +73,8 @@ int main() {
 
         VPE child("child");
 
-        child.mountspace(*VPE::self().mountspace());
-        child.obtain_mountspace();
+        child.mounts(*VPE::self().mounts());
+        child.obtain_mounts();
 
         child.fds()->set(STDIN_FD, f.file());
         child.obtain_fds();

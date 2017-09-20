@@ -31,8 +31,8 @@ static const int WARMUP = 10;
 static const int REPEAT = 10;
 
 static void start(VPE &v, int argc, const char **argv) {
-    v.mountspace(*VPE::self().mountspace());
-    v.obtain_mountspace();
+    v.mounts(*VPE::self().mounts());
+    v.obtain_mounts();
     Errors::Code res = v.exec(argc, argv);
     if(res != Errors::NONE)
         PANIC("Cannot execute " << argv[0] << ": " << Errors::to_string(res));

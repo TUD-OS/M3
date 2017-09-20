@@ -19,7 +19,7 @@
 
 #include <m3/session/M3FS.h>
 #include <m3/vfs/RegularFile.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/vfs/VFS.h>
 
 #include <limits>
@@ -404,7 +404,7 @@ void RegularFile::delegate(VPE &) {
 }
 
 void RegularFile::serialize(Marshaller &m) {
-    size_t mid = VPE::self().mountspace()->get_mount_id(&*_fs);
+    size_t mid = VPE::self().mounts()->get_mount_id(&*_fs);
     m << _fd << flags() << mid << _extended << _begin << _pos;
     m << _last_extent << _last_off;
 }
@@ -414,7 +414,7 @@ RegularFile *RegularFile::unserialize(Unmarshaller &um) {
     size_t mid;
     um >> fd >> flags >> mid;
 
-    Reference<M3FS> fs(static_cast<M3FS*>(VPE::self().mountspace()->get_mount(mid)));
+    Reference<M3FS> fs(static_cast<M3FS*>(VPE::self().mounts()->get_mount(mid)));
     RegularFile *file = new RegularFile(fd, fs, flags);
     um >> file->_extended >> file->_begin >> file->_pos;
     um >> file->_last_extent >> file->_last_off;

@@ -20,7 +20,7 @@
 
 #include <m3/session/Pager.h>
 #include <m3/stream/FStream.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/vfs/RegularFile.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -57,9 +57,9 @@ void VPE::init_fs() {
         _pager = new Pager(env()->pager_sess, env()->pager_sgate, env()->pager_rgate);
 
     if(env()->mounts_len)
-        _ms = MountSpace::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
+        _ms = MountTable::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
     else
-        _ms = reinterpret_cast<MountSpace*>(env()->mounts);
+        _ms = reinterpret_cast<MountTable*>(env()->mounts);
 
     if(env()->fds_len)
         _fds = FileTable::unserialize(reinterpret_cast<const void*>(env()->fds), env()->fds_len);

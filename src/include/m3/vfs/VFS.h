@@ -124,7 +124,7 @@ public:
     static void print(OStream &os);
 
 private:
-    static MountSpace *ms();
+    static MountTable *ms();
     static Cleanup _cleanup;
 };
 

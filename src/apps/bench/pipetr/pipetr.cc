@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
     VPE writer("writer");
     DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
 
-    writer.mountspace(*VPE::self().mountspace());
-    writer.obtain_mountspace();
+    writer.mounts(*VPE::self().mounts());
+    writer.obtain_mounts();
 
     writer.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));

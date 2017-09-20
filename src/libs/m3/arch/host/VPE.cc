@@ -21,7 +21,7 @@
 #include <m3/stream/FStream.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/FileTable.h>
-#include <m3/vfs/MountSpace.h>
+#include <m3/vfs/MountTable.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -90,7 +90,7 @@ void VPE::init_fs() {
     char *buf = new char[len];
     memset(buf, 0, len);
     read_from("ms", buf, len);
-    _ms = MountSpace::unserialize(buf, len);
+    _ms = MountTable::unserialize(buf, len);
 
     len = STATE_BUF_SIZE;
     memset(buf, 0, len);

@@ -149,8 +149,8 @@ int main(int argc, char **argv) {
         // start writer
         apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
         apps[2]->vpe.obtain_fds();
-        apps[2]->vpe.mountspace(*VPE::self().mountspace());
-        apps[2]->vpe.obtain_mountspace();
+        apps[2]->vpe.mounts(*VPE::self().mounts());
+        apps[2]->vpe.obtain_mounts();
         res = apps[2]->vpe.exec(apps[2]->argc, apps[2]->argv);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[2]->argv[0] << ": " << Errors::to_string(res));
@@ -158,8 +158,8 @@ int main(int argc, char **argv) {
         // start reader
         apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         apps[3]->vpe.obtain_fds();
-        apps[3]->vpe.mountspace(*VPE::self().mountspace());
-        apps[3]->vpe.obtain_mountspace();
+        apps[3]->vpe.mounts(*VPE::self().mounts());
+        apps[3]->vpe.obtain_mounts();
         res = apps[3]->vpe.exec(apps[3]->argc, apps[3]->argv);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[3]->argv[0] << ": " << Errors::to_string(res));
