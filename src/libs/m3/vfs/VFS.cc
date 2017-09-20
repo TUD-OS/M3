@@ -38,14 +38,17 @@ MountSpace *VFS::ms() {
     return VPE::self().mountspace();
 }
 
-Errors::Code VFS::mount(const char *path, FileSystem *fs) {
-    return ms()->add(new MountSpace::MountPoint(path, fs));
+Errors::Code VFS::mount(const char *path, const char *fs, const char *options) {
+    FileSystem *fsobj;
+    if(strcmp(fs, "m3fs") == 0)
+        fsobj = new M3FS(options ? options : fs);
+    else
+        return Errors::INV_ARGS;
+    return ms()->add(path, fsobj);
 }
 
 void VFS::unmount(const char *path) {
-    MountSpace::MountPoint *mp = ms()->remove(path);
-    if(mp)
-        delete mp;
+    ms()->remove(path);
 }
 
 fd_t VFS::open(const char *path, int perms) {

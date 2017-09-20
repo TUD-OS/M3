@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
+    if(VFS::mount("/", "m3fs") != Errors::NONE)
         PANIC("Cannot mount root fs");
 
     bool muxed = strcmp(argv[1], "1") == 0;

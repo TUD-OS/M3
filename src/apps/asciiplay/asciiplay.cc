@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 
     moviefile = argv[1];
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
+    if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
     movie = new FStream(moviefile, FILE_R);

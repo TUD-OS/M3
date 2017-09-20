@@ -44,10 +44,11 @@ public:
      * Mounts <fs> at given path
      *
      * @param path the path
-     * @param fs the filesystem instance (has to be allocated on the heap; TODO keep that?)
+     * @param fs the filesystem name
+     * @param options options to pass to the filesystem
      * @return Errors::NONE on success
      */
-    static Errors::Code mount(const char *path, FileSystem *fs);
+    static Errors::Code mount(const char *path, const char *fs, const char *options = nullptr);
 
     /**
      * Unmounts the filesystem at <path>.

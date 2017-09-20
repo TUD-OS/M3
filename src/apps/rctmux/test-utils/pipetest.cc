@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
+    if(VFS::mount("/", "m3fs") != Errors::NONE)
         PANIC("Cannot mount root fs");
 
     int mode = IStringStream::read_from<int>(argv[1]);
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
         if(VERBOSE) cout << "Starting reader and writer...\n";
 
         if(apps[1]) {
-            if(VFS::mount("/foo", new M3FS("m3fs2")) != Errors::NONE)
+            if(VFS::mount("/foo", "m3fs", "m3fs2") != Errors::NONE)
                 PANIC("Cannot mount root fs");
         }
 

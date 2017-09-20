@@ -64,17 +64,17 @@ MountSpace &MountSpace::operator=(const MountSpace &ms) {
     return *this;
 }
 
-Errors::Code MountSpace::add(MountPoint *mp) {
+Errors::Code MountSpace::add(const char *path, FileSystem *fs) {
     if(_count == MAX_MOUNTS)
         return Errors::NO_SPACE;
 
-    size_t compcount = charcount(mp->path().c_str(), '/');
+    size_t compcount = charcount(path, '/');
     size_t i = 0;
     for(; i < _count; ++i) {
         // mounts are always tightly packed
         assert(_mounts[i]);
 
-        if(strcmp(_mounts[i]->path().c_str(), mp->path().c_str()) == 0)
+        if(strcmp(_mounts[i]->path().c_str(), path) == 0)
             return Errors::last = Errors::EXISTS;
 
         // sort them by the number of slashes
@@ -89,7 +89,7 @@ Errors::Code MountSpace::add(MountPoint *mp) {
         for(size_t j = _count; j > i; --j)
             _mounts[j] = _mounts[j - 1];
     }
-    _mounts[i] = mp;
+    _mounts[i] = new MountPoint(path, fs);
     _count++;
     return Errors::NONE;
 }
@@ -103,21 +103,12 @@ Reference<FileSystem> MountSpace::resolve(const char *path, size_t *pos) {
     return Reference<FileSystem>();
 }
 
-MountSpace::MountPoint *MountSpace::remove(const char *path) {
+void MountSpace::remove(const char *path) {
     for(size_t i = 0; i < _count; ++i) {
         if(strcmp(_mounts[i]->path().c_str(), path) == 0) {
             MountPoint *mp = _mounts[i];
             remove(i);
-            return mp;
-        }
-    }
-    return nullptr;
-}
-
-void MountSpace::remove(MountPoint *mp) {
-    for(size_t i = 0; i < _count; ++i) {
-        if(_mounts[i] == mp) {
-            remove(i);
+            delete mp;
             break;
         }
     }
@@ -204,7 +195,7 @@ MountSpace *MountSpace::unserialize(const void *buffer, size_t size) {
             case 'M':
                 capsel_t sess, gate;
                 um >> sess >> gate;
-                ms->add(new MountPoint(path.c_str(), new M3FS(sess, gate)));
+                ms->add(path.c_str(), new M3FS(sess, gate));
                 break;
         }
     }

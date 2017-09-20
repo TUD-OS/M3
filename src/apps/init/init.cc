@@ -26,7 +26,7 @@ int main(int argc, const char **argv) {
     if(argc < 2)
         exitmsg("Usage: " << argv[0] << " <program> [<arg>...]");
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
+    if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Mounting root-fs failed");
     }

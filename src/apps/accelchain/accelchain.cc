@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
     if(argc < 7)
         exitmsg("Usage: " << argv[0] << " <in> <out> <direct> <bufsize> <comptime> <num>");
 
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
+    if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Unable to mount filesystem\n");
     }

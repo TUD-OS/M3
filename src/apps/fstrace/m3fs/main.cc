@@ -28,7 +28,7 @@ using namespace m3;
 int main(int argc, char **argv) {
     Platform::init(argc, argv);
 
-    VFS::mount("/", new M3FS("m3fs"));
+    VFS::mount("/", "m3fs");
 
     // defaults
     long num_iterations = 4;

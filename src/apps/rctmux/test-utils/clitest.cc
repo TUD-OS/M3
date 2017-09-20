@@ -42,7 +42,7 @@ struct App {
 
 int main() {
     if(VERBOSE) cout << "Mounting filesystem...\n";
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE)
+    if(VFS::mount("/", "m3fs") != Errors::NONE)
         PANIC("Cannot mount root fs");
 
     if(VERBOSE) cout << "Creating VPEs...\n";

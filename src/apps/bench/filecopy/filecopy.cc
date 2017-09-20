@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     // TODO temporary fix to support different use-cases without complicating debugging.
     // Because if we require that the mountspace is configured by the parent (which is the goal),
     // we can only use it via VPE::exec, but this would not allow to debug it in a convenient way.
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
+    if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Mounting root-fs failed");
     }

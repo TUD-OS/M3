@@ -28,7 +28,7 @@ using namespace m3;
 static char buffer[1024];
 
 int main() {
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
+    if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Mounting root-fs failed");
     }

@@ -143,7 +143,7 @@ static bool execute(CmdList *list, bool muxed) {
 }
 
 int main(int argc, char **argv) {
-    if(VFS::mount("/", new M3FS("m3fs")) != Errors::NONE) {
+    if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
             exitmsg("Unable to mount filesystem\n");
     }

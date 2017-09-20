@@ -40,7 +40,6 @@ class VPE;
 class MountSpace {
     static const size_t MAX_MOUNTS  = 4;
 
-public:
     class MountPoint {
     public:
         explicit MountPoint(const char *path, FileSystem *fs)
@@ -59,6 +58,7 @@ public:
         Reference<FileSystem> _fs;
     };
 
+public:
     /**
      * Constructor
      */
@@ -83,10 +83,11 @@ public:
     /**
      * Adds the given mountpoint
      *
-     * @param mp the mountpoint
+     * @param path the path
+     * @param fs the filesystem instance
      * @return the error or Errors::NONE
      */
-    Errors::Code add(MountPoint *mp);
+    Errors::Code add(const char *path, FileSystem *fs);
 
     /**
      * Resolves the given path to a mounted filesystem.
@@ -101,16 +102,8 @@ public:
      * Removes the mountpoint at given path.
      *
      * @param path the path
-     * @return the mountpoint or nullptr if not found
      */
-    MountPoint *remove(const char *path);
-
-    /**
-     * Removes the given mountpoint.
-     *
-     * @param mp the mountpoint
-     */
-    void remove(MountPoint *mp);
+    void remove(const char *path);
 
     /**
      * Delegates the capabilities necessary to <vpe>.
