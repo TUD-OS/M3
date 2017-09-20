@@ -145,9 +145,9 @@ public:
      * Retrieves information about this file
      *
      * @param info the struct to fill
-     * @return 0 on success
+     * @return the error code if any
      */
-    virtual int stat(FileInfo &info) const = 0;
+    virtual Errors::Code stat(FileInfo &info) const = 0;
 
     /**
      * Changes the file-position to <offset>, using <whence>.

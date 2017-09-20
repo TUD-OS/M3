@@ -79,9 +79,9 @@ public:
         return new File::Buffer(size);
     }
 
-    virtual int stat(FileInfo &) const override {
+    virtual Errors::Code stat(FileInfo &) const override {
         // not supported
-        return -1;
+        return Errors::NOT_SUP;
     }
     virtual size_t seek(size_t, int) override {
         // not supported

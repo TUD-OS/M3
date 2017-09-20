@@ -136,7 +136,7 @@ File::Buffer *RegularFile::create_buf(size_t size) {
     return new RegFileBuffer(size);
 }
 
-int RegularFile::stat(FileInfo &info) const {
+Errors::Code RegularFile::stat(FileInfo &info) const {
     return const_cast<Reference<M3FS>&>(_fs)->fstat(_fd, info);
 }
 

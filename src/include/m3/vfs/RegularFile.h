@@ -87,7 +87,7 @@ public:
     }
 
     virtual Buffer *create_buf(size_t size) override;
-    virtual int stat(FileInfo &info) const override;
+    virtual Errors::Code stat(FileInfo &info) const override;
     virtual size_t seek(size_t offset, int whence) override;
     virtual ssize_t read(void *buffer, size_t count) override {
         return do_read(buffer, count, _pos);
