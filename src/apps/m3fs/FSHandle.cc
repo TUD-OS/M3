@@ -22,7 +22,7 @@
 
 using namespace m3;
 
-bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb) {
+bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb, bool clear) {
     mem.read(sb, sizeof(*sb), 0);
     SLOG(FS, "Superblock:");
     SLOG(FS, "  blocksize=" << sb->blocksize);
@@ -34,11 +34,12 @@ bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb) {
     SLOG(FS, "  first_free_block=" << sb->first_free_block);
     if(sb->checksum != sb->get_checksum())
         PANIC("Superblock checksum is invalid. Terminating.");
-    return true;
+    return clear;
 }
 
-FSHandle::FSHandle(capsel_t mem)
-        : _mem(MemGate::bind(mem)), _dummy(load_superblock(_mem, &_sb)), _cache(_mem, _sb.blocksize),
+FSHandle::FSHandle(capsel_t mem, bool clear)
+        : _mem(MemGate::bind(mem)), _clear(load_superblock(_mem, &_sb, clear)),
+          _cache(_mem, _sb.blocksize),
           _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,
                 _sb.total_blocks, _sb.blockbm_blocks()),
           _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes,

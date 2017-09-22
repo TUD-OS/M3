@@ -146,11 +146,11 @@ using m3fs_reqh_base_t = RequestHandler<
 
 class M3FSRequestHandler : public m3fs_reqh_base_t {
 public:
-    explicit M3FSRequestHandler(size_t fssize)
+    explicit M3FSRequestHandler(size_t fssize, bool clear)
             : m3fs_reqh_base_t(),
               _mem(MemGate::create_global_for(FS_IMG_OFFSET,
                 Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
-              _handle(_mem.sel()) {
+              _handle(_mem.sel(), clear) {
         add_operation(M3FS::OPEN, &M3FSRequestHandler::open);
         add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
@@ -488,13 +488,14 @@ private:
 
 int main(int argc, char *argv[]) {
     if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <size> [<name>]\n";
+        Serial::get() << "Usage: " << argv[0] << " <size> [<name> [<clear blocks>]]\n";
         return 1;
     }
 
     const char *name = argc > 2 ? argv[2] : "m3fs";
+    bool clear = argc > 3 ? strcmp(argv[3], "1") == 0 : false;
     size_t size = IStringStream::read_from<size_t>(argv[1]);
-    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size));
+    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size, clear));
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();

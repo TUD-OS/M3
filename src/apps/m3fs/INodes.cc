@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Profile.h>
+
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
@@ -22,6 +24,8 @@
 using namespace m3;
 
 loclist_type INodes::_locs;
+
+alignas(64) static char zeros[MAX_BLOCK_SIZE];
 
 INode *INodes::create(FSHandle &h, mode_t mode) {
     inodeno_t ino = h.inodes().alloc(h);
@@ -261,6 +265,13 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
         return;
     }
     ch->length = count;
+    if(h.clear_blocks()) {
+        uint32_t blocksize = h.sb().blocksize;
+        Profile::start(0xaaaa);
+        for(uint32_t i = 0; i < count; ++i)
+            h.mem().write(zeros, blocksize, (ch->start + i) * blocksize);
+        Profile::stop(0xaaaa);
+    }
     inode->extents++;
     inode->size = (inode->size + h.sb().blocksize - 1) & ~(h.sb().blocksize - 1);
     inode->size += count * h.sb().blocksize;
