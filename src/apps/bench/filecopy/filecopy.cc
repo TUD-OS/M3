@@ -25,11 +25,12 @@
 
 using namespace m3;
 
+alignas(64) static char buffer[8192];
+
 int main(int argc, char **argv) {
     if(argc < 3)
         exitmsg("Usage: " << argv[0] << " <in> <out>");
 
-    cycles_t start = Profile::start(0);
     // TODO temporary fix to support different use-cases without complicating debugging.
     // Because if we require that the mountspace is configured by the parent (which is the goal),
     // we can only use it via VPE::exec, but this would not allow to debug it in a convenient way.
@@ -38,33 +39,20 @@ int main(int argc, char **argv) {
             exitmsg("Mounting root-fs failed");
     }
 
-    {
-        FileRef input(argv[1], FILE_R);
-        if(Errors::occurred())
-            exitmsg("open of " << argv[1] << " failed");
+    FileRef input(argv[1], FILE_R);
+    if(Errors::occurred())
+        exitmsg("open of " << argv[1] << " failed");
 
-        FileRef output(argv[2], FILE_W | FILE_TRUNC | FILE_CREATE);
-        if(Errors::occurred())
-            exitmsg("open of " << argv[2] << " failed");
-        cycles_t end1 = Profile::stop(0);
-        cout << "Setup time: " << (end1 - start) << "\n";
+    FileRef output(argv[2], FILE_W | FILE_TRUNC | FILE_CREATE);
+    if(Errors::occurred())
+        exitmsg("open of " << argv[2] << " failed");
 
-        // leave a bit of space for m3 abstractions
-        size_t bufsize = 4096;//Heap::contiguous_mem() - 128;
-        char *buffer = static_cast<char*>(Heap::alloc(bufsize));
-        cout << "Using buffer with " << bufsize << " bytes\n";
+    cycles_t start = Profile::start(1);
+    ssize_t count;
+    while((count = input->read(buffer, sizeof(buffer))) > 0)
+        output->write(buffer, static_cast<size_t>(count));
+    cycles_t end = Profile::stop(1);
 
-        ssize_t count;
-        cycles_t start = Profile::start(1);
-        while((count = input->read(buffer, bufsize)) == static_cast<ssize_t>(bufsize))
-            output->write(buffer, bufsize);
-        if(count > 0) {
-            size_t rem = static_cast<size_t>(count);
-            memset(buffer + rem, 0, DTU_PKG_SIZE - (rem % DTU_PKG_SIZE));
-            output->write(buffer, (rem + DTU_PKG_SIZE - 1) & ~(DTU_PKG_SIZE - 1));
-        }
-        cycles_t end2 = Profile::stop(1);
-        cout << "Copy: " << (end2 - start) << "\n";
-    }
+    cout << "Copy: " << (end - start) << "\n";
     return 0;
 }
