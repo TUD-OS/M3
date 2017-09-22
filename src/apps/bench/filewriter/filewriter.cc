@@ -25,7 +25,7 @@
 
 using namespace m3;
 
-alignas(64) static char buffer[4096];
+alignas(64) static char buffer[8192];
 
 int main(int argc, char **argv) {
     if(argc < 3)
@@ -35,32 +35,18 @@ int main(int argc, char **argv) {
     for(size_t i = 0; i < sizeof(buffer); ++i)
         buffer[i] = static_cast<char>(i & 0xFF);
 
-    cycles_t end1,start2,end2,start3;
-    cycles_t start1 = Profile::start(0);
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
-    {
-        FileRef file(argv[1], FILE_W | FILE_TRUNC | FILE_CREATE);
-        if(Errors::occurred())
-            exitmsg("open of " << argv[1] << " failed");
-        end1 = Profile::stop(0);
+    FileRef file(argv[1], FILE_W | FILE_TRUNC | FILE_CREATE);
+    if(Errors::occurred())
+        exitmsg("open of " << argv[1] << " failed");
 
-        start2 = Profile::start(1);
-        for(size_t total = 0; total < size; ) {
-            ssize_t count = file->write(buffer, sizeof(buffer));
-            if(count < 0)
-                exitmsg("Writing failed");
-            total += static_cast<size_t>(count);
-        }
-        end2 = Profile::stop(1);
+    cycles_t start = Profile::start(1);
+    for(size_t total = 0; total < size; total += sizeof(buffer))
+        file->write(buffer, sizeof(buffer));
+    cycles_t end = Profile::stop(1);
 
-        start3 = Profile::start(2);
-    }
-    cycles_t end3 = Profile::stop(2);
-
-    cout << "Setup time: " << (end1 - start1) << "\n";
-    cout << "Write time: " << (end2 - start2) << "\n";
-    cout << "Shutdown time: " << (end3 - start3) << "\n";
+    cout << "Write time: " << (end - start) << " cycles\n";
     return 0;
 }
