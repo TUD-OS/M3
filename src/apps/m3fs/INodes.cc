@@ -83,19 +83,20 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         return nullptr;
     }
 
+    size_t blocks_total = blocks * locs;
     crd = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, VPE::self().alloc_caps(locs), locs);
     Extent *indir = nullptr;
     // we're reusing the locations
     _locs.clear();
     for(size_t i = extent; i < extent + locs; ++i) {
-        Extent *ch = get_extent(h, inode, i, &indir, blocks > 0);
+        Extent *ch = get_extent(h, inode, i, &indir, blocks_total > 0);
         if(ch == nullptr)
             break;
 
         // extent empty?
         if(ch->length == 0) {
-            // if the user did not request an allocation or has already got some extents, stop here
-            if(blocks == 0 || _locs.count() > 0)
+            // if the user did not request an allocation, stop here
+            if(blocks_total == 0)
                 break;
 
             // fill extent with blocks
@@ -112,7 +113,7 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         // extend inode size, if we're appending
         if(i == inode->extents - 1) {
             left = inode->size % h.sb().blocksize;
-            if(blocks > 0 && left)
+            if(blocks_total > 0 && left)
                 inode->size += h.sb().blocksize - left;
         }
 
@@ -127,13 +128,13 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
         }
 
         // stop at file-end
-        if(blocks == 0 && left)
+        if(blocks_total == 0 && left)
             bytes -= h.sb().blocksize - left;
 
         // append extent to location list
         _locs.append(bytes);
-        if(ch->length <= blocks)
-            blocks -= ch->length;
+        if(ch->length <= blocks_total)
+            blocks_total -= ch->length;
     }
     return &_locs;
 }
@@ -257,7 +258,6 @@ Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indi
 
 void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks) {
     size_t count = blocks;
-    ch->length = blocks;
     ch->start = h.blocks().alloc(h, &count);
     if(count == 0) {
         Errors::last = Errors::NO_SPACE;

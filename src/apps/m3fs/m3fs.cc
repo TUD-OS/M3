@@ -227,6 +227,12 @@ public:
         for(size_t i = 0; i < locs->count(); ++i)
             data.args[2 + i] = locs->get(i);
 
+        if(m3::ServiceLog::level & m3::ServiceLog::FS) {
+            SLOG(FS, "Received " << locs->count() << " capabilities:");
+            for(size_t i = 0; i < locs->count(); ++i)
+                SLOG(FS, "  " << fmt(locs->get(i), "#x"));
+        }
+
         of->caps.add(crd);
         return Errors::NONE;
     }
