@@ -17,6 +17,7 @@
 #include <base/col/Treap.h>
 #include <base/stream/IStringStream.h>
 #include <base/log/Services.h>
+#include <base/CmdArgs.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/server/RequestHandler.h>
@@ -237,11 +238,23 @@ public:
     }
 };
 
+static void usage(const char *name) {
+    Serial::get() << "Usage: " << name << " [-a <maxAnon>] [-f <maxFile>]\n";
+    Serial::get() << "  -a: the max. number of anonymous pages to map at once\n";
+    Serial::get() << "  -f: the max. number of file pages to map at once\n";
+    exit(1);
+}
+
 int main(int argc, char **argv) {
-    if(argc > 1)
-        maxAnonPages = IStringStream::read_from<size_t>(argv[1]);
-    if(argc > 2)
-        maxExternPages = IStringStream::read_from<size_t>(argv[2]);
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "a:f:")) != -1) {
+        switch(opt) {
+            case 'a': maxAnonPages = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 'f': maxExternPages = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            default:
+                usage(argv[0]);
+        }
+    }
 
     srv = new Server<MemReqHandler>("pager", new MemReqHandler());
     env()->workloop()->run();
