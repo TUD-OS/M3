@@ -53,6 +53,6 @@ int main(int argc, char **argv) {
         output->write(buffer, static_cast<size_t>(count));
     cycles_t end = Profile::stop(1);
 
-    cout << "Copy: " << (end - start) << " cycles\n";
+    cout << "Copy time: " << (end - start) << " cycles\n";
     return 0;
 }
