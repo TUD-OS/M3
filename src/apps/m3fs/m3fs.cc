@@ -17,6 +17,7 @@
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
 #include <base/log/Services.h>
+#include <base/CmdArgs.h>
 #include <base/Errors.h>
 
 #include <m3/session/M3FS.h>
@@ -146,10 +147,11 @@ using m3fs_reqh_base_t = RequestHandler<
 
 class M3FSRequestHandler : public m3fs_reqh_base_t {
 public:
-    explicit M3FSRequestHandler(size_t fssize, bool clear)
+    explicit M3FSRequestHandler(size_t fssize, size_t extend, bool clear)
             : m3fs_reqh_base_t(),
               _mem(MemGate::create_global_for(FS_IMG_OFFSET,
                 Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
+              _extend(extend),
               _handle(_mem.sel(), clear) {
         add_operation(M3FS::OPEN, &M3FSRequestHandler::open);
         add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
@@ -174,11 +176,11 @@ public:
         int fd = data.args[0];
         size_t offset = data.args[1];
         size_t count = data.args[2];
-        size_t blocks = data.args[3];
+        bool extend = data.args[3];
         int flags = data.args[4];
 
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::get_locs(fd=" << fd << ", offset=" << offset
-            << ", count=" << count << ", blocks=" << blocks << ", flags=" << flags << ")");
+            << ", count=" << count << ", extend=" << extend << ", flags=" << flags << ")");
 
         M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of || count == 0) {
@@ -191,7 +193,7 @@ public:
 
         // don't try to extend the file, if we're not writing
         if(~of->flags & FILE_W)
-            blocks = 0;
+            extend = false;
 
         // determine extent from byte offset
         size_t firstOff = 0;
@@ -206,8 +208,8 @@ public:
         KIF::CapRngDesc crd;
         bool extended = false;
         Errors::last = Errors::NONE;
-        m3::loclist_type *locs = INodes::get_locs(_handle, &of->inode, offset, count, blocks,
-            of->flags & MemGate::RWX, crd, extended);
+        m3::loclist_type *locs = INodes::get_locs(_handle, &of->inode, offset, count,
+            extend ? _extend : 0, of->flags & MemGate::RWX, crd, extended);
         if(!locs) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": Determining locations failed: "
                 << Errors::to_string(Errors::last));
@@ -483,19 +485,38 @@ private:
     }
 
     MemGate _mem;
+    size_t _extend;
     FSHandle _handle;
 };
 
-int main(int argc, char *argv[]) {
-    if(argc < 2) {
-        Serial::get() << "Usage: " << argv[0] << " <size> [<name> [<clear blocks>]]\n";
-        return 1;
-    }
+static void usage(const char *name) {
+    Serial::get() << "Usage: " << name << " [-n <name>] [-e <blocks>] [-c] <size>\n";
+    Serial::get() << "  -n: the name of the service (m3fs by default)\n";
+    Serial::get() << "  -e: the number of blocks to extend files when appending\n";
+    Serial::get() << "  -c: clear allocated blocks\n";
+    exit(1);
+}
 
-    const char *name = argc > 2 ? argv[2] : "m3fs";
-    bool clear = argc > 3 ? strcmp(argv[3], "1") == 0 : false;
-    size_t size = IStringStream::read_from<size_t>(argv[1]);
-    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size, clear));
+int main(int argc, char *argv[]) {
+    const char *name = "m3fs";
+    size_t extend = 128;
+    bool clear = false;
+
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "n:e:c")) != -1) {
+        switch(opt) {
+            case 'n': name = CmdArgs::arg; break;
+            case 'e': extend = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 'c': clear = true; break;
+            default:
+                usage(argv[0]);
+        }
+    }
+    if(CmdArgs::ind >= argc)
+        usage(argv[0]);
+
+    size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
+    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size, extend, clear));
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();

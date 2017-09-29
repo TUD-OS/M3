@@ -64,11 +64,6 @@ class RegularFile : public File {
         size_t offset;
     } PACKED;
 
-    enum {
-        // the number of blocks by which we extend a file when appending
-        WRITE_INC_BLOCKS    = 128
-    };
-
     explicit RegularFile(int fd, Reference<M3FS> fs, int perms);
 public:
     virtual ~RegularFile();

@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
         if(VERBOSE) cout << "Creating VPEs...\n";
 
         const char *pipeserv[] = {"/bin/pipeserv"};
-        const char *m3fs[] = {"/bin/m3fs", "67108864", "m3fs2"};
+        const char *m3fs[] = {"/bin/m3fs", "-n=m3fs2", "67108864"};
         if(mode < 2) {
             apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 1);
             apps[1] = nullptr;

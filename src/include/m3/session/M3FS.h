@@ -73,19 +73,19 @@ public:
     Errors::Code close(int fd, size_t extent, size_t off);
 
     template<size_t N>
-    bool get_locs(int fd, size_t offset, size_t count, size_t blocks, KIF::CapRngDesc &crd, LocList<N> &locs) {
-        return get_locs(*this, fd, &offset, count, blocks, crd, locs, 0);
+    bool get_locs(int fd, size_t offset, size_t count, bool extend, KIF::CapRngDesc &crd, LocList<N> &locs) {
+        return get_locs(*this, fd, &offset, count, extend, crd, locs, 0);
     }
 
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
-    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count, size_t blocks,
+    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count, bool extend,
             KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
         xfer_t args[5];
         args[0] = static_cast<xfer_t>(fd);
         args[1] = *offset;
         args[2] = count;
-        args[3] = blocks;
+        args[3] = extend;
         args[4] = flags;
         bool extended = false;
         size_t argcount = ARRAY_SIZE(args);
