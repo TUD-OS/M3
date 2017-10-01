@@ -1,0 +1,17 @@
+Import('env')
+
+renv = env.Clone()
+renv.Append(
+    RCFLAGS = ' --crate-type=rlib --crate-name=m3'
+)
+lib = renv.RustC(target = 'libm3rust.rlib', source = 'src/lib.rs')
+renv.Depends(lib, [renv.Glob('src/*.rs'), renv.Glob('src/*/*.rs')])
+renv.Install(renv['LIBDIR'], lib)
+
+senv = env.Clone()
+senv.Append(
+    RCFLAGS = ' --crate-type=staticlib --crate-name=m3'
+)
+stlib = senv.RustC(target = 'libm3rust.a', source = 'src/lib.rs')
+senv.Depends(stlib, [renv.Glob('src/*.rs'), renv.Glob('src/*/*.rs')])
+senv.Install(senv['LIBDIR'], stlib)

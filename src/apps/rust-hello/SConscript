@@ -1,0 +1,16 @@
+Import('env')
+myenv = env.Clone()
+myenv.Append(RCFLAGS = ' -L$LIBDIR --crate-type=staticlib')
+if env['BUILD'] == 'release':
+    myenv.Append(RCFLAGS = ' -Clto')
+stlib = myenv.RustC(target = 'librust-hello.a', source = 'src/lib.rs')
+myenv.Depends(stlib, myenv.File('$LIBDIR/libm3rust.rlib'))
+myenv.Install(myenv['LIBDIR'], stlib)
+
+prog = myenv.M3Program(
+    myenv,
+    target = 'rust-hello',
+    source = [myenv['LIBDIR'].abspath + '/crt0.o'],
+    libs = ['c', 'gcc', 'rust-hello'],
+    NoSup = True
+)

@@ -1,0 +1,7 @@
+[package]
+name = "rust-hello"
+version = "0.1.0"
+
+[lib]
+name = "rusthello"
+crate-type = ["staticlib"]

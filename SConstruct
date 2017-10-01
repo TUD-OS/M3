@@ -87,6 +87,7 @@ if int(verbose) == 0:
     baseenv['DUMPCOMSTR']   = "[DUMP   ] $TARGET"
     baseenv['MKFSCOMSTR']   = "[MKFS   ] $TARGET"
     baseenv['CPPCOMSTR']    = "[CPP    ] $TARGET"
+    baseenv['RCCOMSTR']     = "[RC     ] $TARGET"
 
 # for host compilation
 hostenv = baseenv.Clone()
@@ -103,6 +104,7 @@ env.Append(
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
+    RCFLAGS = ' -Cpanic=abort',
 )
 
 # allow to add preprocessor flags via env variable
@@ -161,10 +163,12 @@ if btype == 'debug':
         # use -Os here because otherwise the binaries tend to get larger than 32k
         env.Append(CXXFLAGS = ' -Os -g')
         env.Append(CFLAGS = ' -Os -g')
+    env.Append(RCFLAGS = ' -g')
     env.Append(ASFLAGS = ' -g')
     hostenv.Append(CXXFLAGS = ' -O0 -g')
     hostenv.Append(CFLAGS = ' -O0 -g')
 else:
+    env.Append(RCFLAGS = ' -O')
     if target == 't2':
         env.Append(CXXFLAGS = ' -Os -DNDEBUG -flto')
         env.Append(CFLAGS = ' -Os -DNDEBUG -flto')
@@ -327,6 +331,16 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
     myenv.Install(myenv['BINARYDIR'], prog)
     return prog
 
+def RustC(env, target, source):
+    return env.Command(
+        target, source,
+        Action(
+            'rustc $RCFLAGS $SOURCE -o $TARGET',
+            '$RCCOMSTR'
+        )
+    )
+
+env.AddMethod(RustC)
 env.AddMethod(M3MemDump)
 env.AddMethod(M3FileDump)
 env.AddMethod(M3Mkfs)

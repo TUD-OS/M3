@@ -3,8 +3,17 @@ import os
 Import('env')
 env.InstallFiles('$FSDIR/bench', '.', scan=1)
 
+def is_bin(f):
+    if f.abspath.endswith('kernel'):
+        return False
+    if f.abspath.endswith('.a'):
+        return False
+    if f.abspath.endswith('.rlib'):
+        return False
+    return True
+
 for f in env.Glob('$BINARYDIR/*'):
-    if not f.abspath.endswith('kernel') and not f.abspath.endswith('.a'):
+    if is_bin(f):
         env.M3Strip('$FSDIR/bench/bin/${SOURCE.file}', f)
 
 bpe = 0 if os.environ.get('M3_FSBPE') is None else int(os.environ.get('M3_FSBPE'))
