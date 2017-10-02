@@ -9,6 +9,7 @@ if env['ARCH'] != 'host':
         target = 'libc',
         source = [
             myenv.Glob('*/*.cc'),
+            myenv.Glob('arch/$ARCHTYPE-$ISA/*.S'),
             myenv.Glob('arch/$ARCHTYPE/*.cc'),
             myenv.Glob('arch/$ARCH/*.cc'),
         ]
