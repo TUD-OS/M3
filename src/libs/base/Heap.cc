@@ -42,7 +42,7 @@ bool Heap::_ready = false;
 Heap::Area *Heap::_begin;
 Heap::Area *Heap::_end;
 
-void *Heap::alloc(size_t size) {
+USED void *Heap::alloc(size_t size) {
     void *res = try_alloc(size);
     if(!res)
         PANIC("Unable to alloc " << size << " bytes on the heap (free=" << free_memory() << ")");
