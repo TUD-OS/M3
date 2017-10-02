@@ -12,7 +12,13 @@ pub fn jmp_to(addr: u64) {
     }
 }
 
-pub fn size_of<T: ?Sized>(val: &T) -> usize {
+pub fn size_of<T>() -> usize {
+    unsafe {
+        intrinsics::size_of::<T>()
+    }
+}
+
+pub fn size_of_val<T: ?Sized>(val: &T) -> usize {
     unsafe {
         intrinsics::size_of_val(val)
     }
@@ -30,6 +36,7 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
 pub fn round_up(value: usize, align: usize) -> usize {
     (value + align - 1) & !(align - 1)
 }
+
 pub fn round_dn(value: usize, align: usize) -> usize {
     value & !(align - 1)
 }
@@ -51,4 +58,3 @@ pub fn max<T: Ord>(a: T, b: T) -> T {
         a
     }
 }
-

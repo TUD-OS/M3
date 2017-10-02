@@ -1,18 +1,19 @@
 use core::intrinsics;
 use core::ptr;
-use errors;
+use errors::Error;
+use util;
 
 pub type Reg    = u64;
 pub type EpId   = usize;
 pub type Label  = u64;
 
-const BASE_ADDR: usize  = 0xF0000000;
+const BASE_ADDR: usize      = 0xF0000000;
 // TODO move that elsewhere
 pub const PAGE_SIZE: usize  = 0x1000;
-const DTU_REGS: usize   = 8;
-// const REQ_REGS: usize   = 3;
-const CMD_REGS: usize   = 5;
-const EP_REGS: usize    = 3;
+const DTU_REGS: usize       = 8;
+// const REQ_REGS: usize    = 3;
+const CMD_REGS: usize       = 5;
+const EP_REGS: usize        = 3;
 
 pub enum DtuReg {
     Features    = 0,
@@ -87,16 +88,16 @@ pub struct DTU {
 }
 
 impl DTU {
-    pub fn send<T>(ep: EpId, msg: T, replylbl: Label, reply_ep: EpId) -> Result<(), errors::Error> {
+    pub fn send<T>(ep: EpId, msg: T, reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
         let ptr: *const T = &msg as *const T;
         Self::write_cmd_reg(CmdReg::Data, Self::build_data(
-            ptr as *const u8, unsafe { intrinsics::size_of_val(&msg) }
+            ptr as *const u8, util::size_of_val(&msg)
         ));
-        if replylbl != 0 {
-            Self::write_cmd_reg(CmdReg::ReplyLabel, replylbl);
+        if reply_lbl != 0 {
+            Self::write_cmd_reg(CmdReg::ReplyLabel, reply_lbl);
         }
         Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
-            ep, CmdOpCode::Send, 0, reply_ep as u64
+            ep, CmdOpCode::Send, 0, reply_ep as Reg
         ));
 
         Self::get_error()
@@ -119,18 +120,18 @@ impl DTU {
     }
 
     pub fn mark_read(ep: EpId, msg: &Message) {
-        let off = (msg as *const Message) as *const u8 as usize as u64;
+        let off = (msg as *const Message) as *const u8 as usize as Reg;
         Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::AckMsg, 0, off));
     }
 
-    pub fn get_error() -> Result<(), errors::Error> {
+    pub fn get_error() -> Result<(), Error> {
         loop {
             let cmd = Self::read_cmd_reg(CmdReg::Command);
             let opcode = CmdOpCode::from(cmd & 0xF);
             if opcode == CmdOpCode::Idle {
                 let err = (cmd >> 13) & 0x7;
                 if err != 0 {
-                    return Err(errors::Error::from(err))
+                    return Err(Error::from(err))
                 }
                 return Ok(())
             }
@@ -172,7 +173,7 @@ impl DTU {
         (addr as usize | (size << 48)) as Reg
     }
 
-    fn build_cmd(ep: EpId, c: CmdOpCode, flags: u32, arg: Reg) -> Reg {
-        c as Reg | ((ep as Reg) << 4) | ((flags as Reg) << 12) | (arg << 16)
+    fn build_cmd(ep: EpId, c: CmdOpCode, flags: Reg, arg: Reg) -> Reg {
+        c as Reg | ((ep as Reg) << 4) | (flags << 12) | (arg << 16)
     }
 }
