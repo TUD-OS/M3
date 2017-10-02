@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
+#include <heap/heap.h>
 
 namespace kernel {
 class BaremetalKEnvBackend;
@@ -26,47 +27,27 @@ namespace m3 {
 
 class OStream;
 
-/**
- * The heap implementation of M3. Optimized for a small code size and small memory overhead for
- * management, rather than performance.
- *
- * Note that all methods do NOT return nullptr in case there is not enough memory. The reasoning behind
- * that is, that since the heap has a fixed amount of memory and there is no multithreading, there
- * are no reasons why a failure should be handled. One could think of:
- * 1) trying to allocate memory and try again later if it failed.
- *    This does not make sense here since the available memory will never change.
- * 2) trying to allocate memory and try again with less if it failed.
- *    This is not required since one can use contiguous_mem() beforehand to find out if it would
- *    fail or how much one might allocate at most.
- * 3) report an error at the point of allocation for better error messages.
- *    This might be a valid usecase, but backtraces achieve basically the same (without overhead).
- *
- * Thus, for simplicity, the heap will terminate the program if allocation fails since this is
- * always considered as an unrecoverable error. This removes the need to check for the return value
- * at many places (which improves performance and decreases the code size).
- *
- * It is also possible to use the C interface (malloc, ...), but this class should be preferred.
- */
 class Heap {
     friend class kernel::BaremetalKEnvBackend;
 
-    struct Area {
-        word_t next;    /* MSB set = used */
-        word_t prev;
-        uint8_t _pad[64 - sizeof(word_t) * 2];
-    } PACKED;
-
-    static const word_t USED_BIT    = 0x5UL << (sizeof(word_t) * 8 - 3);
-    static const size_t ALIGN       = sizeof(Area);
-
 public:
+    /**
+     * Inits the heap
+     */
+    static void init();
+
     /**
      * Tries to allocate <size> bytes.
      *
      * @param size the number of bytes to allocate
      * @return the pointer to the allocated area or nullptr if there is not enough space.
      */
-    static void *try_alloc(size_t size);
+    static void *try_alloc(size_t size) {
+        panic = false;
+        void *res = alloc(size);
+        panic = true;
+        return res;
+    }
 
     /**
      * Allocates <size> bytes.
@@ -74,7 +55,9 @@ public:
      * @param size the number of bytes to allocate
      * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
-    static void *alloc(size_t size);
+    static void *alloc(size_t size) {
+        return heap_alloc(size);
+    }
 
     /**
      * Allocates <n> * <size> bytes.
@@ -83,7 +66,9 @@ public:
      * @param size the size of one element
      * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
-    static void *calloc(size_t n, size_t size);
+    static void *calloc(size_t n, size_t size) {
+        return heap_calloc(n, size);
+    }
 
     /**
      * Tries to increase the area, pointed at by <p>, to <size> bytes. If this is not possible, it
@@ -93,14 +78,18 @@ public:
      * @param size the new size of the area
      * @return the pointer to the allocated area. does NOT return nullptr, if it fails.
      */
-    static void *realloc(void *p, size_t size);
+    static void *realloc(void *p, size_t size) {
+        return heap_realloc(p, size);
+    }
 
     /**
      * Frees the given area
      *
      * @param p the pointer to the area (might be nullptr)
      */
-    static void free(void *p);
+    static void free(void *p) {
+        return heap_free(p);
+    }
 
     /**
      * Determines whether <p> was allocated on this heap.
@@ -109,8 +98,8 @@ public:
      * @return true if <p> is on this heap
      */
     static bool is_on_heap(const void *p) {
-        const Area *a = reinterpret_cast<const Area*>(p);
-        return a >= _begin && a < _end;
+        const HeapArea *a = reinterpret_cast<const HeapArea*>(p);
+        return a >= heap_begin && a < heap_end;
     }
 
     /**
@@ -136,13 +125,13 @@ public:
      * @return the address of the end area
      */
     static uintptr_t end_area() {
-        return reinterpret_cast<uintptr_t>(_end);
+        return reinterpret_cast<uintptr_t>(heap_end);
     }
     /**
      * @return the size of the end area
      */
     static size_t end_area_size() {
-        return sizeof(Area);
+        return sizeof(HeapArea);
     }
 
     /**
@@ -153,20 +142,24 @@ public:
     static void print(OStream &os);
 
 private:
-    static void init();
-    static bool is_used(Area *a) {
-        return a->next & USED_BIT;
+    static bool is_used(HeapArea *a) {
+        return a->next & HEAP_USED_BITS;
     }
-    static Area *forward(Area *a, size_t size) {
-        return reinterpret_cast<Area*>(reinterpret_cast<uintptr_t>(a) + size);
+    static HeapArea *forward(HeapArea *a, size_t size) {
+        return reinterpret_cast<HeapArea*>(reinterpret_cast<uintptr_t>(a) + size);
     }
-    static Area *backwards(Area *a, size_t size) {
-        return reinterpret_cast<Area*>(reinterpret_cast<uintptr_t>(a) - size);
+    static HeapArea *backwards(HeapArea *a, size_t size) {
+        return reinterpret_cast<HeapArea*>(reinterpret_cast<uintptr_t>(a) - size);
     }
 
-    static bool _ready;
-    static Area *_begin;
-    static Area *_end;
+    static void init_arch();
+
+    static void alloc_callback(void *p, size_t size);
+    static void free_callback(void *p);
+    static bool oom_callback(size_t size);
+    static void dblfree_callback(void *p);
+
+    static bool panic;
 };
 
 }

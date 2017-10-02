@@ -61,26 +61,26 @@ public:
 
         // map the memory
         uintptr_t virt = m3::Math::round_up<uintptr_t>(
-            reinterpret_cast<uintptr_t>(m3::Heap::_end), PAGE_SIZE);
+            reinterpret_cast<uintptr_t>(heap_end), PAGE_SIZE);
         gaddr_t phys = m3::DTU::build_gaddr(alloc.pe(), alloc.addr);
         VPEDesc vpe(Platform::kernel_pe(), VPEManager::MAX_VPES);
         DTU::get().map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
 
         // build new end Area and connect it
-        m3::Heap::Area *end = reinterpret_cast<m3::Heap::Area*>(virt + pages * PAGE_SIZE) - 1;
+        HeapArea *end = reinterpret_cast<HeapArea*>(virt + pages * PAGE_SIZE) - 1;
         end->next = 0;
-        m3::Heap::Area *prev = m3::Heap::backwards(m3::Heap::_end, m3::Heap::_end->prev);
+        HeapArea *prev = m3::Heap::backwards(heap_end, heap_end->prev);
         // if the last area is used, we have to keep _end and put us behind there
         if(m3::Heap::is_used(prev)) {
-            end->prev = static_cast<size_t>(end - m3::Heap::_end) * sizeof(m3::Heap::Area);
-            m3::Heap::_end->next = end->prev;
+            end->prev = static_cast<size_t>(end - heap_end) * sizeof(HeapArea);
+            heap_end->next = end->prev;
         }
         // otherwise, merge it into the last area
         else {
-            end->prev = m3::Heap::_end->prev + pages * PAGE_SIZE;
+            end->prev = heap_end->prev + pages * PAGE_SIZE;
             prev->next += pages * PAGE_SIZE;
         }
-        m3::Heap::_end = end;
+        heap_end = end;
         return true;
     }
 
@@ -89,6 +89,7 @@ public:
 };
 
 EXTERN_C void init_env(m3::Env *e) {
+    m3::Heap::init();
     e->_backend = reinterpret_cast<uint64_t>(new BaremetalKEnvBackend());
 }
 

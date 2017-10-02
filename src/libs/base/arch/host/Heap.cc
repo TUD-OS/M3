@@ -22,35 +22,46 @@
 #include <sys/mman.h>
 #include <malloc.h>
 
+static void ensure_inited() {
+    static bool done = false;
+    if(!done) {
+        m3::Heap::init();
+        done = true;
+    }
+}
+
 /* these functions are defined as weak, so that we can simply overwrite them here */
 USED void *malloc(size_t size) {
-    return m3::Heap::alloc(size);
+    ensure_inited();
+    return heap_alloc(size);
 }
 USED void *calloc(size_t n, size_t size) {
-    return m3::Heap::calloc(n, size);
+    ensure_inited();
+    return heap_calloc(n, size);
 }
 USED void *realloc(void *p, size_t size) {
-    return m3::Heap::realloc(p, size);
+    ensure_inited();
+    return heap_realloc(p, size);
 }
 USED void free(void *p) {
-    return m3::Heap::free(p);
+    ensure_inited();
+    return heap_free(p);
 }
 
 namespace m3 {
 
-void Heap::init() {
-    _begin = reinterpret_cast<Area*>(mmap(0, HEAP_SIZE, PROT_READ | PROT_WRITE,
+void Heap::init_arch() {
+    heap_begin = reinterpret_cast<HeapArea*>(mmap(0, HEAP_SIZE, PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
-    if(_begin == MAP_FAILED)
+    if(heap_begin == MAP_FAILED)
         PANIC("Unable to map heap");
 
-    _end = _begin + (HEAP_SIZE / sizeof(Area)) - sizeof(Area);
-    _end->next = 0;
-    _end->prev = static_cast<size_t>(_end - _begin) * sizeof(Area);
-    Area *a = _begin;
-    a->next = static_cast<size_t>(_end - _begin) * sizeof(Area);
+    heap_end = heap_begin + (HEAP_SIZE / sizeof(HeapArea)) - sizeof(HeapArea);
+    heap_end->next = 0;
+    heap_end->prev = static_cast<size_t>(heap_end - heap_begin) * sizeof(HeapArea);
+    HeapArea *a = heap_begin;
+    a->next = static_cast<size_t>(heap_end - heap_begin) * sizeof(HeapArea);
     a->prev = 0;
-    _ready = true;
 }
 
 }

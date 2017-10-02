@@ -15,21 +15,21 @@
  */
 
 #include <base/Common.h>
-#include <base/Heap.h>
+#include <base/log/Lib.h>
 #include <cstdlib>
 
-void* malloc(size_t size) {
-    return m3::Heap::alloc(size);
+void *malloc(size_t size) {
+    return heap_alloc(size);
 }
 
 void *calloc(size_t n, size_t size) {
-    return m3::Heap::calloc(n, size);
+    return heap_calloc(n, size);
 }
 
 void *realloc(void *p, size_t size) {
-    return m3::Heap::realloc(p, size);
+    return heap_realloc(p, size);
 }
 
 void free(void *p) {
-    return m3::Heap::free(p);
+    return heap_free(p);
 }

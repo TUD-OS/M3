@@ -24,9 +24,9 @@ extern void *_bss_end;
 
 namespace m3 {
 
-void Heap::init() {
+void Heap::init_arch() {
     uintptr_t begin = reinterpret_cast<uintptr_t>(&_bss_end);
-    _begin = reinterpret_cast<Area*>(Math::round_up<size_t>(begin, sizeof(Area)));
+    heap_begin = reinterpret_cast<HeapArea*>(Math::round_up<size_t>(begin, sizeof(HeapArea)));
 
     uintptr_t end;
     if(env()->heapsize == 0) {
@@ -37,7 +37,7 @@ void Heap::init() {
         else
             end = Math::round_up(begin, PAGE_SIZE) + MOD_HEAP_SIZE;
 #else
-        end = Math::round_dn<size_t>(RT_START, sizeof(Area));
+        end = Math::round_dn<size_t>(RT_START, sizeof(HeapArea));
 #endif
     }
     // TODO temporary
@@ -45,14 +45,13 @@ void Heap::init() {
         end = Math::round_up<size_t>(begin, PAGE_SIZE) + 1024 * 1024;
     else
         end = Math::round_up<size_t>(begin, PAGE_SIZE) + env()->heapsize;
-    _end = reinterpret_cast<Area*>(end) - 1;
+    heap_end = reinterpret_cast<HeapArea*>(end) - 1;
 
-    _end->next = 0;
-    _end->prev = static_cast<size_t>(_end - _begin) * sizeof(Area);
-    Area *a = _begin;
-    a->next = static_cast<size_t>(_end - _begin) * sizeof(Area);
+    heap_end->next = 0;
+    heap_end->prev = static_cast<size_t>(heap_end - heap_begin) * sizeof(HeapArea);
+    HeapArea *a = heap_begin;
+    a->next = static_cast<size_t>(heap_end - heap_begin) * sizeof(HeapArea);
     a->prev = 0;
-    _ready = true;
 }
 
 }

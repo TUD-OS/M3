@@ -81,6 +81,7 @@ public:
 };
 
 EXTERN_C void init_env(Env *e) {
+    m3::Heap::init();
     e->_backend = reinterpret_cast<uint64_t>(new EnvUserBackend());
 }
 
