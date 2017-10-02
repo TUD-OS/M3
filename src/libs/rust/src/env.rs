@@ -1,7 +1,9 @@
 use core::intrinsics;
+use core::iter;
+use util;
 
 #[repr(C, packed)]
-pub struct Env {
+pub struct EnvData {
     pub pe: u64,
     pub argc: u32,
     pub argv: u64,
@@ -31,8 +33,43 @@ pub struct Env {
     // uintptr_t isrs,
 }
 
-pub fn get() -> &'static Env {
+pub fn data() -> &'static EnvData {
     unsafe {
         intrinsics::transmute(0x6000 as u64)
+    }
+}
+
+pub struct Args {
+    pos: isize,
+}
+
+impl Args {
+    fn arg(&self, idx: isize) -> &'static str {
+        unsafe {
+            let args: *const *const u8 = intrinsics::transmute(data().argv as *const u8);
+            let arg = *args.offset(idx);
+            util::cstr_to_str(arg)
+        }
+    }
+}
+
+impl iter::Iterator for Args {
+    type Item = &'static str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < data().argc as isize {
+            let arg = self.arg(self.pos);
+            self.pos += 1;
+            Some(arg)
+        }
+        else {
+            None
+        }
+    }
+}
+
+pub fn args() -> Args {
+    Args {
+        pos: 0,
     }
 }

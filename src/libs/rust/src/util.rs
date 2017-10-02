@@ -1,7 +1,9 @@
 use core::intrinsics;
+use core::slice;
+use libc;
 
 // TODO move to proper place
-pub fn jmpto(addr: u64) {
+pub fn jmp_to(addr: u64) {
     unsafe {
         asm!(
             "jmp *$0"
@@ -11,7 +13,17 @@ pub fn jmpto(addr: u64) {
 }
 
 pub fn size_of<T: ?Sized>(val: &T) -> usize {
-    unsafe { intrinsics::size_of_val(val) }
+    unsafe {
+        intrinsics::size_of_val(val)
+    }
+}
+
+pub fn cstr_to_str(s: *const u8) -> &'static str {
+    unsafe {
+        let len = libc::strlen(s);
+        let sl = slice::from_raw_parts(s, len as usize + 1);
+        intrinsics::transmute(&sl[..sl.len() - 1])
+    }
 }
 
 pub fn min<T: Ord>(a: T, b: T) -> T {

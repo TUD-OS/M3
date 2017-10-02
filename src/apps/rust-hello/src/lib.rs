@@ -5,10 +5,13 @@ extern crate m3;
 
 use m3::syscalls;
 use m3::time;
+use m3::env;
 
 #[no_mangle]
-pub extern fn main(_argc: i32, _argv: *const *const u8) -> i32 {
-    println!("foo {}, {}, {}", "test11", 12, 13);
+pub fn main() -> i32 {
+    for (i, a) in env::args().enumerate() {
+        println!("arg {}: {}", i, a);
+    }
 
     {
         let res = syscalls::create_mgate(5, 0, 0x1000, 0x3);

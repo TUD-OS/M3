@@ -17,19 +17,17 @@ pub mod time;
 mod libc;
 
 extern "C" {
-    pub fn main(argc: i32, argv: *const *const u8) -> i32;
+    fn main() -> i32;
 }
 
 pub fn exit(code: i32) {
     syscalls::exit(code);
-    util::jmpto(env::get().exit_addr);
+    util::jmp_to(env::data().exit_addr);
 }
 
 #[no_mangle]
 pub extern fn env_run() {
-    let res = unsafe {
-        main(0, 0 as *const *const u8)
-    };
+    let res = unsafe { main() };
     exit(res)
 }
 
