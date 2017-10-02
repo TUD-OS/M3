@@ -71,6 +71,10 @@ void operator delete[](void *ptr) throw() {
     Heap::free(ptr);
 }
 
+EXTERN_C void exit(int code) {
+    m3::env()->exit(code);
+}
+
 EXTERN_C void __cxa_pure_virtual() {
     PANIC("pure virtual function call");
 }
@@ -94,6 +98,15 @@ EXTERN_C void __cxa_finalize(void *) {
 #if defined(__arm__)
 EXTERN_C int __aeabi_atexit(void *object, void (*dtor)(void *), void *handle) {
     return __cxa_atexit(dtor, object, handle);
+}
+#endif
+
+#ifndef NDEBUG
+void __assert_failed(const char *expr, const char *file, const char *func, int line) {
+    m3::Serial::get() << "assertion \"" << expr << "\" failed in " << func << " in "
+                      << file << ":" << line << "\n";
+    exit(1);
+    /* NOTREACHED */
 }
 #endif
 
