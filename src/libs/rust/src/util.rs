@@ -26,6 +26,14 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
     }
 }
 
+// TODO make these generic
+pub fn round_up(value: usize, align: usize) -> usize {
+    (value + align - 1) & !(align - 1)
+}
+pub fn round_dn(value: usize, align: usize) -> usize {
+    value & !(align - 1)
+}
+
 pub fn min<T: Ord>(a: T, b: T) -> T {
     if a > b {
         b

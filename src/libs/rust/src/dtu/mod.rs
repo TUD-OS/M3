@@ -7,7 +7,8 @@ pub type EpId   = usize;
 pub type Label  = u64;
 
 const BASE_ADDR: usize  = 0xF0000000;
-const PAGE_SIZE: usize  = 0x1000;
+// TODO move that elsewhere
+pub const PAGE_SIZE: usize  = 0x1000;
 const DTU_REGS: usize   = 8;
 // const REQ_REGS: usize   = 3;
 const CMD_REGS: usize   = 5;

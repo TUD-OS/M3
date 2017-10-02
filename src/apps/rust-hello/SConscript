@@ -12,6 +12,6 @@ if env['ARCH'] == 'gem5':
         myenv,
         target = 'rust-hello',
         source = [myenv['LIBDIR'].abspath + '/crt0.o'],
-        libs = ['c', 'gcc', 'rust-hello'],
+        libs = ['c', 'heap', 'gcc', 'rust-hello'],
         NoSup = True
     )

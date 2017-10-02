@@ -6,9 +6,23 @@ extern crate m3;
 use m3::syscalls;
 use m3::time;
 use m3::env;
+use m3::collections::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
+    let vec = vec![1, 42, 23];
+    println!("my vec:");
+    for v in vec {
+        println!("  {}", v);
+    }
+
+    let mut s: String = format!("my float is {:.3} and my args are", 12.5);
+    for a in env::args() {
+        s += " ";
+        s += a;
+    }
+    println!("here: {}", s);
+
     for (i, a) in env::args().enumerate() {
         println!("arg {}: {}", i, a);
     }
@@ -30,6 +44,7 @@ pub fn main() -> i32 {
         let end = time::stop(0);
         total += end - start;
     }
+    assert!(total < 10);
 
     println!("per call: {}", total / 10);
 
