@@ -7,6 +7,7 @@ use m3::syscalls;
 use m3::time;
 use m3::env;
 use m3::collections::*;
+use m3::dtu;
 
 #[no_mangle]
 pub fn main() -> i32 {
@@ -30,6 +31,13 @@ pub fn main() -> i32 {
     {
         let res = syscalls::create_mgate(5, 0, 0x1000, 0x3);
         println!("res: {:?}", res);
+
+        syscalls::activate(0, 5, 8, 0).unwrap();
+
+        let mut data: [u8; 16] = [12; 16];
+        dtu::DTU::write(8, &data, 0, 0).unwrap();
+        dtu::DTU::read(8, &mut data, 0, 0).unwrap();
+        println!("data: {:?}", data);
     }
 
     {

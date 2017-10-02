@@ -15,6 +15,9 @@ const DTU_REGS: usize       = 8;
 const CMD_REGS: usize       = 5;
 const EP_REGS: usize        = 3;
 
+// actual max is 64k - 1; use less for better alignment
+const MAX_PKT_SIZE: usize   = 60 * 1024;
+
 pub enum DtuReg {
     Features    = 0,
     RootPt      = 1,
@@ -101,6 +104,38 @@ impl DTU {
         ));
 
         Self::get_error()
+    }
+
+    pub fn read<T>(ep: EpId, data: &mut [T], off: usize, flags: u64) -> Result<(), Error> {
+        let ptr: *mut T = data.as_ptr() as *mut T;
+        let cmd = Self::build_cmd(ep, CmdOpCode::Read, flags, 0);
+        let res = Self::transfer(cmd, ptr as usize, data.len(), off);
+        unsafe { intrinsics::atomic_fence_rel() };
+        res
+    }
+
+    pub fn write<T>(ep: EpId, data: &[T], off: usize, flags: u64) -> Result<(), Error> {
+        let ptr: *const T = data.as_ptr();
+        let cmd = Self::build_cmd(ep, CmdOpCode::Write, flags, 0);
+        Self::transfer(cmd, ptr as usize, data.len(), off)
+    }
+
+    fn transfer(cmd: Reg, data: usize, size: usize, off: usize) -> Result<(), Error> {
+        let mut left = size;
+        let mut offset = off;
+        let mut data_addr = data;
+        while left > 0 {
+            let amount = util::min(left, MAX_PKT_SIZE);
+            Self::write_cmd_reg(CmdReg::Data, (data_addr | (amount << 48)) as Reg);
+            Self::write_cmd_reg(CmdReg::Command, cmd | (offset << 16) as Reg);
+
+            left -= amount;
+            offset += amount;
+            data_addr += amount;
+
+            try!(Self::get_error());
+        }
+        Ok(())
     }
 
     pub fn fetch_msg(ep: EpId) -> Option<&'static Message> {
