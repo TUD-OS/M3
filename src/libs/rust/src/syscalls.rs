@@ -37,6 +37,19 @@ fn send_receive_result<T>(msg: T) -> Result<(), Error> {
     }
 }
 
+pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
+    // LLOG(SYSC, "activate(vpe=" << vpe << ", gate=" << gate << ", ep=" << ep << ")");
+
+    let req = syscalls::Activate {
+        opcode: syscalls::Operation::Activate as u64,
+        vpe_sel: vpe as u64,
+        gate_sel: gate as u64,
+        ep: ep as u64,
+        addr: addr as u64,
+    };
+    send_receive_result(req)
+}
+
 pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
     // TODO LLOG(SYSC, "createsgate(dst=" << dst << ", rgate=" << rgate << ", label=" << fmt(label, "#x")
     //     << ", credits=" << credits << ")");
