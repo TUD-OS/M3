@@ -1,10 +1,5 @@
 use core::fmt;
-
-extern {
-    // fn gem5_shutdown(delay: u64);
-    fn gem5_writefile(src: *const u8, len: u64, offset: u64, file: u64);
-    // fn gem5_readfile(dst: *mut char, max: u64, offset: u64) -> i64;
-}
+use libc;
 
 #[macro_export]
 macro_rules! print {
@@ -25,7 +20,7 @@ pub struct Serial {
 impl Serial {
     pub fn put_str(&self, s: &str) {
         unsafe {
-            gem5_writefile(s.as_ptr(), s.len() as u64, 0, "stdout\0".as_ptr() as u64);
+            libc::gem5_writefile(s.as_ptr(), s.len() as u64, 0, "stdout\0".as_ptr() as u64);
         }
     }
 }
