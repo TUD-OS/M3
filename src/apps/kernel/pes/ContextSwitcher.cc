@@ -322,7 +322,7 @@ retry:
                     migvpe = _cur;
             }
 
-            // fall through
+            [[fallthrough]];
         }
 
         case S_SWITCH: {
@@ -346,7 +346,7 @@ retry:
             else if(Platform::pe(_pe).has_mmu())
                 DTU::get().set_rootpt_remote(_cur->desc(), _cur->address_space()->root_pt());
 
-            // fall through
+            [[fallthrough]];
         }
 
         case S_RESTORE_WAIT: {
