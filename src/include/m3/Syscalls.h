@@ -32,9 +32,6 @@ class RecvGate;
 class Syscalls {
     friend class Env;
 
-    static constexpr size_t BUFSIZE     = 1024;
-    static constexpr size_t MSGSIZE     = 256;
-
 public:
     static Syscalls &get() {
         return _inst;
