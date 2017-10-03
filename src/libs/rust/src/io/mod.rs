@@ -1,6 +1,18 @@
 use core::fmt;
 use libc;
 
+pub const SYSC: bool  = false;
+pub const HEAP: bool  = false;
+
+#[macro_export]
+macro_rules! log {
+    ($type:tt, $($arg:tt)*) => ({
+        if $crate::io::$type {
+            println!($($arg)*);
+        }
+    })
+}
+
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({

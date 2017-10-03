@@ -15,7 +15,6 @@
  */
 
 #include <base/Common.h>
-#include <base/log/Lib.h>
 #include <base/DTU.h>
 #include <heap/heap.h>
 #include <string.h>
@@ -108,7 +107,7 @@ USED void *heap_alloc(size_t size) {
     // mark used
     a->next |= HEAP_USED_BITS;
 
-    if((m3::LibLog::level & m3::LibLog::HEAP) && alloc_callback)
+    if(alloc_callback)
         alloc_callback(a + 1, size);
 
     return a + 1;
@@ -138,7 +137,7 @@ USED void heap_free(void *p) {
     if(p == nullptr)
         return;
 
-    if((m3::LibLog::level & m3::LibLog::HEAP) && free_callback)
+    if(free_callback)
         free_callback(p);
 
     /* get area and the one behind */

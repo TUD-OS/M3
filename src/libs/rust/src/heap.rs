@@ -2,6 +2,7 @@ use core::intrinsics;
 use dtu;
 use env;
 use libc;
+use io;
 use util;
 
 #[repr(C, packed)]
@@ -34,7 +35,25 @@ pub fn init() {
 
         (*heap_begin).next = space as u64;
         (*heap_begin).prev = 0;
+
+        if io::HEAP {
+            libc::heap_set_alloc_callback(heap_alloc_callback);
+            libc::heap_set_free_callback(heap_free_callback);
+        }
+        libc::heap_set_dblfree_callback(heap_dblfree_callback);
     }
+}
+
+extern fn heap_alloc_callback(p: *const u8, size: usize) {
+    log!(HEAP, "alloc({}) -> {:?}", size, p);
+}
+
+extern fn heap_free_callback(p: *const u8) {
+    log!(HEAP, "free({:?})", p);
+}
+
+extern fn heap_dblfree_callback(p: *const u8) {
+    log!(HEAP, "Used bits not set for {:?}; double free?", p);
 }
 
 #[no_mangle]

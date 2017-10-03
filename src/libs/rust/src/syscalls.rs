@@ -38,7 +38,11 @@ fn send_receive_result<T>(msg: T) -> Result<(), Error> {
 }
 
 pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
-    // LLOG(SYSC, "activate(vpe=" << vpe << ", gate=" << gate << ", ep=" << ep << ")");
+    log!(
+        SYSC,
+        "syscalls::activate(vpe={}, gate={}, ep={}, addr={})",
+        vpe, gate, ep, addr
+    );
 
     let req = syscalls::Activate {
         opcode: syscalls::Operation::Activate as u64,
@@ -51,8 +55,11 @@ pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result
 }
 
 pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
-    // TODO LLOG(SYSC, "createsgate(dst=" << dst << ", rgate=" << rgate << ", label=" << fmt(label, "#x")
-    //     << ", credits=" << credits << ")");
+    log!(
+        SYSC,
+        "syscalls::create_sgate(dst={}, rgate={}, lbl={:#x}, credits={})",
+        dst, rgate, label, credits
+    );
 
     let req = syscalls::CreateSGate {
         opcode: syscalls::Operation::CreateSGate as u64,
@@ -65,8 +72,11 @@ pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64)
 }
 
 pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: u64) -> Result<(), Error> {
-    // TODO LLOG(SYSC, "createmgate(dst=" << dst << ", addr=" << addr << ", size=" << size
-    //      << ", perms=" << perms << ")");
+    log!(
+        SYSC,
+        "syscalls::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
+        dst, addr, size, perms
+    );
 
     let req = syscalls::CreateMGate {
         opcode: syscalls::Operation::CreateMGate as u64,
@@ -86,7 +96,11 @@ pub fn noop() -> Result<(), Error> {
 }
 
 pub fn exit(code: i32) {
-    // TODO LLOG(SYSC, "exit(code=" << exitcode << ")");
+    log!(
+        SYSC,
+        "syscalls::exit(code={})",
+        code
+    );
 
     let req = syscalls::VPECtrl {
         opcode: syscalls::Operation::VpeCtrl as u64,
