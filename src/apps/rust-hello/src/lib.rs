@@ -7,7 +7,7 @@ use m3::syscalls;
 use m3::time;
 use m3::env;
 use m3::collections::*;
-use m3::dtu;
+use m3::com::{MemGate, Perm};
 
 #[no_mangle]
 pub fn main() -> i32 {
@@ -28,21 +28,19 @@ pub fn main() -> i32 {
         println!("arg {}: {}", i, a);
     }
 
-    {
-        let res = syscalls::create_mgate(5, 0, 0x1000, 0x3);
-        println!("res: {:?}", res);
+    let args: Vec<&'static str> = env::args().collect();
+    println!("arg0: {}, arg1: {}", args[0], args[1]);
 
-        syscalls::activate(0, 5, 8, 0).unwrap();
+    {
+        let mgate = MemGate::new(0x1000, Perm::RW).unwrap();
+        let mut mgate2 = mgate.derive(0x100, 0x100, Perm::RW).unwrap();
 
         let mut data: [u8; 16] = [12; 16];
-        dtu::DTU::write(8, &data, 0, 0).unwrap();
-        dtu::DTU::read(8, &mut data, 0, 0).unwrap();
+        mgate2.write(&data, 0).unwrap();
+        mgate2.read(&mut data, 0).unwrap();
         println!("data: {:?}", data);
-    }
 
-    {
-        let res = syscalls::create_mgate(5, 0, 0x1000, 0x3);
-        println!("res: {:?}", res);
+        MemGate::new(0x1000, Perm::RW).err();
     }
 
     let mut total = 0;
@@ -52,7 +50,7 @@ pub fn main() -> i32 {
         let end = time::stop(0);
         total += end - start;
     }
-    assert!(total < 10);
+    assert!(total > 10);
 
     println!("per call: {}", total / 10);
 

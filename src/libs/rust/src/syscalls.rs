@@ -1,22 +1,20 @@
 use core::intrinsics;
+use dtu;
 use errors::Error;
 use kif::syscalls;
-use dtu;
+use kif::cap;
+use kif::Perm;
 use util;
 
-// TODO move to appropriate place
-pub type CapSel = u32;
-
-const SEP: dtu::EpId = 0;
-const REP: dtu::EpId = 1;
+type CapSel = cap::CapSel;
 
 fn send_receive<T>(msg: T) -> Result<&'static dtu::Message, Error> {
-    try!(dtu::DTU::send(SEP, msg, 0, REP));
+    try!(dtu::DTU::send(dtu::SYSC_SEP, msg, 0, dtu::SYSC_REP));
 
     loop {
         // TODO sleep
 
-        let msg = dtu::DTU::fetch_msg(REP);
+        let msg = dtu::DTU::fetch_msg(dtu::SYSC_REP);
         if let Some(m) = msg {
             return Ok(m)
         }
@@ -29,7 +27,7 @@ fn send_receive_result<T>(msg: T) -> Result<(), Error> {
     // TODO better way?
     let vals: &[u64] = unsafe { intrinsics::transmute(&reply.data) };
     let err = vals[0];
-    dtu::DTU::mark_read(REP, &reply);
+    dtu::DTU::mark_read(dtu::SYSC_REP, &reply);
 
     match err {
         0 => Ok(()),
@@ -71,7 +69,7 @@ pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64)
     send_receive_result(req)
 }
 
-pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: u64) -> Result<(), Error> {
+pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
@@ -83,7 +81,41 @@ pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: u64) -> Result<(
         dst_sel: dst as u64,
         addr: addr,
         size: size as u64,
-        perms: perms,
+        perms: perms.bits() as u64,
+    };
+    send_receive_result(req)
+}
+
+pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::derive_mem(dst={}, src={}, off={:#x}, size={:#x}, perms={:?})",
+        dst, src, offset, size, perms
+    );
+
+    let req = syscalls::DeriveMem {
+        opcode: syscalls::Operation::DeriveMem as u64,
+        dst_sel: dst as u64,
+        src_sel: src as u64,
+        offset: offset as u64,
+        size: size as u64,
+        perms: perms.bits() as u64,
+    };
+    send_receive_result(req)
+}
+
+pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::revoke(vpe={}, crd={}, own={})",
+        vpe, crd, own
+    );
+
+    let req = syscalls::Revoke {
+        opcode: syscalls::Operation::Revoke as u64,
+        vpe_sel: vpe as u64,
+        crd: crd.value(),
+        own: own as u64,
     };
     send_receive_result(req)
 }
@@ -108,5 +140,5 @@ pub fn exit(code: i32) {
         op: syscalls::VPEOp::Stop as u64,
         arg: code as u64,
     };
-    dtu::DTU::send(SEP, req, 0, REP).unwrap();
+    dtu::DTU::send(dtu::SYSC_SEP, req, 0, dtu::SYSC_REP).unwrap();
 }

@@ -4,12 +4,16 @@
 #![feature(alloc, allocator_internals)]
 #![feature(macro_reexport)]
 #![feature(asm)]
+#![feature(const_fn)]
+#![feature(rustc_private)]
 
 #![default_lib_allocator]
 #![no_std]
 
 #[macro_reexport(vec, format)]
 extern crate alloc;
+#[macro_use]
+extern crate bitflags;
 
 use core::intrinsics;
 
@@ -34,6 +38,8 @@ pub mod syscalls;
 pub mod util;
 pub mod time;
 pub mod heap;
+pub mod cap;
+pub mod com;
 mod libc;
 
 extern "C" {
@@ -48,6 +54,7 @@ pub fn exit(code: i32) {
 #[no_mangle]
 pub extern fn env_run() {
     heap::init();
+    com::init();
     let res = unsafe { main() };
     exit(res)
 }

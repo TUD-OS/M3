@@ -7,16 +7,25 @@ pub type Reg    = u64;
 pub type EpId   = usize;
 pub type Label  = u64;
 
-const BASE_ADDR: usize      = 0xF0000000;
+pub const EP_COUNT: EpId        = 12;
+
 // TODO move that elsewhere
-pub const PAGE_SIZE: usize  = 0x1000;
-const DTU_REGS: usize       = 8;
-// const REQ_REGS: usize    = 3;
-const CMD_REGS: usize       = 5;
-const EP_REGS: usize        = 3;
+pub const PAGE_SIZE: usize      = 0x1000;
+
+pub const SYSC_SEP: EpId        = 0;
+pub const SYSC_REP: EpId        = 1;
+pub const UPCALL_REP: EpId      = 2;
+pub const DEF_REP: EpId         = 3;
+pub const FIRST_FREE_EP: EpId   = 4;
+
+const BASE_ADDR: usize          = 0xF0000000;
+const DTU_REGS: usize           = 8;
+// const REQ_REGS: usize        = 3;
+const CMD_REGS: usize           = 5;
+const EP_REGS: usize            = 3;
 
 // actual max is 64k - 1; use less for better alignment
-const MAX_PKT_SIZE: usize   = 60 * 1024;
+const MAX_PKT_SIZE: usize       = 60 * 1024;
 
 pub enum DtuReg {
     Features    = 0,

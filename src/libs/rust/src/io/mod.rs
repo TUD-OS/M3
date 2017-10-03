@@ -1,6 +1,7 @@
 use core::fmt;
 use libc;
 
+// TODO how to move the logging stuff to somewhere else?
 pub const SYSC: bool  = false;
 pub const HEAP: bool  = false;
 
