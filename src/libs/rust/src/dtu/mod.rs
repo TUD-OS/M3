@@ -182,6 +182,23 @@ impl DTU {
         }
     }
 
+    pub fn try_sleep(_yield: bool, cycles: u64) -> Result<(), Error> {
+        for _ in 0..100 {
+            if Self::read_dtu_reg(DtuReg::MsgCnt) > 0 {
+                return Ok(())
+            }
+        }
+
+        // TODO yield
+
+        Self::sleep(cycles)
+    }
+
+    pub fn sleep(cycles: u64) -> Result<(), Error> {
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::Sleep, 0, cycles));
+        Self::get_error()
+    }
+
     pub fn read_dtu_reg(reg: DtuReg) -> Reg {
         Self::read_reg(reg as usize)
     }

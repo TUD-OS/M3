@@ -12,7 +12,7 @@ fn send_receive<T>(msg: T) -> Result<&'static dtu::Message, Error> {
     try!(dtu::DTU::send(dtu::SYSC_SEP, msg, 0, dtu::SYSC_REP));
 
     loop {
-        // TODO sleep
+        try!(dtu::DTU::try_sleep(false, 0));
 
         let msg = dtu::DTU::fetch_msg(dtu::SYSC_REP);
         if let Some(m) = msg {
