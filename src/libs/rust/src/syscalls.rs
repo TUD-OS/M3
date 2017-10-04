@@ -8,7 +8,7 @@ use util;
 
 type CapSel = cap::CapSel;
 
-fn send_receive<T>(msg: T) -> Result<&'static dtu::Message, Error> {
+fn send_receive<T>(msg: &[T]) -> Result<&'static dtu::Message, Error> {
     try!(dtu::DTU::send(dtu::SYSC_SEP, msg, 0, dtu::SYSC_REP));
 
     loop {
@@ -21,7 +21,7 @@ fn send_receive<T>(msg: T) -> Result<&'static dtu::Message, Error> {
     }
 }
 
-fn send_receive_result<T>(msg: T) -> Result<(), Error> {
+fn send_receive_result<T>(msg: &[T]) -> Result<(), Error> {
     let reply = try!(send_receive(msg));
 
     // TODO better way?
@@ -49,7 +49,7 @@ pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result
         ep: ep as u64,
         addr: addr as u64,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
 }
 
 pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
@@ -66,10 +66,10 @@ pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64)
         label: label,
         credits: credits,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
 }
 
-pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: Perm) -> Result<(), Error> {
+pub fn create_mgate(dst: CapSel, addr: usize, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
@@ -79,11 +79,27 @@ pub fn create_mgate(dst: CapSel, addr: u64, size: usize, perms: Perm) -> Result<
     let req = syscalls::CreateMGate {
         opcode: syscalls::Operation::CreateMGate as u64,
         dst_sel: dst as u64,
-        addr: addr,
+        addr: addr as u64,
         size: size as u64,
         perms: perms.bits() as u64,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
+}
+
+pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::create_rgate(dst={}, order={}, msgorder={})",
+        dst, order, msgorder
+    );
+
+    let req = syscalls::CreateRGate {
+        opcode: syscalls::Operation::CreateRGate as u64,
+        dst_sel: dst as u64,
+        order: order as u64,
+        msgorder: msgorder as u64,
+    };
+    send_receive_result(&[req])
 }
 
 pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
@@ -101,7 +117,7 @@ pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: P
         size: size as u64,
         perms: perms.bits() as u64,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
 }
 
 pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error> {
@@ -117,14 +133,14 @@ pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error>
         crd: crd.value(),
         own: own as u64,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
 }
 
 pub fn noop() -> Result<(), Error> {
     let req = syscalls::Noop {
         opcode: syscalls::Operation::Noop as u64,
     };
-    send_receive_result(req)
+    send_receive_result(&[req])
 }
 
 pub fn exit(code: i32) {
@@ -140,5 +156,5 @@ pub fn exit(code: i32) {
         op: syscalls::VPEOp::Stop as u64,
         arg: code as u64,
     };
-    dtu::DTU::send(dtu::SYSC_SEP, req, 0, dtu::SYSC_REP).unwrap();
+    dtu::DTU::send(dtu::SYSC_SEP, &[req], 0, dtu::SYSC_REP).unwrap();
 }

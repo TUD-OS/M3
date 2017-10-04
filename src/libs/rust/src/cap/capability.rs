@@ -12,13 +12,22 @@ bitflags! {
     }
 }
 
+// TODO isn't there a better way?
+impl Flags {
+    pub const fn const_empty() -> Flags {
+        Flags {
+            bits: 0
+        }
+    }
+}
+
 pub struct Capability {
     sel: Selector,
     flags: Flags,
 }
 
 impl Capability {
-    pub fn new(sel: Selector, flags: Flags) -> Capability {
+    pub const fn new(sel: Selector, flags: Flags) -> Capability {
         Capability {
             sel: sel,
             flags: flags,

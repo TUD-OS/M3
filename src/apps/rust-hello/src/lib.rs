@@ -7,7 +7,7 @@ use m3::syscalls;
 use m3::time;
 use m3::env;
 use m3::collections::*;
-use m3::com::{MemGate, Perm};
+use m3::com::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
@@ -41,6 +41,18 @@ pub fn main() -> i32 {
         println!("data: {:?}", data);
 
         MemGate::new(0x1000, Perm::RW).err();
+    }
+
+    {
+        let mut rgate = RecvGate::new(10, 8).unwrap();
+        rgate.activate().unwrap();
+
+        let mut sgate = SendGate::new_with(
+            SGateArgs::new(&rgate, RecvGate::def()).credits(0x100).label(0x1234)
+        ).unwrap();
+
+        let msg: [u8; 8] = [0xFF; 8];
+        sgate.send(&msg).unwrap();
     }
 
     let mut total = 0;

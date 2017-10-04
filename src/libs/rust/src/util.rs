@@ -32,6 +32,22 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
     }
 }
 
+fn _next_log2(size: usize, shift: i32) -> i32 {
+    if size > (1 << shift) {
+        shift + 1
+    }
+    else if shift == 0 {
+        0
+    }
+    else {
+        _next_log2(size, shift - 1)
+    }
+}
+
+pub fn next_log2(size: usize) -> i32 {
+    _next_log2(size, (size_of::<usize>() * 8 - 2) as i32)
+}
+
 // TODO make these generic
 pub fn round_up(value: usize, align: usize) -> usize {
     (value + align - 1) & !(align - 1)

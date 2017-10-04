@@ -1,8 +1,10 @@
 pub mod syscalls;
 pub mod cap;
 pub mod perm;
+pub mod pedesc;
 
 pub use self::perm::Perm;
+pub use self::pedesc::PEDesc;
 
 use cap::Selector;
 

@@ -16,9 +16,13 @@ pub struct Gate {
 
 impl Gate {
     pub fn new(sel: cap::Selector, flags: cap::Flags) -> Gate {
+        Self::new_with_ep(sel, flags, INVALID_EP)
+    }
+
+    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: EpId) -> Gate {
         Gate {
             cap: Capability::new(sel, flags),
-            ep: INVALID_EP,
+            ep: ep,
         }
     }
 

@@ -100,10 +100,10 @@ pub struct DTU {
 }
 
 impl DTU {
-    pub fn send<T>(ep: EpId, msg: T, reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
-        let ptr: *const T = &msg as *const T;
+    pub fn send<T>(ep: EpId, msg: &[T], reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
+        let ptr: *const T = msg.as_ptr();
         Self::write_cmd_reg(CmdReg::Data, Self::build_data(
-            ptr as *const u8, util::size_of_val(&msg)
+            ptr as *const u8, msg.len() * util::size_of::<T>()
         ));
         if reply_lbl != 0 {
             Self::write_cmd_reg(CmdReg::ReplyLabel, reply_lbl);
@@ -118,7 +118,7 @@ impl DTU {
     pub fn read<T>(ep: EpId, data: &mut [T], off: usize, flags: u64) -> Result<(), Error> {
         let ptr: *mut T = data.as_ptr() as *mut T;
         let cmd = Self::build_cmd(ep, CmdOpCode::Read, flags, 0);
-        let res = Self::transfer(cmd, ptr as usize, data.len(), off);
+        let res = Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off);
         unsafe { intrinsics::atomic_fence_rel() };
         res
     }
@@ -126,7 +126,7 @@ impl DTU {
     pub fn write<T>(ep: EpId, data: &[T], off: usize, flags: u64) -> Result<(), Error> {
         let ptr: *const T = data.as_ptr();
         let cmd = Self::build_cmd(ep, CmdOpCode::Write, flags, 0);
-        Self::transfer(cmd, ptr as usize, data.len(), off)
+        Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off)
     }
 
     fn transfer(cmd: Reg, data: usize, size: usize, off: usize) -> Result<(), Error> {

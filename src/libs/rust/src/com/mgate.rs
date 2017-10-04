@@ -2,6 +2,7 @@ use cap;
 use com::gate::Gate;
 use errors::Error;
 use dtu;
+use kif::INVALID_SEL;
 use syscalls;
 
 pub use kif::Perm;
@@ -10,16 +11,53 @@ pub struct MemGate {
     gate: Gate,
 }
 
-impl MemGate {
-    pub fn new(size: usize, perm: Perm) -> Result<MemGate, Error> {
-        let sel = cap::SelSpace::get().alloc();
-        Self::new_with_sel(size, perm, sel)
+pub struct MGateArgs {
+    size: usize,
+    addr: usize,
+    perm: Perm,
+    sel: cap::Selector,
+    flags: cap::Flags,
+}
+
+impl MGateArgs {
+    pub fn new(size: usize, perm: Perm) -> MGateArgs {
+        MGateArgs {
+            size: size,
+            addr: !0,
+            perm: perm,
+            sel: INVALID_SEL,
+            flags: cap::Flags::empty(),
+        }
     }
 
-    pub fn new_with_sel(size: usize, perm: Perm, sel: cap::Selector) -> Result<MemGate, Error> {
-        try!(syscalls::create_mgate(sel, 0, size, perm));
+    pub fn addr(mut self, addr: usize) -> Self {
+        self.addr = addr;
+        self
+    }
+
+    pub fn sel(mut self, sel: cap::Selector) -> Self {
+        self.sel = sel;
+        self.flags |= cap::Flags::KEEP_SEL;
+        self
+    }
+}
+
+impl MemGate {
+    pub fn new(size: usize, perm: Perm) -> Result<MemGate, Error> {
+        Self::new_with(MGateArgs::new(size, perm))
+    }
+
+    pub fn new_with(args: MGateArgs) -> Result<MemGate, Error> {
+        let sel = if args.sel == INVALID_SEL {
+            cap::SelSpace::get().alloc()
+        }
+        else {
+            args.sel
+        };
+
+        try!(syscalls::create_mgate(sel, args.addr, args.size, args.perm));
         Ok(MemGate {
-            gate: Gate::new(sel, cap::Flags::empty())
+            gate: Gate::new(sel, args.flags)
         })
     }
 

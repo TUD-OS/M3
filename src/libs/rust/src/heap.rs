@@ -53,7 +53,7 @@ extern fn heap_free_callback(p: *const u8) {
 }
 
 extern fn heap_dblfree_callback(p: *const u8) {
-    log!(HEAP, "Used bits not set for {:?}; double free?", p);
+    println!("Used bits not set for {:?}; double free?", p);
 }
 
 #[no_mangle]

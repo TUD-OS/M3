@@ -30,8 +30,22 @@ impl EpMux {
         }
     }
 
+    // TODO move to VPE
+    pub fn alloc(&self) -> Result<EpId, Error> {
+        for ep in 0..dtu::EP_COUNT {
+            if (self.free & (1 << ep)) != 0 {
+                return Ok(ep)
+            }
+        }
+        Err(Error::NoSpace)
+    }
+
     pub fn reserve(&mut self, ep: EpId) {
         self.free &= !(1 << ep);
+    }
+
+    pub fn free(&mut self, ep: EpId) {
+        self.free |= 1 << ep;
     }
 
     pub fn switch_to(&mut self, g: &mut Gate) -> Result<EpId, Error> {

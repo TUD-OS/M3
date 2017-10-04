@@ -1,5 +1,6 @@
 use core::intrinsics;
 use core::iter;
+use kif::PEDesc;
 use util;
 
 #[repr(C, packed)]
@@ -28,9 +29,8 @@ pub struct EnvData {
     pub _backend: u64,
     pub kenv: u64,
 
-    // TODO
-    // PEDesc pedesc,
-    // uintptr_t isrs,
+    pub pedesc: PEDesc,
+    pub isrs: u64,
 }
 
 pub fn data() -> &'static EnvData {
