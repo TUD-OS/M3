@@ -1,0 +1,17 @@
+[package]
+name = "rusthello"
+version = "0.1.0"
+
+[lib]
+name = "rusthello"
+crate-type = ["staticlib"]
+
+[profile.release]
+lto = true
+panic = 'abort'
+
+[profile.dev]
+panic = 'abort'
+
+[dependencies]
+m3 = { path = "../../libs/rust" }

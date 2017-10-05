@@ -87,7 +87,7 @@ if int(verbose) == 0:
     baseenv['DUMPCOMSTR']   = "[DUMP   ] $TARGET"
     baseenv['MKFSCOMSTR']   = "[MKFS   ] $TARGET"
     baseenv['CPPCOMSTR']    = "[CPP    ] $TARGET"
-    baseenv['RCCOMSTR']     = "[RC     ] $TARGET"
+    baseenv['CRGCOMSTR']    = "[CARGO  ] $TARGET"
 
 # for host compilation
 hostenv = baseenv.Clone()
@@ -104,7 +104,6 @@ env.Append(
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
-    RCFLAGS = ' -Cpanic=abort',
 )
 
 # allow to add preprocessor flags via env variable
@@ -163,12 +162,11 @@ if btype == 'debug':
         # use -Os here because otherwise the binaries tend to get larger than 32k
         env.Append(CXXFLAGS = ' -Os -g')
         env.Append(CFLAGS = ' -Os -g')
-    env.Append(RCFLAGS = ' -g')
     env.Append(ASFLAGS = ' -g')
     hostenv.Append(CXXFLAGS = ' -O0 -g')
     hostenv.Append(CFLAGS = ' -O0 -g')
 else:
-    env.Append(RCFLAGS = ' -O')
+    env.Append(CRGFLAGS = ' --release')
     if target == 't2':
         env.Append(CXXFLAGS = ' -Os -DNDEBUG -flto')
         env.Append(CFLAGS = ' -Os -DNDEBUG -flto')
@@ -195,7 +193,8 @@ env.Append(
     BINARYDIR = Dir(builddir + '/bin'),
     LIBDIR = Dir(builddir + '/bin'),
     MEMDIR = Dir(builddir + '/mem'),
-    FSDIR = Dir(builddir + '/fsdata')
+    FSDIR = Dir(builddir + '/fsdata'),
+    RUSTDIR = Dir('build/rust'),
 )
 hostenv.Append(
     BINARYDIR = env['BINARYDIR']
@@ -331,16 +330,31 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
     myenv.Install(myenv['BINARYDIR'], prog)
     return prog
 
-def RustC(env, target, source):
+def Cargo(env, target, source):
     return env.Command(
         target, source,
         Action(
-            'rustc $RCFLAGS $SOURCE -o $TARGET',
-            '$RCCOMSTR'
+            'cd ${SOURCE.dir.dir} && cargo build $CRGFLAGS',
+            '$CRGCOMSTR'
         )
     )
 
-env.AddMethod(RustC)
+def RustProgram(env, target, source, libs = []):
+    stlib = env.Cargo(target = '$RUSTDIR/$BUILD/lib' + target + '.a', source = 'src/lib.rs')
+    env.Install(env['LIBDIR'], stlib)
+    env.Depends(stlib, env.File('Cargo.toml'))
+
+    prog = env.M3Program(
+        env,
+        target = target,
+        source = [env['LIBDIR'].abspath + '/crt0.o'] + [source],
+        libs = ['c', 'heap', 'gcc', target],
+        NoSup = True
+    )
+    env.Depends(prog, env.Glob('src/*.rs'))
+    return prog
+
+env.AddMethod(Cargo)
 env.AddMethod(M3MemDump)
 env.AddMethod(M3FileDump)
 env.AddMethod(M3Mkfs)
@@ -348,6 +362,7 @@ env.AddMethod(M3Strip)
 env.AddMethod(M3CPP)
 env.AddMethod(install.InstallFiles)
 env.M3Program = M3Program
+env.RustProgram = RustProgram
 
 # always use grouping for static libraries, because they may depend on each other so that we want
 # to cycle through them until all references are resolved.

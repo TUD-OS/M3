@@ -3,6 +3,7 @@
 *.pyc
 *.sublime-project
 *.sublime-workspace
+Cargo.lock
 /build
 /cross/buildroot
 /run

@@ -4,4 +4,10 @@ version = "0.1.0"
 
 [lib]
 name = "m3"
-crate-type = ["staticlib"]
+crate-type = ["rlib", "staticlib"]
+
+[profile.release]
+panic = 'abort'
+
+[profile.dev]
+panic = 'abort'
