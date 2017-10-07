@@ -1,5 +1,6 @@
 use cap;
 use com::epmux::EpMux;
+// TODO use Option instead of INVALID_EP
 use com::gate::{Gate, EpId, INVALID_EP};
 use core::ops;
 use dtu;
@@ -8,6 +9,7 @@ use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;
 use util;
+use vpe;
 
 bitflags! {
     struct FreeFlags : u8 {
@@ -16,11 +18,12 @@ bitflags! {
     }
 }
 
-pub struct RecvGate {
+pub struct RecvGate<'v> {
     gate: Gate,
     buf: usize,
     order: i32,
     free: FreeFlags,
+    vpe: Option<&'v mut vpe::VPE>,
 }
 
 const RECVBUF_SPACE: usize       = 0x3FC00000;
@@ -54,28 +57,33 @@ pub fn init() {
 
     RecvGate::syscall().buf = get_buf(0);
     RecvGate::syscall().order = util::next_log2(SYSC_RBUF_SIZE);
+    RecvGate::syscall().vpe = Some(vpe::VPE::cur());
 
     RecvGate::upcall().buf = get_buf(SYSC_RBUF_SIZE);
     RecvGate::upcall().order = util::next_log2(UPCALL_RBUF_SIZE);
+    RecvGate::upcall().vpe = Some(vpe::VPE::cur());
 
     RecvGate::def().buf = get_buf(SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE);
     RecvGate::def().order = util::next_log2(DEF_RBUF_SIZE);
+    RecvGate::def().vpe = Some(vpe::VPE::cur());
 }
 
-pub struct RGateArgs {
+pub struct RGateArgs<'v> {
     order: i32,
     msg_order: i32,
     sel: cap::Selector,
     flags: cap::Flags,
+    vpe: &'v mut vpe::VPE,
 }
 
-impl RGateArgs {
-    pub fn new() -> RGateArgs {
+impl<'v> RGateArgs<'v> {
+    pub fn new() -> Self {
         RGateArgs {
             order: DEF_MSG_ORD,
             msg_order: DEF_MSG_ORD,
             sel: INVALID_SEL,
             flags: cap::Flags::empty(),
+            vpe: vpe::VPE::cur(),
         }
     }
 
@@ -91,38 +99,38 @@ impl RGateArgs {
 
     pub fn sel(mut self, sel: cap::Selector) -> Self {
         self.sel = sel;
-        self.flags |= cap::Flags::KEEP_SEL;
         self
     }
 }
 
-impl RecvGate {
-    pub fn syscall() -> &'static mut RecvGate {
+impl<'v> RecvGate<'v> {
+    pub fn syscall() -> &'static mut RecvGate<'v> {
         unsafe { &mut SYS_RGATE }
     }
-    pub fn upcall() -> &'static mut RecvGate {
+    pub fn upcall() -> &'static mut RecvGate<'v> {
         unsafe { &mut UPC_RGATE }
     }
-    pub fn def() -> &'static mut RecvGate {
+    pub fn def() -> &'static mut RecvGate<'v> {
         unsafe { &mut DEF_RGATE }
     }
 
-    const fn new_def(ep: EpId) -> RecvGate {
+    const fn new_def(ep: EpId) -> Self {
         RecvGate {
             gate: Gate::new_with_ep(INVALID_SEL, cap::Flags::const_empty(), ep),
             buf: 0,
             order: 0,
             free: FreeFlags { bits: 0 },
+            vpe: None,
         }
     }
 
-    pub fn new(order: i32, msg_order: i32) -> Result<RecvGate, Error> {
+    pub fn new(order: i32, msg_order: i32) -> Result<Self, Error> {
         Self::new_with(RGateArgs::new().order(order).msg_order(msg_order))
     }
 
-    pub fn new_with(args: RGateArgs) -> Result<RecvGate, Error> {
+    pub fn new_with<'a>(args: RGateArgs<'a>) -> Result<RecvGate<'a>, Error> {
         let sel = if args.sel == INVALID_SEL {
-            cap::SelSpace::get().alloc()
+            vpe::VPE::cur().alloc_cap()
         }
         else {
             args.sel
@@ -134,16 +142,20 @@ impl RecvGate {
             buf: 0,
             order: args.order,
             free: FreeFlags::empty(),
+            vpe: Some(args.vpe),
         })
     }
 
     pub fn sel(&self) -> cap::Selector {
         self.gate.cap.sel()
     }
+    pub fn ep(&self) -> EpId {
+        self.gate.ep
+    }
 
     pub fn activate(&mut self) -> Result<(), Error> {
         if self.gate.ep == INVALID_EP {
-            let ep = try!(EpMux::get().alloc());
+            let ep = try!(self.vpe().alloc_ep());
             self.free |= FreeFlags::FREE_EP;
             self.activate_ep(ep)
         }
@@ -176,8 +188,9 @@ impl RecvGate {
 
         self.gate.ep = ep;
 
-        // TODO only do that for our own VPE
-        EpMux::get().reserve(ep);
+        if self.vpe().sel() == vpe::VPE::cur().sel() {
+            EpMux::get().reserve(ep);
+        }
 
         if self.gate.cap.sel() != INVALID_SEL {
             syscalls::activate(0, self.gate.cap.sel(), ep, addr)
@@ -189,11 +202,16 @@ impl RecvGate {
 
     pub fn deactivate(&mut self) {
         if !(self.free & FreeFlags::FREE_EP).is_empty() {
-            EpMux::get().free(self.gate.ep);
+            let ep = self.gate.ep;
+            self.vpe().free_ep(ep);
         }
         self.gate.ep = INVALID_EP;
 
         // TODO stop
+    }
+
+    fn vpe(&mut self) -> &mut vpe::VPE {
+        self.vpe.as_mut().unwrap()
     }
 
     fn alloc_buf(size: usize) -> Result<usize, Error> {
@@ -230,7 +248,7 @@ impl RecvGate {
     }
 }
 
-impl ops::Drop for RecvGate {
+impl<'v> ops::Drop for RecvGate<'v> {
     fn drop(&mut self) {
         if !(self.free & FreeFlags::FREE_BUF).is_empty() {
             RecvGate::free_buf(self.buf);

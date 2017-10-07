@@ -40,6 +40,7 @@ pub mod time;
 pub mod heap;
 pub mod cap;
 pub mod com;
+pub mod vpe;
 mod libc;
 
 extern "C" {
@@ -54,6 +55,7 @@ pub fn exit(code: i32) {
 #[no_mangle]
 pub extern fn env_run() {
     heap::init();
+    vpe::init();
     com::init();
     let res = unsafe { main() };
     exit(res)

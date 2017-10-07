@@ -44,6 +44,7 @@ impl From<ValueType> for PEISA {
 }
 
 #[repr(C, packed)]
+#[derive(Clone, Copy)]
 pub struct PEDesc {
     val: ValueType,
 }

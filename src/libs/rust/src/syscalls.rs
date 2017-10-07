@@ -120,6 +120,23 @@ pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: P
     send_receive_result(&[req])
 }
 
+pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::exchange(vpe={}, own={}, other={}, obtain={})",
+        vpe, own, other, obtain
+    );
+
+    let req = syscalls::Exchange {
+        opcode: syscalls::Operation::Exchange as u64,
+        vpe_sel: vpe as u64,
+        own_crd: own.value(),
+        other_sel: other as u64,
+        obtain: obtain as u64,
+    };
+    send_receive_result(&[req])
+}
+
 pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error> {
     log!(
         SYSC,

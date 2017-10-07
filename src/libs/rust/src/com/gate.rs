@@ -15,11 +15,11 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new(sel: cap::Selector, flags: cap::Flags) -> Gate {
+    pub fn new(sel: cap::Selector, flags: cap::Flags) -> Self {
         Self::new_with_ep(sel, flags, INVALID_EP)
     }
 
-    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: EpId) -> Gate {
+    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: EpId) -> Self {
         Gate {
             cap: Capability::new(sel, flags),
             ep: ep,

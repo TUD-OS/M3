@@ -1,27 +1,28 @@
-use cap::{Flags, SelSpace, Selector};
+use cap::{Flags, Selector};
 use com::gate::Gate;
 use com::RecvGate;
 use dtu;
 use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;
+use vpe;
 
-pub struct SendGate<'rpl> {
+pub struct SendGate<'a> {
     gate: Gate,
-    reply_gate: &'rpl mut RecvGate,
+    reply_gate: &'a RecvGate<'a>,
 }
 
-pub struct SGateArgs<'recv, 'rpl> {
-    rgate: &'recv RecvGate,
-    reply_gate: &'rpl mut RecvGate,
+pub struct SGateArgs<'a> {
+    rgate: &'a RecvGate<'a>,
+    reply_gate: &'a RecvGate<'a>,
     label: dtu::Label,
     credits: u64,
     sel: Selector,
     flags: Flags,
 }
 
-impl<'recv, 'rpl> SGateArgs<'recv, 'rpl> {
-    pub fn new(rgate: &'recv RecvGate, reply_gate: &'rpl mut RecvGate) -> SGateArgs<'recv, 'rpl> {
+impl<'a> SGateArgs<'a> {
+    pub fn new(rgate: &'a RecvGate<'a>, reply_gate: &'a RecvGate<'a>) -> Self {
         SGateArgs {
             rgate: rgate,
             label: 0,
@@ -44,20 +45,18 @@ impl<'recv, 'rpl> SGateArgs<'recv, 'rpl> {
 
     pub fn sel(mut self, sel: Selector) -> Self {
         self.sel = sel;
-        self.flags |= Flags::KEEP_SEL;
         self
     }
 }
 
-impl<'r> SendGate<'r> {
-    pub fn new<'recv, 'rpl>(rgate: &'recv RecvGate,
-                            reply_gate: &'rpl mut RecvGate) -> Result<SendGate<'rpl>, Error> {
+impl<'a> SendGate<'a> {
+    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate<'a>) -> Result<Self, Error> {
         Self::new_with(SGateArgs::new(rgate, reply_gate))
     }
 
-    pub fn new_with<'recv, 'rpl>(args: SGateArgs<'recv, 'rpl>) -> Result<SendGate<'rpl>, Error> {
+    pub fn new_with(args: SGateArgs<'a>) -> Result<Self, Error> {
         let sel = if args.sel == INVALID_SEL {
-            SelSpace::get().alloc()
+            vpe::VPE::cur().alloc_cap()
         }
         else {
             args.sel
@@ -70,20 +69,19 @@ impl<'r> SendGate<'r> {
         })
     }
 
-    pub fn new_bind<'rpl>(sel: Selector,
-                          reply_gate: &'rpl mut RecvGate) -> Result<SendGate<'rpl>, Error> {
+    pub fn new_bind(sel: Selector, reply_gate: &'a RecvGate<'a>) -> Result<Self, Error> {
         Ok(SendGate {
-            gate: Gate::new(sel, Flags::KEEP_SEL | Flags::KEEP_CAP),
+            gate: Gate::new(sel, Flags::KEEP_CAP),
             reply_gate: reply_gate,
         })
     }
 
-    pub fn reply_gate(&mut self) -> &mut RecvGate {
+    pub fn reply_gate(&self) -> &RecvGate<'a> {
         self.reply_gate
     }
 
     pub fn send<T>(&mut self, msg: &[T]) -> Result<(), Error> {
         try!(self.gate.activate());
-        dtu::DTU::send(self.gate.ep, msg, 0, 0)
+        dtu::DTU::send(self.gate.ep, msg, 0, self.reply_gate.ep())
     }
 }
