@@ -22,15 +22,20 @@ pub struct SGateArgs<'a> {
 }
 
 impl<'a> SGateArgs<'a> {
-    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate) -> Self {
+    pub fn new(rgate: &'a RecvGate) -> Self {
         SGateArgs {
             rgate: rgate,
             label: 0,
             credits: 0,
-            reply_gate: reply_gate,
+            reply_gate: RecvGate::def(),
             sel: INVALID_SEL,
             flags: Flags::empty(),
         }
+    }
+
+    pub fn reply_gate(mut self, reply_gate: &'a RecvGate<'a>) -> Self {
+        self.reply_gate = reply_gate;
+        self
     }
 
     pub fn credits(mut self, credits: u64) -> Self {
@@ -50,8 +55,8 @@ impl<'a> SGateArgs<'a> {
 }
 
 impl<'a> SendGate<'a> {
-    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate) -> Result<Self, Error> {
-        Self::new_with(SGateArgs::new(rgate, reply_gate))
+    pub fn new(rgate: &'a RecvGate) -> Result<Self, Error> {
+        Self::new_with(SGateArgs::new(rgate))
     }
 
     pub fn new_with(args: SGateArgs<'a>) -> Result<Self, Error> {

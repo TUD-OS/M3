@@ -48,7 +48,7 @@ pub fn main() -> i32 {
         rgate.activate().unwrap();
 
         let mut sgate = SendGate::new_with(
-            SGateArgs::new(&rgate, RecvGate::def()).credits(0x100).label(0x1234)
+            SGateArgs::new(&rgate).credits(0x100).label(0x1234)
         ).unwrap();
 
         let msg: [u8; 8] = [0xFF; 8];
