@@ -343,6 +343,8 @@ def RustProgram(env, target, source, libs = []):
     stlib = env.Cargo(target = '$RUSTDIR/$BUILD/lib' + target + '.a', source = 'src/lib.rs')
     env.Install(env['LIBDIR'], stlib)
     env.Depends(stlib, env.File('Cargo.toml'))
+    env.Depends(stlib, env.File('$RUSTDIR/$BUILD/libm3.rlib'))
+    env.Depends(stlib, env.Glob('src/*.rs'))
 
     prog = env.M3Program(
         env,
@@ -351,7 +353,6 @@ def RustProgram(env, target, source, libs = []):
         libs = ['c', 'heap', 'gcc', target],
         NoSup = True
     )
-    env.Depends(prog, env.Glob('src/*.rs'))
     return prog
 
 env.AddMethod(Cargo)
