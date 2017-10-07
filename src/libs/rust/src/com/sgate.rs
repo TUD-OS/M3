@@ -22,7 +22,7 @@ pub struct SGateArgs<'a> {
 }
 
 impl<'a> SGateArgs<'a> {
-    pub fn new(rgate: &'a RecvGate<'a>, reply_gate: &'a RecvGate<'a>) -> Self {
+    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate) -> Self {
         SGateArgs {
             rgate: rgate,
             label: 0,
@@ -50,7 +50,7 @@ impl<'a> SGateArgs<'a> {
 }
 
 impl<'a> SendGate<'a> {
-    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate<'a>) -> Result<Self, Error> {
+    pub fn new(rgate: &'a RecvGate, reply_gate: &'a RecvGate) -> Result<Self, Error> {
         Self::new_with(SGateArgs::new(rgate, reply_gate))
     }
 
@@ -69,7 +69,7 @@ impl<'a> SendGate<'a> {
         })
     }
 
-    pub fn new_bind(sel: Selector, reply_gate: &'a RecvGate<'a>) -> Result<Self, Error> {
+    pub fn new_bind(sel: Selector, reply_gate: &'a RecvGate) -> Result<Self, Error> {
         Ok(SendGate {
             gate: Gate::new(sel, Flags::KEEP_CAP),
             reply_gate: reply_gate,
