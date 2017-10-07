@@ -1,10 +1,12 @@
 use cap::{Capability, Flags, Selector};
-use com::MemGate;
+use com::{MemGate, RBufSpace};
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use errors::Error;
 use kif::{cap, CapRngDesc, PEDesc};
 use syscalls;
+
+static mut CUR: Option<VPE> = None;
 
 pub struct VPE {
     cap: Capability,
@@ -12,18 +14,7 @@ pub struct VPE {
     mem: MemGate,
     next_sel: Selector,
     eps: u64,
-}
-
-static mut CUR: Option<VPE> = None;
-
-pub fn init() {
-    unsafe {
-        CUR = Some(VPE::new_cur());
-    }
-
-    for _ in 0..FIRST_FREE_EP {
-        VPE::cur().alloc_ep().unwrap();
-    }
+    rbufs: RBufSpace,
 }
 
 impl VPE {
@@ -35,6 +26,7 @@ impl VPE {
             // 0 and 1 are reserved for VPE cap and mem cap
             next_sel: 2,
             eps: 0,
+            rbufs: RBufSpace::new(env::data().rbuf_cur as usize, env::data().rbuf_end as usize),
         }
     }
 
@@ -80,6 +72,10 @@ impl VPE {
         self.eps &= 1 << ep;
     }
 
+    pub fn rbufs(&mut self) -> &mut RBufSpace {
+        &mut self.rbufs
+    }
+
     pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
         self.delegate(CapRngDesc::new_from(cap::Type::Object, sel, 1))
     }
@@ -121,5 +117,15 @@ impl VPE {
     }
     pub fn wait(&self) -> Result<i32, Error> {
         Ok(0)
+    }
+}
+
+pub fn init() {
+    unsafe {
+        CUR = Some(VPE::new_cur());
+    }
+
+    for _ in 0..FIRST_FREE_EP {
+        VPE::cur().alloc_ep().unwrap();
     }
 }
