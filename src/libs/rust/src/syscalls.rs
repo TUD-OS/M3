@@ -52,6 +52,30 @@ pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result
     send_receive_result(&[req])
 }
 
+pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::create_sess(dst={}, name={}, arg={:#x})",
+        dst, name, arg
+    );
+
+    let namelen = util::min(name.len(), syscalls::MAX_STR_SIZE);
+    let mut req = syscalls::CreateSess {
+        opcode: syscalls::Operation::CreateSess as u64,
+        dst_sel: dst as u64,
+        namelen: namelen as u64,
+        name: unsafe { intrinsics::uninit() },
+        arg: arg,
+    };
+
+    // copy name
+    for (a, c) in req.name.iter_mut().zip(name.bytes()) {
+        *a = c as u8;
+    }
+
+    send_receive_result(&[req])
+}
+
 pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
     log!(
         SYSC,
@@ -135,6 +159,53 @@ pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) 
         obtain: obtain as u64,
     };
     send_receive_result(&[req])
+}
+
+pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<(), Error> {
+    log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
+
+    exchange_sess(syscalls::Operation::Delegate, sess, crd, args)
+}
+
+pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<(), Error> {
+    log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
+
+    exchange_sess(syscalls::Operation::Obtain, sess, crd, args)
+}
+
+fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
+                 args: &mut [u64]) -> Result<(), Error> {
+    assert!(args.len() <= syscalls::MAX_EXCHG_ARGS);
+
+    let mut req = syscalls::ExchangeSess {
+        opcode: op as u64,
+        sess_sel: sess as u64,
+        crd: crd.value(),
+        argcount: args.len() as u64,
+        args: unsafe { intrinsics::uninit() },
+    };
+
+    for i in 0..args.len() {
+        req.args[i] = args[i];
+    }
+
+    let msg = try!(send_receive(&[req]));
+    // TODO better way?
+    let data: &[syscalls::ExchangeSessReply] = unsafe { intrinsics::transmute(&msg.data) };
+    let ref reply = data[0];
+
+    let err = reply.error;
+    if err == 0 {
+        for i in 0..reply.argcount as usize {
+            args[i] = reply.args[i];
+        }
+    }
+
+    dtu::DTU::mark_read(dtu::SYSC_REP, &msg);
+    match err {
+        0   => Ok(()),
+        e   => Err(Error::from(e)),
+    }
 }
 
 pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error> {

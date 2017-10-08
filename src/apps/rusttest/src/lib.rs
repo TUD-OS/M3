@@ -8,9 +8,21 @@ use m3::time;
 use m3::env;
 use m3::collections::*;
 use m3::com::*;
+use m3::session::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
+    {
+        let mut pipe = Pipe::new("pipe", 64 * 1024).expect("unable to create pipe");
+        pipe.attach(true).expect("unable to attach");
+        let mut wr_pos = pipe.request_write(8192, 0).expect("request_write failed");
+        println!("Got {}", wr_pos);
+        wr_pos = pipe.request_write(4096, 8192).expect("request_write failed");
+        println!("Got {}", wr_pos);
+        let (rd_pos, amount) = pipe.request_read(4096).expect("request_read failed");
+        println!("Got {} {}", rd_pos, amount);
+    }
+
     let vec = vec![1, 42, 23];
     println!("my vec:");
     for v in vec {

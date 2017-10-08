@@ -4,6 +4,9 @@ pub const MAX_MSG_SIZE: usize = 440;
 /// The maximum size of strings in system calls
 pub const MAX_STR_SIZE: usize = 32;
 
+/// The maximum number of arguments for the exchange syscalls
+pub const MAX_EXCHG_ARGS: usize = 8;
+
 pub enum Operation {
     // sent by the DTU if the PF handler is not reachable
     Pagefault = 0,
@@ -51,7 +54,7 @@ pub struct CreateSrv {
     pub dst_sel: u64,
     pub rgate_sel: u64,
     pub namelen: u64,
-    pub name: [char; MAX_STR_SIZE],
+    pub name: [u8; MAX_STR_SIZE],
 }
 
 #[repr(C, packed)]
@@ -60,7 +63,7 @@ pub struct CreateSess {
     pub dst_sel: u64,
     pub arg: u64,
     pub namelen: u64,
-    pub name: [char; MAX_STR_SIZE],
+    pub name: [u8; MAX_STR_SIZE],
 }
 
 #[repr(C, packed)]
@@ -120,7 +123,7 @@ pub struct CreateVPE {
     pub rep: u64,
     pub muxable: u64,
     pub namelen: u64,
-    pub name: [char; MAX_STR_SIZE],
+    pub name: [u8; MAX_STR_SIZE],
 }
 
 #[repr(C, packed)]
@@ -185,14 +188,14 @@ pub struct ExchangeSess {
     pub sess_sel: u64,
     pub crd: u64,
     pub argcount: u64,
-    pub args: [u64; 8],
+    pub args: [u64; MAX_EXCHG_ARGS],
 }
 
 #[repr(C, packed)]
 pub struct ExchangeSessReply {
     pub error: u64,
     pub argcount: u64,
-    pub args: [u64; 8],
+    pub args: [u64; MAX_EXCHG_ARGS],
 }
 
 #[repr(C, packed)]
@@ -211,7 +214,7 @@ pub struct ForwardMsg {
     pub len: u64,
     pub rlabel: u64,
     pub event: u64,
-    pub msg: [char; MAX_MSG_SIZE],
+    pub msg: [u8; MAX_MSG_SIZE],
 }
 
 pub enum ForwardMemFlags {
@@ -227,13 +230,13 @@ pub struct ForwardMem {
     pub offset: u64,
     pub flags: u64,
     pub event: u64,
-    pub data: [char; MAX_MSG_SIZE],
+    pub data: [u8; MAX_MSG_SIZE],
 }
 
 #[repr(C, packed)]
 pub struct ForwardMemReply {
     pub error: u64,
-    pub data: [char; MAX_MSG_SIZE],
+    pub data: [u8; MAX_MSG_SIZE],
 }
 
 #[repr(C, packed)]
@@ -243,7 +246,7 @@ pub struct ForwardReply {
     pub msgaddr: u64,
     pub len: u64,
     pub event: u64,
-    pub msg: [char; MAX_MSG_SIZE],
+    pub msg: [u8; MAX_MSG_SIZE],
 }
 
 #[repr(C, packed)]

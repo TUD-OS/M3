@@ -3,6 +3,7 @@ use core::fmt;
 
 pub type CapSel = u32;
 
+#[derive(Copy, Clone)]
 pub struct CapRngDesc {
     value: u64,
 }

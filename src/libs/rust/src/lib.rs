@@ -40,6 +40,7 @@ pub mod errors;
 pub mod dtu;
 pub mod heap;
 pub mod kif;
+pub mod session;
 pub mod syscalls;
 pub mod time;
 pub mod util;
