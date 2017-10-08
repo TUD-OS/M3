@@ -1,8 +1,10 @@
 use com::{RecvGate, SendGate};
 use collections::String;
 use core::intrinsics;
+use core::ops;
 use core::slice;
 use dtu;
+use dtu::EpId;
 use errors::Error;
 use libc;
 use util;
@@ -36,29 +38,39 @@ impl GateOStream {
 }
 
 pub struct GateIStream {
-    arr: &'static [u64],
+    msg: &'static dtu::Message,
     pos: usize,
+    ep: EpId,
 }
 
 impl GateIStream {
-    pub fn new(msg: &'static dtu::Message) -> Self {
-        let slice = unsafe {
-            let ptr = msg.data.as_ptr() as *const u64;
-            let sl: &[u64] = slice::from_raw_parts(ptr, (msg.header.length / 8) as usize);
-            sl
-        };
+    pub fn new(msg: &'static dtu::Message, ep: EpId) -> Self {
         GateIStream {
-            arr: slice,
+            msg: msg,
             pos: 0,
+            ep: ep,
+        }
+    }
+
+    pub fn data(&self) -> &'static [u64] {
+        unsafe {
+            let ptr = self.msg.data.as_ptr() as *const u64;
+            slice::from_raw_parts(ptr, (self.msg.header.length / 8) as usize)
         }
     }
 
     pub fn size(&self) -> usize {
-        self.arr.len() * util::size_of::<u64>()
+        self.data().len() * util::size_of::<u64>()
     }
 
     pub fn pop<T : Unmarshallable>(&mut self) -> T {
         T::unmarshall(self)
+    }
+}
+
+impl ops::Drop for GateIStream {
+    fn drop(&mut self) {
+        dtu::DTU::mark_read(self.ep, self.msg);
     }
 }
 
@@ -81,7 +93,7 @@ macro_rules! impl_xfer_prim {
         impl Unmarshallable for $t {
             fn unmarshall(is: &mut GateIStream) -> Self {
                 is.pos += 1;
-                is.arr[is.pos - 1] as $t
+                is.data()[is.pos - 1] as $t
             }
         }
     )
@@ -125,10 +137,10 @@ impl Marshallable for String {
 }
 impl Unmarshallable for String {
     fn unmarshall(is: &mut GateIStream) -> Self {
-        let len = is.arr[is.pos] as usize;
+        let len = is.data()[is.pos] as usize;
 
         let res = unsafe {
-            let bytes: *mut u8 = intrinsics::transmute((&is.arr[is.pos + 1..]).as_ptr());
+            let bytes: *mut u8 = intrinsics::transmute((&is.data()[is.pos + 1..]).as_ptr());
             let copy = libc::heap_alloc(len + 1);
             libc::memcpy(copy, bytes, len);
             String::from_raw_parts(copy, len, len)
@@ -157,10 +169,26 @@ pub fn recv_msg(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
 
 #[macro_export]
 macro_rules! recv_vmsg {
-    ( $rg:expr, $($x:ty),* ) => ({
+    ( $rg:expr, $x:ty ) => ({
         match recv_msg($rg) {
             Err(e)      => Err(e),
-            Ok(mut is)  => Ok(( $( is.pop::<$x>() ),* )),
+            Ok(mut is)  => Ok(( is.pop::<$x>(), )),
         }
     });
+
+    ( $rg:expr, $x1:ty, $($xs:ty),+ ) => ({
+        match recv_msg($rg) {
+            Err(e)      => Err(e),
+            Ok(mut is)  => Ok(( is.pop::<$x1>(), $( is.pop::<$xs>() ),+ )),
+        }
+    });
+}
+
+pub fn recv_res(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
+    let mut reply = try!(recv_msg(rgate));
+    let res: u64 = reply.pop();
+    match res {
+        0 => Ok(reply),
+        e => Err(Error::from(e)),
+    }
 }

@@ -3,6 +3,7 @@ mod gate;
 mod mgate;
 mod rgate;
 mod sgate;
+#[macro_use]
 mod stream;
 
 pub use self::mgate::*;
