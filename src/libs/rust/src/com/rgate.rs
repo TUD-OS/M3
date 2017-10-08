@@ -2,6 +2,7 @@ use cap;
 use com::epmux::EpMux;
 // TODO use Option instead of INVALID_EP
 use com::gate::{Gate, EpId, INVALID_EP};
+use com::SendGate;
 use core::ops;
 use dtu;
 use env;
@@ -196,6 +197,32 @@ impl<'v> RecvGate<'v> {
         self.gate.ep = INVALID_EP;
 
         // TODO stop
+    }
+
+    pub fn wait(&mut self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
+        if self.gate.ep == INVALID_EP {
+            try!(self.activate());
+        }
+
+        let idle = match sgate {
+            Some(sg) => sg.ep() != dtu::SYSC_SEP,
+            None     => true,
+        };
+
+        loop {
+            let msg = dtu::DTU::fetch_msg(self.ep());
+            if let Some(m) = msg {
+                return Ok(m)
+            }
+
+            if let Some(sg) = sgate {
+                if !dtu::DTU::is_valid(sg.ep()) {
+                    return Err(Error::InvEP)
+                }
+            }
+
+            try!(dtu::DTU::try_sleep(idle, 0));
+        }
     }
 
     fn vpe(&mut self) -> &mut vpe::VPE {

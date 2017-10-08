@@ -51,6 +51,10 @@ impl Args {
             util::cstr_to_str(arg)
         }
     }
+
+    pub fn len(&self) -> usize {
+        data().argc as usize
+    }
 }
 
 impl iter::Iterator for Args {

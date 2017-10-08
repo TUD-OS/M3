@@ -6,6 +6,7 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(rustc_private)]
+#![feature(trace_macros)]
 
 #![default_lib_allocator]
 #![no_std]
@@ -28,19 +29,22 @@ pub mod collections {
     pub use alloc::vec::Vec;
 }
 
-pub mod dtu;
-pub mod env;
 #[macro_use]
 pub mod io;
-pub mod kif;
-pub mod errors;
-pub mod syscalls;
-pub mod util;
-pub mod time;
-pub mod heap;
+
 pub mod cap;
+#[macro_use]
 pub mod com;
+pub mod env;
+pub mod errors;
+pub mod dtu;
+pub mod heap;
+pub mod kif;
+pub mod syscalls;
+pub mod time;
+pub mod util;
 pub mod vpe;
+
 mod libc;
 
 extern "C" {

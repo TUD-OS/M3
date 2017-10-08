@@ -74,6 +74,22 @@ impl From<u64> for CmdOpCode {
     }
 }
 
+#[allow(dead_code)]
+#[derive(PartialEq)]
+enum EpType {
+    Invalid,
+    Send,
+    Receive,
+    Memory
+}
+
+impl From<u64> for EpType {
+    fn from(ty: u64) -> Self {
+        // TODO better way?
+        unsafe { intrinsics::transmute(ty as u8) }
+    }
+}
+
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct Header {
@@ -93,7 +109,7 @@ pub struct Header {
 #[derive(Debug)]
 pub struct Message {
     pub header: Header,
-    pub data: [char],
+    pub data: [u8],
 }
 
 pub struct DTU {
@@ -161,6 +177,12 @@ impl DTU {
         else {
             None
         }
+    }
+
+    pub fn is_valid(ep: EpId) -> bool {
+        let r0 = Self::read_ep_reg(ep, 0);
+        let ty: EpType = (r0 >> 61).into();
+        ty != EpType::Invalid
     }
 
     pub fn mark_read(ep: EpId, msg: &Message) {
