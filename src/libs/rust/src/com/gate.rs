@@ -7,36 +7,34 @@ use errors::Error;
 
 pub type EpId = dtu::EpId;
 
-pub const INVALID_EP: EpId = dtu::EP_COUNT;
-
 pub struct Gate {
     pub cap: Capability,
-    pub ep: EpId,
+    pub ep: Option<EpId>,
 }
 
 impl Gate {
     pub fn new(sel: cap::Selector, flags: cap::Flags) -> Self {
-        Self::new_with_ep(sel, flags, INVALID_EP)
+        Self::new_with_ep(sel, flags, None)
     }
 
-    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: EpId) -> Self {
+    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: Option<EpId>) -> Self {
         Gate {
             cap: Capability::new(sel, flags),
             ep: ep,
         }
     }
 
-    pub fn activate(&mut self) -> Result<(), Error> {
-        if self.ep == INVALID_EP {
-            try!(EpMux::get().switch_to(self));
+    pub fn activate(&mut self) -> Result<EpId, Error> {
+        match self.ep {
+            Some(ep) => Ok(ep),
+            None     => EpMux::get().switch_to(self),
         }
-        Ok(())
     }
 }
 
 impl ops::Drop for Gate {
     fn drop(&mut self) {
-        if self.ep != INVALID_EP {
+        if self.ep.is_some() {
             EpMux::get().remove(self);
         }
     }

@@ -1,7 +1,6 @@
 use cap;
 use com::epmux::EpMux;
-// TODO use Option instead of INVALID_EP
-use com::gate::{Gate, EpId, INVALID_EP};
+use com::gate::{Gate, EpId};
 use com::SendGate;
 use core::ops;
 use dtu;
@@ -104,7 +103,7 @@ impl<'v> RecvGate<'v> {
 
     const fn new_def(ep: EpId) -> Self {
         RecvGate {
-            gate: Gate::new_with_ep(INVALID_SEL, cap::Flags::const_empty(), ep),
+            gate: Gate::new_with_ep(INVALID_SEL, cap::Flags::const_empty(), Some(ep)),
             buf: 0,
             order: 0,
             free: FreeFlags { bits: 0 },
@@ -137,12 +136,12 @@ impl<'v> RecvGate<'v> {
     pub fn sel(&self) -> cap::Selector {
         self.gate.cap.sel()
     }
-    pub fn ep(&self) -> EpId {
+    pub fn ep(&self) -> Option<EpId> {
         self.gate.ep
     }
 
     pub fn activate(&mut self) -> Result<(), Error> {
-        if self.gate.ep == INVALID_EP {
+        if self.gate.ep.is_none() {
             let ep = try!(self.vpe().alloc_ep());
             self.free |= FreeFlags::FREE_EP;
             self.activate_ep(ep)
@@ -153,7 +152,7 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn activate_ep(&mut self, ep: EpId) -> Result<(), Error> {
-        if self.gate.ep == INVALID_EP {
+        if self.gate.ep.is_none() {
             let buf = if self.buf == 0 {
                 let size = 1 << self.order;
                 try!(Self::alloc_buf(self.vpe(), size))
@@ -173,9 +172,9 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn activate_for(&mut self, ep: EpId, addr: usize) -> Result<(), Error> {
-        assert!(self.gate.ep == INVALID_EP);
+        assert!(self.gate.ep.is_none());
 
-        self.gate.ep = ep;
+        self.gate.ep = Some(ep);
 
         if self.vpe().sel() == vpe::VPE::cur().sel() {
             EpMux::get().reserve(ep);
@@ -191,32 +190,33 @@ impl<'v> RecvGate<'v> {
 
     pub fn deactivate(&mut self) {
         if !(self.free & FreeFlags::FREE_EP).is_empty() {
-            let ep = self.gate.ep;
+            let ep = self.gate.ep.unwrap();
             self.vpe().free_ep(ep);
         }
-        self.gate.ep = INVALID_EP;
+        self.gate.ep = None;
 
         // TODO stop
     }
 
     pub fn wait(&mut self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
-        if self.gate.ep == INVALID_EP {
-            try!(self.activate());
+        if self.gate.ep.is_none() {
+            try!(self.activate())
         }
 
+        let rep = self.ep().unwrap();
         let idle = match sgate {
-            Some(sg) => sg.ep() != dtu::SYSC_SEP,
+            Some(sg) => sg.ep().unwrap() != dtu::SYSC_SEP,
             None     => true,
         };
 
         loop {
-            let msg = dtu::DTU::fetch_msg(self.ep());
+            let msg = dtu::DTU::fetch_msg(rep);
             if let Some(m) = msg {
                 return Ok(m)
             }
 
             if let Some(sg) = sgate {
-                if !dtu::DTU::is_valid(sg.ep()) {
+                if !dtu::DTU::is_valid(sg.ep().unwrap()) {
                     return Err(Error::InvEP)
                 }
             }

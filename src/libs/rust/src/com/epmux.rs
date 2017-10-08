@@ -1,5 +1,5 @@
 use cap::Flags;
-use com::gate::{Gate, INVALID_EP};
+use com::gate::Gate;
 use dtu::EpId;
 use dtu;
 use errors::Error;
@@ -32,8 +32,8 @@ impl EpMux {
     pub fn reserve(&mut self, ep: EpId) {
         // take care that some non-fixed gate could already use that endpoint
         if let Some(g) = self.gate_at_ep(ep) {
-            syscalls::activate(0, kif::INVALID_SEL, g.ep, 0).ok();
-            g.ep = INVALID_EP;
+            syscalls::activate(0, kif::INVALID_SEL, g.ep.unwrap(), 0).ok();
+            g.ep = None;
         }
         self.gates[ep] = None;
     }
@@ -42,17 +42,18 @@ impl EpMux {
         let idx = try!(self.select_victim());
         try!(syscalls::activate(0, g.cap.sel(), idx, 0));
         self.gates[idx] = Some(g);
-        g.ep = idx;
+        g.ep = Some(idx);
         Ok(idx)
     }
 
     pub fn remove(&mut self, g: &mut Gate) {
-        self.gates[g.ep] = None;
-        g.ep = INVALID_EP;
+        let ep = g.ep.unwrap();
+        self.gates[ep] = None;
         // only necessary if we won't revoke the gate anyway
         if !(g.cap.flags() & Flags::KEEP_CAP).is_empty() {
-            syscalls::activate(0, kif::INVALID_SEL, g.ep, 0).ok();
+            syscalls::activate(0, kif::INVALID_SEL, ep, 0).ok();
         }
+        g.ep = None;
     }
 
     fn select_victim(&mut self) -> Result<EpId, Error> {
@@ -70,7 +71,7 @@ impl EpMux {
         }
         else {
             if let Some(g) = self.gate_at_ep(victim) {
-                g.ep = INVALID_EP;
+                g.ep = None;
             }
             self.next_victim = (victim + 1) % dtu::EP_COUNT;
             Ok(victim)

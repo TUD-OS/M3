@@ -151,7 +151,7 @@ macro_rules! send_vmsg {
 pub fn recv_msg(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
     match rgate.wait(None) {
         Err(e) => Err(e),
-        Ok(msg) => Ok(GateIStream::new(msg)),
+        Ok(msg) => Ok(GateIStream::new(msg, rgate.ep().unwrap())),
     }
 }
 

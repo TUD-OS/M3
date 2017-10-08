@@ -15,7 +15,7 @@ pub struct SendGate {
 
 pub struct SGateArgs {
     rgate_sel: Selector,
-    reply_ep: EpId,
+    reply_ep: Option<EpId>,
     label: dtu::Label,
     credits: u64,
     sel: Selector,
@@ -71,27 +71,27 @@ impl SendGate {
         try!(syscalls::create_sgate(sel, args.rgate_sel, args.label, args.credits));
         Ok(SendGate {
             gate: Gate::new(sel, args.flags),
-            reply_ep: args.reply_ep,
+            reply_ep: args.reply_ep.unwrap(),
         })
     }
 
     pub fn new_bind(sel: Selector, reply_gate: &RecvGate) -> Self {
         SendGate {
             gate: Gate::new(sel, Flags::KEEP_CAP),
-            reply_ep: reply_gate.ep(),
+            reply_ep: reply_gate.ep().unwrap(),
         }
     }
 
-    pub fn ep(&self) -> dtu::EpId {
+    pub fn ep(&self) -> Option<dtu::EpId> {
         self.gate.ep
     }
 
-    pub fn activate(&mut self) -> Result<(), Error> {
+    pub fn activate(&mut self) -> Result<EpId, Error> {
         self.gate.activate()
     }
 
     pub fn send<T>(&mut self, msg: &[T]) -> Result<(), Error> {
-        try!(self.activate());
-        dtu::DTU::send(self.gate.ep, msg, 0, self.reply_ep)
+        let ep = try!(self.activate());
+        dtu::DTU::send(ep, msg, 0, self.reply_ep)
     }
 }

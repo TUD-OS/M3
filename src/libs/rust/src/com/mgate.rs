@@ -84,12 +84,12 @@ impl MemGate {
     }
 
     pub fn read<T>(&mut self, data: &mut [T], off: usize) -> Result<(), Error> {
-        try!(self.gate.activate());
-        dtu::DTU::read(self.gate.ep, data, off, 0)
+        let ep = try!(self.gate.activate());
+        dtu::DTU::read(ep, data, off, 0)
     }
 
     pub fn write<T>(&mut self, data: &[T], off: usize) -> Result<(), Error> {
-        try!(self.gate.activate());
-        dtu::DTU::write(self.gate.ep, data, off, 0)
+        let ep = try!(self.gate.activate());
+        dtu::DTU::write(ep, data, off, 0)
     }
 }
