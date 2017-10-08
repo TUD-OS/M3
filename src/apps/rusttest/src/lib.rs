@@ -67,7 +67,7 @@ pub fn main() -> i32 {
         let mut total = 0;
         for _ in 0..10 {
             let start = time::start(0xDEADBEEF);
-            send_vmsg!(&mut sgate, 23, 42, "foobar_test_asd").unwrap();
+            send_vmsg!(&mut sgate, RecvGate::def(), 23, 42, "foobar_test_asd").unwrap();
 
             let (a1, a2, a3) = recv_vmsg!(&mut rgate, i32, i32, String).unwrap();
 

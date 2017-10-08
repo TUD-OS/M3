@@ -32,8 +32,8 @@ impl GateOStream {
         item.marshall(self);
     }
 
-    pub fn send(&self, gate: &mut SendGate) -> Result<(), Error> {
-        gate.send(&self.arr[0..self.pos])
+    pub fn send(&self, gate: &mut SendGate, reply_gate: &RecvGate) -> Result<(), Error> {
+        gate.send(&self.arr[0..self.pos], reply_gate)
     }
 }
 
@@ -153,10 +153,10 @@ impl Unmarshallable for String {
 
 #[macro_export]
 macro_rules! send_vmsg {
-    ( $sg:expr, $( $args:expr ),* ) => ({
+    ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
         let mut os = GateOStream::new();
         $( os.push(&$args); )*
-        os.send($sg)
+        os.send($sg, $rg)
     });
 }
 
