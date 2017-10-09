@@ -27,7 +27,8 @@ const EP_REGS: usize            = 3;
 // actual max is 64k - 1; use less for better alignment
 const MAX_PKT_SIZE: usize       = 60 * 1024;
 
-pub enum DtuReg {
+#[allow(dead_code)]
+enum DtuReg {
     Features    = 0,
     RootPt      = 1,
     PfEp        = 2,
@@ -38,13 +39,15 @@ pub enum DtuReg {
     ExtCmd      = 7,
 }
 
-pub enum ReqReg {
+#[allow(dead_code)]
+enum ReqReg {
     ExtReq      = 0,
     XlateReq    = 1,
     XlateResp   = 2,
 }
 
-pub enum CmdReg {
+#[allow(dead_code)]
+enum CmdReg {
     Command     = 0,
     Abort       = 1,
     Data        = 2,
@@ -205,31 +208,28 @@ impl DTU {
         Self::get_error()
     }
 
-    pub fn read_dtu_reg(reg: DtuReg) -> Reg {
+    fn read_dtu_reg(reg: DtuReg) -> Reg {
         Self::read_reg(reg as usize)
     }
-    pub fn read_req_reg(reg: ReqReg) -> Reg {
-        Self::read_reg((PAGE_SIZE / 8) + (reg as usize))
-    }
-    pub fn read_cmd_reg(reg: CmdReg) -> Reg {
+    fn read_cmd_reg(reg: CmdReg) -> Reg {
         Self::read_reg(DTU_REGS + reg as usize)
     }
-    pub fn read_ep_reg(ep: EpId, reg: usize) -> Reg {
+    fn read_ep_reg(ep: EpId, reg: usize) -> Reg {
         Self::read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + reg)
     }
 
-    pub fn write_cmd_reg(reg: CmdReg, val: Reg) {
+    fn write_cmd_reg(reg: CmdReg, val: Reg) {
         Self::write_reg(DTU_REGS + reg as usize, val)
     }
 
-    pub fn read_reg(idx: usize) -> Reg {
+    fn read_reg(idx: usize) -> Reg {
         unsafe {
             let addr: *const Reg = (BASE_ADDR + idx * 8) as *const Reg;
             ptr::read_volatile(addr)
         }
     }
 
-    pub fn write_reg(idx: usize, val: Reg) {
+    fn write_reg(idx: usize, val: Reg) {
         unsafe {
             let addr: *mut Reg = (BASE_ADDR + idx * 8) as *mut Reg;
             ptr::write_volatile(addr, val);
