@@ -186,7 +186,7 @@ macro_rules! recv_vmsg {
 
 pub fn recv_res(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
     let mut reply = try!(recv_msg(rgate));
-    let res: u64 = reply.pop();
+    let res: u32 = reply.pop();
     match res {
         0 => Ok(reply),
         e => Err(Error::from(e)),

@@ -197,7 +197,7 @@ impl DTU {
             if opcode == CmdOpCode::Idle {
                 let err = (cmd >> 13) & 0x7;
                 if err != 0 {
-                    return Err(Error::from(err))
+                    return Err(Error::from(err as u32))
                 }
                 return Ok(())
             }

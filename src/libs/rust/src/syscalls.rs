@@ -26,7 +26,7 @@ fn send_receive_result<T>(msg: &[T]) -> Result<(), Error> {
 
     // TODO better way?
     let vals: &[u64] = unsafe { intrinsics::transmute(&reply.data) };
-    let err = vals[0];
+    let err = vals[0] as u32;
     dtu::DTU::mark_read(dtu::SYSC_REP, &reply);
 
     match err {
@@ -204,7 +204,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
     dtu::DTU::mark_read(dtu::SYSC_REP, &msg);
     match err {
         0   => Ok(()),
-        e   => Err(Error::from(e)),
+        e   => Err(Error::from(e as u32)),
     }
 }
 

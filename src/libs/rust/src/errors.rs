@@ -33,8 +33,8 @@ pub enum Error {
     CommitFailed,
 }
 
-impl From<u64> for Error {
-    fn from(error: u64) -> Self {
+impl From<u32> for Error {
+    fn from(error: u32) -> Self {
         // TODO better way?
         unsafe { intrinsics::transmute(error as u8) }
     }
