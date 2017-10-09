@@ -77,7 +77,7 @@ impl VPE {
     }
 
     pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
-        self.delegate(CapRngDesc::new_from(cap::Type::Object, sel, 1))
+        self.delegate(CapRngDesc::new_from(cap::Type::OBJECT, sel, 1))
     }
     pub fn delegate(&self, crd: CapRngDesc) -> Result<(), Error> {
         let start = crd.start();

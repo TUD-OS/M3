@@ -74,3 +74,86 @@ pub fn max<T: Ord>(a: T, b: T) -> T {
         a
     }
 }
+
+#[macro_export]
+macro_rules! __int_enum_impl {
+    (
+        struct $Name:ident: $T:ty {
+            $(
+                const $Flag:ident = $value:expr;
+            )+
+        }
+    ) => (
+        impl $Name {
+            $(
+                #[allow(dead_code)]
+                pub const $Flag: $Name = $Name { val: $value };
+            )+
+        }
+
+        impl $crate::com::Marshallable for $Name {
+            fn marshall(&self, os: &mut $crate::com::GateOStream) {
+                os.arr[os.pos] = self.val as u64;
+                os.pos += 1;
+            }
+        }
+
+        impl $crate::com::Unmarshallable for $Name {
+            fn unmarshall(is: &mut $crate::com::GateIStream) -> Self {
+                is.pos += 1;
+                let val = is.data()[is.pos - 1] as $T;
+                $Name { val: val }
+            }
+        }
+
+        impl From<$T> for $Name {
+            fn from(val: $T) -> Self {
+                $Name { val: val }
+            }
+        }
+    )
+}
+
+#[macro_export]
+macro_rules! int_enum {
+    (
+        pub struct $Name:ident: $T:ty {
+            $(
+                const $Flag:ident = $value:expr;
+            )+
+        }
+    ) => (
+        #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
+        pub struct $Name {
+            val: $T,
+        }
+
+        __int_enum_impl! {
+            struct $Name : $T {
+                $(
+                    const $Flag = $value;
+                )+
+            }
+        }
+    );
+    (
+        struct $Name:ident: $T:ty {
+            $(
+                const $Flag:ident = $value:expr;
+            )+
+        }
+    ) => (
+        #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
+        struct $Name {
+            val: $T,
+        }
+
+        __int_enum_impl! {
+            struct $Name : $T {
+                $(
+                    const $Flag = $value;
+                )+
+            }
+        }
+    )
+}

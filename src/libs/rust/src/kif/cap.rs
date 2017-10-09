@@ -1,4 +1,3 @@
-use core::intrinsics;
 use core::fmt;
 
 pub type CapSel = u32;
@@ -8,32 +7,29 @@ pub struct CapRngDesc {
     value: u64,
 }
 
-#[derive(Debug)]
-pub enum Type {
-    Object,
-    Mapping,
-}
-
-impl From<u64> for Type {
-    fn from(val: u64) -> Self {
-        unsafe { intrinsics::transmute(val as u8) }
+int_enum! {
+    pub struct Type : u64 {
+        const OBJECT        = 0x0;
+        const MAPPING       = 0x1;
     }
 }
 
 impl fmt::Display for CapRngDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CRD[{:?}: {}:{}]", self.cap_type(), self.start(), self.count())
+        // TODO int_enum! could provide that somehow
+        let ty = if self.cap_type() == Type::OBJECT { "OBJ" } else { "MAP" };
+        write!(f, "CRD[{}: {}:{}]", ty, self.start(), self.count())
     }
 }
 
 impl CapRngDesc {
     pub fn new() -> CapRngDesc {
-        Self::new_from(Type::Object, 0, 0)
+        Self::new_from(Type::OBJECT, 0, 0)
     }
 
     pub fn new_from(ty: Type, start: CapSel, count: CapSel) -> CapRngDesc {
         CapRngDesc {
-            value: (ty as u64) | ((start as u64) << 33) | ((count as u64) << 1)
+            value: ty.val | ((start as u64) << 33) | ((count as u64) << 1)
         }
     }
 

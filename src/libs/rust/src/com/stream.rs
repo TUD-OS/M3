@@ -12,8 +12,8 @@ use util;
 pub const MAX_MSG_SIZE: usize = 512;
 
 pub struct GateOStream {
-    arr: [u64; MAX_MSG_SIZE / 8],
-    pos: usize,
+    pub arr: [u64; MAX_MSG_SIZE / 8],
+    pub pos: usize,
 }
 
 impl GateOStream {
@@ -38,9 +38,9 @@ impl GateOStream {
 }
 
 pub struct GateIStream {
-    msg: &'static dtu::Message,
-    pos: usize,
-    ep: EpId,
+    pub msg: &'static dtu::Message,
+    pub pos: usize,
+    pub ep: EpId,
 }
 
 impl GateIStream {
@@ -191,4 +191,14 @@ pub fn recv_res(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
         0 => Ok(reply),
         e => Err(Error::from(e)),
     }
+}
+
+#[macro_export]
+macro_rules! send_recv_res {
+    ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
+        match send_vmsg!($sg, $rg, $( $args ),* ) {
+            Ok(_)   => recv_res($rg),
+            Err(e)  => Err(e),
+        }
+    });
 }

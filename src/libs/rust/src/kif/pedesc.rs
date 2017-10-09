@@ -1,47 +1,34 @@
-use core::intrinsics;
-
-#[derive(PartialEq)]
-pub enum PEType {
-    // Compute PE with internal memory
-    CompIMem    = 0,
-    // Compute PE with cache and external memory
-    CompEMem    = 1,
-    // memory PE
-    Mem         = 2,
+int_enum! {
+    pub struct PEType : ValueType {
+        // Compute PE with internal memory
+        const COMP_IMEM     = 0x0;
+        // Compute PE with cache and external memory
+        const COMP_EMEM     = 0x1;
+        // memory PE
+        const MEM           = 0x2;
+    }
 }
 
-#[derive(PartialEq)]
-pub enum PEISA {
-    None        = 0,
-    X86         = 1,
-    ARM         = 2,
-    Xtensa      = 3,
-    AccelSHA    = 4,
-    AccelFFT    = 5,
-    AccelToUp   = 6,
+int_enum! {
+    pub struct PEISA : ValueType {
+        const NONE          = 0x0;
+        const X86           = 0x1;
+        const ARM           = 0x2;
+        const XTENSA        = 0x3;
+        const ACCEL_SHA     = 0x4;
+        const ACCEL_FFT     = 0x5;
+        const ACCEL_TOUP    = 0x6;
+    }
 }
 
 bitflags! {
     pub struct PEFlags : ValueType {
-        const MMU_VM    = 1;
-        const DTU_VM    = 2;
+        const MMU_VM        = 0b01;
+        const DTU_VM        = 0b10;
     }
 }
 
 pub type ValueType = u32;
-
-// TODO better way?
-impl From<ValueType> for PEType {
-    fn from(ty: ValueType) -> Self {
-        unsafe { intrinsics::transmute(ty as u8) }
-    }
-}
-
-impl From<ValueType> for PEISA {
-    fn from(ty: ValueType) -> Self {
-        unsafe { intrinsics::transmute(ty as u8) }
-    }
-}
 
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
@@ -61,7 +48,7 @@ impl PEDesc {
     }
 
     pub fn new_from(ty: PEType, isa: PEISA, memsize: usize) -> PEDesc {
-        let val = (ty as ValueType) | ((isa as ValueType) << 3) | memsize as ValueType;
+        let val = ty.val | (isa.val << 3) | memsize as ValueType;
         Self::new_from_val(val)
     }
 
@@ -87,14 +74,14 @@ impl PEDesc {
 
     pub fn is_programmable(&self) -> bool {
         match self.isa() {
-            PEISA::X86 | PEISA::ARM | PEISA::Xtensa  => true,
+            PEISA::X86 | PEISA::ARM | PEISA::XTENSA  => true,
             _                                        => false,
         }
     }
     pub fn is_ffaccel(&self) -> bool {
         match self.isa() {
-            PEISA::AccelSHA | PEISA::AccelFFT | PEISA::AccelToUp => true,
-            _                                                    => false
+            PEISA::ACCEL_SHA | PEISA::ACCEL_FFT | PEISA::ACCEL_TOUP => true,
+            _                                                       => false
         }
     }
 
@@ -102,14 +89,14 @@ impl PEDesc {
         self.has_cache() || self.is_ffaccel()
     }
     pub fn supports_ctxsw(&self) -> bool {
-        self.pe_type() != PEType::Mem
+        self.pe_type() != PEType::MEM
     }
 
     pub fn has_mem(&self) -> bool {
-        self.pe_type() == PEType::CompIMem || self.pe_type() == PEType::Mem
+        self.pe_type() == PEType::COMP_IMEM || self.pe_type() == PEType::MEM
     }
     pub fn has_cache(&self) -> bool {
-        self.pe_type() == PEType::CompEMem
+        self.pe_type() == PEType::COMP_EMEM
     }
     pub fn has_virtmem(&self) -> bool {
         self.has_dtuvm() || self.has_mmu()

@@ -31,6 +31,8 @@ pub mod collections {
 
 #[macro_use]
 pub mod io;
+#[macro_use]
+pub mod util;
 
 pub mod cap;
 #[macro_use]
@@ -43,7 +45,6 @@ pub mod kif;
 pub mod session;
 pub mod syscalls;
 pub mod time;
-pub mod util;
 pub mod vpe;
 
 mod libc;

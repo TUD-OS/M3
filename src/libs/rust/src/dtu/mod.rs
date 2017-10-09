@@ -52,41 +52,27 @@ pub enum CmdReg {
     ReplyLabel  = 4,
 }
 
-#[allow(dead_code)]
-#[derive(PartialEq)]
-enum CmdOpCode {
-    Idle        = 0,
-    Send        = 1,
-    Reply       = 2,
-    Read        = 3,
-    Write       = 4,
-    FetchMsg    = 5,
-    AckMsg      = 6,
-    Sleep       = 7,
-    ClearIrq    = 8,
-    Print       = 9,
-}
-
-impl From<u64> for CmdOpCode {
-    fn from(error: u64) -> Self {
-        // TODO better way?
-        unsafe { intrinsics::transmute(error as u8) }
+int_enum! {
+    struct CmdOpCode : u64 {
+        const IDLE        = 0x0;
+        const SEND        = 0x1;
+        const REPLY       = 0x2;
+        const READ        = 0x3;
+        const WRITE       = 0x4;
+        const FETCH_MSG   = 0x5;
+        const ACK_MSG     = 0x6;
+        const SLEEP       = 0x7;
+        const CLEAR_IRQ   = 0x8;
+        const PRINT       = 0x9;
     }
 }
 
-#[allow(dead_code)]
-#[derive(PartialEq)]
-enum EpType {
-    Invalid,
-    Send,
-    Receive,
-    Memory
-}
-
-impl From<u64> for EpType {
-    fn from(ty: u64) -> Self {
-        // TODO better way?
-        unsafe { intrinsics::transmute(ty as u8) }
+int_enum! {
+    struct EpType : u64 {
+        const INVALID     = 0x0;
+        const SEND        = 0x1;
+        const RECEIVE     = 0x2;
+        const MEMOR       = 0x3;
     }
 }
 
@@ -125,7 +111,7 @@ impl DTU {
             Self::write_cmd_reg(CmdReg::ReplyLabel, reply_lbl);
         }
         Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
-            ep, CmdOpCode::Send, 0, reply_ep as Reg
+            ep, CmdOpCode::SEND, 0, reply_ep as Reg
         ));
 
         Self::get_error()
@@ -133,7 +119,7 @@ impl DTU {
 
     pub fn read<T>(ep: EpId, data: &mut [T], off: usize, flags: u64) -> Result<(), Error> {
         let ptr: *mut T = data.as_ptr() as *mut T;
-        let cmd = Self::build_cmd(ep, CmdOpCode::Read, flags, 0);
+        let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags, 0);
         let res = Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off);
         unsafe { intrinsics::atomic_fence_rel() };
         res
@@ -141,7 +127,7 @@ impl DTU {
 
     pub fn write<T>(ep: EpId, data: &[T], off: usize, flags: u64) -> Result<(), Error> {
         let ptr: *const T = data.as_ptr();
-        let cmd = Self::build_cmd(ep, CmdOpCode::Write, flags, 0);
+        let cmd = Self::build_cmd(ep, CmdOpCode::WRITE, flags, 0);
         Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off)
     }
 
@@ -164,7 +150,7 @@ impl DTU {
     }
 
     pub fn fetch_msg(ep: EpId) -> Option<&'static Message> {
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::FetchMsg, 0, 0));
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::FETCH_MSG, 0, 0));
         let msg = Self::read_cmd_reg(CmdReg::Offset);
         if msg != 0 {
             unsafe {
@@ -181,20 +167,18 @@ impl DTU {
 
     pub fn is_valid(ep: EpId) -> bool {
         let r0 = Self::read_ep_reg(ep, 0);
-        let ty: EpType = (r0 >> 61).into();
-        ty != EpType::Invalid
+        (r0 >> 61) != EpType::INVALID.val
     }
 
     pub fn mark_read(ep: EpId, msg: &Message) {
         let off = (msg as *const Message) as *const u8 as usize as Reg;
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::AckMsg, 0, off));
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::ACK_MSG, 0, off));
     }
 
     pub fn get_error() -> Result<(), Error> {
         loop {
             let cmd = Self::read_cmd_reg(CmdReg::Command);
-            let opcode = CmdOpCode::from(cmd & 0xF);
-            if opcode == CmdOpCode::Idle {
+            if (cmd & 0xF) == CmdOpCode::IDLE.val {
                 let err = (cmd >> 13) & 0x7;
                 if err != 0 {
                     return Err(Error::from(err as u32))
@@ -217,7 +201,7 @@ impl DTU {
     }
 
     pub fn sleep(cycles: u64) -> Result<(), Error> {
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::Sleep, 0, cycles));
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::SLEEP, 0, cycles));
         Self::get_error()
     }
 
@@ -257,6 +241,6 @@ impl DTU {
     }
 
     fn build_cmd(ep: EpId, c: CmdOpCode, flags: Reg, arg: Reg) -> Reg {
-        c as Reg | ((ep as Reg) << 4) | (flags << 12) | (arg << 16)
+        c.val as Reg | ((ep as Reg) << 4) | (flags << 12) | (arg << 16)
     }
 }

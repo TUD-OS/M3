@@ -3,9 +3,11 @@ use com::*;
 use errors::Error;
 use session::Session;
 
-mod meta_op {
-    pub const ATTACH: u8    = 0x0;
-    pub const CLOSE: u8     = 0x1;
+int_enum! {
+    struct MetaOp : u32 {
+        const ATTACH      = 0x0;
+        const CLOSE       = 0x1;
+    }
 }
 
 pub struct Pipe {
@@ -43,28 +45,32 @@ impl Pipe {
     }
 
     pub fn attach(&mut self, reading: bool) -> Result<(), Error> {
-        let rgate = RecvGate::def();
-        try!(send_vmsg!(&mut self.meta_gate, rgate, meta_op::ATTACH, reading as u8));
-        recv_res(rgate).map(|_| ())
+        send_recv_res!(
+            &mut self.meta_gate, RecvGate::def(),
+            MetaOp::ATTACH, reading as u8
+        ).map(|_| ())
     }
 
     pub fn request_read(&mut self, amount: usize) -> Result<(usize, usize), Error> {
-        let rgate = RecvGate::def();
-        try!(send_vmsg!(&mut self.rd_gate, rgate, amount));
-        let mut reply = try!(recv_res(rgate));
+        let mut reply = try!(send_recv_res!(
+            &mut self.rd_gate, RecvGate::def(),
+            amount
+        ));
         Ok((reply.pop(), reply.pop()))
     }
 
     pub fn request_write(&mut self, amount: usize, last_write: usize) -> Result<usize, Error> {
-        let rgate = RecvGate::def();
-        try!(send_vmsg!(&mut self.wr_gate, rgate, amount, last_write));
-        let mut reply = try!(recv_res(rgate));
+        let mut reply = try!(send_recv_res!(
+            &mut self.wr_gate, RecvGate::def(),
+            amount, last_write
+        ));
         Ok(reply.pop())
     }
 
     pub fn close(&mut self, reading: bool, last_write: usize) -> Result<(), Error> {
-        let rgate = RecvGate::def();
-        try!(send_vmsg!(&mut self.meta_gate, rgate, meta_op::CLOSE, reading as u8, last_write));
-        recv_res(rgate).map(|_| ())
+        send_recv_res!(
+            &mut self.meta_gate, RecvGate::def(),
+            MetaOp::CLOSE, reading as u8, last_write
+        ).map(|_| ())
     }
 }
