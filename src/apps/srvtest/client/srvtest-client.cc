@@ -33,8 +33,7 @@ int main() {
         }
 
         for(int i = 0; i < 10; ++i) {
-            capsel_t sel = sess->obtain(1).start();
-            VPE::self().free_cap(sel);
+            sess->obtain(1).start();
 
             if(Errors::last == Errors::INV_ARGS)
                 break;

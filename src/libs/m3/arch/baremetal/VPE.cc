@@ -32,17 +32,13 @@ namespace m3 {
 void VPE::init_state() {
     if(Heap::is_on_heap(_eps))
         delete _eps;
-    if(Heap::is_on_heap(_caps))
-        delete _caps;
-
-    _caps = reinterpret_cast<BitField<CAP_TOTAL>*>(env()->caps);
-    if(_caps == nullptr)
-        _caps = new BitField<CAP_TOTAL>();
 
     _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
     if(_eps == nullptr)
         _eps = new BitField<EP_COUNT>();
 
+    // it's initially 0. make sure it's at least the first usable selector
+    _next_sel = Math::max<uint64_t>(SEL_START, env()->caps);
     _rbufcur = env()->rbufcur;
     _rbufend = env()->rbufend;
 }
@@ -90,7 +86,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.fds = reinterpret_cast<uintptr_t>(_fds);
     senv.rbufcur = _rbufcur;
     senv.rbufend = _rbufend;
-    senv.caps = reinterpret_cast<uintptr_t>(_caps);
+    senv.caps = _next_sel;
     senv.eps = reinterpret_cast<uintptr_t>(_eps);
     senv.pager_sgate = 0;
     senv.pager_rgate = 0;
@@ -155,15 +151,6 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
     offset = Math::round_up(offset + static_cast<size_t>(senv.fds_len), sizeof(word_t));
 
-    size_t eps_caps = Math::round_up(sizeof(*_caps), sizeof(word_t)) +
-        Math::round_up(sizeof(*_eps), sizeof(word_t));
-    if(RT_SPACE_SIZE - offset < eps_caps)
-        PANIC("State is too large");
-
-    senv.caps = RT_SPACE_START + offset;
-    memcpy(buffer + offset, _caps, sizeof(*_caps));
-    offset = Math::round_up(offset + sizeof(*_caps), sizeof(word_t));
-
     senv.eps = RT_SPACE_START + offset;
     memcpy(buffer + offset, _eps, sizeof(*_eps));
     offset = Math::round_up(offset + sizeof(*_eps), DTU_PKG_SIZE);
@@ -173,6 +160,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     Heap::free(buffer);
 
+    senv.caps = _next_sel;
     senv.rbufcur = _rbufcur;
     senv.rbufend = _rbufend;
 

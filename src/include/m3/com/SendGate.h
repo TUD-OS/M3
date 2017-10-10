@@ -64,8 +64,7 @@ public:
      * @param replygate the receive gate to which the replies should be sent
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static SendGate bind(capsel_t sel, RecvGate *replygate = nullptr,
-            uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
+    static SendGate bind(capsel_t sel, RecvGate *replygate = nullptr, uint flags = ObjCap::KEEP_CAP) {
         return SendGate(sel, flags, replygate);
     }
 

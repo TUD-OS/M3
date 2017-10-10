@@ -59,14 +59,6 @@ public:
      * The first available selector
      */
     static constexpr uint SEL_START     = 2;
-    /**
-     * The number of usable selectors
-     */
-    static constexpr uint SEL_COUNT     = CAP_TOTAL - SEL_START;
-    /**
-     * The total number of selectors, i.e. starting at 0
-     */
-    static constexpr uint SEL_TOTAL     = CAP_TOTAL;
 
     explicit VPE();
 
@@ -76,13 +68,6 @@ public:
      */
     static VPE &self() {
         return _self;
-    }
-
-    /**
-     * @return the complete range of object capabilities
-     */
-    static KIF::CapRngDesc all_caps() {
-        return KIF::CapRngDesc(KIF::CapRngDesc::OBJ, SEL_START, SEL_COUNT);
     }
 
     /**
@@ -155,31 +140,12 @@ public:
      * @param count the number of caps
      * @return the first one
      */
-    capsel_t alloc_caps(uint count);
+    capsel_t alloc_caps(uint count) {
+        _next_sel += count;
+        return _next_sel - count;
+    }
     capsel_t alloc_cap() {
-        return alloc_caps(1);
-    }
-
-    /**
-     * @param sel the selector
-     * @return true if the selector/capability is free
-     */
-    bool is_cap_free(capsel_t sel) {
-        return !_caps->is_set(sel);
-    }
-
-    /**
-     * Frees the given capability selectors
-     *
-     * @param start the start selector
-     * @param count the number of selectors
-     */
-    void free_caps(capsel_t start, uint count) {
-        while(count-- > 0)
-            _caps->clear(start + count);
-    }
-    void free_cap(capsel_t cap) {
-        free_caps(cap, 1);
+        return _next_sel++;
     }
 
     /**
@@ -331,7 +297,7 @@ private:
 
     PEDesc _pe;
     MemGate _mem;
-    BitField<SEL_TOTAL> *_caps;
+    capsel_t _next_sel;
     BitField<EP_COUNT> *_eps;
     Pager *_pager;
     uint64_t _rbufcur;

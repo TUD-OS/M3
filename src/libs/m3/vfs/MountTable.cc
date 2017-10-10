@@ -168,10 +168,9 @@ void MountTable::delegate(VPE &vpe) const {
         switch(type) {
             case 'M': {
                 const M3FS *m3fs = static_cast<const M3FS*>(&*_mounts[i]->fs());
-                if(vpe.is_cap_free(m3fs->sel()))
-                    vpe.delegate_obj(m3fs->sel());
-                if(vpe.is_cap_free(m3fs->gate().sel()))
-                    vpe.delegate_obj(m3fs->gate().sel());
+                // might fail if we've already done that
+                vpe.delegate_obj(m3fs->sel());
+                vpe.delegate_obj(m3fs->gate().sel());
             }
             break;
 

@@ -129,7 +129,6 @@ RegularFile::~RegularFile() {
     _lastmem.rebind(ObjCap::INVALID);
     if(_fs.valid())
         _fs->close(_fd, _last_extent, _last_off);
-    VPE::self().free_caps(_memcaps.start(), _memcaps.count());
 }
 
 File::Buffer *RegularFile::create_buf(size_t size) {

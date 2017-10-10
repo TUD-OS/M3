@@ -71,11 +71,9 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 
 void VPE::init_state() {
     delete _eps;
-    delete _caps;
 
-    _caps = new BitField<CAP_TOTAL>();
-    size_t len = sizeof(*_caps);
-    read_from("caps", _caps, len);
+    size_t len = sizeof(_next_sel);
+    read_from("caps", &_next_sel, len);
 
     _eps = new BitField<EP_COUNT>();
     len = sizeof(*_eps);
@@ -135,7 +133,7 @@ Errors::Code VPE::run(void *lambda) {
         xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
-        write_file(pid, "caps", _caps, sizeof(*_caps));
+        write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
         write_file(pid, "eps", _eps, sizeof(*_eps));
 
         size_t len = STATE_BUF_SIZE;
@@ -213,7 +211,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
-        write_file(pid, "caps", _caps, sizeof(*_caps));
+        write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
         write_file(pid, "eps", _eps, sizeof(*_eps));
 
         size_t len = STATE_BUF_SIZE;

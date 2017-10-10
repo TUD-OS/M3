@@ -61,7 +61,6 @@ struct LimitedCapContainer {
 
             if(first != ObjCap::INVALID) {
                 KIF::CapRngDesc caps = get_linear(first, count);
-                VPE::self().free_caps(caps.start(), caps.count());
                 VPE::self().revoke(caps);
             }
         }

@@ -79,7 +79,7 @@ public:
      * @param sel the capability selector
      * @param flags the flags to control whether cap/selector are kept (default: both)
      */
-    static MemGate bind(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL) {
+    static MemGate bind(capsel_t sel, uint flags = ObjCap::KEEP_CAP) {
         return MemGate(flags, sel);
     }
 

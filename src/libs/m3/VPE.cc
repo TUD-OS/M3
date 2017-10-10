@@ -33,8 +33,8 @@ INIT_PRIO_VPE VPE VPE::_self;
 
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
-    : ObjCap(VIRTPE, 0, KEEP_SEL | KEEP_CAP), _pe(env()->pedesc),
-      _mem(MemGate::bind(1)), _caps(), _eps(), _pager(), _rbufcur(), _rbufend(),
+    : ObjCap(VIRTPE, 0, KEEP_CAP), _pe(env()->pedesc),
+      _mem(MemGate::bind(1)), _next_sel(SEL_START), _eps(), _pager(), _rbufcur(), _rbufend(),
       _ms(), _fds(), _exec() {
     init_state();
     init();
@@ -55,9 +55,9 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
-        : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
+        : ObjCap(VIRTPE, 0),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
-          _caps(new BitField<SEL_TOTAL>()), _eps(new BitField<EP_COUNT>()),
+          _next_sel(SEL_START), _eps(new BitField<EP_COUNT>()),
           _pager(), _rbufcur(), _rbufend(),
           _ms(new MountTable()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
     init();
@@ -77,10 +77,9 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(), _pager->rgate().sel(),
             name, _pe, alloc_ep(), _pager->rep(), tmuxable);
         // mark the pager caps allocated
-        assert(!_caps->is_set(_pager->gate().sel()));
-        _caps->set(_pager->gate().sel());
+        _next_sel = Math::max(_pager->gate().sel() + 1, _next_sel);
         if(_pager->rgate().sel() != ObjCap::INVALID)
-            _caps->set(_pager->rgate().sel());
+            _next_sel = Math::max(_pager->rgate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager
         _pager->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel(), 2));
         // and delegate the pager cap to the VPE
@@ -101,7 +100,6 @@ VPE::~VPE() {
         // only free that if it's not our own VPE. 1. it doesn't matter in this case and 2. it might
         // be stored not on the heap but somewhere else
         delete _eps;
-        delete _caps;
         delete _fds;
         delete _ms;
         delete _exec;
@@ -109,39 +107,10 @@ VPE::~VPE() {
 }
 
 void VPE::init() {
-    _caps->set(0);
-    _caps->set(1);
     _eps->set(DTU::SYSC_SEP);
     _eps->set(DTU::SYSC_REP);
     _eps->set(DTU::UPCALL_REP);
     _eps->set(DTU::DEF_REP);
-}
-
-capsel_t VPE::alloc_caps(uint count) {
-    capsel_t res = _caps->first_clear();
-
-retry:
-    if(res + count > SEL_TOTAL)
-        PANIC("No more capability selectors");
-
-    // ensure that the first is actually free
-    if(_caps->is_set(res)) {
-        res++;
-        goto retry;
-    }
-
-    // check the next count-1 selectors if they are free
-    for(uint i = 1; i < count; ++i) {
-        if(_caps->is_set(res + i)) {
-            res += i + 1;
-            goto retry;
-        }
-    }
-
-    // we've found them
-    for(uint i = 0; i < count; ++i)
-        _caps->set(res + i);
-    return res;
 }
 
 epid_t VPE::alloc_ep() {
@@ -172,12 +141,8 @@ void VPE::obtain_fds() {
 
 Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {
     Errors::Code res = Syscalls::get().exchange(sel(), crd, dest, false);
-    if(res == Errors::NONE) {
-        for(capsel_t sel = 0; sel < crd.count(); ++sel) {
-            if(!VPE::self().is_cap_free(sel + crd.start()))
-                _caps->set(dest + sel);
-        }
-    }
+    if(res == Errors::NONE)
+        _next_sel = Math::max(_next_sel, dest + crd.count());
     return res;
 }
 

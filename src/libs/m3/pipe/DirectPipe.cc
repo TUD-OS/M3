@@ -39,7 +39,6 @@ DirectPipe::DirectPipe(VPE &rd, VPE &wr, size_t size)
 DirectPipe::~DirectPipe() {
     close_writer();
     close_reader();
-    VPE::self().free_caps(caps(), 3);
 }
 
 void DirectPipe::close_reader() {

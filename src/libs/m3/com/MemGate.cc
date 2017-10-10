@@ -31,8 +31,6 @@ MemGate MemGate::create_global_for(uintptr_t addr, size_t size, int perms, capse
     uint flags = 0;
     if(sel == INVALID)
         sel = VPE::self().alloc_cap();
-    else
-        flags |= KEEP_SEL;
     Syscalls::get().createmgate(sel, addr, size, perms);
     return MemGate(flags, sel);
 }
@@ -45,7 +43,7 @@ MemGate MemGate::derive(size_t offset, size_t size, int perms) const {
 
 MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) const {
     Syscalls::get().derivemem(cap, sel(), offset, size, perms);
-    return MemGate(ObjCap::KEEP_SEL, cap);
+    return MemGate(0, cap);
 }
 
 Errors::Code MemGate::activate_for(VPE &vpe, epid_t ep, size_t offset) {

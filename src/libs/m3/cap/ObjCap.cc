@@ -22,8 +22,6 @@ namespace m3 {
 
 void ObjCap::release() {
     if(_sel != INVALID) {
-        if(~_flags & KEEP_SEL)
-            VPE::self().free_cap(sel());
         if(~_flags & KEEP_CAP)
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel()));
     }

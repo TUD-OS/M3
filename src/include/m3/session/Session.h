@@ -52,7 +52,7 @@ public:
      * @param sel the capability selector of the session
      * @param flags whether capabilitly/selector should be kept on destruction or not
      */
-    explicit Session(capsel_t sel, uint flags = ObjCap::KEEP_CAP | ObjCap::KEEP_SEL)
+    explicit Session(capsel_t sel, uint flags = ObjCap::KEEP_CAP)
         : ObjCap(SESSION, sel, flags) {
     }
 

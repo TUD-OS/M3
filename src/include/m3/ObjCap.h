@@ -34,11 +34,8 @@ public:
     static const capsel_t INVALID   = KIF::INV_SEL;
 
     enum {
-        // whether we don't want to free the selector
-        KEEP_SEL        = 1 << 0,
         // whether we don't want to free the capability
-        KEEP_CAP        = 1 << 1,
-        KEEP_BITS       = KEEP_SEL | KEEP_CAP,
+        KEEP_CAP        = 1 << 0,
     };
 
     enum {
@@ -69,7 +66,7 @@ public:
     // but moving is allowed
     ObjCap(ObjCap &&c) : _sel(c._sel), _type(c._type), _flags(c._flags) {
         // don't destroy anything with the old cap
-        c._flags = KEEP_SEL | KEEP_CAP;
+        c._flags = KEEP_CAP;
     }
     ObjCap& operator=(ObjCap &&c) {
         if(&c != this) {
@@ -77,7 +74,7 @@ public:
             _type = c._type;
             _flags = c._flags;
             // don't destroy anything with the old cap
-            c._flags = KEEP_SEL | KEEP_CAP;
+            c._flags = KEEP_CAP;
         }
         return *this;
     }

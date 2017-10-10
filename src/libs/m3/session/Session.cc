@@ -25,8 +25,6 @@ void Session::connect(const String &service, xfer_t arg) {
     Errors::Code res = Syscalls::get().createsess(cap, service, arg);
     if(res == Errors::NONE)
         sel(cap);
-    else
-        VPE::self().free_cap(cap);
 }
 
 void Session::delegate(const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args) {
