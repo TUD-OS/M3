@@ -69,17 +69,20 @@ static void wait_for(const char *service) {
 }
 
 static void usage(const char *name) {
-    cerr << "Usage: " << name << " <mode> <rargs> <wargs> ...\n";
+    cerr << "Usage: " << name << " <mode> <mem> <wargs> <rargs> ...\n";
     cerr << " <mode> can be:\n";
     cerr << " 0: not muxable\n";
     cerr << " 1: all muxable\n";
     cerr << " 2: m3fs with pipe\n";
     cerr << " 3: mux m3fs with pipe\n";
+    cerr << " <mem> can be:\n";
+    cerr << " 0: DRAM\n";
+    cerr << " 1: SPM\n";
     exit(1);
 }
 
 int main(int argc, char **argv) {
-    if(argc < 4)
+    if(argc < 5)
         usage(argv[0]);
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
@@ -88,10 +91,11 @@ int main(int argc, char **argv) {
         PANIC("Cannot mount root fs");
 
     int mode = IStringStream::read_from<int>(argv[1]);
-    int rargs = IStringStream::read_from<int>(argv[2]);
+    int mem = IStringStream::read_from<int>(argv[2]);
     int wargs = IStringStream::read_from<int>(argv[3]);
+    int rargs = IStringStream::read_from<int>(argv[4]);
 
-    if(argc != 4 + rargs + wargs)
+    if(argc != 5 + wargs + rargs)
         usage(argv[0]);
 
     for(int j = 0; j < REPEATS; ++j) {
@@ -104,12 +108,12 @@ int main(int argc, char **argv) {
         if(mode < 2) {
             apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 1);
             apps[1] = nullptr;
-            apps[2] = create(1, rargs, argv + 4, mode == 1);
-            apps[3] = create(2, wargs, argv + 4 + rargs, mode == 1);
+            apps[2] = create(1, wargs, argv + 5, mode == 1);
+            apps[3] = create(2, rargs, argv + 5 + wargs, mode == 1);
         }
         else {
-            apps[2] = create(1, rargs, argv + 4, false);
-            apps[3] = create(2, wargs, argv + 4 + rargs, false);
+            apps[2] = create(1, wargs, argv + 5, false);
+            apps[3] = create(2, rargs, argv + 5 + wargs, false);
             apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 3);
             apps[1] = create(3, ARRAY_SIZE(m3fs), const_cast<char**>(m3fs), mode == 3);
         }
@@ -135,7 +139,14 @@ int main(int argc, char **argv) {
         if(apps[1])
             wait_for("m3fs2");
 
-        IndirectPipe pipe(128 * 1024);
+        VPE *memvpe = nullptr;
+        IndirectPipe *pipe;
+        if(mem == 0)
+            pipe = new IndirectPipe(128 * 1024);
+        else {
+            memvpe = new VPE("mem");
+            pipe = new IndirectPipe(memvpe->mem().derive(0x10000, 128 * 1024, MemGate::RW), 128 * 1024);
+        }
 
         if(VERBOSE) cout << "Starting reader and writer...\n";
 
@@ -147,7 +158,7 @@ int main(int argc, char **argv) {
         cycles_t start = Profile::start(0x1234);
 
         // start writer
-        apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
+        apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe->writer_fd()));
         apps[2]->vpe.obtain_fds();
         apps[2]->vpe.mounts(*VPE::self().mounts());
         apps[2]->vpe.obtain_mounts();
@@ -156,7 +167,7 @@ int main(int argc, char **argv) {
             PANIC("Cannot execute " << apps[2]->argv[0] << ": " << Errors::to_string(res));
 
         // start reader
-        apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
+        apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe->reader_fd()));
         apps[3]->vpe.obtain_fds();
         apps[3]->vpe.mounts(*VPE::self().mounts());
         apps[3]->vpe.obtain_mounts();
@@ -164,8 +175,8 @@ int main(int argc, char **argv) {
         if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[3]->argv[0] << ": " << Errors::to_string(res));
 
-        pipe.close_writer();
-        pipe.close_reader();
+        pipe->close_writer();
+        pipe->close_reader();
 
         if(VERBOSE) cout << "Waiting for VPEs...\n";
 
@@ -185,6 +196,8 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
+        delete pipe;
+        delete memvpe;
 
         if(VERBOSE) cout << "Done\n";
     }

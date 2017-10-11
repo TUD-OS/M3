@@ -15,13 +15,14 @@
  */
 
 #include <base/stream/IStringStream.h>
+#include <base/util/Profile.h>
 #include <base/CPU.h>
 
 #include <m3/stream/Standard.h>
 
 using namespace m3;
 
-alignas(64) static char buffer[4096];
+alignas(64) static char buffer[8192];
 
 int main(int argc, char **argv) {
     if(argc < 3)
@@ -29,6 +30,8 @@ int main(int argc, char **argv) {
 
     size_t bytes = IStringStream::read_from<size_t>(argv[1]);
     cycles_t cycles = IStringStream::read_from<cycles_t>(argv[2]);
+
+    Profile::start(0x1235);
 
     while(bytes > 0) {
         CPU::compute(cycles);
@@ -38,5 +41,7 @@ int main(int argc, char **argv) {
 
         bytes -= amount;
     }
+
+    Profile::stop(0x1235);
     return 0;
 }
