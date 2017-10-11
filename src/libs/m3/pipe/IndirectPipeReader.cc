@@ -24,7 +24,9 @@ namespace m3 {
 
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     size_t pos;
+    Profile::start(0xbbbb);
     Errors::Code res = _pipe->read(&pos, &count);
+    Profile::stop(0xbbbb);
     if(res != Errors::NONE)
         return -1;
     if(count == 0)
