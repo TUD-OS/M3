@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Util.h>
+
 #include <m3/pipe/IndirectPipe.h>
 #include <m3/pipe/IndirectPipeReader.h>
 #include <m3/pipe/IndirectPipeWriter.h>
@@ -23,7 +25,11 @@
 namespace m3 {
 
 IndirectPipe::IndirectPipe(size_t memsize)
-    : _mem(MemGate::create_global(memsize, MemGate::RW)), _pipe("pipe", memsize),
+    : IndirectPipe(MemGate::create_global(memsize, MemGate::RW), memsize) {
+}
+
+IndirectPipe::IndirectPipe(MemGate &&mem, size_t memsize)
+    : _mem(Util::forward<MemGate>(mem)), _pipe("pipe", memsize),
       _rdfd(VPE::self().fds()->alloc(new IndirectPipeReader(_mem.sel(), &_pipe))),
       _wrfd(VPE::self().fds()->alloc(new IndirectPipeWriter(_mem.sel(), &_pipe))) {
 }

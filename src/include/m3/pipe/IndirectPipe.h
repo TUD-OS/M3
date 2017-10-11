@@ -25,6 +25,7 @@ namespace m3 {
 class IndirectPipe {
 public:
     explicit IndirectPipe(size_t memsize);
+    explicit IndirectPipe(MemGate &&mem, size_t memsize);
     ~IndirectPipe();
 
     /**
