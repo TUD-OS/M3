@@ -15,15 +15,16 @@ starttsc="1ff1"
 stoptsc="1ff2"
 
 awk -v warmup=$warmup -v mhz=$mhz '
-function handle(msg, time) {
+function handle(msg, pe, time) {
     id = substr(msg,7,4)
+    idx = sprintf("%d.%s", pe, id)
     if(substr(msg,3,4) == "'$starttsc'") {
-        start[id] = time
+        start[idx] = time
     }
     else if(substr(msg,3,4) == "'$stoptsc'") {
-        counter[id] += 1
-        if(counter[id] > warmup)
-            print "TIME:", id, ":", (strtonum(time) - strtonum(start[id])), "cycles"
+        counter[idx] += 1
+        if(counter[idx] > warmup)
+            printf("PE%d-TIME: %04s : %d cycles\n", pe, id, strtonum(time) - strtonum(start[idx]))
     }
 }
 
@@ -37,7 +38,8 @@ function ticksToCycles(ticks) {
 }
 
 /DEBUG [[:xdigit:]]+/ {
-    match($1, /^([[:digit:]]+):/, m)
-    handle($4, ticksToCycles(m[1]))
+    match($1, /^([[:digit:]]+):/, time)
+    match($2, /(pe|cpu)([[:digit:]]+)/, pe)
+    handle($4, pe[2], ticksToCycles(time[1]))
 }
 ' $log
