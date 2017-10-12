@@ -140,9 +140,10 @@ struct Event {
 struct State {
     static const size_t INVALID_IDX = static_cast<size_t>(-1);
 
-    explicit State() : addr(), sym(), in_cmd(), have_start(), start_idx(INVALID_IDX) {
+    explicit State() : tag(), addr(), sym(), in_cmd(), have_start(), start_idx(INVALID_IDX) {
     }
 
+    uint64_t tag;
     unsigned long addr;
     Symbols::symbol_t sym;
     bool in_cmd;
@@ -284,21 +285,22 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
 
         if(strstr(line.c_str(), "rv") && std::regex_search(line, match, msg_rcv_regex)) {
             Event ev = build_event(EVENT_MSG_RECV,
-                timestamp, pe, match[1].str(), match[2].str(), 0);
-            ev.tag = tag;
+                timestamp, pe, match[1].str(), match[2].str(), tag);
             buf.push_back(ev);
 
             last_pe = std::max(pe, std::max(last_pe, ev.remote));
+            states[pe].tag = tag++;
         }
         else if(strstr(line.c_str(), "ing") && std::regex_search(line, match, suswake_regex)) {
             event_type type = match[1].str() == "Waking" ? EVENT_WAKEUP : EVENT_SUSPEND;
-            buf.push_back(build_event(type, timestamp, pe, "", "", 0));
+            buf.push_back(build_event(type, timestamp, pe, "", "", tag));
 
             last_pe = std::max(pe, last_pe);
+            states[pe].tag = tag++;
         }
         else if(strstr(line.c_str(), "VPE_ID") && std::regex_search(line, match, setvpe_regex)) {
-            uint32_t tag = strtoul(match[1].str().c_str(), NULL, 16);
-            buf.push_back(build_event(EVENT_SET_VPEID, timestamp, pe, "", "", tag));
+            uint32_t vpetag = strtoul(match[1].str().c_str(), NULL, 16);
+            buf.push_back(build_event(EVENT_SET_VPEID, timestamp, pe, "", "", vpetag));
 
             last_pe = std::max(pe, last_pe);
         }
@@ -306,8 +308,8 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
             uint64_t value = strtoul(match[1].str().c_str(), NULL, 16);
             if(value >> 48 != 0) {
                 event_type type = static_cast<event_type>(value >> 48);
-                uint64_t tag = value & 0xFFFFFFFFFFFF;
-                buf.push_back(build_event(type, timestamp, pe, "", "", tag));
+                uint64_t vpetag = value & 0xFFFFFFFFFFFF;
+                buf.push_back(build_event(type, timestamp, pe, "", "", vpetag));
             }
         }
         else if (!states[pe].in_cmd) {
@@ -329,7 +331,7 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
                     else
                         type = EVENT_MEM_WRITE_DONE;
                     uint32_t remote = start_ev.remote;
-                    Event ev(pe, timestamp, type, start_ev.size, remote, tag++);
+                    Event ev(pe, timestamp, type, start_ev.size, remote, states[pe].tag);
                     buf.push_back(ev);
 
                     last_pe = std::max(pe, std::max(last_pe, remote));
@@ -346,6 +348,7 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
                     states[pe].have_start = true;
                     buf.push_back(ev);
                     states[pe].start_idx = buf.size() - 1;
+                    states[pe].tag = tag++;
                 }
                 else if((strstr(line.c_str(), "rd") || strstr(line.c_str(), "wr")) &&
                         std::regex_search(line, match, msg_rw_regex)) {
@@ -359,6 +362,7 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
                         states[pe].have_start = true;
                         buf.push_back(ev);
                         states[pe].start_idx = buf.size() - 1;
+                        states[pe].tag = tag++;
                     }
                 }
             }
