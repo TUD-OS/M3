@@ -169,17 +169,16 @@ public:
             return m3fs_reqh_base_t::handle_obtain(sess, data);
 
         EVENT_TRACER_FS_getlocs();
-        if(data.argcount != 5)
+        if(data.argcount != 4)
             return Errors::INV_ARGS;
 
         int fd = data.args[0];
         size_t offset = data.args[1];
         size_t count = data.args[2];
-        bool extend = data.args[3];
-        int flags = data.args[4];
+        uint flags = data.args[3];
 
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::get_locs(fd=" << fd << ", offset=" << offset
-            << ", count=" << count << ", extend=" << extend << ", flags=" << flags << ")");
+            << ", count=" << count << ", flags=" << fmt(flags, "#x") << ")");
 
         M3FSSessionData::OpenFile *of = sess->get(fd);
         if(!of || count == 0) {
@@ -192,7 +191,7 @@ public:
 
         // don't try to extend the file, if we're not writing
         if(~of->flags & FILE_W)
-            extend = false;
+            flags &= ~static_cast<uint>(M3FS::EXTEND);
 
         // determine extent from byte offset
         size_t firstOff = 0;
@@ -208,7 +207,7 @@ public:
         bool extended = false;
         Errors::last = Errors::NONE;
         m3::loclist_type *locs = INodes::get_locs(_handle, &of->inode, offset, count,
-            extend ? _extend : 0, of->flags & MemGate::RWX, crd, extended);
+            (flags & M3FS::EXTEND) ? _extend : 0, of->flags & MemGate::RWX, crd, extended);
         if(!locs) {
             SLOG(FS, fmt((word_t)sess, "#x") << ": Determining locations failed: "
                 << Errors::to_string(Errors::last));

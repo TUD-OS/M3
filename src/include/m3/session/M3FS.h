@@ -45,6 +45,7 @@ public:
 
     enum Flags {
         BYTE_OFFSET = 1,
+        EXTEND      = 2,
     };
 
     explicit M3FS(const String &service)
@@ -73,22 +74,21 @@ public:
     Errors::Code close(int fd, size_t extent, size_t off);
 
     template<size_t N>
-    bool get_locs(int fd, size_t offset, size_t count, bool extend, KIF::CapRngDesc &crd, LocList<N> &locs) {
-        return get_locs(*this, fd, &offset, count, extend, crd, locs, 0);
+    bool get_locs(int fd, size_t offset, size_t count, KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
+        return get_locs(*this, fd, &offset, count, crd, locs, flags);
     }
 
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
-    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count, bool extend,
+    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count,
             KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
-        xfer_t args[5];
+        xfer_t args[Math::max(2 + N, 4ul)];
         args[0] = static_cast<xfer_t>(fd);
         args[1] = *offset;
         args[2] = count;
-        args[3] = extend;
-        args[4] = flags;
+        args[3] = flags;
         bool extended = false;
-        size_t argcount = ARRAY_SIZE(args);
+        size_t argcount = 4;
         crd = sess.obtain(count, &argcount, args);
         if(Errors::last == Errors::NONE) {
             extended = args[0];

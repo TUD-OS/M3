@@ -327,7 +327,7 @@ ssize_t RegularFile::get_location(Position &pos, bool writing, bool rebind) cons
         // TODO it would be better to increment the number of blocks we create, like start with
         // 4, then 8, then 16, up to a certain limit.
         _extended |= const_cast<Reference<M3FS>&>(_fs)->get_locs(_fd, pos.global, MAX_LOCS,
-            writing, _memcaps, _locs);
+            _memcaps, _locs, writing ? M3FS::EXTEND : 0);
         if(Errors::last != Errors::NONE || _locs.count() == 0)
             return Errors::last;
 

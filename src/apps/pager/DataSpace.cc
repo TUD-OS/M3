@@ -117,8 +117,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
             size_t count = 1;
 
             off = fileoff + pfoff;
-            m3::M3FS::get_locs(
-                sess, id, &off, count, false, crd, locs, m3::M3FS::BYTE_OFFSET);
+            m3::M3FS::get_locs(sess, id, &off, count, crd, locs, m3::M3FS::BYTE_OFFSET);
         }
 
         // first, resize the region to not be too large
