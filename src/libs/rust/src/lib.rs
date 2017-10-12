@@ -26,19 +26,30 @@ pub mod collections {
     pub use alloc::btree_set::BTreeSet;
     pub use alloc::linked_list::LinkedList;
     pub use alloc::vec_deque::VecDeque;
-    pub use alloc::string::String;
-    pub use alloc::string::ToString;
+    pub use alloc::string::{String, ToString};
     pub use alloc::vec::Vec;
+}
+
+pub mod rc {
+    pub use alloc::rc::{Rc, Weak};
+}
+
+pub mod arc {
+    pub use alloc::arc::{Arc, Weak};
+}
+
+pub mod cell {
+    pub use core::cell::{Cell, Ref, RefCell, RefMut};
 }
 
 #[macro_use]
 pub mod io;
 #[macro_use]
 pub mod util;
-
-pub mod cap;
 #[macro_use]
 pub mod com;
+
+pub mod cap;
 pub mod env;
 pub mod errors;
 pub mod dtu;
@@ -47,6 +58,7 @@ pub mod kif;
 pub mod session;
 pub mod syscalls;
 pub mod time;
+pub mod vfs;
 pub mod vpe;
 
 mod libc;

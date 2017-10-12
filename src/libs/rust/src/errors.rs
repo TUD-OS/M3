@@ -31,6 +31,7 @@ pub enum Error {
     MsgsWaiting,
     UpcallReply,
     CommitFailed,
+    WriteFailed,
 }
 
 impl From<u32> for Error {

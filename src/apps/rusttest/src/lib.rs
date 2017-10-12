@@ -9,18 +9,51 @@ use m3::env;
 use m3::collections::*;
 use m3::com::*;
 use m3::session::*;
+use m3::vfs::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
     {
-        let mut pipe = Pipe::new("pipe", 64 * 1024).expect("unable to create pipe");
-        pipe.attach(true).expect("unable to attach");
-        let mut wr_pos = pipe.request_write(8192, 0).expect("request_write failed");
-        println!("Got {}", wr_pos);
-        wr_pos = pipe.request_write(4096, 8192).expect("request_write failed");
-        println!("Got {}", wr_pos);
-        let (rd_pos, amount) = pipe.request_read(4096).expect("request_read failed");
-        println!("Got {} {}", rd_pos, amount);
+        let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
+
+        {
+            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::W | OpenFlags::CREATE)
+                .expect("create of /test2.txt failed");
+
+            write!(file, "This is the {}th test of {:.3}\n", 42, 12.3).expect("write failed");
+        }
+
+        {
+            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
+
+            let info = file.stat().unwrap();
+            println!("Got info: {:?}", info);
+
+            println!("File /test.txt: {:?}", m3fs.borrow_mut().stat("/test.txt").unwrap());
+            println!("Creating directory /foobar: {:?}", m3fs.borrow_mut().mkdir("/foobar", 0o755));
+
+            let mut s = String::new();
+            let count = file.read_to_string(&mut s).expect("read failed");
+            println!("Got {} bytes: {}", count, s);
+
+            file.seek(0, SeekMode::SET).unwrap();
+            {
+                let count = file.read_to_string(&mut s).expect("read failed");
+                println!("Got {} bytes: {}", count, s);
+            }
+
+            file.seek(0, SeekMode::END).unwrap();
+
+            write!(file, "And this is another test!").expect("write failed");
+        }
+
+        {
+            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
+
+            let mut s = String::new();
+            let count = file.read_to_string(&mut s).expect("read failed");
+            println!("Got {} bytes: {}", count, s);
+        }
     }
 
     let vec = vec![1, 42, 23];
