@@ -161,20 +161,20 @@ pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) 
     send_receive_result(&[req])
 }
 
-pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<(), Error> {
+pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Delegate, sess, crd, args)
 }
 
-pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<(), Error> {
+pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Obtain, sess, crd, args)
 }
 
 fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
-                 args: &mut [u64]) -> Result<(), Error> {
+                 args: &mut [u64]) -> Result<usize, Error> {
     assert!(args.len() <= syscalls::MAX_EXCHG_ARGS);
 
     let mut req = syscalls::ExchangeSess {
@@ -203,7 +203,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
 
     dtu::DTU::mark_read(dtu::SYSC_REP, &msg);
     match err {
-        0   => Ok(()),
+        0   => Ok(reply.argcount as usize),
         e   => Err(Error::from(e as u32)),
     }
 }

@@ -20,9 +20,9 @@ pub struct Pipe {
 impl Pipe {
     pub fn new(name: &str, mem_size: usize) -> Result<Self, Error> {
         let sess = try!(Session::new(name, mem_size as u64));
-        let meta = SendGate::new_bind(try!(sess.obtain(1, &mut [])).start());
-        let read = SendGate::new_bind(try!(sess.obtain(1, &mut [])).start());
-        let write = SendGate::new_bind(try!(sess.obtain(1, &mut [])).start());
+        let meta = SendGate::new_bind(try!(sess.obtain(1, &mut [])).1.start());
+        let read = SendGate::new_bind(try!(sess.obtain(1, &mut [])).1.start());
+        let write = SendGate::new_bind(try!(sess.obtain(1, &mut [])).1.start());
         Ok(Pipe {
             sess: sess,
             meta_gate: meta,
