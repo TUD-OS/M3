@@ -125,7 +125,7 @@ macro_rules! int_enum {
     ) => (
         #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
         pub struct $Name {
-            val: $T,
+            pub val: $T,
         }
 
         __int_enum_impl! {
@@ -145,7 +145,7 @@ macro_rules! int_enum {
     ) => (
         #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
         struct $Name {
-            val: $T,
+            pub val: $T,
         }
 
         __int_enum_impl! {
