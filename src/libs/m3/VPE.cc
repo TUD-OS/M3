@@ -55,7 +55,7 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
-        : ObjCap(VIRTPE, 0),
+        : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _next_sel(SEL_START), _eps(new BitField<EP_COUNT>()),
           _pager(), _rbufcur(), _rbufend(),
