@@ -32,3 +32,13 @@ BEGIN_FUNC(gem5_readfile)
     .long   0xEE500110
     mov     pc, lr
 END_FUNC(gem5_readfile)
+
+BEGIN_FUNC(gem5_resetstats)
+    .long   0xEE400110
+    mov     pc, lr
+END_FUNC(gem5_resetstats)
+
+BEGIN_FUNC(gem5_dumpstats)
+    .long   0xEE410110
+    mov     pc, lr
+END_FUNC(gem5_dumpstats)

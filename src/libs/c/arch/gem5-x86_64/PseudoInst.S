@@ -32,3 +32,13 @@ BEGIN_FUNC(gem5_readfile)
     .long   0x0050040F
     ret
 END_FUNC(gem5_readfile)
+
+BEGIN_FUNC(gem5_resetstats)
+    .long   0x0040040F
+    ret
+END_FUNC(gem5_resetstats)
+
+BEGIN_FUNC(gem5_dumpstats)
+    .long   0x0041040F
+    ret
+END_FUNC(gem5_dumpstats)

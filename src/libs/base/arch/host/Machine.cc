@@ -35,4 +35,12 @@ ssize_t Machine::read(char *buf, size_t len) {
     return ::read(STDIN_FILENO, buf, len);
 }
 
+void Machine::reset_stats() {
+    // not supported
+}
+
+void Machine::dump_stats() {
+    // not supported
+}
+
 }

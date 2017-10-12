@@ -23,6 +23,8 @@
 EXTERN_C void gem5_shutdown(uint64_t delay);
 EXTERN_C void gem5_writefile(const char *str, uint64_t len, uint64_t offset, uint64_t file);
 EXTERN_C ssize_t gem5_readfile(char *dst, uint64_t max, uint64_t offset);
+EXTERN_C void gem5_resetstats(uint64_t delay, uint64_t period);
+EXTERN_C void gem5_dumpstats(uint64_t delay, uint64_t period);
 
 namespace m3 {
 
@@ -41,6 +43,14 @@ int Machine::write(const char *str, size_t len) {
 
 ssize_t Machine::read(char *dst, size_t max) {
     return gem5_readfile(dst, max, 0);
+}
+
+void Machine::reset_stats() {
+    gem5_resetstats(0, 0);
+}
+
+void Machine::dump_stats() {
+    gem5_dumpstats(0, 0);
 }
 
 }

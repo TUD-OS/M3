@@ -49,6 +49,16 @@ public:
      * @return the number of read bytes on success
      */
     static ssize_t read(char *buf, size_t len);
+
+    /**
+     * Resets the statistics
+     */
+    static void reset_stats();
+
+    /**
+     * Dumps the statistics to file
+     */
+    static void dump_stats();
 };
 
 }
