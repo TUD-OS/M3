@@ -104,7 +104,6 @@ public:
     static RegularFile *unserialize(Unmarshaller &um);
 
 private:
-    virtual bool seek_to(size_t offset) override;
     ssize_t fill(void *buffer, size_t size);
     ssize_t do_read(void *buffer, size_t count, Position &pos) const;
     ssize_t do_write(const void *buffer, size_t count, Position &pos) const;

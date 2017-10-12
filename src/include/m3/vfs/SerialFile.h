@@ -103,10 +103,6 @@ public:
     }
 
 private:
-    virtual bool seek_to(size_t) override {
-        return false;
-    }
-
     void initTmpMem() {
         // TODO this does not work yet with the non-autonomous API of the hash accelerator. because
         // the caller will read have to read it back from the global memory, which requires him to

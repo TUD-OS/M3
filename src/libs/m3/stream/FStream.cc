@@ -131,18 +131,9 @@ size_t FStream::seek(size_t offset, int whence) {
         return 0;
     }
 
-    if(whence != M3FS_SEEK_END) {
-        if(file()->seek_to(newpos)) {
-            _fpos = newpos;
-            // the buffer is invalid now
-            _rbuf->invalidate();
-            return _fpos;
-        }
-    }
-
     // File::seek assumes that it is aligned. _fpos needs to reflect the actual position, of course
-    size_t posoff = offset & (DTU_PKG_SIZE - 1);
-    _fpos = file()->seek(offset - posoff, whence) + posoff;
+    size_t posoff = newpos & (DTU_PKG_SIZE - 1);
+    _fpos = file()->seek(newpos - posoff, whence) + posoff;
     _rbuf->invalidate();
     return _fpos;
 }

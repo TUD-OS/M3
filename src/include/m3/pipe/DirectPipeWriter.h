@@ -83,9 +83,6 @@ public:
     static File *unserialize(Unmarshaller &um);
 
 private:
-    virtual bool seek_to(size_t) override {
-        return false;
-    }
     void send_eof();
 
     capsel_t _caps;

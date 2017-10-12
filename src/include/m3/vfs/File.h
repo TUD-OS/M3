@@ -226,8 +226,6 @@ public:
     virtual void serialize(Marshaller &m) = 0;
 
 private:
-    virtual bool seek_to(size_t offset) = 0;
-
     int _flags;
 };
 

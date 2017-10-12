@@ -93,11 +93,6 @@ public:
     virtual void serialize(Marshaller &m) override;
     static File *unserialize(Unmarshaller &um);
 
-private:
-    virtual bool seek_to(size_t) override {
-        return false;
-    }
-
 protected:
     MemGate _mem;
     Pipe *_pipe;

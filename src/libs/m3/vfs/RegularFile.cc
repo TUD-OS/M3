@@ -152,11 +152,30 @@ size_t RegularFile::seek(size_t off, int whence) {
     assert((off & (DTU_PKG_SIZE - 1)) == 0);
     size_t global, extoff;
     size_t pos;
-    // optimize that special case
+
+    // seek to beginning?
     if(whence == M3FS_SEEK_SET && off == 0) {
         global = 0;
         extoff = 0;
         pos = 0;
+    }
+    // is it already in our local data?
+    // TODO we could support that for SEEK_CUR as well
+    else if(whence == M3FS_SEEK_SET && _pos.valid() && off >= _begin && off < _begin + _length) {
+        size_t begin = _begin;
+        for(size_t i = 0; i < MAX_LOCS; ++i) {
+            size_t len = _locs.get(i);
+            if(!len || (off >= begin && off < begin + len)) {
+                _pos.global += i - _pos.local;
+                _pos.local = i;
+                // this has to be aligned. read() will consider this
+                _pos.offset = (off - begin) & ~(DTU_PKG_SIZE - 1);
+                adjust_written_part();
+                return off;
+            }
+            begin += len;
+        }
+        UNREACHED;
     }
     else {
         global = _pos.global;
@@ -372,26 +391,6 @@ ssize_t RegularFile::fill(void *buffer, size_t size) {
         return static_cast<ssize_t>(size);
     }
     return res;
-}
-
-bool RegularFile::seek_to(size_t newpos) {
-    // is it already in our local data?
-    if(_pos.valid() && newpos >= _begin && newpos < _begin + _length) {
-        size_t begin = _begin;
-        for(size_t i = 0; i < MAX_LOCS; ++i) {
-            size_t len = _locs.get(i);
-            if(!len || (newpos >= begin && newpos < begin + len)) {
-                _pos.global += i - _pos.local;
-                _pos.local = i;
-                // this has to be aligned. read() will consider this
-                _pos.offset = (newpos - begin) & ~(DTU_PKG_SIZE - 1);
-                adjust_written_part();
-                return true;
-            }
-            begin += len;
-        }
-    }
-    return false;
 }
 
 size_t RegularFile::serialize_length() {
