@@ -95,16 +95,18 @@ int main(int argc, char **argv) {
         indirect = strcmp(argv[1], "indirect") == 0;
     }
 
+    MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
+
     if(direct) {
         {
             VPE writer("writer");
-            DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
+            DirectPipe pipe(VPE::self(), writer, mem, MEM_SIZE);
             child_to_parent("  dir:c->p", writer, pipe);
         }
 
         {
             VPE reader("reader");
-            DirectPipe pipe(reader, VPE::self(), MEM_SIZE);
+            DirectPipe pipe(reader, VPE::self(), mem, MEM_SIZE);
             parent_to_child("  dir:p->c", reader, pipe);
         }
     }
@@ -112,13 +114,13 @@ int main(int argc, char **argv) {
     if(indirect) {
         {
             VPE writer("writer");
-            IndirectPipe pipe(MEM_SIZE);
+            IndirectPipe pipe(mem, MEM_SIZE);
             child_to_parent("indir:c->p", writer, pipe);
         }
 
         {
             VPE reader("reader");
-            IndirectPipe pipe(MEM_SIZE);
+            IndirectPipe pipe(mem, MEM_SIZE);
             parent_to_child("indir:p->c", reader, pipe);
         }
     }

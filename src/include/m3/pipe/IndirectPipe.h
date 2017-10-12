@@ -24,8 +24,7 @@ namespace m3 {
 
 class IndirectPipe {
 public:
-    explicit IndirectPipe(size_t memsize);
-    explicit IndirectPipe(MemGate &&mem, size_t memsize);
+    explicit IndirectPipe(MemGate &mem, size_t memsize);
     ~IndirectPipe();
 
     /**
@@ -51,7 +50,7 @@ public:
     void close_writer();
 
 private:
-    MemGate _mem;
+    MemGate &_mem;
     Pipe _pipe;
     fd_t _rdfd;
     fd_t _wrfd;

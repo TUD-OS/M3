@@ -24,12 +24,8 @@
 
 namespace m3 {
 
-IndirectPipe::IndirectPipe(size_t memsize)
-    : IndirectPipe(MemGate::create_global(memsize, MemGate::RW), memsize) {
-}
-
-IndirectPipe::IndirectPipe(MemGate &&mem, size_t memsize)
-    : _mem(Util::forward<MemGate>(mem)), _pipe("pipe", memsize),
+IndirectPipe::IndirectPipe(MemGate &mem, size_t memsize)
+    : _mem(mem), _pipe("pipe", memsize),
       _rdfd(VPE::self().fds()->alloc(new IndirectPipeReader(_mem.sel(), &_pipe))),
       _wrfd(VPE::self().fds()->alloc(new IndirectPipeWriter(_mem.sel(), &_pipe))) {
 }

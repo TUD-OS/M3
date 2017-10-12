@@ -29,7 +29,8 @@ using namespace m3;
 
 #define VERBOSE     0
 
-static const int REPEATS    = 4;
+static const size_t PIPE_SHM_SIZE   = 128 * 1024;
+static const int REPEATS            = 4;
 
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)
@@ -98,6 +99,8 @@ int main(int argc, char **argv) {
     if(argc != 5 + wargs + rargs)
         usage(argv[0]);
 
+    MemGate pipemem = MemGate::create_global(PIPE_SHM_SIZE, MemGate::RW);
+
     for(int j = 0; j < REPEATS; ++j) {
         App *apps[4];
 
@@ -139,13 +142,15 @@ int main(int argc, char **argv) {
         if(apps[1])
             wait_for("m3fs2");
 
+        MemGate *vpemem = nullptr;
         VPE *memvpe = nullptr;
         IndirectPipe *pipe;
         if(mem == 0)
-            pipe = new IndirectPipe(128 * 1024);
+            pipe = new IndirectPipe(pipemem, PIPE_SHM_SIZE);
         else {
             memvpe = new VPE("mem");
-            pipe = new IndirectPipe(memvpe->mem().derive(0x10000, 128 * 1024, MemGate::RW), 128 * 1024);
+            vpemem = new MemGate(memvpe->mem().derive(0x10000, PIPE_SHM_SIZE, MemGate::RW));
+            pipe = new IndirectPipe(*vpemem, PIPE_SHM_SIZE);
         }
 
         if(VERBOSE) cout << "Starting reader and writer...\n";
@@ -197,6 +202,7 @@ int main(int argc, char **argv) {
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
         delete pipe;
+        delete vpemem;
         delete memvpe;
 
         if(VERBOSE) cout << "Done\n";

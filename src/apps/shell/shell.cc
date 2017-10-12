@@ -28,6 +28,8 @@
 
 using namespace m3;
 
+static const size_t PIPE_SHM_SIZE  = 128 * 1024;
+
 static struct {
     const char *name;
     PEDesc pe;
@@ -48,6 +50,7 @@ static PEDesc get_pe_type(const char *name) {
 static bool execute(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
+    MemGate *mems[MAX_CMDS] = {nullptr};
 
     fd_t infd = STDIN_FD;
     fd_t outfd = STDOUT_FD;
@@ -103,7 +106,8 @@ static bool execute(CmdList *list, bool muxed) {
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
         }
         else {
-            pipes[i] = new IndirectPipe(512 * 1024);
+            mems[i] = new MemGate(MemGate::create_global(PIPE_SHM_SIZE, MemGate::RW));
+            pipes[i] = new IndirectPipe(*mems[i], PIPE_SHM_SIZE);
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
 
@@ -133,8 +137,10 @@ static bool execute(CmdList *list, bool muxed) {
             delete vpes[i];
         }
     }
-    for(size_t i = 0; i < list->count; ++i)
+    for(size_t i = 0; i < list->count; ++i) {
+        delete mems[i];
         delete pipes[i];
+    }
     if(infd != STDIN_FD)
         VFS::close(infd);
     if(outfd != STDOUT_FD)

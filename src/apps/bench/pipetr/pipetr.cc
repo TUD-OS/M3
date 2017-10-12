@@ -45,7 +45,8 @@ int main(int argc, char **argv) {
     cycles_t start = Profile::start(0);
 
     VPE writer("writer");
-    DirectPipe pipe(VPE::self(), writer, MEM_SIZE);
+    MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
+    DirectPipe pipe(VPE::self(), writer, mem, MEM_SIZE);
 
     writer.mounts(*VPE::self().mounts());
     writer.obtain_mounts();

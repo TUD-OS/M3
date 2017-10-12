@@ -28,7 +28,8 @@ alignas(DTU_PKG_SIZE) static char buffer[0x100];
 
 int main() {
     {
-        IndirectPipe pipe(0x1000);
+        MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
+        IndirectPipe pipe(mem, 0x1000);
         VPE reader("reader");
         VPE reader2("reader2");
         VPE writer("writer");
@@ -93,7 +94,8 @@ int main() {
     }
 
     {
-        IndirectPipe pipe(0x1000);
+        MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
+        IndirectPipe pipe(mem, 0x1000);
         VPE reader("reader");
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
@@ -125,7 +127,8 @@ int main() {
     }
 
     {
-        IndirectPipe pipe(0x100000);
+        MemGate mem = MemGate::create_global(0x100000, MemGate::RW);
+        IndirectPipe pipe(mem, 0x100000);
         VPE reader("reader");
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
@@ -155,7 +158,8 @@ int main() {
 
     {
         VPE writer("writer");
-        DirectPipe pipe(VPE::self(), writer, 0x1000);
+        MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
+        DirectPipe pipe(VPE::self(), writer, mem, 0x1000);
 
         writer.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
         writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
@@ -185,7 +189,8 @@ int main() {
     {
         VPE reader("reader");
         VPE writer("writer");
-        DirectPipe pipe(reader, writer, 0x1000);
+        MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
+        DirectPipe pipe(reader, writer, mem, 0x1000);
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
@@ -225,7 +230,8 @@ int main() {
         VPE t2("t2");
 
         // t1 -> t2
-        DirectPipe p1(t2, t1, 0x1000);
+        MemGate mem1 = MemGate::create_global(0x1000, MemGate::RW);
+        DirectPipe p1(t2, t1, mem1, 0x1000);
 
         t1.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));
         t1.fds()->set(STDOUT_FD, VPE::self().fds()->get(p1.writer_fd()));
@@ -242,7 +248,8 @@ int main() {
         });
 
         // t2 -> self
-        DirectPipe p2(VPE::self(), t2, 0x1000);
+        MemGate mem2 = MemGate::create_global(0x1000, MemGate::RW);
+        DirectPipe p2(VPE::self(), t2, mem2, 0x1000);
 
         t2.fds()->set(STDIN_FD, VPE::self().fds()->get(p1.reader_fd()));
         t2.fds()->set(STDOUT_FD, VPE::self().fds()->get(p2.writer_fd()));
@@ -277,7 +284,8 @@ int main() {
     {
         VPE reader("reader");
 
-        DirectPipe pipe(reader, VPE::self(), 64);
+        MemGate mem = MemGate::create_global(64, MemGate::RW);
+        DirectPipe pipe(reader, VPE::self(), mem, 64);
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
         reader.fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));

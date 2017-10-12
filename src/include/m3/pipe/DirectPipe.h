@@ -108,9 +108,10 @@ public:
      *
      * @param rd the reader of the pipe
      * @param wr the writer of the pipe
+     * @param mem the shared memory area
      * @param size the size of the shared memory area
      */
-    explicit DirectPipe(VPE &rd, VPE &wr, size_t size);
+    explicit DirectPipe(VPE &rd, VPE &wr, MemGate &mem, size_t size);
     DirectPipe(const DirectPipe&) = delete;
     DirectPipe &operator=(const DirectPipe&) = delete;
     ~DirectPipe();
