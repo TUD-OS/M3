@@ -103,4 +103,27 @@ private:
     SendGate _gate;
 };
 
+template<>
+struct OStreamSize<FileInfo> {
+    static const size_t value = 9 * sizeof(xfer_t);
+};
+
+static inline Unmarshaller &operator>>(Unmarshaller &u, FileInfo &info) {
+    u >> info.devno >> info.inode >> info.mode >> info.links >> info.size >> info.lastaccess
+      >> info.lastmod >> info.extents >> info.firstblock;
+    return u;
+}
+
+static inline GateIStream &operator>>(GateIStream &is, FileInfo &info) {
+    is >> info.devno >> info.inode >> info.mode >> info.links >> info.size >> info.lastaccess
+      >> info.lastmod >> info.extents >> info.firstblock;
+    return is;
+}
+
+static inline Marshaller &operator<<(Marshaller &m, const FileInfo &info) {
+    m << info.devno << info.inode << info.mode << info.links << info.size << info.lastaccess
+      << info.lastmod << info.extents << info.firstblock;
+    return m;
+}
+
 }
