@@ -2,6 +2,7 @@
 #![feature(i128_type)]
 #![feature(offset_to)]
 #![feature(alloc, allocator_internals)]
+#![feature(compiler_builtins_lib)]
 #![feature(macro_reexport)]
 #![feature(asm)]
 #![feature(const_fn)]
@@ -15,6 +16,7 @@
 extern crate alloc;
 #[macro_use]
 extern crate bitflags;
+extern crate compiler_builtins;
 
 use core::intrinsics;
 
@@ -99,10 +101,5 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
     io::print_fmt(msg);
     println!("");
     exit(1);
-    unsafe { intrinsics::abort() }
-}
-
-#[no_mangle]
-pub extern "C" fn __muloti4() {
     unsafe { intrinsics::abort() }
 }
