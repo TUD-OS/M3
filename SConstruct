@@ -1,6 +1,6 @@
 import os, sys
-import ConfigParser
-import StringIO
+import configparser
+from io import StringIO
 sys.path.insert(0, 'src/tools')
 import install
 
@@ -10,7 +10,7 @@ if target == 't2' or target == 't3':
 
     # config (prefix it with [root] to make it usable from bash and python)
     ini_str = '[root]\n' + open('hw/th/config.ini', 'r').read()
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.readfp(StringIO.StringIO(ini_str))
 
     if target == 't3':
