@@ -68,10 +68,10 @@ pub fn min<T: Ord>(a: T, b: T) -> T {
 
 pub fn max<T: Ord>(a: T, b: T) -> T {
     if a > b {
-        b
+        a
     }
     else {
-        a
+        b
     }
 }
 
