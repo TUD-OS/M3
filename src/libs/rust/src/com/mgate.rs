@@ -79,6 +79,10 @@ impl MemGate {
         })
     }
 
+    pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
+        self.gate.rebind(sel)
+    }
+
     pub fn sel(&self) -> cap::Selector {
         self.gate.cap.sel()
     }

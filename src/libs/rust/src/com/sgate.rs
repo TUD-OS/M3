@@ -76,6 +76,10 @@ impl SendGate {
         self.gate.ep
     }
 
+    pub fn rebind(&mut self, sel: Selector) -> Result<(), Error> {
+        self.gate.rebind(sel)
+    }
+
     pub fn activate(&mut self) -> Result<EpId, Error> {
         self.gate.activate()
     }

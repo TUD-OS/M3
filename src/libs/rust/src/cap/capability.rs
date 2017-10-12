@@ -38,13 +38,22 @@ impl Capability {
     pub fn flags(&self) -> Flags {
         self.flags
     }
-}
 
-impl ops::Drop for Capability {
-    fn drop(&mut self) {
+    pub fn rebind(&mut self, sel: Selector) {
+        self.release();
+        self.sel = sel;
+    }
+
+    fn release(&mut self) {
         if (self.flags & Flags::KEEP_CAP).is_empty() {
             let crd = kif::cap::CapRngDesc::new_from(kif::cap::Type::OBJECT, self.sel, 1);
             syscalls::revoke(0, crd, true).ok();
         }
+    }
+}
+
+impl ops::Drop for Capability {
+    fn drop(&mut self) {
+        self.release();
     }
 }

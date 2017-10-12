@@ -1,10 +1,10 @@
-use cap::Flags;
+use cap::{Flags, Selector};
 use com::gate::Gate;
 use dtu::EpId;
 use dtu;
 use errors::Error;
 use errors;
-use kif;
+use kif::INVALID_SEL;
 use syscalls;
 use vpe;
 
@@ -32,7 +32,7 @@ impl EpMux {
     pub fn reserve(&mut self, ep: EpId) {
         // take care that some non-fixed gate could already use that endpoint
         if let Some(g) = self.gate_at_ep(ep) {
-            syscalls::activate(0, kif::INVALID_SEL, g.ep.unwrap(), 0).ok();
+            syscalls::activate(0, INVALID_SEL, g.ep.unwrap(), 0).ok();
             g.ep = None;
         }
         self.gates[ep] = None;
@@ -46,12 +46,23 @@ impl EpMux {
         Ok(idx)
     }
 
+    pub fn switch_cap(&mut self, g: &mut Gate, sel: Selector) -> Result<(), Error> {
+        if let Some(ep) = g.ep {
+            try!(syscalls::activate(0, sel, ep, 0));
+            if sel == INVALID_SEL {
+                self.gates[ep] = None;
+                g.ep = None;
+            }
+        }
+        Ok(())
+    }
+
     pub fn remove(&mut self, g: &mut Gate) {
         let ep = g.ep.unwrap();
         self.gates[ep] = None;
         // only necessary if we won't revoke the gate anyway
         if !(g.cap.flags() & Flags::KEEP_CAP).is_empty() {
-            syscalls::activate(0, kif::INVALID_SEL, ep, 0).ok();
+            syscalls::activate(0, INVALID_SEL, ep, 0).ok();
         }
         g.ep = None;
     }

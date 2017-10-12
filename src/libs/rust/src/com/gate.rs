@@ -24,6 +24,12 @@ impl Gate {
         }
     }
 
+    pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
+        try!(EpMux::get().switch_cap(self, sel));
+        self.cap.rebind(sel);
+        Ok(())
+    }
+
     pub fn activate(&mut self) -> Result<EpId, Error> {
         match self.ep {
             Some(ep) => Ok(ep),
