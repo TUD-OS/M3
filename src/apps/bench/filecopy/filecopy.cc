@@ -27,6 +27,8 @@ using namespace m3;
 
 alignas(64) static char buffer[8192];
 
+static const int REPEATS = 5;
+
 int main(int argc, char **argv) {
     if(argc < 3)
         exitmsg("Usage: " << argv[0] << " <in> <out>");
@@ -39,20 +41,22 @@ int main(int argc, char **argv) {
             exitmsg("Mounting root-fs failed");
     }
 
-    FileRef input(argv[1], FILE_R);
-    if(Errors::occurred())
-        exitmsg("open of " << argv[1] << " failed");
+    for(int i = 0; i < REPEATS; ++i) {
+        FileRef input(argv[1], FILE_R);
+        if(Errors::occurred())
+            exitmsg("open of " << argv[1] << " failed");
 
-    FileRef output(argv[2], FILE_W | FILE_TRUNC | FILE_CREATE);
-    if(Errors::occurred())
-        exitmsg("open of " << argv[2] << " failed");
+        FileRef output(argv[2], FILE_W | FILE_TRUNC | FILE_CREATE);
+        if(Errors::occurred())
+            exitmsg("open of " << argv[2] << " failed");
 
-    cycles_t start = Profile::start(1);
-    ssize_t count;
-    while((count = input->read(buffer, sizeof(buffer))) > 0)
-        output->write(buffer, static_cast<size_t>(count));
-    cycles_t end = Profile::stop(1);
+        cycles_t start = Profile::start(1);
+        ssize_t count;
+        while((count = input->read(buffer, sizeof(buffer))) > 0)
+            output->write(buffer, static_cast<size_t>(count));
+        cycles_t end = Profile::stop(1);
 
-    cout << "Copy time: " << (end - start) << " cycles\n";
+        cout << "Copy time: " << (end - start) << " cycles\n";
+    }
     return 0;
 }

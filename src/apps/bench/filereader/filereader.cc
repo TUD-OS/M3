@@ -26,6 +26,8 @@ using namespace m3;
 
 alignas(64) static char buffer[8192];
 
+static const int REPEATS = 5;
+
 int main(int argc, char **argv) {
     if(argc < 2)
         exitmsg("Usage: " << argv[0] << " <filename>");
@@ -33,15 +35,17 @@ int main(int argc, char **argv) {
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
-    FileRef file(argv[1], FILE_R);
-    if(Errors::occurred())
-        exitmsg("open of " << argv[1] << " failed");
+    for(int i = 0; i < REPEATS; ++i) {
+        FileRef file(argv[1], FILE_R);
+        if(Errors::occurred())
+            exitmsg("open of " << argv[1] << " failed");
 
-    cycles_t start = Profile::start(1);
-    while(file->read(buffer, sizeof(buffer)) > 0)
-        ;
-    cycles_t end = Profile::stop(1);
+        cycles_t start = Profile::start(1);
+        while(file->read(buffer, sizeof(buffer)) > 0)
+            ;
+        cycles_t end = Profile::stop(1);
 
-    cout << "Read time: " << (end - start) << " cycles\n";
+        cout << "Read time: " << (end - start) << " cycles\n";
+    }
     return 0;
 }
