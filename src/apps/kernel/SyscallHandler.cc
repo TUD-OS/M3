@@ -284,6 +284,9 @@ void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
         << ", size=" << m3::fmt(1UL << order, "#x")
         << ", msgsize=" << m3::fmt(1UL << msgorder, "#x") << ")");
 
+    if(!vpe->objcaps().unused(dst))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate selector");
+
     if(msgorder > order)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid arguments");
     if((1UL << (order - msgorder)) > MAX_RB_SIZE)
