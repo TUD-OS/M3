@@ -31,7 +31,7 @@ bitflags! {
 pub type ValueType = u32;
 
 #[repr(C, packed)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct PEDesc {
     val: ValueType,
 }

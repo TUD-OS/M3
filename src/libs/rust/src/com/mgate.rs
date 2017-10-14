@@ -8,6 +8,7 @@ use vpe;
 
 pub use kif::Perm;
 
+#[derive(Debug)]
 pub struct MemGate {
     gate: Gate,
 }

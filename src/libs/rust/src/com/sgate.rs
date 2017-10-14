@@ -8,6 +8,7 @@ use kif::INVALID_SEL;
 use syscalls;
 use vpe;
 
+#[derive(Debug)]
 pub struct SendGate {
     gate: Gate,
 }

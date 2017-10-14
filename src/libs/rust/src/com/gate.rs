@@ -7,6 +7,7 @@ use errors::Error;
 
 pub type EpId = dtu::EpId;
 
+#[derive(Debug)]
 pub struct Gate {
     pub cap: Capability,
     pub ep: Option<EpId>,

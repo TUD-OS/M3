@@ -8,6 +8,7 @@ use syscalls;
 
 static mut CUR: Option<VPE> = None;
 
+#[derive(Debug)]
 pub struct VPE {
     cap: Capability,
     pe: PEDesc,

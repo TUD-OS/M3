@@ -26,6 +26,7 @@ static mut UPC_RGATE: RecvGate = RecvGate::new_def(dtu::UPCALL_REP);
 static mut DEF_RGATE: RecvGate = RecvGate::new_def(dtu::DEF_REP);
 
 #[repr(C, packed)]
+#[derive(Debug)]
 pub struct RBufSpace {
     pub cur: usize,
     pub end: usize,
@@ -47,6 +48,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
 pub struct RecvGate<'v> {
     gate: Gate,
     buf: usize,

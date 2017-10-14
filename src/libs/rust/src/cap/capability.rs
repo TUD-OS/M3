@@ -19,6 +19,7 @@ impl Flags {
     }
 }
 
+#[derive(Debug)]
 pub struct Capability {
     sel: Selector,
     flags: Flags,
