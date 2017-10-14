@@ -98,3 +98,57 @@ impl MemGate {
         dtu::DTU::write(ep, data, off, 0)
     }
 }
+
+pub mod tests {
+    use super::*;
+
+    pub fn run(t: &mut ::test::Tester) {
+        run_test!(t, create);
+        run_test!(t, create_readonly);
+        run_test!(t, create_writeonly);
+        run_test!(t, derive);
+        run_test!(t, read_write);
+    }
+
+    fn create() {
+        assert_err!(MemGate::new_with(MGateArgs::new(0x1000, Perm::R).sel(1)), Error::InvArgs);
+    }
+
+    fn create_readonly() {
+        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::R));
+        let mut data = [0u8; 8];
+        assert_err!(mgate.write(&data, 0), Error::InvEP);
+        assert_ok!(mgate.read(&mut data, 0));
+    }
+
+    fn create_writeonly() {
+        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::W));
+        let mut data = [0u8; 8];
+        assert_err!(mgate.read(&mut data, 0), Error::InvEP);
+        assert_ok!(mgate.write(&data, 0));
+    }
+
+    fn derive() {
+        let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
+        assert_err!(mgate.derive(0x0, 0x2000, Perm::RW), Error::InvArgs);
+        assert_err!(mgate.derive(0x1000, 0x10, Perm::RW), Error::InvArgs);
+        assert_err!(mgate.derive(0x800, 0x1000, Perm::RW), Error::InvArgs);
+        let mut dgate = assert_ok!(mgate.derive(0x800, 0x800, Perm::R));
+        let mut data = [0u8; 8];
+        assert_err!(dgate.write(&data, 0), Error::InvEP);
+        assert_ok!(dgate.read(&mut data, 0));
+    }
+
+    fn read_write() {
+        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
+        let refdata = [0u8, 1, 2, 3, 4, 5, 6, 7];
+        let mut data = refdata.clone();
+        assert_ok!(mgate.write(&data, 0));
+        assert_ok!(mgate.read(&mut data, 0));
+        assert_eq!(data, refdata);
+
+        assert_ok!(mgate.read(&mut data[0..4], 4));
+        assert_eq!(&data[0..4], &refdata[4..8]);
+        assert_eq!(&data[4..8], &refdata[4..8]);
+    }
+}

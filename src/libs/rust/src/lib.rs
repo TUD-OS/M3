@@ -25,8 +25,8 @@ pub mod collections {
     pub use alloc::btree_map::BTreeMap;
     pub use alloc::btree_set::BTreeSet;
     pub use alloc::linked_list::LinkedList;
-    pub use alloc::vec_deque::VecDeque;
     pub use alloc::string::{String, ToString};
+    pub use alloc::vec_deque::VecDeque;
     pub use alloc::vec::Vec;
 }
 
@@ -46,6 +46,8 @@ pub mod cell {
 pub mod io;
 #[macro_use]
 pub mod util;
+#[macro_use]
+pub mod test;
 #[macro_use]
 pub mod com;
 
