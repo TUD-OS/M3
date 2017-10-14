@@ -39,11 +39,16 @@ impl EpMux {
     }
 
     pub fn switch_to(&mut self, g: &mut Gate) -> Result<EpId, Error> {
-        let idx = try!(self.select_victim());
-        try!(syscalls::activate(0, g.cap.sel(), idx, 0));
-        self.gates[idx] = Some(g);
-        g.ep = Some(idx);
-        Ok(idx)
+        match g.ep {
+            Some(idx) => Ok(idx),
+            None      => {
+                let idx = try!(self.select_victim());
+                try!(syscalls::activate(0, g.cap.sel(), idx, 0));
+                self.gates[idx] = Some(g);
+                g.ep = Some(idx);
+                Ok(idx)
+            }
+        }
     }
 
     pub fn switch_cap(&mut self, g: &mut Gate, sel: Selector) -> Result<(), Error> {
@@ -58,13 +63,14 @@ impl EpMux {
     }
 
     pub fn remove(&mut self, g: &mut Gate) {
-        let ep = g.ep.unwrap();
-        self.gates[ep] = None;
-        // only necessary if we won't revoke the gate anyway
-        if !(g.cap.flags() & Flags::KEEP_CAP).is_empty() {
-            syscalls::activate(0, INVALID_SEL, ep, 0).ok();
+        if let Some(ep) = g.ep {
+            self.gates[ep] = None;
+            // only necessary if we won't revoke the gate anyway
+            if !(g.cap.flags() & Flags::KEEP_CAP).is_empty() {
+                syscalls::activate(0, INVALID_SEL, ep, 0).ok();
+            }
+            g.ep = None;
         }
-        g.ep = None;
     }
 
     fn select_victim(&mut self) -> Result<EpId, Error> {
