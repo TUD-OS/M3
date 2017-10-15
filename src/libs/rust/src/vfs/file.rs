@@ -80,7 +80,9 @@ pub trait File {
     fn flags(&self) -> OpenFlags;
 
     fn stat(&self) -> Result<FileInfo, Error>;
+}
 
+pub trait Seek {
     fn seek(&mut self, off: usize, whence: SeekMode) -> Result<usize, Error>;
 }
 

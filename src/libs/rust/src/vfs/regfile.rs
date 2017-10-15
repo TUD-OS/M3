@@ -210,7 +210,9 @@ impl vfs::File for RegularFile {
     fn stat(&self) -> Result<vfs::FileInfo, Error> {
         self.sess.borrow_mut().fstat(self.fd)
     }
+}
 
+impl vfs::Seek for RegularFile {
     fn seek(&mut self, mut off: usize, whence: vfs::SeekMode) -> Result<usize, Error> {
         // simple cases first
         let pos = if whence == vfs::SeekMode::CUR && off == 0 {
