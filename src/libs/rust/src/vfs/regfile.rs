@@ -1,5 +1,7 @@
+use cap::Selector;
 use cell::{RefCell, RefMut};
 use com::MemGate;
+use core::fmt;
 use errors::Error;
 use kif::INVALID_SEL;
 use rc::Rc;
@@ -7,41 +9,46 @@ use session::{ExtId, Fd, M3FS, LocList, LocFlags};
 use time;
 use vfs;
 
-struct FilePos {
-    valid: bool,
-    extended: bool,
-    local: ExtId,
-    global: ExtId,
-    off: usize,
-    begin: usize,
-    fd: Fd,
+struct ExtentCache {
     locs: LocList,
+    first: ExtId,
+    offset: usize,
     length: usize,
-    mem: MemGate,
-    last_extent: ExtId,
-    last_off: usize,
 }
 
-impl FilePos {
-    pub fn new(fd: Fd) -> Self {
-        FilePos {
-            valid: false,
-            extended: false,
-            local: 0,
-            global: 0,
-            off: 0,
-            begin: 0,
-            fd: fd,
+impl ExtentCache {
+    pub fn new() -> Self {
+        ExtentCache {
             locs: LocList::new(),
+            first: 0,
+            offset: 0,
             length: 0,
-            mem: MemGate::new_bind(INVALID_SEL),
-            last_extent: 0,
-            last_off: 0,
         }
     }
 
-    pub fn find(&mut self, off: usize) -> Option<(ExtId, usize)> {
-        let mut begin = self.begin;
+    pub fn valid(&self) -> bool {
+        self.locs.count() > 0
+    }
+    pub fn invalidate(&mut self) {
+        self.locs.clear();
+    }
+
+    pub fn contains_pos(&self, off: usize) -> bool {
+        self.valid() && off >= self.offset && off < self.offset + self.length
+    }
+    pub fn contains_ext(&self, ext: ExtId) -> bool {
+        ext >= self.first && ext < self.first + self.locs.count() as ExtId
+    }
+
+    pub fn ext_len(&self, ext: ExtId) -> usize {
+        self.locs.get_len(ext - self.first)
+    }
+    pub fn sel(&self, ext: ExtId) -> Selector {
+        self.locs.get_sel(ext - self.first)
+    }
+
+    pub fn find(&self, off: usize) -> Option<(ExtId, usize)> {
+        let mut begin = self.offset;
         for i in 0..self.locs.count() {
             let len = self.locs.get_len(i as ExtId);
             if len == 0 || (off >= begin && off < begin + len) {
@@ -52,100 +59,146 @@ impl FilePos {
         None
     }
 
-    pub fn get_amount(&mut self, extlen: usize, count: usize) -> usize {
-        if count >= extlen - self.off {
-            let res = extlen - self.off;
-            self.next_extent();
-            res
-        }
-        else {
-            let res = count;
-            self.off += res;
-            res
-        }
-    }
-
-    pub fn get(&mut self, sess: RefMut<M3FS>, writing: bool, rebind: bool) -> Result<usize, Error> {
-        if !self.valid || self.locs.get_len(self.local) == 0 {
-            try!(self.request(sess, writing));
-        }
-
-        // don't read past the so far written part
-        if self.extended && !writing && self.global + self.local >= self.last_extent {
-            if self.global + self.local > self.last_extent {
-                Ok(0)
-            }
-            // take care that there is at least something to read; if not, break here to not advance
-            // to the next extent (see get_amount).
-            else if self.off >= self.last_off {
-                Ok(0)
-            }
-            else {
-                Ok(self.last_off)
-            }
-        }
-        else {
-            let len = self.locs.get_len(self.local);
-
-            if rebind && len != 0 && self.mem.sel() != self.locs.get_sel(self.local) {
-                try!(self.mem.rebind(self.locs.get_sel(self.local)));
-            }
-            Ok(len)
-        }
-    }
-
-    pub fn adjust_written_part(&mut self) {
-        if self.extended && self.global + self.local > self.last_extent ||
-           (self.global + self.local == self.last_extent && self.off > self.last_off) {
-            self.last_extent = self.global + self.local;
-            self.last_off = self.off;
-        }
-    }
-
-    fn request(&mut self, mut sess: RefMut<M3FS>, writing: bool) -> Result<(), Error> {
-        let flags = if writing { LocFlags::EXTEND } else { LocFlags::empty() };
-
+    pub fn request_next(&mut self, mut sess: RefMut<M3FS>, fd: Fd, writing: bool) -> Result<bool, Error> {
         // move forward
-        self.begin += self.length;
+        self.offset += self.length;
         self.length = 0;
-        self.global += self.local;
-        self.local = 0;
+        self.first += self.locs.count() as ExtId;
         self.locs.clear();
 
         // get new locations
-        self.extended |= try!(sess.get_locs(self.fd, self.global, &mut self.locs, flags)).1;
-        self.valid = true;
+        let flags = if writing { LocFlags::EXTEND } else { LocFlags::empty() };
+        let extended = try!(sess.get_locs(fd, self.first, &mut self.locs, flags)).1;
 
         // cache new length
         self.length = self.locs.total_length();
 
-        let len = self.locs.get_len(0);
-        if self.off == len {
-            self.next_extent();
-        }
-        Ok(())
+        Ok(extended)
+    }
+}
+
+#[derive(Copy, Clone)]
+struct Position {
+    ext: ExtId,
+    extoff: usize,
+    abs: usize,
+}
+
+impl Position {
+    pub fn new() -> Self {
+        Self::new_with(0, 0, 0)
     }
 
-    fn next_extent(&mut self) {
-        self.local += 1;
-        self.off = 0;
+    pub fn new_with(ext: ExtId, extoff: usize, abs: usize) -> Self {
+        Position {
+            ext: ext,
+            extoff: extoff,
+            abs: abs,
+        }
+    }
+
+    pub fn advance(&mut self, extlen: usize, count: usize) -> usize {
+        if count >= extlen - self.extoff {
+            let res = extlen - self.extoff;
+            self.abs += res;
+            self.ext += 1;
+            self.extoff = 0;
+            res
+        }
+        else {
+            let res = count;
+            self.extoff += res;
+            self.abs += res;
+            res
+        }
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Pos[abs={:#0x}, ext={}, extoff={:#0x}]", self.abs, self.ext, self.extoff)
     }
 }
 
 pub struct RegularFile {
     sess: Rc<RefCell<M3FS>>,
-    pos: FilePos,
+    fd: Fd,
     flags: vfs::OpenFlags,
-}
 
+    pos: Position,
+
+    cache: ExtentCache,
+    mem: MemGate,
+
+    extended: bool,
+    max_write: Position,
+}
 
 impl RegularFile {
     pub fn new(sess: Rc<RefCell<M3FS>>, fd: Fd, flags: vfs::OpenFlags) -> Self {
         RegularFile {
             sess: sess,
-            pos: FilePos::new(fd),
+            fd: fd,
             flags: flags,
+            pos: Position::new(),
+            cache: ExtentCache::new(),
+            mem: MemGate::new_bind(INVALID_SEL),
+            extended: false,
+            max_write: Position::new(),
         }
+    }
+
+    fn get_ext_len(&mut self, writing: bool, rebind: bool) -> Result<usize, Error> {
+        if !self.cache.valid() || self.cache.ext_len(self.pos.ext) == 0 {
+            self.extended |= try!(self.cache.request_next(self.sess.borrow_mut(), self.fd, writing));
+        }
+
+        // don't read past the so far written part
+        if self.extended && !writing && self.pos.ext >= self.max_write.ext {
+            if self.pos.ext > self.max_write.ext || self.pos.extoff >= self.max_write.extoff {
+                Ok(0)
+            }
+            else {
+                Ok(self.max_write.extoff)
+            }
+        }
+        else {
+            let len = self.cache.ext_len(self.pos.ext);
+
+            if rebind && len != 0 && self.mem.sel() != self.cache.sel(self.pos.ext) {
+                try!(self.mem.rebind(self.cache.sel(self.pos.ext)));
+            }
+            Ok(len)
+        }
+    }
+
+    fn set_pos(&mut self, pos: Position) {
+        self.pos = pos;
+
+        // if our global extent has changed, we have to get new locations
+        if !self.cache.contains_ext(pos.ext) {
+            self.cache.invalidate();
+            self.cache.first = pos.ext;
+            self.cache.offset = pos.abs;
+        }
+
+        // update last write pos accordingly
+        if self.extended && self.pos.abs > self.max_write.abs {
+            self.max_write = self.pos;
+        }
+    }
+
+    fn advance(&mut self, extlen: usize, count: usize, writing: bool) -> usize {
+        let lastpos = self.pos;
+        let amount = self.pos.advance(extlen, count);
+
+        // remember the max. position we wrote to
+        if writing && lastpos.abs + amount > self.max_write.abs {
+            self.max_write = lastpos;
+            self.max_write.extoff += amount;
+            self.max_write.abs += amount;
+        }
+        amount
     }
 }
 
@@ -155,65 +208,51 @@ impl vfs::File for RegularFile {
     }
 
     fn stat(&self) -> Result<vfs::FileInfo, Error> {
-        self.sess.borrow_mut().fstat(self.pos.fd)
+        self.sess.borrow_mut().fstat(self.fd)
     }
 
     fn seek(&mut self, off: usize, whence: vfs::SeekMode) -> Result<usize, Error> {
-        struct Position {
-            pub global: ExtId,
-            pub extoff: usize,
-            pub pos: usize,
-        }
-
-        // is it already in our local data?
+        // is it already in our cache?
         // TODO we could support that for SEEK_CUR as well
-        let pos = if whence == vfs::SeekMode::SET && self.pos.valid &&
-                     off >= self.pos.begin && off < self.pos.begin + self.pos.length {
+        let pos = if whence == vfs::SeekMode::SET && self.cache.contains_pos(off) {
             // this is always successful, because we checked the range before
-            let (ext, begin) = self.pos.find(off).unwrap();
+            let (ext, begin) = self.cache.find(off).unwrap();
 
-            self.pos.local = ext;
             Position {
-                global: self.pos.global,
+                ext: self.cache.first + ext,
                 extoff: off - begin,
-                pos: off,
+                abs: off,
             }
         }
         // seek to beginning?
         else if whence == vfs::SeekMode::SET && off == 0 {
             Position {
-                global: 0,
+                ext: 0,
                 extoff: 0,
-                pos: 0,
+                abs: 0,
             }
         }
         else {
             let (new_ext, new_ext_off, new_pos) = try!(self.sess.borrow_mut().seek(
-                self.pos.fd, off, whence, self.pos.global, self.pos.off
+                self.fd, off, whence, self.cache.first, self.pos.extoff
             ));
             Position {
-                global: new_ext,
+                ext: new_ext,
                 extoff: new_ext_off,
-                pos: new_pos,
+                abs: new_pos,
             }
         };
 
-        // if our global extent has changed, we have to get new locations
-        if pos.global != self.pos.global {
-            self.pos.valid = false;
-            self.pos.global = pos.global;
-            self.pos.begin = pos.pos;
-        }
-        self.pos.off = pos.extoff;
-        self.pos.adjust_written_part();
+        let res = pos.abs;
+        self.set_pos(pos);
 
         log!(
             FS,
-            "[{}] seek ({:#0x}, {}) -> ext={}, off={:#0x})",
-            self.pos.fd, off, whence.val, self.pos.global, self.pos.off
+            "[{}] seek ({:#0x}, {}) -> {}",
+            self.fd, off, whence.val, self.pos
         );
 
-        Ok(pos.pos)
+        Ok(res)
     }
 }
 
@@ -227,27 +266,24 @@ impl vfs::Read for RegularFile {
         let mut bufoff = 0;
         while count > 0 {
             // figure out where that part of the file is in memory, based on our location db
-            let extlen = try!(self.pos.get(self.sess.borrow_mut(), false, true));
+            let extlen = try!(self.get_ext_len(false, true));
             if extlen == 0 {
                 break;
             }
 
             // determine next off and idx
-            let lastglobal = self.pos.global + self.pos.local;
-            let memoff = self.pos.off;
-            let amount = self.pos.get_amount(extlen, count);
+            let lastpos = self.pos;
+            let amount = self.advance(extlen, count, false);
 
             log!(
                 FS,
-                "[{}] read ({:#0x} bytes <- ext={}, off={:#0x})",
-                self.pos.fd, amount, lastglobal, memoff
+                "[{}] read ({:#0x} bytes <- {})",
+                self.fd, amount, lastpos
             );
 
             // read from global memory
-            // we need to round up here because the filesize might not be a multiple of DTU_PKG_SIZE
-            // in which case the last extent-size is not aligned
             time::start(0xaaaa);
-            try!(self.pos.mem.read(&mut buf[bufoff..bufoff + amount], memoff));
+            try!(self.mem.read(&mut buf[bufoff..bufoff + amount], lastpos.extoff));
             time::stop(0xaaaa);
 
             bufoff += amount;
@@ -271,33 +307,24 @@ impl vfs::Write for RegularFile {
         let mut bufoff = 0;
         while count > 0 {
             // figure out where that part of the file is in memory, based on our location db
-            let extlen = try!(self.pos.get(self.sess.borrow_mut(), true, true));
+            let extlen = try!(self.get_ext_len(true, true));
             if extlen == 0 {
                 break;
             }
 
             // determine next off and idx
-            let lastglobal = self.pos.global + self.pos.local;
-            let memoff = self.pos.off;
-            let amount = self.pos.get_amount(extlen, count);
-
-            // remember the max. position we wrote to
-            if lastglobal >= self.pos.last_extent {
-                if lastglobal > self.pos.last_extent || memoff + amount > self.pos.last_off {
-                    self.pos.last_off = memoff + amount;
-                }
-                self.pos.last_extent = lastglobal;
-            }
+            let lastpos = self.pos;
+            let amount = self.advance(extlen, count, true);
 
             log!(
                 FS,
-                "[{}] write ({:#0x} bytes -> ext={}, off={:#0x})",
-                self.pos.fd, amount, lastglobal, memoff
+                "[{}] write ({:#0x} bytes -> {})",
+                self.fd, amount, lastpos
             );
 
             // write to global memory
             time::start(0xaaaa);
-            try!(self.pos.mem.write(&buf[bufoff..bufoff + amount], memoff));
+            try!(self.mem.write(&buf[bufoff..bufoff + amount], lastpos.extoff));
             time::stop(0xaaaa);
 
             bufoff += amount;
@@ -309,7 +336,7 @@ impl vfs::Write for RegularFile {
 
 impl Drop for RegularFile {
     fn drop(&mut self) {
-        self.sess.borrow_mut().close(self.pos.fd, self.pos.last_extent, self.pos.last_off).unwrap();
+        self.sess.borrow_mut().close(self.fd, self.max_write.ext, self.max_write.extoff).unwrap();
     }
 }
 
@@ -440,7 +467,8 @@ pub mod tests {
     fn write_fmt() {
         let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
 
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/newfile", OpenFlags::CREATE | OpenFlags::RW));
+        let mut file = assert_ok!(m3fs.borrow_mut().open("/newfile",
+            OpenFlags::CREATE | OpenFlags::RW));
 
         assert_ok!(write!(file, "This {:.3} is the {}th test of {:#0X}!\n", "foobar", 42, 0xABCDEF));
         assert_ok!(write!(file, "More formatting: {:?}", Some(Some(1))));
@@ -534,7 +562,7 @@ pub mod tests {
             assert_eq!(file.read(&mut buf), Ok(0));
 
             // seek beyond the end
-            assert_eq!(file.seek(4 * 1024, SeekMode::SET), Ok(4 * 1024));
+            assert_eq!(file.seek(2 * 1024, SeekMode::CUR), Ok(4 * 1024));
             // seek back
             assert_eq!(file.seek(2 * 1024, SeekMode::SET), Ok(2 * 1024));
 
