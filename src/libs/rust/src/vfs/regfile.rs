@@ -211,39 +211,43 @@ impl vfs::File for RegularFile {
         self.sess.borrow_mut().fstat(self.fd)
     }
 
-    fn seek(&mut self, off: usize, whence: vfs::SeekMode) -> Result<usize, Error> {
-        // is it already in our cache?
-        // TODO we could support that for SEEK_CUR as well
-        let pos = if whence == vfs::SeekMode::SET && self.cache.contains_pos(off) {
-            // this is always successful, because we checked the range before
-            let (ext, begin) = self.cache.find(off).unwrap();
-
-            Position {
-                ext: self.cache.first + ext,
-                extoff: off - begin,
-                abs: off,
-            }
+    fn seek(&mut self, mut off: usize, whence: vfs::SeekMode) -> Result<usize, Error> {
+        // simple cases first
+        let pos = if whence == vfs::SeekMode::CUR && off == 0 {
+            self.pos
         }
-        // seek to beginning?
         else if whence == vfs::SeekMode::SET && off == 0 {
-            Position {
-                ext: 0,
-                extoff: 0,
-                abs: 0,
-            }
+            Position::new()
         }
         else {
-            let (new_ext, new_ext_off, new_pos) = try!(self.sess.borrow_mut().seek(
-                self.fd, off, whence, self.cache.first, self.pos.extoff
-            ));
-            Position {
-                ext: new_ext,
-                extoff: new_ext_off,
-                abs: new_pos,
+            if whence == vfs::SeekMode::CUR {
+                off += self.pos.abs;
+            }
+
+            // is it already in our cache?
+            if whence != vfs::SeekMode::END && self.cache.contains_pos(off) {
+                // this is always successful, because we checked the range before
+                let (ext, begin) = self.cache.find(off).unwrap();
+
+                Position {
+                    ext: self.cache.first + ext,
+                    extoff: off - begin,
+                    abs: off,
+                }
+            }
+            // otherwise, ask m3fs
+            else {
+                let (new_ext, new_ext_off, new_pos) = try!(self.sess.borrow_mut().seek(
+                    self.fd, off, whence, self.cache.first, self.pos.extoff
+                ));
+                Position {
+                    ext: new_ext,
+                    extoff: new_ext_off,
+                    abs: new_pos,
+                }
             }
         };
 
-        let res = pos.abs;
         self.set_pos(pos);
 
         log!(
@@ -252,7 +256,7 @@ impl vfs::File for RegularFile {
             self.fd, off, whence.val, self.pos
         );
 
-        Ok(res)
+        Ok(self.pos.abs)
     }
 }
 
