@@ -179,13 +179,13 @@ impl M3FS {
 }
 
 impl FileSystem<RegularFile> for M3FS {
-    fn open(&mut self, path: &str, perms: OpenFlags) -> Result<RegularFile, Error> {
+    fn open(&mut self, path: &str, flags: OpenFlags) -> Result<RegularFile, Error> {
         let mut reply = try!(send_recv_res!(
             &mut self.sgate, RecvGate::def(),
-            Operation::OPEN, path, perms.bits()
+            Operation::OPEN, path, flags.bits()
         ));
         let fd = reply.pop();
-        Ok(RegularFile::new(self.self_weak.upgrade().unwrap(), fd, perms))
+        Ok(RegularFile::new(self.self_weak.upgrade().unwrap(), fd, flags))
     }
 
     fn stat(&mut self, path: &str) -> Result<FileInfo, Error> {
