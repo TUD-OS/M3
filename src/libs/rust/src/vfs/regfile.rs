@@ -266,34 +266,28 @@ impl vfs::Read for RegularFile {
             return Err(Error::NoPerm)
         }
 
-        let mut count = buf.len();
-        let mut bufoff = 0;
-        while count > 0 {
-            // figure out where that part of the file is in memory, based on our location db
-            let extlen = try!(self.get_ext_len(false, true));
-            if extlen == 0 {
-                break;
-            }
-
-            // determine next off and idx
-            let lastpos = self.pos;
-            let amount = self.advance(extlen, count, false);
-
-            log!(
-                FS,
-                "[{}] read ({:#0x} bytes <- {})",
-                self.fd, amount, lastpos
-            );
-
-            // read from global memory
-            time::start(0xaaaa);
-            try!(self.mem.read(&mut buf[bufoff..bufoff + amount], lastpos.extoff));
-            time::stop(0xaaaa);
-
-            bufoff += amount;
-            count -= amount;
+        // figure out where that part of the file is in memory, based on our location db
+        let extlen = try!(self.get_ext_len(false, true));
+        if extlen == 0 {
+            return Ok(0)
         }
-        Ok(bufoff)
+
+        // determine next off and idx
+        let lastpos = self.pos;
+        let amount = self.advance(extlen, buf.len(), false);
+
+        log!(
+            FS,
+            "[{}] read ({:#0x} bytes <- {})",
+            self.fd, amount, lastpos
+        );
+
+        // read from global memory
+        time::start(0xaaaa);
+        try!(self.mem.read(&mut buf[0..amount], lastpos.extoff));
+        time::stop(0xaaaa);
+
+        Ok(amount)
     }
 }
 
@@ -307,34 +301,28 @@ impl vfs::Write for RegularFile {
             return Err(Error::NoPerm)
         }
 
-        let mut count = buf.len();
-        let mut bufoff = 0;
-        while count > 0 {
-            // figure out where that part of the file is in memory, based on our location db
-            let extlen = try!(self.get_ext_len(true, true));
-            if extlen == 0 {
-                break;
-            }
-
-            // determine next off and idx
-            let lastpos = self.pos;
-            let amount = self.advance(extlen, count, true);
-
-            log!(
-                FS,
-                "[{}] write ({:#0x} bytes -> {})",
-                self.fd, amount, lastpos
-            );
-
-            // write to global memory
-            time::start(0xaaaa);
-            try!(self.mem.write(&buf[bufoff..bufoff + amount], lastpos.extoff));
-            time::stop(0xaaaa);
-
-            bufoff += amount;
-            count -= amount;
+        // figure out where that part of the file is in memory, based on our location db
+        let extlen = try!(self.get_ext_len(true, true));
+        if extlen == 0 {
+            return Ok(0)
         }
-        Ok(bufoff)
+
+        // determine next off and idx
+        let lastpos = self.pos;
+        let amount = self.advance(extlen, buf.len(), true);
+
+        log!(
+            FS,
+            "[{}] write ({:#0x} bytes -> {})",
+            self.fd, amount, lastpos
+        );
+
+        // write to global memory
+        time::start(0xaaaa);
+        try!(self.mem.write(&buf[0..amount], lastpos.extoff));
+        time::stop(0xaaaa);
+
+        Ok(amount)
     }
 }
 
