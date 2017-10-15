@@ -29,18 +29,19 @@ impl Session {
 
     pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
         let crd = CapRngDesc::new_from(cap::Type::OBJECT, sel, 1);
-        let mut args = [];
-        self.delegate(crd, &mut args).map(|_| ())
+        let sargs = [];
+        let mut rargs = [];
+        self.delegate(crd, &sargs, &mut rargs).map(|_| ())
     }
 
-    pub fn delegate(&self, crd: CapRngDesc, args: &mut [u64]) -> Result<usize, Error> {
-        syscalls::delegate(self.sel(), crd, args)
+    pub fn delegate(&self, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+        syscalls::delegate(self.sel(), crd, sargs, rargs)
     }
 
-    pub fn obtain(&self, count: u32, args: &mut [u64]) -> Result<(usize, CapRngDesc), Error> {
+    pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, CapRngDesc), Error> {
         let caps = vpe::VPE::cur().alloc_caps(count);
         let crd = CapRngDesc::new_from(cap::Type::OBJECT, caps, count);
-        let num = try!(syscalls::obtain(self.sel(), crd, args));
+        let num = try!(syscalls::obtain(self.sel(), crd, sargs, rargs));
         Ok((num, crd))
     }
 }

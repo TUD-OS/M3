@@ -161,32 +161,33 @@ pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) 
     send_receive_result(&[req])
 }
 
-pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<usize, Error> {
+pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
 
-    exchange_sess(syscalls::Operation::Delegate, sess, crd, args)
+    exchange_sess(syscalls::Operation::Delegate, sess, crd, sargs, rargs)
 }
 
-pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, args: &mut [u64]) -> Result<usize, Error> {
+pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
 
-    exchange_sess(syscalls::Operation::Obtain, sess, crd, args)
+    exchange_sess(syscalls::Operation::Obtain, sess, crd, sargs, rargs)
 }
 
 fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
-                 args: &mut [u64]) -> Result<usize, Error> {
-    assert!(args.len() <= syscalls::MAX_EXCHG_ARGS);
+                 sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+    assert!(sargs.len() <= syscalls::MAX_EXCHG_ARGS);
+    assert!(rargs.len() <= syscalls::MAX_EXCHG_ARGS);
 
     let mut req = syscalls::ExchangeSess {
         opcode: op as u64,
         sess_sel: sess as u64,
         crd: crd.value(),
-        argcount: args.len() as u64,
+        argcount: sargs.len() as u64,
         args: unsafe { intrinsics::uninit() },
     };
 
-    for i in 0..args.len() {
-        req.args[i] = args[i];
+    for i in 0..sargs.len() {
+        req.args[i] = sargs[i];
     }
 
     let msg = try!(send_receive(&[req]));
@@ -197,7 +198,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
     let err = reply.error;
     if err == 0 {
         for i in 0..reply.argcount as usize {
-            args[i] = reply.args[i];
+            rargs[i] = reply.args[i];
         }
     }
 

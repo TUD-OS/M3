@@ -125,7 +125,7 @@ impl M3FS {
 
     pub fn new(name: &str) -> Result<Rc<RefCell<Self>>, Error> {
         let sess = try!(Session::new(name, 0));
-        let sgate = SendGate::new_bind(try!(sess.obtain(1, &mut [])).1.start());
+        let sgate = SendGate::new_bind(try!(sess.obtain(1, &[], &mut [])).1.start());
         Ok(Self::create(sess, sgate))
     }
 
@@ -135,15 +135,15 @@ impl M3FS {
 
     pub fn get_locs(&mut self, fd: Fd, ext: ExtId, locs: &mut LocList,
                     flags: LocFlags) -> Result<(usize, bool), Error> {
-        // reserve space for replied arguments
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
-        let mut args: [u64; 6] = [fd as u64, ext as u64, loc_count as u64, flags.bits as u64, 0, 0];
-        let (num, crd) = try!(self.sess.obtain(MAX_LOCS as u32, &mut args[0..4]));
+        let sargs: [u64; 4] = [fd as u64, ext as u64, loc_count as u64, flags.bits as u64];
+        let mut rargs = [0u64; 2 + MAX_LOCS];
+        let (num, crd) = try!(self.sess.obtain(MAX_LOCS as u32, &sargs, &mut rargs));
         locs.set_sel(crd.start());
         for i in 2..num {
-            locs.append(args[i] as usize);
+            locs.append(rargs[i] as usize);
         }
-        Ok((args[1] as usize, args[0] == 1))
+        Ok((rargs[1] as usize, rargs[0] == 1))
     }
 
     pub fn fstat(&mut self, fd: Fd) -> Result<FileInfo, Error> {
