@@ -5,6 +5,7 @@ use env;
 use errors::Error;
 use kif::{cap, CapRngDesc, PEDesc};
 use syscalls;
+use util;
 
 static mut CUR: Option<VPE> = None;
 
@@ -77,21 +78,16 @@ impl VPE {
         &mut self.rbufs
     }
 
-    pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
+    pub fn delegate_obj(&mut self, sel: Selector) -> Result<(), Error> {
         self.delegate(CapRngDesc::new_from(cap::Type::OBJECT, sel, 1))
     }
-    pub fn delegate(&self, crd: CapRngDesc) -> Result<(), Error> {
+    pub fn delegate(&mut self, crd: CapRngDesc) -> Result<(), Error> {
         let start = crd.start();
         self.delegate_to(crd, start)
     }
-    pub fn delegate_to(&self, crd: CapRngDesc, dst: Selector) -> Result<(), Error> {
+    pub fn delegate_to(&mut self, crd: CapRngDesc, dst: Selector) -> Result<(), Error> {
         try!(syscalls::exchange(self.sel(), crd, dst, false));
-        // TODO
-        // for sel in 0..crd.count() {
-        //     if !Self::cur().is_cap_free(sel + crd.start()) {
-        //         self.caps.set(dest + sel);
-        //     }
-        // }
+        self.next_sel = util::max(self.next_sel, dst + crd.count());
         Ok(())
     }
 
