@@ -107,13 +107,13 @@ impl VPE {
     }
 
     pub fn start(&self) -> Result<(), Error> {
-        Ok(())
+        unimplemented!();
     }
     pub fn stop(&self) -> Result<(), Error> {
-        Ok(())
+        unimplemented!();
     }
     pub fn wait(&self) -> Result<i32, Error> {
-        Ok(0)
+        unimplemented!();
     }
 }
 
