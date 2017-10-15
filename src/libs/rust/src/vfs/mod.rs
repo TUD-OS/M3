@@ -5,3 +5,7 @@ pub mod regfile;
 pub use self::file::{File, FileInfo, FileMode, OpenFlags, SeekMode, Read, Write};
 pub use self::filesystem::FileSystem;
 pub use self::regfile::RegularFile;
+
+pub mod tests {
+    pub use super::regfile::tests as regfile;
+}

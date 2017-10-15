@@ -4,7 +4,7 @@ use libc;
 // TODO how to move the logging stuff to somewhere else?
 pub const SYSC: bool  = false;
 pub const HEAP: bool  = false;
-pub const FS: bool    = true;
+pub const FS: bool    = false;
 
 #[macro_export]
 macro_rules! log {
