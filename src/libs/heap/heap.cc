@@ -115,7 +115,8 @@ USED void *heap_alloc(size_t size) {
 
 USED void *heap_calloc(size_t n, size_t size) {
     void *ptr = heap_alloc(n * size);
-    memset(ptr, 0, n * size);
+    if(ptr)
+        memset(ptr, 0, n * size);
     return ptr;
 }
 
@@ -127,9 +128,11 @@ USED void *heap_realloc(void *p, size_t size) {
     void *newp = heap_alloc(size);
 
     /* copy old content over and free old area */
-    HeapArea *a = backwards(reinterpret_cast<HeapArea*>(p), sizeof(HeapArea));
-    memcpy(newp, p, (a->next & ~HEAP_USED_BITS) - sizeof(HeapArea));
-    heap_free(p);
+    if(newp) {
+        HeapArea *a = backwards(reinterpret_cast<HeapArea*>(p), sizeof(HeapArea));
+        memcpy(newp, p, (a->next & ~HEAP_USED_BITS) - sizeof(HeapArea));
+        heap_free(p);
+    }
     return newp;
 }
 
