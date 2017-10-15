@@ -95,7 +95,7 @@ pub trait Read {
         let mut off = 0;
         while off < max {
             // increase length so that we can write into the slice
-            unsafe { buf.set_len(off); }
+            unsafe { buf.set_len(max); }
             let amount = try!(self.read(&mut buf.as_mut_slice()[off..max]));
 
             // stop on EOF
