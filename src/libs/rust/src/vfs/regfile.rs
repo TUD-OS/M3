@@ -293,7 +293,7 @@ impl vfs::Read for RegularFile {
 
 impl vfs::Write for RegularFile {
     fn flush(&mut self) -> Result<(), Error> {
-        Err(Error::NotSup)
+        Ok(())
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
