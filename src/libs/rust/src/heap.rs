@@ -41,6 +41,7 @@ pub fn init() {
             libc::heap_set_free_callback(heap_free_callback);
         }
         libc::heap_set_dblfree_callback(heap_dblfree_callback);
+        libc::heap_set_oom_callback(heap_oom_callback);
     }
 }
 
@@ -54,6 +55,10 @@ extern fn heap_free_callback(p: *const u8) {
 
 extern fn heap_dblfree_callback(p: *const u8) {
     println!("Used bits not set for {:?}; double free?", p);
+}
+
+extern fn heap_oom_callback(size: usize) {
+    panic!("Unable to allocate {} bytes on the heap: out of memory", size);
 }
 
 #[no_mangle]

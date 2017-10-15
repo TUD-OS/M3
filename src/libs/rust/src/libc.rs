@@ -13,6 +13,6 @@ extern {
 
     pub fn heap_set_alloc_callback(cb: extern fn(p: *const u8, size: usize));
     pub fn heap_set_free_callback(cb: extern fn(p: *const u8));
-    // pub fn heap_set_oom_callback(cb: extern fn(size: usize));
+    pub fn heap_set_oom_callback(cb: extern fn(size: usize));
     pub fn heap_set_dblfree_callback(cb: extern fn(p: *const u8));
 }
