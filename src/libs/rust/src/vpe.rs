@@ -70,7 +70,7 @@ impl VPE {
     }
 
     pub fn free_ep(&mut self, ep: EpId) {
-        self.eps &= 1 << ep;
+        self.eps &= !(1 << ep);
     }
 
     pub fn rbufs(&mut self) -> &mut RBufSpace {
