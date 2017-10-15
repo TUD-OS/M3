@@ -34,16 +34,16 @@ bitflags! {
 #[derive(Debug)]
 #[repr(C, packed)]
 pub struct FileInfo {
-    devno: DevId,
-    inode: INodeId,
-    mode: FileMode,
-    links: u32,
-    size: usize,
-    lastaccess: u32,
-    lastmod: u32,
+    pub devno: DevId,
+    pub inode: INodeId,
+    pub mode: FileMode,
+    pub links: u32,
+    pub size: usize,
+    pub lastaccess: u32,
+    pub lastmod: u32,
     // for debugging
-    extents: u32,
-    firstblock: BlockId,
+    pub extents: u32,
+    pub firstblock: BlockId,
 }
 
 impl Marshallable for FileInfo {
