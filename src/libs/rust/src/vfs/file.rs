@@ -3,11 +3,7 @@ use com::{Marshallable, Unmarshallable, GateOStream, GateIStream};
 use collections::*;
 use errors::Error;
 use util;
-
-pub type FileMode = u16;
-pub type DevId = u8;
-pub type INodeId = u32;
-pub type BlockId = u32;
+use vfs::{DevId, INodeId, FileMode, BlockId};
 
 int_enum! {
     pub struct SeekMode : u32 {

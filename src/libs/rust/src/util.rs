@@ -32,6 +32,22 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
     }
 }
 
+pub fn to_bytes<T : Sized>(obj: &T) -> &[u8] {
+    let p: *const T = obj;
+    let p: *const u8 = p as *const u8;
+    unsafe {
+        slice::from_raw_parts(p, size_of::<T>())
+    }
+}
+
+pub fn to_bytes_mut<T : Sized>(obj: &mut T) -> &mut [u8] {
+    let p: *mut T = obj;
+    let p: *mut u8 = p as *mut u8;
+    unsafe {
+        slice::from_raw_parts_mut(p, size_of::<T>())
+    }
+}
+
 fn _next_log2(size: usize, shift: i32) -> i32 {
     if size > (1 << shift) {
         shift + 1

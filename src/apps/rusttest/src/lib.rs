@@ -16,6 +16,10 @@ pub fn main() -> i32 {
     {
         let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
 
+        for e in read_dir(m3fs.clone(), "/").expect("Unable to read directory") {
+            println!("name: {}, inode: {}", e.file_name(), e.inode());
+        }
+
         {
             let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::W | OpenFlags::CREATE)
                 .expect("create of /test2.txt failed");

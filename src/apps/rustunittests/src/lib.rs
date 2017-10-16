@@ -28,8 +28,9 @@ pub fn main() -> i32 {
     run_suite!(tester, m3::com::tests::mgate::run);
     run_suite!(tester, m3::com::tests::rgate::run);
     run_suite!(tester, m3::com::tests::sgate::run);
-    run_suite!(tester, m3::vfs::tests::regfile::run);
+    run_suite!(tester, m3::vfs::tests::dir::run);
     run_suite!(tester, m3::vfs::tests::bufio::run);
+    run_suite!(tester, m3::vfs::tests::regfile::run);
     run_suite!(tester, m3::session::tests::m3fs::run);
 
     0

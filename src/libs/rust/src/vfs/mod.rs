@@ -1,14 +1,22 @@
 pub mod bufio;
+pub mod dir;
 pub mod file;
 pub mod filesystem;
 pub mod regfile;
 
+pub type FileMode = u16;
+pub type DevId = u8;
+pub type INodeId = u32;
+pub type BlockId = u32;
+
 pub use self::bufio::{BufReader, BufWriter};
-pub use self::file::{File, FileInfo, FileMode, OpenFlags, SeekMode, Seek, Read, Write};
+pub use self::dir::{DirEntry, ReadDir, read_dir};
+pub use self::file::{File, FileInfo, OpenFlags, SeekMode, Seek, Read, Write};
 pub use self::filesystem::FileSystem;
 pub use self::regfile::RegularFile;
 
 pub mod tests {
-    pub use super::regfile::tests as regfile;
     pub use super::bufio::tests as bufio;
+    pub use super::dir::tests as dir;
+    pub use super::regfile::tests as regfile;
 }
