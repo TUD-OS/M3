@@ -35,6 +35,30 @@ fn send_receive_result<T>(msg: &[T]) -> Result<(), Error> {
     }
 }
 
+pub fn create_srv(dst: CapSel, rgate: CapSel, name: &str) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::create_srv(dst={}, rgate={}, name={})",
+        dst, rgate, name
+    );
+
+    let namelen = util::min(name.len(), syscalls::MAX_STR_SIZE);
+    let mut req = syscalls::CreateSrv {
+        opcode: syscalls::Operation::CreateSrv as u64,
+        dst_sel: dst as u64,
+        rgate_sel: rgate as u64,
+        namelen: namelen as u64,
+        name: unsafe { intrinsics::uninit() },
+    };
+
+    // copy name
+    for (a, c) in req.name.iter_mut().zip(name.bytes()) {
+        *a = c as u8;
+    }
+
+    send_receive_result(&[req])
+}
+
 pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
     log!(
         SYSC,

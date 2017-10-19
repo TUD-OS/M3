@@ -68,6 +68,10 @@ impl MemGate {
         }
     }
 
+    pub fn sel(&self) -> cap::Selector {
+        self.gate.cap.sel()
+    }
+
     pub fn derive(&self, offset: usize, size: usize, perm: Perm) -> Result<Self, Error> {
         let sel = vpe::VPE::cur().alloc_cap();
         self.derive_with_sel(offset, size, perm, sel)
@@ -82,10 +86,6 @@ impl MemGate {
 
     pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
         self.gate.rebind(sel)
-    }
-
-    pub fn sel(&self) -> cap::Selector {
-        self.gate.cap.sel()
     }
 
     pub fn read<T>(&mut self, data: &mut [T], off: usize) -> Result<(), Error> {

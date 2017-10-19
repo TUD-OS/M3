@@ -1,7 +1,8 @@
-pub mod syscalls;
 pub mod cap;
 pub mod perm;
 pub mod pedesc;
+pub mod service;
+pub mod syscalls;
 
 pub use self::perm::Perm;
 pub use self::pedesc::PEDesc;

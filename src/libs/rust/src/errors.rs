@@ -1,7 +1,7 @@
 use core::intrinsics;
 use core::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Error {
     // DTU errors
     MissCredits = 1,

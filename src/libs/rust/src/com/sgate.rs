@@ -73,6 +73,10 @@ impl SendGate {
         }
     }
 
+    pub fn sel(&self) -> Selector {
+        self.gate.cap.sel()
+    }
+
     pub fn ep(&self) -> Option<dtu::EpId> {
         self.gate.ep
     }

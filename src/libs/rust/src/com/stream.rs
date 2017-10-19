@@ -4,7 +4,6 @@ use core::intrinsics;
 use core::ops;
 use core::slice;
 use dtu;
-use dtu::EpId;
 use errors::Error;
 use libc;
 use util;
@@ -37,19 +36,25 @@ impl GateOStream {
     }
 }
 
-pub struct GateIStream {
+pub struct GateIStream<'r> {
     pub msg: &'static dtu::Message,
     pub pos: usize,
-    pub ep: EpId,
+    rgate: &'r RecvGate<'r>,
+    ack: bool,
 }
 
-impl GateIStream {
-    pub fn new(msg: &'static dtu::Message, ep: EpId) -> Self {
+impl<'r> GateIStream<'r> {
+    pub fn new(msg: &'static dtu::Message, rgate: &'r RecvGate<'r>) -> Self {
         GateIStream {
             msg: msg,
             pos: 0,
-            ep: ep,
+            rgate: rgate,
+            ack: true,
         }
+    }
+
+    pub fn label(&self) -> u64 {
+        self.msg.header.label
     }
 
     pub fn data(&self) -> &'static [u64] {
@@ -66,11 +71,27 @@ impl GateIStream {
     pub fn pop<T : Unmarshallable>(&mut self) -> T {
         T::unmarshall(self)
     }
+
+    pub fn reply<T>(&mut self, reply: &[T]) -> Result<(), Error> {
+        match self.rgate.reply(reply, self.msg) {
+            Ok(_)   => {
+                self.ack = false;
+                Ok(())
+            },
+            Err(e)  => Err(e),
+        }
+    }
+
+    pub fn reply_os(&mut self, os: GateOStream) -> Result<(), Error> {
+        self.reply(&os.arr[0..os.pos])
+    }
 }
 
-impl ops::Drop for GateIStream {
+impl<'r> ops::Drop for GateIStream<'r> {
     fn drop(&mut self) {
-        dtu::DTU::mark_read(self.ep, self.msg);
+        if self.ack {
+            dtu::DTU::mark_read(self.rgate.ep().unwrap(), self.msg);
+        }
     }
 }
 
@@ -154,16 +175,29 @@ impl Unmarshallable for String {
 #[macro_export]
 macro_rules! send_vmsg {
     ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
-        let mut os = GateOStream::new();
+        let mut os = $crate::com::GateOStream::new();
         $( os.push(&$args); )*
         os.send($sg, $rg)
     });
 }
 
-pub fn recv_msg(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
-    match rgate.wait(None) {
+#[macro_export]
+macro_rules! reply_vmsg {
+    ( $is:expr, $( $args:expr ),* ) => ({
+        let mut os = $crate::com::GateOStream::new();
+        $( os.push(&$args); )*
+        $is.reply_os(os)
+    });
+}
+
+pub fn recv_msg<'r>(rgate: &'r mut RecvGate) -> Result<GateIStream<'r>, Error> {
+    recv_msg_from(rgate, None)
+}
+
+pub fn recv_msg_from<'r>(rgate: &'r mut RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
+    match rgate.wait(sgate) {
         Err(e) => Err(e),
-        Ok(msg) => Ok(GateIStream::new(msg, rgate.ep().unwrap())),
+        Ok(msg) => Ok(GateIStream::new(msg, rgate)),
     }
 }
 
@@ -184,8 +218,12 @@ macro_rules! recv_vmsg {
     });
 }
 
-pub fn recv_res(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
-    let mut reply = try!(recv_msg(rgate));
+pub fn recv_res<'r>(rgate: &'r mut RecvGate) -> Result<GateIStream<'r>, Error> {
+    recv_res_from(rgate, None)
+}
+
+pub fn recv_res_from<'r>(rgate: &'r mut RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
+    let mut reply = try!(recv_msg_from(rgate, sgate));
     let res: u32 = reply.pop();
     match res {
         0 => Ok(reply),
@@ -194,10 +232,20 @@ pub fn recv_res(rgate: &mut RecvGate) -> Result<GateIStream, Error> {
 }
 
 #[macro_export]
+macro_rules! send_recv {
+    ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
+        match send_vmsg!($sg, $rg, $( $args ),* ) {
+            Ok(_)   => recv_msg_from($rg, Some($sg)),
+            Err(e)  => Err(e),
+        }
+    });
+}
+
+#[macro_export]
 macro_rules! send_recv_res {
     ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
         match send_vmsg!($sg, $rg, $( $args ),* ) {
-            Ok(_)   => recv_res($rg),
+            Ok(_)   => recv_res_from($rg, Some($sg)),
             Err(e)  => Err(e),
         }
     });

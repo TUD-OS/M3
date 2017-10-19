@@ -120,6 +120,19 @@ impl DTU {
         Self::get_error()
     }
 
+    pub fn reply<T>(ep: EpId, reply: &[T], msg: &'static Message) -> Result<(), Error> {
+        let ptr: *const T = reply.as_ptr();
+        Self::write_cmd_reg(CmdReg::Data, Self::build_data(
+            ptr as *const u8, reply.len() * util::size_of::<T>()
+        ));
+        let slice: u128 = unsafe { intrinsics::transmute(msg) };
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
+            ep, CmdOpCode::REPLY, 0, slice as u64
+        ));
+
+        Self::get_error()
+    }
+
     pub fn read<T>(ep: EpId, data: &mut [T], off: usize, flags: u64) -> Result<(), Error> {
         let ptr: *mut T = data.as_ptr() as *mut T;
         let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags, 0);

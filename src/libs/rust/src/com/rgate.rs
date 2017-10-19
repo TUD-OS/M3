@@ -1,7 +1,7 @@
 use cap;
 use com::epmux::EpMux;
 use com::gate::{Gate, EpId};
-use com::SendGate;
+use com::{GateIStream, SendGate};
 use core::ops;
 use core::fmt;
 use dtu;
@@ -205,6 +205,21 @@ impl<'v> RecvGate<'v> {
         self.gate.ep = None;
 
         // TODO stop
+    }
+
+    pub fn fetch(&self) -> Option<GateIStream> {
+        let rep = self.ep().unwrap();
+        let msg = dtu::DTU::fetch_msg(rep);
+        if let Some(m) = msg {
+            Some(GateIStream::new(m, self))
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn reply<T>(&self, reply: &[T], msg: &'static dtu::Message) -> Result<(), Error> {
+        dtu::DTU::reply(self.ep().unwrap(), reply, msg)
     }
 
     pub fn wait(&mut self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {

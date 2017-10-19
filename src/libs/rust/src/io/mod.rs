@@ -5,6 +5,7 @@ use libc;
 pub const SYSC: bool  = false;
 pub const HEAP: bool  = false;
 pub const FS: bool    = false;
+pub const SERV: bool  = false;
 
 #[macro_export]
 macro_rules! log {

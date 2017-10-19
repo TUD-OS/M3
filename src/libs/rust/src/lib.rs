@@ -31,6 +31,10 @@ pub mod collections {
     pub use alloc::vec::Vec;
 }
 
+pub mod boxed {
+    pub use alloc::boxed::Box;
+}
+
 pub mod rc {
     pub use alloc::rc::{Rc, Weak};
 }
@@ -58,6 +62,7 @@ pub mod errors;
 pub mod dtu;
 pub mod heap;
 pub mod kif;
+pub mod server;
 pub mod session;
 pub mod syscalls;
 pub mod time;
