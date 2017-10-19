@@ -42,6 +42,11 @@ pub enum Operation {
 }
 
 #[repr(C, packed)]
+pub struct DefaultReply {
+    pub error: u64,
+}
+
+#[repr(C, packed)]
 pub struct Pagefault {
     pub opcode: u64,
     pub virt: u64,

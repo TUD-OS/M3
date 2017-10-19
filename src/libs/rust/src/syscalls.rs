@@ -4,11 +4,21 @@ use errors::Error;
 use kif::syscalls;
 use kif::cap;
 use kif::Perm;
-use util;
 
 type CapSel = cap::CapSel;
 
-fn send_receive<T>(msg: &[T]) -> Result<&'static dtu::Message, Error> {
+struct Reply<R: 'static> {
+    msg: &'static dtu::Message,
+    data: &'static R,
+}
+
+impl<R: 'static> Drop for Reply<R> {
+    fn drop(&mut self) {
+        dtu::DTU::mark_read(dtu::SYSC_REP, self.msg);
+    }
+}
+
+fn send_receive<T, R>(msg: &[T]) -> Result<Reply<R>, Error> {
     try!(dtu::DTU::send(dtu::SYSC_SEP, msg, 0, dtu::SYSC_REP));
 
     loop {
@@ -16,22 +26,21 @@ fn send_receive<T>(msg: &[T]) -> Result<&'static dtu::Message, Error> {
 
         let msg = dtu::DTU::fetch_msg(dtu::SYSC_REP);
         if let Some(m) = msg {
-            return Ok(m)
+            let data: &[R] = unsafe { intrinsics::transmute(&m.data) };
+            return Ok(Reply {
+                msg: m,
+                data: &data[0],
+            })
         }
     }
 }
 
 fn send_receive_result<T>(msg: &[T]) -> Result<(), Error> {
-    let reply = try!(send_receive(msg));
+    let reply: Reply<syscalls::DefaultReply> = try!(send_receive(msg));
 
-    // TODO better way?
-    let vals: &[u64] = unsafe { intrinsics::transmute(&reply.data) };
-    let err = vals[0] as u32;
-    dtu::DTU::mark_read(dtu::SYSC_REP, &reply);
-
-    match err {
+    match reply.data.error {
         0 => Ok(()),
-        e => Err(Error::from(e)),
+        e => Err(Error::from(e as u32)),
     }
 }
 
@@ -42,12 +51,11 @@ pub fn create_srv(dst: CapSel, rgate: CapSel, name: &str) -> Result<(), Error> {
         dst, rgate, name
     );
 
-    let namelen = util::min(name.len(), syscalls::MAX_STR_SIZE);
     let mut req = syscalls::CreateSrv {
         opcode: syscalls::Operation::CreateSrv as u64,
         dst_sel: dst as u64,
         rgate_sel: rgate as u64,
-        namelen: namelen as u64,
+        namelen: name.len() as u64,
         name: unsafe { intrinsics::uninit() },
     };
 
@@ -83,11 +91,10 @@ pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
         dst, name, arg
     );
 
-    let namelen = util::min(name.len(), syscalls::MAX_STR_SIZE);
     let mut req = syscalls::CreateSess {
         opcode: syscalls::Operation::CreateSess as u64,
         dst_sel: dst as u64,
-        namelen: namelen as u64,
+        namelen: name.len() as u64,
         name: unsafe { intrinsics::uninit() },
         arg: arg,
     };
@@ -214,22 +221,16 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
         req.args[i] = sargs[i];
     }
 
-    let msg = try!(send_receive(&[req]));
-    // TODO better way?
-    let data: &[syscalls::ExchangeSessReply] = unsafe { intrinsics::transmute(&msg.data) };
-    let ref reply = data[0];
-
-    let err = reply.error;
-    if err == 0 {
-        for i in 0..reply.argcount as usize {
-            rargs[i] = reply.args[i];
+    let reply: Reply<syscalls::ExchangeSessReply> = try!(send_receive(&[req]));
+    if reply.data.error == 0 {
+        for i in 0..reply.data.argcount as usize {
+            rargs[i] = reply.data.args[i];
         }
     }
 
-    dtu::DTU::mark_read(dtu::SYSC_REP, &msg);
-    match err {
-        0   => Ok(reply.argcount as usize),
-        e   => Err(Error::from(e as u32)),
+    match reply.data.error {
+        0 => Ok(reply.data.argcount as usize),
+        e => Err(Error::from(e as u32))
     }
 }
 
