@@ -5,7 +5,7 @@
 #![feature(compiler_builtins_lib)]
 #![feature(macro_reexport)]
 #![feature(asm)]
-#![feature(const_fn)]
+#![feature(const_fn, const_cell_new)]
 #![feature(rustc_private)]
 #![feature(trace_macros)]
 

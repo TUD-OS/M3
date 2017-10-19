@@ -2,7 +2,6 @@ use cap::{Flags, Selector};
 use com::gate::Gate;
 use com::RecvGate;
 use dtu;
-use dtu::EpId;
 use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;
@@ -74,23 +73,19 @@ impl SendGate {
     }
 
     pub fn sel(&self) -> Selector {
-        self.gate.cap.sel()
+        self.gate.sel()
     }
 
     pub fn ep(&self) -> Option<dtu::EpId> {
-        self.gate.ep
+        self.gate.ep()
     }
 
     pub fn rebind(&mut self, sel: Selector) -> Result<(), Error> {
         self.gate.rebind(sel)
     }
 
-    pub fn activate(&mut self) -> Result<EpId, Error> {
-        self.gate.activate()
-    }
-
-    pub fn send<T>(&mut self, msg: &[T], reply_gate: &RecvGate) -> Result<(), Error> {
-        let ep = try!(self.activate());
+    pub fn send<T>(&self, msg: &[T], reply_gate: &RecvGate) -> Result<(), Error> {
+        let ep = try!(self.gate.activate());
         dtu::DTU::send(ep, msg, 0, reply_gate.ep().unwrap())
     }
 }
@@ -111,7 +106,7 @@ pub mod tests {
 
     fn send_recv() {
         let mut rgate = assert_ok!(RecvGate::new(util::next_log2(512), util::next_log2(256)));
-        let mut sgate = assert_ok!(SendGate::new_with(
+        let sgate = assert_ok!(SendGate::new_with(
             SGateArgs::new(&rgate).credits(512).label(0x1234)
         ));
         assert!(sgate.ep().is_none());

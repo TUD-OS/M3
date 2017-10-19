@@ -143,14 +143,14 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn sel(&self) -> cap::Selector {
-        self.gate.cap.sel()
+        self.gate.sel()
     }
     pub fn ep(&self) -> Option<EpId> {
-        self.gate.ep
+        self.gate.ep()
     }
 
     pub fn activate(&mut self) -> Result<(), Error> {
-        if self.gate.ep.is_none() {
+        if self.ep().is_none() {
             let ep = try!(self.vpe().alloc_ep());
             self.free |= FreeFlags::FREE_EP;
             self.activate_ep(ep)
@@ -161,7 +161,7 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn activate_ep(&mut self, ep: EpId) -> Result<(), Error> {
-        if self.gate.ep.is_none() {
+        if self.ep().is_none() {
             let buf = if self.buf == 0 {
                 let size = 1 << self.order;
                 try!(Self::alloc_buf(self.vpe(), size))
@@ -181,16 +181,16 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn activate_for(&mut self, ep: EpId, addr: usize) -> Result<(), Error> {
-        assert!(self.gate.ep.is_none());
+        assert!(self.ep().is_none());
 
-        self.gate.ep = Some(ep);
+        self.gate.set_ep(ep);
 
         if self.vpe().sel() == vpe::VPE::cur().sel() {
             EpMux::get().reserve(ep);
         }
 
-        if self.gate.cap.sel() != INVALID_SEL {
-            syscalls::activate(0, self.gate.cap.sel(), ep, addr)
+        if self.sel() != INVALID_SEL {
+            syscalls::activate(0, self.sel(), ep, addr)
         }
         else {
             Ok(())
@@ -199,10 +199,10 @@ impl<'v> RecvGate<'v> {
 
     pub fn deactivate(&mut self) {
         if !(self.free & FreeFlags::FREE_EP).is_empty() {
-            let ep = self.gate.ep.unwrap();
+            let ep = self.ep().unwrap();
             self.vpe().free_ep(ep);
         }
-        self.gate.ep = None;
+        self.gate.unset_ep();
 
         // TODO stop
     }
@@ -222,10 +222,8 @@ impl<'v> RecvGate<'v> {
         dtu::DTU::reply(self.ep().unwrap(), reply, msg)
     }
 
-    pub fn wait(&mut self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
-        if self.gate.ep.is_none() {
-            try!(self.activate())
-        }
+    pub fn wait(&self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
+        assert!(self.ep().is_some());
 
         let rep = self.ep().unwrap();
         let idle = match sgate {

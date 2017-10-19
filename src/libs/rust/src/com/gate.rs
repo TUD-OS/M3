@@ -1,3 +1,4 @@
+use cell::Cell;
 use core::ops;
 use cap;
 use cap::Capability;
@@ -9,8 +10,8 @@ pub type EpId = dtu::EpId;
 
 #[derive(Debug)]
 pub struct Gate {
-    pub cap: Capability,
-    pub ep: Option<EpId>,
+    cap: Capability,
+    ep: Cell<Option<EpId>>,
 }
 
 impl Gate {
@@ -21,7 +22,32 @@ impl Gate {
     pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: Option<EpId>) -> Self {
         Gate {
             cap: Capability::new(sel, flags),
-            ep: ep,
+            ep: Cell::new(ep),
+        }
+    }
+
+    pub fn sel(&self) -> cap::Selector {
+        self.cap.sel()
+    }
+
+    pub fn flags(&self) -> cap::Flags {
+        self.cap.flags()
+    }
+
+    pub fn ep(&self) -> Option<EpId> {
+        self.ep.get()
+    }
+    pub fn set_ep(&self, ep: EpId) {
+        self.ep.set(Some(ep))
+    }
+    pub fn unset_ep(&self) {
+        self.ep.set(None)
+    }
+
+    pub fn activate(&self) -> Result<EpId, Error> {
+        match self.ep() {
+            Some(ep) => Ok(ep),
+            None     => EpMux::get().switch_to(self),
         }
     }
 
@@ -30,18 +56,11 @@ impl Gate {
         self.cap.rebind(sel);
         Ok(())
     }
-
-    pub fn activate(&mut self) -> Result<EpId, Error> {
-        match self.ep {
-            Some(ep) => Ok(ep),
-            None     => EpMux::get().switch_to(self),
-        }
-    }
 }
 
 impl ops::Drop for Gate {
     fn drop(&mut self) {
-        if self.ep.is_some() {
+        if self.ep().is_some() {
             EpMux::get().remove(self);
         }
     }

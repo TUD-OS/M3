@@ -44,8 +44,8 @@ impl VPE {
     pub fn pe(&self) -> PEDesc {
         self.pe
     }
-    pub fn mem(&mut self) -> &mut MemGate {
-        &mut self.mem
+    pub fn mem(&self) -> &MemGate {
+        &self.mem
     }
 
     pub fn alloc_cap(&mut self) -> Selector {

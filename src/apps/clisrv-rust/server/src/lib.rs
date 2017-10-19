@@ -102,7 +102,7 @@ impl<'r> MyHandler<'r> {
 
 #[no_mangle]
 pub fn main() -> i32 {
-    let mut s = Server::new("test").expect("Unable to create service 'test'");
+    let s = Server::new("test").expect("Unable to create service 'test'");
 
     let mut hdl = MyHandler::new().expect("Unable to create handler");
 

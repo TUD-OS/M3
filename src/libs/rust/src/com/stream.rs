@@ -31,7 +31,7 @@ impl GateOStream {
         item.marshall(self);
     }
 
-    pub fn send(&self, gate: &mut SendGate, reply_gate: &RecvGate) -> Result<(), Error> {
+    pub fn send(&self, gate: &SendGate, reply_gate: &RecvGate) -> Result<(), Error> {
         gate.send(&self.arr[0..self.pos], reply_gate)
     }
 }
@@ -190,11 +190,11 @@ macro_rules! reply_vmsg {
     });
 }
 
-pub fn recv_msg<'r>(rgate: &'r mut RecvGate) -> Result<GateIStream<'r>, Error> {
+pub fn recv_msg<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
     recv_msg_from(rgate, None)
 }
 
-pub fn recv_msg_from<'r>(rgate: &'r mut RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
+pub fn recv_msg_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
     match rgate.wait(sgate) {
         Err(e) => Err(e),
         Ok(msg) => Ok(GateIStream::new(msg, rgate)),
@@ -218,11 +218,11 @@ macro_rules! recv_vmsg {
     });
 }
 
-pub fn recv_res<'r>(rgate: &'r mut RecvGate) -> Result<GateIStream<'r>, Error> {
+pub fn recv_res<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
     recv_res_from(rgate, None)
 }
 
-pub fn recv_res_from<'r>(rgate: &'r mut RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
+pub fn recv_res_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
     let mut reply = try!(recv_msg_from(rgate, sgate));
     let res: u32 = reply.pop();
     match res {

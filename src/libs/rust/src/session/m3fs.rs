@@ -133,7 +133,7 @@ impl M3FS {
         Self::create(Session::new_bind(sess), SendGate::new_bind(sgate))
     }
 
-    pub fn get_locs(&mut self, fd: Fd, ext: ExtId, locs: &mut LocList,
+    pub fn get_locs(&self, fd: Fd, ext: ExtId, locs: &mut LocList,
                     flags: LocFlags) -> Result<(usize, bool), Error> {
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
         let sargs: [u64; 4] = [fd as u64, ext as u64, loc_count as u64, flags.bits as u64];
@@ -146,78 +146,78 @@ impl M3FS {
         Ok((rargs[1] as usize, rargs[0] == 1))
     }
 
-    pub fn fstat(&mut self, fd: Fd) -> Result<FileInfo, Error> {
+    pub fn fstat(&self, fd: Fd) -> Result<FileInfo, Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::FSTAT, fd
         ));
         Ok(reply.pop())
     }
 
-    pub fn seek(&mut self, fd: Fd, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
+    pub fn seek(&self, fd: Fd, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
                 -> Result<(ExtId, usize, usize), Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::SEEK, fd, off, mode, extent, extoff
         ));
         Ok((reply.pop(), reply.pop(), reply.pop()))
     }
 
-    pub fn commit(&mut self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
+    pub fn commit(&self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::COMMIT, fd, extent, off
         ).map(|_| ())
     }
 
-    pub fn close(&mut self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
+    pub fn close(&self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::CLOSE, fd, extent, off
         ).map(|_| ())
     }
 }
 
 impl FileSystem<RegularFile> for M3FS {
-    fn open(&mut self, path: &str, flags: OpenFlags) -> Result<RegularFile, Error> {
+    fn open(&self, path: &str, flags: OpenFlags) -> Result<RegularFile, Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::OPEN, path, flags.bits()
         ));
         let fd = reply.pop();
         Ok(RegularFile::new(self.self_weak.upgrade().unwrap(), fd, flags))
     }
 
-    fn stat(&mut self, path: &str) -> Result<FileInfo, Error> {
+    fn stat(&self, path: &str) -> Result<FileInfo, Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::STAT, path
         ));
         Ok(reply.pop())
     }
 
-    fn mkdir(&mut self, path: &str, mode: FileMode) -> Result<(), Error> {
+    fn mkdir(&self, path: &str, mode: FileMode) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::MKDIR, path, mode
         ).map(|_| ())
     }
-    fn rmdir(&mut self, path: &str) -> Result<(), Error> {
+    fn rmdir(&self, path: &str) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::RMDIR, path
         ).map(|_| ())
     }
 
-    fn link(&mut self, old_path: &str, new_path: &str) -> Result<(), Error> {
+    fn link(&self, old_path: &str, new_path: &str) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::LINK, old_path, new_path
         ).map(|_| ())
     }
-    fn unlink(&mut self, path: &str) -> Result<(), Error> {
+    fn unlink(&self, path: &str) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.sgate, RecvGate::def(),
+            &self.sgate, RecvGate::def(),
             Operation::UNLINK, path
         ).map(|_| ())
     }

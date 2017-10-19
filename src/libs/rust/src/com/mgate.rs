@@ -69,7 +69,7 @@ impl MemGate {
     }
 
     pub fn sel(&self) -> cap::Selector {
-        self.gate.cap.sel()
+        self.gate.sel()
     }
 
     pub fn derive(&self, offset: usize, size: usize, perm: Perm) -> Result<Self, Error> {
@@ -88,12 +88,12 @@ impl MemGate {
         self.gate.rebind(sel)
     }
 
-    pub fn read<T>(&mut self, data: &mut [T], off: usize) -> Result<(), Error> {
+    pub fn read<T>(&self, data: &mut [T], off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
         dtu::DTU::read(ep, data, off, 0)
     }
 
-    pub fn write<T>(&mut self, data: &[T], off: usize) -> Result<(), Error> {
+    pub fn write<T>(&self, data: &[T], off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
         dtu::DTU::write(ep, data, off, 0)
     }
@@ -115,14 +115,14 @@ pub mod tests {
     }
 
     fn create_readonly() {
-        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::R));
+        let mgate = assert_ok!(MemGate::new(0x1000, Perm::R));
         let mut data = [0u8; 8];
         assert_err!(mgate.write(&data, 0), Error::InvEP);
         assert_ok!(mgate.read(&mut data, 0));
     }
 
     fn create_writeonly() {
-        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::W));
+        let mgate = assert_ok!(MemGate::new(0x1000, Perm::W));
         let mut data = [0u8; 8];
         assert_err!(mgate.read(&mut data, 0), Error::InvEP);
         assert_ok!(mgate.write(&data, 0));
@@ -133,14 +133,14 @@ pub mod tests {
         assert_err!(mgate.derive(0x0, 0x2000, Perm::RW), Error::InvArgs);
         assert_err!(mgate.derive(0x1000, 0x10, Perm::RW), Error::InvArgs);
         assert_err!(mgate.derive(0x800, 0x1000, Perm::RW), Error::InvArgs);
-        let mut dgate = assert_ok!(mgate.derive(0x800, 0x800, Perm::R));
+        let dgate = assert_ok!(mgate.derive(0x800, 0x800, Perm::R));
         let mut data = [0u8; 8];
         assert_err!(dgate.write(&data, 0), Error::InvEP);
         assert_ok!(dgate.read(&mut data, 0));
     }
 
     fn read_write() {
-        let mut mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
+        let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
         let refdata = [0u8, 1, 2, 3, 4, 5, 6, 7];
         let mut data = refdata.clone();
         assert_ok!(mgate.write(&data, 0));

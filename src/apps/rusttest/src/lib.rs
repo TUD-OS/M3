@@ -82,7 +82,7 @@ pub fn main() -> i32 {
 
     {
         let mgate = MemGate::new(0x1000, Perm::RW).unwrap();
-        let mut mgate2 = mgate.derive(0x100, 0x100, Perm::RW).unwrap();
+        let mgate2 = mgate.derive(0x100, 0x100, Perm::RW).unwrap();
 
         let mut data: [u8; 16] = [12; 16];
         mgate2.write(&data, 0).unwrap();
@@ -96,17 +96,16 @@ pub fn main() -> i32 {
         let mut rgate = RecvGate::new(12, 8).unwrap();
         rgate.activate().unwrap();
 
-        let mut sgate = SendGate::new_with(
+        let sgate = SendGate::new_with(
             SGateArgs::new(&rgate).credits((1 << 8) * 10).label(0x1234)
         ).unwrap();
-        sgate.activate().unwrap();
 
         let mut total = 0;
         for _ in 0..10 {
             let start = time::start(0xDEADBEEF);
-            send_vmsg!(&mut sgate, RecvGate::def(), 23, 42, "foobar_test_asd").unwrap();
+            send_vmsg!(&sgate, RecvGate::def(), 23, 42, "foobar_test_asd").unwrap();
 
-            let (a1, a2, a3) = recv_vmsg!(&mut rgate, i32, i32, String).unwrap();
+            let (a1, a2, a3) = recv_vmsg!(&rgate, i32, i32, String).unwrap();
 
             let end = time::stop(0xDEADBEEF);
 

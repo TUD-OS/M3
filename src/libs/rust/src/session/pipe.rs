@@ -44,32 +44,32 @@ impl Pipe {
         self.sess.sel()
     }
 
-    pub fn attach(&mut self, reading: bool) -> Result<(), Error> {
+    pub fn attach(&self, reading: bool) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.meta_gate, RecvGate::def(),
+            &self.meta_gate, RecvGate::def(),
             MetaOp::ATTACH, reading as u8
         ).map(|_| ())
     }
 
-    pub fn request_read(&mut self, amount: usize) -> Result<(usize, usize), Error> {
+    pub fn request_read(&self, amount: usize) -> Result<(usize, usize), Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.rd_gate, RecvGate::def(),
+            &self.rd_gate, RecvGate::def(),
             amount
         ));
         Ok((reply.pop(), reply.pop()))
     }
 
-    pub fn request_write(&mut self, amount: usize, last_write: usize) -> Result<usize, Error> {
+    pub fn request_write(&self, amount: usize, last_write: usize) -> Result<usize, Error> {
         let mut reply = try!(send_recv_res!(
-            &mut self.wr_gate, RecvGate::def(),
+            &self.wr_gate, RecvGate::def(),
             amount, last_write
         ));
         Ok(reply.pop())
     }
 
-    pub fn close(&mut self, reading: bool, last_write: usize) -> Result<(), Error> {
+    pub fn close(&self, reading: bool, last_write: usize) -> Result<(), Error> {
         send_recv_res!(
-            &mut self.meta_gate, RecvGate::def(),
+            &self.meta_gate, RecvGate::def(),
             MetaOp::CLOSE, reading as u8, last_write
         ).map(|_| ())
     }

@@ -59,7 +59,7 @@ impl ExtentCache {
         None
     }
 
-    pub fn request_next(&mut self, mut sess: RefMut<M3FS>, fd: Fd, writing: bool) -> Result<bool, Error> {
+    pub fn request_next(&mut self, sess: RefMut<M3FS>, fd: Fd, writing: bool) -> Result<bool, Error> {
         // move forward
         self.offset += self.length;
         self.length = 0;

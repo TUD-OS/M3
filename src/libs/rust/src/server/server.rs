@@ -45,7 +45,7 @@ impl<'v> Server<'v> {
         self.cap.sel()
     }
 
-    pub fn handle_ctrl_chan<S>(&mut self, hdl: &mut Handler<S>) -> Result<(), Error> {
+    pub fn handle_ctrl_chan<S>(&self, hdl: &mut Handler<S>) -> Result<(), Error> {
         let is = self.rgate.fetch();
         if let Some(mut is) = is {
             let op: service::Operation = is.pop();
