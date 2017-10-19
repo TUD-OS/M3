@@ -38,6 +38,10 @@ impl Session {
         syscalls::delegate(self.sel(), crd, sargs, rargs)
     }
 
+    pub fn obtain_obj(&self) -> Result<Selector, Error> {
+        self.obtain(1, &[], &mut []).map(|res| res.1.start())
+    }
+
     pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, CapRngDesc), Error> {
         let caps = vpe::VPE::cur().alloc_caps(count);
         let crd = CapRngDesc::new_from(cap::Type::OBJECT, caps, count);
