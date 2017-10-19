@@ -3,6 +3,7 @@ use com::epmux::EpMux;
 use com::gate::{Gate, EpId};
 use com::SendGate;
 use core::ops;
+use core::fmt;
 use dtu;
 use env;
 use errors::Error;
@@ -48,13 +49,19 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
 pub struct RecvGate<'v> {
     gate: Gate,
     buf: usize,
     order: i32,
     free: FreeFlags,
     vpe: Option<&'v mut vpe::VPE>,
+}
+
+impl<'v> fmt::Debug for RecvGate<'v> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "RecvGate[sel: {}, buf: {:#0x}, size: {:#0x}]",
+            self.sel(), self.buf, 1 << self.order)
+    }
 }
 
 pub struct RGateArgs<'v> {
