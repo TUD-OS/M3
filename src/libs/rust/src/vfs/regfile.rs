@@ -183,12 +183,19 @@ impl RegularFile {
         }
 
         // update last write pos accordingly
+        // TODO good idea?
         if self.extended && self.pos.abs > self.max_write.abs {
             self.max_write = self.pos;
         }
     }
 
-    fn advance(&mut self, extlen: usize, count: usize, writing: bool) -> usize {
+    fn advance(&mut self, count: usize, writing: bool) -> Result<usize, Error> {
+        let extlen = try!(self.get_ext_len(writing, true));
+        if extlen == 0 {
+            return Ok(0)
+        }
+
+        // determine next off and idx
         let lastpos = self.pos;
         let amount = self.pos.advance(extlen, count);
 
@@ -198,7 +205,8 @@ impl RegularFile {
             self.max_write.extoff += amount;
             self.max_write.abs += amount;
         }
-        amount
+
+        Ok(amount)
     }
 }
 
@@ -240,6 +248,7 @@ impl vfs::Seek for RegularFile {
             // otherwise, ask m3fs
             else {
                 let (new_ext, new_ext_off, new_pos) = try!(self.sess.borrow_mut().seek(
+                    // TODO why all these arguments?
                     self.fd, off, whence, self.cache.first, self.pos.extoff
                 ));
                 Position {
@@ -268,15 +277,12 @@ impl vfs::Read for RegularFile {
             return Err(Error::NoPerm)
         }
 
-        // figure out where that part of the file is in memory, based on our location db
-        let extlen = try!(self.get_ext_len(false, true));
-        if extlen == 0 {
+        // determine the amount that we can read
+        let lastpos = self.pos;
+        let amount = try!(self.advance(buf.len(), false));
+        if amount == 0 {
             return Ok(0)
         }
-
-        // determine next off and idx
-        let lastpos = self.pos;
-        let amount = self.advance(extlen, buf.len(), false);
 
         log!(
             FS,
@@ -303,15 +309,12 @@ impl vfs::Write for RegularFile {
             return Err(Error::NoPerm)
         }
 
-        // figure out where that part of the file is in memory, based on our location db
-        let extlen = try!(self.get_ext_len(true, true));
-        if extlen == 0 {
+        // determine the amount that we can write
+        let lastpos = self.pos;
+        let amount = try!(self.advance(buf.len(), true));
+        if amount == 0 {
             return Ok(0)
         }
-
-        // determine next off and idx
-        let lastpos = self.pos;
-        let amount = self.advance(extlen, buf.len(), true);
 
         log!(
             FS,
