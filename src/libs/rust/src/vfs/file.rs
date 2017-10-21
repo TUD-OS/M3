@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{fmt, intrinsics};
 use com::{Marshallable, Unmarshallable, GateOStream, GateIStream};
 use collections::*;
 use errors::Error;
@@ -142,6 +142,11 @@ pub trait Read {
 
     fn read_to_string(&mut self, buf: &mut String) -> Result<usize, Error> {
         self.read_to_end(unsafe { buf.as_mut_vec() })
+    }
+
+    fn read_object<T : Sized>(&mut self) -> Result<T, Error> {
+        let mut obj: T = unsafe { intrinsics::uninit() };
+        self.read_exact(util::object_to_bytes_mut(&mut obj)).map(|_| obj)
     }
 
     fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<(), Error> {

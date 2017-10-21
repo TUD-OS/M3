@@ -46,10 +46,10 @@ impl iter::Iterator for ReadDir {
         }
 
         // read header
-        let mut entry = M3FSDirEntry { inode: 0, name_len: 0, next: 0 };
-        if self.reader.read_exact(util::object_to_bytes_mut(&mut entry)).is_err() {
-            return None
-        }
+        let entry: M3FSDirEntry = match self.reader.read_object() {
+            Ok(obj) => obj,
+            Err(_)  => return None,
+        };
 
         // read name
         let res = DirEntry::new(
