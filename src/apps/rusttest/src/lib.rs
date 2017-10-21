@@ -3,16 +3,34 @@
 #[macro_use]
 extern crate m3;
 
-use m3::syscalls;
-use m3::time;
+use m3::com::*;
+use m3::boxed::Box;
 use m3::env;
 use m3::collections::*;
-use m3::com::*;
 use m3::session::*;
+use m3::syscalls;
+use m3::time;
 use m3::vfs::*;
+use m3::vpe::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
+    {
+        let mut vpe = VPE::new_with(VPEArgs::new("test")).expect("Unable to create VPE");
+        println!("VPE runs on {:?}", vpe.pe());
+
+        let mut val = 42;
+        let act = vpe.run(Box::new(move || {
+            println!("I'm a closure on PE {}", env::data().pe);
+            val += 1;
+            println!("val = {}", val);
+            val
+        })).expect("Unable to run VPE");
+
+        let res = act.wait().expect("Unable to wait for VPE");
+        println!("VPE exited with {}", res);
+    }
+
     {
         let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
 

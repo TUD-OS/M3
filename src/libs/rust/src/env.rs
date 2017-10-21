@@ -1,4 +1,6 @@
 use core::intrinsics;
+use core::mem;
+use boxed::{Box, FnBox};
 use core::iter;
 use kif::PEDesc;
 use util;
@@ -33,9 +35,63 @@ pub struct EnvData {
     pub isrs: u64,
 }
 
-pub fn data() -> &'static EnvData {
+impl EnvData {
+    pub fn new() -> Self {
+        EnvData {
+            pe: 0,
+            argc: 0,
+            argv: 0,
+            sp: 0,
+            entry: 0,
+            lambda: 0,
+            pager_sess: 0,
+            pager_sgate: 0,
+            pager_rgate: 0,
+            mounts_len: 0,
+            mounts: 0,
+            fds_len: 0,
+            fds: 0,
+            rbuf_cur: 0,
+            rbuf_end: 0,
+            eps: 0,
+            caps: 0,
+            exit_addr: 0,
+            heap_size: 0,
+            _backend: 0,
+            kenv: 0,
+            pedesc: PEDesc::new(),
+            isrs: 0,
+        }
+    }
+}
+
+pub fn data() -> &'static mut EnvData {
     unsafe {
         intrinsics::transmute(0x6000 as u64)
+    }
+}
+
+pub struct Closure {
+    func: Option<Box<FnBox() -> i32 + Send>>,
+}
+
+impl Closure {
+    pub fn new<F>(func: Box<F>) -> Self
+                  where F: FnBox() -> i32, F: Send + 'static {
+        Closure {
+            func: Some(func),
+        }
+    }
+
+    pub fn call(&mut self) -> i32 {
+        let old = mem::replace(&mut self.func, None);
+        old.unwrap().call_box(())
+    }
+}
+
+pub fn closure() -> &'static mut Closure {
+    unsafe {
+        intrinsics::transmute((0x6000 + util::size_of::<EnvData>()) as u64)
     }
 }
 

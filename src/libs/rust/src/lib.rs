@@ -8,6 +8,7 @@
 #![feature(const_fn, const_cell_new)]
 #![feature(rustc_private)]
 #![feature(trace_macros)]
+#![feature(fnbox)]
 
 #![default_lib_allocator]
 #![no_std]
@@ -32,7 +33,7 @@ pub mod collections {
 }
 
 pub mod boxed {
-    pub use alloc::boxed::Box;
+    pub use alloc::boxed::{Box, FnBox};
 }
 
 pub mod rc {
@@ -82,10 +83,18 @@ pub fn exit(code: i32) {
 
 #[no_mangle]
 pub extern fn env_run() {
-    heap::init();
-    vpe::init();
-    com::init();
-    let res = unsafe { main() };
+    let envdata = env::data();
+    let res = unsafe {
+        if envdata.lambda != 0 {
+            env::closure().call()
+        }
+        else {
+            heap::init();
+            vpe::init();
+            com::init();
+            main()
+        }
+    };
     exit(res)
 }
 

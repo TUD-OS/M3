@@ -156,6 +156,40 @@ pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error>
     send_receive_result(&req)
 }
 
+pub fn create_vpe(dst: CapSel, mgate: CapSel, sgate: CapSel, rgate: CapSel, name: &str,
+                  pe: PEDesc, sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
+    log!(
+        SYSC,
+        "syscalls::create_vpe(dst={}, mgate={}, sgate={}, rgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
+        dst, mgate, sgate, rgate, name, pe, sep, rep, tmuxable
+    );
+
+    let mut req = syscalls::CreateVPE {
+        opcode: syscalls::Operation::CreateVPE as u64,
+        dst_sel: dst as u64,
+        mgate_sel: mgate as u64,
+        sgate_sel: sgate as u64,
+        rgate_sel: rgate as u64,
+        pe: pe.value() as u64,
+        sep: sep as u64,
+        rep: rep as u64,
+        muxable: tmuxable as u64,
+        namelen: name.len() as u64,
+        name: unsafe { intrinsics::uninit() },
+    };
+
+    // copy name
+    for (a, c) in req.name.iter_mut().zip(name.bytes()) {
+        *a = c as u8;
+    }
+
+    let reply: Reply<syscalls::CreateVPEReply> = try!(send_receive(&req));
+    match reply.data.error {
+        0 => Ok(PEDesc::new_from_val(reply.data.pe as u32)),
+        e => Err(Error::from(e as u32))
+    }
+}
+
 pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
@@ -172,6 +206,27 @@ pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: P
         perms: perms.bits() as u64,
     };
     send_receive_result(&req)
+}
+
+pub fn vpe_ctrl(vpe: CapSel, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error> {
+    log!(
+        SYSC,
+        "syscalls::vpe_ctrl(vpe={}, op={:?}, arg={})",
+        vpe, op, arg
+    );
+
+    let req = syscalls::VPECtrl {
+        opcode: syscalls::Operation::VpeCtrl as u64,
+        vpe_sel: vpe as u64,
+        op: op as u64,
+        arg: arg as u64,
+    };
+
+    let reply: Reply<syscalls::VPECtrlReply> = try!(send_receive(&req));
+    match reply.data.error {
+        0 => Ok(reply.data.exitcode as i32),
+        e => Err(Error::from(e as u32))
+    }
 }
 
 pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {

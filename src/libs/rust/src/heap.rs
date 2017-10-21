@@ -6,7 +6,7 @@ use io;
 use util;
 
 #[repr(C, packed)]
-struct HeapArea {
+pub struct HeapArea {
     pub next: u64,    /* HEAP_USED_BITS set = used */
     pub prev: u64,
     _pad: [u8; 64 - 16],
