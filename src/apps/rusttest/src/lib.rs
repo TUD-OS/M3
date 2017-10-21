@@ -15,25 +15,36 @@ use m3::vpe::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
+    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
+
     {
         let mut vpe = VPE::new_with(VPEArgs::new("test")).expect("Unable to create VPE");
         println!("VPE runs on {:?}", vpe.pe());
 
-        let mut val = 42;
-        let act = vpe.run(Box::new(move || {
-            println!("I'm a closure on PE {}", env::data().pe);
-            val += 1;
-            println!("val = {}", val);
-            val
-        })).expect("Unable to run VPE");
+        {
+            let act = vpe.exec(m3fs.clone(), &["/bin/echo", "a", "b", "c"]).expect("Exec failed");
 
-        let res = act.wait().expect("Unable to wait for VPE");
-        println!("VPE exited with {}", res);
+            println!("foo: {}", act.vpe().sel());
+
+            let res = act.wait().expect("Unable to wait for VPE");
+            println!("VPE exited with {}", res);
+        }
+
+        {
+            let mut val = 42;
+            let act = vpe.run(Box::new(move || {
+                println!("I'm a closure on PE {}", env::data().pe);
+                val += 1;
+                println!("val = {}", val);
+                val
+            })).expect("Unable to run VPE");
+
+            let res = act.wait().expect("Unable to wait for VPE");
+            println!("VPE exited with {}", res);
+        }
     }
 
     {
-        let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
         for e in read_dir(m3fs.clone(), "/").expect("Unable to read directory") {
             println!("name: {}, inode: {}", e.file_name(), e.inode());
         }

@@ -23,6 +23,7 @@ bitflags! {
         const CREATE    = 0b100000;
 
         const RW        = Self::R.bits | Self::W.bits;
+        const RX        = Self::R.bits | Self::X.bits;
         const RWX       = Self::R.bits | Self::W.bits | Self::X.bits;
     }
 }

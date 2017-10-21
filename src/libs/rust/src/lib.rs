@@ -59,6 +59,7 @@ pub mod com;
 
 pub mod cap;
 pub mod env;
+pub mod elf;
 pub mod errors;
 pub mod dtu;
 pub mod heap;
