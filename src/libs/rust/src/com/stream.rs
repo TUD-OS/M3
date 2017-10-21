@@ -204,14 +204,14 @@ pub fn recv_msg_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Resul
 #[macro_export]
 macro_rules! recv_vmsg {
     ( $rg:expr, $x:ty ) => ({
-        match recv_msg($rg) {
+        match $crate::com::recv_msg($rg) {
             Err(e)      => Err(e),
             Ok(mut is)  => Ok(( is.pop::<$x>(), )),
         }
     });
 
     ( $rg:expr, $x1:ty, $($xs:ty),+ ) => ({
-        match recv_msg($rg) {
+        match $crate::com::recv_msg($rg) {
             Err(e)      => Err(e),
             Ok(mut is)  => Ok(( is.pop::<$x1>(), $( is.pop::<$xs>() ),+ )),
         }
@@ -235,7 +235,7 @@ pub fn recv_res_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Resul
 macro_rules! send_recv {
     ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
         match send_vmsg!($sg, $rg, $( $args ),* ) {
-            Ok(_)   => recv_msg_from($rg, Some($sg)),
+            Ok(_)   => $crate::com::recv_msg_from($rg, Some($sg)),
             Err(e)  => Err(e),
         }
     });
@@ -245,7 +245,7 @@ macro_rules! send_recv {
 macro_rules! send_recv_res {
     ( $sg:expr, $rg:expr, $( $args:expr ),* ) => ({
         match send_vmsg!($sg, $rg, $( $args ),* ) {
-            Ok(_)   => recv_res_from($rg, Some($sg)),
+            Ok(_)   => $crate::com::recv_res_from($rg, Some($sg)),
             Err(e)  => Err(e),
         }
     });
