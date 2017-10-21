@@ -14,7 +14,6 @@
 #![no_std]
 
 #[macro_reexport(vec, format)]
-#[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate bitflags;
@@ -52,8 +51,6 @@ pub mod cell {
 pub mod io;
 #[macro_use]
 pub mod util;
-#[macro_use]
-pub mod test;
 #[macro_use]
 pub mod com;
 

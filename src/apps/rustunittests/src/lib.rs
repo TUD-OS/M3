@@ -3,13 +3,25 @@
 #[macro_use]
 extern crate m3;
 
-use m3::test::Tester;
+#[macro_use]
+pub mod test;
+
+mod tbufio;
+mod tdir;
+mod tm3fs;
+mod tmgate;
+mod tregfile;
+mod trgate;
+mod tsgate;
+mod tvpe;
+
+use test::Tester;
 
 struct MyTester {
 }
 
-impl m3::test::Tester for MyTester {
-    fn run_suite(&mut self, name: &str, f: &Fn(&mut m3::test::Tester)) {
+impl Tester for MyTester {
+    fn run_suite(&mut self, name: &str, f: &Fn(&mut Tester)) {
         println!("Running test suite {} ...", name);
         f(self);
         println!("Done");
@@ -25,14 +37,14 @@ impl m3::test::Tester for MyTester {
 #[no_mangle]
 pub fn main() -> i32 {
     let mut tester = MyTester {};
-    run_suite!(tester, m3::com::tests::mgate::run);
-    run_suite!(tester, m3::com::tests::rgate::run);
-    run_suite!(tester, m3::com::tests::sgate::run);
-    run_suite!(tester, m3::session::tests::m3fs::run);
-    run_suite!(tester, m3::vfs::tests::dir::run);
-    run_suite!(tester, m3::vfs::tests::bufio::run);
-    run_suite!(tester, m3::vfs::tests::regfile::run);
-    run_suite!(tester, m3::vpe::tests::run);
+    run_suite!(tester, tmgate::run);
+    run_suite!(tester, trgate::run);
+    run_suite!(tester, tsgate::run);
+    run_suite!(tester, tm3fs::run);
+    run_suite!(tester, tdir::run);
+    run_suite!(tester, tbufio::run);
+    run_suite!(tester, tregfile::run);
+    run_suite!(tester, tvpe::run);
 
     0
 }

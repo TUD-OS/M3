@@ -14,9 +14,3 @@ pub use self::dir::{DirEntry, ReadDir, read_dir};
 pub use self::file::{File, FileInfo, OpenFlags, SeekMode, Seek, Read, Write};
 pub use self::filesystem::FileSystem;
 pub use self::regfile::RegularFile;
-
-pub mod tests {
-    pub use super::bufio::tests as bufio;
-    pub use super::dir::tests as dir;
-    pub use super::regfile::tests as regfile;
-}
