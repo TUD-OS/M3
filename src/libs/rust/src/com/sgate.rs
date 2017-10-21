@@ -61,7 +61,7 @@ impl SendGate {
             args.sel
         };
 
-        try!(syscalls::create_sgate(sel, args.rgate_sel, args.label, args.credits));
+        syscalls::create_sgate(sel, args.rgate_sel, args.label, args.credits)?;
         Ok(SendGate {
             gate: Gate::new(sel, args.flags),
         })
@@ -89,7 +89,7 @@ impl SendGate {
         self.send_bytes(msg.as_ptr() as *const u8, msg.len() * util::size_of::<T>(), reply_gate)
     }
     pub fn send_bytes(&self, msg: *const u8, size: usize, reply_gate: &RecvGate) -> Result<(), Error> {
-        let ep = try!(self.gate.activate());
+        let ep = self.gate.activate()?;
         dtu::DTU::send(ep, msg, size, 0, reply_gate.ep().unwrap())
     }
 }

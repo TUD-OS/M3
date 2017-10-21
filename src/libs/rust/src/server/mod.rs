@@ -11,6 +11,6 @@ pub fn server_loop<F : FnMut() -> Result<(), Error>>(mut func: F) -> Result<(), 
     loop {
         DTU::try_sleep(true, 0).ok();
 
-        try!(func());
+        func()?;
     }
 }

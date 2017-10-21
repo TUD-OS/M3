@@ -30,10 +30,10 @@ pub trait Handler<S> {
 impl<'v> Server<'v> {
     pub fn new(name: &str) -> Result<Self, Error> {
         let sel = VPE::cur().alloc_cap();
-        let mut rgate = try!(RecvGate::new(util::next_log2(256), util::next_log2(256)));
-        try!(rgate.activate());
+        let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
+        rgate.activate()?;
 
-        try!(syscalls::create_srv(sel, rgate.sel(), name));
+        syscalls::create_srv(sel, rgate.sel(), name)?;
 
         Ok(Server {
             cap: Capability::new(sel, Flags::KEEP_CAP),
@@ -72,11 +72,11 @@ impl<'v> Server<'v> {
         match res {
             Ok(sid) => {
                 let reply = service::OpenReply { res: 0, sess: sid, };
-                try!(is.reply(&[reply]))
+                is.reply(&[reply])?
             },
             Err(e) => {
                 let reply = service::OpenReply { res: e as u64, sess: 0, };
-                try!(is.reply(&[reply]))
+                is.reply(&[reply])?
             },
         };
         Ok(())
@@ -125,7 +125,7 @@ impl<'v> Server<'v> {
 
         hdl.shutdown();
 
-        try!(reply_vmsg!(is, 0));
+        reply_vmsg!(is, 0)?;
         Err(Error::EndOfFile)
     }
 }

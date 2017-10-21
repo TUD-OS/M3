@@ -154,10 +154,10 @@ impl VPE {
 
     pub fn new_with(builder: VPEArgs) -> Result<Self, Error> {
         let sels = VPE::cur().alloc_caps(2);
-        let pe = try!(syscalls::create_vpe(
+        let pe = syscalls::create_vpe(
             sels + 0, sels + 1, INVALID_SEL, INVALID_SEL, builder.name,
             builder.pe, 0, 0, builder.muxable
-        ));
+        )?;
 
         Ok(VPE {
             cap: Capability::new(sels + 0, Flags::empty()),
@@ -217,7 +217,7 @@ impl VPE {
         self.delegate_to(crd, start)
     }
     pub fn delegate_to(&mut self, crd: CapRngDesc, dst: Selector) -> Result<(), Error> {
-        try!(syscalls::exchange(self.sel(), crd, dst, false));
+        syscalls::exchange(self.sel(), crd, dst, false)?;
         self.next_sel = util::max(self.next_sel, dst + crd.count());
         Ok(())
     }
@@ -251,7 +251,7 @@ impl VPE {
         let mut senv = env::EnvData::new();
 
         senv.sp = get_sp() as u64;
-        senv.entry = try!(self.copy_regions(senv.sp as usize)) as u64;
+        senv.entry = self.copy_regions(senv.sp as usize)? as u64;
         senv.lambda = 1;
         senv.exit_addr = 0;
 
@@ -278,15 +278,15 @@ impl VPE {
 
         // create and write closure
         let closure = env::Closure::new(func);
-        try!(self.mem.write_obj(&closure, off));
+        self.mem.write_obj(&closure, off)?;
         off += util::size_of_val(&closure);
 
         // write args
         senv.argc = env.argc;
-        senv.argv = try!(self.write_arguments(off, env::args())) as u64;
+        senv.argv = self.write_arguments(off, env::args())? as u64;
 
         // write start env to PE
-        try!(self.mem.write_obj(&senv, RT_START));
+        self.mem.write_obj(&senv, RT_START)?;
 
         // go!
         let act = ClosureActivity::new(self, closure);
@@ -295,12 +295,12 @@ impl VPE {
 
     pub fn exec<S: AsRef<str>>(&mut self, fs: Rc<RefCell<M3FS>>,
                                args: &[S]) -> Result<ExecActivity, Error> {
-        let file = try!(fs.borrow_mut().open(args[0].as_ref(), OpenFlags::RX));
+        let file = fs.borrow_mut().open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
         let mut senv = env::EnvData::new();
 
-        senv.entry = try!(self.load_program(&mut file)) as u64;
+        senv.entry = self.load_program(&mut file)? as u64;
         senv.lambda = 0;
         senv.exit_addr = 0;
         senv.sp = STACK_TOP as u64;
@@ -308,7 +308,7 @@ impl VPE {
         // write args
         let argoff = RT_START + util::size_of_val(&senv);
         senv.argc = args.len() as u32;
-        senv.argv = try!(self.write_arguments(argoff, args)) as u64;
+        senv.argv = self.write_arguments(argoff, args)? as u64;
 
         // TODO mounts, fds, and eps
 
@@ -322,7 +322,7 @@ impl VPE {
         senv.heap_size = 0;
 
         // write start env to PE
-        try!(self.mem.write_obj(&senv, RT_START));
+        self.mem.write_obj(&senv, RT_START)?;
 
         // go!
         let act = ExecActivity::new(self, file);
@@ -346,18 +346,18 @@ impl VPE {
             // copy text
             let text_start = addr(&_text_start);
             let text_end = addr(&_text_end);
-            try!(self.mem.write_bytes(&_text_start, text_end - text_start, text_start));
+            self.mem.write_bytes(&_text_start, text_end - text_start, text_start)?;
 
             // copy data and heap
             let data_start = addr(&_data_start);
-            try!(self.mem.write_bytes(&_data_start, libc::heap_used_end() - data_start, data_start));
+            self.mem.write_bytes(&_data_start, libc::heap_used_end() - data_start, data_start)?;
 
             // copy end-area of heap
             let heap_area_size = util::size_of::<heap::HeapArea>();
-            try!(self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end));
+            self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end)?;
 
             // copy stack
-            try!(self.mem.write_bytes(sp as *const u8, STACK_TOP - sp, sp));
+            self.mem.write_bytes(sp as *const u8, STACK_TOP - sp, sp)?;
 
             Ok(text_start)
         }
@@ -374,7 +374,7 @@ impl VPE {
 
         while count > 0 {
             let amount = util::min(count, buf.len());
-            try!(self.mem.write(&buf[0..amount], dst));
+            self.mem.write(&buf[0..amount], dst)?;
             count -= amount;
             dst += amount;
         }
@@ -384,15 +384,15 @@ impl VPE {
 
     fn load_segment(&self, file: &mut BufReader<RegularFile>,
                     phdr: &elf::Phdr, buf: &mut [u8]) -> Result<(), Error> {
-        try!(file.seek(phdr.offset, SeekMode::SET));
+        file.seek(phdr.offset, SeekMode::SET)?;
 
         let mut count = phdr.filesz;
         let mut segoff = phdr.vaddr;
         while count > 0 {
             let amount = util::min(count, buf.len());
-            let amount = try!(file.read(&mut buf[0..amount]));
+            let amount = file.read(&mut buf[0..amount])?;
 
-            try!(self.mem.write(&buf[0..amount], segoff));
+            self.mem.write(&buf[0..amount], segoff)?;
 
             count -= amount;
             segoff += amount;
@@ -403,7 +403,7 @@ impl VPE {
 
     fn load_program(&self, file: &mut BufReader<RegularFile>) -> Result<usize, Error> {
         let mut buf = Box::new([0u8; 4096]);
-        let hdr: elf::Ehdr = try!(file.read_object());
+        let hdr: elf::Ehdr = file.read_object()?;
 
         if hdr.ident[0] != '\x7F' as u8 ||
            hdr.ident[1] != 'E' as u8 ||
@@ -416,15 +416,15 @@ impl VPE {
         let mut off = hdr.phoff;
         for _ in 0..hdr.phnum {
             // load program header
-            try!(file.seek(off, SeekMode::SET));
-            let phdr: elf::Phdr = try!(file.read_object());
+            file.seek(off, SeekMode::SET)?;
+            let phdr: elf::Phdr = file.read_object()?;
 
             // we're only interested in non-empty load segments
             if phdr.ty != elf::PT::LOAD.val || phdr.memsz == 0 {
                 continue;
             }
 
-            try!(self.load_segment(file, &phdr, &mut *buf));
+            self.load_segment(file, &phdr, &mut *buf)?;
             off += hdr.phentsize as usize;
         }
 
@@ -451,8 +451,8 @@ impl VPE {
             argoff += arg.len() + 1;
         }
 
-        try!(self.mem.write(&argbuf, off));
-        try!(self.mem.write(&argptr, argoff));
+        self.mem.write(&argbuf, off)?;
+        self.mem.write(&argptr, argoff)?;
         Ok(argoff)
     }
 }

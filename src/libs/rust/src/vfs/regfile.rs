@@ -68,7 +68,7 @@ impl ExtentCache {
 
         // get new locations
         let flags = if writing { LocFlags::EXTEND } else { LocFlags::empty() };
-        let extended = try!(sess.get_locs(fd, self.first, &mut self.locs, flags)).1;
+        let extended = sess.get_locs(fd, self.first, &mut self.locs, flags)?.1;
 
         // cache new length
         self.length = self.locs.total_length();
@@ -150,7 +150,7 @@ impl RegularFile {
 
     fn get_ext_len(&mut self, writing: bool, rebind: bool) -> Result<usize, Error> {
         if !self.cache.valid() || self.cache.ext_len(self.pos.ext) == 0 {
-            self.extended |= try!(self.cache.request_next(self.sess.borrow_mut(), self.fd, writing));
+            self.extended |= self.cache.request_next(self.sess.borrow_mut(), self.fd, writing)?;
         }
 
         // don't read past the so far written part
@@ -166,7 +166,7 @@ impl RegularFile {
             let len = self.cache.ext_len(self.pos.ext);
 
             if rebind && len != 0 && self.mem.sel() != self.cache.sel(self.pos.ext) {
-                try!(self.mem.rebind(self.cache.sel(self.pos.ext)));
+                self.mem.rebind(self.cache.sel(self.pos.ext))?;
             }
             Ok(len)
         }
@@ -190,7 +190,7 @@ impl RegularFile {
     }
 
     fn advance(&mut self, count: usize, writing: bool) -> Result<usize, Error> {
-        let extlen = try!(self.get_ext_len(writing, true));
+        let extlen = self.get_ext_len(writing, true)?;
         if extlen == 0 {
             return Ok(0)
         }
@@ -247,10 +247,10 @@ impl vfs::Seek for RegularFile {
             }
             // otherwise, ask m3fs
             else {
-                let (new_ext, new_ext_off, new_pos) = try!(self.sess.borrow_mut().seek(
+                let (new_ext, new_ext_off, new_pos) = self.sess.borrow_mut().seek(
                     // TODO why all these arguments?
                     self.fd, off, whence, self.cache.first, self.pos.extoff
-                ));
+                )?;
                 Position {
                     ext: new_ext,
                     extoff: new_ext_off,
@@ -279,7 +279,7 @@ impl vfs::Read for RegularFile {
 
         // determine the amount that we can read
         let lastpos = self.pos;
-        let amount = try!(self.advance(buf.len(), false));
+        let amount = self.advance(buf.len(), false)?;
         if amount == 0 {
             return Ok(0)
         }
@@ -292,7 +292,7 @@ impl vfs::Read for RegularFile {
 
         // read from global memory
         time::start(0xaaaa);
-        try!(self.mem.read(&mut buf[0..amount], lastpos.extoff));
+        self.mem.read(&mut buf[0..amount], lastpos.extoff)?;
         time::stop(0xaaaa);
 
         Ok(amount)
@@ -311,7 +311,7 @@ impl vfs::Write for RegularFile {
 
         // determine the amount that we can write
         let lastpos = self.pos;
-        let amount = try!(self.advance(buf.len(), true));
+        let amount = self.advance(buf.len(), true)?;
         if amount == 0 {
             return Ok(0)
         }
@@ -324,7 +324,7 @@ impl vfs::Write for RegularFile {
 
         // write to global memory
         time::start(0xaaaa);
-        try!(self.mem.write(&buf[0..amount], lastpos.extoff));
+        self.mem.write(&buf[0..amount], lastpos.extoff)?;
         time::stop(0xaaaa);
 
         Ok(amount)

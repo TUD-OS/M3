@@ -58,7 +58,7 @@ impl MemGate {
             args.sel
         };
 
-        try!(syscalls::create_mgate(sel, args.addr, args.size, args.perm));
+        syscalls::create_mgate(sel, args.addr, args.size, args.perm)?;
         Ok(MemGate {
             gate: Gate::new(sel, args.flags)
         })
@@ -81,7 +81,7 @@ impl MemGate {
 
     pub fn derive_with_sel(&self, offset: usize, size: usize,
                            perm: Perm, sel: cap::Selector) -> Result<Self, Error> {
-        try!(syscalls::derive_mem(sel, self.sel(), offset, size, perm));
+        syscalls::derive_mem(sel, self.sel(), offset, size, perm)?;
         Ok(MemGate {
             gate: Gate::new(sel, cap::Flags::empty())
         })
@@ -100,12 +100,12 @@ impl MemGate {
     }
 
     pub fn read_bytes(&self, mut data: *mut u8, mut size: usize, mut off: usize) -> Result<(), Error> {
-        let ep = try!(self.gate.activate());
+        let ep = self.gate.activate()?;
 
         loop {
             match dtu::DTU::read(ep, data, size, off, 0) {
                 Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => try!(self.forward_read(&mut data, &mut size, &mut off)),
+                Err(e) if e == Error::VPEGone   => self.forward_read(&mut data, &mut size, &mut off)?,
                 Err(e)                          => return Err(e),
             }
         }
@@ -120,12 +120,12 @@ impl MemGate {
     }
 
     pub fn write_bytes(&self, mut data: *const u8, mut size: usize, mut off: usize) -> Result<(), Error> {
-        let ep = try!(self.gate.activate());
+        let ep = self.gate.activate()?;
 
         loop {
             match dtu::DTU::write(ep, data, size, off, 0) {
                 Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => try!(self.forward_write(&mut data, &mut size, &mut off)),
+                Err(e) if e == Error::VPEGone   => self.forward_write(&mut data, &mut size, &mut off)?,
                 Err(e)                          => return Err(e),
             }
         }
@@ -133,10 +133,10 @@ impl MemGate {
 
     fn forward_read(&self, data: &mut *mut u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
-        try!(syscalls::forward_read(
+        syscalls::forward_read(
             self.sel(), util::slice_for_mut(*data, amount), *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
-        ));
+        )?;
         *data = unsafe { (*data).offset(amount as isize) };
         *off += amount;
         Ok(())
@@ -144,10 +144,10 @@ impl MemGate {
 
     fn forward_write(&self, data: &mut *const u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
-        try!(syscalls::forward_write(
+        syscalls::forward_write(
             self.sel(), util::slice_for(*data, amount), *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
-        ));
+        )?;
         *data = unsafe { (*data).offset(amount as isize) };
         *off += amount;
         Ok(())

@@ -223,7 +223,7 @@ pub fn recv_res<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
 }
 
 pub fn recv_res_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
-    let mut reply = try!(recv_msg_from(rgate, sgate));
+    let mut reply = recv_msg_from(rgate, sgate)?;
     let res: u32 = reply.pop();
     match res {
         0 => Ok(reply),

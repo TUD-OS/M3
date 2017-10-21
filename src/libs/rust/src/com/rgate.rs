@@ -133,7 +133,7 @@ impl<'v> RecvGate<'v> {
             args.sel
         };
 
-        try!(syscalls::create_rgate(sel, args.order, args.msg_order));
+        syscalls::create_rgate(sel, args.order, args.msg_order)?;
         Ok(RecvGate {
             gate: Gate::new(sel, args.flags),
             buf: 0,
@@ -152,7 +152,7 @@ impl<'v> RecvGate<'v> {
 
     pub fn activate(&mut self) -> Result<(), Error> {
         if self.ep().is_none() {
-            let ep = try!(self.vpe().alloc_ep());
+            let ep = self.vpe().alloc_ep()?;
             self.free |= FreeFlags::FREE_EP;
             self.activate_ep(ep)
         }
@@ -165,13 +165,13 @@ impl<'v> RecvGate<'v> {
         if self.ep().is_none() {
             let buf = if self.buf == 0 {
                 let size = 1 << self.order;
-                try!(Self::alloc_buf(self.vpe(), size))
+                Self::alloc_buf(self.vpe(), size)?
             }
             else {
                 self.buf
             };
 
-            try!(self.activate_for(ep, buf));
+            self.activate_for(ep, buf)?;
             if self.buf == 0 {
                 self.buf = buf;
                 self.free |= FreeFlags::FREE_BUF;
@@ -245,7 +245,7 @@ impl<'v> RecvGate<'v> {
                 }
             }
 
-            try!(dtu::DTU::try_sleep(idle, 0));
+            dtu::DTU::try_sleep(idle, 0)?;
         }
     }
 

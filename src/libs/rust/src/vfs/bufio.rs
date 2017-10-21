@@ -36,7 +36,7 @@ impl<R : Read> Read for BufReader<R> {
 
         if self.pos >= self.cap {
             let end = self.buf.len();
-            self.cap = try!(self.reader.read(&mut self.buf.as_mut_slice()[0..end]));
+            self.cap = self.reader.read(&mut self.buf.as_mut_slice()[0..end])?;
             self.pos = 0;
         }
 
@@ -87,7 +87,7 @@ impl<W : Write> Write for BufWriter<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         // write directly from user buffer, if it is larger
         if buf.len() > self.buf.len() {
-            try!(self.flush());
+            self.flush()?;
 
             self.writer.write(buf)
         }
@@ -105,7 +105,7 @@ impl<W : Write> Write for BufWriter<W> {
 
     fn flush(&mut self) -> Result<(), Error> {
         if self.pos > 0 {
-            try!(self.writer.write(&self.buf[0..self.pos]));
+            self.writer.write(&self.buf[0..self.pos])?;
             self.pos = 0;
         }
 
@@ -116,7 +116,7 @@ impl<W : Write> Write for BufWriter<W> {
 impl<W: Write + Seek> Seek for BufWriter<W> {
     fn seek(&mut self, off: usize, whence: SeekMode) -> Result<usize, Error> {
         if whence != SeekMode::CUR || off != 0 {
-            try!(self.flush());
+            self.flush()?;
         }
         self.writer.seek(off, whence)
     }

@@ -152,7 +152,7 @@ impl DTU {
             offset += amount;
             data_addr += amount;
 
-            try!(Self::get_error());
+            Self::get_error()?;
         }
         Ok(())
     }

@@ -74,7 +74,7 @@ impl iter::Iterator for ReadDir {
 
 // TODO remove the argument as soon as we have the VFS
 pub fn read_dir(sess: Rc<RefCell<M3FS>>, path: &str) -> Result<ReadDir, Error> {
-    let dir = try!(sess.borrow_mut().open(path, OpenFlags::R));
+    let dir = sess.borrow_mut().open(path, OpenFlags::R)?;
     Ok(ReadDir {
         reader: BufReader::new(dir),
     })

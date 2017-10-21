@@ -52,7 +52,7 @@ impl Gate {
     }
 
     pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
-        try!(EpMux::get().switch_cap(self, sel));
+        EpMux::get().switch_cap(self, sel)?;
         self.cap.rebind(sel);
         Ok(())
     }

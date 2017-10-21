@@ -18,10 +18,10 @@ impl<R: 'static> Drop for Reply<R> {
 }
 
 fn send_receive<T, R>(msg: *const T) -> Result<Reply<R>, Error> {
-    try!(dtu::DTU::send(dtu::SYSC_SEP, msg as *const u8, util::size_of::<T>(), 0, dtu::SYSC_REP));
+    dtu::DTU::send(dtu::SYSC_SEP, msg as *const u8, util::size_of::<T>(), 0, dtu::SYSC_REP)?;
 
     loop {
-        try!(dtu::DTU::try_sleep(false, 0));
+        dtu::DTU::try_sleep(false, 0)?;
 
         let msg = dtu::DTU::fetch_msg(dtu::SYSC_REP);
         if let Some(m) = msg {
@@ -35,7 +35,7 @@ fn send_receive<T, R>(msg: *const T) -> Result<Reply<R>, Error> {
 }
 
 fn send_receive_result<T>(msg: *const T) -> Result<(), Error> {
-    let reply: Reply<syscalls::DefaultReply> = try!(send_receive(msg));
+    let reply: Reply<syscalls::DefaultReply> = send_receive(msg)?;
 
     match reply.data.error {
         0 => Ok(()),
@@ -183,7 +183,7 @@ pub fn create_vpe(dst: CapSel, mgate: CapSel, sgate: CapSel, rgate: CapSel, name
         *a = c as u8;
     }
 
-    let reply: Reply<syscalls::CreateVPEReply> = try!(send_receive(&req));
+    let reply: Reply<syscalls::CreateVPEReply> = send_receive(&req)?;
     match reply.data.error {
         0 => Ok(PEDesc::new_from_val(reply.data.pe as u32)),
         e => Err(Error::from(e as u32))
@@ -222,7 +222,7 @@ pub fn vpe_ctrl(vpe: CapSel, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error
         arg: arg as u64,
     };
 
-    let reply: Reply<syscalls::VPECtrlReply> = try!(send_receive(&req));
+    let reply: Reply<syscalls::VPECtrlReply> = send_receive(&req)?;
     match reply.data.error {
         0 => Ok(reply.data.exitcode as i32),
         e => Err(Error::from(e as u32))
@@ -275,7 +275,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
         req.args[i] = sargs[i];
     }
 
-    let reply: Reply<syscalls::ExchangeSessReply> = try!(send_receive(&req));
+    let reply: Reply<syscalls::ExchangeSessReply> = send_receive(&req)?;
     if reply.data.error == 0 {
         for i in 0..reply.data.argcount as usize {
             rargs[i] = reply.data.args[i];
@@ -344,7 +344,7 @@ pub fn forward_read(mgate: CapSel, data: &mut [u8], off: usize,
         data: unsafe { intrinsics::uninit() },
     };
 
-    let reply: Reply<syscalls::ForwardMemReply> = try!(send_receive(&req));
+    let reply: Reply<syscalls::ForwardMemReply> = send_receive(&req)?;
     if reply.data.error == 0 {
         let len = data.len();
         data.copy_from_slice(&reply.data.data[0..len]);

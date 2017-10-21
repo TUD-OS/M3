@@ -30,9 +30,9 @@ int_enum! {
 
 impl<'r> Handler<Session> for MyHandler<'r> {
     fn open(&mut self, arg: u64) -> Result<SessId, Error> {
-        let sgate = try!(SendGate::new_with(
+        let sgate = SendGate::new_with(
             SGateArgs::new(&self.rgate).label(self.sessions.next_id()).credits(256)
-        ));
+        )?;
         Ok(self.sessions.add(MySession {
             arg: arg,
             sgate: sgate,
@@ -57,8 +57,8 @@ impl<'r> Handler<Session> for MyHandler<'r> {
 
 impl<'r> MyHandler<'r> {
     pub fn new() -> Result<Self, Error> {
-        let mut rgate = try!(RecvGate::new(util::next_log2(256), util::next_log2(256)));
-        try!(rgate.activate());
+        let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
+        rgate.activate()?;
         Ok(MyHandler {
             sessions: SessionContainer::new(),
             rgate: rgate,
@@ -85,7 +85,7 @@ impl<'r> MyHandler<'r> {
             res.push(i);
         }
 
-        try!(reply_vmsg!(is, res));
+        reply_vmsg!(is, res)?;
 
         // pretend that we're crashing after a few requests
         static mut COUNT: i32 = 0;
@@ -107,7 +107,7 @@ pub fn main() -> i32 {
     let mut hdl = MyHandler::new().expect("Unable to create handler");
 
     let res = server_loop(|| {
-        try!(s.handle_ctrl_chan(&mut hdl));
+        s.handle_ctrl_chan(&mut hdl)?;
 
         hdl.handle()
     });

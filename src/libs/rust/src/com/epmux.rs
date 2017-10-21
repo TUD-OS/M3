@@ -42,8 +42,8 @@ impl EpMux {
         match g.ep() {
             Some(idx) => Ok(idx),
             None      => {
-                let idx = try!(self.select_victim());
-                try!(syscalls::activate(0, g.sel(), idx, 0));
+                let idx = self.select_victim()?;
+                syscalls::activate(0, g.sel(), idx, 0)?;
                 self.gates[idx] = Some(g);
                 g.set_ep(idx);
                 Ok(idx)
@@ -53,7 +53,7 @@ impl EpMux {
 
     pub fn switch_cap(&mut self, g: &Gate, sel: Selector) -> Result<(), Error> {
         if let Some(ep) = g.ep() {
-            try!(syscalls::activate(0, sel, ep, 0));
+            syscalls::activate(0, sel, ep, 0)?;
             if sel == INVALID_SEL {
                 self.gates[ep] = None;
                 g.unset_ep();

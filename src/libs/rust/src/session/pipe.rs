@@ -19,10 +19,10 @@ pub struct Pipe {
 
 impl Pipe {
     pub fn new(name: &str, mem_size: usize) -> Result<Self, Error> {
-        let sess = try!(Session::new(name, mem_size as u64));
-        let meta = SendGate::new_bind(try!(sess.obtain_obj()));
-        let read = SendGate::new_bind(try!(sess.obtain_obj()));
-        let write = SendGate::new_bind(try!(sess.obtain_obj()));
+        let sess = Session::new(name, mem_size as u64)?;
+        let meta = SendGate::new_bind(sess.obtain_obj()?);
+        let read = SendGate::new_bind(sess.obtain_obj()?);
+        let write = SendGate::new_bind(sess.obtain_obj()?);
         Ok(Pipe {
             sess: sess,
             meta_gate: meta,
@@ -52,18 +52,18 @@ impl Pipe {
     }
 
     pub fn request_read(&self, amount: usize) -> Result<(usize, usize), Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.rd_gate, RecvGate::def(),
             amount
-        ));
+        )?;
         Ok((reply.pop(), reply.pop()))
     }
 
     pub fn request_write(&self, amount: usize, last_write: usize) -> Result<usize, Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.wr_gate, RecvGate::def(),
             amount, last_write
-        ));
+        )?;
         Ok(reply.pop())
     }
 

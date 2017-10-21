@@ -79,11 +79,11 @@ impl LocList {
 
 impl fmt::Display for LocList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "LocList["));
+        write!(f, "LocList[")?;
         for i in 0..self.count {
-            try!(write!(f, "{}", self.lens[i]));
+            write!(f, "{}", self.lens[i])?;
             if i + 1 < self.count {
-                try!(write!(f, ", "));
+                write!(f, ", ")?;
             }
         }
         write!(f, "]")
@@ -124,8 +124,8 @@ impl M3FS {
     }
 
     pub fn new(name: &str) -> Result<Rc<RefCell<Self>>, Error> {
-        let sess = try!(Session::new(name, 0));
-        let sgate = SendGate::new_bind(try!(sess.obtain(1, &[], &mut [])).1.start());
+        let sess = Session::new(name, 0)?;
+        let sgate = SendGate::new_bind(sess.obtain(1, &[], &mut [])?.1.start());
         Ok(Self::create(sess, sgate))
     }
 
@@ -138,7 +138,7 @@ impl M3FS {
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
         let sargs: [u64; 4] = [fd as u64, ext as u64, loc_count as u64, flags.bits as u64];
         let mut rargs = [0u64; 2 + MAX_LOCS];
-        let (num, crd) = try!(self.sess.obtain(MAX_LOCS as u32, &sargs, &mut rargs));
+        let (num, crd) = self.sess.obtain(MAX_LOCS as u32, &sargs, &mut rargs)?;
         locs.set_sel(crd.start());
         for i in 2..num {
             locs.append(rargs[i] as usize);
@@ -147,19 +147,19 @@ impl M3FS {
     }
 
     pub fn fstat(&self, fd: Fd) -> Result<FileInfo, Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
             Operation::FSTAT, fd
-        ));
+        )?;
         Ok(reply.pop())
     }
 
     pub fn seek(&self, fd: Fd, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
                 -> Result<(ExtId, usize, usize), Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
             Operation::SEEK, fd, off, mode, extent, extoff
-        ));
+        )?;
         Ok((reply.pop(), reply.pop(), reply.pop()))
     }
 
@@ -180,19 +180,19 @@ impl M3FS {
 
 impl FileSystem<RegularFile> for M3FS {
     fn open(&self, path: &str, flags: OpenFlags) -> Result<RegularFile, Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
             Operation::OPEN, path, flags.bits()
-        ));
+        )?;
         let fd = reply.pop();
         Ok(RegularFile::new(self.self_weak.upgrade().unwrap(), fd, flags))
     }
 
     fn stat(&self, path: &str) -> Result<FileInfo, Error> {
-        let mut reply = try!(send_recv_res!(
+        let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
             Operation::STAT, path
-        ));
+        )?;
         Ok(reply.pop())
     }
 
