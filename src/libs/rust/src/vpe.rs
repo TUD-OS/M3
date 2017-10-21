@@ -210,7 +210,7 @@ impl VPE {
     }
 
     pub fn delegate_obj(&mut self, sel: Selector) -> Result<(), Error> {
-        self.delegate(CapRngDesc::new_from(cap::Type::OBJECT, sel, 1))
+        self.delegate(CapRngDesc::new(cap::Type::OBJECT, sel, 1))
     }
     pub fn delegate(&mut self, crd: CapRngDesc) -> Result<(), Error> {
         let start = crd.start();
@@ -229,7 +229,7 @@ impl VPE {
     }
 
     pub fn obtain_to(&mut self, crd: CapRngDesc, dst: Selector) -> Result<(), Error> {
-        let own = CapRngDesc::new_from(crd.cap_type(), dst, crd.count());
+        let own = CapRngDesc::new(crd.cap_type(), dst, crd.count());
         syscalls::exchange(self.sel(), own, crd.start(), true)
     }
 
@@ -248,7 +248,7 @@ impl VPE {
         };
 
         let env = env::data();
-        let mut senv = env::EnvData::new();
+        let mut senv = env::EnvData::default();
 
         senv.sp = get_sp() as u64;
         senv.entry = self.copy_regions(senv.sp as usize)? as u64;
@@ -298,7 +298,7 @@ impl VPE {
         let file = fs.borrow_mut().open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
-        let mut senv = env::EnvData::new();
+        let mut senv = env::EnvData::default();
 
         senv.entry = self.load_program(&mut file)? as u64;
         senv.lambda = 0;

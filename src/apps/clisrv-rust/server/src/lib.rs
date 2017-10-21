@@ -45,7 +45,7 @@ impl<'r> Handler<Session> for MyHandler<'r> {
         }
         else {
             let sess = self.sessions.get(sid).unwrap();
-            data.caps = cap::CapRngDesc::new_from(cap::Type::OBJECT, sess.sgate.sel(), 1).value();
+            data.caps = cap::CapRngDesc::new(cap::Type::OBJECT, sess.sgate.sel(), 1).value();
             Ok(())
         }
     }

@@ -185,7 +185,7 @@ pub fn create_vpe(dst: CapSel, mgate: CapSel, sgate: CapSel, rgate: CapSel, name
 
     let reply: Reply<syscalls::CreateVPEReply> = send_receive(&req)?;
     match reply.data.error {
-        0 => Ok(PEDesc::new_from_val(reply.data.pe as u32)),
+        0 => Ok(PEDesc::new_from(reply.data.pe as u32)),
         e => Err(Error::from(e as u32))
     }
 }

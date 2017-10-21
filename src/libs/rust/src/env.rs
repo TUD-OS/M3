@@ -5,6 +5,7 @@ use core::iter;
 use kif::PEDesc;
 use util;
 
+#[derive(Default)]
 #[repr(C, packed)]
 pub struct EnvData {
     pub pe: u64,
@@ -33,36 +34,6 @@ pub struct EnvData {
 
     pub pedesc: PEDesc,
     pub isrs: u64,
-}
-
-impl EnvData {
-    pub fn new() -> Self {
-        EnvData {
-            pe: 0,
-            argc: 0,
-            argv: 0,
-            sp: 0,
-            entry: 0,
-            lambda: 0,
-            pager_sess: 0,
-            pager_sgate: 0,
-            pager_rgate: 0,
-            mounts_len: 0,
-            mounts: 0,
-            fds_len: 0,
-            fds: 0,
-            rbuf_cur: 0,
-            rbuf_end: 0,
-            eps: 0,
-            caps: 0,
-            exit_addr: 0,
-            heap_size: 0,
-            _backend: 0,
-            kenv: 0,
-            pedesc: PEDesc::new(),
-            isrs: 0,
-        }
-    }
 }
 
 pub fn data() -> &'static mut EnvData {

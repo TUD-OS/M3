@@ -31,25 +31,21 @@ bitflags! {
 pub type ValueType = u32;
 
 #[repr(C, packed)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct PEDesc {
     val: ValueType,
 }
 
 impl PEDesc {
-    pub fn new() -> PEDesc {
-        Self::new_from_val(0)
+    pub fn new(ty: PEType, isa: PEISA, memsize: usize) -> PEDesc {
+        let val = ty.val | (isa.val << 3) | memsize as ValueType;
+        Self::new_from(val)
     }
 
-    pub fn new_from_val(val: ValueType) -> PEDesc {
+    pub fn new_from(val: ValueType) -> PEDesc {
         PEDesc {
             val: val
         }
-    }
-
-    pub fn new_from(ty: PEType, isa: PEISA, memsize: usize) -> PEDesc {
-        let val = ty.val | (isa.val << 3) | memsize as ValueType;
-        Self::new_from_val(val)
     }
 
     pub fn value(&self) -> ValueType {

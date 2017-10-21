@@ -2,7 +2,7 @@ use core::fmt;
 
 pub type CapSel = u32;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct CapRngDesc {
     value: u64,
 }
@@ -23,17 +23,13 @@ impl fmt::Display for CapRngDesc {
 }
 
 impl CapRngDesc {
-    pub fn new() -> CapRngDesc {
-        Self::new_from(Type::OBJECT, 0, 0)
-    }
-
-    pub fn new_from(ty: Type, start: CapSel, count: CapSel) -> CapRngDesc {
+    pub fn new(ty: Type, start: CapSel, count: CapSel) -> CapRngDesc {
         CapRngDesc {
             value: ty.val | ((start as u64) << 33) | ((count as u64) << 1)
         }
     }
 
-    pub fn new_from_val(val: u64) -> CapRngDesc {
+    pub fn new_from(val: u64) -> CapRngDesc {
         CapRngDesc {
             value: val
         }
