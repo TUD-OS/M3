@@ -32,6 +32,18 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
     }
 }
 
+pub fn slice_for(start: *const u8, size: usize) -> &'static [u8] {
+    unsafe {
+        slice::from_raw_parts(start, size)
+    }
+}
+
+pub fn slice_for_mut(start: *mut u8, size: usize) -> &'static mut [u8] {
+    unsafe {
+        slice::from_raw_parts_mut(start, size)
+    }
+}
+
 pub fn to_bytes<T : Sized>(obj: &T) -> &[u8] {
     let p: *const T = obj;
     let p: *const u8 = p as *const u8;

@@ -2,6 +2,7 @@ use cap;
 use com::gate::Gate;
 use errors::Error;
 use dtu;
+use kif;
 use kif::INVALID_SEL;
 use syscalls;
 use util;
@@ -98,9 +99,16 @@ impl MemGate {
         self.read_bytes(data as *mut u8, util::size_of::<T>(), off)
     }
 
-    pub fn read_bytes(&self, data: *mut u8, size: usize, off: usize) -> Result<(), Error> {
+    pub fn read_bytes(&self, mut data: *mut u8, mut size: usize, mut off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
-        dtu::DTU::read(ep, data, size, off, 0)
+
+        loop {
+            match dtu::DTU::read(ep, data, size, off, 0) {
+                Ok(_)                           => return Ok(()),
+                Err(e) if e == Error::VPEGone   => try!(self.forward_read(&mut data, &mut size, &mut off)),
+                Err(e)                          => return Err(e),
+            }
+        }
     }
 
     pub fn write<T>(&self, data: &[T], off: usize) -> Result<(), Error> {
@@ -111,9 +119,38 @@ impl MemGate {
         self.write_bytes(obj as *const u8, util::size_of::<T>(), off)
     }
 
-    pub fn write_bytes(&self, data: *const u8, size: usize, off: usize) -> Result<(), Error> {
+    pub fn write_bytes(&self, mut data: *const u8, mut size: usize, mut off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
-        dtu::DTU::write(ep, data, size, off, 0)
+
+        loop {
+            match dtu::DTU::write(ep, data, size, off, 0) {
+                Ok(_)                           => return Ok(()),
+                Err(e) if e == Error::VPEGone   => try!(self.forward_write(&mut data, &mut size, &mut off)),
+                Err(e)                          => return Err(e),
+            }
+        }
+    }
+
+    fn forward_read(&self, data: &mut *mut u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
+        let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
+        try!(syscalls::forward_read(
+            self.sel(), util::slice_for_mut(*data, amount), *off,
+            kif::syscalls::ForwardMemFlags::empty(), 0
+        ));
+        *data = unsafe { (*data).offset(amount as isize) };
+        *off += amount;
+        Ok(())
+    }
+
+    fn forward_write(&self, data: &mut *const u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
+        let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
+        try!(syscalls::forward_write(
+            self.sel(), util::slice_for(*data, amount), *off,
+            kif::syscalls::ForwardMemFlags::empty(), 0
+        ));
+        *data = unsafe { (*data).offset(amount as isize) };
+        *off += amount;
+        Ok(())
     }
 }
 
@@ -127,6 +164,8 @@ pub mod tests {
         run_test!(t, derive);
         run_test!(t, read_write);
         run_test!(t, read_write_object);
+        run_test!(t, read_write_forward_small);
+        run_test!(t, read_write_forward_big);
     }
 
     fn create() {
@@ -187,5 +226,42 @@ pub mod tests {
         assert_ok!(mgate.read_obj(&mut obj, 0));
 
         assert_eq!(refobj, obj);
+    }
+
+    fn read_write_forward_small() {
+        let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
+        let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
+
+        let refdata = [0u8, 1, 2, 3, 4, 5, 6, 7];
+        let mut data = [0u8; 8];
+
+        assert_ok!(vpe1.mem().write(&refdata, 0));
+        assert_ok!(vpe2.mem().write(&refdata, 0));
+
+        assert_ok!(vpe1.mem().read(&mut data, 0));
+        assert_eq!(refdata, data);
+
+        assert_ok!(vpe2.mem().read(&mut data, 0));
+        assert_eq!(refdata, data);
+    }
+
+    fn read_write_forward_big() {
+        let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
+        let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
+
+        let mut refdata = vec![0x00u8; 1024];
+        let mut data = vec![0x00u8; 1024];
+        for i in 0..refdata.len() {
+            refdata[i] = i as u8;
+        }
+
+        assert_ok!(vpe1.mem().write(&refdata, 0));
+        assert_ok!(vpe2.mem().write(&refdata, 0));
+
+        assert_ok!(vpe1.mem().read(&mut data, 0));
+        assert_eq!(refdata, data);
+
+        assert_ok!(vpe2.mem().read(&mut data, 0));
+        assert_eq!(refdata, data);
     }
 }

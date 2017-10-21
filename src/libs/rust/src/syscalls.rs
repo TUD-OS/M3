@@ -249,6 +249,58 @@ pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error>
     send_receive_result(&req)
 }
 
+pub fn forward_write(mgate: CapSel, data: &[u8], off: usize,
+                     flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::forward_write(mgate={}, count={}, off={}, flags={}, event={})",
+        mgate, data.len(), off, flags.bits(), event
+    );
+
+    let mut req = syscalls::ForwardMem {
+        opcode: syscalls::Operation::ForwardMem as u64,
+        mgate_sel: mgate as u64,
+        offset: off as u64,
+        flags: (flags | syscalls::ForwardMemFlags::WRITE).bits() as u64,
+        event: event as u64,
+        len: data.len() as u64,
+        data: unsafe { intrinsics::uninit() },
+    };
+    req.data[0..data.len()].copy_from_slice(data);
+
+    send_receive_result(&req)
+}
+
+pub fn forward_read(mgate: CapSel, data: &mut [u8], off: usize,
+                    flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::forward_read(mgate={}, count={}, off={}, flags={}, event={})",
+        mgate, data.len(), off, flags.bits(), event
+    );
+
+    let req = syscalls::ForwardMem {
+        opcode: syscalls::Operation::ForwardMem as u64,
+        mgate_sel: mgate as u64,
+        offset: off as u64,
+        flags: flags.bits() as u64,
+        event: event as u64,
+        len: data.len() as u64,
+        data: unsafe { intrinsics::uninit() },
+    };
+
+    let reply: Reply<syscalls::ForwardMemReply> = try!(send_receive(&req));
+    if reply.data.error == 0 {
+        let len = data.len();
+        data.copy_from_slice(&reply.data.data[0..len]);
+    }
+
+    match reply.data.error {
+        0 => Ok(()),
+        e => Err(Error::from(e as u32))
+    }
+}
+
 pub fn noop() -> Result<(), Error> {
     let req = syscalls::Noop {
         opcode: syscalls::Operation::Noop as u64,

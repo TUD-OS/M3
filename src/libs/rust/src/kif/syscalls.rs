@@ -146,6 +146,7 @@ pub struct Activate {
     pub addr: u64,
 }
 
+#[derive(Debug)]
 pub enum VPEOp {
     Init,
     Start,
@@ -222,9 +223,11 @@ pub struct ForwardMsg {
     pub msg: [u8; MAX_MSG_SIZE],
 }
 
-pub enum ForwardMemFlags {
-    NoPf    = 1,
-    Write   = 2,
+bitflags! {
+    pub struct ForwardMemFlags : u32 {
+        const NOPF      = 0x1;
+        const WRITE     = 0x2;
+    }
 }
 
 #[repr(C, packed)]
