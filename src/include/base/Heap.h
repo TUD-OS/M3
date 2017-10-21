@@ -119,7 +119,9 @@ public:
     /**
      * @return the end of the heap that is used.
      */
-    static uintptr_t end();
+    static uintptr_t used_end() {
+        return heap_used_end();
+    }
 
     /**
      * @return the address of the end area

@@ -73,7 +73,7 @@ Errors::Code VPE::copy_sections() {
 
     /* copy data and heap */
     start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_data_start), DTU_PKG_SIZE);
-    end_addr = Math::round_up(Heap::end(), DTU_PKG_SIZE);
+    end_addr = Math::round_up(Heap::used_end(), DTU_PKG_SIZE);
     _mem.write(reinterpret_cast<void*>(start_addr), end_addr - start_addr, start_addr);
 
     /* copy end-area of heap */

@@ -68,19 +68,6 @@ size_t Heap::free_memory() {
     return total;
 }
 
-uintptr_t Heap::end() {
-    HeapArea *last = nullptr;
-    HeapArea *a = heap_begin;
-    while(a < heap_end) {
-        if(is_used(a) && a > last)
-            last = a;
-        a = forward(a, a->next & ~HEAP_USED_BITS);
-    }
-    if(last == nullptr)
-        return reinterpret_cast<uintptr_t>(heap_begin + 1);
-    return reinterpret_cast<uintptr_t>(forward(last, last->next & ~HEAP_USED_BITS) + 1);
-}
-
 void Heap::alloc_callback(void *p, size_t size) {
     if(Serial::ready()) {
         uintptr_t addr[6] = {0};
