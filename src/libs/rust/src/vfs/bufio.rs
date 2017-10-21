@@ -29,6 +29,11 @@ impl<R : Read> BufReader<R> {
 
 impl<R : Read> Read for BufReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        // read directly into user buffer, if the buffer is larger
+        if buf.len() > self.buf.capacity() && self.pos == self.cap {
+            return self.reader.read(buf)
+        }
+
         if self.pos >= self.cap {
             let end = self.buf.len();
             self.cap = try!(self.reader.read(&mut self.buf.as_mut_slice()[0..end]));
@@ -80,6 +85,7 @@ impl<W : Write> BufWriter<W> {
 
 impl<W : Write> Write for BufWriter<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        // write directly from user buffer, if it is larger
         if buf.len() > self.buf.len() {
             try!(self.flush());
 
