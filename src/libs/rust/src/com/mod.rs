@@ -1,10 +1,11 @@
+#[macro_use]
+mod stream;
+
 mod epmux;
 mod gate;
 mod mgate;
 mod rgate;
 mod sgate;
-#[macro_use]
-mod stream;
 
 pub use self::mgate::{MemGate, MGateArgs, Perm};
 pub use self::rgate::{RecvGate, RGateArgs, RBufSpace};

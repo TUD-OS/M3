@@ -4,6 +4,7 @@ use errors::Error;
 use dtu;
 use kif::INVALID_SEL;
 use syscalls;
+use util;
 use vpe;
 
 pub use kif::Perm;
@@ -77,7 +78,8 @@ impl MemGate {
         self.derive_with_sel(offset, size, perm, sel)
     }
 
-    pub fn derive_with_sel(&self, offset: usize, size: usize, perm: Perm, sel: cap::Selector) -> Result<Self, Error> {
+    pub fn derive_with_sel(&self, offset: usize, size: usize,
+                           perm: Perm, sel: cap::Selector) -> Result<Self, Error> {
         try!(syscalls::derive_mem(sel, self.sel(), offset, size, perm));
         Ok(MemGate {
             gate: Gate::new(sel, cap::Flags::empty())
@@ -89,13 +91,29 @@ impl MemGate {
     }
 
     pub fn read<T>(&self, data: &mut [T], off: usize) -> Result<(), Error> {
+        self.read_bytes(data.as_mut_ptr() as *mut u8, data.len() * util::size_of::<T>(), off)
+    }
+
+    pub fn read_obj<T>(&self, data: *mut T, off: usize) -> Result<(), Error> {
+        self.read_bytes(data as *mut u8, util::size_of::<T>(), off)
+    }
+
+    pub fn read_bytes(&self, data: *mut u8, size: usize, off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
-        dtu::DTU::read(ep, data, off, 0)
+        dtu::DTU::read(ep, data, size, off, 0)
     }
 
     pub fn write<T>(&self, data: &[T], off: usize) -> Result<(), Error> {
+        self.write_bytes(data.as_ptr() as *const u8, data.len() * util::size_of::<T>(), off)
+    }
+
+    pub fn write_obj<T>(&self, obj: *const T, off: usize) -> Result<(), Error> {
+        self.write_bytes(obj as *const u8, util::size_of::<T>(), off)
+    }
+
+    pub fn write_bytes(&self, data: *const u8, size: usize, off: usize) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
-        dtu::DTU::write(ep, data, off, 0)
+        dtu::DTU::write(ep, data, size, off, 0)
     }
 }
 
@@ -108,6 +126,7 @@ pub mod tests {
         run_test!(t, create_writeonly);
         run_test!(t, derive);
         run_test!(t, read_write);
+        run_test!(t, read_write_object);
     }
 
     fn create() {
@@ -142,13 +161,31 @@ pub mod tests {
     fn read_write() {
         let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
         let refdata = [0u8, 1, 2, 3, 4, 5, 6, 7];
-        let mut data = refdata.clone();
-        assert_ok!(mgate.write(&data, 0));
+        let mut data = [0u8; 8];
+        assert_ok!(mgate.write(&refdata, 0));
         assert_ok!(mgate.read(&mut data, 0));
         assert_eq!(data, refdata);
 
         assert_ok!(mgate.read(&mut data[0..4], 4));
         assert_eq!(&data[0..4], &refdata[4..8]);
         assert_eq!(&data[4..8], &refdata[4..8]);
+    }
+
+    fn read_write_object() {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        struct Test {
+            a: u32,
+            b: u64,
+            c: bool,
+        }
+
+        let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
+        let refobj = Test { a: 0x1234, b: 0xF000_F000_AAAA_BBBB, c: true };
+        let mut obj = Test { a: 0, b: 0, c: false };
+
+        assert_ok!(mgate.write_obj(&refobj, 0));
+        assert_ok!(mgate.read_obj(&mut obj, 0));
+
+        assert_eq!(refobj, obj);
     }
 }

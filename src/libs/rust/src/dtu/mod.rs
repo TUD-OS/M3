@@ -105,11 +105,8 @@ pub struct DTU {
 }
 
 impl DTU {
-    pub fn send<T>(ep: EpId, msg: &[T], reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
-        let ptr: *const T = msg.as_ptr();
-        Self::write_cmd_reg(CmdReg::Data, Self::build_data(
-            ptr as *const u8, msg.len() * util::size_of::<T>()
-        ));
+    pub fn send(ep: EpId, msg: *const u8, size: usize, reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
+        Self::write_cmd_reg(CmdReg::Data, Self::build_data(msg, size));
         if reply_lbl != 0 {
             Self::write_cmd_reg(CmdReg::ReplyLabel, reply_lbl);
         }
@@ -120,11 +117,8 @@ impl DTU {
         Self::get_error()
     }
 
-    pub fn reply<T>(ep: EpId, reply: &[T], msg: &'static Message) -> Result<(), Error> {
-        let ptr: *const T = reply.as_ptr();
-        Self::write_cmd_reg(CmdReg::Data, Self::build_data(
-            ptr as *const u8, reply.len() * util::size_of::<T>()
-        ));
+    pub fn reply(ep: EpId, reply: *const u8, size: usize, msg: &'static Message) -> Result<(), Error> {
+        Self::write_cmd_reg(CmdReg::Data, Self::build_data(reply, size));
         let slice: u128 = unsafe { intrinsics::transmute(msg) };
         Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
             ep, CmdOpCode::REPLY, 0, slice as u64
@@ -133,18 +127,16 @@ impl DTU {
         Self::get_error()
     }
 
-    pub fn read<T>(ep: EpId, data: &mut [T], off: usize, flags: u64) -> Result<(), Error> {
-        let ptr: *mut T = data.as_ptr() as *mut T;
+    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, flags: u64) -> Result<(), Error> {
         let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags, 0);
-        let res = Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off);
+        let res = Self::transfer(cmd, data as usize, size, off);
         unsafe { intrinsics::atomic_fence_rel() };
         res
     }
 
-    pub fn write<T>(ep: EpId, data: &[T], off: usize, flags: u64) -> Result<(), Error> {
-        let ptr: *const T = data.as_ptr();
+    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, flags: u64) -> Result<(), Error> {
         let cmd = Self::build_cmd(ep, CmdOpCode::WRITE, flags, 0);
-        Self::transfer(cmd, ptr as usize, data.len() * util::size_of::<T>(), off)
+        Self::transfer(cmd, data as usize, size, off)
     }
 
     fn transfer(cmd: Reg, data: usize, size: usize, off: usize) -> Result<(), Error> {

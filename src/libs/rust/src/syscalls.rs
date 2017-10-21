@@ -1,9 +1,8 @@
 use core::intrinsics;
 use dtu;
 use errors::Error;
-use kif::syscalls;
-use kif::cap;
-use kif::Perm;
+use kif::{cap, syscalls, Perm, PEDesc};
+use util;
 
 type CapSel = cap::CapSel;
 
@@ -18,8 +17,8 @@ impl<R: 'static> Drop for Reply<R> {
     }
 }
 
-fn send_receive<T, R>(msg: &[T]) -> Result<Reply<R>, Error> {
-    try!(dtu::DTU::send(dtu::SYSC_SEP, msg, 0, dtu::SYSC_REP));
+fn send_receive<T, R>(msg: *const T) -> Result<Reply<R>, Error> {
+    try!(dtu::DTU::send(dtu::SYSC_SEP, msg as *const u8, util::size_of::<T>(), 0, dtu::SYSC_REP));
 
     loop {
         try!(dtu::DTU::try_sleep(false, 0));
@@ -35,7 +34,7 @@ fn send_receive<T, R>(msg: &[T]) -> Result<Reply<R>, Error> {
     }
 }
 
-fn send_receive_result<T>(msg: &[T]) -> Result<(), Error> {
+fn send_receive_result<T>(msg: *const T) -> Result<(), Error> {
     let reply: Reply<syscalls::DefaultReply> = try!(send_receive(msg));
 
     match reply.data.error {
@@ -64,7 +63,7 @@ pub fn create_srv(dst: CapSel, rgate: CapSel, name: &str) -> Result<(), Error> {
         *a = c as u8;
     }
 
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
@@ -81,7 +80,7 @@ pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result
         ep: ep as u64,
         addr: addr as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
@@ -104,7 +103,7 @@ pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
         *a = c as u8;
     }
 
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
@@ -121,7 +120,7 @@ pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64)
         label: label,
         credits: credits,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn create_mgate(dst: CapSel, addr: usize, size: usize, perms: Perm) -> Result<(), Error> {
@@ -138,7 +137,7 @@ pub fn create_mgate(dst: CapSel, addr: usize, size: usize, perms: Perm) -> Resul
         size: size as u64,
         perms: perms.bits() as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error> {
@@ -154,7 +153,7 @@ pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error>
         order: order as u64,
         msgorder: msgorder as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
@@ -172,7 +171,7 @@ pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: P
         size: size as u64,
         perms: perms.bits() as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {
@@ -189,7 +188,7 @@ pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) 
         other_sel: other as u64,
         obtain: obtain as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
@@ -221,7 +220,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
         req.args[i] = sargs[i];
     }
 
-    let reply: Reply<syscalls::ExchangeSessReply> = try!(send_receive(&[req]));
+    let reply: Reply<syscalls::ExchangeSessReply> = try!(send_receive(&req));
     if reply.data.error == 0 {
         for i in 0..reply.data.argcount as usize {
             rargs[i] = reply.data.args[i];
@@ -247,14 +246,14 @@ pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error>
         crd: crd.value(),
         own: own as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn noop() -> Result<(), Error> {
     let req = syscalls::Noop {
         opcode: syscalls::Operation::Noop as u64,
     };
-    send_receive_result(&[req])
+    send_receive_result(&req)
 }
 
 pub fn exit(code: i32) {
@@ -270,5 +269,6 @@ pub fn exit(code: i32) {
         op: syscalls::VPEOp::Stop as u64,
         arg: code as u64,
     };
-    dtu::DTU::send(dtu::SYSC_SEP, &[req], 0, dtu::SYSC_REP).unwrap();
+    let msg = &req as *const syscalls::VPECtrl as *const u8;
+    dtu::DTU::send(dtu::SYSC_SEP, msg, util::size_of_val(&req), 0, dtu::SYSC_REP).unwrap();
 }

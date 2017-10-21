@@ -5,6 +5,7 @@ use dtu;
 use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;
+use util;
 use vpe;
 
 #[derive(Debug)]
@@ -85,8 +86,11 @@ impl SendGate {
     }
 
     pub fn send<T>(&self, msg: &[T], reply_gate: &RecvGate) -> Result<(), Error> {
+        self.send_bytes(msg.as_ptr() as *const u8, msg.len() * util::size_of::<T>(), reply_gate)
+    }
+    pub fn send_bytes(&self, msg: *const u8, size: usize, reply_gate: &RecvGate) -> Result<(), Error> {
         let ep = try!(self.gate.activate());
-        dtu::DTU::send(ep, msg, 0, reply_gate.ep().unwrap())
+        dtu::DTU::send(ep, msg, size, 0, reply_gate.ep().unwrap())
     }
 }
 

@@ -12,6 +12,7 @@ use syscalls;
 use util;
 use vpe;
 
+// TODO move that elsewhere
 const RECVBUF_SPACE: usize       = 0x3FC00000;
 const RECVBUF_SIZE: usize        = 4 * dtu::PAGE_SIZE;
 const RECVBUF_SIZE_SPM: usize    = 16384;
@@ -203,8 +204,6 @@ impl<'v> RecvGate<'v> {
             self.vpe().free_ep(ep);
         }
         self.gate.unset_ep();
-
-        // TODO stop
     }
 
     pub fn fetch(&self) -> Option<GateIStream> {
@@ -219,7 +218,10 @@ impl<'v> RecvGate<'v> {
     }
 
     pub fn reply<T>(&self, reply: &[T], msg: &'static dtu::Message) -> Result<(), Error> {
-        dtu::DTU::reply(self.ep().unwrap(), reply, msg)
+        self.reply_bytes(reply.as_ptr() as *const u8, reply.len() * util::size_of::<T>(), msg)
+    }
+    pub fn reply_bytes(&self, reply: *const u8, size: usize, msg: &'static dtu::Message) -> Result<(), Error> {
+        dtu::DTU::reply(self.ep().unwrap(), reply, size, msg)
     }
 
     pub fn wait(&self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
