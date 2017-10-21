@@ -47,7 +47,7 @@ impl iter::Iterator for ReadDir {
 
         // read header
         let mut entry = M3FSDirEntry { inode: 0, name_len: 0, next: 0 };
-        if self.reader.read_exact(util::to_bytes_mut(&mut entry)).is_err() {
+        if self.reader.read_exact(util::object_to_bytes_mut(&mut entry)).is_err() {
             return None
         }
 

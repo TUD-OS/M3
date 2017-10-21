@@ -44,7 +44,7 @@ pub fn slice_for_mut(start: *mut u8, size: usize) -> &'static mut [u8] {
     }
 }
 
-pub fn to_bytes<T : Sized>(obj: &T) -> &[u8] {
+pub fn object_to_bytes<T : Sized>(obj: &T) -> &[u8] {
     let p: *const T = obj;
     let p: *const u8 = p as *const u8;
     unsafe {
@@ -52,7 +52,7 @@ pub fn to_bytes<T : Sized>(obj: &T) -> &[u8] {
     }
 }
 
-pub fn to_bytes_mut<T : Sized>(obj: &mut T) -> &mut [u8] {
+pub fn object_to_bytes_mut<T : Sized>(obj: &mut T) -> &mut [u8] {
     let p: *mut T = obj;
     let p: *mut u8 = p as *mut u8;
     unsafe {
