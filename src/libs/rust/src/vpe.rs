@@ -131,14 +131,16 @@ static mut CUR: Option<VPE> = None;
 
 impl VPE {
     fn new_cur() -> Self {
+        let env = env::data();
         VPE {
             cap: Capability::new(0, Flags::KEEP_CAP),
-            pe: env::data().pedesc.clone(),
+            pe: env.pedesc.clone(),
             mem: MemGate::new_bind(1),
             // 0 and 1 are reserved for VPE cap and mem cap
-            next_sel: 2,
-            eps: 0,
-            rbufs: RBufSpace::new(env::data().rbuf_cur as usize, env::data().rbuf_end as usize),
+            // it's initially 0. make sure it's at least the first usable selector
+            next_sel: util::max(2, env.caps as Selector),
+            eps: env.eps,
+            rbufs: RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize),
         }
     }
 
@@ -188,7 +190,7 @@ impl VPE {
     }
 
     pub fn alloc_ep(&mut self) -> Result<EpId, Error> {
-        for ep in 0..EP_COUNT {
+        for ep in FIRST_FREE_EP..EP_COUNT {
             if self.is_ep_free(ep) {
                 self.eps |= 1 << ep;
                 return Ok(ep)
@@ -198,7 +200,7 @@ impl VPE {
     }
 
     pub fn is_ep_free(&self, ep: EpId) -> bool {
-        (self.eps & (1 << ep)) == 0
+        ep >= FIRST_FREE_EP && (self.eps & (1 << ep)) == 0
     }
 
     pub fn free_ep(&mut self, ep: EpId) {
@@ -261,6 +263,7 @@ impl VPE {
         senv.rbuf_cur = self.rbufs.cur as u64;
         senv.rbuf_end = self.rbufs.end as u64;
         senv.caps = self.next_sel as u64;
+        senv.eps = self.eps;
 
         // TODO
         // senv.mounts_len = 0;
@@ -460,9 +463,5 @@ impl VPE {
 pub fn init() {
     unsafe {
         CUR = Some(VPE::new_cur());
-    }
-
-    for _ in 0..FIRST_FREE_EP {
-        VPE::cur().alloc_ep().unwrap();
     }
 }
