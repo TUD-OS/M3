@@ -288,11 +288,30 @@ static void *dtu_irq(m3::Exceptions::State *state) {
     return state;
 }
 
+static void terminate(m3::Exceptions::State *state, uintptr_t cr2) {
+    PRINTSTR("for 0x");
+    print_num(cr2, 16);
+    PRINTSTR(" @ 0x");
+    print_num(state->rip, 16);
+    PRINTSTR("; stopping\n");
+    while(1)
+        ;
+}
+
 static void *mmu_pf(m3::Exceptions::State *state) {
     uintptr_t cr2;
     asm volatile ("mov %%cr2, %0" : "=r"(cr2));
-    if(!handle_pf(0, cr2, to_dtu_pte(state->errorCode & 0x7)))
-        PRINTSTR("RCTMux: nested pagefault\n");
+
+    if(!m3::env()->pedesc.has_mmu()) {
+        PRINTSTR("RCTMux: unexpected pagefault ");
+        terminate(state, cr2);
+    }
+
+    if(!handle_pf(0, cr2, to_dtu_pte(state->errorCode & 0x7))) {
+        PRINTSTR("RCTMux: nested pagefault ");
+        terminate(state, cr2);
+    }
+
     resume_cmd();
     return state;
 }
