@@ -17,9 +17,9 @@ struct MySession {
     sgate: SendGate,
 }
 
-struct MyHandler<'r> {
+struct MyHandler {
     sessions: SessionContainer<MySession>,
-    rgate: RecvGate<'r>,
+    rgate: RecvGate,
 }
 
 int_enum! {
@@ -28,7 +28,7 @@ int_enum! {
     }
 }
 
-impl<'r> Handler<Session> for MyHandler<'r> {
+impl Handler<Session> for MyHandler {
     fn open(&mut self, arg: u64) -> Result<SessId, Error> {
         let sgate = SendGate::new_with(
             SGateArgs::new(&self.rgate).label(self.sessions.next_id()).credits(256)
@@ -55,7 +55,7 @@ impl<'r> Handler<Session> for MyHandler<'r> {
     }
 }
 
-impl<'r> MyHandler<'r> {
+impl MyHandler {
     pub fn new() -> Result<Self, Error> {
         let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
         rgate.activate()?;

@@ -39,12 +39,12 @@ impl GateOStream {
 pub struct GateIStream<'r> {
     pub msg: &'static dtu::Message,
     pub pos: usize,
-    rgate: &'r RecvGate<'r>,
+    rgate: &'r RecvGate,
     ack: bool,
 }
 
 impl<'r> GateIStream<'r> {
-    pub fn new(msg: &'static dtu::Message, rgate: &'r RecvGate<'r>) -> Self {
+    pub fn new(msg: &'static dtu::Message, rgate: &'r RecvGate) -> Self {
         GateIStream {
             msg: msg,
             pos: 0,

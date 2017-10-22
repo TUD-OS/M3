@@ -7,9 +7,9 @@ use kif::service;
 use util;
 use vpe::VPE;
 
-pub struct Server<'v> {
+pub struct Server {
     cap: Capability,
-    rgate: RecvGate<'v>,
+    rgate: RecvGate,
 }
 
 pub trait Handler<S> {
@@ -27,7 +27,7 @@ pub trait Handler<S> {
     }
 }
 
-impl<'v> Server<'v> {
+impl Server {
     pub fn new(name: &str) -> Result<Self, Error> {
         let sel = VPE::cur().alloc_cap();
         let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
