@@ -30,12 +30,7 @@
 namespace m3 {
 
 void VPE::init_state() {
-    if(Heap::is_on_heap(_eps))
-        delete _eps;
-
-    _eps = reinterpret_cast<BitField<EP_COUNT>*>(env()->eps);
-    if(_eps == nullptr)
-        _eps = new BitField<EP_COUNT>();
+    _eps = env()->eps;
 
     // it's initially 0. make sure it's at least the first usable selector
     _next_sel = Math::max<uint64_t>(SEL_START, env()->caps);
@@ -151,15 +146,12 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
     offset = Math::round_up(offset + static_cast<size_t>(senv.fds_len), sizeof(word_t));
 
-    senv.eps = RT_SPACE_START + offset;
-    memcpy(buffer + offset, _eps, sizeof(*_eps));
-    offset = Math::round_up(offset + sizeof(*_eps), DTU_PKG_SIZE);
-
     /* write entire runtime stuff */
     _mem.write(buffer, offset, RT_SPACE_START);
 
     Heap::free(buffer);
 
+    senv.eps = _eps;
     senv.caps = _next_sel;
     senv.rbufcur = _rbufcur;
     senv.rbufend = _rbufend;

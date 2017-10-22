@@ -36,8 +36,8 @@ VPE::VPE()
     : ObjCap(VIRTPE, 0, KEEP_CAP), _pe(env()->pedesc),
       _mem(MemGate::bind(1)), _next_sel(SEL_START), _eps(), _pager(), _rbufcur(), _rbufend(),
       _ms(), _fds(), _exec() {
+    static_assert(EP_COUNT < 64, "64 endpoints are the maximum due to the 64-bit bitmask");
     init_state();
-    init();
     init_fs();
 
     if(!_ms)
@@ -57,11 +57,9 @@ VPE::VPE()
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
-          _next_sel(SEL_START), _eps(new BitField<EP_COUNT>()),
+          _next_sel(SEL_START), _eps(),
           _pager(), _rbufcur(), _rbufend(),
           _ms(new MountTable()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
-    init();
-
     // create pager first, to create session and obtain gate cap
     if(_pe.has_virtmem()) {
         if(pager)
@@ -99,26 +97,21 @@ VPE::~VPE() {
         EPMux::get().remove(&_mem, true);
         // only free that if it's not our own VPE. 1. it doesn't matter in this case and 2. it might
         // be stored not on the heap but somewhere else
-        delete _eps;
         delete _fds;
         delete _ms;
         delete _exec;
     }
 }
 
-void VPE::init() {
-    _eps->set(DTU::SYSC_SEP);
-    _eps->set(DTU::SYSC_REP);
-    _eps->set(DTU::UPCALL_REP);
-    _eps->set(DTU::DEF_REP);
-}
-
 epid_t VPE::alloc_ep() {
-    epid_t ep = _eps->first_clear();
-    if(ep >= EP_COUNT)
-        PANIC("No more free endpoints");
-    _eps->set(ep);
-    return ep;
+    for(epid_t ep = DTU::FIRST_FREE_EP; ep < EP_COUNT; ++ep) {
+        if(is_ep_free(ep)) {
+            _eps |= static_cast<uint64_t>(1) << ep;
+            return ep;
+        }
+    }
+
+    PANIC("No more free endpoints");
 }
 
 void VPE::mounts(const MountTable &ms) {

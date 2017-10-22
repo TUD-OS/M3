@@ -70,14 +70,11 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
 }
 
 void VPE::init_state() {
-    delete _eps;
-
     size_t len = sizeof(_next_sel);
     read_from("caps", &_next_sel, len);
 
-    _eps = new BitField<EP_COUNT>();
-    len = sizeof(*_eps);
-    read_from("eps", _eps, len);
+    len = sizeof(_eps);
+    read_from("eps", &_eps, len);
 }
 
 void VPE::init_fs() {
@@ -134,7 +131,7 @@ Errors::Code VPE::run(void *lambda) {
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
-        write_file(pid, "eps", _eps, sizeof(*_eps));
+        write_file(pid, "eps", &_eps, sizeof(_eps));
 
         size_t len = STATE_BUF_SIZE;
         char *buf = new char[len];
@@ -212,7 +209,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
         write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
-        write_file(pid, "eps", _eps, sizeof(*_eps));
+        write_file(pid, "eps", &_eps, sizeof(_eps));
 
         size_t len = STATE_BUF_SIZE;
         char *buf = new char[len];

@@ -160,7 +160,7 @@ public:
      * @return true if the endpoint is free
      */
     bool is_ep_free(epid_t id) {
-        return !_eps->is_set(id);
+        return id >= DTU::FIRST_FREE_EP && (_eps & (static_cast<uint64_t>(1) << id)) == 0;
     }
 
     /**
@@ -169,7 +169,7 @@ public:
      * @param id the endpoint id
      */
     void free_ep(epid_t id) {
-        _eps->clear(id);
+        _eps &= ~(static_cast<uint64_t>(1) << id);
     }
 
     /**
@@ -282,7 +282,6 @@ public:
     }
 
 private:
-    void init();
     void init_state();
     void init_fs();
     Errors::Code run(void *lambda);
@@ -298,7 +297,7 @@ private:
     PEDesc _pe;
     MemGate _mem;
     capsel_t _next_sel;
-    BitField<EP_COUNT> *_eps;
+    uint64_t _eps;
     Pager *_pager;
     uint64_t _rbufcur;
     uint64_t _rbufend;
