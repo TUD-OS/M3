@@ -105,7 +105,12 @@ impl MemGate {
         loop {
             match dtu::DTU::read(ep, data, size, off, 0) {
                 Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => self.forward_read(&mut data, &mut size, &mut off)?,
+                Err(e) if e == Error::VPEGone   => {
+                    // simply retry the write if the forward failed (pagefault)
+                    if self.forward_read(&mut data, &mut size, &mut off).is_ok() && size == 0 {
+                        break Ok(())
+                    }
+                },
                 Err(e)                          => return Err(e),
             }
         }
@@ -125,7 +130,12 @@ impl MemGate {
         loop {
             match dtu::DTU::write(ep, data, size, off, 0) {
                 Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => self.forward_write(&mut data, &mut size, &mut off)?,
+                Err(e) if e == Error::VPEGone   => {
+                    // simply retry the write if the forward failed (pagefault)
+                    if self.forward_write(&mut data, &mut size, &mut off).is_ok() && size == 0 {
+                        break Ok(());
+                    }
+                },
                 Err(e)                          => return Err(e),
             }
         }
@@ -139,6 +149,7 @@ impl MemGate {
         )?;
         *data = unsafe { (*data).offset(amount as isize) };
         *off += amount;
+        *size -= amount;
         Ok(())
     }
 
@@ -150,6 +161,7 @@ impl MemGate {
         )?;
         *data = unsafe { (*data).offset(amount as isize) };
         *off += amount;
+        *size -= amount;
         Ok(())
     }
 }
