@@ -83,17 +83,15 @@ pub fn exit(code: i32) {
 pub extern fn env_run() {
     io::init();
     let envdata = env::data();
-    let res = unsafe {
-        if envdata.lambda != 0 {
-            com::reinit();
-            env::closure().call()
-        }
-        else {
-            heap::init();
-            vpe::init();
-            com::init();
-            main()
-        }
+    let res = if envdata.lambda != 0 {
+        com::reinit();
+        env::closure().call()
+    }
+    else {
+        heap::init();
+        vpe::init();
+        com::init();
+        unsafe { main() }
     };
     exit(res)
 }
