@@ -213,6 +213,11 @@ impl DTU {
         Self::get_error()
     }
 
+    pub fn print(s: &[u8]) {
+        Self::write_cmd_reg(CmdReg::Data, (s.as_ptr() as usize | (s.len() << 48)) as Reg);
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::PRINT, 0, 0));
+    }
+
     fn read_dtu_reg(reg: DtuReg) -> Reg {
         Self::read_reg(reg as usize)
     }

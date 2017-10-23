@@ -81,6 +81,7 @@ pub fn exit(code: i32) {
 
 #[no_mangle]
 pub extern fn env_run() {
+    io::init();
     let envdata = env::data();
     let res = unsafe {
         if envdata.lambda != 0 {
