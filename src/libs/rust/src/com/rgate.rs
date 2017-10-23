@@ -18,7 +18,7 @@ const RECVBUF_SIZE: usize        = 4 * dtu::PAGE_SIZE;
 const RECVBUF_SIZE_SPM: usize    = 16384;
 
 const SYSC_RBUF_SIZE: usize      = 1 << 9;
-const UPCALL_RBUF_SIZE: usize    = 1 << 8;
+const UPCALL_RBUF_SIZE: usize    = 1 << 9;
 const DEF_RBUF_SIZE: usize       = 1 << 8;
 
 const DEF_MSG_ORD: i32           = 6;

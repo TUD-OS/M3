@@ -52,7 +52,7 @@
 #define SYSC_RBUF_SIZE      (1 << SYSC_RBUF_ORDER)
 #define SYSC_RBUF           RECVBUF_SPACE
 
-#define UPCALL_RBUF_ORDER   8
+#define UPCALL_RBUF_ORDER   9
 #define UPCALL_RBUF_SIZE    (1 << UPCALL_RBUF_ORDER)
 #define UPCALL_RBUF         (SYSC_RBUF + SYSC_RBUF_SIZE)
 

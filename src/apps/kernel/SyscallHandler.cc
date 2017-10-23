@@ -974,10 +974,18 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     if(res != m3::Errors::NONE && res != m3::Errors::PAGEFAULT)
         LOG_ERROR(vpe, res, "forwardmem failed");
 
-    if(async)
-        vpe->upcall_notify(res, event);
-    else
-        reply_result(vpe, msg, res);
+    if(~flags & m3::KIF::Syscall::ForwardMem::WRITE) {
+        if(async)
+            UNREACHED; // TODO
+        else
+            reply_msg(vpe, msg, &reply, sizeof(reply));
+    }
+    else {
+        if(async)
+            vpe->upcall_notify(res, event);
+        else
+            reply_result(vpe, msg, res);
+    }
 #endif
 }
 
