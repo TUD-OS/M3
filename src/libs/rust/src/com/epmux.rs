@@ -73,6 +73,15 @@ impl EpMux {
         }
     }
 
+    pub fn reset(&mut self) {
+        for ep in 0..dtu::EP_COUNT {
+            if let Some(g) = self.gate_at_ep(ep) {
+                g.unset_ep();
+            }
+            self.gates[ep] = None;
+        }
+    }
+
     fn select_victim(&mut self) -> Result<EpId, Error> {
         let mut victim = self.next_victim;
         for _ in 0..dtu::EP_COUNT {

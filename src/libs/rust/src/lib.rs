@@ -84,6 +84,7 @@ pub extern fn env_run() {
     let envdata = env::data();
     let res = unsafe {
         if envdata.lambda != 0 {
+            com::reinit();
             env::closure().call()
         }
         else {

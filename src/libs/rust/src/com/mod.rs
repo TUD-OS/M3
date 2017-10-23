@@ -16,3 +16,7 @@ pub use self::stream::*;
 pub fn init() {
     rgate::init();
 }
+
+pub fn reinit() {
+    epmux::EpMux::get().reset();
+}
