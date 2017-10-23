@@ -99,8 +99,10 @@ void Region::copy(m3::MemGate *mem, uintptr_t virt) {
         // give us the old memory with a new PhysMem object
         _mem = m3::Reference<PhysMem>(new PhysMem(mem, old, _mem->owner_virt));
     }
-    else
-        _mem->gate = ngate;
+    else {
+        // the others keep the old mem; we take the new one
+        _mem = m3::Reference<PhysMem>(new PhysMem(mem, ngate, virt));
+    }
 }
 
 void Region::clear() {
