@@ -298,13 +298,6 @@ void VPE::load_app() {
 void VPE::init_memory() {
     bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
-        // clear root pt
-        gaddr_t rootpt = address_space()->root_pt();
-        DTU::get().copy_clear(
-            VPEDesc(m3::DTU::gaddr_to_pe(rootpt), VPE::INVALID_ID), m3::DTU::gaddr_to_virt(rootpt),
-            VPEDesc(0, 0), 0,
-            PAGE_SIZE, true);
-
         if(Platform::pe(pe()).has_mmu())
             _state = VPE::SUSPENDED;
         else {

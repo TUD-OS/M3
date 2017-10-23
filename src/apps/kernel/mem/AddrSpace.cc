@@ -19,6 +19,7 @@
 
 #include "mem/AddrSpace.h"
 #include "mem/MainMemory.h"
+#include "pes/VPE.h"
 #include "DTU.h"
 
 namespace kernel {
@@ -32,6 +33,12 @@ AddrSpace::AddrSpace(vpeid_t vpeid, epid_t sep, capsel_t sgate, epid_t rep, caps
       _root() {
     MainMemory::Allocation rootpt = MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE);
     _root = m3::DTU::build_gaddr(rootpt.pe(), rootpt.addr);
+
+    // clear root pt
+    DTU::get().copy_clear(
+        VPEDesc(m3::DTU::gaddr_to_pe(_root), VPE::INVALID_ID), m3::DTU::gaddr_to_virt(_root),
+        VPEDesc(0, 0), 0,
+        PAGE_SIZE, true);
 }
 
 AddrSpace::~AddrSpace() {
