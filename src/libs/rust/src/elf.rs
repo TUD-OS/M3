@@ -6,6 +6,14 @@ int_enum! {
     }
 }
 
+bitflags! {
+    pub struct PF : u32 {
+        const X = 0x1;
+        const W = 0x2;
+        const R = 0x4;
+    }
+}
+
 #[derive(Default)]
 #[repr(C, packed)]
 pub struct Ehdr {

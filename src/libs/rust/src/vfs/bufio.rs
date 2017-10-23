@@ -25,6 +25,14 @@ impl<R : Read> BufReader<R> {
         unsafe { br.buf.set_len(cap) };
         br
     }
+
+    pub fn get_ref(&self) -> &R {
+        &self.reader
+    }
+
+    pub fn get_mut(&mut self) -> &mut R {
+        &mut self.reader
+    }
 }
 
 impl<R : Read> Read for BufReader<R> {
@@ -80,6 +88,14 @@ impl<W : Write> BufWriter<W> {
         };
         unsafe { br.buf.set_len(cap) };
         br
+    }
+
+    pub fn get_ref(&self) -> &W {
+        &self.writer
+    }
+
+    pub fn get_mut(&mut self) -> &mut W {
+        &mut self.writer
     }
 }
 

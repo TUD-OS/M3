@@ -22,6 +22,11 @@ impl Session {
             cap: Capability::new(sel, Flags::KEEP_CAP),
         }
     }
+    pub fn new_owned_bind(sel: Selector) -> Self {
+        Session {
+            cap: Capability::new(sel, Flags::empty()),
+        }
+    }
 
     pub fn sel(&self) -> Selector {
         self.cap.sel()

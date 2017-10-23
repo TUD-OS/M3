@@ -14,7 +14,6 @@ use vpe;
 
 // TODO move that elsewhere
 const RECVBUF_SPACE: usize       = 0x3FC00000;
-const RECVBUF_SIZE: usize        = 4 * dtu::PAGE_SIZE;
 const RECVBUF_SIZE_SPM: usize    = 16384;
 
 const SYSC_RBUF_SIZE: usize      = 1 << 9;
@@ -138,11 +137,23 @@ impl RecvGate {
         })
     }
 
+    pub fn new_bind(sel: cap::Selector, order: i32) -> Self {
+        RecvGate {
+            gate: Gate::new(sel, cap::Flags::KEEP_CAP),
+            buf: 0,
+            order: order,
+            free: FreeFlags::empty(),
+        }
+    }
+
     pub fn sel(&self) -> cap::Selector {
         self.gate.sel()
     }
     pub fn ep(&self) -> Option<EpId> {
         self.gate.ep()
+    }
+    pub fn size(&self) -> usize {
+        1 << self.order
     }
 
     pub fn activate(&mut self) -> Result<(), Error> {
@@ -150,23 +161,24 @@ impl RecvGate {
             let vpe = vpe::VPE::cur();
             let ep = vpe.alloc_ep()?;
             self.free |= FreeFlags::FREE_EP;
-            self.activate_for(vpe.rbufs(), ep)?;
             EpMux::get().reserve(ep);
+            self.activate_ep(ep)?;
         }
         Ok(())
     }
 
-    pub fn activate_for(&mut self, rbufs: &mut RBufSpace, ep: EpId) -> Result<(), Error> {
+    pub fn activate_ep(&mut self, ep: EpId) -> Result<(), Error> {
         if self.ep().is_none() {
+            let vpe = vpe::VPE::cur();
             let buf = if self.buf == 0 {
                 let size = 1 << self.order;
-                Self::alloc_buf(rbufs, size)?
+                vpe.alloc_rbuf(size)?
             }
             else {
                 self.buf
             };
 
-            self.activate_buf(ep, buf)?;
+            self.activate_for(vpe.sel(), ep, buf)?;
             if self.buf == 0 {
                 self.buf = buf;
                 self.free |= FreeFlags::FREE_BUF;
@@ -176,13 +188,13 @@ impl RecvGate {
         Ok(())
     }
 
-    pub fn activate_buf(&mut self, ep: EpId, addr: usize) -> Result<(), Error> {
+    pub fn activate_for(&mut self, vpe: cap::Selector, ep: EpId, addr: usize) -> Result<(), Error> {
         assert!(self.ep().is_none());
 
         self.gate.set_ep(ep);
 
         if self.sel() != INVALID_SEL {
-            syscalls::activate(0, self.sel(), ep, addr)
+            syscalls::activate(vpe, self.sel(), ep, addr)
         }
         else {
             Ok(())
@@ -239,36 +251,6 @@ impl RecvGate {
             dtu::DTU::try_sleep(idle, 0)?;
         }
     }
-
-    fn alloc_buf(rbufs: &mut RBufSpace, size: usize) -> Result<usize, Error> {
-        if rbufs.end == 0 {
-            let pe = &env::data().pedesc;
-            let buf_sizes = SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
-            if pe.has_virtmem() {
-                rbufs.cur = RECVBUF_SPACE + buf_sizes;
-                rbufs.end = RECVBUF_SPACE + RECVBUF_SIZE;
-            }
-            else {
-                rbufs.cur = pe.mem_size() - RECVBUF_SIZE_SPM + buf_sizes;
-                rbufs.end = pe.mem_size();
-            }
-        }
-
-        // TODO atm, the kernel allocates the complete receive buffer space
-        let left = rbufs.end - rbufs.cur;
-        if size > left {
-            Err(Error::NoSpace)
-        }
-        else {
-            let res = rbufs.cur;
-            rbufs.cur += size;
-            Ok(res)
-        }
-    }
-
-    fn free_buf(_addr: usize) {
-        // TODO implement me
-    }
 }
 
 pub fn init() {
@@ -295,7 +277,7 @@ pub fn init() {
 impl ops::Drop for RecvGate {
     fn drop(&mut self) {
         if !(self.free & FreeFlags::FREE_BUF).is_empty() {
-            RecvGate::free_buf(self.buf);
+            vpe::VPE::cur().free_buf(self.buf);
         }
         self.deactivate();
     }

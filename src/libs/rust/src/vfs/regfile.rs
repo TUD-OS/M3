@@ -3,9 +3,9 @@ use cell::{RefCell, RefMut};
 use com::MemGate;
 use core::fmt;
 use errors::Error;
-use kif::INVALID_SEL;
+use kif::{Perm, INVALID_SEL};
 use rc::Rc;
-use session::{ExtId, Fd, M3FS, LocList, LocFlags};
+use session::{ExtId, Fd, M3FS, LocList, LocFlags, Pager, Map};
 use time;
 use vfs;
 
@@ -328,6 +328,12 @@ impl vfs::Write for RegularFile {
         time::stop(0xaaaa);
 
         Ok(amount)
+    }
+}
+
+impl Map for RegularFile {
+    fn map(&self, pager: &Pager, virt: usize, off: usize, len: usize, prot: Perm) -> Result<(), Error> {
+        pager.map_ds(virt, len, off, prot, self.sess.borrow().sess(), self.fd).map(|_| ())
     }
 }
 

@@ -66,8 +66,10 @@ pub fn main() -> i32 {
             println!("Creating directory /foobar: {:?}", m3fs.borrow_mut().mkdir("/foobar", 0o755));
 
             let mut s = String::new();
-            let count = file.read_to_string(&mut s).expect("read failed");
-            println!("Got {} bytes: {}", count, s);
+            {
+                let count = file.read_to_string(&mut s).expect("read failed");
+                println!("Got {} bytes: {}", count, s);
+            }
 
             file.seek(0, SeekMode::SET).unwrap();
             {
@@ -107,7 +109,9 @@ pub fn main() -> i32 {
     }
 
     let args: Vec<&'static str> = env::args().collect();
-    println!("arg0: {}, arg1: {}", args[0], args[1]);
+    if args.len() > 2 {
+        println!("arg0: {}, arg1: {}", args[0], args[1]);
+    }
 
     {
         let mgate = MemGate::new(0x1000, Perm::RW).unwrap();

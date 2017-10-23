@@ -84,6 +84,7 @@ pub extern fn env_run() {
     io::init();
     let envdata = env::data();
     let res = if envdata.lambda != 0 {
+        vpe::reinit();
         com::reinit();
         env::closure().call()
     }

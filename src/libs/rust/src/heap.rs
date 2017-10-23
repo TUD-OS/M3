@@ -18,17 +18,28 @@ extern {
     static mut heap_end: *mut HeapArea;
 }
 
+// TODO move
+const RECVBUF_SIZE_SPM: usize    = 16384;
+
 pub fn init() {
     unsafe {
         let begin = &_bss_end as *const u8;
         heap_begin = util::round_up(begin as usize, util::size_of::<HeapArea>()) as *mut HeapArea;
 
         let env = env::data();
-        let end = util::round_up(begin as usize, dtu::PAGE_SIZE) + env.heap_size as usize;
+        let end = if env.heap_size == 0 {
+            env.pedesc.mem_size() - RECVBUF_SIZE_SPM
+        }
+        else {
+            util::round_up(begin as usize, dtu::PAGE_SIZE) + env.heap_size as usize
+        };
+
         heap_end = (end as *mut HeapArea).offset(-1);
 
         let num_areas = heap_begin.offset_to(heap_end).unwrap() as i64;
         let space = num_areas * util::size_of::<HeapArea>() as i64;
+
+        log!(HEAP, "Heap has {} bytes", space);
 
         (*heap_end).next = 0;
         (*heap_end).prev = space as u64;

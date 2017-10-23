@@ -133,6 +133,10 @@ impl M3FS {
         Self::create(Session::new_bind(sess), SendGate::new_bind(sgate))
     }
 
+    pub fn sess(&self) -> &Session {
+        &self.sess
+    }
+
     pub fn get_locs(&self, fd: Fd, ext: ExtId, locs: &mut LocList,
                     flags: LocFlags) -> Result<(usize, bool), Error> {
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };

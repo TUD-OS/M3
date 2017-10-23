@@ -5,7 +5,7 @@ use cell::RefCell;
 use com::{MemGate, RBufSpace};
 use collections::Vec;
 use core::iter;
-use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
+use dtu::{PAGE_SIZE, EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use elf;
 use errors::Error;
@@ -14,6 +14,7 @@ use kif;
 use kif::{cap, CapRngDesc, INVALID_SEL, PEDesc};
 use rc::Rc;
 use session::M3FS;
+use session::{Pager, Map};
 use vfs::{BufReader, FileSystem, OpenFlags, Read, RegularFile, Seek, SeekMode};
 use libc;
 use syscalls;
@@ -27,10 +28,12 @@ pub struct VPE {
     next_sel: Selector,
     eps: u64,
     rbufs: RBufSpace,
+    pager: Option<Pager>,
 }
 
-pub struct VPEArgs<'n> {
+pub struct VPEArgs<'n, 'p> {
     name: &'n str,
+    pager: Option<&'p str>,
     pe: PEDesc,
     muxable: bool,
 }
@@ -52,12 +55,12 @@ pub trait Activity {
 }
 
 pub struct ClosureActivity<'v> {
-    vpe: &'v VPE,
+    vpe: &'v mut VPE,
     _closure: env::Closure,
 }
 
 impl<'v> ClosureActivity<'v> {
-    pub fn new<'vo : 'v>(vpe: &'vo VPE, closure: env::Closure) -> ClosureActivity<'v> {
+    pub fn new<'vo : 'v>(vpe: &'vo mut VPE, closure: env::Closure) -> ClosureActivity<'v> {
         ClosureActivity {
             vpe: vpe,
             _closure: closure,
@@ -74,16 +77,19 @@ impl<'v> Activity for ClosureActivity<'v> {
 impl<'v> Drop for ClosureActivity<'v> {
     fn drop(&mut self) {
         self.stop().ok();
+        if let Some(ref mut pg) = self.vpe.pager {
+            pg.deactivate();
+        }
     }
 }
 
 pub struct ExecActivity<'v> {
-    vpe: &'v VPE,
+    vpe: &'v mut VPE,
     _file: BufReader<RegularFile>,
 }
 
 impl<'v> ExecActivity<'v> {
-    pub fn new<'vo : 'v>(vpe: &'vo VPE, file: BufReader<RegularFile>) -> ExecActivity<'v> {
+    pub fn new<'vo : 'v>(vpe: &'vo mut VPE, file: BufReader<RegularFile>) -> ExecActivity<'v> {
         ExecActivity {
             vpe: vpe,
             _file: file,
@@ -100,13 +106,17 @@ impl<'v> Activity for ExecActivity<'v> {
 impl<'v> Drop for ExecActivity<'v> {
     fn drop(&mut self) {
         self.stop().ok();
+        if let Some(ref mut pg) = self.vpe.pager {
+            pg.deactivate();
+        }
     }
 }
 
-impl<'n> VPEArgs<'n> {
-    pub fn new(name: &'n str) -> VPEArgs<'n> {
+impl<'n, 'p> VPEArgs<'n, 'p> {
+    pub fn new(name: &'n str) -> VPEArgs<'n, 'p> {
         VPEArgs {
             name: name,
+            pager: None,
             pe: VPE::cur().pe(),
             muxable: false,
         }
@@ -117,6 +127,11 @@ impl<'n> VPEArgs<'n> {
         self
     }
 
+    pub fn pager(mut self, pager: &'p str) -> Self {
+        self.pager = Some(pager);
+        self
+    }
+
     pub fn muxable(mut self, muxable: bool) -> Self {
         self.muxable = muxable;
         self
@@ -124,23 +139,47 @@ impl<'n> VPEArgs<'n> {
 }
 
 // TODO move
-const RT_START: usize   = 0x6000;
-const STACK_TOP: usize  = 0xC000;
+const RT_START: usize       = 0x6000;
+const STACK_TOP: usize      = 0xC000;
+const APP_HEAP_SIZE: usize  = 64 * 1024 * 1024;
+
+const RECVBUF_SPACE: usize       = 0x3FC00000;
+const RECVBUF_SIZE: usize        = 4 * PAGE_SIZE;
+const RECVBUF_SIZE_SPM: usize    = 16384;
+
+const SYSC_RBUF_SIZE: usize      = 1 << 9;
+const UPCALL_RBUF_SIZE: usize    = 1 << 9;
+const DEF_RBUF_SIZE: usize       = 1 << 8;
 
 static mut CUR: Option<VPE> = None;
 
 impl VPE {
     fn new_cur() -> Self {
-        let env = env::data();
-        VPE {
+        let mut vpe = VPE {
             cap: Capability::new(0, Flags::KEEP_CAP),
-            pe: env.pedesc.clone(),
+            pe: PEDesc::default(),
             mem: MemGate::new_bind(1),
             // 0 and 1 are reserved for VPE cap and mem cap
-            // it's initially 0. make sure it's at least the first usable selector
-            next_sel: util::max(2, env.caps as Selector),
-            eps: env.eps,
-            rbufs: RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize),
+            next_sel: 2,
+            eps: 0,
+            rbufs: RBufSpace::new(0, 0),
+            pager: None,
+        };
+        vpe.init();
+        vpe
+    }
+
+    fn init(&mut self) {
+        let env = env::data();
+        self.eps = env.eps;
+        self.pe = env.pedesc.clone();
+
+        // it's initially 0. make sure it's at least the first usable selector
+        self.next_sel = util::max(2, env.caps as Selector);
+        self.rbufs = RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize);
+
+        if env.pager_sess != 0 {
+            self.pager = Some(Pager::new_bind(env.pager_sess, env.pager_sgate, env.pager_rgate));
         }
     }
 
@@ -154,21 +193,74 @@ impl VPE {
         Self::new_with(VPEArgs::new(name))
     }
 
-    pub fn new_with(builder: VPEArgs) -> Result<Self, Error> {
+    pub fn new_with(args: VPEArgs) -> Result<Self, Error> {
         let sels = VPE::cur().alloc_caps(2);
-        let pe = syscalls::create_vpe(
-            sels + 0, sels + 1, INVALID_SEL, INVALID_SEL, builder.name,
-            builder.pe, 0, 0, builder.muxable
-        )?;
 
-        Ok(VPE {
+        let mut vpe = VPE {
             cap: Capability::new(sels + 0, Flags::empty()),
-            pe: pe,
+            pe: args.pe,
             mem: MemGate::new_bind(sels + 1),
             next_sel: 2,
             eps: 0,
             rbufs: RBufSpace::new(0, 0),
-        })
+            pager: None,
+        };
+
+        let rbuf = if args.pe.has_mmu() {
+            vpe.alloc_rbuf(SYSC_RBUF_SIZE)?
+        }
+        else {
+            0
+        };
+
+        let pager = if args.pe.has_virtmem() {
+            if let Some(p) = args.pager {
+                Some(Pager::new(&mut vpe, rbuf, p)?)
+            }
+            else if let Some(p) = Self::cur().pager() {
+                Some(p.new_clone(&mut vpe, rbuf)?)
+            }
+            else {
+                None
+            }
+        }
+        else {
+            None
+        };
+
+        vpe.pager = if let Some(mut pg) = pager {
+            let sgate_sel = pg.sgate().sel();
+            let rgate_sel = match pg.rgate() {
+                Some(rg) => rg.sel(),
+                None     => INVALID_SEL,
+            };
+
+            // now create VPE, which implicitly obtains the gate cap from us
+            vpe.pe = syscalls::create_vpe(
+                vpe.sel(), vpe.mem().sel(), sgate_sel, rgate_sel, args.name,
+                args.pe, vpe.alloc_ep()?, pg.rep(), args.muxable
+            )?;
+
+            // mark the pager caps allocated
+            vpe.next_sel = util::max(sgate_sel + 1, vpe.next_sel);
+            if rgate_sel != INVALID_SEL {
+                vpe.next_sel = util::max(rgate_sel + 1, vpe.next_sel);
+            }
+            // now delegate our VPE cap and memory cap to the pager
+            pg.delegate_caps(&vpe)?;
+            // and delegate the pager cap to the VPE
+            vpe.delegate_obj(pg.sel())?;
+            Some(pg)
+        }
+        else {
+            vpe.pe = syscalls::create_vpe(
+                sels + 0, sels + 1, INVALID_SEL, INVALID_SEL, args.name,
+                args.pe, 0, 0, args.muxable
+            )?;
+            None
+        };
+
+        Ok(vpe)
     }
 
     pub fn sel(&self) -> Selector {
@@ -179,6 +271,10 @@ impl VPE {
     }
     pub fn mem(&self) -> &MemGate {
         &self.mem
+    }
+
+    pub fn pager(&self) -> Option<&Pager> {
+        self.pager.as_ref()
     }
 
     pub fn alloc_cap(&mut self) -> Selector {
@@ -239,6 +335,35 @@ impl VPE {
         syscalls::revoke(self.sel(), crd, !del_only)
     }
 
+    pub fn alloc_rbuf(&mut self, size: usize) -> Result<usize, Error> {
+        if self.rbufs.end == 0 {
+            let buf_sizes = SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
+            if self.pe.has_virtmem() {
+                self.rbufs.cur = RECVBUF_SPACE + buf_sizes;
+                self.rbufs.end = RECVBUF_SPACE + RECVBUF_SIZE;
+            }
+            else {
+                self.rbufs.cur = self.pe.mem_size() - RECVBUF_SIZE_SPM + buf_sizes;
+                self.rbufs.end = self.pe.mem_size();
+            }
+        }
+
+        // TODO atm, the kernel allocates the complete receive buffer space
+        let left = self.rbufs.end - self.rbufs.cur;
+        if size > left {
+            Err(Error::NoSpace)
+        }
+        else {
+            let res = self.rbufs.cur;
+            self.rbufs.cur += size;
+            Ok(res)
+        }
+    }
+
+    pub fn free_buf(&mut self, _addr: usize) {
+        // TODO implement me
+    }
+
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
         let get_sp = || {
@@ -248,6 +373,11 @@ impl VPE {
             }
             res
         };
+
+        let sel = self.sel();
+        if let Some(ref mut pg) = self.pager {
+            pg.activate(sel)?;
+        }
 
         let env = env::data();
         let mut senv = env::EnvData::default();
@@ -265,15 +395,15 @@ impl VPE {
         senv.caps = self.next_sel as u64;
         senv.eps = self.eps;
 
+        senv.pager_sgate = 0;
+        senv.pager_rgate = 0;
+        senv.pager_sess = 0;
+
         // TODO
         // senv.mounts_len = 0;
         // senv.mounts = reinterpret_cast<uintptr_t>(_ms);
         // senv.fds_len = 0;
         // senv.fds = reinterpret_cast<uintptr_t>(_fds);
-        // senv.eps = reinterpret_cast<uintptr_t>(_eps);
-        // senv.pager_sgate = 0;
-        // senv.pager_rgate = 0;
-        // senv.pager_sess = 0;
         // senv._backend = env()->_backend;
 
         // env goes first
@@ -301,6 +431,11 @@ impl VPE {
         let file = fs.borrow_mut().open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
+        let sel = self.sel();
+        if let Some(ref mut pg) = self.pager {
+            pg.activate(sel)?;
+        }
+
         let mut senv = env::EnvData::default();
 
         senv.entry = self.load_program(&mut file)? as u64;
@@ -313,16 +448,23 @@ impl VPE {
         senv.argc = args.len() as u32;
         senv.argv = self.write_arguments(argoff, args)? as u64;
 
-        // TODO mounts, fds, and eps
+        // TODO mounts, fds
 
         senv.rbuf_cur = self.rbufs.cur as u64;
         senv.rbuf_end = self.rbufs.end as u64;
         senv.caps = self.next_sel as u64;
-
-        // TODO pager
-
+        senv.eps = self.eps;
         senv.pedesc = self.pe();
-        senv.heap_size = 0;
+
+        if let Some(ref pg) = self.pager {
+            senv.pager_sess = pg.sel();
+            senv.pager_sgate = pg.sgate().sel();
+            senv.pager_rgate = match pg.rgate() {
+                Some(rg) => rg.sel(),
+                None     => INVALID_SEL,
+            };
+            senv.heap_size = APP_HEAP_SIZE as u64;
+        }
 
         // write start env to PE
         self.mem.write_obj(&senv, RT_START)?;
@@ -332,7 +474,7 @@ impl VPE {
         act.start().map(|_| act)
     }
 
-    fn copy_regions(&self, sp: usize) -> Result<usize, Error> {
+    fn copy_regions(&mut self, sp: usize) -> Result<usize, Error> {
         extern {
             static _text_start: u8;
             static _text_end: u8;
@@ -344,6 +486,15 @@ impl VPE {
         let addr = |sym: &u8| {
             (sym as *const u8) as usize
         };
+
+        // use COW if both have a pager
+        if let Some(ref pg) = self.pager {
+            if Self::cur().pager().is_some() {
+                return pg.clone().map(|_| unsafe { addr(&_text_start) })
+            }
+            // TODO handle that case
+            unimplemented!();
+        }
 
         unsafe {
             // copy text
@@ -404,6 +555,29 @@ impl VPE {
         self.clear_mem(buf, phdr.memsz - phdr.filesz, segoff)
     }
 
+    fn map_segment(&self, file: &mut BufReader<RegularFile>, pager: &Pager,
+                   phdr: &elf::Phdr) -> Result<(), Error> {
+        let mut prot = kif::Perm::empty();
+        if (phdr.flags & elf::PF::R.bits()) != 0 {
+            prot |= kif::Perm::R;
+        }
+        if (phdr.flags & elf::PF::W.bits()) != 0 {
+            prot |= kif::Perm::W;
+        }
+        if (phdr.flags & elf::PF::X.bits()) != 0 {
+            prot |= kif::Perm::X;
+        }
+
+        let size = util::round_up(phdr.memsz, PAGE_SIZE);
+        if phdr.memsz == phdr.filesz {
+            file.get_ref().map(pager, phdr.vaddr, phdr.offset, size, prot)
+        }
+        else {
+            assert!(phdr.filesz == 0);
+            pager.map_anon(phdr.vaddr, size, prot).map(|_| ())
+        }
+    }
+
     fn load_program(&self, file: &mut BufReader<RegularFile>) -> Result<usize, Error> {
         let mut buf = Box::new([0u8; 4096]);
         let hdr: elf::Ehdr = file.read_object()?;
@@ -416,6 +590,7 @@ impl VPE {
         }
 
         // copy load segments to destination PE
+        let mut end = 0;
         let mut off = hdr.phoff;
         for _ in 0..hdr.phnum {
             // load program header
@@ -427,8 +602,23 @@ impl VPE {
                 continue;
             }
 
-            self.load_segment(file, &phdr, &mut *buf)?;
+            if let Some(ref pg) = self.pager {
+                self.map_segment(file, pg, &phdr)?;
+            }
+            else {
+                self.load_segment(file, &phdr, &mut *buf)?;
+            }
             off += hdr.phentsize as usize;
+
+            end = phdr.vaddr + phdr.memsz;
+        }
+
+        if let Some(ref pg) = self.pager {
+            // create area for stack and boot/runtime stuff
+            pg.map_anon(RT_START, STACK_TOP - RT_START, kif::Perm::RW)?;
+
+            // create heap
+            pg.map_anon(util::round_up(end, PAGE_SIZE), APP_HEAP_SIZE, kif::Perm::RW)?;
         }
 
         Ok(hdr.entry)
@@ -464,4 +654,8 @@ pub fn init() {
     unsafe {
         CUR = Some(VPE::new_cur());
     }
+}
+
+pub fn reinit() {
+    VPE::cur().init();
 }

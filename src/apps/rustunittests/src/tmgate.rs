@@ -1,5 +1,6 @@
 use m3::com::{MemGate, MGateArgs, Perm};
 use m3::errors::Error;
+use m3::kif;
 use m3::vpe;
 
 pub fn run(t: &mut ::test::Tester) {
@@ -77,16 +78,25 @@ fn read_write_forward_small() {
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
+    const TEST_ADDR: usize = 0x20000;
+
+    if let Some(ref mut pg) = vpe1.pager() {
+        assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));
+    }
+    if let Some(ref mut pg) = vpe2.pager() {
+        assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));
+    }
+
     let refdata = [0u8, 1, 2, 3, 4, 5, 6, 7];
     let mut data = [0u8; 8];
 
-    assert_ok!(vpe1.mem().write(&refdata, 0));
-    assert_ok!(vpe2.mem().write(&refdata, 0));
+    assert_ok!(vpe1.mem().write(&refdata, TEST_ADDR));
+    assert_ok!(vpe2.mem().write(&refdata, TEST_ADDR));
 
-    assert_ok!(vpe1.mem().read(&mut data, 0));
+    assert_ok!(vpe1.mem().read(&mut data, TEST_ADDR));
     assert_eq!(refdata, data);
 
-    assert_ok!(vpe2.mem().read(&mut data, 0));
+    assert_ok!(vpe2.mem().read(&mut data, TEST_ADDR));
     assert_eq!(refdata, data);
 }
 
@@ -94,18 +104,27 @@ fn read_write_forward_big() {
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
+    const TEST_ADDR: usize = 0x20000;
+
+    if let Some(ref mut pg) = vpe1.pager() {
+        assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));
+    }
+    if let Some(ref mut pg) = vpe2.pager() {
+        assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));
+    }
+
     let mut refdata = vec![0x00u8; 1024];
     let mut data = vec![0x00u8; 1024];
     for i in 0..refdata.len() {
         refdata[i] = i as u8;
     }
 
-    assert_ok!(vpe1.mem().write(&refdata, 0));
-    assert_ok!(vpe2.mem().write(&refdata, 0));
+    assert_ok!(vpe1.mem().write(&refdata, TEST_ADDR));
+    assert_ok!(vpe2.mem().write(&refdata, TEST_ADDR));
 
-    assert_ok!(vpe1.mem().read(&mut data, 0));
+    assert_ok!(vpe1.mem().read(&mut data, TEST_ADDR));
     assert_eq!(refdata, data);
 
-    assert_ok!(vpe2.mem().read(&mut data, 0));
+    assert_ok!(vpe2.mem().read(&mut data, TEST_ADDR));
     assert_eq!(refdata, data);
 }
