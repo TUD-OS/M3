@@ -139,6 +139,8 @@ impl<'n, 'p> VPEArgs<'n, 'p> {
     }
 }
 
+const VMA_RBUF_SIZE: usize  = 64;
+
 static mut CUR: Option<VPE> = None;
 
 impl VPE {
@@ -195,7 +197,7 @@ impl VPE {
         };
 
         let rbuf = if args.pe.has_mmu() {
-            vpe.alloc_rbuf(cfg::SYSC_RBUF_SIZE)?
+            vpe.alloc_rbuf(util::next_log2(VMA_RBUF_SIZE) as usize)?
         }
         else {
             0
@@ -291,8 +293,11 @@ impl VPE {
         self.eps &= !(1 << ep);
     }
 
-    pub fn rbufs(&mut self) -> &mut RBufSpace {
-        &mut self.rbufs
+    pub fn alloc_rbuf(&mut self, size: usize) -> Result<usize, Error> {
+        self.rbufs.alloc(&self.pe, size)
+    }
+    pub fn free_rbuf(&mut self, addr: usize) {
+        self.rbufs.free(addr)
     }
 
     pub fn delegate_obj(&mut self, sel: Selector) -> Result<(), Error> {
@@ -321,35 +326,6 @@ impl VPE {
 
     pub fn revoke(&mut self, crd: CapRngDesc, del_only: bool) -> Result<(), Error> {
         syscalls::revoke(self.sel(), crd, !del_only)
-    }
-
-    pub fn alloc_rbuf(&mut self, size: usize) -> Result<usize, Error> {
-        if self.rbufs.end == 0 {
-            let buf_sizes = cfg::SYSC_RBUF_SIZE + cfg::UPCALL_RBUF_SIZE + cfg::DEF_RBUF_SIZE;
-            if self.pe.has_virtmem() {
-                self.rbufs.cur = cfg::RECVBUF_SPACE + buf_sizes;
-                self.rbufs.end = cfg::RECVBUF_SPACE + cfg::RECVBUF_SIZE;
-            }
-            else {
-                self.rbufs.cur = self.pe.mem_size() - cfg::RECVBUF_SIZE_SPM + buf_sizes;
-                self.rbufs.end = self.pe.mem_size();
-            }
-        }
-
-        // TODO atm, the kernel allocates the complete receive buffer space
-        let left = self.rbufs.end - self.rbufs.cur;
-        if size > left {
-            Err(Error::NoSpace)
-        }
-        else {
-            let res = self.rbufs.cur;
-            self.rbufs.cur += size;
-            Ok(res)
-        }
-    }
-
-    pub fn free_buf(&mut self, _addr: usize) {
-        // TODO implement me
     }
 
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>

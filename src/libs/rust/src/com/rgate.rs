@@ -1,8 +1,8 @@
 use cap;
-use cfg;
 use com::epmux::EpMux;
 use com::gate::{Gate, EpId};
 use com::{GateIStream, SendGate};
+use com::rbufs;
 use core::ops;
 use core::fmt;
 use dtu;
@@ -18,22 +18,6 @@ const DEF_MSG_ORD: i32          = 6;
 static mut SYS_RGATE: RecvGate  = RecvGate::new_def(dtu::SYSC_REP);
 static mut UPC_RGATE: RecvGate  = RecvGate::new_def(dtu::UPCALL_REP);
 static mut DEF_RGATE: RecvGate  = RecvGate::new_def(dtu::DEF_REP);
-
-#[repr(C, packed)]
-#[derive(Debug)]
-pub struct RBufSpace {
-    pub cur: usize,
-    pub end: usize,
-}
-
-impl RBufSpace {
-    pub fn new(cur: usize, end: usize) -> Self {
-        RBufSpace {
-            cur: cur,
-            end: end,
-        }
-    }
-}
 
 bitflags! {
     struct FreeFlags : u8 {
@@ -250,27 +234,27 @@ pub fn init() {
     let get_buf = |off| {
         let pe = &env::data().pedesc;
         if pe.has_virtmem() {
-            cfg::RECVBUF_SPACE + off
+            rbufs::RECVBUF_SPACE + off
         }
         else {
-            (pe.mem_size() - cfg::RECVBUF_SIZE_SPM) + off
+            (pe.mem_size() - rbufs::RECVBUF_SIZE_SPM) + off
         }
     };
 
     RecvGate::syscall().buf = get_buf(0);
-    RecvGate::syscall().order = util::next_log2(cfg::SYSC_RBUF_SIZE);
+    RecvGate::syscall().order = util::next_log2(rbufs::SYSC_RBUF_SIZE);
 
-    RecvGate::upcall().buf = get_buf(cfg::SYSC_RBUF_SIZE);
-    RecvGate::upcall().order = util::next_log2(cfg::UPCALL_RBUF_SIZE);
+    RecvGate::upcall().buf = get_buf(rbufs::SYSC_RBUF_SIZE);
+    RecvGate::upcall().order = util::next_log2(rbufs::UPCALL_RBUF_SIZE);
 
-    RecvGate::def().buf = get_buf(cfg::SYSC_RBUF_SIZE + cfg::UPCALL_RBUF_SIZE);
-    RecvGate::def().order = util::next_log2(cfg::DEF_RBUF_SIZE);
+    RecvGate::def().buf = get_buf(rbufs::SYSC_RBUF_SIZE + rbufs::UPCALL_RBUF_SIZE);
+    RecvGate::def().order = util::next_log2(rbufs::DEF_RBUF_SIZE);
 }
 
 impl ops::Drop for RecvGate {
     fn drop(&mut self) {
         if !(self.free & FreeFlags::FREE_BUF).is_empty() {
-            vpe::VPE::cur().free_buf(self.buf);
+            vpe::VPE::cur().free_rbuf(self.buf);
         }
         self.deactivate();
     }

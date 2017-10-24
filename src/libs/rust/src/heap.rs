@@ -1,5 +1,6 @@
 use cfg;
 use core::intrinsics;
+use com;
 use env;
 use libc;
 use io;
@@ -25,7 +26,7 @@ pub fn init() {
 
         let env = env::data();
         let end = if env.heap_size == 0 {
-            env.pedesc.mem_size() - cfg::RECVBUF_SIZE_SPM
+            env.pedesc.mem_size() - com::RECVBUF_SIZE_SPM
         }
         else {
             util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size as usize
