@@ -1,6 +1,6 @@
 use cfg;
 use errors::Error;
-use kif::pedesc::PEDesc;
+use kif::PEDesc;
 
 pub const RECVBUF_SPACE: usize      = 0x3FC00000;
 pub const RECVBUF_SIZE: usize       = 4 * cfg::PAGE_SIZE;

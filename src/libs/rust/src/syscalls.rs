@@ -1,10 +1,8 @@
 use core::intrinsics;
 use dtu;
 use errors::Error;
-use kif::{cap, syscalls, Perm, PEDesc};
+use kif::{CapSel, CapRngDesc, syscalls, Perm, PEDesc};
 use util;
-
-type CapSel = cap::CapSel;
 
 struct Reply<R: 'static> {
     msg: &'static dtu::Message,
@@ -229,7 +227,7 @@ pub fn vpe_ctrl(vpe: CapSel, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error
     }
 }
 
-pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {
+pub fn exchange(vpe: CapSel, own: CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::exchange(vpe={}, own={}, other={}, obtain={})",
@@ -246,19 +244,19 @@ pub fn exchange(vpe: CapSel, own: cap::CapRngDesc, other: CapSel, obtain: bool) 
     send_receive_result(&req)
 }
 
-pub fn delegate(sess: CapSel, crd: cap::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+pub fn delegate(sess: CapSel, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Delegate, sess, crd, sargs, rargs)
 }
 
-pub fn obtain(sess: CapSel, crd: cap::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+pub fn obtain(sess: CapSel, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Obtain, sess, crd, sargs, rargs)
 }
 
-fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
+fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: CapRngDesc,
                  sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     assert!(sargs.len() <= syscalls::MAX_EXCHG_ARGS);
     assert!(rargs.len() <= syscalls::MAX_EXCHG_ARGS);
@@ -288,7 +286,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: cap::CapRngDesc,
     }
 }
 
-pub fn revoke(vpe: CapSel, crd: cap::CapRngDesc, own: bool) -> Result<(), Error> {
+pub fn revoke(vpe: CapSel, crd: CapRngDesc, own: bool) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::revoke(vpe={}, crd={}, own={})",

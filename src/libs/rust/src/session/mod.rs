@@ -1,7 +1,7 @@
-pub mod session;
-pub mod pager;
-pub mod pipe;
-pub mod m3fs;
+mod session;
+mod pager;
+mod pipe;
+mod m3fs;
 
 pub use self::session::Session;
 pub use self::pager::{Pager, Map};

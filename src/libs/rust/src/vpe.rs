@@ -12,7 +12,7 @@ use elf;
 use errors::Error;
 use heap;
 use kif;
-use kif::{cap, CapRngDesc, INVALID_SEL, PEDesc};
+use kif::{CapType, CapRngDesc, INVALID_SEL, PEDesc};
 use rc::Rc;
 use session::M3FS;
 use session::{Pager, Map};
@@ -301,7 +301,7 @@ impl VPE {
     }
 
     pub fn delegate_obj(&mut self, sel: Selector) -> Result<(), Error> {
-        self.delegate(CapRngDesc::new(cap::Type::OBJECT, sel, 1))
+        self.delegate(CapRngDesc::new(CapType::OBJECT, sel, 1))
     }
     pub fn delegate(&mut self, crd: CapRngDesc) -> Result<(), Error> {
         let start = crd.start();

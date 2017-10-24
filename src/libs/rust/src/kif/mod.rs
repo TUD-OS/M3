@@ -1,12 +1,13 @@
-pub mod cap;
-pub mod perm;
-pub mod pedesc;
+mod cap;
+mod perm;
+mod pedesc;
+
 pub mod service;
 pub mod syscalls;
 
-pub use self::perm::Perm;
-pub use self::pedesc::PEDesc;
-pub use self::cap::CapRngDesc;
+pub use self::perm::*;
+pub use self::pedesc::*;
+pub use self::cap::*;
 
 use cap::Selector;
 

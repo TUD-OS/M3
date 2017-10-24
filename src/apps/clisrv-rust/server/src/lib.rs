@@ -6,7 +6,7 @@ extern crate m3;
 use m3::errors::Error;
 use m3::collections::String;
 use m3::com::*;
-use m3::kif::{cap, service};
+use m3::kif;
 use m3::session::Session;
 use m3::server::{Handler, Server, SessId, SessionContainer, server_loop};
 use m3::util;
@@ -39,13 +39,13 @@ impl Handler<Session> for MyHandler {
         }))
     }
 
-    fn obtain(&mut self, sid: SessId, data: &mut service::ExchangeData) -> Result<(), Error> {
+    fn obtain(&mut self, sid: SessId, data: &mut kif::service::ExchangeData) -> Result<(), Error> {
         if data.argcount != 0 || data.caps != 1 {
             Err(Error::InvArgs)
         }
         else {
             let sess = self.sessions.get(sid).unwrap();
-            data.caps = cap::CapRngDesc::new(cap::Type::OBJECT, sess.sgate.sel(), 1).value();
+            data.caps = kif::CapRngDesc::new(kif::CapType::OBJECT, sess.sgate.sel(), 1).value();
             Ok(())
         }
     }

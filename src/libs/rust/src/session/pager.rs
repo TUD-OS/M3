@@ -82,7 +82,7 @@ impl Pager {
     }
 
     pub fn delegate_caps(&mut self, vpe: &VPE) -> Result<(), Error> {
-        let crd = kif::CapRngDesc::new(kif::cap::Type::OBJECT, vpe.sel(), 2);
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, vpe.sel(), 2);
         self.sess.delegate(crd, &[], &mut []).map(|_| ())
     }
 
@@ -133,7 +133,7 @@ impl Pager {
             fd as u64,
             off as u64,
         ];
-        let crd = kif::CapRngDesc::new(kif::cap::Type::OBJECT, sess.sel(), 1);
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sess.sel(), 1);
         self.sess.delegate(crd, &sargs, &mut rargs)?;
         Ok(rargs[0] as usize)
     }

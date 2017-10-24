@@ -8,7 +8,7 @@ pub struct CapRngDesc {
 }
 
 int_enum! {
-    pub struct Type : u64 {
+    pub struct CapType : u64 {
         const OBJECT        = 0x0;
         const MAPPING       = 0x1;
     }
@@ -17,13 +17,13 @@ int_enum! {
 impl fmt::Display for CapRngDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO int_enum! could provide that somehow
-        let ty = if self.cap_type() == Type::OBJECT { "OBJ" } else { "MAP" };
+        let ty = if self.cap_type() == CapType::OBJECT { "OBJ" } else { "MAP" };
         write!(f, "CRD[{}: {}:{}]", ty, self.start(), self.count())
     }
 }
 
 impl CapRngDesc {
-    pub fn new(ty: Type, start: CapSel, count: CapSel) -> CapRngDesc {
+    pub fn new(ty: CapType, start: CapSel, count: CapSel) -> CapRngDesc {
         CapRngDesc {
             value: ty.val | ((start as u64) << 33) | ((count as u64) << 1)
         }
@@ -38,8 +38,8 @@ impl CapRngDesc {
     pub fn value(&self) -> u64 {
         self.value
     }
-    pub fn cap_type(&self) -> Type {
-        Type::from(self.value & 0x1)
+    pub fn cap_type(&self) -> CapType {
+        CapType::from(self.value & 0x1)
     }
     pub fn start(&self) -> CapSel {
         (self.value >> 33) as CapSel

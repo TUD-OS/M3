@@ -1,8 +1,8 @@
-pub mod bufio;
-pub mod dir;
-pub mod file;
-pub mod filesystem;
-pub mod regfile;
+mod bufio;
+mod dir;
+mod file;
+mod filesystem;
+mod regfile;
 
 pub type FileMode = u16;
 pub type DevId = u8;

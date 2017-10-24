@@ -2,7 +2,7 @@ use core::ops;
 use kif;
 use syscalls;
 
-pub type Selector = kif::cap::CapSel;
+pub type Selector = kif::CapSel;
 
 bitflags! {
     pub struct Flags : u32 {
@@ -47,7 +47,7 @@ impl Capability {
 
     fn release(&mut self) {
         if (self.flags & Flags::KEEP_CAP).is_empty() {
-            let crd = kif::cap::CapRngDesc::new(kif::cap::Type::OBJECT, self.sel, 1);
+            let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, self.sel, 1);
             syscalls::revoke(0, crd, true).ok();
         }
     }

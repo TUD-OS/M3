@@ -1,6 +1,6 @@
 use cap::{Capability, Flags, Selector};
 use errors::Error;
-use kif::{CapRngDesc, cap};
+use kif;
 use syscalls;
 use vpe;
 
@@ -33,13 +33,13 @@ impl Session {
     }
 
     pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
-        let crd = CapRngDesc::new(cap::Type::OBJECT, sel, 1);
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sel, 1);
         let sargs = [];
         let mut rargs = [];
         self.delegate(crd, &sargs, &mut rargs).map(|_| ())
     }
 
-    pub fn delegate(&self, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+    pub fn delegate(&self, crd: kif::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
         syscalls::delegate(self.sel(), crd, sargs, rargs)
     }
 
@@ -47,9 +47,9 @@ impl Session {
         self.obtain(1, &[], &mut []).map(|res| res.1.start())
     }
 
-    pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, CapRngDesc), Error> {
+    pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, kif::CapRngDesc), Error> {
         let caps = vpe::VPE::cur().alloc_caps(count);
-        let crd = CapRngDesc::new(cap::Type::OBJECT, caps, count);
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, caps, count);
         let num = syscalls::obtain(self.sel(), crd, sargs, rargs)?;
         Ok((num, crd))
     }
