@@ -578,8 +578,11 @@ impl VPE {
         }
 
         if let Some(ref pg) = self.pager {
-            // create area for stack and boot/runtime stuff
-            pg.map_anon(cfg::RT_START, cfg::STACK_TOP - cfg::RT_START, kif::Perm::RW)?;
+            // create area for boot/runtime stuff
+            pg.map_anon(cfg::RT_START, cfg::RT_SIZE, kif::Perm::RW)?;
+
+            // create area for stack
+            pg.map_anon(cfg::STACK_BOTTOM, cfg::STACK_SIZE, kif::Perm::RW)?;
 
             // create heap
             pg.map_anon(util::round_up(end, cfg::PAGE_SIZE), cfg::APP_HEAP_SIZE, kif::Perm::RW)?;

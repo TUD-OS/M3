@@ -256,9 +256,15 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
     }
 
     if(_pager) {
-        // create area for stack and boot/runtime stuff
+        // create area for boot/runtime stuff
         uintptr_t virt = RT_START;
-        Errors::Code err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
+        Errors::Code err = _pager->map_anon(&virt, RT_END - virt, Pager::READ | Pager::WRITE, 0);
+        if(err != Errors::NONE)
+            return err;
+
+        // create area for stack
+        virt = STACK_BOTTOM;
+        err = _pager->map_anon(&virt, STACK_TOP - virt, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NONE)
             return err;
 
