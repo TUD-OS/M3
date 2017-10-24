@@ -1,3 +1,3 @@
 mod capability;
 
-pub use self::capability::{Flags, Selector, Capability};
+pub use self::capability::{CapFlags, Selector, Capability};

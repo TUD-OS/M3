@@ -1,4 +1,4 @@
-use cap::{Capability, Flags, Selector};
+use cap::{CapFlags, Capability, Selector};
 use com::{GateIStream, RecvGate};
 use server::SessId;
 use errors::Error;
@@ -36,7 +36,7 @@ impl Server {
         syscalls::create_srv(sel, rgate.sel(), name)?;
 
         Ok(Server {
-            cap: Capability::new(sel, Flags::KEEP_CAP),
+            cap: Capability::new(sel, CapFlags::KEEP_CAP),
             rgate: rgate,
         })
     }

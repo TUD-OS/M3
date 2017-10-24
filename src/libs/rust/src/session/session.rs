@@ -1,4 +1,4 @@
-use cap::{Capability, Flags, Selector};
+use cap::{CapFlags, Capability, Selector};
 use errors::Error;
 use kif;
 use syscalls;
@@ -13,18 +13,18 @@ impl Session {
         let sel = vpe::VPE::cur().alloc_cap();
         syscalls::create_sess(sel, name, arg)?;
         Ok(Session {
-            cap: Capability::new(sel, Flags::empty()),
+            cap: Capability::new(sel, CapFlags::empty()),
         })
     }
 
     pub fn new_bind(sel: Selector) -> Self {
         Session {
-            cap: Capability::new(sel, Flags::KEEP_CAP),
+            cap: Capability::new(sel, CapFlags::KEEP_CAP),
         }
     }
     pub fn new_owned_bind(sel: Selector) -> Self {
         Session {
-            cap: Capability::new(sel, Flags::empty()),
+            cap: Capability::new(sel, CapFlags::empty()),
         }
     }
 

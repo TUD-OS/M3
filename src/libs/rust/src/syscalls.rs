@@ -1,7 +1,8 @@
+use cap::Selector;
 use core::intrinsics;
 use dtu;
 use errors::Error;
-use kif::{CapSel, CapRngDesc, syscalls, Perm, PEDesc};
+use kif::{CapRngDesc, syscalls, Perm, PEDesc};
 use util;
 
 struct Reply<R: 'static> {
@@ -41,7 +42,7 @@ fn send_receive_result<T>(msg: *const T) -> Result<(), Error> {
     }
 }
 
-pub fn create_srv(dst: CapSel, rgate: CapSel, name: &str) -> Result<(), Error> {
+pub fn create_srv(dst: Selector, rgate: Selector, name: &str) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_srv(dst={}, rgate={}, name={})",
@@ -64,7 +65,7 @@ pub fn create_srv(dst: CapSel, rgate: CapSel, name: &str) -> Result<(), Error> {
     send_receive_result(&req)
 }
 
-pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
+pub fn activate(vpe: Selector, gate: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::activate(vpe={}, gate={}, ep={}, addr={})",
@@ -81,7 +82,7 @@ pub fn activate(vpe: CapSel, gate: CapSel, ep: dtu::EpId, addr: usize) -> Result
     send_receive_result(&req)
 }
 
-pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
+pub fn create_sess(dst: Selector, name: &str, arg: u64) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_sess(dst={}, name={}, arg={:#x})",
@@ -104,7 +105,7 @@ pub fn create_sess(dst: CapSel, name: &str, arg: u64) -> Result<(), Error> {
     send_receive_result(&req)
 }
 
-pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64) -> Result<(), Error> {
+pub fn create_sgate(dst: Selector, rgate: Selector, label: dtu::Label, credits: u64) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_sgate(dst={}, rgate={}, lbl={:#x}, credits={})",
@@ -121,7 +122,7 @@ pub fn create_sgate(dst: CapSel, rgate: CapSel, label: dtu::Label, credits: u64)
     send_receive_result(&req)
 }
 
-pub fn create_mgate(dst: CapSel, addr: usize, size: usize, perms: Perm) -> Result<(), Error> {
+pub fn create_mgate(dst: Selector, addr: usize, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
@@ -138,7 +139,7 @@ pub fn create_mgate(dst: CapSel, addr: usize, size: usize, perms: Perm) -> Resul
     send_receive_result(&req)
 }
 
-pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error> {
+pub fn create_rgate(dst: Selector, order: i32, msgorder: i32) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_rgate(dst={}, order={}, msgorder={})",
@@ -154,7 +155,7 @@ pub fn create_rgate(dst: CapSel, order: i32, msgorder: i32) -> Result<(), Error>
     send_receive_result(&req)
 }
 
-pub fn create_vpe(dst: CapSel, mgate: CapSel, sgate: CapSel, rgate: CapSel, name: &str,
+pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, rgate: Selector, name: &str,
                   pe: PEDesc, sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
     log!(
         SYSC,
@@ -188,7 +189,7 @@ pub fn create_vpe(dst: CapSel, mgate: CapSel, sgate: CapSel, rgate: CapSel, name
     }
 }
 
-pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
+pub fn derive_mem(dst: Selector, src: Selector, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::derive_mem(dst={}, src={}, off={:#x}, size={:#x}, perms={:?})",
@@ -206,7 +207,7 @@ pub fn derive_mem(dst: CapSel, src: CapSel, offset: usize, size: usize, perms: P
     send_receive_result(&req)
 }
 
-pub fn vpe_ctrl(vpe: CapSel, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error> {
+pub fn vpe_ctrl(vpe: Selector, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error> {
     log!(
         SYSC,
         "syscalls::vpe_ctrl(vpe={}, op={:?}, arg={})",
@@ -227,7 +228,7 @@ pub fn vpe_ctrl(vpe: CapSel, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error
     }
 }
 
-pub fn exchange(vpe: CapSel, own: CapRngDesc, other: CapSel, obtain: bool) -> Result<(), Error> {
+pub fn exchange(vpe: Selector, own: CapRngDesc, other: Selector, obtain: bool) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::exchange(vpe={}, own={}, other={}, obtain={})",
@@ -244,19 +245,19 @@ pub fn exchange(vpe: CapSel, own: CapRngDesc, other: CapSel, obtain: bool) -> Re
     send_receive_result(&req)
 }
 
-pub fn delegate(sess: CapSel, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+pub fn delegate(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Delegate, sess, crd, sargs, rargs)
 }
 
-pub fn obtain(sess: CapSel, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
+pub fn obtain(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
 
     exchange_sess(syscalls::Operation::Obtain, sess, crd, sargs, rargs)
 }
 
-fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: CapRngDesc,
+fn exchange_sess(op: syscalls::Operation, sess: Selector, crd: CapRngDesc,
                  sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     assert!(sargs.len() <= syscalls::MAX_EXCHG_ARGS);
     assert!(rargs.len() <= syscalls::MAX_EXCHG_ARGS);
@@ -286,7 +287,7 @@ fn exchange_sess(op: syscalls::Operation, sess: CapSel, crd: CapRngDesc,
     }
 }
 
-pub fn revoke(vpe: CapSel, crd: CapRngDesc, own: bool) -> Result<(), Error> {
+pub fn revoke(vpe: Selector, crd: CapRngDesc, own: bool) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::revoke(vpe={}, crd={}, own={})",
@@ -302,7 +303,7 @@ pub fn revoke(vpe: CapSel, crd: CapRngDesc, own: bool) -> Result<(), Error> {
     send_receive_result(&req)
 }
 
-pub fn forward_write(mgate: CapSel, data: &[u8], off: usize,
+pub fn forward_write(mgate: Selector, data: &[u8], off: usize,
                      flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
     log!(
         SYSC,
@@ -324,7 +325,7 @@ pub fn forward_write(mgate: CapSel, data: &[u8], off: usize,
     send_receive_result(&req)
 }
 
-pub fn forward_read(mgate: CapSel, data: &mut [u8], off: usize,
+pub fn forward_read(mgate: Selector, data: &mut [u8], off: usize,
                     flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
     log!(
         SYSC,

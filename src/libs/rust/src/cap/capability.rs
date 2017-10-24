@@ -5,15 +5,15 @@ use syscalls;
 pub type Selector = kif::CapSel;
 
 bitflags! {
-    pub struct Flags : u32 {
+    pub struct CapFlags : u32 {
         const KEEP_CAP   = 0x1;
     }
 }
 
 // TODO isn't there a better way?
-impl Flags {
-    pub const fn const_empty() -> Flags {
-        Flags {
+impl CapFlags {
+    pub const fn const_empty() -> Self {
+        CapFlags {
             bits: 0
         }
     }
@@ -22,11 +22,11 @@ impl Flags {
 #[derive(Debug)]
 pub struct Capability {
     sel: Selector,
-    flags: Flags,
+    flags: CapFlags,
 }
 
 impl Capability {
-    pub const fn new(sel: Selector, flags: Flags) -> Capability {
+    pub const fn new(sel: Selector, flags: CapFlags) -> Self {
         Capability {
             sel: sel,
             flags: flags,
@@ -36,7 +36,7 @@ impl Capability {
     pub fn sel(&self) -> Selector {
         self.sel
     }
-    pub fn flags(&self) -> Flags {
+    pub fn flags(&self) -> CapFlags {
         self.flags
     }
 
@@ -46,7 +46,7 @@ impl Capability {
     }
 
     fn release(&mut self) {
-        if (self.flags & Flags::KEEP_CAP).is_empty() {
+        if (self.flags & CapFlags::KEEP_CAP).is_empty() {
             let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, self.sel, 1);
             syscalls::revoke(0, crd, true).ok();
         }

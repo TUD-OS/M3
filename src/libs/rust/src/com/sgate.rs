@@ -1,4 +1,4 @@
-use cap::{Flags, Selector};
+use cap::{CapFlags, Selector};
 use com::gate::Gate;
 use com::RecvGate;
 use dtu;
@@ -18,7 +18,7 @@ pub struct SGateArgs {
     label: dtu::Label,
     credits: u64,
     sel: Selector,
-    flags: Flags,
+    flags: CapFlags,
 }
 
 impl SGateArgs {
@@ -28,7 +28,7 @@ impl SGateArgs {
             label: 0,
             credits: 0,
             sel: INVALID_SEL,
-            flags: Flags::empty(),
+            flags: CapFlags::empty(),
         }
     }
 
@@ -69,7 +69,7 @@ impl SendGate {
 
     pub fn new_bind(sel: Selector) -> Self {
         SendGate {
-            gate: Gate::new(sel, Flags::KEEP_CAP),
+            gate: Gate::new(sel, CapFlags::KEEP_CAP),
         }
     }
 

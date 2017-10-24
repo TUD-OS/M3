@@ -1,4 +1,4 @@
-use cap::{Flags, Selector};
+use cap::{CapFlags, Selector};
 use com::gate::Gate;
 use dtu::EpId;
 use dtu;
@@ -66,7 +66,7 @@ impl EpMux {
         if let Some(ep) = g.ep() {
             self.gates[ep] = None;
             // only necessary if we won't revoke the gate anyway
-            if !(g.flags() & Flags::KEEP_CAP).is_empty() {
+            if !(g.flags() & CapFlags::KEEP_CAP).is_empty() {
                 syscalls::activate(0, INVALID_SEL, ep, 0).ok();
             }
             g.unset_ep();

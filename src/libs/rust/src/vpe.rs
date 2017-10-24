@@ -1,6 +1,6 @@
 use alloc::boxed::FnBox;
 use boxed::Box;
-use cap::{Capability, Flags, Selector};
+use cap::{CapFlags, Capability, Selector};
 use cell::RefCell;
 use cfg;
 use com::{MemGate, RBufSpace};
@@ -146,7 +146,7 @@ static mut CUR: Option<VPE> = None;
 impl VPE {
     fn new_cur() -> Self {
         let mut vpe = VPE {
-            cap: Capability::new(0, Flags::KEEP_CAP),
+            cap: Capability::new(0, CapFlags::KEEP_CAP),
             pe: PEDesc::default(),
             mem: MemGate::new_bind(1),
             // 0 and 1 are reserved for VPE cap and mem cap
@@ -187,7 +187,7 @@ impl VPE {
         let sels = VPE::cur().alloc_caps(2);
 
         let mut vpe = VPE {
-            cap: Capability::new(sels + 0, Flags::empty()),
+            cap: Capability::new(sels + 0, CapFlags::empty()),
             pe: args.pe,
             mem: MemGate::new_bind(sels + 1),
             next_sel: 2,

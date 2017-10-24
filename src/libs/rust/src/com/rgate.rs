@@ -1,6 +1,6 @@
-use cap;
+use cap::{CapFlags, Selector};
 use com::epmux::EpMux;
-use com::gate::{Gate, EpId};
+use com::gate::Gate;
 use com::{GateIStream, SendGate};
 use com::rbufs;
 use core::ops;
@@ -43,8 +43,8 @@ impl fmt::Debug for RecvGate {
 pub struct RGateArgs {
     order: i32,
     msg_order: i32,
-    sel: cap::Selector,
-    flags: cap::Flags,
+    sel: Selector,
+    flags: CapFlags,
 }
 
 impl RGateArgs {
@@ -53,7 +53,7 @@ impl RGateArgs {
             order: DEF_MSG_ORD,
             msg_order: DEF_MSG_ORD,
             sel: INVALID_SEL,
-            flags: cap::Flags::empty(),
+            flags: CapFlags::empty(),
         }
     }
 
@@ -67,7 +67,7 @@ impl RGateArgs {
         self
     }
 
-    pub fn sel(mut self, sel: cap::Selector) -> Self {
+    pub fn sel(mut self, sel: Selector) -> Self {
         self.sel = sel;
         self
     }
@@ -84,9 +84,9 @@ impl RecvGate {
         unsafe { &mut DEF_RGATE }
     }
 
-    const fn new_def(ep: EpId) -> Self {
+    const fn new_def(ep: dtu::EpId) -> Self {
         RecvGate {
-            gate: Gate::new_with_ep(INVALID_SEL, cap::Flags::const_empty(), Some(ep)),
+            gate: Gate::new_with_ep(INVALID_SEL, CapFlags::const_empty(), Some(ep)),
             buf: 0,
             order: 0,
             free: FreeFlags { bits: 0 },
@@ -114,19 +114,19 @@ impl RecvGate {
         })
     }
 
-    pub fn new_bind(sel: cap::Selector, order: i32) -> Self {
+    pub fn new_bind(sel: Selector, order: i32) -> Self {
         RecvGate {
-            gate: Gate::new(sel, cap::Flags::KEEP_CAP),
+            gate: Gate::new(sel, CapFlags::KEEP_CAP),
             buf: 0,
             order: order,
             free: FreeFlags::empty(),
         }
     }
 
-    pub fn sel(&self) -> cap::Selector {
+    pub fn sel(&self) -> Selector {
         self.gate.sel()
     }
-    pub fn ep(&self) -> Option<EpId> {
+    pub fn ep(&self) -> Option<dtu::EpId> {
         self.gate.ep()
     }
     pub fn size(&self) -> usize {
@@ -144,7 +144,7 @@ impl RecvGate {
         Ok(())
     }
 
-    pub fn activate_ep(&mut self, ep: EpId) -> Result<(), Error> {
+    pub fn activate_ep(&mut self, ep: dtu::EpId) -> Result<(), Error> {
         if self.ep().is_none() {
             let vpe = vpe::VPE::cur();
             let buf = if self.buf == 0 {
@@ -165,7 +165,7 @@ impl RecvGate {
         Ok(())
     }
 
-    pub fn activate_for(&mut self, vpe: cap::Selector, ep: EpId, addr: usize) -> Result<(), Error> {
+    pub fn activate_for(&mut self, vpe: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
         assert!(self.ep().is_none());
 
         self.gate.set_ep(ep);

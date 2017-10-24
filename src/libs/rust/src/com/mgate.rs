@@ -1,4 +1,4 @@
-use cap;
+use cap::{CapFlags, Selector};
 use com::gate::Gate;
 use errors::Error;
 use dtu;
@@ -19,8 +19,8 @@ pub struct MGateArgs {
     size: usize,
     addr: usize,
     perm: Perm,
-    sel: cap::Selector,
-    flags: cap::Flags,
+    sel: Selector,
+    flags: CapFlags,
 }
 
 impl MGateArgs {
@@ -30,7 +30,7 @@ impl MGateArgs {
             addr: !0,
             perm: perm,
             sel: INVALID_SEL,
-            flags: cap::Flags::empty(),
+            flags: CapFlags::empty(),
         }
     }
 
@@ -39,7 +39,7 @@ impl MGateArgs {
         self
     }
 
-    pub fn sel(mut self, sel: cap::Selector) -> Self {
+    pub fn sel(mut self, sel: Selector) -> Self {
         self.sel = sel;
         self
     }
@@ -64,13 +64,13 @@ impl MemGate {
         })
     }
 
-    pub fn new_bind(sel: cap::Selector) -> Self {
+    pub fn new_bind(sel: Selector) -> Self {
         MemGate {
-            gate: Gate::new(sel, cap::Flags::KEEP_CAP)
+            gate: Gate::new(sel, CapFlags::KEEP_CAP)
         }
     }
 
-    pub fn sel(&self) -> cap::Selector {
+    pub fn sel(&self) -> Selector {
         self.gate.sel()
     }
 
@@ -80,14 +80,14 @@ impl MemGate {
     }
 
     pub fn derive_with_sel(&self, offset: usize, size: usize,
-                           perm: Perm, sel: cap::Selector) -> Result<Self, Error> {
+                           perm: Perm, sel: Selector) -> Result<Self, Error> {
         syscalls::derive_mem(sel, self.sel(), offset, size, perm)?;
         Ok(MemGate {
-            gate: Gate::new(sel, cap::Flags::empty())
+            gate: Gate::new(sel, CapFlags::empty())
         })
     }
 
-    pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
+    pub fn rebind(&mut self, sel: Selector) -> Result<(), Error> {
         self.gate.rebind(sel)
     }
 

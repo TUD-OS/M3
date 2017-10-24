@@ -1,12 +1,9 @@
 use cell::Cell;
 use core::ops;
-use cap;
-use cap::Capability;
+use cap::{CapFlags, Capability, Selector};
 use com::EpMux;
-use dtu;
+use dtu::EpId;
 use errors::Error;
-
-pub type EpId = dtu::EpId;
 
 #[derive(Debug)]
 pub struct Gate {
@@ -15,22 +12,22 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new(sel: cap::Selector, flags: cap::Flags) -> Self {
+    pub fn new(sel: Selector, flags: CapFlags) -> Self {
         Self::new_with_ep(sel, flags, None)
     }
 
-    pub const fn new_with_ep(sel: cap::Selector, flags: cap::Flags, ep: Option<EpId>) -> Self {
+    pub const fn new_with_ep(sel: Selector, flags: CapFlags, ep: Option<EpId>) -> Self {
         Gate {
             cap: Capability::new(sel, flags),
             ep: Cell::new(ep),
         }
     }
 
-    pub fn sel(&self) -> cap::Selector {
+    pub fn sel(&self) -> Selector {
         self.cap.sel()
     }
 
-    pub fn flags(&self) -> cap::Flags {
+    pub fn flags(&self) -> CapFlags {
         self.cap.flags()
     }
 
@@ -51,7 +48,7 @@ impl Gate {
         }
     }
 
-    pub fn rebind(&mut self, sel: cap::Selector) -> Result<(), Error> {
+    pub fn rebind(&mut self, sel: Selector) -> Result<(), Error> {
         EpMux::get().switch_cap(self, sel)?;
         self.cap.rebind(sel);
         Ok(())
