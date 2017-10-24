@@ -547,7 +547,7 @@ impl VPE {
     }
 
     fn load_program(&self, file: &mut BufReader<RegularFile>) -> Result<usize, Error> {
-        let mut buf = Box::new([0u8; 4096]);
+        let mut buf = vec![0u8; 4096];
         let hdr: elf::Ehdr = file.read_object()?;
 
         if hdr.ident[0] != '\x7F' as u8 ||
