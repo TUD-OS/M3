@@ -1,11 +1,12 @@
-use boxed::Box;
 use alloc::boxed::FnBox;
+use boxed::Box;
 use cap::{Capability, Flags, Selector};
 use cell::RefCell;
+use cfg;
 use com::{MemGate, RBufSpace};
 use collections::Vec;
 use core::iter;
-use dtu::{PAGE_SIZE, EP_COUNT, FIRST_FREE_EP, EpId};
+use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use elf;
 use errors::Error;
@@ -138,19 +139,6 @@ impl<'n, 'p> VPEArgs<'n, 'p> {
     }
 }
 
-// TODO move
-const RT_START: usize       = 0x6000;
-const STACK_TOP: usize      = 0xC000;
-const APP_HEAP_SIZE: usize  = 64 * 1024 * 1024;
-
-const RECVBUF_SPACE: usize       = 0x3FC00000;
-const RECVBUF_SIZE: usize        = 4 * PAGE_SIZE;
-const RECVBUF_SIZE_SPM: usize    = 16384;
-
-const SYSC_RBUF_SIZE: usize      = 1 << 9;
-const UPCALL_RBUF_SIZE: usize    = 1 << 9;
-const DEF_RBUF_SIZE: usize       = 1 << 8;
-
 static mut CUR: Option<VPE> = None;
 
 impl VPE {
@@ -207,7 +195,7 @@ impl VPE {
         };
 
         let rbuf = if args.pe.has_mmu() {
-            vpe.alloc_rbuf(SYSC_RBUF_SIZE)?
+            vpe.alloc_rbuf(cfg::SYSC_RBUF_SIZE)?
         }
         else {
             0
@@ -337,13 +325,13 @@ impl VPE {
 
     pub fn alloc_rbuf(&mut self, size: usize) -> Result<usize, Error> {
         if self.rbufs.end == 0 {
-            let buf_sizes = SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
+            let buf_sizes = cfg::SYSC_RBUF_SIZE + cfg::UPCALL_RBUF_SIZE + cfg::DEF_RBUF_SIZE;
             if self.pe.has_virtmem() {
-                self.rbufs.cur = RECVBUF_SPACE + buf_sizes;
-                self.rbufs.end = RECVBUF_SPACE + RECVBUF_SIZE;
+                self.rbufs.cur = cfg::RECVBUF_SPACE + buf_sizes;
+                self.rbufs.end = cfg::RECVBUF_SPACE + cfg::RECVBUF_SIZE;
             }
             else {
-                self.rbufs.cur = self.pe.mem_size() - RECVBUF_SIZE_SPM + buf_sizes;
+                self.rbufs.cur = self.pe.mem_size() - cfg::RECVBUF_SIZE_SPM + buf_sizes;
                 self.rbufs.end = self.pe.mem_size();
             }
         }
@@ -407,7 +395,7 @@ impl VPE {
         // senv._backend = env()->_backend;
 
         // env goes first
-        let mut off = RT_START + util::size_of_val(&senv);
+        let mut off = cfg::RT_START + util::size_of_val(&senv);
 
         // create and write closure
         let closure = env::Closure::new(func);
@@ -419,7 +407,7 @@ impl VPE {
         senv.argv = self.write_arguments(off, env::args())? as u64;
 
         // write start env to PE
-        self.mem.write_obj(&senv, RT_START)?;
+        self.mem.write_obj(&senv, cfg::RT_START)?;
 
         // go!
         let act = ClosureActivity::new(self, closure);
@@ -441,10 +429,10 @@ impl VPE {
         senv.entry = self.load_program(&mut file)? as u64;
         senv.lambda = 0;
         senv.exit_addr = 0;
-        senv.sp = STACK_TOP as u64;
+        senv.sp = cfg::STACK_TOP as u64;
 
         // write args
-        let argoff = RT_START + util::size_of_val(&senv);
+        let argoff = cfg::RT_START + util::size_of_val(&senv);
         senv.argc = args.len() as u32;
         senv.argv = self.write_arguments(argoff, args)? as u64;
 
@@ -463,11 +451,11 @@ impl VPE {
                 Some(rg) => rg.sel(),
                 None     => INVALID_SEL,
             };
-            senv.heap_size = APP_HEAP_SIZE as u64;
+            senv.heap_size = cfg::APP_HEAP_SIZE as u64;
         }
 
         // write start env to PE
-        self.mem.write_obj(&senv, RT_START)?;
+        self.mem.write_obj(&senv, cfg::RT_START)?;
 
         // go!
         let act = ExecActivity::new(self, file);
@@ -511,7 +499,7 @@ impl VPE {
             self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end)?;
 
             // copy stack
-            self.mem.write_bytes(sp as *const u8, STACK_TOP - sp, sp)?;
+            self.mem.write_bytes(sp as *const u8, cfg::STACK_TOP - sp, sp)?;
 
             Ok(text_start)
         }
@@ -568,7 +556,7 @@ impl VPE {
             prot |= kif::Perm::X;
         }
 
-        let size = util::round_up(phdr.memsz, PAGE_SIZE);
+        let size = util::round_up(phdr.memsz, cfg::PAGE_SIZE);
         if phdr.memsz == phdr.filesz {
             file.get_ref().map(pager, phdr.vaddr, phdr.offset, size, prot)
         }
@@ -615,10 +603,10 @@ impl VPE {
 
         if let Some(ref pg) = self.pager {
             // create area for stack and boot/runtime stuff
-            pg.map_anon(RT_START, STACK_TOP - RT_START, kif::Perm::RW)?;
+            pg.map_anon(cfg::RT_START, cfg::STACK_TOP - cfg::RT_START, kif::Perm::RW)?;
 
             // create heap
-            pg.map_anon(util::round_up(end, PAGE_SIZE), APP_HEAP_SIZE, kif::Perm::RW)?;
+            pg.map_anon(util::round_up(end, cfg::PAGE_SIZE), cfg::APP_HEAP_SIZE, kif::Perm::RW)?;
         }
 
         Ok(hdr.entry)

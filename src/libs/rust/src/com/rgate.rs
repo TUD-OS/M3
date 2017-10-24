@@ -1,4 +1,5 @@
 use cap;
+use cfg;
 use com::epmux::EpMux;
 use com::gate::{Gate, EpId};
 use com::{GateIStream, SendGate};
@@ -12,19 +13,11 @@ use syscalls;
 use util;
 use vpe;
 
-// TODO move that elsewhere
-const RECVBUF_SPACE: usize       = 0x3FC00000;
-const RECVBUF_SIZE_SPM: usize    = 16384;
+const DEF_MSG_ORD: i32          = 6;
 
-const SYSC_RBUF_SIZE: usize      = 1 << 9;
-const UPCALL_RBUF_SIZE: usize    = 1 << 9;
-const DEF_RBUF_SIZE: usize       = 1 << 8;
-
-const DEF_MSG_ORD: i32           = 6;
-
-static mut SYS_RGATE: RecvGate = RecvGate::new_def(dtu::SYSC_REP);
-static mut UPC_RGATE: RecvGate = RecvGate::new_def(dtu::UPCALL_REP);
-static mut DEF_RGATE: RecvGate = RecvGate::new_def(dtu::DEF_REP);
+static mut SYS_RGATE: RecvGate  = RecvGate::new_def(dtu::SYSC_REP);
+static mut UPC_RGATE: RecvGate  = RecvGate::new_def(dtu::UPCALL_REP);
+static mut DEF_RGATE: RecvGate  = RecvGate::new_def(dtu::DEF_REP);
 
 #[repr(C, packed)]
 #[derive(Debug)]
@@ -257,21 +250,21 @@ pub fn init() {
     let get_buf = |off| {
         let pe = &env::data().pedesc;
         if pe.has_virtmem() {
-            RECVBUF_SPACE + off
+            cfg::RECVBUF_SPACE + off
         }
         else {
-            (pe.mem_size() - RECVBUF_SIZE_SPM) + off
+            (pe.mem_size() - cfg::RECVBUF_SIZE_SPM) + off
         }
     };
 
     RecvGate::syscall().buf = get_buf(0);
-    RecvGate::syscall().order = util::next_log2(SYSC_RBUF_SIZE);
+    RecvGate::syscall().order = util::next_log2(cfg::SYSC_RBUF_SIZE);
 
-    RecvGate::upcall().buf = get_buf(SYSC_RBUF_SIZE);
-    RecvGate::upcall().order = util::next_log2(UPCALL_RBUF_SIZE);
+    RecvGate::upcall().buf = get_buf(cfg::SYSC_RBUF_SIZE);
+    RecvGate::upcall().order = util::next_log2(cfg::UPCALL_RBUF_SIZE);
 
-    RecvGate::def().buf = get_buf(SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE);
-    RecvGate::def().order = util::next_log2(DEF_RBUF_SIZE);
+    RecvGate::def().buf = get_buf(cfg::SYSC_RBUF_SIZE + cfg::UPCALL_RBUF_SIZE);
+    RecvGate::def().order = util::next_log2(cfg::DEF_RBUF_SIZE);
 }
 
 impl ops::Drop for RecvGate {

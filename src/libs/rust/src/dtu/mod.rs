@@ -9,9 +9,6 @@ pub type Label  = u64;
 
 pub const EP_COUNT: EpId        = 12;
 
-// TODO move that elsewhere
-pub const PAGE_SIZE: usize      = 0x1000;
-
 pub const SYSC_SEP: EpId        = 0;
 pub const SYSC_REP: EpId        = 1;
 pub const UPCALL_REP: EpId      = 2;

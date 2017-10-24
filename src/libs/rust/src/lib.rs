@@ -68,6 +68,7 @@ pub mod time;
 pub mod vfs;
 pub mod vpe;
 
+mod cfg;
 mod libc;
 
 extern "C" {

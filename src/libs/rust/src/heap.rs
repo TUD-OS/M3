@@ -1,5 +1,5 @@
+use cfg;
 use core::intrinsics;
-use dtu;
 use env;
 use libc;
 use io;
@@ -18,9 +18,6 @@ extern {
     static mut heap_end: *mut HeapArea;
 }
 
-// TODO move
-const RECVBUF_SIZE_SPM: usize    = 16384;
-
 pub fn init() {
     unsafe {
         let begin = &_bss_end as *const u8;
@@ -28,10 +25,10 @@ pub fn init() {
 
         let env = env::data();
         let end = if env.heap_size == 0 {
-            env.pedesc.mem_size() - RECVBUF_SIZE_SPM
+            env.pedesc.mem_size() - cfg::RECVBUF_SIZE_SPM
         }
         else {
-            util::round_up(begin as usize, dtu::PAGE_SIZE) + env.heap_size as usize
+            util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size as usize
         };
 
         heap_end = (end as *mut HeapArea).offset(-1);
