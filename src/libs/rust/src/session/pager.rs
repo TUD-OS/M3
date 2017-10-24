@@ -50,11 +50,7 @@ impl Pager {
         let sgate = SendGate::new_bind(sess.obtain_obj()?);
         let rep = vpe.alloc_ep()?;
         let rgate = match vpe.pe().has_mmu() {
-            true    => {
-                let mut rgate = RecvGate::new_with(RGateArgs::new().order(6).msg_order(6))?;
-                rgate.activate_for(vpe.sel(), rbuf, rep)?;
-                Some(rgate)
-            },
+            true    => Some(RecvGate::new_with(RGateArgs::new().order(6).msg_order(6))?),
             false   => None,
         };
 
@@ -94,7 +90,7 @@ impl Pager {
     pub fn activate(&mut self, vpe: cap::Selector) -> Result<(), Error> {
         if let Some(ref mut rg) = self.rgate {
             assert!(self.rbuf != 0);
-            rg.activate_for(vpe, self.rbuf, self.rep)
+            rg.activate_for(vpe, self.rep, self.rbuf)
         }
         else {
             Ok(())

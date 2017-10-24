@@ -231,6 +231,10 @@ impl VPE {
                 args.pe, vpe.alloc_ep()?, pg.rep(), args.muxable
             )?;
 
+            // after the VPE creation, we can activate the receive gate
+            // note that we do that here in case neither run nor exec is used
+            pg.activate(vpe.sel())?;
+
             // mark the pager caps allocated
             vpe.next_sel = util::max(sgate_sel + 1, vpe.next_sel);
             if rgate_sel != INVALID_SEL {

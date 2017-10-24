@@ -166,16 +166,14 @@ impl RecvGate {
     }
 
     pub fn activate_for(&mut self, vpe: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
-        assert!(self.ep().is_none());
+        if self.ep().is_none() {
+            self.gate.set_ep(ep);
 
-        self.gate.set_ep(ep);
-
-        if self.sel() != INVALID_SEL {
-            syscalls::activate(vpe, self.sel(), ep, addr)
+            if self.sel() != INVALID_SEL {
+                syscalls::activate(vpe, self.sel(), ep, addr)?;
+            }
         }
-        else {
-            Ok(())
-        }
+        Ok(())
     }
 
     pub fn deactivate(&mut self) {
