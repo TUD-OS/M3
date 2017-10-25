@@ -82,7 +82,7 @@ impl<'r> GateIStream<'r> {
         }
     }
 
-    pub fn reply_os(&mut self, os: GateOStream) -> Result<(), Error> {
+    pub fn reply_os(&mut self, os: &GateOStream) -> Result<(), Error> {
         self.reply(&os.arr[0..os.pos])
     }
 }
@@ -186,7 +186,7 @@ macro_rules! reply_vmsg {
     ( $is:expr, $( $args:expr ),* ) => ({
         let mut os = $crate::com::GateOStream::new();
         $( os.push(&$args); )*
-        $is.reply_os(os)
+        $is.reply_os(&os)
     });
 }
 
