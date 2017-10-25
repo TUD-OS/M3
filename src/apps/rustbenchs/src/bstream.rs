@@ -5,10 +5,10 @@ use m3::test;
 use m3::util;
 
 pub fn run(t: &mut test::Tester) {
-    run_test!(t, bench_pingpong);
+    run_test!(t, pingpong);
 }
 
-fn bench_pingpong() {
+fn pingpong() {
     let msg_size = 128;
     let msg_ord  = util::next_log2(msg_size);
 
