@@ -12,6 +12,17 @@ pub fn jmp_to(addr: u64) {
     }
 }
 
+// source: https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+pub fn sqrt(n: f32) -> f32 {
+    let mut val_int: u32 = unsafe { intrinsics::transmute(n) };
+
+    val_int -= 1 << 23; /* Subtract 2^m. */
+    val_int >>= 1;      /* Divide by 2. */
+    val_int += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+
+    unsafe { intrinsics::transmute(val_int) }
+}
+
 pub fn size_of<T>() -> usize {
     unsafe {
         intrinsics::size_of::<T>()

@@ -64,6 +64,7 @@ pub mod errors;
 pub mod dtu;
 pub mod heap;
 pub mod kif;
+pub mod profile;
 pub mod server;
 pub mod session;
 pub mod syscalls;

@@ -70,6 +70,9 @@ impl MemGate {
         }
     }
 
+    pub fn ep(&self) -> Option<dtu::EpId> {
+        self.gate.ep()
+    }
     pub fn sel(&self) -> Selector {
         self.gate.sel()
     }
