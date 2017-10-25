@@ -70,11 +70,11 @@ impl Profiler {
         self
     }
 
-    pub fn run<F: Fn()>(&mut self, func: F) -> Results {
+    pub fn run<F: FnMut()>(&mut self, func: F) -> Results {
         self.run_with_id(func, 0)
     }
 
-    pub fn run_with_id<F: Fn()>(&mut self, func: F, id: u64) -> Results {
+    pub fn run_with_id<F: FnMut()>(&mut self, mut func: F, id: u64) -> Results {
         let mut res = Results::new((self.warmup + self.repeats) as usize);
         for i in 0..self.warmup + self.repeats {
             let start = time::start(id);
