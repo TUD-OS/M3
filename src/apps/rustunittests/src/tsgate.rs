@@ -2,9 +2,10 @@ use m3::collections::String;
 use m3::com::{recv_msg, recv_msg_from, RecvGate, SendGate, SGateArgs};
 use m3::dtu;
 use m3::errors::Error;
+use m3::test;
 use m3::util;
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, create);
     run_test!(t, send_recv);
     run_test!(t, send_reply);

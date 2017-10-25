@@ -1,8 +1,9 @@
 use m3::collections::String;
 use m3::session::M3FS;
+use m3::test;
 use m3::vfs::{BufReader, BufWriter, FileSystem, OpenFlags, Read, Write};
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, read_write);
 }
 

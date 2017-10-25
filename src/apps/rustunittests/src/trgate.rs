@@ -1,7 +1,8 @@
 use m3::com::{RecvGate, RGateArgs};
 use m3::errors::Error;
+use m3::test;
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, create);
 }
 

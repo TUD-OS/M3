@@ -1,9 +1,10 @@
 use m3::com::{MemGate, MGateArgs, Perm};
 use m3::errors::Error;
 use m3::kif;
+use m3::test;
 use m3::vpe;
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, create);
     run_test!(t, create_readonly);
     run_test!(t, create_writeonly);

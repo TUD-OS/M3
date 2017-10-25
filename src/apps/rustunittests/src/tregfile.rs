@@ -3,9 +3,10 @@ use m3::cell::RefCell;
 use m3::errors::Error;
 use m3::rc::Rc;
 use m3::session::M3FS;
+use m3::test;
 use m3::vfs::{File, FileSystem, OpenFlags, RegularFile, Seek, SeekMode, Read, Write};
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, permissions);
     run_test!(t, read_string);
     run_test!(t, read_exact);

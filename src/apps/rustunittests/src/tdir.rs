@@ -1,9 +1,10 @@
 use core::cmp;
 use m3::collections::{Vec,ToString};
 use m3::session::M3FS;
+use m3::test;
 use m3::vfs::read_dir;
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, list_dir);
 }
 

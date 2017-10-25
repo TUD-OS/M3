@@ -1,8 +1,9 @@
 use m3::errors::Error;
 use m3::session::M3FS;
+use m3::test;
 use m3::vfs::{FileSystem, OpenFlags, Write};
 
-pub fn run(t: &mut ::test::Tester) {
+pub fn run(t: &mut test::Tester) {
     run_test!(t, meta_ops);
 }
 

@@ -54,6 +54,8 @@ pub mod io;
 pub mod util;
 #[macro_use]
 pub mod com;
+#[macro_use]
+pub mod test;
 
 pub mod cap;
 pub mod env;

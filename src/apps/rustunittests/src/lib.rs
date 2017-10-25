@@ -3,8 +3,7 @@
 #[macro_use]
 extern crate m3;
 
-#[macro_use]
-pub mod test;
+use m3::test::Tester;
 
 mod tbufio;
 mod tdir;
@@ -14,8 +13,6 @@ mod tregfile;
 mod trgate;
 mod tsgate;
 mod tvpe;
-
-use test::Tester;
 
 struct MyTester {
 }
