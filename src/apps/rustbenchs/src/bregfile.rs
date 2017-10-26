@@ -15,7 +15,7 @@ fn read() {
     let mut prof = profile::Profiler::new().repeats(2).warmup(1);
 
     println!("{}", prof.run_with_id(|| {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/large.bin", OpenFlags::R));
+        let mut file = assert_ok!(m3fs.borrow_mut().open("/data/2048k.txt", OpenFlags::R));
         loop {
             let amount = assert_ok!(file.read(&mut buf));
             if amount == 0 {
