@@ -5,7 +5,7 @@ use cell::RefCell;
 use cfg;
 use com::{MemGate, RBufSpace};
 use collections::Vec;
-use core::{fmt, iter};
+use core::{fmt, iter, intrinsics};
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use elf;
@@ -144,37 +144,29 @@ static mut CUR: Option<VPE> = None;
 
 impl VPE {
     fn new_cur() -> Self {
-        let mut vpe = VPE {
+        let env = env::data();
+        VPE {
             cap: Capability::new(0, CapFlags::KEEP_CAP),
-            pe: PEDesc::default(),
+            pe: env.pedesc.clone(),
             mem: MemGate::new_bind(1),
             // 0 and 1 are reserved for VPE cap and mem cap
-            next_sel: 2,
-            eps: 0,
-            rbufs: RBufSpace::new(0, 0),
-            pager: None,
-        };
-        vpe.init();
-        vpe
-    }
-
-    fn init(&mut self) {
-        let env = env::data();
-        self.eps = env.eps;
-        self.pe = env.pedesc.clone();
-
-        // it's initially 0. make sure it's at least the first usable selector
-        self.next_sel = util::max(2, env.caps as Selector);
-        self.rbufs = RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize);
-
-        if env.pager_sess != 0 {
-            self.pager = Some(Pager::new_bind(env.pager_sess, env.pager_sgate, env.pager_rgate));
+            // it's initially 0. make sure it's at least the first usable selector
+            next_sel: util::max(2, env.caps as Selector),
+            eps: env.eps,
+            rbufs: RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize),
+            pager: match env.pager_sess {
+                0 => None,
+                s => Some(Pager::new_bind(s, env.pager_sgate, env.pager_rgate)),
+            },
         }
     }
 
     pub fn cur() -> &'static mut VPE {
         unsafe {
-            CUR.as_mut().unwrap()
+            match CUR {
+                Some(ref mut v) => v,
+                None            => intrinsics::transmute(env::data().fds)
+            }
         }
     }
 
@@ -354,17 +346,10 @@ impl VPE {
         senv.lambda = 1;
         senv.exit_addr = 0;
 
-        senv.pedesc = self.pe();
         senv.heap_size = env.heap_size;
 
-        senv.rbuf_cur = self.rbufs.cur as u64;
-        senv.rbuf_end = self.rbufs.end as u64;
-        senv.caps = self.next_sel as u64;
-        senv.eps = self.eps;
-
-        senv.pager_sgate = 0;
-        senv.pager_rgate = 0;
-        senv.pager_sess = 0;
+        senv.fds_len = 0;
+        senv.fds = self as *const VPE as u64;
 
         // TODO
         // senv.mounts_len = 0;
@@ -633,5 +618,9 @@ pub fn init() {
 }
 
 pub fn reinit() {
-    VPE::cur().init();
+    unsafe {
+        CUR = None;
+        VPE::cur().cap = Capability::new(0, CapFlags::KEEP_CAP);
+        VPE::cur().mem = MemGate::new_bind(1);
+    }
 }
