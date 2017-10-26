@@ -5,7 +5,7 @@ use cell::RefCell;
 use cfg;
 use com::{MemGate, RBufSpace};
 use collections::Vec;
-use core::iter;
+use core::{fmt, iter};
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use elf;
@@ -21,7 +21,6 @@ use libc;
 use syscalls;
 use util;
 
-#[derive(Debug)]
 pub struct VPE {
     cap: Capability,
     pe: PEDesc,
@@ -618,6 +617,12 @@ impl VPE {
         self.mem.write(&argbuf, off)?;
         self.mem.write(&argptr, argoff)?;
         Ok(argoff)
+    }
+}
+
+impl fmt::Debug for VPE {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "VPE[sel: {}, pe: {:?}]", self.sel(), self.pe())
     }
 }
 
