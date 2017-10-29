@@ -34,7 +34,12 @@ impl Results {
         let mut sum = 0;
         let average = self.avg();
         for t in &self.times {
-            let val = t - average;
+            let val = if *t < average {
+                average - t
+            }
+            else {
+                t - average
+            };
             sum += val * val;
         }
         util::sqrt((sum as f32) / (self.times.len() as f32))
