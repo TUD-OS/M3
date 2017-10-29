@@ -1,6 +1,5 @@
 use core::cmp;
 use m3::collections::{Vec,ToString};
-use m3::session::M3FS;
 use m3::test;
 use m3::vfs::read_dir;
 
@@ -9,12 +8,10 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn list_dir() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     // read a dir with known content
     let dirname = "/largedir";
     let mut vec = Vec::new();
-    for e in assert_ok!(read_dir(m3fs.clone(), dirname)) {
+    for e in assert_ok!(read_dir(dirname)) {
         vec.push(e);
     }
     assert_eq!(vec.len(), 82);

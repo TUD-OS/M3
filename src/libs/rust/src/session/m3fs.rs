@@ -1,15 +1,17 @@
 use cap::Selector;
 use cell::RefCell;
+use collections::Vec;
 use com::*;
+use core::any::Any;
 use core::fmt;
 use core::intrinsics;
 use errors::Error;
 use kif::INVALID_SEL;
 use rc::{Rc, Weak};
 use session::Session;
-use vfs::{FileInfo, FileMode, FileSystem, OpenFlags, RegularFile, SeekMode};
+use vfs::{FileHandle, FileInfo, FileMode, FileSystem, FSHandle, OpenFlags, RegularFile, SeekMode};
 
-pub type Fd = i32;
+pub type FileId = i32;
 pub type ExtId = u16;
 
 pub struct M3FS {
@@ -113,7 +115,7 @@ bitflags! {
 }
 
 impl M3FS {
-    fn create(sess: Session, sgate: SendGate) -> Rc<RefCell<Self>> {
+    fn create(sess: Session, sgate: SendGate) -> FSHandle {
         let inst = Rc::new(RefCell::new(M3FS {
             self_weak: Weak::new(),
             sess: sess,
@@ -123,13 +125,13 @@ impl M3FS {
         inst
     }
 
-    pub fn new(name: &str) -> Result<Rc<RefCell<Self>>, Error> {
+    pub fn new(name: &str) -> Result<FSHandle, Error> {
         let sess = Session::new(name, 0)?;
         let sgate = SendGate::new_bind(sess.obtain(1, &[], &mut [])?.1.start());
         Ok(Self::create(sess, sgate))
     }
 
-    pub fn new_bind(sess: Selector, sgate: Selector) -> Rc<RefCell<Self>> {
+    pub fn new_bind(sess: Selector, sgate: Selector) -> FSHandle {
         Self::create(Session::new_bind(sess), SendGate::new_bind(sgate))
     }
 
@@ -137,10 +139,10 @@ impl M3FS {
         &self.sess
     }
 
-    pub fn get_locs(&self, fd: Fd, ext: ExtId, locs: &mut LocList,
+    pub fn get_locs(&self, id: FileId, ext: ExtId, locs: &mut LocList,
                     flags: LocFlags) -> Result<(usize, bool), Error> {
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
-        let sargs: [u64; 4] = [fd as u64, ext as u64, loc_count as u64, flags.bits as u64];
+        let sargs: [u64; 4] = [id as u64, ext as u64, loc_count as u64, flags.bits as u64];
         let mut rargs = [0u64; 2 + MAX_LOCS];
         let (num, crd) = self.sess.obtain(MAX_LOCS as u32, &sargs, &mut rargs)?;
         locs.set_sel(crd.start());
@@ -150,46 +152,52 @@ impl M3FS {
         Ok((rargs[1] as usize, rargs[0] == 1))
     }
 
-    pub fn fstat(&self, fd: Fd) -> Result<FileInfo, Error> {
+    pub fn fstat(&self, id: FileId) -> Result<FileInfo, Error> {
         let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
-            Operation::FSTAT, fd
+            Operation::FSTAT, id
         )?;
         Ok(reply.pop())
     }
 
-    pub fn seek(&self, fd: Fd, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
+    pub fn seek(&self, id: FileId, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
                 -> Result<(ExtId, usize, usize), Error> {
         let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
-            Operation::SEEK, fd, off, mode, extent, extoff
+            Operation::SEEK, id, off, mode, extent, extoff
         )?;
         Ok((reply.pop(), reply.pop(), reply.pop()))
     }
 
-    pub fn commit(&self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
+    pub fn commit(&self, id: FileId, extent: ExtId, off: usize) -> Result<(), Error> {
         send_recv_res!(
             &self.sgate, RecvGate::def(),
-            Operation::COMMIT, fd, extent, off
+            Operation::COMMIT, id, extent, off
         ).map(|_| ())
     }
 
-    pub fn close(&self, fd: Fd, extent: ExtId, off: usize) -> Result<(), Error> {
+    pub fn close(&self, id: FileId, extent: ExtId, off: usize) -> Result<(), Error> {
         send_recv_res!(
             &self.sgate, RecvGate::def(),
-            Operation::CLOSE, fd, extent, off
+            Operation::CLOSE, id, extent, off
         ).map(|_| ())
     }
 }
 
-impl FileSystem<RegularFile> for M3FS {
-    fn open(&self, path: &str, flags: OpenFlags) -> Result<RegularFile, Error> {
+impl FileSystem for M3FS {
+    fn as_any(&self) -> &Any {
+        self
+    }
+
+    fn open(&self, path: &str, flags: OpenFlags) -> Result<FileHandle, Error> {
         let mut reply = send_recv_res!(
             &self.sgate, RecvGate::def(),
             Operation::OPEN, path, flags.bits()
         )?;
-        let fd = reply.pop();
-        Ok(RegularFile::new(self.self_weak.upgrade().unwrap(), fd, flags))
+        let id = reply.pop();
+        Ok(Rc::new(RefCell::new(
+            RegularFile::new(self.self_weak.upgrade().unwrap(), id, flags)
+        )))
     }
 
     fn stat(&self, path: &str) -> Result<FileInfo, Error> {
@@ -224,5 +232,25 @@ impl FileSystem<RegularFile> for M3FS {
             &self.sgate, RecvGate::def(),
             Operation::UNLINK, path
         ).map(|_| ())
+    }
+
+    fn fs_type(&self) -> u8 {
+        b'M'
+    }
+    fn collect_caps(&self, caps: &mut Vec<Selector>) {
+        caps.push(self.sess.sel());
+        caps.push(self.sgate.sel());
+    }
+    fn serialize(&self, s: &mut VecSink) {
+        s.push(&self.sess.sel());
+        s.push(&self.sgate.sel());
+    }
+}
+
+impl M3FS {
+    pub fn unserialize(s: &mut SliceSource) -> FSHandle {
+        let sess: Selector = s.pop();
+        let sgate: Selector = s.pop();
+        M3FS::new_bind(sess, sgate)
     }
 }

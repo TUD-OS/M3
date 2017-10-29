@@ -7,7 +7,6 @@ use m3::com::*;
 use m3::boxed::Box;
 use m3::env;
 use m3::collections::*;
-use m3::session::*;
 use m3::syscalls;
 use m3::time;
 use m3::vfs::*;
@@ -15,14 +14,20 @@ use m3::vpe::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
         let mut vpe = VPE::new_with(VPEArgs::new("test")).expect("Unable to create VPE");
         println!("VPE runs on {:?}", vpe.pe());
 
+        let file = VFS::open("/test.txt", OpenFlags::RW)
+            .expect("open of /test.txt failed");
+
+        vpe.mounts().add("/", VPE::cur().mounts().get_by_path("/").unwrap()).unwrap();
+        vpe.obtain_mounts().unwrap();
+
+        // TODO fd inheritance is still not compatible between C++ and rust
+
         {
-            let act = vpe.exec(m3fs.clone(), &["/bin/echo", "a", "b", "c"]).expect("Exec failed");
+            let act = vpe.exec(&["/bin/ls", "-l", "/"]).expect("Exec failed");
 
             println!("foo: {}", act.vpe().sel());
 
@@ -30,9 +35,17 @@ pub fn main() -> i32 {
             println!("VPE exited with {}", res);
         }
 
+        vpe.files().set(0, VPE::cur().files().get(file.fd()).unwrap());
+        vpe.obtain_fds().unwrap();
+
         {
             let mut val = 42;
             let act = vpe.run(Box::new(move || {
+                let f = VPE::cur().files().get(0).unwrap();
+                let mut s = String::new();
+                f.borrow_mut().read_to_string(&mut s).unwrap();
+                println!("Read '{}'", s);
+
                 println!("I'm a closure on PE {}", env::data().pe);
                 val += 1;
                 println!("val = {}", val);
@@ -45,25 +58,25 @@ pub fn main() -> i32 {
     }
 
     {
-        for e in read_dir(m3fs.clone(), "/").expect("Unable to read directory") {
+        for e in read_dir("/").expect("Unable to read directory") {
             println!("name: {}, inode: {}", e.file_name(), e.inode());
         }
 
         {
-            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::W | OpenFlags::CREATE)
+            let mut file = VFS::open("/test2.txt", OpenFlags::W | OpenFlags::CREATE)
                 .expect("create of /test2.txt failed");
 
             write!(file, "This is the {}th test of {:.3}\n", 42, 12.3).expect("write failed");
         }
 
         {
-            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
+            let mut file = VFS::open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
 
-            let info = file.stat().unwrap();
+            let info = file.borrow().stat().unwrap();
             println!("Got info: {:?}", info);
 
-            println!("File /test.txt: {:?}", m3fs.borrow_mut().stat("/test.txt").unwrap());
-            println!("Creating directory /foobar: {:?}", m3fs.borrow_mut().mkdir("/foobar", 0o755));
+            println!("File /test.txt: {:?}", VFS::stat("/test.txt").unwrap());
+            println!("Creating directory /foobar: {:?}", VFS::mkdir("/foobar", 0o755));
 
             let mut s = String::new();
             {
@@ -83,7 +96,7 @@ pub fn main() -> i32 {
         }
 
         {
-            let mut file = m3fs.borrow_mut().open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
+            let mut file = VFS::open("/test2.txt", OpenFlags::RW).expect("open of /test2.txt failed");
 
             let mut s = String::new();
             let count = file.read_to_string(&mut s).expect("read failed");

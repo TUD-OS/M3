@@ -1,13 +1,15 @@
 use cap::Selector;
-use cell::{RefCell, RefMut};
-use com::MemGate;
+use cell::RefCell;
+use com::{Marshallable, Unmarshallable, MemGate, Sink, Source, VecSink, SliceSource};
+use collections::Vec;
 use core::fmt;
 use errors::Error;
 use kif::{Perm, INVALID_SEL};
 use rc::Rc;
-use session::{ExtId, Fd, M3FS, LocList, LocFlags, Pager, Map};
+use session::{ExtId, FileId, M3FS, LocList, LocFlags, Pager};
 use time;
 use vfs;
+use vpe::VPE;
 
 struct ExtentCache {
     locs: LocList,
@@ -59,7 +61,7 @@ impl ExtentCache {
         None
     }
 
-    pub fn request_next(&mut self, sess: RefMut<M3FS>, fd: Fd, writing: bool) -> Result<bool, Error> {
+    pub fn request_next(&mut self, sess: &M3FS, fid: FileId, writing: bool) -> Result<bool, Error> {
         // move forward
         self.offset += self.length;
         self.length = 0;
@@ -68,7 +70,7 @@ impl ExtentCache {
 
         // get new locations
         let flags = if writing { LocFlags::EXTEND } else { LocFlags::empty() };
-        let extended = sess.get_locs(fd, self.first, &mut self.locs, flags)?.1;
+        let extended = sess.get_locs(fid, self.first, &mut self.locs, flags)?.1;
 
         // cache new length
         self.length = self.locs.total_length();
@@ -120,9 +122,33 @@ impl fmt::Display for Position {
     }
 }
 
+impl Marshallable for Position {
+    fn marshall(&self, s: &mut Sink) {
+        s.push(&self.ext);
+        s.push(&self.extoff);
+        s.push(&self.abs);
+    }
+}
+
+impl Unmarshallable for Position {
+    fn unmarshall(s: &mut Source) -> Self {
+        Position::new_with(
+            s.pop_word() as ExtId,
+            s.pop_word() as usize,
+            s.pop_word() as usize
+        )
+    }
+}
+
+macro_rules! sess_to_m3fs {
+    ($s:expr) => (
+        $s.borrow().as_any().downcast_ref::<M3FS>().unwrap()
+    )
+}
+
 pub struct RegularFile {
-    sess: Rc<RefCell<M3FS>>,
-    fd: Fd,
+    sess: vfs::FSHandle,
+    fid: FileId,
     flags: vfs::OpenFlags,
 
     pos: Position,
@@ -135,22 +161,27 @@ pub struct RegularFile {
 }
 
 impl RegularFile {
-    pub fn new(sess: Rc<RefCell<M3FS>>, fd: Fd, flags: vfs::OpenFlags) -> Self {
+    pub fn new(sess: vfs::FSHandle, fid: FileId, flags: vfs::OpenFlags) -> Self {
+        Self::create(sess, fid, flags, Position::new(), false, Position::new())
+    }
+
+    fn create(sess: vfs::FSHandle, fid: FileId, flags: vfs::OpenFlags,
+              pos: Position, extended: bool, max_write: Position) -> Self {
         RegularFile {
             sess: sess,
-            fd: fd,
+            fid: fid,
             flags: flags,
-            pos: Position::new(),
+            pos: pos,
             cache: ExtentCache::new(),
             mem: MemGate::new_bind(INVALID_SEL),
-            extended: false,
-            max_write: Position::new(),
+            extended: extended,
+            max_write: max_write,
         }
     }
 
     fn get_ext_len(&mut self, writing: bool, rebind: bool) -> Result<usize, Error> {
         if !self.cache.valid() || self.cache.ext_len(self.pos.ext) == 0 {
-            self.extended |= self.cache.request_next(self.sess.borrow_mut(), self.fd, writing)?;
+            self.extended |= self.cache.request_next(sess_to_m3fs!(self.sess), self.fid, writing)?;
         }
 
         // don't read past the so far written part
@@ -216,7 +247,42 @@ impl vfs::File for RegularFile {
     }
 
     fn stat(&self) -> Result<vfs::FileInfo, Error> {
-        self.sess.borrow_mut().fstat(self.fd)
+        sess_to_m3fs!(self.sess).fstat(self.fid)
+    }
+
+    fn file_type(&self) -> u8 {
+        b'M'
+    }
+
+    fn collect_caps(&self, _caps: &mut Vec<Selector>) {
+        // nothing to do, because the child will fetch new caps
+    }
+
+    fn serialize(&self, mounts: &vfs::MountTable, s: &mut VecSink) {
+        let mid = mounts.index_of(&self.sess).unwrap();
+        s.push(&self.fid);
+        s.push(&self.flags.bits());
+        s.push(&mid);
+        s.push(&self.extended);
+        s.push(&self.pos);
+        s.push(&self.max_write);
+    }
+}
+
+impl RegularFile {
+    pub fn unserialize(s: &mut SliceSource) -> vfs::FileHandle {
+        let fid: FileId = s.pop();
+        let flags: u32 = s.pop();
+        let mid: usize = s.pop();
+        let flags = vfs::OpenFlags::from_bits_truncate(flags);
+        let pos: Position = s.pop();
+        let extended: bool = s.pop();
+        let max_write: Position = s.pop();
+
+        let m3fs = VPE::cur().mounts().get_by_index(mid).unwrap();
+        Rc::new(RefCell::new(
+            Self::create(m3fs, fid, flags, pos, extended, max_write)
+        ))
     }
 }
 
@@ -247,9 +313,9 @@ impl vfs::Seek for RegularFile {
             }
             // otherwise, ask m3fs
             else {
-                let (new_ext, new_ext_off, new_pos) = self.sess.borrow_mut().seek(
+                let (new_ext, new_ext_off, new_pos) = sess_to_m3fs!(self.sess).seek(
                     // TODO why all these arguments?
-                    self.fd, off, whence, self.cache.first, self.pos.extoff
+                    self.fid, off, whence, self.cache.first, self.pos.extoff
                 )?;
                 Position {
                     ext: new_ext,
@@ -264,7 +330,7 @@ impl vfs::Seek for RegularFile {
         log!(
             FS,
             "[{}] seek ({:#0x}, {}) -> {}",
-            self.fd, off, whence.val, self.pos
+            self.fid, off, whence.val, self.pos
         );
 
         Ok(self.pos.abs)
@@ -287,7 +353,7 @@ impl vfs::Read for RegularFile {
         log!(
             FS,
             "[{}] read ({:#0x} bytes <- {})",
-            self.fd, amount, lastpos
+            self.fid, amount, lastpos
         );
 
         // read from global memory
@@ -319,7 +385,7 @@ impl vfs::Write for RegularFile {
         log!(
             FS,
             "[{}] write ({:#0x} bytes -> {})",
-            self.fd, amount, lastpos
+            self.fid, amount, lastpos
         );
 
         // write to global memory
@@ -331,14 +397,14 @@ impl vfs::Write for RegularFile {
     }
 }
 
-impl Map for RegularFile {
+impl vfs::Map for RegularFile {
     fn map(&self, pager: &Pager, virt: usize, off: usize, len: usize, prot: Perm) -> Result<(), Error> {
-        pager.map_ds(virt, len, off, prot, self.sess.borrow().sess(), self.fd).map(|_| ())
+        pager.map_ds(virt, len, off, prot, sess_to_m3fs!(self.sess).sess(), self.fid).map(|_| ())
     }
 }
 
 impl Drop for RegularFile {
     fn drop(&mut self) {
-        self.sess.borrow_mut().close(self.fd, self.max_write.ext, self.max_write.extoff).unwrap();
+        sess_to_m3fs!(self.sess).close(self.fid, self.max_write.ext, self.max_write.extoff).unwrap();
     }
 }

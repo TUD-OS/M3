@@ -1,9 +1,12 @@
+use cap::Selector;
 use core::{fmt, intrinsics};
 use com::{Marshallable, Unmarshallable, Sink, Source, VecSink};
 use collections::*;
 use errors::Error;
+use kif;
+use session::Pager;
 use util;
-use vfs::{DevId, INodeId, FileMode, BlockId};
+use vfs::{BlockId, DevId, INodeId, FileMode, MountTable};
 
 int_enum! {
     pub struct SeekMode : u32 {
@@ -73,10 +76,19 @@ impl Unmarshallable for FileInfo {
     }
 }
 
-pub trait File {
+pub trait File : Read + Write + Seek + Map {
     fn flags(&self) -> OpenFlags;
 
     fn stat(&self) -> Result<FileInfo, Error>;
+
+    fn file_type(&self) -> u8;
+    fn collect_caps(&self, caps: &mut Vec<Selector>);
+    fn serialize(&self, mounts: &MountTable, s: &mut VecSink);
+}
+
+pub trait Map {
+    fn map(&self, pager: &Pager, virt: usize,
+           off: usize, len: usize, prot: kif::Perm) -> Result<(), Error>;
 }
 
 pub trait Seek {
@@ -143,11 +155,6 @@ pub trait Read {
 
     fn read_to_string(&mut self, buf: &mut String) -> Result<usize, Error> {
         self.read_to_end(unsafe { buf.as_mut_vec() })
-    }
-
-    fn read_object<T : Sized>(&mut self) -> Result<T, Error> {
-        let mut obj: T = unsafe { intrinsics::uninit() };
-        self.read_exact(util::object_to_bytes_mut(&mut obj)).map(|_| obj)
     }
 
     fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<(), Error> {
@@ -220,4 +227,9 @@ pub trait Write {
             }
         }
     }
+}
+
+pub fn read_object<T : Sized>(r: &mut Read) -> Result<T, Error> {
+    let mut obj: T = unsafe { intrinsics::uninit() };
+    r.read_exact(util::object_to_bytes_mut(&mut obj)).map(|_| obj)
 }

@@ -43,13 +43,13 @@ pub fn cstr_to_str(s: *const u8) -> &'static str {
     }
 }
 
-pub fn slice_for(start: *const u8, size: usize) -> &'static [u8] {
+pub fn slice_for<T>(start: *const T, size: usize) -> &'static [T] {
     unsafe {
         slice::from_raw_parts(start, size)
     }
 }
 
-pub fn slice_for_mut(start: *mut u8, size: usize) -> &'static mut [u8] {
+pub fn slice_for_mut<T>(start: *mut T, size: usize) -> &'static mut [T] {
     unsafe {
         slice::from_raw_parts_mut(start, size)
     }

@@ -1,11 +1,8 @@
-use cell::RefCell;
 use collections::String;
 use core::iter;
 use errors::Error;
-use rc::Rc;
 use util;
-use session::M3FS;
-use vfs::{BufReader, FileSystem, INodeId, OpenFlags, RegularFile, Read, Seek, SeekMode};
+use vfs::{BufReader, FileRef, INodeId, OpenFlags, read_object, Read, Seek, SeekMode, VFS};
 
 #[derive(Debug)]
 pub struct DirEntry {
@@ -31,7 +28,7 @@ impl DirEntry {
 }
 
 pub struct ReadDir {
-    reader: BufReader<RegularFile>,
+    reader: BufReader<FileRef>,
 }
 
 impl iter::Iterator for ReadDir {
@@ -46,7 +43,7 @@ impl iter::Iterator for ReadDir {
         }
 
         // read header
-        let entry: M3FSDirEntry = match self.reader.read_object() {
+        let entry: M3FSDirEntry = match read_object(&mut self.reader) {
             Ok(obj) => obj,
             Err(_)  => return None,
         };
@@ -72,9 +69,8 @@ impl iter::Iterator for ReadDir {
     }
 }
 
-// TODO remove the argument as soon as we have the VFS
-pub fn read_dir(sess: Rc<RefCell<M3FS>>, path: &str) -> Result<ReadDir, Error> {
-    let dir = sess.borrow_mut().open(path, OpenFlags::R)?;
+pub fn read_dir(path: &str) -> Result<ReadDir, Error> {
+    let dir = VFS::open(path, OpenFlags::R)?;
     Ok(ReadDir {
         reader: BufReader::new(dir),
     })

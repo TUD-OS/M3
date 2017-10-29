@@ -2,7 +2,6 @@ use m3::com::{SendGate, SGateArgs, RecvGate};
 use m3::boxed::Box;
 use m3::env;
 use m3::errors::Error;
-use m3::session::M3FS;
 use m3::test;
 use m3::util;
 use m3::vpe::{Activity, VPE, VPEArgs};
@@ -48,34 +47,31 @@ fn run_send_receive() {
 }
 
 fn exec_fail() {
-    let m3fs = assert_ok!(M3FS::new("m3fs"));
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
     // file too small
     {
-        let act = vpe.exec(m3fs.clone(), &["/testfile.txt"]);
+        let act = vpe.exec(&["/testfile.txt"]);
         assert!(act.is_err() && act.err() == Some(Error::EndOfFile));
     }
 
     // not an ELF file
     {
-        let act = vpe.exec(m3fs.clone(), &["/pat.bin"]);
+        let act = vpe.exec(&["/pat.bin"]);
         assert!(act.is_err() && act.err() == Some(Error::InvalidElf));
     }
 }
 
 fn exec_hello() {
-    let m3fs = assert_ok!(M3FS::new("m3fs"));
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
-    let act = assert_ok!(vpe.exec(m3fs.clone(), &["/bin/hello"]));
+    let act = assert_ok!(vpe.exec(&["/bin/hello"]));
     assert_eq!(act.wait(), Ok(0));
 }
 
 fn exec_rust_hello() {
-    let m3fs = assert_ok!(M3FS::new("m3fs"));
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
-    let act = assert_ok!(vpe.exec(m3fs.clone(), &["bin/rusthello"]));
+    let act = assert_ok!(vpe.exec(&["/bin/rusthello"]));
     assert_eq!(act.wait(), Ok(0));
 }

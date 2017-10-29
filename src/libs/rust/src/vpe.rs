@@ -1,9 +1,8 @@
 use alloc::boxed::FnBox;
 use boxed::Box;
 use cap::{CapFlags, Capability, Selector};
-use cell::RefCell;
 use cfg;
-use com::{MemGate, RBufSpace};
+use com::{MemGate, RBufSpace, Sink, SliceSource, VecSink};
 use collections::Vec;
 use core::{fmt, iter, intrinsics};
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
@@ -13,10 +12,9 @@ use errors::Error;
 use heap;
 use kif;
 use kif::{CapType, CapRngDesc, INVALID_SEL, PEDesc};
-use rc::Rc;
-use session::M3FS;
-use session::{Pager, Map};
-use vfs::{BufReader, FileSystem, OpenFlags, Read, RegularFile, Seek, SeekMode};
+use session::Pager;
+use vfs::{BufReader, FileRef, Map, OpenFlags, read_object, Read, Seek, SeekMode, VFS};
+use vfs::{FileTable, MountTable};
 use libc;
 use syscalls;
 use util;
@@ -29,6 +27,8 @@ pub struct VPE {
     eps: u64,
     rbufs: RBufSpace,
     pager: Option<Pager>,
+    files: FileTable,
+    mounts: MountTable,
 }
 
 pub struct VPEArgs<'n, 'p> {
@@ -85,11 +85,11 @@ impl<'v> Drop for ClosureActivity<'v> {
 
 pub struct ExecActivity<'v> {
     vpe: &'v mut VPE,
-    _file: BufReader<RegularFile>,
+    _file: BufReader<FileRef>,
 }
 
 impl<'v> ExecActivity<'v> {
-    pub fn new<'vo : 'v>(vpe: &'vo mut VPE, file: BufReader<RegularFile>) -> ExecActivity<'v> {
+    pub fn new<'vo : 'v>(vpe: &'vo mut VPE, file: BufReader<FileRef>) -> ExecActivity<'v> {
         ExecActivity {
             vpe: vpe,
             _file: file,
@@ -158,6 +158,23 @@ impl VPE {
                 0 => None,
                 s => Some(Pager::new_bind(s, env.pager_sgate, env.pager_rgate)),
             },
+            files: FileTable::default(),
+            mounts: MountTable::default(),
+        }
+    }
+
+    fn init(&mut self) {
+        let env = env::data();
+
+        // mounts first; files depend on mounts
+        if env.mounts_len != 0 {
+            let slice = util::slice_for(env.mounts as *const u64, env.mounts_len as usize);
+            self.mounts = MountTable::unserialize(&mut SliceSource::new(slice))
+        }
+
+        if env.fds_len != 0 {
+            let slice = util::slice_for(env.fds as *const u64, env.fds_len as usize);
+            self.files = FileTable::unserialize(&mut SliceSource::new(slice))
         }
     }
 
@@ -185,6 +202,8 @@ impl VPE {
             eps: 0,
             rbufs: RBufSpace::new(0, 0),
             pager: None,
+            files: FileTable::default(),
+            mounts: MountTable::default(),
         };
 
         let rbuf = if args.pe.has_mmu() {
@@ -258,6 +277,13 @@ impl VPE {
         &self.mem
     }
 
+    pub fn files(&mut self) -> &mut FileTable {
+        &mut self.files
+    }
+    pub fn mounts(&mut self) -> &mut MountTable {
+        &mut self.mounts
+    }
+
     pub fn pager(&self) -> Option<&Pager> {
         self.pager.as_ref()
     }
@@ -323,6 +349,23 @@ impl VPE {
         syscalls::revoke(self.sel(), crd, !del_only)
     }
 
+    pub fn obtain_fds(&mut self) -> Result<(), Error> {
+        let mut caps = Vec::new();
+        self.files.collect_caps(&mut caps);
+        for c in caps {
+            self.delegate_obj(c)?;
+        }
+        Ok(())
+    }
+    pub fn obtain_mounts(&mut self) -> Result<(), Error> {
+        let mut caps = Vec::new();
+        self.mounts.collect_caps(&mut caps);
+        for c in caps {
+            self.delegate_obj(c)?;
+        }
+        Ok(())
+    }
+
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
         let get_sp = || {
@@ -341,22 +384,16 @@ impl VPE {
         let env = env::data();
         let mut senv = env::EnvData::default();
 
+        // copy all regions to child
         senv.sp = get_sp() as u64;
         senv.entry = self.copy_regions(senv.sp as usize)? as u64;
         senv.lambda = 1;
         senv.exit_addr = 0;
-
         senv.heap_size = env.heap_size;
 
+        // store VPE address to reuse it in the child
         senv.fds_len = 0;
         senv.fds = self as *const VPE as u64;
-
-        // TODO
-        // senv.mounts_len = 0;
-        // senv.mounts = reinterpret_cast<uintptr_t>(_ms);
-        // senv.fds_len = 0;
-        // senv.fds = reinterpret_cast<uintptr_t>(_fds);
-        // senv._backend = env()->_backend;
 
         // env goes first
         let mut off = cfg::RT_START + util::size_of_val(&senv);
@@ -368,7 +405,7 @@ impl VPE {
 
         // write args
         senv.argc = env.argc;
-        senv.argv = self.write_arguments(off, env::args())? as u64;
+        senv.argv = self.write_arguments(&mut off, env::args())? as u64;
 
         // write start env to PE
         self.mem.write_obj(&senv, cfg::RT_START)?;
@@ -378,9 +415,8 @@ impl VPE {
         act.start().map(|_| act)
     }
 
-    pub fn exec<S: AsRef<str>>(&mut self, fs: Rc<RefCell<M3FS>>,
-                               args: &[S]) -> Result<ExecActivity, Error> {
-        let file = fs.borrow_mut().open(args[0].as_ref(), OpenFlags::RX)?;
+    pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
+        let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
         let sel = self.sel();
@@ -390,17 +426,35 @@ impl VPE {
 
         let mut senv = env::EnvData::default();
 
+        // load program segments
+        senv.sp = cfg::STACK_TOP as u64;
         senv.entry = self.load_program(&mut file)? as u64;
         senv.lambda = 0;
         senv.exit_addr = 0;
-        senv.sp = cfg::STACK_TOP as u64;
 
         // write args
-        let argoff = cfg::RT_START + util::size_of_val(&senv);
+        let mut off = cfg::RT_START + util::size_of_val(&senv);
         senv.argc = args.len() as u32;
-        senv.argv = self.write_arguments(argoff, args)? as u64;
+        senv.argv = self.write_arguments(&mut off, args)? as u64;
 
-        // TODO mounts, fds
+        // write file table
+        {
+            let mut fds = VecSink::new();
+            self.files.serialize(&self.mounts, &mut fds);
+            self.mem.write(fds.words(), off)?;
+            senv.fds = off as u64;
+            senv.fds_len = fds.size() as u32;
+            off += fds.size();
+        }
+
+        // write mounts table
+        {
+            let mut mounts = VecSink::new();
+            self.mounts.serialize(&mut mounts);
+            self.mem.write(mounts.words(), off)?;
+            senv.mounts = off as u64;
+            senv.mounts_len = mounts.size() as u32;
+        }
 
         senv.rbuf_cur = self.rbufs.cur as u64;
         senv.rbuf_end = self.rbufs.end as u64;
@@ -488,7 +542,7 @@ impl VPE {
         Ok(())
     }
 
-    fn load_segment(&self, file: &mut BufReader<RegularFile>,
+    fn load_segment(&self, file: &mut BufReader<FileRef>,
                     phdr: &elf::Phdr, buf: &mut [u8]) -> Result<(), Error> {
         file.seek(phdr.offset, SeekMode::SET)?;
 
@@ -507,7 +561,7 @@ impl VPE {
         self.clear_mem(buf, phdr.memsz - phdr.filesz, segoff)
     }
 
-    fn map_segment(&self, file: &mut BufReader<RegularFile>, pager: &Pager,
+    fn map_segment(&self, file: &mut BufReader<FileRef>, pager: &Pager,
                    phdr: &elf::Phdr) -> Result<(), Error> {
         let mut prot = kif::Perm::empty();
         if (phdr.flags & elf::PF::R.bits()) != 0 {
@@ -530,9 +584,9 @@ impl VPE {
         }
     }
 
-    fn load_program(&self, file: &mut BufReader<RegularFile>) -> Result<usize, Error> {
+    fn load_program(&self, file: &mut BufReader<FileRef>) -> Result<usize, Error> {
         let mut buf = vec![0u8; 4096];
-        let hdr: elf::Ehdr = file.read_object()?;
+        let hdr: elf::Ehdr = read_object(file)?;
 
         if hdr.ident[0] != '\x7F' as u8 ||
            hdr.ident[1] != 'E' as u8 ||
@@ -547,7 +601,7 @@ impl VPE {
         for _ in 0..hdr.phnum {
             // load program header
             file.seek(off, SeekMode::SET)?;
-            let phdr: elf::Phdr = file.read_object()?;
+            let phdr: elf::Phdr = read_object(file)?;
 
             // we're only interested in non-empty load segments
             if phdr.ty != elf::PT::LOAD.val || phdr.memsz == 0 {
@@ -579,12 +633,12 @@ impl VPE {
         Ok(hdr.entry)
     }
 
-    fn write_arguments<I, S>(&self, off: usize, args: I) -> Result<usize, Error>
+    fn write_arguments<I, S>(&self, off: &mut usize, args: I) -> Result<usize, Error>
                              where I: iter::IntoIterator<Item = S>, S: AsRef<str> {
         let mut argptr = Vec::new();
         let mut argbuf = Vec::new();
 
-        let mut argoff = off;
+        let mut argoff = *off;
         for s in args {
             // push argv entry
             argptr.push(argoff);
@@ -599,8 +653,9 @@ impl VPE {
             argoff += arg.len() + 1;
         }
 
-        self.mem.write(&argbuf, off)?;
+        self.mem.write(&argbuf, *off)?;
         self.mem.write(&argptr, argoff)?;
+        *off = argoff + argptr.len() * util::size_of::<usize>();
         Ok(argoff)
     }
 }
@@ -614,6 +669,7 @@ impl fmt::Debug for VPE {
 pub fn init() {
     unsafe {
         CUR = Some(VPE::new_cur());
+        VPE::cur().init();
     }
 }
 

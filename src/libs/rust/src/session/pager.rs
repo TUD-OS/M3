@@ -4,7 +4,7 @@ use core::fmt;
 use errors::Error;
 use dtu::EpId;
 use kif;
-use session::Fd;
+use session::FileId;
 use session::Session;
 use vpe::VPE;
 
@@ -120,13 +120,13 @@ impl Pager {
     }
 
     pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
-                  sess: &Session, fd: Fd) -> Result<usize, Error> {
+                  sess: &Session, fid: FileId) -> Result<usize, Error> {
         let mut rargs = [0u64; 1];
         let sargs: [u64; 5] = [
             addr as u64,
             len as u64,
             prot.bits() as u64,
-            fd as u64,
+            fid as u64,
             off as u64,
         ];
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sess.sel(), 1);
@@ -147,9 +147,4 @@ impl fmt::Debug for Pager {
         write!(f, "Pager[sel: {}, rep: {}, sep: {}]",
             self.sel(), self.rep, self.sgate.ep().unwrap())
     }
-}
-
-pub trait Map {
-    fn map(&self, pager: &Pager, virt: usize,
-           off: usize, len: usize, prot: kif::Perm) -> Result<(), Error>;
 }

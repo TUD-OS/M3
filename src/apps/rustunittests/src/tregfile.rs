@@ -1,10 +1,7 @@
 use m3::collections::{String, Vec};
-use m3::cell::RefCell;
 use m3::errors::Error;
-use m3::rc::Rc;
-use m3::session::M3FS;
 use m3::test;
-use m3::vfs::{File, FileSystem, OpenFlags, RegularFile, Seek, SeekMode, Read, Write};
+use m3::vfs::{FileRef, OpenFlags, Seek, SeekMode, Read, Write, VFS};
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, permissions);
@@ -23,27 +20,25 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn permissions() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/subdir/subsubdir/testfile.txt";
     let mut buf = [0u8; 16];
 
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+        let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
         assert_err!(file.write(&buf), Error::NoPerm);
     }
 
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::W));
+        let mut file = assert_ok!(VFS::open(filename, OpenFlags::W));
         assert_err!(file.read(&mut buf), Error::NoPerm);
     }
 }
 
 fn read_string() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/subdir/subsubdir/testfile.txt";
     let content = "This is a test!\n";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
 
     for i in 0..content.len() {
         assert_eq!(file.seek(0, SeekMode::SET), Ok(0));
@@ -53,11 +48,10 @@ fn read_string() {
 }
 
 fn read_exact() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/subdir/subsubdir/testfile.txt";
     let content = b"This is a test!\n";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
 
     let mut buf = [0u8; 32];
     assert_ok!(file.read_exact(&mut buf[0..8]));
@@ -72,41 +66,37 @@ fn read_exact() {
 }
 
 fn read_file_at_once() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/subdir/subsubdir/testfile.txt";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
     let mut s = String::new();
     assert_eq!(file.read_to_string(&mut s), Ok(16));
     assert_eq!(s, "This is a test!\n");
 }
 
 fn read_file_in_small_steps() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/pat.bin";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
     let mut buf = [0u8; 64];
 
     assert_eq!(_validate_pattern_content(&mut file, &mut buf), 64 * 1024);
 }
 
 fn read_file_in_large_steps() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let filename = "/pat.bin";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::R));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
     let mut buf = vec![0u8; 8 * 1024];
 
     assert_eq!(_validate_pattern_content(&mut file, &mut buf), 64 * 1024);
 }
 
 fn write_and_read_file() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
     let content = "Foobar, a test and more and more and more!";
     let filename = "/mat.txt";
 
-    let mut file = assert_ok!(m3fs.borrow_mut().open(filename, OpenFlags::RW));
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::RW));
 
     assert_ok!(write!(file, "{}", content));
 
@@ -126,9 +116,7 @@ fn write_and_read_file() {
 }
 
 fn write_fmt() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
-    let mut file = assert_ok!(m3fs.borrow_mut().open("/newfile",
+    let mut file = assert_ok!(VFS::open("/newfile",
         OpenFlags::CREATE | OpenFlags::RW));
 
     assert_ok!(write!(file, "This {:.3} is the {}th test of {:#0X}!\n", "foobar", 42, 0xABCDEF));
@@ -142,10 +130,8 @@ fn write_fmt() {
 }
 
 fn extend_small_file() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/test.txt", OpenFlags::W));
+        let mut file = assert_ok!(VFS::open("/test.txt", OpenFlags::W));
 
         let buf = _get_pat_vector(1024);
         for _ in 0..33 {
@@ -153,14 +139,12 @@ fn extend_small_file() {
         }
     }
 
-    _validate_pattern_file(m3fs, "/test.txt", 1024 * 33);
+    _validate_pattern_file("/test.txt", 1024 * 33);
 }
 
 fn overwrite_beginning() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/test.txt", OpenFlags::W));
+        let mut file = assert_ok!(VFS::open("/test.txt", OpenFlags::W));
 
         let buf = _get_pat_vector(1024);
         for _ in 0..3 {
@@ -168,14 +152,12 @@ fn overwrite_beginning() {
         }
     }
 
-    _validate_pattern_file(m3fs, "/test.txt", 1024 * 33);
+    _validate_pattern_file("/test.txt", 1024 * 33);
 }
 
 fn truncate() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/test.txt",
+        let mut file = assert_ok!(VFS::open("/test.txt",
             OpenFlags::W | OpenFlags::TRUNC));
 
         let buf = _get_pat_vector(1024);
@@ -184,14 +166,12 @@ fn truncate() {
         }
     }
 
-    _validate_pattern_file(m3fs, "/test.txt", 1024 * 2);
+    _validate_pattern_file("/test.txt", 1024 * 2);
 }
 
 fn append() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/test.txt",
+        let mut file = assert_ok!(VFS::open("/test.txt",
             OpenFlags::W | OpenFlags::APPEND));
         // TODO perform the seek to end here, because we cannot do that during open atm (m3fs
         // already borrowed as mutable). it's the wrong semantic anyway, so ...
@@ -203,14 +183,12 @@ fn append() {
         }
     }
 
-    _validate_pattern_file(m3fs, "/test.txt", 1024 * 4);
+    _validate_pattern_file("/test.txt", 1024 * 4);
 }
 
 fn append_read() {
-    let m3fs = M3FS::new("m3fs").expect("connect to m3fs failed");
-
     {
-        let mut file = assert_ok!(m3fs.borrow_mut().open("/test.txt",
+        let mut file = assert_ok!(VFS::open("/test.txt",
             OpenFlags::RW | OpenFlags::TRUNC | OpenFlags::CREATE));
 
         let pat = _get_pat_vector(1024);
@@ -238,7 +216,7 @@ fn append_read() {
         }
     }
 
-    _validate_pattern_file(m3fs, "/test.txt", 1024 * 4);
+    _validate_pattern_file("/test.txt", 1024 * 4);
 }
 
 fn _get_pat_vector(size: usize) -> Vec<u8> {
@@ -249,17 +227,17 @@ fn _get_pat_vector(size: usize) -> Vec<u8> {
     buf
 }
 
-fn _validate_pattern_file(sess: Rc<RefCell<M3FS>>, filename: &str, size: usize) {
-    let mut file = assert_ok!(sess.borrow_mut().open(filename, OpenFlags::R));
+fn _validate_pattern_file(filename: &str, size: usize) {
+    let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
 
-    let info = assert_ok!(file.stat());
+    let info = assert_ok!(file.borrow().stat());
     assert_eq!(info.size, size);
 
     let mut buf = [0u8; 1024];
     assert_eq!(_validate_pattern_content(&mut file, &mut buf), size);
 }
 
-fn _validate_pattern_content(file: &mut RegularFile, mut buf: &mut [u8]) -> usize {
+fn _validate_pattern_content(file: &mut FileRef, mut buf: &mut [u8]) -> usize {
     let mut pos: usize = 0;
     loop {
         let count = assert_ok!(file.read(&mut buf));
