@@ -16,7 +16,7 @@ impl Tester for MyTester {
     fn run_suite(&mut self, name: &str, f: &Fn(&mut Tester)) {
         println!("Running benchmark suite {} ...", name);
         f(self);
-        println!("Done");
+        println!("Done\n");
     }
 
     fn run_test(&mut self, name: &str, f: &Fn()) {
