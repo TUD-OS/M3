@@ -1,7 +1,7 @@
 use cap::Selector;
 use cell::RefCell;
 use com::{Marshallable, Unmarshallable, MemGate, Sink, Source, VecSink, SliceSource};
-use collections::Vec;
+use col::Vec;
 use core::fmt;
 use errors::Error;
 use kif::{Perm, INVALID_SEL};

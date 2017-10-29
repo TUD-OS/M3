@@ -1,6 +1,6 @@
 use cap::Selector;
 use cell::RefCell;
-use collections::Vec;
+use col::Vec;
 use com::*;
 use core::any::Any;
 use core::fmt;

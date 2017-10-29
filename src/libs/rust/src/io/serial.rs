@@ -1,6 +1,6 @@
 use cap::Selector;
 use cell::RefCell;
-use collections::Vec;
+use col::Vec;
 use com::VecSink;
 use dtu;
 use errors::Error;

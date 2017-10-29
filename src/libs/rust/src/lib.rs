@@ -22,7 +22,7 @@ extern crate compiler_builtins;
 
 use core::intrinsics;
 
-pub mod collections {
+pub mod col {
     pub use alloc::binary_heap::BinaryHeap;
     pub use alloc::btree_map::BTreeMap;
     pub use alloc::btree_set::BTreeSet;

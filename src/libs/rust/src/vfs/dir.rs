@@ -1,4 +1,4 @@
-use collections::String;
+use col::String;
 use core::iter;
 use errors::Error;
 use util;

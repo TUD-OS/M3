@@ -1,4 +1,4 @@
-use m3::collections::{String, Vec};
+use m3::col::{String, Vec};
 use m3::errors::Error;
 use m3::test;
 use m3::vfs::{FileRef, OpenFlags, Seek, SeekMode, Read, Write, VFS};

@@ -1,5 +1,5 @@
 use com::{RecvGate, SendGate};
-use collections::{String, Vec};
+use col::{String, Vec};
 use core::intrinsics;
 use core::ops;
 use core::slice;

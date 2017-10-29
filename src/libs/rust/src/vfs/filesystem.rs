@@ -1,6 +1,6 @@
 use cap::Selector;
 use com::VecSink;
-use collections::Vec;
+use col::Vec;
 use core::any::Any;
 use errors::Error;
 use vfs::{OpenFlags, FileHandle, FileInfo, FileMode};

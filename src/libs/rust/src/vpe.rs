@@ -3,7 +3,7 @@ use boxed::Box;
 use cap::{CapFlags, Capability, Selector};
 use cfg;
 use com::{MemGate, RBufSpace, Sink, SliceSource, VecSink};
-use collections::Vec;
+use col::Vec;
 use core::{fmt, iter, intrinsics};
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;

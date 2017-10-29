@@ -1,4 +1,4 @@
-use m3::collections::String;
+use m3::col::String;
 use m3::test;
 use m3::vfs::{BufReader, BufWriter, OpenFlags, Read, Write, VFS};
 

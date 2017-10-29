@@ -1,4 +1,4 @@
-use collections::{Vec, String};
+use col::{Vec, String};
 use errors::Error;
 use util;
 use vfs::{SeekMode, Read, Seek, Write};

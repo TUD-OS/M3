@@ -4,7 +4,7 @@
 extern crate m3;
 
 use m3::errors::Error;
-use m3::collections::String;
+use m3::col::String;
 use m3::com::*;
 use m3::kif;
 use m3::session::Session;

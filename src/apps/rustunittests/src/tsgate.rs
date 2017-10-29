@@ -1,4 +1,4 @@
-use m3::collections::String;
+use m3::col::String;
 use m3::com::{recv_msg, recv_msg_from, RecvGate, SendGate, SGateArgs};
 use m3::dtu;
 use m3::errors::Error;

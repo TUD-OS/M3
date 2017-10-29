@@ -1,5 +1,5 @@
 use core::fmt;
-use collections::Vec;
+use col::Vec;
 use time;
 use util;
 

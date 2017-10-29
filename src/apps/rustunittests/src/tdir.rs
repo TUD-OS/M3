@@ -1,5 +1,5 @@
 use core::cmp;
-use m3::collections::{Vec,ToString};
+use m3::col::{Vec,ToString};
 use m3::test;
 use m3::vfs::read_dir;
 

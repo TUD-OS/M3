@@ -1,7 +1,7 @@
 use cap::Selector;
 use cell::RefCell;
 use com::{SliceSource, Sink, VecSink};
-use collections::{String, ToString, Vec};
+use col::{String, ToString, Vec};
 use errors::Error;
 use rc::Rc;
 use session::M3FS;

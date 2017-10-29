@@ -6,7 +6,7 @@ extern crate m3;
 use m3::com::*;
 use m3::boxed::Box;
 use m3::env;
-use m3::collections::*;
+use m3::col::*;
 use m3::io;
 use m3::syscalls;
 use m3::time;

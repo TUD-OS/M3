@@ -1,7 +1,7 @@
 use cap::Selector;
 use core::{fmt, intrinsics};
 use com::{Marshallable, Unmarshallable, Sink, Source, VecSink};
-use collections::*;
+use col::*;
 use errors::Error;
 use kif;
 use session::Pager;

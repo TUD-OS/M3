@@ -1,4 +1,4 @@
-use m3::collections::{String, ToString};
+use m3::col::{String, ToString};
 use m3::com::*;
 use m3::profile;
 use m3::test;
