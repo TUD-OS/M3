@@ -115,6 +115,12 @@ impl<W : Write> Write for BufWriter<W> {
             }
 
             self.pos += res;
+
+            // use line buffering
+            if buf.iter().find(|b| **b == b'\n').is_some() {
+                self.flush()?;
+            }
+
             Ok(res)
         }
     }
