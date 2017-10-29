@@ -16,9 +16,9 @@ pub fn jmp_to(addr: u64) {
 pub fn sqrt(n: f32) -> f32 {
     let mut val_int: u32 = unsafe { intrinsics::transmute(n) };
 
-    val_int -= 1 << 23; /* Subtract 2^m. */
-    val_int >>= 1;      /* Divide by 2. */
-    val_int += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+    val_int = val_int.wrapping_sub(1 << 23); /* Subtract 2^m. */
+    val_int >>= 1;                           /* Divide by 2. */
+    val_int = val_int.wrapping_add(1 << 29); /* Add ((b + 1) / 2) * 2^m. */
 
     unsafe { intrinsics::transmute(val_int) }
 }
