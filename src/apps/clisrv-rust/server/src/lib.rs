@@ -7,7 +7,6 @@ use m3::errors::Error;
 use m3::col::String;
 use m3::com::*;
 use m3::kif;
-use m3::session::Session;
 use m3::server::{Handler, Server, SessId, SessionContainer, server_loop};
 use m3::util;
 
@@ -28,7 +27,7 @@ int_enum! {
     }
 }
 
-impl Handler<Session> for MyHandler {
+impl Handler for MyHandler {
     fn open(&mut self, arg: u64) -> Result<SessId, Error> {
         let sgate = SendGate::new_with(
             SGateArgs::new(&self.rgate).label(self.sessions.next_id()).credits(256)

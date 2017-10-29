@@ -12,7 +12,7 @@ pub struct Server {
     rgate: RecvGate,
 }
 
-pub trait Handler<S> {
+pub trait Handler {
     fn open(&mut self, arg: u64) -> Result<SessId, Error>;
 
     fn obtain(&mut self, _sid: SessId, _data: &mut service::ExchangeData) -> Result<(), Error> {
@@ -45,7 +45,7 @@ impl Server {
         self.cap.sel()
     }
 
-    pub fn handle_ctrl_chan<S>(&self, hdl: &mut Handler<S>) -> Result<(), Error> {
+    pub fn handle_ctrl_chan(&self, hdl: &mut Handler) -> Result<(), Error> {
         let is = self.rgate.fetch();
         if let Some(mut is) = is {
             let op: service::Operation = is.pop();
@@ -63,7 +63,7 @@ impl Server {
         }
     }
 
-    fn handle_open<S>(hdl: &mut Handler<S>, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_open(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
         let arg: u64 = is.pop();
         let res = hdl.open(arg);
 
@@ -82,7 +82,7 @@ impl Server {
         Ok(())
     }
 
-    fn handle_obtain<S>(hdl: &mut Handler<S>, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_obtain(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
         let sid: u64 = is.pop();
         let mut data: service::ExchangeData = is.pop();
         let res = hdl.obtain(sid, &mut data);
@@ -96,7 +96,7 @@ impl Server {
         is.reply(&[reply])
     }
 
-    fn handle_delegate<S>(hdl: &mut Handler<S>, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_delegate(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
         let sid: u64 = is.pop();
         let mut data: service::ExchangeData = is.pop();
         let res = hdl.delegate(sid, &mut data);
@@ -110,7 +110,7 @@ impl Server {
         is.reply(&[reply])
     }
 
-    fn handle_close<S>(hdl: &mut Handler<S>, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_close(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
         let sid: u64 = is.pop();
 
         log!(SERV, "server::close({})", sid);
@@ -120,7 +120,7 @@ impl Server {
         reply_vmsg!(is, 0)
     }
 
-    fn handle_shutdown<S>(hdl: &mut Handler<S>, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_shutdown(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
         log!(SERV, "server::shutdown()");
 
         hdl.shutdown();
