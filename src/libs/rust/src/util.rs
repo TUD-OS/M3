@@ -131,16 +131,14 @@ macro_rules! __int_enum_impl {
         }
 
         impl $crate::com::Marshallable for $Name {
-            fn marshall(&self, os: &mut $crate::com::GateOStream) {
-                os.arr[os.pos] = self.val as u64;
-                os.pos += 1;
+            fn marshall(&self, s: &mut $crate::com::Sink) {
+                s.push_word(self.val as u64);
             }
         }
 
         impl $crate::com::Unmarshallable for $Name {
-            fn unmarshall(is: &mut $crate::com::GateIStream) -> Self {
-                is.pos += 1;
-                let val = is.data()[is.pos - 1] as $T;
+            fn unmarshall(s: &mut $crate::com::Source) -> Self {
+                let val = s.pop_word() as $T;
                 $Name { val: val }
             }
         }

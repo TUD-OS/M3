@@ -1,5 +1,5 @@
 use com::Unmarshallable;
-use com::GateIStream;
+use com::Source;
 use core::fmt;
 use core::intrinsics;
 use kif::syscalls;
@@ -71,14 +71,14 @@ impl fmt::Debug for ExchangeData {
 }
 
 impl Unmarshallable for ExchangeData {
-    fn unmarshall(is: &mut GateIStream) -> Self {
+    fn unmarshall(s: &mut Source) -> Self {
         let mut res = ExchangeData {
-            caps: is.pop(),
-            argcount: is.pop(),
+            caps: s.pop_word(),
+            argcount: s.pop_word(),
             args: unsafe { intrinsics::uninit() },
         };
         for i in 0..res.argcount {
-            res.args[i as usize] = is.pop();
+            res.args[i as usize] = s.pop_word();
         }
         res
     }

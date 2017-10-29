@@ -1,5 +1,5 @@
 use core::{fmt, intrinsics};
-use com::{Marshallable, Unmarshallable, GateOStream, GateIStream};
+use com::{Marshallable, Unmarshallable, Sink, Source, VecSink};
 use collections::*;
 use errors::Error;
 use util;
@@ -44,31 +44,31 @@ pub struct FileInfo {
 }
 
 impl Marshallable for FileInfo {
-    fn marshall(&self, os: &mut GateOStream) {
-        os.push(&self.devno);
-        os.push(&self.inode);
-        os.push(&self.mode);
-        os.push(&self.links);
-        os.push(&self.size);
-        os.push(&self.lastaccess);
-        os.push(&self.lastmod);
-        os.push(&self.extents);
-        os.push(&self.firstblock);
+    fn marshall(&self, s: &mut Sink) {
+        s.push(&self.devno);
+        s.push(&self.inode);
+        s.push(&self.mode);
+        s.push(&self.links);
+        s.push(&self.size);
+        s.push(&self.lastaccess);
+        s.push(&self.lastmod);
+        s.push(&self.extents);
+        s.push(&self.firstblock);
     }
 }
 
 impl Unmarshallable for FileInfo {
-    fn unmarshall(is: &mut GateIStream) -> Self {
+    fn unmarshall(s: &mut Source) -> Self {
         FileInfo {
-            devno: is.pop(),
-            inode: is.pop(),
-            mode: is.pop(),
-            links: is.pop(),
-            size: is.pop(),
-            lastaccess: is.pop(),
-            lastmod: is.pop(),
-            extents: is.pop(),
-            firstblock: is.pop(),
+            devno:      s.pop_word() as DevId,
+            inode:      s.pop_word() as INodeId,
+            mode:       s.pop_word() as FileMode,
+            links:      s.pop_word() as u32,
+            size:       s.pop_word() as usize,
+            lastaccess: s.pop_word() as u32,
+            lastmod:    s.pop_word() as u32,
+            extents:    s.pop_word() as u32,
+            firstblock: s.pop_word() as BlockId,
         }
     }
 }
