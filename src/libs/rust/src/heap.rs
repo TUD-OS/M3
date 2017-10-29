@@ -45,7 +45,7 @@ pub fn init() {
         (*heap_begin).next = space as u64;
         (*heap_begin).prev = 0;
 
-        if io::HEAP {
+        if io::log::HEAP {
             libc::heap_set_alloc_callback(heap_alloc_callback);
             libc::heap_set_free_callback(heap_free_callback);
         }

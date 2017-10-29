@@ -18,7 +18,7 @@ pub use self::dir::{DirEntry, ReadDir, read_dir};
 pub use self::file::{File, FileInfo, Map, OpenFlags, SeekMode, Seek, Read, Write, read_object};
 pub use self::fileref::FileRef;
 pub use self::filesystem::FileSystem;
-pub use self::filetable::{FileHandle, FileTable};
+pub use self::filetable::{Fd, FileHandle, FileTable};
 pub use self::mounttable::{FSHandle, MountTable};
 pub use self::regfile::RegularFile;
 

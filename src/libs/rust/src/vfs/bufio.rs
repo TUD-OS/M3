@@ -1,4 +1,4 @@
-use collections::Vec;
+use collections::{Vec, String};
 use errors::Error;
 use util;
 use vfs::{SeekMode, Read, Seek, Write};
@@ -32,6 +32,21 @@ impl<R : Read> BufReader<R> {
 
     pub fn get_mut(&mut self) -> &mut R {
         &mut self.reader
+    }
+
+    pub fn read_line(&mut self, s: &mut String) -> Result<usize, Error> {
+        let mut total = 0;
+        loop {
+            let mut buf = [0u8; 1];
+            let len = self.read(&mut buf)?;
+            if len == 0 || buf[0] == b'\n' {
+                break
+            }
+
+            s.push(buf[0] as char);
+            total += 1;
+        }
+        Ok(total)
     }
 }
 

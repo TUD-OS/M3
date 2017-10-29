@@ -86,9 +86,9 @@ pub fn exit(code: i32) {
 
 #[no_mangle]
 pub extern fn env_run() {
-    io::init();
     let envdata = env::data();
     let res = if envdata.lambda != 0 {
+        io::reinit();
         vpe::reinit();
         com::reinit();
         env::closure().call()
@@ -96,6 +96,7 @@ pub extern fn env_run() {
     else {
         heap::init();
         vpe::init();
+        io::init();
         com::init();
         unsafe { main() }
     };
@@ -130,9 +131,11 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                file: &'static str,
                                line: u32,
                                column: u32) -> ! {
-    print!("PANIC at {}, line {}, column {}: ", file, line, column);
-    io::print_fmt(msg);
-    println!("");
+    use vfs::Write;
+    let l = io::log::Log::get();
+    l.write_fmt(format_args!("PANIC at {}, line {}, column {}: ", file, line, column)).unwrap();
+    l.write_fmt(msg).unwrap();
+    l.write("\n".as_bytes());
     exit(1);
     unsafe { intrinsics::abort() }
 }
