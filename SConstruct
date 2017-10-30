@@ -340,7 +340,7 @@ def Cargo(env, target, source):
     )
 
 def RustProgram(env, target, source, libs = []):
-    stlib = env.Cargo(target = '$RUSTDIR/$BUILD/lib' + target + '.a', source = 'src/lib.rs')
+    stlib = env.Cargo(target = '$RUSTDIR/$BUILD/lib' + target + '.a', source = 'src/' + target + '.rs')
     env.Install(env['LIBDIR'], stlib)
     env.Depends(stlib, env.File('Cargo.toml'))
     env.Depends(stlib, env.File('$RUSTDIR/$BUILD/libm3.rlib'))

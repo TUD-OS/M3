@@ -4,6 +4,7 @@ version = "0.1.0"
 
 [lib]
 name = "rustbenchs"
+path = "src/rustbenchs.rs"
 crate-type = ["staticlib"]
 
 [profile.release]

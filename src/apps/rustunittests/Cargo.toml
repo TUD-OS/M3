@@ -4,6 +4,7 @@ version = "0.1.0"
 
 [lib]
 name = "rustunittests"
+path = "src/rustunittests.rs"
 crate-type = ["staticlib"]
 
 [profile.release]
