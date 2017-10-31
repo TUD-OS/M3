@@ -109,8 +109,6 @@ public:
     Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx);
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
-    void sendcrd(UNUSED epid_t ep, UNUSED epid_t crdep, UNUSED size_t size) {
-    }
 
     bool is_valid(epid_t ep) const {
         EPConf *cfg = conf(ep);

@@ -147,9 +147,8 @@ public:
         SEND                                    = 2,
         REPLY                                   = 3,
         RESP                                    = 4,
-        SENDCRD                                 = 5,
-        FETCHMSG                                = 6,
-        ACKMSG                                  = 7,
+        FETCHMSG                                = 5,
+        ACKMSG                                  = 6,
     };
 
     static const epid_t SYSC_SEP                = 0;
@@ -221,13 +220,6 @@ public:
     }
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
-    }
-    void sendcrd(epid_t ep, epid_t crdep, size_t size) {
-        set_cmd(CMD_EPID, ep);
-        set_cmd(CMD_SIZE, size);
-        set_cmd(CMD_OFFSET, crdep);
-        set_cmd(CMD_CTRL, (SENDCRD << OPCODE_SHIFT) | CTRL_START);
-        wait_until_ready(ep);
     }
 
     bool is_valid(epid_t) const {
@@ -323,7 +315,6 @@ private:
     word_t prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    word_t prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_fetchmsg(epid_t ep);
     word_t prepare_ackmsg(epid_t ep);
 

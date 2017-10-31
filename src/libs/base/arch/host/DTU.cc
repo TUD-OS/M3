@@ -184,18 +184,6 @@ word_t DTU::prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     return 0;
 }
 
-word_t DTU::prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep) {
-    const size_t size = get_cmd(CMD_SIZE);
-    const epid_t crdep = get_cmd(CMD_OFFSET);
-
-    dstpe = get_ep(ep, EP_PEID);
-    dstep = get_ep(ep, EP_EPID);
-    _buf.credits = size + HEADER_SIZE;
-    _buf.length = 1;    // can't be 0
-    _buf.crd_ep = crdep;
-    return 0;
-}
-
 word_t DTU::prepare_ackmsg(epid_t ep) {
     const word_t addr = get_cmd(CMD_OFFSET);
     size_t bufaddr = get_ep(ep, EP_BUF_ADDR);
@@ -294,9 +282,6 @@ void DTU::handle_command(peid_t pe) {
             break;
         case WRITE:
             newctrl |= prepare_write(ep, dstpe, dstep);
-            break;
-        case SENDCRD:
-            newctrl |= prepare_sendcrd(ep, dstpe, dstep);
             break;
         case FETCHMSG:
             newctrl |= prepare_fetchmsg(ep);
@@ -468,13 +453,11 @@ void DTU::handle_receive(epid_t ep) {
         }
     }
 
-    if(op != SENDCRD) {
-        LLOG(DTU, "<- " << fmt(static_cast<size_t>(res) - HEADER_SIZE, 3)
-               << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
-               << " ep=" << ep
-               << " (cnt=#" << fmt(get_ep(ep, EP_BUF_MSGCNT), "x") << ","
-               << "crd=#" << fmt(get_ep(ep, EP_CREDITS), "x") << ")");
-    }
+    LLOG(DTU, "<- " << fmt(static_cast<size_t>(res) - HEADER_SIZE, 3)
+           << "b lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
+           << " ep=" << ep
+           << " (cnt=#" << fmt(get_ep(ep, EP_BUF_MSGCNT), "x") << ","
+           << "crd=#" << fmt(get_ep(ep, EP_CREDITS), "x") << ")");
 }
 
 void *DTU::thread(void *arg) {
