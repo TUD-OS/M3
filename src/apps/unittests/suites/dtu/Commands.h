@@ -36,18 +36,10 @@ private:
         virtual void run() override;
     };
 
-    class CmpxchgCmdTestCase : public BaseTestCase {
-    public:
-        explicit CmpxchgCmdTestCase() : BaseTestCase("Cmpxchg command") {
-        }
-        virtual void run() override;
-    };
-
 public:
     explicit CommandsTestSuite()
         : TestSuite("Commands") {
         add(new ReadCmdTestCase());
         add(new WriteCmdTestCase());
-        add(new CmpxchgCmdTestCase());
     }
 };

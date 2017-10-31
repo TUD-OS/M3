@@ -31,21 +31,6 @@
 
 namespace m3 {
 
-static void dumpBytes(uint8_t *bytes, size_t length) {
-    std::ostringstream tmp;
-    tmp << std::hex << std::setfill('0');
-    for(size_t i = 0; i < length; ++i) {
-        if(i > 0 && i % 8 == 0) {
-            LLOG(DTUERR, "  " << tmp.str().c_str());
-            tmp.str(std::string());
-            tmp << std::hex << std::setfill('0');
-        }
-        tmp << "0x" << std::setw(2) << (unsigned)bytes[i] << " ";
-    }
-    if(!tmp.str().empty())
-        LLOG(DTUERR, "  " << tmp.str().c_str());
-}
-
 INIT_PRIO_DTU DTU DTU::inst;
 INIT_PRIO_DTU DTU::Buffer DTU::_buf;
 
@@ -95,7 +80,7 @@ void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
 }
 
 word_t DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
-    if(op == READ || op == WRITE || op == CMPXCHG) {
+    if(op == READ || op == WRITE) {
         uint perms = label & KIF::Perm::RWX;
         if(!(perms & (1U << op))) {
             LLOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
@@ -194,28 +179,6 @@ word_t DTU::prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     _buf.length = sizeof(word_t) * 2;
     reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
     reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
-    memcpy(_buf.data + _buf.length, src, size);
-    _buf.length += size;
-    return 0;
-}
-
-word_t DTU::prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep) {
-    const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
-    const size_t size = get_cmd(CMD_SIZE);
-    dstpe = get_ep(ep, EP_PEID);
-    dstep = get_ep(ep, EP_EPID);
-
-    if(size != get_cmd(CMD_LENGTH) * 2) {
-        LLOG(DTUERR, "DMA-error: cmpxchg: CMD_SIZE != CMD_LENGTH * 2. Ignoring send-command");
-        return CTRL_ERROR;
-    }
-
-    _buf.credits = 0;
-    _buf.label = get_ep(ep, EP_LABEL);
-    _buf.length = sizeof(word_t) * 3;
-    reinterpret_cast<word_t*>(_buf.data)[0] = get_cmd(CMD_OFFSET);
-    reinterpret_cast<word_t*>(_buf.data)[1] = get_cmd(CMD_LENGTH);
-    reinterpret_cast<word_t*>(_buf.data)[2] = get_cmd(CMD_ADDR);
     memcpy(_buf.data + _buf.length, src, size);
     _buf.length += size;
     return 0;
@@ -332,9 +295,6 @@ void DTU::handle_command(peid_t pe) {
         case WRITE:
             newctrl |= prepare_write(ep, dstpe, dstep);
             break;
-        case CMPXCHG:
-            newctrl |= prepare_cmpxchg(ep, dstpe, dstep);
-            break;
         case SENDCRD:
             newctrl |= prepare_sendcrd(ep, dstpe, dstep);
             break;
@@ -425,42 +385,6 @@ void DTU::handle_resp_cmd() {
     set_cmd(CMD_SIZE, 0);
 }
 
-void DTU::handle_cmpxchg_cmd(epid_t ep) {
-    word_t base = _buf.label & ~static_cast<word_t>(KIF::Perm::RWX);
-    word_t offset = base + reinterpret_cast<word_t*>(_buf.data)[0];
-    word_t length = reinterpret_cast<word_t*>(_buf.data)[1];
-    LLOG(DTU, "(cmpxchg) " << length << " bytes @ #" << fmt(base, "x")
-            << "+#" << fmt(offset - base, "x"));
-    peid_t dstpe = _buf.pe;
-    epid_t dstep = _buf.rpl_ep;
-
-    // do the compare exepge; no need to lock anything or so because our DTU is single-threaded
-    word_t res;
-    if(memcmp(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length) == 0) {
-        memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3 + length, length);
-        res = 0;
-    }
-    else {
-        uint8_t *expected = reinterpret_cast<uint8_t*>(_buf.data) + sizeof(word_t) * 3;
-        uint8_t *actual = reinterpret_cast<uint8_t*>(offset);
-        LLOG(DTUERR, "(cmpxchg) failed; expected:");
-        dumpBytes(expected, length);
-        LLOG(DTUERR, "actual:");
-        dumpBytes(actual, length);
-        res = CTRL_ERROR;
-    }
-
-    // use the write command to send the data back to the desired location
-    _buf.opcode = RESP;
-    _buf.credits = 0;
-    _buf.label = 0;
-    _buf.length = sizeof(word_t) * 3;
-    reinterpret_cast<word_t*>(_buf.data)[0] = 0;
-    reinterpret_cast<word_t*>(_buf.data)[1] = 0;
-    reinterpret_cast<word_t*>(_buf.data)[2] = res;
-    send_msg(ep, dstpe, dstep, true);
-}
-
 void DTU::handle_msg(size_t len, epid_t ep) {
     const size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
     const size_t msgsize = 1UL << msgord;
@@ -525,9 +449,6 @@ void DTU::handle_receive(epid_t ep) {
             break;
         case WRITE:
             handle_write_cmd(ep);
-            break;
-        case CMPXCHG:
-            handle_cmpxchg_cmd(ep);
             break;
         case SEND:
         case REPLY:

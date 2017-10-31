@@ -176,13 +176,6 @@ void DTU::copy_clear(const VPEDesc &, uintptr_t, const VPEDesc &, uintptr_t, siz
     // not supported
 }
 
-void DTU::cmpxchg_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t datasize,
-    size_t off, size_t size) {
-    m3::DTU::get().configure(_ep, (addr + off) | m3::KIF::Perm::RWX, vpe.pe, 0, datasize);
-    m3::DTU::get().cmpxchg(_ep, data, datasize, 0, size);
-    m3::DTU::get().wait_for_mem_cmd();
-}
-
 void DTU::write_swstate(const VPEDesc &, uint64_t, uint64_t) {
 }
 

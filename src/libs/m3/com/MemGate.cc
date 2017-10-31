@@ -102,13 +102,4 @@ retry:
     return res;
 }
 
-#if defined(__host__)
-Errors::Code MemGate::cmpxchg(void *data, size_t len, size_t offset) {
-    EVENT_TRACER_cmpxchg();
-    ensure_activated();
-
-    return DTU::get().cmpxchg(ep(), data, len, offset, len / 2);
-}
-#endif
-
 }

@@ -235,10 +235,6 @@ public:
     Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t off);
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
-    Errors::Code cmpxchg(epid_t, const void *, size_t, size_t, size_t) {
-        // TODO unsupported
-        return Errors::NONE;
-    }
 
     m3::DTU::reg_t abort(uint flags, reg_t *cmdreg) {
         // save the old value before aborting

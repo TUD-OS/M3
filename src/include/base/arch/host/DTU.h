@@ -144,13 +144,12 @@ public:
     enum Op {
         READ                                    = 0,
         WRITE                                   = 1,
-        CMPXCHG                                 = 2,
-        SEND                                    = 3,
-        REPLY                                   = 4,
-        RESP                                    = 5,
-        SENDCRD                                 = 6,
-        FETCHMSG                                = 7,
-        ACKMSG                                  = 8,
+        SEND                                    = 2,
+        REPLY                                   = 3,
+        RESP                                    = 4,
+        SENDCRD                                 = 5,
+        FETCHMSG                                = 6,
+        ACKMSG                                  = 7,
     };
 
     static const epid_t SYSC_SEP                = 0;
@@ -222,11 +221,6 @@ public:
     }
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
-    }
-    Errors::Code cmpxchg(epid_t ep, const void *msg, size_t msgsize, size_t off, size_t size) {
-        Errors::Code res = fire(ep, CMPXCHG, msg, msgsize, off, size, label_t(), 0);
-        wait_for_mem_cmd();
-        return res;
     }
     void sendcrd(epid_t ep, epid_t crdep, size_t size) {
         set_cmd(CMD_EPID, ep);
@@ -329,7 +323,6 @@ private:
     word_t prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_read(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_write(epid_t ep, peid_t &dstpe, epid_t &dstep);
-    word_t prepare_cmpxchg(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_sendcrd(epid_t ep, peid_t &dstpe, epid_t &dstep);
     word_t prepare_fetchmsg(epid_t ep);
     word_t prepare_ackmsg(epid_t ep);
@@ -338,7 +331,6 @@ private:
     void handle_read_cmd(epid_t ep);
     void handle_write_cmd(epid_t ep);
     void handle_resp_cmd();
-    void handle_cmpxchg_cmd(epid_t ep);
     void handle_command(peid_t pe);
     void handle_msg(size_t len, epid_t ep);
     void handle_receive(epid_t ep);

@@ -150,22 +150,6 @@ public:
      */
     Errors::Code read(void *data, size_t len, size_t offset);
 
-#if defined(__host__)
-    /**
-     * Performs the cmpxchg-operation. The first <len>/2 bytes at <data> are compared against the
-     * first <len>/2 bytes at <offset>. If they are equal, the first <len>/2 bytes at <offset> are
-     * replaced with the <len>/2 bytes at <data>+<len>/2.
-     * Note that the given data is changed!
-     *
-     * @param data the data with the expected and new value
-     * @param len the number of bytes of one value
-     * @param offset the start-offset
-     * @return true on success
-     * @return the error code or Errors::NONE
-     */
-    Errors::Code cmpxchg(void *data, size_t len, size_t offset);
-#endif
-
 private:
     Errors::Code forward(void *&data, size_t &len, size_t &offset, uint flags);
 
