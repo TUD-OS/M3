@@ -36,13 +36,13 @@ impl Log {
         }
     }
 
-    pub fn write(&mut self, bytes: &[u8]) {
+    fn write(&mut self, bytes: &[u8]) {
         for b in bytes {
             self.put_char(*b)
         }
     }
 
-    pub fn put_char(&mut self, c: u8) {
+    fn put_char(&mut self, c: u8) {
         self.buf[self.pos] = c;
         self.pos += 1;
 
@@ -60,7 +60,7 @@ impl Log {
         }
     }
 
-    fn init(&mut self) {
+    pub(crate) fn init(&mut self) {
         let env = env::data();
         let colors = ["31", "32", "33", "34", "35", "36"];
         let name = env::args().nth(0).unwrap_or("Unknown");
