@@ -30,15 +30,13 @@ fn send_recv() {
     assert_err!(sgate.send(&data, RecvGate::def()), Error::MissCredits);
 
     {
-        let msg = assert_ok!(rgate.wait(Some(&sgate)));
-        assert_eq!(msg.header.label, 0x1234);
-        rgate.mark_read(msg);
+        let is = assert_ok!(rgate.wait(Some(&sgate)));
+        assert_eq!(is.label(), 0x1234);
     }
 
     {
-        let msg = assert_ok!(rgate.wait(Some(&sgate)));
-        assert_eq!(msg.header.label, 0x1234);
-        rgate.mark_read(msg);
+        let is = assert_ok!(rgate.wait(Some(&sgate)));
+        assert_eq!(is.label(), 0x1234);
     }
 }
 

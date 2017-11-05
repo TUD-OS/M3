@@ -202,7 +202,7 @@ impl RecvGate {
         dtu::DTU::reply(self.ep().unwrap(), reply, size, msg)
     }
 
-    pub fn wait(&self, sgate: Option<&SendGate>) -> Result<&'static dtu::Message, Error> {
+    pub fn wait(&self, sgate: Option<&SendGate>) -> Result<GateIStream, Error> {
         assert!(self.ep().is_some());
 
         let rep = self.ep().unwrap();
@@ -214,7 +214,7 @@ impl RecvGate {
         loop {
             let msg = dtu::DTU::fetch_msg(rep);
             if let Some(m) = msg {
-                return Ok(m)
+                return Ok(GateIStream::new(m, self))
             }
 
             if let Some(sg) = sgate {
@@ -225,10 +225,6 @@ impl RecvGate {
 
             dtu::DTU::try_sleep(idle, 0)?;
         }
-    }
-
-    pub fn mark_read(&self, msg: &'static dtu::Message) {
-        dtu::DTU::mark_read(self.ep().unwrap(), msg);
     }
 }
 

@@ -264,7 +264,7 @@ impl<'r> GateIStream<'r> {
 impl<'r> ops::Drop for GateIStream<'r> {
     fn drop(&mut self) {
         if self.ack {
-            self.rgate.mark_read(self.source.msg);
+            dtu::DTU::mark_read(self.rgate.ep().unwrap(), self.source.msg);
         }
     }
 }
@@ -346,10 +346,7 @@ pub fn recv_msg<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
 }
 
 pub fn recv_msg_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
-    match rgate.wait(sgate) {
-        Err(e) => Err(e),
-        Ok(msg) => Ok(GateIStream::new(msg, rgate)),
-    }
+    rgate.wait(sgate)
 }
 
 #[macro_export]
