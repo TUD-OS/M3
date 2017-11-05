@@ -168,12 +168,12 @@ impl VPE {
 
         // mounts first; files depend on mounts
         if env.mounts_len != 0 {
-            let slice = util::slice_for(env.mounts as *const u64, env.mounts_len as usize);
+            let slice = unsafe { util::slice_for(env.mounts as *const u64, env.mounts_len as usize) };
             self.mounts = MountTable::unserialize(&mut SliceSource::new(slice))
         }
 
         if env.fds_len != 0 {
-            let slice = util::slice_for(env.fds as *const u64, env.fds_len as usize);
+            let slice = unsafe { util::slice_for(env.fds as *const u64, env.fds_len as usize) };
             self.files = FileTable::unserialize(&mut SliceSource::new(slice))
         }
     }

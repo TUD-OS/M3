@@ -147,7 +147,7 @@ impl MemGate {
     fn forward_read(&self, data: &mut *mut u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
         syscalls::forward_read(
-            self.sel(), util::slice_for_mut(*data, amount), *off,
+            self.sel(), unsafe { util::slice_for_mut(*data, amount) }, *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
         )?;
         *data = unsafe { (*data).offset(amount as isize) };
@@ -159,7 +159,7 @@ impl MemGate {
     fn forward_write(&self, data: &mut *const u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
         syscalls::forward_write(
-            self.sel(), util::slice_for(*data, amount), *off,
+            self.sel(), unsafe { util::slice_for(*data, amount) }, *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
         )?;
         *data = unsafe { (*data).offset(amount as isize) };

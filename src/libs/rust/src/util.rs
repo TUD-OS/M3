@@ -35,24 +35,18 @@ pub fn size_of_val<T: ?Sized>(val: &T) -> usize {
     }
 }
 
-pub fn cstr_to_str(s: *const u8) -> &'static str {
-    unsafe {
-        let len = libc::strlen(s);
-        let sl = slice::from_raw_parts(s, len as usize + 1);
-        intrinsics::transmute(&sl[..sl.len() - 1])
-    }
+pub unsafe fn cstr_to_str(s: *const i8) -> &'static str {
+    let len = libc::strlen(s);
+    let sl = slice::from_raw_parts(s, len as usize + 1);
+    intrinsics::transmute(&sl[..sl.len() - 1])
 }
 
-pub fn slice_for<T>(start: *const T, size: usize) -> &'static [T] {
-    unsafe {
-        slice::from_raw_parts(start, size)
-    }
+pub unsafe fn slice_for<T>(start: *const T, size: usize) -> &'static [T] {
+    slice::from_raw_parts(start, size)
 }
 
-pub fn slice_for_mut<T>(start: *mut T, size: usize) -> &'static mut [T] {
-    unsafe {
-        slice::from_raw_parts_mut(start, size)
-    }
+pub unsafe fn slice_for_mut<T>(start: *mut T, size: usize) -> &'static mut [T] {
+    slice::from_raw_parts_mut(start, size)
 }
 
 pub fn object_to_bytes<T : Sized>(obj: &T) -> &[u8] {
