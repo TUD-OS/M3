@@ -16,8 +16,12 @@ impl<R: 'static> Drop for Reply<R> {
     }
 }
 
+fn send<T>(msg: *const T) -> Result<(), Error> {
+    dtu::DTU::send(dtu::SYSC_SEP, msg as *const u8, util::size_of::<T>(), 0, dtu::SYSC_REP)
+}
+
 fn send_receive<T, R>(msg: *const T) -> Result<Reply<R>, Error> {
-    dtu::DTU::send(dtu::SYSC_SEP, msg as *const u8, util::size_of::<T>(), 0, dtu::SYSC_REP)?;
+    send(msg)?;
 
     loop {
         dtu::DTU::try_sleep(false, 0)?;
@@ -375,6 +379,5 @@ pub fn exit(code: i32) {
         op: syscalls::VPEOp::Stop as u64,
         arg: code as u64,
     };
-    let msg = &req as *const syscalls::VPECtrl as *const u8;
-    dtu::DTU::send(dtu::SYSC_SEP, msg, util::size_of_val(&req), 0, dtu::SYSC_REP).unwrap();
+    send(&req).unwrap();
 }
