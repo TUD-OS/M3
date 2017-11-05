@@ -1,6 +1,5 @@
 use m3::col::String;
 use m3::com::{recv_msg, recv_msg_from, RecvGate, SendGate, SGateArgs};
-use m3::dtu;
 use m3::errors::Error;
 use m3::test;
 use m3::util;
@@ -33,13 +32,13 @@ fn send_recv() {
     {
         let msg = assert_ok!(rgate.wait(Some(&sgate)));
         assert_eq!(msg.header.label, 0x1234);
-        dtu::DTU::mark_read(rgate.ep().unwrap(), msg);
+        rgate.mark_read(msg);
     }
 
     {
         let msg = assert_ok!(rgate.wait(Some(&sgate)));
         assert_eq!(msg.header.label, 0x1234);
-        dtu::DTU::mark_read(rgate.ep().unwrap(), msg);
+        rgate.mark_read(msg);
     }
 }
 

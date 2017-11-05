@@ -264,7 +264,7 @@ impl<'r> GateIStream<'r> {
 impl<'r> ops::Drop for GateIStream<'r> {
     fn drop(&mut self) {
         if self.ack {
-            dtu::DTU::mark_read(self.rgate.ep().unwrap(), self.source.msg);
+            self.rgate.mark_read(self.source.msg);
         }
     }
 }

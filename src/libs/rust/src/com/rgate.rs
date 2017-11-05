@@ -226,6 +226,10 @@ impl RecvGate {
             dtu::DTU::try_sleep(idle, 0)?;
         }
     }
+
+    pub fn mark_read(&self, msg: &'static dtu::Message) {
+        dtu::DTU::mark_read(self.ep().unwrap(), msg);
+    }
 }
 
 pub fn init() {
