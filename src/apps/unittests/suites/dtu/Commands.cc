@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#if defined(__host__)
 #include <base/Env.h>
 
 #include <m3/com/MemGate.h>
@@ -132,3 +133,5 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     VPE::self().free_ep(sndep);
     VPE::self().free_ep(rcvep);
 }
+
+#endif

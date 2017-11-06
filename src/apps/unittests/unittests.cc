@@ -20,17 +20,19 @@
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
-using namespace m3;
+#include <test/TestSuiteContainer.h>
 
-static const char *progs[] = {
 #if defined(__host__)
-    "/bin/unittests-dtu",
+#include "suites/dtu/Commands.h"
+#include "suites/dtu/Memory.h"
 #endif
-    "/bin/unittests-stream",
-    "/bin/unittests-fs",
-    "/bin/unittests-fs2",
-    "/bin/unittests-misc",
-};
+#include "suites/stream/Stream.h"
+#include "suites/misc/BitField.h"
+#include "suites/misc/Heap.h"
+#include "suites/fs/FS.h"
+#include "suites/fs2/FS2.h"
+
+using namespace m3;
 
 int main() {
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
@@ -38,22 +40,25 @@ int main() {
             exitmsg("Unable to mount m3fs as root-fs");
     }
 
-    size_t succ = 0;
-    for(size_t i = 0; i < ARRAY_SIZE(progs); ++i) {
-        VPE t("tests");
-        const char *args[] = {progs[i]};
+    test::TestSuiteContainer con;
 
-        t.mounts(*VPE::self().mounts());
-        t.obtain_mounts();
+#if defined(__host__)
+    con.add(new CommandsTestSuite());
+    con.add(new MemoryTestSuite());
+#endif
+    con.add(new FSTestSuite());
+    con.add(new FS2TestSuite());
+    con.add(new BitFieldTestSuite());
+    con.add(new HeapTestSuite());
+    con.add(new StreamTestSuite());
 
-        t.exec(ARRAY_SIZE(args), args);
-        uint32_t res = static_cast<uint32_t>(t.wait());
-        if((res >> 16) != 0)
-            succ += (res & 0xFFFF) == (res >> 16);
-    }
+    uint32_t res = con.run();
+    uint16_t total = res >> 16;
+    uint16_t succ = res & 0xFFFF;
+
     cout << "---------------------------------------\n";
-    cout << "\033[1mIn total: " << (succ == ARRAY_SIZE(progs) ? "\033[1;32m" : "\033[1;31m")
-            << succ << "\033[1m of " << ARRAY_SIZE(progs) << " testsuites successfull\033[0;m\n";
+    cout << "\033[1mIn total: " << (total == succ ? "\033[1;32m" : "\033[1;31m")
+            << succ << "\033[1m of " << total << " testsuites successfull\033[0;m\n";
     cout << "---------------------------------------\n";
     return 0;
 }

@@ -38,7 +38,7 @@ public:
     void add(TestSuite* suite) {
         _suites.append(suite);
     }
-    int run();
+    uint32_t run();
 
 private:
     m3::SList<TestSuite> _suites;

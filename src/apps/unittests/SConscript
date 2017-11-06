@@ -1,19 +1,6 @@
 Import('env')
-
-myenv = env.Clone()
-myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-O2', '-Os')
-myenv['LINKFLAGS'] = str(myenv['LINKFLAGS']).replace('-O2', '-Os')
-
-def build_test(env, name):
-    env.M3Program(env, target = 'unittests-' + name, libs = ['test'], source = [
-        env.Glob('unittests-' + name + '.cc'),
-        env.Glob('suites/' + name + '/*.cc'),
-    ])
-
-if myenv['ARCH'] == 'host':
-  build_test(myenv, 'dtu')
-build_test(myenv, 'fs')
-build_test(myenv, 'fs2')
-build_test(myenv, 'stream')
-build_test(myenv, 'misc')
-env.M3Program(env, target = 'unittests', source = ['unittests.cc'])
+env.M3Program(env,
+    target = 'unittests',
+    libs = ['test'],
+    source = ['unittests.cc', env.Glob('suites/*/*.cc')]
+)

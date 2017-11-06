@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#if defined(__host__)
 #include <m3/com/GateStream.h>
 #include <m3/stream/Standard.h>
 
@@ -73,3 +74,5 @@ void MemoryTestSuite::DeriveTestCase::run() {
         assert_true(DTU::get().get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
     }
 }
+
+#endif

@@ -20,7 +20,7 @@
 
 namespace test {
 
-int TestSuiteContainer::run() {
+uint32_t TestSuiteContainer::run() {
     size_t suites_succ = 0;
     size_t suites_failed = 0;
     size_t cases_succ = 0;
@@ -47,7 +47,7 @@ int TestSuiteContainer::run() {
              << suites_succ << "\033[0m of " << _suites.length() << " testsuites successfull\n";
     m3::cout << (cases_failed == 0 ? "\033[0;32m" : "\033[0;31m") << cases_succ << "\033[0m of "
              << (cases_succ + cases_failed) << " testcases successfull\n";
-    return static_cast<int>(((suites_succ + suites_failed) << 16) | suites_succ);
+    return ((suites_succ + suites_failed) << 16) | suites_succ;
 }
 
 }
