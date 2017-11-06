@@ -96,10 +96,11 @@ size_t OStream::putspad(const char *s, size_t pad, size_t prec, int flags) {
     size_t count = 0;
     if(pad > 0 && !(flags & FormatParams::PADRIGHT)) {
         size_t width = prec != static_cast<size_t>(-1) ? Math::min<size_t>(prec, strlen(s)) : strlen(s);
-        count += printpad(pad - width, flags);
+        if(pad > width)
+            count += printpad(pad - width, flags);
     }
     count += puts(s, prec);
-    if(pad > 0 && (flags & FormatParams::PADRIGHT))
+    if((flags & FormatParams::PADRIGHT) && pad > count)
         count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
@@ -111,12 +112,13 @@ size_t OStream::printnpad(llong n, size_t pad, int flags) {
         size_t width = Digits::count_signed(n, 10);
         if(n > 0 && (flags & (FormatParams::FORCESIGN | FormatParams::SPACESIGN)))
             width++;
-        count += printpad(pad - width, flags);
+        if(pad > width)
+            count += printpad(pad - width, flags);
     }
     count += printsignedprefix(n, flags);
     count += printn(n);
     // pad right
-    if((flags & FormatParams::PADRIGHT) && pad > 0)
+    if((flags & FormatParams::PADRIGHT) && pad > count)
         count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
@@ -126,7 +128,8 @@ size_t OStream::printupad(ullong u, uint base, size_t pad, int flags) {
     // pad left - spaces
     if(!(flags & FormatParams::PADRIGHT) && !(flags & FormatParams::PADZEROS) && pad > 0) {
         size_t width = Digits::count_unsigned(u, base);
-        count += printpad(pad - width, flags);
+        if(pad > width)
+            count += printpad(pad - width, flags);
     }
     // print base-prefix
     if((flags & FormatParams::PRINTBASE)) {
@@ -143,7 +146,8 @@ size_t OStream::printupad(ullong u, uint base, size_t pad, int flags) {
     // pad left - zeros
     if(!(flags & FormatParams::PADRIGHT) && (flags & FormatParams::PADZEROS) && pad > 0) {
         size_t width = Digits::count_unsigned(u, base);
-        count += printpad(pad - width, flags);
+        if(pad > width)
+            count += printpad(pad - width, flags);
     }
     // print number
     if(flags & FormatParams::CAPHEX)
@@ -151,7 +155,7 @@ size_t OStream::printupad(ullong u, uint base, size_t pad, int flags) {
     else
         count += printu(u, base, _hexchars_small);
     // pad right
-    if((flags & FormatParams::PADRIGHT) && pad > 0)
+    if((flags & FormatParams::PADRIGHT) && pad > count)
         count += printpad(pad - static_cast<size_t>(count), flags);
     return count;
 }
