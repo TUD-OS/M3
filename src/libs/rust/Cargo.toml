@@ -6,6 +6,13 @@ version = "0.1.0"
 name = "m3"
 crate-type = ["rlib", "staticlib"]
 
+[dependencies]
+bitflags = "*"
+compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
+
+[target.x86_64-unknown-host-gnu.dependencies]
+libc = { version = "0.2", default-features = false }
+
 [profile.release]
 panic = 'abort'
 

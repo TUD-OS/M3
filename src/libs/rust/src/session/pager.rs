@@ -1,8 +1,8 @@
+use arch::dtu::EpId;
 use cap;
 use com::{SendGate, RecvGate, RGateArgs};
 use core::fmt;
 use errors::Error;
-use dtu::EpId;
 use kif;
 use session::FileId;
 use session::Session;

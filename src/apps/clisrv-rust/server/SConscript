@@ -1,7 +1,6 @@
 Import('env')
-if env['ARCH'] == 'gem5':
-    env.RustProgram(
-        env,
-        target = 'rustserver',
-        source = [],
-    )
+env.RustProgram(
+    env,
+    target = 'rustserver',
+    source = [],
+)

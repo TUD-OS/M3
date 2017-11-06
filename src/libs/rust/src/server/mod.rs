@@ -4,7 +4,7 @@ mod sesscon;
 pub use self::server::{Handler, Server};
 pub use self::sesscon::{SessId, SessionContainer};
 
-use dtu::DTU;
+use arch::dtu::DTU;
 use errors::Error;
 
 pub fn server_loop<F : FnMut() -> Result<(), Error>>(mut func: F) -> Result<(), Error> {

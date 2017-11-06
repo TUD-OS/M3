@@ -2,6 +2,7 @@ pub mod log;
 mod serial;
 mod std;
 
+use arch;
 pub use self::serial::Serial;
 pub use self::std::{stdin, stdout, stderr};
 
@@ -37,7 +38,7 @@ macro_rules! println {
 }
 
 pub fn init() {
-    serial::init();
+    arch::serial::init();
     log::init();
     std::init();
 }

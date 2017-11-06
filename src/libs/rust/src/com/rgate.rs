@@ -1,12 +1,10 @@
+use arch::{dtu, rbufs};
 use cap::{CapFlags, Selector};
 use com::epmux::EpMux;
 use com::gate::Gate;
 use com::{GateIStream, SendGate};
-use com::rbufs;
 use core::ops;
 use core::fmt;
-use dtu;
-use env;
 use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;
@@ -129,6 +127,9 @@ impl RecvGate {
     pub fn ep(&self) -> Option<dtu::EpId> {
         self.gate.ep()
     }
+    pub fn buffer(&self) -> usize {
+        self.buf
+    }
     pub fn size(&self) -> usize {
         1 << self.order
     }
@@ -229,23 +230,18 @@ impl RecvGate {
 }
 
 pub fn init() {
-    let get_buf = |off| {
-        let pe = &env::data().pedesc;
-        if pe.has_virtmem() {
-            rbufs::RECVBUF_SPACE + off
-        }
-        else {
-            (pe.mem_size() - rbufs::RECVBUF_SIZE_SPM) + off
-        }
-    };
+    let rbufs = vpe::VPE::cur().rbufs();
 
-    RecvGate::syscall().buf = get_buf(0);
+    let mut off = 0;
+    RecvGate::syscall().buf = rbufs.get_std(off, rbufs::SYSC_RBUF_SIZE);
     RecvGate::syscall().order = util::next_log2(rbufs::SYSC_RBUF_SIZE);
+    off += rbufs::SYSC_RBUF_SIZE;
 
-    RecvGate::upcall().buf = get_buf(rbufs::SYSC_RBUF_SIZE);
+    RecvGate::upcall().buf = rbufs.get_std(off, rbufs::UPCALL_RBUF_SIZE);
     RecvGate::upcall().order = util::next_log2(rbufs::UPCALL_RBUF_SIZE);
+    off += rbufs::UPCALL_RBUF_SIZE;
 
-    RecvGate::def().buf = get_buf(rbufs::SYSC_RBUF_SIZE + rbufs::UPCALL_RBUF_SIZE);
+    RecvGate::def().buf = rbufs.get_std(off, rbufs::DEF_RBUF_SIZE);
     RecvGate::def().order = util::next_log2(rbufs::DEF_RBUF_SIZE);
 }
 

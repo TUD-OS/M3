@@ -1,6 +1,0 @@
-Import('env')
-if env['ARCH'] == 'gem5':
-    stlib = env.Cargo(target = '$RUSTDIR/$BUILD/libm3.a', source = 'src/lib.rs')
-    env.Depends(stlib, [env.Glob('src/*.rs'), env.Glob('src/*/*.rs')])
-    env.Depends(stlib, env.File('Cargo.toml'))
-    env.SideEffect(env.File('$RUSTDIR/$BUILD/libm3.rlib'), stlib)

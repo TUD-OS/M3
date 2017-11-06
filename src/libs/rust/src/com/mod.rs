@@ -4,12 +4,10 @@ mod stream;
 mod epmux;
 mod gate;
 mod mgate;
-mod rbufs;
 mod rgate;
 mod sgate;
 
 pub use self::mgate::{MemGate, MGateArgs, Perm};
-pub use self::rbufs::*;
 pub use self::rgate::{RecvGate, RGateArgs};
 pub use self::sgate::{SendGate, SGateArgs};
 pub use self::epmux::EpMux;

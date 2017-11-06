@@ -1,6 +1,6 @@
+use arch::dtu;
 use cap::Selector;
 use core::intrinsics;
-use dtu;
 use errors::Error;
 use kif::{CapRngDesc, syscalls, Perm, PEDesc};
 use util;

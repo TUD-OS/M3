@@ -28,6 +28,10 @@ impl Tester for MyTester {
 
 #[no_mangle]
 pub fn main() -> i32 {
+    // TODO
+    #[cfg(target_os = "linux")]
+    ::m3::vfs::VFS::mount("/", "m3fs").unwrap();
+
     let mut tester = MyTester {};
     run_suite!(tester, bregfile::run);
     run_suite!(tester, bstream::run);

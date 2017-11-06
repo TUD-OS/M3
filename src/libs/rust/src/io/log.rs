@@ -1,3 +1,4 @@
+use arch;
 use cell::RefCell;
 use env;
 use errors::Error;
@@ -9,6 +10,7 @@ pub const SYSC: bool  = false;
 pub const HEAP: bool  = false;
 pub const FS: bool    = false;
 pub const SERV: bool  = false;
+pub const DTU: bool   = false;
 
 const MAX_LINE_LEN: usize = 160;
 const SUFFIX: &[u8] = b"\x1B[0m";
@@ -29,7 +31,7 @@ impl Log {
 
     pub fn new() -> Self {
         Log {
-            serial: Serial::get().clone(),
+            serial: Serial::get(),
             buf: [0; MAX_LINE_LEN],
             pos: 0,
             start_pos: 0,
@@ -61,7 +63,7 @@ impl Log {
     }
 
     pub(crate) fn init(&mut self) {
-        let env = env::data();
+        let env = arch::env::data();
         let colors = ["31", "32", "33", "34", "35", "36"];
         let name = env::args().nth(0).unwrap_or("Unknown");
         let begin = match name.rfind('/') {

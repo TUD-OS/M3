@@ -1,9 +1,9 @@
+use arch::dtu;
 use com::{RecvGate, SendGate};
 use col::{String, Vec};
 use core::intrinsics;
 use core::ops;
 use core::slice;
-use dtu;
 use errors::Error;
 use libc;
 use util;
@@ -66,8 +66,8 @@ impl Sink for GateSink {
 
         unsafe {
             libc::memcpy(
-                (&mut self.arr[self.pos..]).as_mut_ptr() as *mut u8,
-                b.as_bytes().as_ptr(),
+                (&mut self.arr[self.pos..]).as_mut_ptr() as *mut libc::c_void,
+                b.as_bytes().as_ptr() as *const libc::c_void,
                 b.len(),
             );
         }
@@ -113,8 +113,8 @@ impl Sink for VecSink {
         unsafe {
             self.vec.set_len(cur + elems);
             libc::memcpy(
-                (&mut self.vec.as_mut_slice()[cur..cur + elems]).as_mut_ptr() as *mut u8,
-                b.as_bytes().as_ptr(),
+                (&mut self.vec.as_mut_slice()[cur..cur + elems]).as_mut_ptr() as *mut libc::c_void,
+                b.as_bytes().as_ptr() as *const libc::c_void,
                 b.len(),
             );
         }
@@ -144,10 +144,10 @@ impl GateSource {
 
 fn copy_str_from(s: &[u64], len: usize) -> String {
     unsafe {
-        let bytes: *mut u8 = intrinsics::transmute((s).as_ptr());
-        let copy = libc::heap_alloc(len + 1);
+        let bytes: *mut libc::c_void = intrinsics::transmute((s).as_ptr());
+        let copy = libc::malloc(len + 1);
         libc::memcpy(copy, bytes, len);
-        String::from_raw_parts(copy, len, len)
+        String::from_raw_parts(copy as *mut u8, len, len)
     }
 }
 

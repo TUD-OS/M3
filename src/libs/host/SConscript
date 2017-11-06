@@ -1,0 +1,9 @@
+Import('env')
+if env['ARCH'] == 'host':
+    myenv = env.Clone()
+    myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-flto', '')
+    lib = myenv.StaticLibrary(
+        target = 'libhost',
+        source = myenv.Glob('init.cc'),
+    )
+    myenv.Install(myenv['LIBDIR'], lib)

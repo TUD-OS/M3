@@ -47,7 +47,7 @@ pub fn main() -> i32 {
                 f.borrow_mut().read_to_string(&mut s).unwrap();
                 println!("Read '{}'", s);
 
-                println!("I'm a closure on PE {}", env::data().pe);
+                println!("I'm a closure on PE {}", VPE::cur().pe_id());
                 val += 1;
                 println!("val = {}", val);
                 val

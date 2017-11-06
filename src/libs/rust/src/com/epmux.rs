@@ -1,7 +1,6 @@
+use arch::dtu::{self, EpId};
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
-use dtu::EpId;
-use dtu;
 use errors::Error;
 use errors;
 use kif::INVALID_SEL;

@@ -1,8 +1,8 @@
+use arch::dtu::EpId;
 use cell::Cell;
 use core::ops;
 use cap::{CapFlags, Capability, Selector};
 use com::EpMux;
-use dtu::EpId;
 use errors::Error;
 
 #[derive(Debug)]

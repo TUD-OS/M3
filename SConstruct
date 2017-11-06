@@ -104,7 +104,15 @@ env.Append(
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
+    CRGFLAGS = ' --target x86_64-unknown-' + target + '-gnu',
 )
+
+env.Append(ENV = {
+    'RUST_TARGET_PATH' : Dir('src/toolchain/rust').abspath
+})
+
+if int(verbose) != 0:
+    env.Append(CRGFLAGS = ' -v')
 
 # allow to add preprocessor flags via env variable
 cppdefines = []
@@ -321,9 +329,12 @@ def M3Program(env, target, source, libs = [], libpaths = [], NoSup = False, tgtc
         )
         myenv.Depends(prog, ldscript)
     else:
+        if not NoSup:
+            libs = m3libs + ['m3', 'heap', 'pthread'] + libs
+
         prog = myenv.Program(
             target, source,
-            LIBS = m3libs + ['m3', 'heap', 'pthread'] + libs,
+            LIBS = libs,
             LIBPATH = [myenv['LIBDIR']] + libpaths
         )
 
@@ -334,23 +345,38 @@ def Cargo(env, target, source):
     return env.Command(
         target, source,
         Action(
-            'cd ${SOURCE.dir.dir} && cargo build $CRGFLAGS',
+            'cd ${SOURCE.dir.dir} && xargo build $CRGFLAGS',
             '$CRGCOMSTR'
         )
     )
 
 def RustProgram(env, target, source, libs = []):
-    stlib = env.Cargo(target = '$RUSTDIR/$BUILD/lib' + target + '.a', source = 'src/' + target + '.rs')
+    stlib = env.Cargo(
+        target = '$RUSTDIR/x86_64-unknown-$ARCH-gnu/$BUILD/lib' + target + '.a',
+        source = 'src/' + target + '.rs'
+    )
     env.Install(env['LIBDIR'], stlib)
     env.Depends(stlib, env.File('Cargo.toml'))
-    env.Depends(stlib, env.File('$RUSTDIR/$BUILD/libm3.rlib'))
+    env.Depends(stlib, [
+        env.Glob('#src/libs/rust/src/*.rs'),
+        env.Glob('#src/libs/rust/src/*/*.rs'),
+        env.Glob('#src/libs/rust/src/*/*/*.rs'),
+        env.Glob('#src/libs/rust/src/*/*/*/*.rs'),
+    ])
     env.Depends(stlib, env.Glob('src/*.rs'))
+
+    if env['ARCH'] == 'gem5':
+        sources = [env['LIBDIR'].abspath + '/crt0.o'] + [source]
+        libs    = ['c', 'heap', 'gcc', target]
+    else:
+        sources = [source]
+        libs    = ['c', 'heap', 'gcc', 'host', 'pthread', target]
 
     prog = env.M3Program(
         env,
         target = target,
-        source = [env['LIBDIR'].abspath + '/crt0.o'] + [source],
-        libs = ['c', 'heap', 'gcc', target],
+        source = sources,
+        libs = libs,
         NoSup = True
     )
     return prog

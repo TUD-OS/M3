@@ -12,6 +12,8 @@ mod tmgate;
 mod tregfile;
 mod trgate;
 mod tsgate;
+// TODO
+#[cfg(target_os = "none")]
 mod tvpe;
 
 struct MyTester {
@@ -33,6 +35,10 @@ impl Tester for MyTester {
 
 #[no_mangle]
 pub fn main() -> i32 {
+    // TODO
+    #[cfg(target_os = "linux")]
+    ::m3::vfs::VFS::mount("/", "m3fs").unwrap();
+
     let mut tester = MyTester {};
     run_suite!(tester, tmgate::run);
     run_suite!(tester, trgate::run);
@@ -41,6 +47,7 @@ pub fn main() -> i32 {
     run_suite!(tester, tdir::run);
     run_suite!(tester, tbufio::run);
     run_suite!(tester, tregfile::run);
+    #[cfg(target_os = "none")]
     run_suite!(tester, tvpe::run);
 
     0

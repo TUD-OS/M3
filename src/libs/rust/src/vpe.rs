@@ -1,11 +1,12 @@
+use arch;
+use arch::dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use alloc::boxed::FnBox;
 use boxed::Box;
 use cap::{CapFlags, Capability, Selector};
 use cfg;
-use com::{MemGate, RBufSpace, Sink, SliceSource, VecSink};
+use com::{MemGate, Sink, SliceSource, VecSink};
 use col::Vec;
 use core::{fmt, iter, intrinsics};
-use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
 use elf;
 use errors::Error;
@@ -15,7 +16,6 @@ use kif::{CapType, CapRngDesc, INVALID_SEL, PEDesc};
 use session::Pager;
 use vfs::{BufReader, FileRef, Map, OpenFlags, read_object, Read, Seek, SeekMode, VFS};
 use vfs::{FileTable, MountTable};
-use libc;
 use syscalls;
 use util;
 
@@ -25,7 +25,7 @@ pub struct VPE {
     mem: MemGate,
     next_sel: Selector,
     eps: u64,
-    rbufs: RBufSpace,
+    rbufs: arch::rbufs::RBufSpace,
     pager: Option<Pager>,
     files: FileTable,
     mounts: MountTable,
@@ -144,27 +144,34 @@ static mut CUR: Option<VPE> = None;
 
 impl VPE {
     fn new_cur() -> Self {
-        let env = env::data();
         VPE {
             cap: Capability::new(0, CapFlags::KEEP_CAP),
-            pe: env.pedesc.clone(),
+            pe: PEDesc::new_from(0),
             mem: MemGate::new_bind(1),
             // 0 and 1 are reserved for VPE cap and mem cap
-            // it's initially 0. make sure it's at least the first usable selector
-            next_sel: util::max(2, env.caps as Selector),
-            eps: env.eps,
-            rbufs: RBufSpace::new(env.rbuf_cur as usize, env.rbuf_end as usize),
-            pager: match env.pager_sess {
-                0 => None,
-                s => Some(Pager::new_bind(s, env.pager_sgate, env.pager_rgate)),
-            },
+            next_sel: 2,
+            eps: 0,
+            rbufs: arch::rbufs::RBufSpace::new(),
+            pager: None,
             files: FileTable::default(),
             mounts: MountTable::default(),
         }
     }
 
+    #[cfg(target_os = "none")]
     fn init(&mut self) {
-        let env = env::data();
+        let env = arch::env::data();
+
+        self.pe = env.pedesc.clone();
+        // it's initially 0. make sure it's at least the first usable selector
+        self.next_sel = util::max(2, env.caps as Selector);
+        self.eps = env.eps;
+        self.rbufs = arch::rbufs::RBufSpace::new_from_env();
+
+        self.pager = match env.pager_sess {
+            0 => None,
+            s => Some(Pager::new_bind(s, env.pager_sgate, env.pager_rgate)),
+        };
 
         // mounts first; files depend on mounts
         if env.mounts_len != 0 {
@@ -182,7 +189,7 @@ impl VPE {
         unsafe {
             match CUR {
                 Some(ref mut v) => v,
-                None            => intrinsics::transmute(env::data().fds)
+                None            => intrinsics::transmute(arch::env::data().fds)
             }
         }
     }
@@ -200,7 +207,7 @@ impl VPE {
             mem: MemGate::new_bind(sels + 1),
             next_sel: 2,
             eps: 0,
-            rbufs: RBufSpace::new(0, 0),
+            rbufs: arch::rbufs::RBufSpace::new(),
             pager: None,
             files: FileTable::default(),
             mounts: MountTable::default(),
@@ -273,8 +280,15 @@ impl VPE {
     pub fn pe(&self) -> PEDesc {
         self.pe
     }
+    pub fn pe_id(&self) -> u64 {
+        arch::env::data().pe
+    }
     pub fn mem(&self) -> &MemGate {
         &self.mem
+    }
+
+    pub(crate) fn rbufs(&mut self) -> &mut arch::rbufs::RBufSpace {
+        &mut self.rbufs
     }
 
     pub fn files(&mut self) -> &mut FileTable {
@@ -366,6 +380,7 @@ impl VPE {
         Ok(())
     }
 
+    #[cfg(target_os = "none")]
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
         let get_sp = || {
@@ -381,8 +396,8 @@ impl VPE {
             pg.activate(sel)?;
         }
 
-        let env = env::data();
-        let mut senv = env::EnvData::default();
+        let env = arch::env::data();
+        let mut senv = arch::env::EnvData::default();
 
         // copy all regions to child
         senv.sp = get_sp() as u64;
@@ -415,6 +430,7 @@ impl VPE {
         act.start().map(|_| act)
     }
 
+    #[cfg(target_os = "none")]
     pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
         let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
@@ -424,7 +440,7 @@ impl VPE {
             pg.activate(sel)?;
         }
 
-        let mut senv = env::EnvData::default();
+        let mut senv = arch::env::EnvData::default();
 
         // load program segments
         senv.sp = cfg::STACK_TOP as u64;
@@ -480,6 +496,7 @@ impl VPE {
         act.start().map(|_| act)
     }
 
+    #[cfg(target_os = "none")]
     fn copy_regions(&mut self, sp: usize) -> Result<usize, Error> {
         extern {
             static _text_start: u8;
@@ -510,7 +527,7 @@ impl VPE {
 
             // copy data and heap
             let data_start = addr(&_data_start);
-            self.mem.write_bytes(&_data_start, libc::heap_used_end() - data_start, data_start)?;
+            self.mem.write_bytes(&_data_start, heap::heap_used_end() - data_start, data_start)?;
 
             // copy end-area of heap
             let heap_area_size = util::size_of::<heap::HeapArea>();
@@ -523,6 +540,7 @@ impl VPE {
         }
     }
 
+    #[cfg(target_os = "none")]
     fn clear_mem(&self, buf: &mut [u8], mut count: usize, mut dst: usize) -> Result<(), Error> {
         if count == 0 {
             return Ok(())
@@ -542,6 +560,7 @@ impl VPE {
         Ok(())
     }
 
+    #[cfg(target_os = "none")]
     fn load_segment(&self, file: &mut BufReader<FileRef>,
                     phdr: &elf::Phdr, buf: &mut [u8]) -> Result<(), Error> {
         file.seek(phdr.offset, SeekMode::SET)?;
@@ -561,6 +580,7 @@ impl VPE {
         self.clear_mem(buf, phdr.memsz - phdr.filesz, segoff)
     }
 
+    #[cfg(target_os = "none")]
     fn map_segment(&self, file: &mut BufReader<FileRef>, pager: &Pager,
                    phdr: &elf::Phdr) -> Result<(), Error> {
         let mut prot = kif::Perm::empty();
@@ -584,6 +604,7 @@ impl VPE {
         }
     }
 
+    #[cfg(target_os = "none")]
     fn load_program(&self, file: &mut BufReader<FileRef>) -> Result<usize, Error> {
         let mut buf = vec![0u8; 4096];
         let hdr: elf::Ehdr = read_object(file)?;
@@ -633,6 +654,7 @@ impl VPE {
         Ok(hdr.entry)
     }
 
+    #[cfg(target_os = "none")]
     fn write_arguments<I, S>(&self, off: &mut usize, args: I) -> Result<usize, Error>
                              where I: iter::IntoIterator<Item = S>, S: AsRef<str> {
         let mut argptr = Vec::new();
@@ -669,6 +691,7 @@ impl fmt::Debug for VPE {
 pub fn init() {
     unsafe {
         CUR = Some(VPE::new_cur());
+        #[cfg(target_os = "none")]
         VPE::cur().init();
     }
 }

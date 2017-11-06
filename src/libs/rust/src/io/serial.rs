@@ -1,11 +1,10 @@
+use arch;
 use cap::Selector;
 use cell::RefCell;
 use col::Vec;
 use com::VecSink;
-use dtu;
 use errors::Error;
 use kif;
-use libc;
 use rc::Rc;
 use session::Pager;
 use vfs;
@@ -13,23 +12,15 @@ use vfs;
 pub struct Serial {
 }
 
-static mut SERIAL: Option<Rc<RefCell<Serial>>> = None;
-
 impl Serial {
-    fn new() -> Self {
-        Serial {}
-    }
-
-    pub fn get() -> &'static Rc<RefCell<Serial>> {
-        unsafe { &SERIAL.as_ref().unwrap() }
+    pub fn get() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Serial {}))
     }
 }
 
 impl vfs::Read for Serial {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        unsafe {
-            Ok(libc::gem5_readfile(buf.as_mut_ptr(), buf.len() as u64, 0) as usize)
-        }
+        arch::serial::read(buf)
     }
 }
 
@@ -39,11 +30,7 @@ impl vfs::Write for Serial {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
-        dtu::DTU::print(buf);
-        unsafe {
-            libc::gem5_writefile(buf.as_ptr(), buf.len() as u64, 0, "stdout\0".as_ptr() as u64);
-        }
-        Ok(buf.len())
+        arch::serial::write(buf)
     }
 }
 
@@ -79,13 +66,5 @@ impl vfs::File for Serial {
 
     fn serialize(&self, _mounts: &vfs::MountTable, _s: &mut VecSink) {
         // nothing to do
-    }
-}
-
-pub fn init() {
-    unsafe {
-        if SERIAL.is_none() {
-            SERIAL = Some(Rc::new(RefCell::new(Serial::new())));
-        }
     }
 }

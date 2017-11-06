@@ -31,6 +31,7 @@ pub enum Error {
     MsgsWaiting,
     UpcallReply,
     CommitFailed,
+    ReadFailed,
     WriteFailed,
 }
 

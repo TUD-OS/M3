@@ -1,7 +1,7 @@
+use arch::dtu;
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
 use com::RecvGate;
-use dtu;
 use errors::Error;
 use kif::INVALID_SEL;
 use syscalls;

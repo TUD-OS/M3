@@ -24,13 +24,13 @@ pub fn init() {
     let create_in = |fd| {
         match VPE::cur().files().get(fd) {
             Some(f) => Some(BufReader::new(FileRef::new(f, fd))),
-            None    => Some(BufReader::new(FileRef::new(Serial::get().clone(), fd))),
+            None    => Some(BufReader::new(FileRef::new(Serial::get(), fd))),
         }
     };
     let create_out = |fd| {
         match VPE::cur().files().get(fd) {
             Some(f) => Some(BufWriter::new(FileRef::new(f, fd))),
-            None    => Some(BufWriter::new(FileRef::new(Serial::get().clone(), fd))),
+            None    => Some(BufWriter::new(FileRef::new(Serial::get(), fd))),
         }
     };
 

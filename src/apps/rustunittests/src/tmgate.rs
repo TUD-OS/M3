@@ -1,8 +1,6 @@
 use m3::com::{MemGate, MGateArgs, Perm};
 use m3::errors::Error;
-use m3::kif;
 use m3::test;
-use m3::vpe;
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, create);
@@ -11,7 +9,9 @@ pub fn run(t: &mut test::Tester) {
     run_test!(t, derive);
     run_test!(t, read_write);
     run_test!(t, read_write_object);
+    #[cfg(target_os = "none")]
     run_test!(t, read_write_forward_small);
+    #[cfg(target_os = "none")]
     run_test!(t, read_write_forward_big);
 }
 
@@ -75,7 +75,11 @@ fn read_write_object() {
     assert_eq!(refobj, obj);
 }
 
+#[cfg(target_os = "none")]
 fn read_write_forward_small() {
+    use m3::kif;
+    use m3::vpe;
+
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
@@ -101,7 +105,11 @@ fn read_write_forward_small() {
     assert_eq!(refdata, data);
 }
 
+#[cfg(target_os = "none")]
 fn read_write_forward_big() {
+    use m3::kif;
+    use m3::vpe;
+
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
