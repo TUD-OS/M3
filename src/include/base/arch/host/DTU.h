@@ -141,13 +141,13 @@ public:
     };
 
     enum Op {
-        READ                                    = 0,
-        WRITE                                   = 1,
-        SEND                                    = 2,
-        REPLY                                   = 3,
-        RESP                                    = 4,
-        FETCHMSG                                = 5,
-        ACKMSG                                  = 6,
+        READ                                    = 1,
+        WRITE                                   = 2,
+        SEND                                    = 3,
+        REPLY                                   = 4,
+        RESP                                    = 5,
+        FETCHMSG                                = 6,
+        ACKMSG                                  = 7,
     };
 
     static const epid_t SYSC_SEP                = 0;
@@ -214,9 +214,7 @@ public:
         return res;
     }
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint) {
-        Errors::Code res = fire(ep, READ, msg, size, off, size, label_t(), 0);
-        wait_for_mem_cmd();
-        return res;
+        return fire(ep, READ, msg, size, off, size, label_t(), 0);
     }
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
         return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
@@ -249,12 +247,7 @@ public:
     }
 
     bool is_ready() const {
-        return (get_cmd(CMD_CTRL) & CTRL_START) == 0;
-    }
-    bool wait_for_mem_cmd() const {
-        while((get_cmd(CMD_CTRL) & CTRL_ERROR) == 0 && get_cmd(CMD_SIZE) > 0)
-            try_sleep();
-        return (get_cmd(CMD_CTRL) & CTRL_ERROR) == 0;
+        return (get_cmd(CMD_CTRL) >> OPCODE_SHIFT) == 0;
     }
     void wait_until_ready(epid_t) const {
         while(!is_ready())

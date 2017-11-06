@@ -81,7 +81,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
 
         dmacmd(buf, datasize, sndep, 0, datasize, DTU::READ);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
-        dtu.wait_for_mem_cmd();
+        dtu.wait_until_ready(sndep);
         for(size_t i = 0; i < 4; ++i)
             assert_word(buf[i], data[i]);
     }

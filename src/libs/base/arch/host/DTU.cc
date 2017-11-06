@@ -82,7 +82,7 @@ void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
 word_t DTU::check_cmd(epid_t ep, int op, word_t label, word_t credits, size_t offset, size_t length) {
     if(op == READ || op == WRITE) {
         uint perms = label & KIF::Perm::RWX;
-        if(!(perms & (1U << op))) {
+        if(!(perms & (1U << (op - 1)))) {
             LLOG(DTUERR, "DMA-error: operation not permitted on ep " << ep << " (perms="
                     << perms << ", op=" << op << ")");
             return CTRL_ERROR;
@@ -280,6 +280,9 @@ void DTU::handle_command(peid_t pe) {
             break;
         case READ:
             newctrl |= prepare_read(ep, dstpe, dstep);
+            // we report the completion of the read later
+            if(~newctrl & CTRL_ERROR)
+                newctrl |= (ctrl & ~CTRL_START);
             break;
         case WRITE:
             newctrl |= prepare_write(ep, dstpe, dstep);
@@ -367,8 +370,7 @@ void DTU::handle_resp_cmd() {
     assert(length <= sizeof(_buf.data));
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length);
     /* provide feedback to SW */
-    set_cmd(CMD_CTRL, get_cmd(CMD_CTRL) | resp);
-    set_cmd(CMD_SIZE, 0);
+    set_cmd(CMD_CTRL, resp);
 }
 
 void DTU::handle_msg(size_t len, epid_t ep) {
