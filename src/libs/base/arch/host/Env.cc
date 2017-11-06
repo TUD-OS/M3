@@ -167,7 +167,7 @@ void Env::init_dtu() {
     DTU::get().configure_recv(DTU::DEF_REP, reinterpret_cast<uintptr_t>(def.addr()),
         DEF_RBUF_ORDER, DEF_RBUF_ORDER);
 
-    DTU::get().configure(DTU::SYSC_SEP, _sysc_label, 0, _sysc_epid, _sysc_credits);
+    DTU::get().configure(DTU::SYSC_SEP, _sysc_label, 0, _sysc_epid, _sysc_credits, SYSC_RBUF_ORDER);
 
     DTU::get().start();
 }

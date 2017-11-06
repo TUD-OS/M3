@@ -57,7 +57,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     cout << "-- Test errors --\n";
     {
         dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->pe,
-            rcvep, datasize);
+            rcvep, datasize, 0);
 
         dmacmd(nullptr, 0, sndep, 0, datasize, DTU::WRITE);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
@@ -75,7 +75,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     cout << "-- Test reading --\n";
     {
         dtu.configure(sndep, reinterpret_cast<word_t>(data) | MemGate::R, env()->pe,
-            rcvep, datasize);
+            rcvep, datasize, 0);
 
         word_t buf[datasize / sizeof(word_t)];
 
@@ -87,7 +87,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     }
 
     unmap_page(addr);
-    dtu.configure(sndep, 0, 0, 0, 0);
+    dtu.configure(sndep, 0, 0, 0, 0, 0);
     VPE::self().free_ep(sndep);
     VPE::self().free_ep(rcvep);
 }
@@ -105,7 +105,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     {
         word_t data[] = {1234, 5678, 1122, 3344};
         dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->pe,
-            rcvep, sizeof(data));
+            rcvep, sizeof(data), 0);
 
         dmacmd(nullptr, 0, sndep, 0, sizeof(data), DTU::READ);
         assert_true(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
@@ -115,7 +115,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     {
         word_t data[] = {1234, 5678, 1122, 3344};
         dtu.configure(sndep, reinterpret_cast<word_t>(addr) | MemGate::W, env()->pe,
-            rcvep, sizeof(data));
+            rcvep, sizeof(data), 0);
 
         dmacmd(data, sizeof(data), sndep, 0, sizeof(data), DTU::WRITE);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
@@ -128,7 +128,7 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
     }
 
     unmap_page(addr);
-    dtu.configure(sndep, 0, 0, 0, 0);
+    dtu.configure(sndep, 0, 0, 0, 0, 0);
     VPE::self().free_ep(sndep);
     VPE::self().free_ep(rcvep);
 }

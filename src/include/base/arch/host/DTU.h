@@ -56,15 +56,13 @@ public:
         size_t length;          // = mtype -> has to be non-zero
         unsigned char opcode;   // should actually be part of length but causes trouble in msgsnd
         label_t label;
-        struct {
-            unsigned has_replycap : 1,
-                     pe : 15,
-                     rpl_ep : 8,
-                     snd_ep : 8;
-        } PACKED;
+        uint8_t has_replycap;
+        uint16_t pe;
+        uint8_t rpl_ep;
+        uint8_t snd_ep;
         label_t replylabel;
-        word_t credits : sizeof(word_t) * 8 - 16,
-               crd_ep : 16;
+        uint8_t credits;
+        uint8_t crd_ep;
     } PACKED;
 
     struct Buffer : public Header {
@@ -126,6 +124,7 @@ public:
     static constexpr size_t EP_EPID             = 10;
     static constexpr size_t EP_LABEL            = 11;
     static constexpr size_t EP_CREDITS          = 12;
+    static constexpr size_t EP_MSGORDER         = 13;
 
     // bits in ctrl register
     static constexpr word_t CTRL_START          = 0x1;
@@ -135,7 +134,7 @@ public:
     static constexpr size_t OPCODE_SHIFT        = 3;
 
     // register counts (cont.)
-    static constexpr size_t EPS_RCNT            = 1 + EP_CREDITS;
+    static constexpr size_t EPS_RCNT            = 1 + EP_MSGORDER;
 
     enum CmdFlags {
         NOPF                                    = 1,
@@ -193,14 +192,15 @@ public:
         _epregs[ep * EPS_RCNT + reg] = val;
     }
 
-    void configure(epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits) {
-        configure(const_cast<word_t*>(_epregs), ep, label, pe, dstep, credits);
+    void configure(epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits, uint msgorder) {
+        configure(const_cast<word_t*>(_epregs), ep, label, pe, dstep, credits, msgorder);
     }
-    static void configure(word_t *eps, epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits) {
+    static void configure(word_t *eps, epid_t ep, label_t label, peid_t pe, epid_t dstep, word_t credits, uint msgorder) {
         eps[ep * EPS_RCNT + EP_LABEL] = label;
         eps[ep * EPS_RCNT + EP_PEID] = pe;
         eps[ep * EPS_RCNT + EP_EPID] = dstep;
         eps[ep * EPS_RCNT + EP_CREDITS] = credits;
+        eps[ep * EPS_RCNT + EP_MSGORDER] = msgorder;
     }
 
     void configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder);

@@ -121,7 +121,7 @@ word_t DTU::prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     dstpe = buf->pe;
     dstep = buf->rpl_ep;
     _buf.label = buf->replylabel;
-    _buf.credits = buf->length + HEADER_SIZE;
+    _buf.credits = 1;
     _buf.crd_ep = buf->snd_ep;
     _buf.length = size;
     memcpy(_buf.data, src, size);
@@ -133,16 +133,17 @@ word_t DTU::prepare_reply(epid_t ep, peid_t &dstpe, epid_t &dstep) {
 word_t DTU::prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     const void *src = reinterpret_cast<const void*>(get_cmd(CMD_ADDR));
     const word_t credits = get_ep(ep, EP_CREDITS);
-    const size_t size = get_cmd(CMD_SIZE);
+    const word_t msg_order = get_ep(ep, EP_MSGORDER);
     // check if we have enough credits
     if(credits != static_cast<word_t>(-1)) {
-        if(size + HEADER_SIZE > credits) {
+        const size_t size = 1UL << msg_order;
+        if(size > credits) {
             LLOG(DTUERR, "DMA-error: insufficient credits on ep " << ep
-                    << " (have #" << fmt(credits, "x") << ", need #" << fmt(size + HEADER_SIZE, "x")
+                    << " (have #" << fmt(credits, "x") << ", need #" << fmt(size, "x")
                     << ")." << " Ignoring send-command");
             return CTRL_ERROR;
         }
-        set_ep(ep, EP_CREDITS, credits - (size + HEADER_SIZE));
+        set_ep(ep, EP_CREDITS, credits - size);
     }
 
     dstpe = get_ep(ep, EP_PEID);
@@ -150,8 +151,8 @@ word_t DTU::prepare_send(epid_t ep, peid_t &dstpe, epid_t &dstep) {
     _buf.credits = 0;
     _buf.label = get_ep(ep, EP_LABEL);
 
-    _buf.length = size;
-    memcpy(_buf.data, src, size);
+    _buf.length = get_cmd(CMD_SIZE);
+    memcpy(_buf.data, src, _buf.length);
     return 0;
 }
 
@@ -446,10 +447,11 @@ void DTU::handle_receive(epid_t ep) {
         LLOG(DTUERR, "DMA-error: should give credits to endpoint " << _buf.crd_ep);
     else {
         word_t credits = get_ep(_buf.crd_ep, EP_CREDITS);
+        word_t msg_order = get_ep(_buf.crd_ep, EP_MSGORDER);
         if(_buf.credits && credits != static_cast<word_t>(-1)) {
             LLOG(DTU, "Refilling credits of ep " << _buf.crd_ep
-                << " from #" << fmt(credits, "x") << " to #" << fmt(credits + _buf.credits, "x"));
-            set_ep(_buf.crd_ep, EP_CREDITS, credits + _buf.credits);
+                << " from #" << fmt(credits, "x") << " to #" << fmt(credits + (1UL << msg_order), "x"));
+            set_ep(_buf.crd_ep, EP_CREDITS, credits + (1UL << msg_order));
         }
     }
 

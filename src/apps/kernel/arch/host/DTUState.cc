@@ -84,12 +84,13 @@ void DTUState::config_recv(epid_t ep, uintptr_t buf, int order, int msgorder, ui
     regs[m3::DTU::EP_BUF_OCCUPIED]   = 0;
 }
 
-void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t, epid_t dstep, size_t, word_t credits) {
+void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t, epid_t dstep, size_t msgsize, word_t credits) {
     word_t *regs = reinterpret_cast<word_t*>(get_ep(ep));
     regs[m3::DTU::EP_LABEL]         = lbl;
     regs[m3::DTU::EP_PEID]          = pe;
     regs[m3::DTU::EP_EPID]          = dstep;
     regs[m3::DTU::EP_CREDITS]       = credits;
+    regs[m3::DTU::EP_MSGORDER]      = static_cast<word_t>(m3::getnextlog2(msgsize));
 }
 
 void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t size, int perms) {
@@ -99,6 +100,7 @@ void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t, uintptr_t addr, size_t 
     regs[m3::DTU::EP_PEID]          = pe;
     regs[m3::DTU::EP_EPID]          = 0;
     regs[m3::DTU::EP_CREDITS]       = size;
+    regs[m3::DTU::EP_MSGORDER]      = 0;
 }
 
 bool DTUState::config_mem_cached(epid_t, peid_t, vpeid_t) {
