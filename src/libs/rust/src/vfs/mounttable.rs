@@ -2,7 +2,7 @@ use cap::Selector;
 use cell::RefCell;
 use com::{SliceSource, Sink, VecSink};
 use col::{String, ToString, Vec};
-use errors::Error;
+use errors::{Code, Error};
 use rc::Rc;
 use session::M3FS;
 use vfs::FileSystem;
@@ -31,7 +31,7 @@ pub struct MountTable {
 impl MountTable {
     pub fn add(&mut self, path: &str, fs: FSHandle) -> Result<(), Error> {
         if self.path_to_idx(path).is_some() {
-            return Err(Error::Exists)
+            return Err(Error::new(Code::Exists))
         }
 
         let pos = self.insert_pos(path);
@@ -67,7 +67,7 @@ impl MountTable {
                 return Ok((m.fs.clone(), m.path.len()))
             }
         }
-        Err(Error::NoSuchFile)
+        Err(Error::new(Code::NoSuchFile))
     }
 
     pub fn remove(&mut self, path: &str) -> Result<(), Error> {
@@ -76,7 +76,7 @@ impl MountTable {
                 self.mounts.remove(i);
                 Ok(())
             },
-            None    => Err(Error::NoSuchFile),
+            None    => Err(Error::new(Code::NoSuchFile)),
         }
     }
 

@@ -1,6 +1,6 @@
 use m3::col::String;
 use m3::com::{recv_msg, recv_msg_from, RecvGate, SendGate, SGateArgs};
-use m3::errors::Error;
+use m3::errors::Code;
 use m3::test;
 use m3::util;
 
@@ -12,7 +12,7 @@ pub fn run(t: &mut test::Tester) {
 
 fn create() {
     let rgate = assert_ok!(RecvGate::new(util::next_log2(512), util::next_log2(256)));
-    assert_err!(SendGate::new_with(SGateArgs::new(&rgate).sel(1)), Error::InvArgs);
+    assert_err!(SendGate::new_with(SGateArgs::new(&rgate).sel(1)), Code::InvArgs);
 }
 
 fn send_recv() {
@@ -27,7 +27,7 @@ fn send_recv() {
     assert_ok!(sgate.send(&data, RecvGate::def()));
     assert!(sgate.ep().is_some());
     assert_ok!(sgate.send(&data, RecvGate::def()));
-    assert_err!(sgate.send(&data, RecvGate::def()), Error::MissCredits);
+    assert_err!(sgate.send(&data, RecvGate::def()), Code::MissCredits);
 
     {
         let is = assert_ok!(rgate.wait(Some(&sgate)));

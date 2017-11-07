@@ -338,7 +338,7 @@ if [[ "$script" == *.cfg ]]; then
         if [ "$M3_VALGRIND" != "" ]; then
             valgrind $M3_VALGRIND `build_params_host $script`
         else
-            `build_params_host $script`
+            setarch `uname -m` -R `build_params_host $script`
         fi
     elif [ "$M3_TARGET" = "t2" ]; then
         build_params_t2_chip $script

@@ -9,7 +9,7 @@ use col::Vec;
 use core::{fmt, iter, intrinsics};
 use env;
 use elf;
-use errors::Error;
+use errors::{Code, Error};
 use heap;
 use kif;
 use kif::{CapType, CapRngDesc, INVALID_SEL, PEDesc};
@@ -317,7 +317,7 @@ impl VPE {
                 return Ok(ep)
             }
         }
-        Err(Error::NoSpace)
+        Err(Error::new(Code::NoSpace))
     }
 
     pub fn is_ep_free(&self, ep: EpId) -> bool {
@@ -613,7 +613,7 @@ impl VPE {
            hdr.ident[1] != 'E' as u8 ||
            hdr.ident[2] != 'L' as u8 ||
            hdr.ident[3] != 'F' as u8 {
-            return Err(Error::InvalidElf)
+            return Err(Error::new(Code::InvalidElf))
         }
 
         // copy load segments to destination PE

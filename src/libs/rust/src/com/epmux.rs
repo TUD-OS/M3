@@ -1,8 +1,7 @@
 use arch::dtu::{self, EpId};
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
-use errors::Error;
-use errors;
+use errors::{Code, Error};
 use kif::INVALID_SEL;
 use syscalls;
 use vpe;
@@ -92,7 +91,7 @@ impl EpMux {
         }
 
         if !vpe::VPE::cur().is_ep_free(victim) {
-            Err(errors::Error::NoSpace)
+            Err(Error::new(Code::NoSpace))
         }
         else {
             if let Some(g) = self.gate_at_ep(victim) {

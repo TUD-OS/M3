@@ -1,4 +1,4 @@
-use m3::errors::Error;
+use m3::errors::Code;
 use m3::test;
 use m3::vfs::{OpenFlags, Write, VFS};
 
@@ -8,8 +8,8 @@ pub fn run(t: &mut test::Tester) {
 
 pub fn meta_ops() {
     assert_ok!(VFS::mkdir("/example", 0o755));
-    assert_err!(VFS::mkdir("/example", 0o755), Error::Exists);
-    assert_err!(VFS::mkdir("/example/foo/bar", 0o755), Error::NoSuchFile);
+    assert_err!(VFS::mkdir("/example", 0o755), Code::Exists);
+    assert_err!(VFS::mkdir("/example/foo/bar", 0o755), Code::NoSuchFile);
 
     {
         let mut file = assert_ok!(VFS::open("/example/myfile",
@@ -19,19 +19,19 @@ pub fn meta_ops() {
 
     {
         assert_ok!(VFS::mount("/fs/", "m3fs"));
-        assert_err!(VFS::link("/example/myfile", "/fs/foo"), Error::XfsLink);
+        assert_err!(VFS::link("/example/myfile", "/fs/foo"), Code::XfsLink);
         assert_ok!(VFS::unmount("/fs/"));
     }
 
-    assert_err!(VFS::rmdir("/example/foo/bar"), Error::NoSuchFile);
-    assert_err!(VFS::rmdir("/example/myfile"), Error::IsNoDir);
-    assert_err!(VFS::rmdir("/example"), Error::DirNotEmpty);
+    assert_err!(VFS::rmdir("/example/foo/bar"), Code::NoSuchFile);
+    assert_err!(VFS::rmdir("/example/myfile"), Code::IsNoDir);
+    assert_err!(VFS::rmdir("/example"), Code::DirNotEmpty);
 
-    assert_err!(VFS::link("/example", "/newpath"), Error::IsDir);
+    assert_err!(VFS::link("/example", "/newpath"), Code::IsDir);
     assert_ok!(VFS::link("/example/myfile", "/newpath"));
 
-    assert_err!(VFS::unlink("/example"), Error::IsDir);
-    assert_err!(VFS::unlink("/example/foo"), Error::NoSuchFile);
+    assert_err!(VFS::unlink("/example"), Code::IsDir);
+    assert_err!(VFS::unlink("/example/foo"), Code::NoSuchFile);
     assert_ok!(VFS::unlink("/example/myfile"));
 
     assert_ok!(VFS::rmdir("/example"));

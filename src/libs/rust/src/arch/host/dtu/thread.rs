@@ -1,4 +1,5 @@
 use arch::dtu::*;
+use errors::{Code, Error};
 use io;
 
 pub(crate) struct Buffer {
@@ -76,7 +77,7 @@ fn prepare_send(ep: EpId) -> Result<(PeId, EpId), Error> {
         if needed > credits {
             log_dtu!("DTU-error: insufficient credits on ep {} (have {:#x}, need {:#x})",
                 ep, credits, needed);
-            return Err(Error::MissCredits);
+            return Err(Error::new(Code::MissCredits));
         }
 
         DTU::set_ep(ep, EpReg::CREDITS, (credits - needed) as Reg);
@@ -106,13 +107,13 @@ fn prepare_reply(ep: EpId) -> Result<(PeId, EpId), Error> {
     let idx = (reply - buf_addr) >> msg_ord;
     if idx >= (1 << (ord - msg_ord)) {
         log_dtu!("DTU-error: EP{}: invalid message addr {:#x}", ep, reply);
-        return Err(Error::InvArgs);
+        return Err(Error::new(Code::InvArgs));
     }
 
     let reply_header: &Header = unsafe { intrinsics::transmute(reply) };
     if reply_header.has_replycap == 0 {
         log_dtu!("DTU-error: EP{}: double-reply for msg {:#x}?", ep, reply);
-        return Err(Error::InvArgs);
+        return Err(Error::new(Code::InvArgs));
     }
 
     let buf = buffer();
@@ -141,14 +142,14 @@ fn check_rdwr(ep: EpId, read: bool) -> Result<(), Error> {
     let perms = label & (kif::Perm::RWX.bits() as Label);
     if (perms & (1 << op)) == 0 {
         log_dtu!("DTU-error: EP{}: operation not permitted (perms={}, op={})", ep, perms, op);
-        Err(Error::InvEP)
+        Err(Error::new(Code::InvEP))
     }
     else if offset >= credits || offset + length < offset || offset + length > credits {
         log_dtu!(
             "DTU-error: EP{}: invalid parameters (credits={}, offset={}, datalen={})",
             ep, credits, offset, length
         );
-        Err(Error::InvEP)
+        Err(Error::new(Code::InvEP))
     }
     else {
         Ok(())
@@ -207,7 +208,7 @@ fn prepare_ack(ep: EpId) -> Result<(PeId, EpId), Error> {
     let idx = (addr - buf_addr) >> msg_ord;
     if idx >= (1 << (ord - msg_ord)) {
         log_dtu!("DTU-error: EP{}: invalid message addr {:#x}", ep, addr);
-        return Err(Error::InvArgs);
+        return Err(Error::new(Code::InvArgs));
     }
 
     let mut occupied = DTU::get_ep(ep, EpReg::BUF_OCCUPIED);
@@ -424,7 +425,7 @@ fn handle_command(backend: &backend::SocketBackend) {
 
     let res = if ep >= EP_COUNT {
         log_dtu!("DTU-error: invalid ep-id ({})", ep);
-        Err(Error::InvArgs)
+        Err(Error::new(Code::InvArgs))
     }
     else {
         let ctrl = DTU::get_cmd(CmdReg::CTRL);
@@ -437,7 +438,7 @@ fn handle_command(backend: &backend::SocketBackend) {
             Command::WRITE      => prepare_write(ep),
             Command::FETCH_MSG  => prepare_fetch(ep),
             Command::ACK_MSG    => prepare_ack(ep),
-            _                   => Err(Error::NotSup),
+            _                   => Err(Error::new(Code::NotSup)),
         };
 
         match res {
@@ -471,7 +472,7 @@ fn handle_command(backend: &backend::SocketBackend) {
 
     match res {
         Ok(val) => DTU::set_cmd(CmdReg::CTRL, val),
-        Err(e)  => DTU::set_cmd(CmdReg::CTRL, (e as Reg) << 16),
+        Err(e)  => DTU::set_cmd(CmdReg::CTRL, (e.code() as Reg) << 16),
     };
 }
 

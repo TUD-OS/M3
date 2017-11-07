@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate m3;
 
-use m3::errors::Error;
+use m3::errors::{Code, Error};
 use m3::col::String;
 use m3::com::*;
 use m3::kif;
@@ -40,7 +40,7 @@ impl Handler for MyHandler {
 
     fn obtain(&mut self, sid: SessId, data: &mut kif::service::ExchangeData) -> Result<(), Error> {
         if data.argcount != 0 || data.caps != 1 {
-            Err(Error::InvArgs)
+            Err(Error::new(Code::InvArgs))
         }
         else {
             let sess = self.sessions.get(sid).unwrap();
@@ -68,7 +68,7 @@ impl MyHandler {
         if let Some(mut is) = self.rgate.fetch() {
             match is.pop() {
                 Operation::REVERSE_STRING   => Self::reverse_string(is),
-                _                           => reply_vmsg!(is, Error::InvArgs as u64),
+                _                           => reply_vmsg!(is, Code::InvArgs as u64),
             }
         }
         else {
@@ -90,7 +90,7 @@ impl MyHandler {
         static mut COUNT: i32 = 0;
         unsafe {
             if COUNT >= 5 {
-                return Err(Error::EndOfFile);
+                return Err(Error::new(Code::EndOfFile));
             }
             COUNT += 1;
         }

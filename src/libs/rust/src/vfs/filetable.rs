@@ -2,7 +2,7 @@ use cap::Selector;
 use cell::RefCell;
 use col::Vec;
 use com::{Sink, VecSink, SliceSource};
-use errors::Error;
+use errors::{Code, Error};
 use rc::Rc;
 use vfs::{File, FileRef, MountTable, RegularFile};
 
@@ -25,7 +25,7 @@ impl FileTable {
                 return Ok(FileRef::new(file, fd));
             }
         }
-        Err(Error::NoSpace)
+        Err(Error::new(Code::NoSpace))
     }
 
     pub fn get(&self, fd: Fd) -> Option<FileHandle> {

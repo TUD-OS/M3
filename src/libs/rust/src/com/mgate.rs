@@ -1,7 +1,7 @@
 use arch::dtu;
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
-use errors::Error;
+use errors::{Code, Error};
 use kif;
 use kif::INVALID_SEL;
 use syscalls;
@@ -107,14 +107,14 @@ impl MemGate {
 
         loop {
             match dtu::DTU::read(ep, data, size, off, 0) {
-                Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => {
+                Ok(_)                                   => return Ok(()),
+                Err(ref e) if e.code() == Code::VPEGone => {
                     // simply retry the write if the forward failed (pagefault)
                     if self.forward_read(&mut data, &mut size, &mut off).is_ok() && size == 0 {
                         break Ok(())
                     }
                 },
-                Err(e)                          => return Err(e),
+                Err(e)                                  => return Err(e),
             }
         }
     }
@@ -132,14 +132,14 @@ impl MemGate {
 
         loop {
             match dtu::DTU::write(ep, data, size, off, 0) {
-                Ok(_)                           => return Ok(()),
-                Err(e) if e == Error::VPEGone   => {
+                Ok(_)                                   => return Ok(()),
+                Err(ref e) if e.code() == Code::VPEGone => {
                     // simply retry the write if the forward failed (pagefault)
                     if self.forward_write(&mut data, &mut size, &mut off).is_ok() && size == 0 {
                         break Ok(());
                     }
                 },
-                Err(e)                          => return Err(e),
+                Err(e)                                  => return Err(e),
             }
         }
     }

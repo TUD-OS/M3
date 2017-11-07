@@ -1,4 +1,4 @@
-use errors::Error;
+use errors::{Code, Error};
 use rc::Rc;
 use session::M3FS;
 use vfs::{FileInfo, FileMode, FileRef, FSHandle, OpenFlags};
@@ -7,7 +7,7 @@ use vpe::VPE;
 pub fn mount(path: &str, fs: &str) -> Result<(), Error> {
     let fsobj = match fs {
         "m3fs" => M3FS::new(fs)?,
-        _      => return Err(Error::InvArgs),
+        _      => return Err(Error::new(Code::InvArgs)),
     };
     VPE::cur().mounts().add(path, fsobj)
 }
@@ -51,7 +51,7 @@ pub fn link(old: &str, new: &str) -> Result<(), Error> {
     let (fs1, pos1) = VPE::cur().mounts().resolve(old)?;
     let (fs2, pos2) = VPE::cur().mounts().resolve(new)?;
     if !Rc::ptr_eq(&fs1, &fs2) {
-        return Err(Error::XfsLink)
+        return Err(Error::new(Code::XfsLink))
     }
     let res = fs1.borrow().link(&old[pos1..], &new[pos2..]);
     res

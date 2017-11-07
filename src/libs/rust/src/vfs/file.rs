@@ -2,7 +2,7 @@ use cap::Selector;
 use core::{fmt, intrinsics};
 use com::{Marshallable, Unmarshallable, Sink, Source, VecSink};
 use col::*;
-use errors::Error;
+use errors::{Code, Error};
 use kif;
 use session::Pager;
 use util;
@@ -170,7 +170,7 @@ pub trait Read {
         }
 
         if !buf.is_empty() {
-            Err(Error::EndOfFile)
+            Err(Error::new(Code::EndOfFile))
         }
         else {
             Ok(())
@@ -187,7 +187,7 @@ pub trait Write {
         while !buf.is_empty() {
             match self.write(buf) {
                 Err(e)  => return Err(e),
-                Ok(0)   => return Err(Error::WriteFailed),
+                Ok(0)   => return Err(Error::new(Code::WriteFailed)),
                 Ok(n)   => buf = &buf[n..],
             }
         }
@@ -222,7 +222,7 @@ pub trait Write {
                 if output.error.is_err() {
                     output.error
                 } else {
-                    Err(Error::WriteFailed)
+                    Err(Error::new(Code::WriteFailed))
                 }
             }
         }

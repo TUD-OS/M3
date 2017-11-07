@@ -3,7 +3,7 @@ use cap::Selector;
 use cell::RefCell;
 use col::Vec;
 use com::VecSink;
-use errors::Error;
+use errors::{Code, Error};
 use kif;
 use rc::Rc;
 use session::Pager;
@@ -36,14 +36,14 @@ impl vfs::Write for Serial {
 
 impl vfs::Seek for Serial {
     fn seek(&mut self, _off: usize, _whence: vfs::SeekMode) -> Result<usize, Error> {
-        Err(Error::NotSup)
+        Err(Error::new(Code::NotSup))
     }
 }
 
 impl vfs::Map for Serial {
     fn map(&self, _pager: &Pager, _virt: usize,
            _off: usize, _len: usize, _prot: kif::Perm) -> Result<(), Error> {
-        Err(Error::NotSup)
+        Err(Error::new(Code::NotSup))
     }
 }
 
@@ -53,7 +53,7 @@ impl vfs::File for Serial {
     }
 
     fn stat(&self) -> Result<vfs::FileInfo, Error> {
-        Err(Error::NotSup)
+        Err(Error::new(Code::NotSup))
     }
 
     fn file_type(&self) -> u8 {

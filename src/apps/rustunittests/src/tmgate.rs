@@ -1,5 +1,5 @@
 use m3::com::{MemGate, MGateArgs, Perm};
-use m3::errors::Error;
+use m3::errors::Code;
 use m3::test;
 
 pub fn run(t: &mut test::Tester) {
@@ -16,31 +16,31 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn create() {
-    assert_err!(MemGate::new_with(MGateArgs::new(0x1000, Perm::R).sel(1)), Error::InvArgs);
+    assert_err!(MemGate::new_with(MGateArgs::new(0x1000, Perm::R).sel(1)), Code::InvArgs);
 }
 
 fn create_readonly() {
     let mgate = assert_ok!(MemGate::new(0x1000, Perm::R));
     let mut data = [0u8; 8];
-    assert_err!(mgate.write(&data, 0), Error::InvEP);
+    assert_err!(mgate.write(&data, 0), Code::InvEP);
     assert_ok!(mgate.read(&mut data, 0));
 }
 
 fn create_writeonly() {
     let mgate = assert_ok!(MemGate::new(0x1000, Perm::W));
     let mut data = [0u8; 8];
-    assert_err!(mgate.read(&mut data, 0), Error::InvEP);
+    assert_err!(mgate.read(&mut data, 0), Code::InvEP);
     assert_ok!(mgate.write(&data, 0));
 }
 
 fn derive() {
     let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
-    assert_err!(mgate.derive(0x0, 0x2000, Perm::RW), Error::InvArgs);
-    assert_err!(mgate.derive(0x1000, 0x10, Perm::RW), Error::InvArgs);
-    assert_err!(mgate.derive(0x800, 0x1000, Perm::RW), Error::InvArgs);
+    assert_err!(mgate.derive(0x0, 0x2000, Perm::RW), Code::InvArgs);
+    assert_err!(mgate.derive(0x1000, 0x10, Perm::RW), Code::InvArgs);
+    assert_err!(mgate.derive(0x800, 0x1000, Perm::RW), Code::InvArgs);
     let dgate = assert_ok!(mgate.derive(0x800, 0x800, Perm::R));
     let mut data = [0u8; 8];
-    assert_err!(dgate.write(&data, 0), Error::InvEP);
+    assert_err!(dgate.write(&data, 0), Code::InvEP);
     assert_ok!(dgate.read(&mut data, 0));
 }
 

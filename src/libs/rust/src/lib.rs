@@ -79,6 +79,7 @@ pub mod vfs;
 pub mod vpe;
 
 mod arch;
+mod backtrace;
 mod cfg;
 
 // TODO use pub(crate) for some things

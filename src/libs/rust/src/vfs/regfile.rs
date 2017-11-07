@@ -3,7 +3,7 @@ use cell::RefCell;
 use com::{Marshallable, Unmarshallable, MemGate, Sink, Source, VecSink, SliceSource};
 use col::Vec;
 use core::fmt;
-use errors::Error;
+use errors::{Code, Error};
 use kif::{Perm, INVALID_SEL};
 use rc::Rc;
 use session::{ExtId, FileId, M3FS, LocList, LocFlags, Pager};
@@ -340,7 +340,7 @@ impl vfs::Seek for RegularFile {
 impl vfs::Read for RegularFile {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         if (self.flags & vfs::OpenFlags::R).is_empty() {
-            return Err(Error::NoPerm)
+            return Err(Error::new(Code::NoPerm))
         }
 
         // determine the amount that we can read
@@ -372,7 +372,7 @@ impl vfs::Write for RegularFile {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         if (self.flags & vfs::OpenFlags::W).is_empty() {
-            return Err(Error::NoPerm)
+            return Err(Error::new(Code::NoPerm))
         }
 
         // determine the amount that we can write

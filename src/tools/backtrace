@@ -90,6 +90,13 @@ sub find_sym($)
 sub print_func($)
 {
   my $addr = new Math::BigInt("0x".shift);
+
+  # hack for Linux: currently, we generate PIE binaries and thus, Linux puts code and data at
+  # weird addresses. with setarch -R, Linux uses the fixed offset 0x555555554000.
+  if (index($args[0], "/host-") != -1) {
+    $addr -= new Math::BigInt("0x555555554000");
+  }
+
   my $hit  = find_sym($addr);
   my $offset = $addr-$hit;
   my $o = $hit->as_hex();

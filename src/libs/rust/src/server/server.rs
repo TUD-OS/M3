@@ -1,7 +1,7 @@
 use cap::{CapFlags, Capability, Selector};
 use com::{GateIStream, RecvGate};
 use server::SessId;
-use errors::Error;
+use errors::{Code, Error};
 use syscalls;
 use kif::service;
 use util;
@@ -16,10 +16,10 @@ pub trait Handler {
     fn open(&mut self, arg: u64) -> Result<SessId, Error>;
 
     fn obtain(&mut self, _sid: SessId, _data: &mut service::ExchangeData) -> Result<(), Error> {
-        Err(Error::NotSup)
+        Err(Error::new(Code::NotSup))
     }
     fn delegate(&mut self, _sid: SessId, _data: &mut service::ExchangeData) -> Result<(), Error> {
-        Err(Error::NotSup)
+        Err(Error::new(Code::NotSup))
     }
     fn close(&mut self, _sid: SessId) {
     }
@@ -75,7 +75,7 @@ impl Server {
                 is.reply(&[reply])?
             },
             Err(e) => {
-                let reply = service::OpenReply { res: e as u64, sess: 0, };
+                let reply = service::OpenReply { res: e.code() as u64, sess: 0, };
                 is.reply(&[reply])?
             },
         };
@@ -90,7 +90,10 @@ impl Server {
         log!(SERV, "server::obtain({}, {:?}) -> {:?}", sid, data, res);
 
         let reply = service::ExchangeReply {
-            res: if res.is_err() { res.unwrap_err() as u64 } else { 0 },
+            res: match res {
+                Ok(_)   => 0,
+                Err(e)  => e.code() as u64,
+            },
             data: data,
         };
         is.reply(&[reply])
@@ -104,7 +107,10 @@ impl Server {
         log!(SERV, "server::delegate({}, {:?}) -> {:?}", sid, data, res);
 
         let reply = service::ExchangeReply {
-            res: if res.is_err() { res.unwrap_err() as u64 } else { 0 },
+            res: match res {
+                Ok(_)   => 0,
+                Err(e)  => e.code() as u64,
+            },
             data: data,
         };
         is.reply(&[reply])
@@ -126,6 +132,6 @@ impl Server {
         hdl.shutdown();
 
         reply_vmsg!(is, 0)?;
-        Err(Error::EndOfFile)
+        Err(Error::new(Code::EndOfFile))
     }
 }

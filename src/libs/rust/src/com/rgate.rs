@@ -5,7 +5,7 @@ use com::gate::Gate;
 use com::{GateIStream, SendGate};
 use core::ops;
 use core::fmt;
-use errors::Error;
+use errors::{Code, Error};
 use kif::INVALID_SEL;
 use syscalls;
 use util;
@@ -220,7 +220,7 @@ impl RecvGate {
 
             if let Some(sg) = sgate {
                 if !dtu::DTU::is_valid(sg.ep().unwrap()) {
-                    return Err(Error::InvEP)
+                    return Err(Error::new(Code::InvEP))
                 }
             }
 

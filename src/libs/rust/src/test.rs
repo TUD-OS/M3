@@ -31,9 +31,9 @@ macro_rules! assert_ok {
 macro_rules! assert_err {
     ($res:expr, $err:expr) => ({
         match $res {
-            Ok(r)                     => panic!("received okay: {:?}", r),
-            Err(ref e) if *e != $err  => panic!("received error {:?}, expected {:?}", e, $err),
-            Err(_)                    => ()
+            Ok(r)                           => panic!("received okay: {:?}", r),
+            Err(ref e) if e.code() != $err  => panic!("received error {:?}, expected {:?}", e, $err),
+            Err(_)                          => ()
         }
     });
 }

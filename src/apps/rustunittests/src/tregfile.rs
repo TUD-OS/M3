@@ -1,5 +1,5 @@
 use m3::col::{String, Vec};
-use m3::errors::Error;
+use m3::errors::Code;
 use m3::test;
 use m3::vfs::{FileRef, OpenFlags, Seek, SeekMode, Read, Write, VFS};
 
@@ -25,12 +25,12 @@ fn permissions() {
 
     {
         let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
-        assert_err!(file.write(&buf), Error::NoPerm);
+        assert_err!(file.write(&buf), Code::NoPerm);
     }
 
     {
         let mut file = assert_ok!(VFS::open(filename, OpenFlags::W));
-        assert_err!(file.read(&mut buf), Error::NoPerm);
+        assert_err!(file.read(&mut buf), Code::NoPerm);
     }
 }
 
@@ -62,7 +62,7 @@ fn read_exact() {
     assert_eq!(&buf[0..16], &content[0..16]);
 
     assert_eq!(file.seek(0, SeekMode::SET), Ok(0));
-    assert_err!(file.read_exact(&mut buf), Error::EndOfFile);
+    assert_err!(file.read_exact(&mut buf), Code::EndOfFile);
 }
 
 fn read_file_at_once() {

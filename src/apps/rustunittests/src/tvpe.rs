@@ -1,7 +1,7 @@
 use m3::com::{SendGate, SGateArgs, RecvGate};
 use m3::boxed::Box;
 use m3::env;
-use m3::errors::Error;
+use m3::errors::Code;
 use m3::test;
 use m3::util;
 use m3::vpe::{Activity, VPE, VPEArgs};
@@ -52,13 +52,13 @@ fn exec_fail() {
     // file too small
     {
         let act = vpe.exec(&["/testfile.txt"]);
-        assert!(act.is_err() && act.err() == Some(Error::EndOfFile));
+        assert!(act.is_err() && act.err().unwrap().code() == Code::EndOfFile);
     }
 
     // not an ELF file
     {
         let act = vpe.exec(&["/pat.bin"]);
-        assert!(act.is_err() && act.err() == Some(Error::InvalidElf));
+        assert!(act.is_err() && act.err().unwrap().code() == Code::InvalidElf);
     }
 }
 

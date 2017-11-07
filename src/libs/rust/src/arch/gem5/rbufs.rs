@@ -1,6 +1,6 @@
 use arch::env;
 use cfg;
-use errors::Error;
+use errors::{Code, Error};
 use kif::PEDesc;
 
 pub const RECVBUF_SPACE: usize      = 0x3FC00000;
@@ -64,7 +64,7 @@ impl RBufSpace {
         // TODO atm, the kernel allocates the complete receive buffer space
         let left = self.end - self.cur;
         if size > left {
-            Err(Error::NoSpace)
+            Err(Error::new(Code::NoSpace))
         }
         else {
             let res = self.cur;
