@@ -357,6 +357,7 @@ def RustProgram(env, target, source, libs = []):
     )
     env.Install(env['LIBDIR'], stlib)
     env.Depends(stlib, env.File('Cargo.toml'))
+    env.Depends(stlib, env.File('#src/toolchain/rust/x86_64-unknown-$ARCH-gnu.json'))
     env.Depends(stlib, [
         env.Glob('#src/libs/rust/src/*.rs'),
         env.Glob('#src/libs/rust/src/*/*.rs'),
