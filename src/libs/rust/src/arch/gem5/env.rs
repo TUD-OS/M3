@@ -63,10 +63,16 @@ impl EnvData {
         self.eps
     }
 
+    pub fn has_vpe(&self) -> bool {
+        self.fds != 0
+    }
     pub fn vpe(&self) -> &'static mut vpe::VPE {
         unsafe {
             intrinsics::transmute(self.fds)
         }
+    }
+    pub fn set_vpe(&mut self, vpe: &vpe::VPE) {
+        self.fds = vpe as *const vpe::VPE as u64;
     }
 
     pub fn load_rbufs(&self) -> arch::rbufs::RBufSpace {
@@ -175,10 +181,6 @@ impl EnvData {
             Some(rg) => rg.sel(),
             None     => INVALID_SEL,
         };
-    }
-
-    pub fn set_vpe(&mut self, vpe: &vpe::VPE) {
-        self.fds = vpe as *const vpe::VPE as u64;
     }
 }
 

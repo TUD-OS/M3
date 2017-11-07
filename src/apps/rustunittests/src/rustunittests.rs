@@ -12,8 +12,6 @@ mod tmgate;
 mod tregfile;
 mod trgate;
 mod tsgate;
-// TODO
-#[cfg(target_os = "none")]
 mod tvpe;
 
 struct MyTester {
@@ -47,7 +45,6 @@ pub fn main() -> i32 {
     run_suite!(tester, tdir::run);
     run_suite!(tester, tbufio::run);
     run_suite!(tester, tregfile::run);
-    #[cfg(target_os = "none")]
     run_suite!(tester, tvpe::run);
 
     0

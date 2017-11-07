@@ -3,7 +3,7 @@ use arch::dtu::{EpId, Label};
 use cap::Selector;
 use col::{String, Vec};
 use core::intrinsics;
-use kif::PEDesc;
+use kif::{PEDesc, PEType, PEISA};
 use libc;
 use session::Pager;
 use vfs::{FileTable, MountTable};
@@ -20,6 +20,8 @@ pub struct EnvData {
     sysc_lbl: Label,
     sysc_ep: EpId,
     shm_prefix: String,
+
+    vpe: usize,
 }
 
 impl EnvData {
@@ -46,11 +48,16 @@ impl EnvData {
         0
     }
 
+    pub fn has_vpe(&self) -> bool {
+        self.vpe != 0
+    }
     pub fn vpe(&self) -> &'static mut vpe::VPE {
         unsafe {
-            // TODO
-            intrinsics::transmute(0u64)
+            intrinsics::transmute(self.vpe)
         }
+    }
+    pub fn set_vpe(&mut self, vpe: &vpe::VPE) {
+        self.vpe = vpe as *const vpe::VPE as usize;
     }
 
     pub fn load_rbufs(&self) -> arch::rbufs::RBufSpace {
@@ -101,9 +108,9 @@ fn read_line(fd: i32) -> String {
     unsafe { String::from_utf8_unchecked(vec) }
 }
 
-pub fn init(argc: i32, argv: *const *const u8) {
+pub fn init(argc: i32, argv: *const *const i8) {
     let fd = unsafe {
-        let path = format!("/tmp/m3/{}", libc::getpid());
+        let path = format!("/tmp/m3/{}\0", libc::getpid());
         libc::open(path.as_ptr() as *const libc::c_char, libc::O_RDONLY)
     };
     assert!(fd != -1);
@@ -111,17 +118,23 @@ pub fn init(argc: i32, argv: *const *const u8) {
     let data = EnvData {
         argc: argc as u32,
         argv: argv as u64,
-        pedesc: PEDesc::new_from(0),
+        pedesc: PEDesc::new(PEType::COMP_IMEM, PEISA::X86, 1024 * 1024),
 
         shm_prefix: read_line(fd),
         pe: read_line(fd).parse::<u64>().unwrap(),
         sysc_lbl: read_line(fd).parse::<Label>().unwrap(),
         sysc_ep: read_line(fd).parse::<EpId>().unwrap(),
         sysc_crd: read_line(fd).parse::<u64>().unwrap(),
+
+        vpe: 0,
     };
 
     unsafe {
         libc::close(fd);
         ENV_DATA = Some(data);
     }
+}
+
+pub fn reinit() {
+    init(data().argc() as i32, data().argv());
 }

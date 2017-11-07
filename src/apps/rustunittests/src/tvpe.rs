@@ -9,8 +9,11 @@ use m3::vpe::{Activity, VPE, VPEArgs};
 pub fn run(t: &mut test::Tester) {
     run_test!(t, run_arguments);
     run_test!(t, run_send_receive);
+    #[cfg(target_os = "none")]
     run_test!(t, exec_fail);
+    #[cfg(target_os = "none")]
     run_test!(t, exec_hello);
+    #[cfg(target_os = "none")]
     run_test!(t, exec_rust_hello);
 }
 
@@ -19,7 +22,8 @@ fn run_arguments() {
 
     let act = assert_ok!(vpe.run(Box::new(|| {
         assert_eq!(env::args().count(), 1);
-        assert_eq!(env::args().nth(0), Some("/bin/rustunittests"));
+        assert!(env::args().nth(0).is_some());
+        assert!(env::args().nth(0).unwrap().ends_with("/bin/rustunittests"));
         0
     })));
 
@@ -46,6 +50,7 @@ fn run_send_receive() {
     assert_eq!(act.wait(), Ok(42 + 23));
 }
 
+#[cfg(target_os = "none")]
 fn exec_fail() {
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
@@ -62,6 +67,7 @@ fn exec_fail() {
     }
 }
 
+#[cfg(target_os = "none")]
 fn exec_hello() {
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
@@ -69,6 +75,7 @@ fn exec_hello() {
     assert_eq!(act.wait(), Ok(0));
 }
 
+#[cfg(target_os = "none")]
 fn exec_rust_hello() {
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 

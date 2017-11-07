@@ -86,7 +86,7 @@ mod cfg;
 
 #[cfg(target_os = "linux")]
 #[no_mangle]
-pub extern "C" fn rust_init(argc: i32, argv: *const *const u8) {
+pub extern "C" fn rust_init(argc: i32, argv: *const *const i8) {
     extern "C" {
         fn dummy_func();
     }
@@ -106,8 +106,8 @@ pub extern "C" fn rust_init(argc: i32, argv: *const *const u8) {
 
 #[cfg(target_os = "linux")]
 #[no_mangle]
-pub extern "C" fn rust_deinit() {
-    syscalls::exit(0 /* TODO */);
+pub extern "C" fn rust_deinit(status: i32, _arg: *const libc::c_void) {
+    syscalls::exit(status);
     arch::dtu::deinit();
 }
 

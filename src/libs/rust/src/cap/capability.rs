@@ -39,6 +39,9 @@ impl Capability {
     pub fn flags(&self) -> CapFlags {
         self.flags
     }
+    pub fn set_flags(&mut self, flags: CapFlags) {
+        self.flags = flags;
+    }
 
     pub fn rebind(&mut self, sel: Selector) {
         self.release();

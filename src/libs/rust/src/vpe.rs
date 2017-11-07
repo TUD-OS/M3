@@ -170,11 +170,11 @@ impl VPE {
     }
 
     pub fn cur() -> &'static mut VPE {
-        unsafe {
-            match CUR {
-                Some(ref mut v) => v,
-                None            => arch::env::data().vpe()
-            }
+        if arch::env::data().has_vpe() {
+            arch::env::data().vpe()
+        }
+        else {
+            unsafe { CUR.as_mut().unwrap() }
         }
     }
 
@@ -415,6 +415,62 @@ impl VPE {
         act.start().map(|_| act)
     }
 
+    #[cfg(target_os = "linux")]
+    pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
+                  where F: FnBox() -> i32, F: Send + 'static {
+        use libc;
+
+        let mut closure = env::Closure::new(func);
+
+        unsafe {
+            let mut fds = [0i32; 2];
+            if libc::pipe(fds.as_mut_ptr()) == -1 {
+                return Err(Error::new(Code::InvArgs));
+            }
+
+            match libc::fork() {
+                -1  => {
+                    libc::close(fds[0]);
+                    libc::close(fds[1]);
+                    Err(Error::new(Code::OutOfMem))
+                },
+
+                0   => {
+                    // child
+                    libc::close(fds[1]);
+
+                    // wait until parent notifies us
+                    libc::read(fds[0], [0u8; 1].as_mut_ptr() as *mut libc::c_void, 1);
+                    libc::close(fds[0]);
+
+                    arch::env::reinit();
+                    arch::env::data().set_vpe(self);
+                    ::io::reinit();
+                    self::reinit();
+                    ::com::reinit();
+                    arch::dtu::init();
+
+                    let res = closure.call();
+                    libc::exit(res);
+                },
+
+                pid => {
+                    // parent
+                    libc::close(fds[0]);
+
+                    // let the kernel create the config-file etc. for the given pid
+                    syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
+
+                    // notify child; it can start now
+                    libc::write(fds[1], [0u8; 1].as_ptr() as *const libc::c_void, 1);
+                    libc::close(fds[1]);
+
+                    Ok(ClosureActivity::new(self, closure))
+                },
+            }
+        }
+    }
+
     #[cfg(target_os = "none")]
     pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
         let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
@@ -494,9 +550,7 @@ pub fn init() {
 }
 
 pub fn reinit() {
-    unsafe {
-        CUR = None;
-        VPE::cur().cap = Capability::new(0, CapFlags::KEEP_CAP);
-        VPE::cur().mem = MemGate::new_bind(1);
-    }
+    VPE::cur().cap.set_flags(CapFlags::KEEP_CAP);
+    VPE::cur().cap = Capability::new(0, CapFlags::KEEP_CAP);
+    VPE::cur().mem = MemGate::new_bind(1);
 }
