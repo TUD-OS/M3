@@ -1,7 +1,6 @@
 use arch;
 use boxed::{Box, FnBox};
 use core::iter;
-use core::intrinsics;
 use core::mem;
 use util;
 
@@ -30,14 +29,14 @@ pub struct Args {
 impl Args {
     fn arg(&self, idx: isize) -> &'static str {
         unsafe {
-            let args: *const *const i8 = intrinsics::transmute(arch::env::data().argv as *const i8);
+            let args = arch::env::data().argv();
             let arg = *args.offset(idx);
             util::cstr_to_str(arg)
         }
     }
 
     pub fn len(&self) -> usize {
-        arch::env::data().argc as usize
+        arch::env::data().argc()
     }
 }
 
@@ -45,7 +44,7 @@ impl iter::Iterator for Args {
     type Item = &'static str;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pos < arch::env::data().argc as isize {
+        if self.pos < arch::env::data().argc() as isize {
             let arg = self.arg(self.pos);
             self.pos += 1;
             Some(arg)

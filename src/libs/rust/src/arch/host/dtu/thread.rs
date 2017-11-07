@@ -449,7 +449,7 @@ fn handle_command(backend: &backend::SocketBackend) {
                 if op != Command::REPLY {
                     // reply cap
                     buf.header.has_replycap = 1;
-                    buf.header.pe = arch::env::data().pe as u16;
+                    buf.header.pe = arch::env::data().pe_id() as u16;
                     buf.header.snd_ep = ep as u8;
                     buf.header.rpl_ep = DTU::get_cmd(CmdReg::REPLY_EPID) as u8;
                     buf.header.reply_label = DTU::get_cmd(CmdReg::REPLY_LBL);

@@ -63,7 +63,6 @@ impl Log {
     }
 
     pub(crate) fn init(&mut self) {
-        let env = arch::env::data();
         let colors = ["31", "32", "33", "34", "35", "36"];
         let name = env::args().nth(0).unwrap_or("Unknown");
         let begin = match name.rfind('/') {
@@ -72,11 +71,12 @@ impl Log {
         };
 
         self.pos = 0;
+        let pe_id = arch::env::data().pe_id();
         self.write_fmt(format_args!(
             "\x1B[0;{}m[{:.8}@{:x}] ",
-            colors[(env.pe as usize) % colors.len()],
+            colors[(pe_id as usize) % colors.len()],
             &name[begin..],
-            env.pe
+            pe_id
         )).unwrap();
         self.start_pos = self.pos;
     }

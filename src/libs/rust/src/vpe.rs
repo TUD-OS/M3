@@ -4,17 +4,15 @@ use alloc::boxed::FnBox;
 use boxed::Box;
 use cap::{CapFlags, Capability, Selector};
 use cfg;
-use com::{MemGate, Sink, SliceSource, VecSink};
+use com::{MemGate, Sink, VecSink};
 use col::Vec;
-use core::{fmt, iter, intrinsics};
+use core::fmt;
 use env;
-use elf;
 use errors::{Code, Error};
-use heap;
 use kif;
 use kif::{CapType, CapRngDesc, INVALID_SEL, PEDesc};
 use session::Pager;
-use vfs::{BufReader, FileRef, Map, OpenFlags, read_object, Read, Seek, SeekMode, VFS};
+use vfs::{BufReader, FileRef, OpenFlags, VFS};
 use vfs::{FileTable, MountTable};
 use syscalls;
 use util;
@@ -158,38 +156,24 @@ impl VPE {
         }
     }
 
-    #[cfg(target_os = "none")]
     fn init(&mut self) {
         let env = arch::env::data();
 
-        self.pe = env.pedesc.clone();
-        // it's initially 0. make sure it's at least the first usable selector
-        self.next_sel = util::max(2, env.caps as Selector);
-        self.eps = env.eps;
-        self.rbufs = arch::rbufs::RBufSpace::new_from_env();
-
-        self.pager = match env.pager_sess {
-            0 => None,
-            s => Some(Pager::new_bind(s, env.pager_sgate, env.pager_rgate)),
-        };
-
+        self.pe = env.pedesc().clone();
+        self.next_sel = env.next_sel();
+        self.eps = env.eps();
+        self.rbufs = env.load_rbufs();
+        self.pager = env.load_pager();
         // mounts first; files depend on mounts
-        if env.mounts_len != 0 {
-            let slice = unsafe { util::slice_for(env.mounts as *const u64, env.mounts_len as usize) };
-            self.mounts = MountTable::unserialize(&mut SliceSource::new(slice))
-        }
-
-        if env.fds_len != 0 {
-            let slice = unsafe { util::slice_for(env.fds as *const u64, env.fds_len as usize) };
-            self.files = FileTable::unserialize(&mut SliceSource::new(slice))
-        }
+        self.mounts = env.load_mounts();
+        self.files = env.load_fds();
     }
 
     pub fn cur() -> &'static mut VPE {
         unsafe {
             match CUR {
                 Some(ref mut v) => v,
-                None            => intrinsics::transmute(arch::env::data().fds)
+                None            => arch::env::data().vpe()
             }
         }
     }
@@ -281,7 +265,7 @@ impl VPE {
         self.pe
     }
     pub fn pe_id(&self) -> u64 {
-        arch::env::data().pe
+        arch::env::data().pe_id()
     }
     pub fn mem(&self) -> &MemGate {
         &self.mem
@@ -383,14 +367,6 @@ impl VPE {
     #[cfg(target_os = "none")]
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
-        let get_sp = || {
-            let res: usize;
-            unsafe {
-                asm!("mov %rsp, $0" : "=r"(res));
-            }
-            res
-        };
-
         let sel = self.sel();
         if let Some(ref mut pg) = self.pager {
             pg.activate(sel)?;
@@ -399,31 +375,40 @@ impl VPE {
         let env = arch::env::data();
         let mut senv = arch::env::EnvData::default();
 
-        // copy all regions to child
-        senv.sp = get_sp() as u64;
-        senv.entry = self.copy_regions(senv.sp as usize)? as u64;
-        senv.lambda = 1;
-        senv.exit_addr = 0;
-        senv.heap_size = env.heap_size;
+        let closure = {
+            let mut loader = arch::loader::Loader::new(
+                self.pager.as_ref(),
+                Self::cur().pager().is_some(),
+                &self.mem
+            );
 
-        // store VPE address to reuse it in the child
-        senv.fds_len = 0;
-        senv.fds = self as *const VPE as u64;
+            // copy all regions to child
+            senv.set_sp(arch::loader::get_sp());
+            let entry = loader.copy_regions(senv.sp())?;
+            senv.set_entry(entry);
+            senv.set_lambda(true);
+            senv.set_heap_size(env.heap_size());
 
-        // env goes first
-        let mut off = cfg::RT_START + util::size_of_val(&senv);
+            // store VPE address to reuse it in the child
+            senv.set_vpe(self);
 
-        // create and write closure
-        let closure = env::Closure::new(func);
-        self.mem.write_obj(&closure, off)?;
-        off += util::size_of_val(&closure);
+            // env goes first
+            let mut off = cfg::RT_START + util::size_of_val(&senv);
 
-        // write args
-        senv.argc = env.argc;
-        senv.argv = self.write_arguments(&mut off, env::args())? as u64;
+            // create and write closure
+            let closure = env::Closure::new(func);
+            self.mem.write_obj(&closure, off)?;
+            off += util::size_of_val(&closure);
 
-        // write start env to PE
-        self.mem.write_obj(&senv, cfg::RT_START)?;
+            // write args
+            senv.set_argc(env.argc());
+            senv.set_argv(loader.write_arguments(&mut off, env::args())?);
+
+            // write start env to PE
+            self.mem.write_obj(&senv, cfg::RT_START)?;
+
+            closure
+        };
 
         // go!
         let act = ClosureActivity::new(self, closure);
@@ -442,243 +427,56 @@ impl VPE {
 
         let mut senv = arch::env::EnvData::default();
 
-        // load program segments
-        senv.sp = cfg::STACK_TOP as u64;
-        senv.entry = self.load_program(&mut file)? as u64;
-        senv.lambda = 0;
-        senv.exit_addr = 0;
-
-        // write args
-        let mut off = cfg::RT_START + util::size_of_val(&senv);
-        senv.argc = args.len() as u32;
-        senv.argv = self.write_arguments(&mut off, args)? as u64;
-
-        // write file table
         {
-            let mut fds = VecSink::new();
-            self.files.serialize(&self.mounts, &mut fds);
-            self.mem.write(fds.words(), off)?;
-            senv.fds = off as u64;
-            senv.fds_len = fds.size() as u32;
-            off += fds.size();
+            let loader = arch::loader::Loader::new(
+                self.pager.as_ref(),
+                Self::cur().pager().is_some(),
+                &self.mem
+            );
+
+            // load program segments
+            senv.set_sp(cfg::STACK_TOP);
+            senv.set_entry(loader.load_program(&mut file)?);
+
+            // write args
+            let mut off = cfg::RT_START + util::size_of_val(&senv);
+            senv.set_argc(args.len());
+            senv.set_argv(loader.write_arguments(&mut off, args)?);
+
+            // write file table
+            {
+                let mut fds = VecSink::new();
+                self.files.serialize(&self.mounts, &mut fds);
+                self.mem.write(fds.words(), off)?;
+                senv.set_files(off, fds.size());
+                off += fds.size();
+            }
+
+            // write mounts table
+            {
+                let mut mounts = VecSink::new();
+                self.mounts.serialize(&mut mounts);
+                self.mem.write(mounts.words(), off)?;
+                senv.set_mounts(off, mounts.size());
+            }
+
+            senv.set_rbufs(&self.rbufs);
+            senv.set_next_sel(self.next_sel);
+            senv.set_eps(self.eps);
+            senv.set_pedesc(self.pe());
+
+            if let Some(ref pg) = self.pager {
+                senv.set_pager(pg);
+                senv.set_heap_size(cfg::APP_HEAP_SIZE);
+            }
+
+            // write start env to PE
+            self.mem.write_obj(&senv, cfg::RT_START)?;
         }
-
-        // write mounts table
-        {
-            let mut mounts = VecSink::new();
-            self.mounts.serialize(&mut mounts);
-            self.mem.write(mounts.words(), off)?;
-            senv.mounts = off as u64;
-            senv.mounts_len = mounts.size() as u32;
-        }
-
-        senv.rbuf_cur = self.rbufs.cur as u64;
-        senv.rbuf_end = self.rbufs.end as u64;
-        senv.caps = self.next_sel as u64;
-        senv.eps = self.eps;
-        senv.pedesc = self.pe();
-
-        if let Some(ref pg) = self.pager {
-            senv.pager_sess = pg.sel();
-            senv.pager_sgate = pg.sgate().sel();
-            senv.pager_rgate = match pg.rgate() {
-                Some(rg) => rg.sel(),
-                None     => INVALID_SEL,
-            };
-            senv.heap_size = cfg::APP_HEAP_SIZE as u64;
-        }
-
-        // write start env to PE
-        self.mem.write_obj(&senv, cfg::RT_START)?;
 
         // go!
         let act = ExecActivity::new(self, file);
         act.start().map(|_| act)
-    }
-
-    #[cfg(target_os = "none")]
-    fn copy_regions(&mut self, sp: usize) -> Result<usize, Error> {
-        extern {
-            static _text_start: u8;
-            static _text_end: u8;
-            static _data_start: u8;
-            static _bss_end: u8;
-            static heap_end: usize;
-        }
-
-        let addr = |sym: &u8| {
-            (sym as *const u8) as usize
-        };
-
-        // use COW if both have a pager
-        if let Some(ref pg) = self.pager {
-            if Self::cur().pager().is_some() {
-                return pg.clone().map(|_| unsafe { addr(&_text_start) })
-            }
-            // TODO handle that case
-            unimplemented!();
-        }
-
-        unsafe {
-            // copy text
-            let text_start = addr(&_text_start);
-            let text_end = addr(&_text_end);
-            self.mem.write_bytes(&_text_start, text_end - text_start, text_start)?;
-
-            // copy data and heap
-            let data_start = addr(&_data_start);
-            self.mem.write_bytes(&_data_start, heap::heap_used_end() - data_start, data_start)?;
-
-            // copy end-area of heap
-            let heap_area_size = util::size_of::<heap::HeapArea>();
-            self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end)?;
-
-            // copy stack
-            self.mem.write_bytes(sp as *const u8, cfg::STACK_TOP - sp, sp)?;
-
-            Ok(text_start)
-        }
-    }
-
-    #[cfg(target_os = "none")]
-    fn clear_mem(&self, buf: &mut [u8], mut count: usize, mut dst: usize) -> Result<(), Error> {
-        if count == 0 {
-            return Ok(())
-        }
-
-        for i in 0..buf.len() {
-            buf[i] = 0;
-        }
-
-        while count > 0 {
-            let amount = util::min(count, buf.len());
-            self.mem.write(&buf[0..amount], dst)?;
-            count -= amount;
-            dst += amount;
-        }
-
-        Ok(())
-    }
-
-    #[cfg(target_os = "none")]
-    fn load_segment(&self, file: &mut BufReader<FileRef>,
-                    phdr: &elf::Phdr, buf: &mut [u8]) -> Result<(), Error> {
-        file.seek(phdr.offset, SeekMode::SET)?;
-
-        let mut count = phdr.filesz;
-        let mut segoff = phdr.vaddr;
-        while count > 0 {
-            let amount = util::min(count, buf.len());
-            let amount = file.read(&mut buf[0..amount])?;
-
-            self.mem.write(&buf[0..amount], segoff)?;
-
-            count -= amount;
-            segoff += amount;
-        }
-
-        self.clear_mem(buf, phdr.memsz - phdr.filesz, segoff)
-    }
-
-    #[cfg(target_os = "none")]
-    fn map_segment(&self, file: &mut BufReader<FileRef>, pager: &Pager,
-                   phdr: &elf::Phdr) -> Result<(), Error> {
-        let mut prot = kif::Perm::empty();
-        if (phdr.flags & elf::PF::R.bits()) != 0 {
-            prot |= kif::Perm::R;
-        }
-        if (phdr.flags & elf::PF::W.bits()) != 0 {
-            prot |= kif::Perm::W;
-        }
-        if (phdr.flags & elf::PF::X.bits()) != 0 {
-            prot |= kif::Perm::X;
-        }
-
-        let size = util::round_up(phdr.memsz, cfg::PAGE_SIZE);
-        if phdr.memsz == phdr.filesz {
-            file.get_ref().map(pager, phdr.vaddr, phdr.offset, size, prot)
-        }
-        else {
-            assert!(phdr.filesz == 0);
-            pager.map_anon(phdr.vaddr, size, prot).map(|_| ())
-        }
-    }
-
-    #[cfg(target_os = "none")]
-    fn load_program(&self, file: &mut BufReader<FileRef>) -> Result<usize, Error> {
-        let mut buf = vec![0u8; 4096];
-        let hdr: elf::Ehdr = read_object(file)?;
-
-        if hdr.ident[0] != '\x7F' as u8 ||
-           hdr.ident[1] != 'E' as u8 ||
-           hdr.ident[2] != 'L' as u8 ||
-           hdr.ident[3] != 'F' as u8 {
-            return Err(Error::new(Code::InvalidElf))
-        }
-
-        // copy load segments to destination PE
-        let mut end = 0;
-        let mut off = hdr.phoff;
-        for _ in 0..hdr.phnum {
-            // load program header
-            file.seek(off, SeekMode::SET)?;
-            let phdr: elf::Phdr = read_object(file)?;
-
-            // we're only interested in non-empty load segments
-            if phdr.ty != elf::PT::LOAD.val || phdr.memsz == 0 {
-                continue;
-            }
-
-            if let Some(ref pg) = self.pager {
-                self.map_segment(file, pg, &phdr)?;
-            }
-            else {
-                self.load_segment(file, &phdr, &mut *buf)?;
-            }
-            off += hdr.phentsize as usize;
-
-            end = phdr.vaddr + phdr.memsz;
-        }
-
-        if let Some(ref pg) = self.pager {
-            // create area for boot/runtime stuff
-            pg.map_anon(cfg::RT_START, cfg::RT_SIZE, kif::Perm::RW)?;
-
-            // create area for stack
-            pg.map_anon(cfg::STACK_BOTTOM, cfg::STACK_SIZE, kif::Perm::RW)?;
-
-            // create heap
-            pg.map_anon(util::round_up(end, cfg::PAGE_SIZE), cfg::APP_HEAP_SIZE, kif::Perm::RW)?;
-        }
-
-        Ok(hdr.entry)
-    }
-
-    #[cfg(target_os = "none")]
-    fn write_arguments<I, S>(&self, off: &mut usize, args: I) -> Result<usize, Error>
-                             where I: iter::IntoIterator<Item = S>, S: AsRef<str> {
-        let mut argptr = Vec::new();
-        let mut argbuf = Vec::new();
-
-        let mut argoff = *off;
-        for s in args {
-            // push argv entry
-            argptr.push(argoff);
-
-            // push string
-            let arg = s.as_ref().as_bytes();
-            argbuf.extend_from_slice(arg);
-
-            // 0-terminate it
-            argbuf.push('\0' as u8);
-
-            argoff += arg.len() + 1;
-        }
-
-        self.mem.write(&argbuf, *off)?;
-        self.mem.write(&argptr, argoff)?;
-        *off = argoff + argptr.len() * util::size_of::<usize>();
-        Ok(argoff)
     }
 }
 
@@ -691,7 +489,6 @@ impl fmt::Debug for VPE {
 pub fn init() {
     unsafe {
         CUR = Some(VPE::new_cur());
-        #[cfg(target_os = "none")]
         VPE::cur().init();
     }
 }

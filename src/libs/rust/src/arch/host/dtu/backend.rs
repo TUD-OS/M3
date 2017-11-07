@@ -30,7 +30,7 @@ impl SocketBackend {
             }
         }
 
-        let pe = arch::env::data().pe;
+        let pe = arch::env::data().pe_id();
         let mut localsock = vec![];
         for ep in 0..EP_COUNT {
             unsafe {

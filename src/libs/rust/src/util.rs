@@ -3,7 +3,7 @@ use core::slice;
 use libc;
 
 // TODO move to proper place
-pub fn jmp_to(addr: u64) {
+pub fn jmp_to(addr: usize) {
     unsafe {
         asm!(
             "jmp *$0"

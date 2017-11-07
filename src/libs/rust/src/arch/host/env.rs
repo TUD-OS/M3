@@ -1,20 +1,81 @@
+use arch;
 use arch::dtu::{EpId, Label};
+use cap::Selector;
 use col::{String, Vec};
+use core::intrinsics;
 use kif::PEDesc;
 use libc;
+use session::Pager;
+use vfs::{FileTable, MountTable};
+use vpe;
 
 pub struct EnvData {
-    pub pe: u64,
-    pub argc: u32,
-    pub argv: u64,
+    pe: u64,
+    argc: u32,
+    argv: u64,
 
-    pub fds: u64,   // TODO
-    pub pedesc: PEDesc,
+    pedesc: PEDesc,
 
-    pub sysc_crd: u64,
-    pub sysc_lbl: Label,
-    pub sysc_ep: EpId,
-    pub shm_prefix: String,
+    sysc_crd: u64,
+    sysc_lbl: Label,
+    sysc_ep: EpId,
+    shm_prefix: String,
+}
+
+impl EnvData {
+    pub fn pe_id(&self) -> u64 {
+        self.pe
+    }
+
+    pub fn argc(&self) -> usize {
+        self.argc as usize
+    }
+    pub fn argv(&self) -> *const *const i8 {
+        self.argv as *const *const i8
+    }
+
+    pub fn pedesc<'a, 'e : 'a>(&'e self) -> &'a PEDesc {
+        &self.pedesc
+    }
+    pub fn next_sel(&self) -> Selector {
+        // TODO
+        2
+    }
+    pub fn eps(&self) -> u64 {
+        // TODO
+        0
+    }
+
+    pub fn vpe(&self) -> &'static mut vpe::VPE {
+        unsafe {
+            // TODO
+            intrinsics::transmute(0u64)
+        }
+    }
+
+    pub fn load_rbufs(&self) -> arch::rbufs::RBufSpace {
+        arch::rbufs::RBufSpace::new()
+    }
+
+    pub fn load_pager(&self) -> Option<Pager> {
+        None
+    }
+
+    pub fn load_mounts(&self) -> MountTable {
+        // TODO
+        MountTable::default()
+    }
+
+    pub fn load_fds(&self) -> FileTable {
+        // TODO
+        FileTable::default()
+    }
+
+    // --- host specific API ---
+
+    pub fn syscall_params(&self) -> (EpId, Label, u64) {
+        (self.sysc_ep, self.sysc_lbl, self.sysc_crd)
+    }
 }
 
 static mut ENV_DATA: Option<EnvData> = None;
@@ -50,7 +111,6 @@ pub fn init(argc: i32, argv: *const *const u8) {
     let data = EnvData {
         argc: argc as u32,
         argv: argv as u64,
-        fds: 0,
         pedesc: PEDesc::new_from(0),
 
         shm_prefix: read_line(fd),

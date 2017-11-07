@@ -119,14 +119,14 @@ extern "C" {
 pub fn exit(code: i32) {
     syscalls::exit(code);
     #[cfg(target_os = "none")]
-    util::jmp_to(arch::env::data().exit_addr);
+    util::jmp_to(arch::env::data().exit_addr());
 }
 
 #[cfg(target_os = "none")]
 #[no_mangle]
 pub extern fn env_run() {
     let envdata = arch::env::data();
-    let res = if envdata.lambda != 0 {
+    let res = if envdata.has_lambda() {
         io::reinit();
         vpe::reinit();
         com::reinit();

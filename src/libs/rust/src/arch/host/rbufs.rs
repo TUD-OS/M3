@@ -24,12 +24,8 @@ impl RBufSpace {
         }
     }
 
-    pub fn new_from_env() -> Self {
-        Self::new()
-    }
-
     pub fn get_std(&mut self, _off: usize, size: usize) -> usize {
-        self.alloc(&env::data().pedesc, size).unwrap()
+        self.alloc(env::data().pedesc(), size).unwrap()
     }
 
     pub fn alloc(&mut self, _pe: &PEDesc, size: usize) -> Result<usize, Error> {

@@ -35,11 +35,11 @@ fn init_heap() {
         heap_begin = util::round_up(begin as usize, util::size_of::<HeapArea>()) as *mut HeapArea;
 
         let env = arch::env::data();
-        let end = if env.heap_size == 0 {
-            env.pedesc.mem_size() - arch::rbufs::RECVBUF_SIZE_SPM
+        let end = if env.heap_size() == 0 {
+            env.pedesc().mem_size() - arch::rbufs::RECVBUF_SIZE_SPM
         }
         else {
-            util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size as usize
+            util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size() as usize
         };
 
         heap_end = (end as *mut HeapArea).offset(-1);

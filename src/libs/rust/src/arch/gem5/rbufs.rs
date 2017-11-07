@@ -24,22 +24,18 @@ pub struct RBufSpace {
 
 impl RBufSpace {
     pub fn new() -> Self {
-        RBufSpace {
-            cur: 0,
-            end: 0,
-        }
+        Self::new_with(0, 0)
     }
 
-    pub fn new_from_env() -> Self {
-        let env = env::data();
+    pub fn new_with(cur: usize, end: usize) -> Self {
         RBufSpace {
-            cur: env.rbuf_cur as usize,
-            end: env.rbuf_end as usize,
+            cur: cur,
+            end: end,
         }
     }
 
     pub fn get_std(&mut self, off: usize, _size: usize) -> usize {
-        let pe = &env::data().pedesc;
+        let pe = env::data().pedesc();
         if pe.has_virtmem() {
             RECVBUF_SPACE + off
         }

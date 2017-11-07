@@ -272,8 +272,11 @@ impl DTU {
 }
 
 pub fn init() {
-    let env = arch::env::data();
-    DTU::configure(SYSC_SEP, env.sysc_lbl, 0, env.sysc_ep, env.sysc_crd, rbufs::SYSC_RBUF_ORD);
+    {
+        let env = arch::env::data();
+        let (ep, lbl, crd) = env.syscall_params();
+        DTU::configure(SYSC_SEP, lbl, 0, ep, crd, rbufs::SYSC_RBUF_ORD);
+    }
 
     let sysc = RecvGate::syscall();
     DTU::configure_recv(SYSC_REP, sysc.buffer(), rbufs::SYSC_RBUF_ORD, rbufs::SYSC_RBUF_ORD);
