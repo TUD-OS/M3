@@ -15,10 +15,6 @@ use m3::vpe::*;
 
 #[no_mangle]
 pub fn main() -> i32 {
-    // TODO
-    #[cfg(target_os = "linux")]
-    ::m3::vfs::VFS::mount("/", "m3fs").unwrap();
-
     {
         let mut vpe = VPE::new_with(VPEArgs::new("test")).expect("Unable to create VPE");
         println!("VPE runs on {:?}", vpe.pe());
@@ -31,8 +27,6 @@ pub fn main() -> i32 {
 
         // TODO fd inheritance is still not compatible between C++ and rust
 
-        // TODO
-        #[cfg(target_os = "none")]
         {
             let act = vpe.exec(&["/bin/ls", "-l", "/"]).expect("Exec failed");
 

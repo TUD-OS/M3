@@ -2,7 +2,7 @@ use arch;
 use cap::Selector;
 use cell::RefCell;
 use col::Vec;
-use com::VecSink;
+use com::{SliceSource, VecSink};
 use errors::{Code, Error};
 use kif;
 use rc::Rc;
@@ -15,6 +15,10 @@ pub struct Serial {
 impl Serial {
     pub fn get() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Serial {}))
+    }
+
+    pub fn unserialize(_s: &mut SliceSource) -> vfs::FileHandle {
+        Self::get()
     }
 }
 

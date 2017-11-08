@@ -1,6 +1,7 @@
 use arch;
 use arch::dtu::{EpId, Label};
 use cap::Selector;
+use com::SliceSource;
 use col::{String, Vec};
 use core::intrinsics;
 use kif::{PEDesc, PEType, PEISA};
@@ -39,14 +40,6 @@ impl EnvData {
     pub fn pedesc<'a, 'e : 'a>(&'e self) -> &'a PEDesc {
         &self.pedesc
     }
-    pub fn next_sel(&self) -> Selector {
-        // TODO
-        2
-    }
-    pub fn eps(&self) -> u64 {
-        // TODO
-        0
-    }
 
     pub fn has_vpe(&self) -> bool {
         self.vpe != 0
@@ -68,14 +61,28 @@ impl EnvData {
         None
     }
 
+    pub fn load_caps_eps(&self) -> (Selector, u64) {
+        match arch::loader::read_env_file("other") {
+            Some(other) => {
+                let mut ss = SliceSource::new(&other);
+                (ss.pop(), ss.pop())
+            },
+            None        => (2, 0),
+        }
+    }
+
     pub fn load_mounts(&self) -> MountTable {
-        // TODO
-        MountTable::default()
+        match arch::loader::read_env_file("ms") {
+            Some(ms)    => MountTable::unserialize(&mut SliceSource::new(&ms)),
+            None        => MountTable::default(),
+        }
     }
 
     pub fn load_fds(&self) -> FileTable {
-        // TODO
-        FileTable::default()
+        match arch::loader::read_env_file("fds") {
+            Some(fds)    => FileTable::unserialize(&mut SliceSource::new(&fds)),
+            None        => FileTable::default(),
+        }
     }
 
     // --- host specific API ---

@@ -1,7 +1,6 @@
 use m3::com::{SendGate, SGateArgs, RecvGate};
 use m3::boxed::Box;
 use m3::env;
-use m3::errors::Code;
 use m3::test;
 use m3::util;
 use m3::vpe::{Activity, VPE, VPEArgs};
@@ -11,9 +10,7 @@ pub fn run(t: &mut test::Tester) {
     run_test!(t, run_send_receive);
     #[cfg(target_os = "none")]
     run_test!(t, exec_fail);
-    #[cfg(target_os = "none")]
     run_test!(t, exec_hello);
-    #[cfg(target_os = "none")]
     run_test!(t, exec_rust_hello);
 }
 
@@ -52,6 +49,8 @@ fn run_send_receive() {
 
 #[cfg(target_os = "none")]
 fn exec_fail() {
+    use m3::errors::Code;
+
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
     // file too small
@@ -67,7 +66,6 @@ fn exec_fail() {
     }
 }
 
-#[cfg(target_os = "none")]
 fn exec_hello() {
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 
@@ -75,7 +73,6 @@ fn exec_hello() {
     assert_eq!(act.wait(), Ok(0));
 }
 
-#[cfg(target_os = "none")]
 fn exec_rust_hello() {
     let mut vpe = assert_ok!(VPE::new_with(VPEArgs::new("test")));
 

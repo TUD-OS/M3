@@ -3,6 +3,7 @@ use cell::RefCell;
 use col::Vec;
 use com::{Sink, VecSink, SliceSource};
 use errors::{Code, Error};
+use io::Serial;
 use rc::Rc;
 use vfs::{File, FileRef, MountTable, RegularFile};
 
@@ -75,6 +76,7 @@ impl FileTable {
             let file_type: u8 = s.pop();
             ft.set(fd, match file_type {
                 b'M' => RegularFile::unserialize(s),
+                b'S' => Serial::unserialize(s),
                 _    => panic!("Unexpected file type {}", file_type),
             });
         }

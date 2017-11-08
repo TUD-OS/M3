@@ -3,8 +3,7 @@ use arch::dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use alloc::boxed::FnBox;
 use boxed::Box;
 use cap::{CapFlags, Capability, Selector};
-use cfg;
-use com::{MemGate, Sink, VecSink};
+use com::MemGate;
 use col::Vec;
 use core::fmt;
 use env;
@@ -160,8 +159,9 @@ impl VPE {
         let env = arch::env::data();
 
         self.pe = env.pedesc().clone();
-        self.next_sel = env.next_sel();
-        self.eps = env.eps();
+        let (caps, eps) = env.load_caps_eps();
+        self.next_sel = caps;
+        self.eps = eps;
         self.rbufs = env.load_rbufs();
         self.pager = env.load_pager();
         // mounts first; files depend on mounts
@@ -367,6 +367,8 @@ impl VPE {
     #[cfg(target_os = "none")]
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
+        use cfg;
+
         let sel = self.sel();
         if let Some(ref mut pg) = self.pager {
             pg.activate(sel)?;
@@ -422,57 +424,43 @@ impl VPE {
 
         let mut closure = env::Closure::new(func);
 
-        unsafe {
-            let mut fds = [0i32; 2];
-            if libc::pipe(fds.as_mut_ptr()) == -1 {
-                return Err(Error::new(Code::InvArgs));
-            }
+        let mut chan = arch::loader::Channel::new()?;
 
-            match libc::fork() {
-                -1  => {
-                    libc::close(fds[0]);
-                    libc::close(fds[1]);
-                    Err(Error::new(Code::OutOfMem))
-                },
+        match unsafe { libc::fork() } {
+            -1  => {
+                Err(Error::new(Code::OutOfMem))
+            },
 
-                0   => {
-                    // child
-                    libc::close(fds[1]);
+            0   => {
+                chan.wait();
 
-                    // wait until parent notifies us
-                    libc::read(fds[0], [0u8; 1].as_mut_ptr() as *mut libc::c_void, 1);
-                    libc::close(fds[0]);
+                arch::env::reinit();
+                arch::env::data().set_vpe(self);
+                ::io::reinit();
+                self::reinit();
+                ::com::reinit();
+                arch::dtu::init();
 
-                    arch::env::reinit();
-                    arch::env::data().set_vpe(self);
-                    ::io::reinit();
-                    self::reinit();
-                    ::com::reinit();
-                    arch::dtu::init();
+                let res = closure.call();
+                unsafe { libc::exit(res) };
+            },
 
-                    let res = closure.call();
-                    libc::exit(res);
-                },
+            pid => {
+                // let the kernel create the config-file etc. for the given pid
+                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
 
-                pid => {
-                    // parent
-                    libc::close(fds[0]);
+                chan.signal();
 
-                    // let the kernel create the config-file etc. for the given pid
-                    syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
-
-                    // notify child; it can start now
-                    libc::write(fds[1], [0u8; 1].as_ptr() as *const libc::c_void, 1);
-                    libc::close(fds[1]);
-
-                    Ok(ClosureActivity::new(self, closure))
-                },
-            }
+                Ok(ClosureActivity::new(self, closure))
+            },
         }
     }
 
     #[cfg(target_os = "none")]
     pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
+        use cfg;
+        use com::{Sink, VecSink};
+
         let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
@@ -533,6 +521,56 @@ impl VPE {
         // go!
         let act = ExecActivity::new(self, file);
         act.start().map(|_| act)
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
+        use com::{Sink, VecSink};
+        use libc;
+
+        let mut file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
+        let path = arch::loader::copy_file(&mut file)?;
+
+        let mut chan = arch::loader::Channel::new()?;
+
+        match unsafe { libc::fork() } {
+            -1  => {
+                Err(Error::new(Code::OutOfMem))
+            },
+
+            0   => {
+                chan.wait();
+
+                let pid = unsafe { libc::getpid() };
+
+                // write sels and EPs
+                let mut other = VecSink::new();
+                other.push(&self.next_sel);
+                other.push(&self.eps);
+                arch::loader::write_env_file(pid, "other", other.words(), other.size());
+
+                // write file table
+                let mut fds = VecSink::new();
+                self.files.serialize(&self.mounts, &mut fds);
+                arch::loader::write_env_file(pid, "fds", fds.words(), fds.size());
+
+                // write mounts table
+                let mut mounts = VecSink::new();
+                self.mounts.serialize(&mut mounts);
+                arch::loader::write_env_file(pid, "ms", mounts.words(), mounts.size());
+
+                arch::loader::exec(args, &path);
+            },
+
+            pid => {
+                // let the kernel create the config-file etc. for the given pid
+                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
+
+                chan.signal();
+
+                Ok(ExecActivity::new(self, BufReader::new(file)))
+            },
+        }
     }
 }
 

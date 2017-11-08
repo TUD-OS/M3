@@ -65,16 +65,18 @@ static void *read_from(const char *suffix, void *dst, size_t &size) {
         read(fd, dst, size);
         unlink(path);
         close(fd);
+        return dst;
     }
-    return dst;
+    return nullptr;
 }
 
 void VPE::init_state() {
-    size_t len = sizeof(_next_sel);
-    read_from("caps", &_next_sel, len);
-
-    len = sizeof(_eps);
-    read_from("eps", &_eps, len);
+    size_t len = 32;
+    unsigned char *buf = new unsigned char[len];
+    if(read_from("other", buf, len)) {
+        Unmarshaller um(buf, len);
+        um >> _next_sel >> _eps;
+    }
 }
 
 void VPE::init_fs() {
@@ -83,14 +85,16 @@ void VPE::init_fs() {
 
     size_t len = STATE_BUF_SIZE;
     char *buf = new char[len];
+
     memset(buf, 0, len);
-    read_from("ms", buf, len);
-    _ms = MountTable::unserialize(buf, len);
+    if(read_from("ms", buf, len))
+        _ms = MountTable::unserialize(buf, len);
 
     len = STATE_BUF_SIZE;
     memset(buf, 0, len);
-    read_from("fds", buf, len);
-    _fds = FileTable::unserialize(buf, len);
+    if(read_from("fds", buf, len))
+        _fds = FileTable::unserialize(buf, len);
+
     delete[] buf;
 }
 
@@ -130,16 +134,19 @@ Errors::Code VPE::run(void *lambda) {
         xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
-        write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
-        write_file(pid, "eps", &_eps, sizeof(_eps));
-
         size_t len = STATE_BUF_SIZE;
-        char *buf = new char[len];
+        unsigned char *buf = new unsigned char[len];
+
+        Marshaller m(buf, len);
+        m << _next_sel << _eps;
+        write_file(pid, "other", buf, m.total());
+
         len = _ms->serialize(buf, len);
         write_file(pid, "ms", buf, len);
 
         len = _fds->serialize(buf, STATE_BUF_SIZE);
         write_file(pid, "fds", buf, len);
+
         delete[] buf;
 
         // notify child; it can start now
@@ -208,16 +215,19 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         xfer_t arg = static_cast<xfer_t>(pid);
         Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
 
-        write_file(pid, "caps", &_next_sel, sizeof(_next_sel));
-        write_file(pid, "eps", &_eps, sizeof(_eps));
-
         size_t len = STATE_BUF_SIZE;
-        char *buf = new char[len];
-        len = _ms->serialize(buf, len);
+        unsigned char *buf = new unsigned char[len];
+
+        Marshaller m(buf, len);
+        m << _next_sel << _eps;
+        write_file(pid, "other", buf, m.total());
+
+        len = _ms->serialize(buf, STATE_BUF_SIZE);
         write_file(pid, "ms", buf, len);
 
         len = _fds->serialize(buf, STATE_BUF_SIZE);
         write_file(pid, "fds", buf, len);
+
         delete[] buf;
 
         // notify child; it can start now

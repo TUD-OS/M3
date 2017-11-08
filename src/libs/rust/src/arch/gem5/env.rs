@@ -55,13 +55,6 @@ impl EnvData {
     pub fn pedesc<'a, 'e : 'a>(&'e self) -> &'a PEDesc {
         &self.pedesc
     }
-    pub fn next_sel(&self) -> Selector {
-        // it's initially 0. make sure it's at least the first usable selector
-        util::max(2, self.caps as Selector)
-    }
-    pub fn eps(&self) -> u64 {
-        self.eps
-    }
 
     pub fn has_vpe(&self) -> bool {
         self.fds != 0
@@ -87,6 +80,14 @@ impl EnvData {
             0 => None,
             s => Some(Pager::new_bind(s, self.pager_sgate, self.pager_rgate)),
         }
+    }
+
+    pub fn load_caps_eps(&self) -> (Selector, u64) {
+        (
+            // it's initially 0. make sure it's at least the first usable selector
+            util::max(2, self.caps as Selector),
+            self.eps
+        )
     }
 
     pub fn load_mounts(&self) -> MountTable {
