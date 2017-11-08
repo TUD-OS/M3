@@ -20,6 +20,7 @@ extern crate alloc;
 extern crate bitflags;
 extern crate compiler_builtins;
 
+// libc
 #[cfg(target_os = "linux")]
 extern crate libc;
 #[cfg(target_os = "none")]
@@ -27,7 +28,15 @@ mod libc {
     pub use arch::libc::*;
 }
 
-use core::intrinsics;
+// init stuff
+#[cfg(target_os = "none")]
+pub use arch::init::env_run;
+#[cfg(target_os = "linux")]
+pub use arch::init::{rust_init, rust_deinit};
+
+// lang stuff
+mod lang;
+pub use lang::rust_begin_panic;
 
 pub mod col {
     pub use alloc::binary_heap::BinaryHeap;
@@ -81,47 +90,3 @@ pub mod vpe;
 mod arch;
 mod backtrace;
 mod cfg;
-
-// TODO use pub(crate) for some things
-
-#[cfg(target_os = "none")]
-pub use arch::init::env_run;
-#[cfg(target_os = "linux")]
-pub use arch::init::{rust_init, rust_deinit};
-
-// These functions are used by the compiler, but not
-// for a bare-bones hello world. These are normally
-// provided by libstd.
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern fn rust_eh_personality() {
-    unsafe { intrinsics::abort() }
-}
-
-// This function may be needed based on the compilation target.
-#[lang = "eh_unwind_resume"]
-#[no_mangle]
-pub extern fn rust_eh_unwind_resume() {
-    unsafe { intrinsics::abort() }
-}
-
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "C" fn _Unwind_Resume() -> ! {
-    unsafe { intrinsics::abort() }
-}
-
-#[lang = "panic_fmt"]
-#[no_mangle]
-pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
-                               file: &'static str,
-                               line: u32,
-                               column: u32) -> ! {
-    use vfs::Write;
-    let l = io::log::Log::get();
-    l.write_fmt(format_args!("PANIC at {}, line {}, column {}: ", file, line, column)).unwrap();
-    l.write_fmt(msg).unwrap();
-    l.write("\n".as_bytes()).unwrap();
-    arch::init::exit(1);
-    unsafe { intrinsics::abort() }
-}
