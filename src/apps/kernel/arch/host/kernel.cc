@@ -65,6 +65,14 @@ static void copyfromfs(MainMemory &mem, const char *file) {
     if(fd < 0)
         PANIC("Opening '" << file << "' for reading failed");
 
+    struct stat info;
+    if(fstat(fd, &info) == -1)
+        PANIC("Stat for '" << file << "' failed");
+    if(info.st_size > FS_MAX_SIZE) {
+        PANIC("Filesystem image (" << file << ") too large"
+         " (max=" << FS_MAX_SIZE << ", size=" << info.st_size << ")");
+    }
+
     MainMemory::Allocation alloc = mem.allocate_at(FS_IMG_OFFSET, FS_MAX_SIZE);
     ssize_t res = read(fd, reinterpret_cast<void*>(alloc.addr), alloc.size);
     if(res == -1)

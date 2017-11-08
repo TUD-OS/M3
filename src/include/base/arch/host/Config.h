@@ -19,7 +19,7 @@
 #define PE_COUNT             18
 #define CAP_TOTAL           128
 
-#define FS_MAX_SIZE         (64 * 1024 * 1024)
+#define FS_MAX_SIZE         (256 * 1024 * 1024)
 #define FS_IMG_OFFSET       0
 
 #define PAGE_BITS           0
