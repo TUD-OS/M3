@@ -367,7 +367,7 @@ impl VPE {
     #[cfg(target_os = "none")]
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
-        use cfg;
+        use arch::cfg;
 
         let sel = self.sel();
         if let Some(ref mut pg) = self.pager {
@@ -458,7 +458,7 @@ impl VPE {
 
     #[cfg(target_os = "none")]
     pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
-        use cfg;
+        use arch::cfg;
         use com::{Sink, VecSink};
 
         let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;

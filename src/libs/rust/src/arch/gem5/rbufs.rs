@@ -1,5 +1,4 @@
-use arch::env;
-use cfg;
+use arch::{cfg, env};
 use errors::{Code, Error};
 use kif::PEDesc;
 

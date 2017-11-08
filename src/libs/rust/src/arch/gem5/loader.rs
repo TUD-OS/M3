@@ -1,4 +1,4 @@
-use cfg;
+use arch::cfg;
 use com::MemGate;
 use col::Vec;
 use core::iter;

@@ -1,4 +1,4 @@
-use cfg;
+use arch::cfg;
 use core::intrinsics;
 use libc;
 use io;

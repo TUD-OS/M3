@@ -20,7 +20,7 @@ pub struct EnvData {
     sysc_crd: u64,
     sysc_lbl: Label,
     sysc_ep: EpId,
-    shm_prefix: String,
+    _shm_prefix: String,
 
     vpe: usize,
 }
@@ -127,7 +127,7 @@ pub fn init(argc: i32, argv: *const *const i8) {
         argv: argv as u64,
         pedesc: PEDesc::new(PEType::COMP_IMEM, PEISA::X86, 1024 * 1024),
 
-        shm_prefix: read_line(fd),
+        _shm_prefix: read_line(fd),
         pe: read_line(fd).parse::<u64>().unwrap(),
         sysc_lbl: read_line(fd).parse::<Label>().unwrap(),
         sysc_ep: read_line(fd).parse::<EpId>().unwrap(),

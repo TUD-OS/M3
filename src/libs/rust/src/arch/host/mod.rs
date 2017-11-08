@@ -1,3 +1,4 @@
+pub mod cfg;
 pub mod dtu;
 pub mod env;
 pub mod init;

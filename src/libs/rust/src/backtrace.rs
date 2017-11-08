@@ -1,4 +1,4 @@
-use cfg;
+use arch::cfg;
 use util;
 
 fn get_bp() -> usize {
