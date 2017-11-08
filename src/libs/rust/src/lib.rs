@@ -84,63 +84,10 @@ mod cfg;
 
 // TODO use pub(crate) for some things
 
-#[cfg(target_os = "linux")]
-#[no_mangle]
-pub extern "C" fn rust_init(argc: i32, argv: *const *const i8) {
-    extern "C" {
-        fn dummy_func();
-    }
-
-    // ensure that host's init library gets linked in
-    unsafe {
-        dummy_func();
-    }
-
-    arch::env::init(argc, argv);
-    heap::init();
-    vpe::init();
-    io::init();
-    com::init();
-    arch::dtu::init();
-}
-
-#[cfg(target_os = "linux")]
-#[no_mangle]
-pub extern "C" fn rust_deinit(status: i32, _arg: *const libc::c_void) {
-    syscalls::exit(status);
-    arch::dtu::deinit();
-}
-
 #[cfg(target_os = "none")]
-extern "C" {
-    fn main() -> i32;
-}
-
-pub fn exit(code: i32) {
-    syscalls::exit(code);
-    #[cfg(target_os = "none")]
-    util::jmp_to(arch::env::data().exit_addr());
-}
-
-#[cfg(target_os = "none")]
-#[no_mangle]
-pub extern fn env_run() {
-    let envdata = arch::env::data();
-    let res = if envdata.has_lambda() {
-        io::reinit();
-        vpe::reinit();
-        com::reinit();
-        arch::env::closure().call()
-    }
-    else {
-        heap::init();
-        vpe::init();
-        io::init();
-        com::init();
-        unsafe { main() }
-    };
-    exit(res)
-}
+pub use arch::init::env_run;
+#[cfg(target_os = "linux")]
+pub use arch::init::{rust_init, rust_deinit};
 
 // These functions are used by the compiler, but not
 // for a bare-bones hello world. These are normally
@@ -175,6 +122,6 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
     l.write_fmt(format_args!("PANIC at {}, line {}, column {}: ", file, line, column)).unwrap();
     l.write_fmt(msg).unwrap();
     l.write("\n".as_bytes()).unwrap();
-    exit(1);
+    arch::init::exit(1);
     unsafe { intrinsics::abort() }
 }
