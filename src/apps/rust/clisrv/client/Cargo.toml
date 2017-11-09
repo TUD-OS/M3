@@ -1,0 +1,10 @@
+[package]
+name = "rustclient"
+version = "0.1.0"
+
+[lib]
+path = "src/rustclient.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+m3 = { path = "../../../../libs/rust" }

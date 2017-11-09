@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "apps/rust/benchs",
+    "apps/rust/clisrv/client",
+    "apps/rust/clisrv/server",
+    "apps/rust/hello",
+    "apps/rust/test",
+    "apps/rust/unittests",
+    "libs/rust",
+]
+
+[profile.release]
+lto = true
+panic = 'abort'
+
+[profile.dev]
+panic = 'abort'

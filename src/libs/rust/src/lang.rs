@@ -15,3 +15,9 @@ pub extern fn rust_begin_panic(msg: fmt::Arguments, file: &'static str, line: u3
     arch::init::exit(1);
     unsafe { intrinsics::abort() }
 }
+
+#[lang = "eh_personality"]
+#[no_mangle]
+pub extern fn rust_eh_personality() {
+    unsafe { intrinsics::abort() }
+}

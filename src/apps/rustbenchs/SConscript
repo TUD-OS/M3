@@ -1,6 +1,0 @@
-Import('env')
-env.RustProgram(
-    env,
-    target = 'rustbenchs',
-    source = [],
-)

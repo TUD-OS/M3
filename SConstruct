@@ -350,7 +350,7 @@ def Cargo(env, target, source):
         )
     )
 
-def RustProgram(env, target, source, libs = []):
+def RustProgram(env, target, libs = []):
     stlib = env.Cargo(
         target = '$RUSTDIR/x86_64-unknown-$ARCH-gnu/$BUILD/lib' + target + '.a',
         source = 'src/' + target + '.rs'
@@ -367,10 +367,10 @@ def RustProgram(env, target, source, libs = []):
     env.Depends(stlib, env.Glob('src/*.rs'))
 
     if env['ARCH'] == 'gem5':
-        sources = [env['LIBDIR'].abspath + '/crt0.o'] + [source]
+        sources = [env['LIBDIR'].abspath + '/crt0.o']
         libs    = ['c', 'heap', 'gcc', target]
     else:
-        sources = [source]
+        sources = []
         libs    = ['c', 'heap', 'gcc', 'host', 'pthread', target]
 
     prog = env.M3Program(

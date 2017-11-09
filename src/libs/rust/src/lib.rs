@@ -36,7 +36,7 @@ pub use arch::init::{rust_init, rust_deinit};
 
 // lang stuff
 mod lang;
-pub use lang::rust_begin_panic;
+pub use lang::{rust_begin_panic, rust_eh_personality};
 
 pub mod col {
     pub use alloc::binary_heap::BinaryHeap;

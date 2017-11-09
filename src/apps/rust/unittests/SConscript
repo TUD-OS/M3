@@ -1,0 +1,2 @@
+Import('env')
+env.RustProgram(env, target = 'rustunittests')
