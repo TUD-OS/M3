@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate m3;
 
+mod bmgate;
 mod bregfile;
 mod bstream;
 mod bsyscall;
@@ -29,6 +30,7 @@ impl Tester for MyTester {
 #[no_mangle]
 pub fn main() -> i32 {
     let mut tester = MyTester {};
+    run_suite!(tester, bmgate::run);
     run_suite!(tester, bregfile::run);
     run_suite!(tester, bstream::run);
     run_suite!(tester, bsyscall::run);
