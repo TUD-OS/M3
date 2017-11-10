@@ -12,7 +12,7 @@ fn read() {
 
     let mut prof = profile::Profiler::new().repeats(2).warmup(1);
 
-    println!("{}", prof.run_with_id(|| {
+    println!("2 MiB file with 8K buf: {}", prof.run_with_id(|| {
         let mut file = assert_ok!(VFS::open("/data/2048k.txt", OpenFlags::R));
         loop {
             let amount = assert_ok!(file.read(&mut buf));
@@ -29,7 +29,7 @@ fn write() {
 
     let mut prof = profile::Profiler::new().repeats(2).warmup(1);
 
-    println!("{}", prof.run_with_id(|| {
+    println!("2 MiB file with 8K buf: {}", prof.run_with_id(|| {
         let mut file = assert_ok!(VFS::open("/newfile",
             OpenFlags::W | OpenFlags::CREATE | OpenFlags::TRUNC));
 
