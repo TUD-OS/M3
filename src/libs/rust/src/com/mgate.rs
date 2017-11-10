@@ -1,6 +1,7 @@
 use arch::dtu;
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
+use core::intrinsics;
 use errors::{Code, Error};
 use kif;
 use kif::INVALID_SEL;
@@ -98,8 +99,10 @@ impl MemGate {
         self.read_bytes(data.as_mut_ptr() as *mut u8, data.len() * util::size_of::<T>(), off)
     }
 
-    pub fn read_obj<T>(&self, data: *mut T, off: usize) -> Result<(), Error> {
-        self.read_bytes(data as *mut u8, util::size_of::<T>(), off)
+    pub fn read_obj<T>(&self, off: usize) -> Result<T, Error> {
+        let mut obj: T = unsafe { intrinsics::uninit() };
+        self.read_bytes(&mut obj as *mut T as *mut u8, util::size_of::<T>(), off)?;
+        Ok(obj)
     }
 
     pub fn read_bytes(&self, mut data: *mut u8, mut size: usize, mut off: usize) -> Result<(), Error> {

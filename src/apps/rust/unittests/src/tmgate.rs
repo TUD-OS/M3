@@ -67,10 +67,9 @@ fn read_write_object() {
 
     let mgate = assert_ok!(MemGate::new(0x1000, Perm::RW));
     let refobj = Test { a: 0x1234, b: 0xF000_F000_AAAA_BBBB, c: true };
-    let mut obj = Test { a: 0, b: 0, c: false };
 
     assert_ok!(mgate.write_obj(&refobj, 0));
-    assert_ok!(mgate.read_obj(&mut obj, 0));
+    let obj: Test = assert_ok!(mgate.read_obj(0));
 
     assert_eq!(refobj, obj);
 }
