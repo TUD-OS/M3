@@ -1,0 +1,37 @@
+#![feature(asm)]
+#![feature(const_fn, const_cell_new)]
+#![feature(core_intrinsics)]
+#![feature(fnbox)]
+#![feature(i128_type)]
+#![feature(offset_to)]
+#![feature(rustc_private)]
+#![feature(trace_macros)]
+
+#![no_std]
+
+#[macro_use]
+extern crate base;
+#[macro_use]
+extern crate bitflags;
+
+// init stuff
+#[cfg(target_os = "none")]
+pub use arch::init::{env_run, exit};
+#[cfg(target_os = "linux")]
+pub use arch::init::{rust_init, rust_deinit, exit};
+
+#[macro_use]
+pub mod io;
+#[macro_use]
+pub mod com;
+
+pub use base::*;
+
+pub mod cap;
+pub mod server;
+pub mod session;
+pub mod syscalls;
+pub mod vfs;
+pub mod vpe;
+
+mod arch;

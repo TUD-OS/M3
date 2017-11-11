@@ -41,11 +41,14 @@ class Env {
 
 public:
     uint64_t pe;
+    PEDesc pedesc;
     uint32_t argc;
     uint64_t argv;
-
     uint64_t sp;
     uint64_t entry;
+    uint64_t heapsize;
+    uint64_t kenv;
+
     uint64_t lambda;
     uint32_t pager_sess;
     uint32_t pager_sgate;
@@ -59,11 +62,8 @@ public:
     uint64_t eps;
     uint64_t caps;
     uint64_t exitaddr;
-    uint64_t heapsize;
 
     uint64_t _backend;
-    uint64_t kenv;
-    PEDesc pedesc;
 
 #if defined(__gem5__)
     uintptr_t isrs;

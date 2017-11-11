@@ -4,9 +4,11 @@ members = [
     "apps/rust/clisrv/client",
     "apps/rust/clisrv/server",
     "apps/rust/hello",
+    "apps/rust/m3fs",
     "apps/rust/test",
     "apps/rust/unittests",
-    "libs/rust",
+    "libs/rustbase",
+    "libs/rustm3",
 ]
 
 [profile.release]

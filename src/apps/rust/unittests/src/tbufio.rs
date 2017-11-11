@@ -1,6 +1,7 @@
 use m3::col::String;
 use m3::test;
-use m3::vfs::{BufReader, BufWriter, OpenFlags, Read, Write, VFS};
+use m3::io::{Read, Write};
+use m3::vfs::{BufReader, BufWriter, OpenFlags, VFS};
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, read_write);

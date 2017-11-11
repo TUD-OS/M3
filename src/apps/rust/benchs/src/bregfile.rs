@@ -1,6 +1,7 @@
+use m3::io::Read;
 use m3::profile;
 use m3::test;
-use m3::vfs::{OpenFlags, Read, VFS};
+use m3::vfs::{OpenFlags, VFS};
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, read);

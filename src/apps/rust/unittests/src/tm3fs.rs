@@ -1,6 +1,7 @@
 use m3::errors::Code;
 use m3::test;
-use m3::vfs::{OpenFlags, Write, VFS};
+use m3::io::Write;
+use m3::vfs::{OpenFlags, VFS};
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, meta_ops);

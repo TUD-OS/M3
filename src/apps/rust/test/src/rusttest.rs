@@ -7,7 +7,7 @@ use m3::com::*;
 use m3::boxed::Box;
 use m3::env;
 use m3::col::*;
-use m3::io;
+use m3::io::*;
 use m3::syscalls;
 use m3::time;
 use m3::vfs::*;
@@ -113,8 +113,8 @@ pub fn main() -> i32 {
 
     let mut name = String::new();
     print!("Please enter your name: ");
-    io::stdout().flush().unwrap();
-    io::stdin().read_line(&mut name).unwrap();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut name).unwrap();
     println!("Thanks, {}!", name);
 
     let mut s: String = format!("my float is {:.3} and my args are", 12.5);

@@ -1,0 +1,14 @@
+[package]
+name = "base"
+version = "0.1.0"
+
+[lib]
+name = "base"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+bitflags = "*"
+compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
+
+[target.x86_64-unknown-host-gnu.dependencies]
+libc = { version = "0.2", default-features = false }

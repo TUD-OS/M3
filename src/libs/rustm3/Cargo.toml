@@ -1,0 +1,11 @@
+[package]
+name = "m3"
+version = "0.1.0"
+
+[lib]
+name = "m3"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+bitflags = "*"
+base = { path = "../rustbase" }

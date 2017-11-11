@@ -1,7 +1,8 @@
 use m3::col::{String, Vec};
 use m3::errors::Code;
 use m3::test;
-use m3::vfs::{FileRef, OpenFlags, Seek, SeekMode, Read, Write, VFS};
+use m3::io::{Read, Write};
+use m3::vfs::{FileRef, OpenFlags, Seek, SeekMode, VFS};
 
 pub fn run(t: &mut test::Tester) {
     run_test!(t, permissions);
