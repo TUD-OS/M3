@@ -23,7 +23,7 @@ pub fn init() {
     dtu::init();
 
     let eps = dtu::ep_regs_addr();
-    syscalls::vpe_ctrl(vpe::VPE::cur().sel(), kif::syscalls::VPEOp::Init, eps as u64).unwrap();
+    syscalls::vpe_ctrl(vpe::VPE::cur().sel(), kif::syscalls::VPEOp::INIT, eps as u64).unwrap();
 }
 
 pub fn deinit() {

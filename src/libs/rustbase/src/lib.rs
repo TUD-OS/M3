@@ -18,6 +18,8 @@ extern crate alloc;
 #[macro_use]
 extern crate bitflags;
 extern crate compiler_builtins;
+// for int_enum!
+pub extern crate core as _core;
 
 // lang stuff
 mod lang;

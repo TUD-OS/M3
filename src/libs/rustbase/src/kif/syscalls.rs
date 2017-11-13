@@ -7,38 +7,40 @@ pub const MAX_STR_SIZE: usize = 32;
 /// The maximum number of arguments for the exchange syscalls
 pub const MAX_EXCHG_ARGS: usize = 8;
 
-pub enum Operation {
-    // sent by the DTU if the PF handler is not reachable
-    Pagefault = 0,
+int_enum! {
+    pub struct Operation : u64 {
+        // sent by the DTU if the PF handler is not reachable
+        const PAGEFAULT         = 0;
 
-    // capability creations
-    CreateSrv,
-    CreateSess,
-    CreateSessAt,
-    CreateRGate,
-    CreateSGate,
-    CreateMGate,
-    CreateMap,
-    CreateVPE,
+        // capability creations
+        const CREATE_SRV        = 1;
+        const CREATE_SESS       = 2;
+        const CREATE_SESS_AT    = 3;
+        const CREATE_RGATE      = 4;
+        const CREATE_SGATE      = 5;
+        const CREATE_MGATE      = 6;
+        const CREATE_MAP        = 7;
+        const CREATE_VPE        = 8;
 
-    // capability operations
-    Activate,
-    VpeCtrl,
-    DeriveMem,
+        // capability operations
+        const ACTIVATE          = 9;
+        const VPE_CTRL          = 10;
+        const DERIVE_MEM        = 11;
 
-    // capability exchange
-    Delegate,
-    Obtain,
-    Exchange,
-    Revoke,
+        // capability exchange
+        const DELEGATE          = 12;
+        const OBTAIN            = 13;
+        const EXCHANGE          = 14;
+        const REVOKE            = 15;
 
-    // forwarding
-    ForwardMsg,
-    ForwardMem,
-    ForwardReply,
+        // forwarding
+        const FORWARD_MSG       = 16;
+        const FORWARD_MEM       = 17;
+        const FORWARD_REPLY     = 18;
 
-    // misc
-    Noop,
+        // misc
+        const NOOP              = 19;
+    }
 }
 
 #[repr(C, packed)]
@@ -146,13 +148,14 @@ pub struct Activate {
     pub addr: u64,
 }
 
-#[derive(Debug)]
-pub enum VPEOp {
-    Init,
-    Start,
-    Yield,
-    Stop,
-    Wait,
+int_enum! {
+    pub struct VPEOp : u64 {
+        const INIT  = 0x0;
+        const START = 0x1;
+        const YIELD = 0x2;
+        const STOP  = 0x3;
+        const WAIT  = 0x4;
+    }
 }
 
 #[repr(C, packed)]

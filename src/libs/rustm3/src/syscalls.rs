@@ -54,7 +54,7 @@ pub fn create_srv(dst: Selector, rgate: Selector, name: &str) -> Result<(), Erro
     );
 
     let mut req = syscalls::CreateSrv {
-        opcode: syscalls::Operation::CreateSrv as u64,
+        opcode: syscalls::Operation::CREATE_SRV.val,
         dst_sel: dst as u64,
         rgate_sel: rgate as u64,
         namelen: name.len() as u64,
@@ -77,7 +77,7 @@ pub fn activate(vpe: Selector, gate: Selector, ep: dtu::EpId, addr: usize) -> Re
     );
 
     let req = syscalls::Activate {
-        opcode: syscalls::Operation::Activate as u64,
+        opcode: syscalls::Operation::ACTIVATE.val,
         vpe_sel: vpe as u64,
         gate_sel: gate as u64,
         ep: ep as u64,
@@ -94,7 +94,7 @@ pub fn create_sess(dst: Selector, name: &str, arg: u64) -> Result<(), Error> {
     );
 
     let mut req = syscalls::CreateSess {
-        opcode: syscalls::Operation::CreateSess as u64,
+        opcode: syscalls::Operation::CREATE_SESS.val,
         dst_sel: dst as u64,
         namelen: name.len() as u64,
         name: unsafe { intrinsics::uninit() },
@@ -117,7 +117,7 @@ pub fn create_sgate(dst: Selector, rgate: Selector, label: dtu::Label, credits: 
     );
 
     let req = syscalls::CreateSGate {
-        opcode: syscalls::Operation::CreateSGate as u64,
+        opcode: syscalls::Operation::CREATE_SGATE.val,
         dst_sel: dst as u64,
         rgate_sel: rgate as u64,
         label: label,
@@ -134,7 +134,7 @@ pub fn create_mgate(dst: Selector, addr: usize, size: usize, perms: Perm) -> Res
     );
 
     let req = syscalls::CreateMGate {
-        opcode: syscalls::Operation::CreateMGate as u64,
+        opcode: syscalls::Operation::CREATE_MGATE.val,
         dst_sel: dst as u64,
         addr: addr as u64,
         size: size as u64,
@@ -151,7 +151,7 @@ pub fn create_rgate(dst: Selector, order: i32, msgorder: i32) -> Result<(), Erro
     );
 
     let req = syscalls::CreateRGate {
-        opcode: syscalls::Operation::CreateRGate as u64,
+        opcode: syscalls::Operation::CREATE_RGATE.val,
         dst_sel: dst as u64,
         order: order as u64,
         msgorder: msgorder as u64,
@@ -168,7 +168,7 @@ pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, rgate: Select
     );
 
     let mut req = syscalls::CreateVPE {
-        opcode: syscalls::Operation::CreateVPE as u64,
+        opcode: syscalls::Operation::CREATE_VPE.val,
         dst_sel: dst as u64,
         mgate_sel: mgate as u64,
         sgate_sel: sgate as u64,
@@ -201,7 +201,7 @@ pub fn derive_mem(dst: Selector, src: Selector, offset: usize, size: usize, perm
     );
 
     let req = syscalls::DeriveMem {
-        opcode: syscalls::Operation::DeriveMem as u64,
+        opcode: syscalls::Operation::DERIVE_MEM.val,
         dst_sel: dst as u64,
         src_sel: src as u64,
         offset: offset as u64,
@@ -219,9 +219,9 @@ pub fn vpe_ctrl(vpe: Selector, op: syscalls::VPEOp, arg: u64) -> Result<i32, Err
     );
 
     let req = syscalls::VPECtrl {
-        opcode: syscalls::Operation::VpeCtrl as u64,
+        opcode: syscalls::Operation::VPE_CTRL.val,
         vpe_sel: vpe as u64,
-        op: op as u64,
+        op: op.val,
         arg: arg as u64,
     };
 
@@ -240,7 +240,7 @@ pub fn exchange(vpe: Selector, own: CapRngDesc, other: Selector, obtain: bool) -
     );
 
     let req = syscalls::Exchange {
-        opcode: syscalls::Operation::Exchange as u64,
+        opcode: syscalls::Operation::EXCHANGE.val,
         vpe_sel: vpe as u64,
         own_crd: own.value(),
         other_sel: other as u64,
@@ -252,13 +252,13 @@ pub fn exchange(vpe: Selector, own: CapRngDesc, other: Selector, obtain: bool) -
 pub fn delegate(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
 
-    exchange_sess(syscalls::Operation::Delegate, sess, crd, sargs, rargs)
+    exchange_sess(syscalls::Operation::DELEGATE, sess, crd, sargs, rargs)
 }
 
 pub fn obtain(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
     log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
 
-    exchange_sess(syscalls::Operation::Obtain, sess, crd, sargs, rargs)
+    exchange_sess(syscalls::Operation::OBTAIN, sess, crd, sargs, rargs)
 }
 
 fn exchange_sess(op: syscalls::Operation, sess: Selector, crd: CapRngDesc,
@@ -267,7 +267,7 @@ fn exchange_sess(op: syscalls::Operation, sess: Selector, crd: CapRngDesc,
     assert!(rargs.len() <= syscalls::MAX_EXCHG_ARGS);
 
     let mut req = syscalls::ExchangeSess {
-        opcode: op as u64,
+        opcode: op.val,
         sess_sel: sess as u64,
         crd: crd.value(),
         argcount: sargs.len() as u64,
@@ -299,7 +299,7 @@ pub fn revoke(vpe: Selector, crd: CapRngDesc, own: bool) -> Result<(), Error> {
     );
 
     let req = syscalls::Revoke {
-        opcode: syscalls::Operation::Revoke as u64,
+        opcode: syscalls::Operation::REVOKE.val,
         vpe_sel: vpe as u64,
         crd: crd.value(),
         own: own as u64,
@@ -316,7 +316,7 @@ pub fn forward_write(mgate: Selector, data: &[u8], off: usize,
     );
 
     let mut req = syscalls::ForwardMem {
-        opcode: syscalls::Operation::ForwardMem as u64,
+        opcode: syscalls::Operation::FORWARD_MEM.val,
         mgate_sel: mgate as u64,
         offset: off as u64,
         flags: (flags | syscalls::ForwardMemFlags::WRITE).bits() as u64,
@@ -338,7 +338,7 @@ pub fn forward_read(mgate: Selector, data: &mut [u8], off: usize,
     );
 
     let req = syscalls::ForwardMem {
-        opcode: syscalls::Operation::ForwardMem as u64,
+        opcode: syscalls::Operation::FORWARD_MEM.val,
         mgate_sel: mgate as u64,
         offset: off as u64,
         flags: flags.bits() as u64,
@@ -361,7 +361,7 @@ pub fn forward_read(mgate: Selector, data: &mut [u8], off: usize,
 
 pub fn noop() -> Result<(), Error> {
     let req = syscalls::Noop {
-        opcode: syscalls::Operation::Noop as u64,
+        opcode: syscalls::Operation::NOOP.val,
     };
     send_receive_result(&req)
 }
@@ -374,9 +374,9 @@ pub fn exit(code: i32) {
     );
 
     let req = syscalls::VPECtrl {
-        opcode: syscalls::Operation::VpeCtrl as u64,
+        opcode: syscalls::Operation::VPE_CTRL.val,
         vpe_sel: 0,
-        op: syscalls::VPEOp::Stop as u64,
+        op: syscalls::VPEOp::STOP.val,
         arg: code as u64,
     };
     send(&req).unwrap();

@@ -16,9 +16,7 @@ int_enum! {
 
 impl fmt::Display for CapRngDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // TODO int_enum! could provide that somehow
-        let ty = if self.cap_type() == CapType::OBJECT { "OBJ" } else { "MAP" };
-        write!(f, "CRD[{}: {}:{}]", ty, self.start(), self.count())
+        write!(f, "CRD[{}: {}:{}]", self.cap_type(), self.start(), self.count())
     }
 }
 

@@ -122,6 +122,15 @@ macro_rules! __int_enum_impl {
                 #[allow(dead_code)]
                 pub const $Flag: $Name = $Name { val: $value };
             )+
+
+            pub fn print(&self, f: &mut $crate::_core::fmt::Formatter) -> $crate::_core::fmt::Result {
+                $(
+                    if self.val == $value {
+                        return f.write_str(stringify!($Flag));
+                    }
+                )+
+                f.write_str("(unknown)")
+            }
         }
 
         impl $crate::serialize::Marshallable for $Name {
@@ -140,6 +149,18 @@ macro_rules! __int_enum_impl {
         impl From<$T> for $Name {
             fn from(val: $T) -> Self {
                 $Name { val: val }
+            }
+        }
+
+        impl $crate::_core::fmt::Debug for $Name {
+            fn fmt(&self, f: &mut $crate::_core::fmt::Formatter) -> $crate::_core::fmt::Result {
+                write!(f, "{}:", self.val)?;
+                self.print(f)
+            }
+        }
+        impl $crate::_core::fmt::Display for $Name {
+            fn fmt(&self, f: &mut $crate::_core::fmt::Formatter) -> $crate::_core::fmt::Result {
+                self.print(f)
             }
         }
     )

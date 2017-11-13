@@ -38,15 +38,15 @@ pub trait Activity {
     fn vpe(&self) -> &VPE;
 
     fn start(&self) -> Result<(), Error> {
-        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::Start, 0).map(|_| ())
+        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::START, 0).map(|_| ())
     }
 
     fn stop(&self) -> Result<(), Error> {
-        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::Stop, 0).map(|_| ())
+        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::STOP, 0).map(|_| ())
     }
 
     fn wait(&self) -> Result<i32, Error> {
-        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::Wait, 0)
+        syscalls::vpe_ctrl(self.vpe().sel(), kif::syscalls::VPEOp::WAIT, 0)
     }
 }
 
@@ -445,7 +445,7 @@ impl VPE {
 
             pid => {
                 // let the kernel create the config-file etc. for the given pid
-                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
+                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::START, pid as u64).unwrap();
 
                 chan.signal();
 
@@ -564,7 +564,7 @@ impl VPE {
 
             pid => {
                 // let the kernel create the config-file etc. for the given pid
-                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::Start, pid as u64).unwrap();
+                syscalls::vpe_ctrl(self.sel(), kif::syscalls::VPEOp::START, pid as u64).unwrap();
 
                 chan.signal();
 
