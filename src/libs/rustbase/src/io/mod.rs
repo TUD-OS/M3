@@ -7,9 +7,9 @@ pub use self::rdwr::{Read, Write, read_object};
 pub use self::serial::Serial;
 
 #[macro_export]
-macro_rules! __log_impl {
-    ($type:tt, $($args:tt)*) => ({
-        if $crate::io::log::$type {
+macro_rules! log_impl {
+    ($type:expr, $($args:tt)*) => ({
+        if $type {
             #[allow(unused_imports)]
             use $crate::io::Write;
             $crate::io::log::Log::get().write_fmt(format_args!($($args)*)).unwrap();
@@ -19,8 +19,8 @@ macro_rules! __log_impl {
 
 #[macro_export]
 macro_rules! log {
-    ($type:tt, $fmt:expr)              => (__log_impl!($type, concat!($fmt, "\n")));
-    ($type:tt, $fmt:expr, $($arg:tt)*) => (__log_impl!($type, concat!($fmt, "\n"), $($arg)*));
+    ($type:tt, $fmt:expr)              => (log_impl!($crate::io::log::$type, concat!($fmt, "\n")));
+    ($type:tt, $fmt:expr, $($arg:tt)*) => (log_impl!($crate::io::log::$type, concat!($fmt, "\n"), $($arg)*));
 }
 
 pub fn init() {
