@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 volatile int wait_for_debugger = 1;
 
@@ -9,7 +10,8 @@ extern "C" void dummy_func() {
 }
 
 extern "C" __attribute__((constructor)) void host_init(int argc, char **argv) {
-    if(getenv("M3_WAIT") != 0) {
+    char *wait;
+    if((wait = getenv("M3_WAIT")) != 0 && strstr(argv[0], wait)) {
         while(wait_for_debugger != 0) {
         }
     }
