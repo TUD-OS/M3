@@ -516,11 +516,12 @@ fn handle_receive(backend: &backend::SocketBackend, ep: EpId) {
     }
 }
 
+static mut BACKEND: Option<backend::SocketBackend> = None;
 static mut RUN: bool = true;
 static mut TID: libc::pthread_t = 0;
 
 extern "C" fn run(_arg: *mut libc::c_void) -> *mut libc::c_void {
-    let backend = backend::SocketBackend::new();
+    let backend = unsafe { BACKEND.as_ref().unwrap() };
 
     while unsafe { ptr::read_volatile(&mut RUN) } {
         if (DTU::get_cmd(CmdReg::CTRL) & Control::START.bits()) != 0 {
@@ -544,6 +545,8 @@ pub fn init() {
     log().init();
 
     unsafe {
+        BACKEND = Some(backend::SocketBackend::new());
+
         let res = libc::pthread_create(&mut TID, ptr::null(), run, ptr::null_mut());
         assert!(res == 0);
     }
@@ -553,5 +556,7 @@ pub fn deinit() {
     unsafe {
         RUN = false;
         assert!(libc::pthread_join(TID, ptr::null_mut()) == 0);
+
+        BACKEND = None;
     }
 }
