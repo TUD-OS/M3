@@ -27,7 +27,7 @@
 #include <assert.h>
 
 // bad place, but prevents circular dependencies of headers
-#define HEAP_SIZE           (1024 * 1024)
+#define HEAP_SIZE           (64 * 1024 * 1024)
 
 // we have no alignment or size requirements here
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
