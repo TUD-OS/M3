@@ -35,7 +35,7 @@ impl RBufSpace {
         Ok(res)
     }
 
-    pub fn free(&mut self, _addr: usize) {
-        // TODO implement me
+    pub fn free(&mut self, addr: usize, _size: usize) {
+        self.bufs.retain(|ref b| b.as_ptr() as usize != addr);
     }
 }

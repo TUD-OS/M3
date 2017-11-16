@@ -313,8 +313,8 @@ impl VPE {
     pub fn alloc_rbuf(&mut self, size: usize) -> Result<usize, Error> {
         self.rbufs.alloc(&self.pe, size)
     }
-    pub fn free_rbuf(&mut self, addr: usize) {
-        self.rbufs.free(addr)
+    pub fn free_rbuf(&mut self, addr: usize, size: usize) {
+        self.rbufs.free(addr, size)
     }
 
     pub fn delegate_obj(&mut self, sel: Selector) -> Result<(), Error> {

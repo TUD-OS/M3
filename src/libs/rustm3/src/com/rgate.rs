@@ -249,7 +249,7 @@ pub fn init() {
 impl ops::Drop for RecvGate {
     fn drop(&mut self) {
         if !(self.free & FreeFlags::FREE_BUF).is_empty() {
-            vpe::VPE::cur().free_rbuf(self.buf);
+            vpe::VPE::cur().free_rbuf(self.buf, 1 << self.order);
         }
         self.deactivate();
     }

@@ -65,7 +65,7 @@ impl RBufSpace {
         }
     }
 
-    pub fn free(&mut self, _addr: usize) {
+    pub fn free(&mut self, _addr: usize, _size: usize) {
         // TODO implement me
     }
 }
