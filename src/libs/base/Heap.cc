@@ -57,17 +57,6 @@ size_t Heap::contiguous_mem() {
     return max;
 }
 
-size_t Heap::free_memory() {
-    size_t total = 0;
-    HeapArea *a = heap_begin;
-    while(a < heap_end) {
-        if(!is_used(a))
-            total += a->next;
-        a = forward(a, a->next & ~HEAP_USED_BITS);
-    }
-    return total;
-}
-
 void Heap::alloc_callback(void *p, size_t size) {
     if(Serial::ready()) {
         uintptr_t addr[6] = {0};

@@ -17,6 +17,7 @@ extern {
     fn heap_set_oom_callback(cb: extern fn(size: usize));
     fn heap_set_dblfree_callback(cb: extern fn(p: *const u8));
 
+    pub fn heap_free_memory() -> usize;
     pub fn heap_used_end() -> usize;
 }
 
@@ -86,6 +87,12 @@ pub fn init() {
         }
         heap_set_dblfree_callback(heap_dblfree_callback);
         heap_set_oom_callback(heap_oom_callback);
+    }
+}
+
+pub fn free_memory() -> usize {
+    unsafe {
+        heap_free_memory()
     }
 }
 

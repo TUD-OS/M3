@@ -114,7 +114,9 @@ public:
     /**
      * @return the total amount of free memory
      */
-    static size_t free_memory();
+    static size_t free_memory() {
+        return heap_free_memory();
+    }
 
     /**
      * @return the end of the heap that is used.

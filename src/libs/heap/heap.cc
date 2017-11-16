@@ -175,6 +175,17 @@ USED void heap_free(void *p) {
     }
 }
 
+size_t heap_free_memory() {
+    size_t total = 0;
+    HeapArea *a = heap_begin;
+    while(a < heap_end) {
+        if(!is_used(a))
+            total += a->next;
+        a = forward(a, a->next & ~HEAP_USED_BITS);
+    }
+    return total;
+}
+
 uintptr_t heap_used_end() {
     HeapArea *last = nullptr;
     HeapArea *a = heap_begin;
