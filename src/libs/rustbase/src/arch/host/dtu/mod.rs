@@ -8,10 +8,10 @@ use util;
 mod backend;
 mod thread;
 
-type PeId       = usize;
 pub type Reg    = u64;
 pub type EpId   = usize;
 pub type Label  = u64;
+pub type PEId   = usize;
 
 const PE_COUNT: usize           = 16;
 const MAX_MSG_SIZE: usize       = 16 * 1024;
@@ -201,7 +201,7 @@ impl DTU {
         Ok(())
     }
 
-    pub fn configure(ep: EpId, lbl: Label, pe: PeId, dst_ep: EpId, crd: u64, msg_order: i32) {
+    pub fn configure(ep: EpId, lbl: Label, pe: PEId, dst_ep: EpId, crd: u64, msg_order: i32) {
         Self::set_ep(ep, EpReg::LABEL, lbl);
         Self::set_ep(ep, EpReg::PE_ID, pe as Reg);
         Self::set_ep(ep, EpReg::EP_ID, dst_ep as Reg);

@@ -57,7 +57,7 @@ impl SocketBackend {
         }
     }
 
-    pub fn send(&self, pe: PeId, ep: EpId, buf: &thread::Buffer) {
+    pub fn send(&self, pe: PEId, ep: EpId, buf: &thread::Buffer) {
         unsafe {
             let sock = &self.eps[pe * EP_COUNT + ep];
             let res = libc::sendto(

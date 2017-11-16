@@ -67,7 +67,7 @@ fn set_bit(mask: Reg, idx: u64, val: bool) -> Reg {
     }
 }
 
-fn prepare_send(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_send(ep: EpId) -> Result<(PEId, EpId), Error> {
     let msg = DTU::get_cmd(CmdReg::ADDR);
     let msg_size = DTU::get_cmd(CmdReg::SIZE) as usize;
     let credits = DTU::get_ep(ep, EpReg::CREDITS) as usize;
@@ -94,10 +94,10 @@ fn prepare_send(ep: EpId) -> Result<(PeId, EpId), Error> {
         &buf.data[0..msg_size].copy_from_slice(util::slice_for(msg as *const u8, msg_size));
     }
 
-    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PeId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
+    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PEId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
 }
 
-fn prepare_reply(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_reply(ep: EpId) -> Result<(PEId, EpId), Error> {
     let src = DTU::get_cmd(CmdReg::ADDR);
     let size = DTU::get_cmd(CmdReg::SIZE) as usize;
     let reply = DTU::get_cmd(CmdReg::OFFSET) as usize;
@@ -130,7 +130,7 @@ fn prepare_reply(ep: EpId) -> Result<(PeId, EpId), Error> {
         &buf.data[0..size].copy_from_slice(util::slice_for(src as *const u8, size));
     }
 
-    Ok((reply_header.pe as PeId, reply_header.rpl_ep as EpId))
+    Ok((reply_header.pe as PEId, reply_header.rpl_ep as EpId))
 }
 
 fn check_rdwr(ep: EpId, read: bool) -> Result<(), Error> {
@@ -157,7 +157,7 @@ fn check_rdwr(ep: EpId, read: bool) -> Result<(), Error> {
     }
 }
 
-fn prepare_read(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_read(ep: EpId) -> Result<(PEId, EpId), Error> {
     check_rdwr(ep, true)?;
 
     let buf = buffer();
@@ -171,10 +171,10 @@ fn prepare_read(ep: EpId) -> Result<(PeId, EpId), Error> {
     data[1] = DTU::get_cmd(CmdReg::LENGTH);
     data[2] = DTU::get_cmd(CmdReg::ADDR);
 
-    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PeId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
+    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PEId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
 }
 
-fn prepare_write(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_write(ep: EpId) -> Result<(PEId, EpId), Error> {
     check_rdwr(ep, false)?;
 
     let buf = buffer();
@@ -197,10 +197,10 @@ fn prepare_write(ep: EpId) -> Result<(PeId, EpId), Error> {
         );
     }
 
-    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PeId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
+    Ok((DTU::get_ep(ep, EpReg::PE_ID) as PEId, DTU::get_ep(ep, EpReg::EP_ID) as EpId))
 }
 
-fn prepare_ack(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_ack(ep: EpId) -> Result<(PEId, EpId), Error> {
     let addr = DTU::get_cmd(CmdReg::OFFSET);
     let buf_addr = DTU::get_ep(ep, EpReg::BUF_ADDR);
     let msg_ord = DTU::get_ep(ep, EpReg::BUF_MSGORDER);
@@ -222,7 +222,7 @@ fn prepare_ack(ep: EpId) -> Result<(PeId, EpId), Error> {
     Ok((0, EP_COUNT))
 }
 
-fn prepare_fetch(ep: EpId) -> Result<(PeId, EpId), Error> {
+fn prepare_fetch(ep: EpId) -> Result<(PEId, EpId), Error> {
     let msgs = DTU::get_ep(ep, EpReg::BUF_MSG_CNT);
     if msgs == 0 {
         return Ok((0, EP_COUNT));
@@ -354,7 +354,7 @@ fn handle_read_cmd(backend: &backend::SocketBackend, ep: EpId) {
     log_dtu!("(read) {} bytes from {:#x}+{:#x} -> {:#x}", length, base, offset - base, dest);
     assert!(length as usize <= MAX_MSG_SIZE - 3 * util::size_of::<u64>());
 
-    let dst_pe = buf.header.pe as PeId;
+    let dst_pe = buf.header.pe as PEId;
     let dst_ep = buf.header.rpl_ep as EpId;
 
     buf.header.opcode = Command::RESP.val as u8;
@@ -401,7 +401,7 @@ fn handle_resp_cmd() {
     DTU::set_cmd(CmdReg::CTRL, resp << 16);
 }
 
-fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PeId, dst_ep: EpId) {
+fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PEId, dst_ep: EpId) {
     let buf = buffer();
 
     log_dtu!(

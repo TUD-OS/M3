@@ -6,6 +6,7 @@ use util;
 pub type Reg    = u64;
 pub type EpId   = usize;
 pub type Label  = u64;
+pub type PEId   = usize;
 
 pub const EP_COUNT: EpId        = 12;
 
