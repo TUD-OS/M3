@@ -78,7 +78,7 @@ int_enum! {
         const INVALID     = 0x0;
         const SEND        = 0x1;
         const RECEIVE     = 0x2;
-        const MEMOR       = 0x3;
+        const MEMORY      = 0x3;
     }
 }
 
