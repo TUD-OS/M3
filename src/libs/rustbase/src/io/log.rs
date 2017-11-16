@@ -47,13 +47,13 @@ impl Log {
         self.buf[self.pos] = c;
         self.pos += 1;
 
-        if c == '\n' as u8 || self.pos + SUFFIX.len() + 1 >= MAX_LINE_LEN {
+        if c == b'\n' || self.pos + SUFFIX.len() + 1 >= MAX_LINE_LEN {
             for i in 0..SUFFIX.len() {
                 self.buf[self.pos] = SUFFIX[i];
                 self.pos += 1;
             }
-            if c != '\n' as u8 {
-                self.buf[self.pos] = '\n' as u8;
+            if c != b'\n' {
+                self.buf[self.pos] = b'\n';
                 self.pos += 1;
             }
 
