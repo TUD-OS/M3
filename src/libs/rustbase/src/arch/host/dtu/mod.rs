@@ -85,6 +85,12 @@ bitflags! {
     }
 }
 
+bitflags! {
+    pub struct CmdFlags : u64 {
+        const NOPF        = 0x1;
+    }
+}
+
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct Header {
@@ -145,11 +151,11 @@ impl DTU {
         Ok(())
     }
 
-    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, _flags: u64) -> Result<(), Error> {
+    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, _flags: CmdFlags) -> Result<(), Error> {
         Self::fire(ep, Command::READ, data, size, off, size, 0, 0)
     }
 
-    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, _flags: u64) -> Result<(), Error> {
+    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, _flags: CmdFlags) -> Result<(), Error> {
         Self::fire(ep, Command::WRITE, data, size, off, size, 0, 0)
     }
 

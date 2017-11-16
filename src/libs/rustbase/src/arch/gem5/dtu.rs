@@ -67,6 +67,12 @@ int_enum! {
     }
 }
 
+bitflags! {
+    pub struct CmdFlags : u64 {
+        const NOPF        = 0x1;
+    }
+}
+
 int_enum! {
     struct EpType : u64 {
         const INVALID     = 0x0;
@@ -124,15 +130,15 @@ impl DTU {
         Self::get_error()
     }
 
-    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, flags: u64) -> Result<(), Error> {
-        let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags, 0);
+    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, flags: CmdFlags) -> Result<(), Error> {
+        let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags.bits(), 0);
         let res = Self::transfer(cmd, data as usize, size, off);
         unsafe { intrinsics::atomic_fence_rel() };
         res
     }
 
-    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, flags: u64) -> Result<(), Error> {
-        let cmd = Self::build_cmd(ep, CmdOpCode::WRITE, flags, 0);
+    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, flags: CmdFlags) -> Result<(), Error> {
+        let cmd = Self::build_cmd(ep, CmdOpCode::WRITE, flags.bits(), 0);
         Self::transfer(cmd, data as usize, size, off)
     }
 

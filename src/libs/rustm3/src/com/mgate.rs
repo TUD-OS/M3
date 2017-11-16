@@ -108,7 +108,7 @@ impl MemGate {
         let ep = self.gate.activate()?;
 
         loop {
-            match dtu::DTU::read(ep, data, size, off, 0) {
+            match dtu::DTU::read(ep, data, size, off, dtu::CmdFlags::empty()) {
                 Ok(_)                                   => return Ok(()),
                 Err(ref e) if e.code() == Code::VPEGone => {
                     // simply retry the write if the forward failed (pagefault)
@@ -133,7 +133,7 @@ impl MemGate {
         let ep = self.gate.activate()?;
 
         loop {
-            match dtu::DTU::write(ep, data, size, off, 0) {
+            match dtu::DTU::write(ep, data, size, off, dtu::CmdFlags::empty()) {
                 Ok(_)                                   => return Ok(()),
                 Err(ref e) if e.code() == Code::VPEGone => {
                     // simply retry the write if the forward failed (pagefault)
