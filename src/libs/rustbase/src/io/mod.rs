@@ -12,7 +12,9 @@ macro_rules! log_impl {
         if $type {
             #[allow(unused_imports)]
             use $crate::io::Write;
-            $crate::io::log::Log::get().write_fmt(format_args!($($args)*)).unwrap();
+            if let Some(l) = $crate::io::log::Log::get() {
+                l.write_fmt(format_args!($($args)*)).unwrap();
+            }
         }
     })
 }

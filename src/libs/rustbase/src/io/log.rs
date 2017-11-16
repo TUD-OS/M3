@@ -24,8 +24,8 @@ pub struct Log {
 }
 
 impl Log {
-    pub fn get() -> &'static mut Log {
-        unsafe { LOG.as_mut().unwrap() }
+    pub fn get() -> Option<&'static mut Log> {
+        unsafe { LOG.as_mut() }
     }
 
     pub fn new() -> Self {
@@ -102,5 +102,5 @@ pub fn init() {
 }
 
 pub fn reinit() {
-    Log::get().init();
+    Log::get().unwrap().init();
 }
