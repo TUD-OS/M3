@@ -17,6 +17,11 @@ extern {
     fn heap_set_oom_callback(cb: extern fn(size: usize));
     fn heap_set_dblfree_callback(cb: extern fn(p: *const u8));
 
+    pub fn heap_alloc(size: usize) -> *mut libc::c_void;
+    pub fn heap_calloc(n: usize, size: usize) -> *mut libc::c_void;
+    pub fn heap_realloc(p: *mut libc::c_void, size: usize) -> *mut libc::c_void;
+    pub fn heap_free(p: *mut libc::c_void);
+
     pub fn heap_free_memory() -> usize;
     pub fn heap_used_end() -> usize;
 }
@@ -116,14 +121,14 @@ extern fn heap_oom_callback(size: usize) {
 pub unsafe extern fn __rdl_alloc(size: usize,
                                  _align: usize,
                                  _err: *mut u8) -> *mut libc::c_void {
-    libc::malloc(size)
+    heap_alloc(size)
 }
 
 #[no_mangle]
 pub unsafe extern fn __rdl_dealloc(ptr: *mut libc::c_void,
                                    _size: usize,
                                    _align: usize) {
-    libc::free(ptr);
+    heap_free(ptr);
 }
 
 #[no_mangle]
@@ -133,14 +138,14 @@ pub unsafe extern fn __rdl_realloc(ptr: *mut libc::c_void,
                                    new_size: usize,
                                    _new_align: usize,
                                    _err: *mut u8) -> *mut libc::c_void {
-    libc::realloc(ptr, new_size)
+    heap_realloc(ptr, new_size)
 }
 
 #[no_mangle]
 pub unsafe extern fn __rdl_alloc_zeroed(size: usize,
                                         _align: usize,
                                         _err: *mut u8) -> *mut libc::c_void {
-    libc::calloc(size, 1)
+    heap_calloc(size, 1)
 }
 
 #[no_mangle]
@@ -161,7 +166,7 @@ pub unsafe extern fn __rdl_alloc_excess(size: usize,
                                         _excess: *mut usize,
                                         _err: *mut u8) -> *mut libc::c_void {
     // TODO is that correct?
-    libc::malloc(size)
+    heap_alloc(size)
 }
 
 #[no_mangle]
@@ -173,7 +178,7 @@ pub unsafe extern fn __rdl_realloc_excess(ptr: *mut libc::c_void,
                                           _excess: *mut usize,
                                           _err: *mut u8) -> *mut libc::c_void {
     // TODO is that correct?
-    libc::realloc(ptr, new_size)
+    heap_realloc(ptr, new_size)
 }
 
 #[no_mangle]

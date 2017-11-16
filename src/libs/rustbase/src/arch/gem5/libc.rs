@@ -11,13 +11,4 @@ pub enum c_void {
 extern {
     pub fn memcpy(dst: *mut c_void, src: *const c_void, len: usize) -> *mut c_void;
     pub fn strlen(s: *const i8) -> usize;
-
-    #[link_name = "heap_alloc"]
-    pub fn malloc(size: usize) -> *mut c_void;
-    #[link_name = "heap_calloc"]
-    pub fn calloc(n: usize, size: usize) -> *mut c_void;
-    #[link_name = "heap_realloc"]
-    pub fn realloc(p: *mut c_void, size: usize) -> *mut c_void;
-    #[link_name = "heap_free"]
-    pub fn free(p: *mut c_void);
 }
