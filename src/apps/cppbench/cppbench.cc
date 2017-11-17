@@ -17,7 +17,9 @@
 #include <base/Common.h>
 #include <base/col/DList.h>
 #include <base/col/SList.h>
+#include <base/col/Treap.h>
 #include <base/util/Profile.h>
+#include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
 
@@ -37,7 +39,14 @@ struct MyDItem : public DListItem {
     uint32_t val;
 };
 
-static void bench_slist_append() {
+struct MyTItem : public TreapNode<MyTItem, uint32_t> {
+    explicit MyTItem(uint32_t _val) : TreapNode(_val), val(_val) {
+    }
+
+    uint32_t val;
+};
+
+NOINLINE static void bench_slist_append() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
         cycles_t start = Profile::start();
@@ -59,7 +68,7 @@ static void bench_slist_append() {
     cout << "[slist] Append 100 elements: " << (total / 10) << "\n";
 }
 
-static void bench_slist_clear() {
+NOINLINE static void bench_slist_clear() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
         SList<MySItem> list;
@@ -79,7 +88,7 @@ static void bench_slist_clear() {
     cout << "[slist] Clear 100-element list: " << (total / 10) << "\n";
 }
 
-static void bench_dlist_append() {
+NOINLINE static void bench_dlist_append() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
         cycles_t start = Profile::start();
@@ -99,7 +108,7 @@ static void bench_dlist_append() {
     cout << "[dlist] Append 100 elements: " << (total / 10) << "\n";
 }
 
-static void bench_dlist_clear() {
+NOINLINE static void bench_dlist_clear() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
         DList<MyDItem> list;
@@ -119,10 +128,80 @@ static void bench_dlist_clear() {
     cout << "[dlist] Clear 100-element list: " << (total / 10) << "\n";
 }
 
+NOINLINE static void bench_treap_append() {
+    cycles_t total = 0;
+    for(int j = 0; j < 10; ++j) {
+        cycles_t start = Profile::start();
+        Treap<MyTItem> list;
+        for(uint32_t i = 0; i < 100; ++i) {
+            list.insert(new MyTItem(i));
+        }
+        cycles_t end = Profile::stop();
+        total += end - start;
+
+        MyTItem *item;
+        while((item = list.remove_root()) != nullptr) {
+            delete item;
+        }
+    }
+
+    cout << "[treap] Insert 100 elements: " << (total / 10) << "\n";
+}
+
+NOINLINE static void bench_treap_find() {
+    cycles_t total = 0;
+    for(int j = 0; j < 10; ++j) {
+        Treap<MyTItem> list;
+        for(uint32_t i = 0; i < 100; ++i) {
+            list.insert(new MyTItem(i));
+        }
+
+        cycles_t start = Profile::start();
+        for(uint32_t i = 0; i < 100; ++i) {
+            MyTItem *item = list.find(i);
+            if(!item || item->val != i)
+                PANIC("Test failed: " << (item ? item->val : 0) << " != " << i);
+        }
+        cycles_t end = Profile::stop();
+        total += end - start;
+
+        MyTItem *item;
+        while((item = list.remove_root()) != nullptr) {
+            delete item;
+        }
+    }
+
+    cout << "[treap] Searching for 100 elements: " << (total / 10) << "\n";
+}
+
+NOINLINE static void bench_treap_clear() {
+    cycles_t total = 0;
+    for(int j = 0; j < 10; ++j) {
+        Treap<MyTItem> list;
+        for(uint32_t i = 0; i < 100; ++i) {
+            list.insert(new MyTItem(i));
+        }
+
+        cycles_t start = Profile::start();
+        MyTItem *item;
+        while((item = list.remove_root()) != nullptr) {
+            delete item;
+        }
+        cycles_t end = Profile::stop();
+        total += end - start;
+    }
+
+    cout << "[treap] Remove 100-element list: " << (total / 10) << "\n";
+}
+
 int main() {
     bench_dlist_append();
     bench_dlist_clear();
     bench_slist_append();
     bench_slist_clear();
+    bench_treap_append();
+    bench_treap_find();
+    bench_treap_clear();
     return 0;
 }
+
