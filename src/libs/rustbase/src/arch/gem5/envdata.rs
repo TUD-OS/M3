@@ -1,64 +1,33 @@
 use core::intrinsics;
-use kif::PEDesc;
 
 #[derive(Default, Copy, Clone)]
 #[repr(C, packed)]
 pub struct EnvData {
-    pe_id: u64,
-    pe_desc: u32,
-    argc: u32,
-    argv: u64,
-    sp: u64,
-    entry: u64,
-    heap_size: u64,
-    _kenv: u64,
-}
+    pub pe_id: u64,
+    pub pe_desc: u32,
+    pub argc: u32,
+    pub argv: u64,
+    pub sp: u64,
+    pub entry: u64,
+    pub heap_size: u64,
+    pub kenv: u64,
 
-impl EnvData {
-    pub fn pe_id(&self) -> u64 {
-        self.pe_id
-    }
-    pub fn set_peid(&mut self, id: u64) {
-        self.pe_id = id;
-    }
+    pub lambda: u64,
+    pub pager_sess: u32,
+    pub pager_sgate: u32,
+    pub pager_rgate: u32,
+    pub mounts_len: u32,
+    pub mounts: u64,
+    pub fds_len: u32,
+    pub fds: u64,
+    pub rbuf_cur: u64,
+    pub rbuf_end: u64,
+    pub eps: u64,
+    pub caps: u64,
+    pub exit_addr: u64,
 
-    pub fn pe_desc(&self) -> PEDesc {
-        PEDesc::new_from(self.pe_desc)
-    }
-    pub fn set_pedesc(&mut self, pe: &PEDesc) {
-        self.pe_desc = pe.value();
-    }
-
-    pub fn argc(&self) -> usize {
-        self.argc as usize
-    }
-    pub fn argv(&self) -> *const *const i8 {
-        self.argv as *const *const i8
-    }
-    pub fn set_argc(&mut self, argc: usize) {
-        self.argc = argc as u32;
-    }
-    pub fn set_argv(&mut self, argv: usize) {
-        self.argv = argv as u64;
-    }
-
-    pub fn sp(&self) -> usize {
-        self.sp as usize
-    }
-    pub fn set_sp(&mut self, sp: usize) {
-        self.sp = sp as u64;
-    }
-
-    pub fn set_entry(&mut self, entry: usize) {
-        self.entry = entry as u64;
-    }
-
-    pub fn heap_size(&self) -> usize {
-        self.heap_size as usize
-    }
-    pub fn set_heap_size(&mut self, size: usize) {
-        self.heap_size = size as u64;
-    }
+    pub _backend: u64,
+    pub _isrs: u64,
 }
 
 pub fn get() -> &'static mut EnvData {

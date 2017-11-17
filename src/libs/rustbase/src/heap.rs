@@ -35,17 +35,18 @@ extern {
 #[cfg(target_os = "none")]
 fn init_heap() {
     use arch;
+    use kif::PEDesc;
 
     unsafe {
         let begin = &_bss_end as *const u8;
         heap_begin = util::round_up(begin as usize, util::size_of::<HeapArea>()) as *mut HeapArea;
 
         let env = arch::envdata::get();
-        let end = if env.heap_size() == 0 {
-            env.pe_desc().mem_size() - cfg::RECVBUF_SIZE_SPM
+        let end = if env.heap_size == 0 {
+            PEDesc::new_from(env.pe_desc).mem_size() - cfg::RECVBUF_SIZE_SPM
         }
         else {
-            util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size() as usize
+            util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size as usize
         };
 
         heap_end = (end as *mut HeapArea).offset(-1);

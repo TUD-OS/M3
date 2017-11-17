@@ -5,7 +5,6 @@ use col::{String, Vec};
 use com::SliceSource;
 use core::intrinsics;
 use dtu::{EpId, Label};
-use envdata;
 use kif::{PEDesc, PEType, PEISA};
 use libc;
 use session::Pager;
@@ -22,8 +21,23 @@ pub struct EnvData {
 }
 
 impl EnvData {
-    pub fn base(&mut self) -> &mut base::envdata::EnvData {
+    fn base(&self) -> &base::envdata::EnvData {
         base::envdata::get()
+    }
+
+    pub fn pe_id(&self) -> u64 {
+        self.base().pe_id
+    }
+
+    pub fn pe_desc(&self) -> PEDesc {
+        PEDesc::new_from(self.base().pe_desc)
+    }
+
+    pub fn argc(&self) -> usize {
+        self.base().argc as usize
+    }
+    pub fn argv(&self) -> *const *const i8 {
+        self.base().argv as *const *const i8
     }
 
     pub fn has_vpe(&self) -> bool {
@@ -133,5 +147,5 @@ pub fn init(argc: i32, argv: *const *const i8) {
 }
 
 pub fn reinit() {
-    init(envdata::get().argc() as i32, envdata::get().argv());
+    init(get().argc() as i32, get().argv());
 }

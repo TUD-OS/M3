@@ -29,14 +29,14 @@ pub struct Args {
 impl Args {
     fn arg(&self, idx: isize) -> &'static str {
         unsafe {
-            let args = arch::envdata::get().argv();
+            let args = arch::envdata::get().argv as *const *const i8;
             let arg = *args.offset(idx);
             util::cstr_to_str(arg)
         }
     }
 
     pub fn len(&self) -> usize {
-        arch::envdata::get().argc()
+        arch::envdata::get().argc as usize
     }
 }
 
@@ -44,7 +44,7 @@ impl iter::Iterator for Args {
     type Item = &'static str;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pos < arch::envdata::get().argc() as isize {
+        if self.pos < arch::envdata::get().argc as isize {
             let arg = self.arg(self.pos);
             self.pos += 1;
             Some(arg)

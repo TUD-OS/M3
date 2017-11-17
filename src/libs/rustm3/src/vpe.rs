@@ -156,7 +156,7 @@ impl VPE {
 
     fn init(&mut self) {
         let env = arch::env::get();
-        self.pe = env.base().pe_desc();
+        self.pe = env.pe_desc();
         let (caps, eps) = env.load_caps_eps();
         self.next_sel = caps;
         self.eps = eps;
@@ -263,7 +263,7 @@ impl VPE {
         self.pe
     }
     pub fn pe_id(&self) -> u64 {
-        arch::env::get().base().pe_id()
+        arch::env::get().pe_id()
     }
     pub fn mem(&self) -> &MemGate {
         &self.mem
@@ -383,10 +383,10 @@ impl VPE {
             );
 
             // copy all regions to child
-            senv.base().set_sp(arch::loader::get_sp());
-            let entry = loader.copy_regions(senv.base().sp())?;
-            senv.base().set_entry(entry);
-            senv.base().set_heap_size(env.base().heap_size());
+            senv.set_sp(arch::loader::get_sp());
+            let entry = loader.copy_regions(senv.sp())?;
+            senv.set_entry(entry);
+            senv.set_heap_size(env.heap_size());
             senv.set_lambda(true);
 
             // store VPE address to reuse it in the child
@@ -401,8 +401,8 @@ impl VPE {
             off += util::size_of_val(&closure);
 
             // write args
-            senv.base().set_argc(env.base().argc());
-            senv.base().set_argv(loader.write_arguments(&mut off, env::args())?);
+            senv.set_argc(env.argc());
+            senv.set_argv(loader.write_arguments(&mut off, env::args())?);
 
             // write start env to PE
             self.mem.write_obj(&senv, cfg::RT_START)?;
@@ -478,13 +478,13 @@ impl VPE {
             );
 
             // load program segments
-            senv.base().set_sp(cfg::STACK_TOP);
-            senv.base().set_entry(loader.load_program(&mut file)?);
+            senv.set_sp(cfg::STACK_TOP);
+            senv.set_entry(loader.load_program(&mut file)?);
 
             // write args
             let mut off = cfg::RT_START + util::size_of_val(&senv);
-            senv.base().set_argc(args.len());
-            senv.base().set_argv(loader.write_arguments(&mut off, args)?);
+            senv.set_argc(args.len());
+            senv.set_argv(loader.write_arguments(&mut off, args)?);
 
             // write file table
             {
@@ -506,11 +506,11 @@ impl VPE {
             senv.set_rbufs(&self.rbufs);
             senv.set_next_sel(self.next_sel);
             senv.set_eps(self.eps);
-            senv.base().set_pedesc(&self.pe());
+            senv.set_pedesc(&self.pe());
 
             if let Some(ref pg) = self.pager {
                 senv.set_pager(pg);
-                senv.base().set_heap_size(cfg::APP_HEAP_SIZE);
+                senv.set_heap_size(cfg::APP_HEAP_SIZE);
             }
 
             // write start env to PE

@@ -31,7 +31,7 @@ impl RBufSpace {
     }
 
     pub fn get_std(&mut self, off: usize, _size: usize) -> usize {
-        let pe = env::get().base().pe_desc();
+        let pe = env::get().pe_desc();
         if pe.has_virtmem() {
             cfg::RECVBUF_SPACE + off
         }

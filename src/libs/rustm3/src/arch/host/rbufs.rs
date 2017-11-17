@@ -1,5 +1,5 @@
+use arch::env;
 use col::Vec;
-use envdata;
 use errors::Error;
 use kif::PEDesc;
 
@@ -25,7 +25,7 @@ impl RBufSpace {
     }
 
     pub fn get_std(&mut self, _off: usize, size: usize) -> usize {
-        self.alloc(&envdata::get().pe_desc(), size).unwrap()
+        self.alloc(&env::get().pe_desc(), size).unwrap()
     }
 
     pub fn alloc(&mut self, _pe: &PEDesc, size: usize) -> Result<usize, Error> {
