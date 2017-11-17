@@ -4,6 +4,8 @@
 extern crate m3;
 
 mod bdlist;
+mod btreap;
+mod btreemap;
 mod bmgate;
 mod bregfile;
 mod bstream;
@@ -33,6 +35,8 @@ impl Tester for MyTester {
 #[no_mangle]
 pub fn main() -> i32 {
     let mut tester = MyTester {};
+    run_suite!(tester, btreap::run);
+    run_suite!(tester, btreemap::run);
     run_suite!(tester, bmgate::run);
     run_suite!(tester, bregfile::run);
     run_suite!(tester, bdlist::run);

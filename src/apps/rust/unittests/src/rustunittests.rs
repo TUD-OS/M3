@@ -13,6 +13,7 @@ mod tmgate;
 mod tregfile;
 mod trgate;
 mod tsgate;
+mod ttreap;
 mod tvpe;
 
 struct MyTester {
@@ -45,6 +46,7 @@ pub fn main() -> i32 {
     run_suite!(tester, tregfile::run);
     run_suite!(tester, trgate::run);
     run_suite!(tester, tsgate::run);
+    run_suite!(tester, ttreap::run);
     run_suite!(tester, tvpe::run);
 
     0

@@ -1,6 +1,8 @@
 mod dlist;
+mod treap;
 
 pub use self::dlist::DList;
+pub use self::treap::Treap;
 
 pub use ::alloc::binary_heap::BinaryHeap;
 pub use ::alloc::btree_map::BTreeMap;
