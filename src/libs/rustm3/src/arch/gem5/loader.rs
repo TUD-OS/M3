@@ -109,16 +109,7 @@ impl<'l> Loader<'l> {
 
     pub fn map_segment(&self, file: &mut BufReader<FileRef>, pager: &Pager,
                        phdr: &elf::Phdr) -> Result<(), Error> {
-        let mut prot = kif::Perm::empty();
-        if (phdr.flags & elf::PF::R.bits()) != 0 {
-            prot |= kif::Perm::R;
-        }
-        if (phdr.flags & elf::PF::W.bits()) != 0 {
-            prot |= kif::Perm::W;
-        }
-        if (phdr.flags & elf::PF::X.bits()) != 0 {
-            prot |= kif::Perm::X;
-        }
+        let prot = kif::Perm::from(elf::PF::from_bits_truncate(phdr.flags));
 
         let size = util::round_up(phdr.memsz, cfg::PAGE_SIZE);
         if phdr.memsz == phdr.filesz {

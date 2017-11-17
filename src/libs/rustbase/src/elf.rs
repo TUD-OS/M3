@@ -1,3 +1,5 @@
+use kif;
+
 const EI_NIDENT: usize = 16;
 
 int_enum! {
@@ -44,4 +46,20 @@ pub struct Phdr {
     pub filesz: usize,
     pub memsz: usize,
     pub align: usize,
+}
+
+impl From<PF> for kif::Perm {
+    fn from(flags: PF) -> Self {
+        let mut prot = kif::Perm::empty();
+        if flags.contains(PF::R) {
+            prot |= kif::Perm::R;
+        }
+        if flags.contains(PF::W) {
+            prot |= kif::Perm::W;
+        }
+        if flags.contains(PF::X) {
+            prot |= kif::Perm::X;
+        }
+        prot
+    }
 }
