@@ -3,14 +3,6 @@ use cfg;
 use errors::{Code, Error};
 use kif::PEDesc;
 
-pub const SYSC_RBUF_ORD: i32        = 9;
-pub const UPCALL_RBUF_ORD: i32      = 9;
-pub const DEF_RBUF_ORD: i32         = 8;
-
-pub const SYSC_RBUF_SIZE: usize     = 1 << SYSC_RBUF_ORD;
-pub const UPCALL_RBUF_SIZE: usize   = 1 << UPCALL_RBUF_ORD;
-pub const DEF_RBUF_SIZE: usize      = 1 << DEF_RBUF_ORD;
-
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct RBufSpace {
@@ -42,7 +34,7 @@ impl RBufSpace {
 
     pub fn alloc(&mut self, pe: &PEDesc, size: usize) -> Result<usize, Error> {
         if self.end == 0 {
-            let buf_sizes = SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
+            let buf_sizes = cfg::SYSC_RBUF_SIZE + cfg::UPCALL_RBUF_SIZE + cfg::DEF_RBUF_SIZE;
             if pe.has_virtmem() {
                 self.cur = cfg::RECVBUF_SPACE + buf_sizes;
                 self.end = cfg::RECVBUF_SPACE + cfg::RECVBUF_SIZE;

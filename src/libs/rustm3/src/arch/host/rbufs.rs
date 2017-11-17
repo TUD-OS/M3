@@ -3,14 +3,6 @@ use col::Vec;
 use errors::Error;
 use kif::PEDesc;
 
-pub const SYSC_RBUF_ORD: i32        = 9;
-pub const UPCALL_RBUF_ORD: i32      = 9;
-pub const DEF_RBUF_ORD: i32         = 8;
-
-pub const SYSC_RBUF_SIZE: usize     = 1 << SYSC_RBUF_ORD;
-pub const UPCALL_RBUF_SIZE: usize   = 1 << UPCALL_RBUF_ORD;
-pub const DEF_RBUF_SIZE: usize      = 1 << DEF_RBUF_ORD;
-
 #[repr(C, packed)]
 #[derive(Debug)]
 pub struct RBufSpace {

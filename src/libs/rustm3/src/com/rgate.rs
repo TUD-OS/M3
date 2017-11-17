@@ -1,4 +1,4 @@
-use arch::rbufs;
+use cfg;
 use cap::{CapFlags, Selector};
 use com::epmux::EpMux;
 use com::gate::Gate;
@@ -234,16 +234,16 @@ pub fn init() {
     let rbufs = vpe::VPE::cur().rbufs();
 
     let mut off = 0;
-    RecvGate::syscall().buf = rbufs.get_std(off, rbufs::SYSC_RBUF_SIZE);
-    RecvGate::syscall().order = util::next_log2(rbufs::SYSC_RBUF_SIZE);
-    off += rbufs::SYSC_RBUF_SIZE;
+    RecvGate::syscall().buf = rbufs.get_std(off, cfg::SYSC_RBUF_SIZE);
+    RecvGate::syscall().order = util::next_log2(cfg::SYSC_RBUF_SIZE);
+    off += cfg::SYSC_RBUF_SIZE;
 
-    RecvGate::upcall().buf = rbufs.get_std(off, rbufs::UPCALL_RBUF_SIZE);
-    RecvGate::upcall().order = util::next_log2(rbufs::UPCALL_RBUF_SIZE);
-    off += rbufs::UPCALL_RBUF_SIZE;
+    RecvGate::upcall().buf = rbufs.get_std(off, cfg::UPCALL_RBUF_SIZE);
+    RecvGate::upcall().order = util::next_log2(cfg::UPCALL_RBUF_SIZE);
+    off += cfg::UPCALL_RBUF_SIZE;
 
-    RecvGate::def().buf = rbufs.get_std(off, rbufs::DEF_RBUF_SIZE);
-    RecvGate::def().order = util::next_log2(rbufs::DEF_RBUF_SIZE);
+    RecvGate::def().buf = rbufs.get_std(off, cfg::DEF_RBUF_SIZE);
+    RecvGate::def().order = util::next_log2(cfg::DEF_RBUF_SIZE);
 }
 
 impl ops::Drop for RecvGate {
