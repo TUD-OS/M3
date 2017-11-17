@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate m3;
 
+mod bdlist;
 mod bmgate;
 mod bregfile;
 mod bstream;
@@ -22,7 +23,9 @@ impl Tester for MyTester {
 
     fn run_test(&mut self, name: &str, f: &Fn()) {
         println!("-- Running benchmark {} ...", name);
+        let free_mem = m3::heap::free_memory();
         f();
+        assert_eq!(m3::heap::free_memory(), free_mem);
         println!("-- Done");
     }
 }
@@ -32,6 +35,7 @@ pub fn main() -> i32 {
     let mut tester = MyTester {};
     run_suite!(tester, bmgate::run);
     run_suite!(tester, bregfile::run);
+    run_suite!(tester, bdlist::run);
     run_suite!(tester, bstream::run);
     run_suite!(tester, bsyscall::run);
 

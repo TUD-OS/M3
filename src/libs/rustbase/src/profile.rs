@@ -57,6 +57,16 @@ pub struct Profiler {
     warmup: u64,
 }
 
+pub trait Runner {
+    fn pre(&mut self) {
+    }
+
+    fn run(&mut self);
+
+    fn post(&mut self) {
+    }
+}
+
 impl Profiler {
     pub fn new() -> Self {
         Profiler {
@@ -85,6 +95,24 @@ impl Profiler {
             let start = time::start(id);
             func();
             let end = time::stop(id);
+
+            if i >= self.warmup {
+                res.push(end - start);
+            }
+        }
+        res
+    }
+
+    pub fn runner_with_id<R: Runner>(&mut self, runner: &mut R, id: u64) -> Results {
+        let mut res = Results::new((self.warmup + self.repeats) as usize);
+        for i in 0..self.warmup + self.repeats {
+            runner.pre();
+
+            let start = time::start(id);
+            runner.run();
+            let end = time::stop(id);
+
+            runner.post();
 
             if i >= self.warmup {
                 res.push(end - start);

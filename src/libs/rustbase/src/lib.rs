@@ -33,16 +33,6 @@ pub mod libc {
     pub use arch::libc::*;
 }
 
-pub mod col {
-    pub use alloc::binary_heap::BinaryHeap;
-    pub use alloc::btree_map::BTreeMap;
-    pub use alloc::btree_set::BTreeSet;
-    pub use alloc::linked_list::LinkedList;
-    pub use alloc::string::{String, ToString};
-    pub use alloc::vec_deque::VecDeque;
-    pub use alloc::vec::Vec;
-}
-
 pub mod boxed {
     pub use alloc::boxed::{Box, FnBox};
 }
@@ -67,6 +57,7 @@ pub mod util;
 pub mod test;
 
 pub mod backtrace;
+pub mod col;
 pub mod elf;
 pub mod env;
 pub mod errors;
