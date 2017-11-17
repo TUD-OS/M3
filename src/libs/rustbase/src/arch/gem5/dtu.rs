@@ -16,25 +16,27 @@ pub const UPCALL_REP: EpId      = 2;
 pub const DEF_REP: EpId         = 3;
 pub const FIRST_FREE_EP: EpId   = 4;
 
-const BASE_ADDR: usize          = 0xF0000000;
-const DTU_REGS: usize           = 8;
+pub const BASE_ADDR: usize      = 0xF0000000;
+pub const DTU_REGS: usize       = 8;
 // const REQ_REGS: usize        = 3;
-const CMD_REGS: usize           = 5;
-const EP_REGS: usize            = 3;
+pub const CMD_REGS: usize       = 5;
+pub const EP_REGS: usize        = 3;
+pub const HEADER_COUNT: usize   = 128;
 
 // actual max is 64k - 1; use less for better alignment
 const MAX_PKT_SIZE: usize       = 60 * 1024;
 
-#[allow(dead_code)]
-enum DtuReg {
-    Features    = 0,
-    RootPt      = 1,
-    PfEp        = 2,
-    VpeId       = 3,
-    CurTime     = 4,
-    IdleTime    = 5,
-    MsgCnt      = 6,
-    ExtCmd      = 7,
+int_enum! {
+    pub struct DtuReg : Reg {
+        const FEATURES    = 0;
+        const ROOT_PT     = 1;
+        const PF_EP       = 2;
+        const VPE_ID      = 3;
+        const CUR_TIME    = 4;
+        const IDLE_TIME   = 5;
+        const MSG_CNT     = 6;
+        const EXT_CMD     = 7;
+    }
 }
 
 #[allow(dead_code)]
@@ -75,7 +77,7 @@ bitflags! {
 }
 
 int_enum! {
-    struct EpType : u64 {
+    pub struct EpType : u64 {
         const INVALID     = 0x0;
         const SEND        = 0x1;
         const RECEIVE     = 0x2;
@@ -83,14 +85,40 @@ int_enum! {
     }
 }
 
+int_enum! {
+    pub struct ExtCmdOpCode : Reg {
+        const IDLE        = 0;
+        const WAKEUP_CORE = 1;
+        const INV_EP      = 2;
+        const INV_PAGE    = 3;
+        const INV_TLB     = 4;
+        const RESET       = 5;
+        const ACK_MSG     = 6;
+    }
+}
+
 #[repr(C, packed)]
-#[derive(Debug)]
-pub struct Header {
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ReplyHeader {
     pub flags: u8,      // if bit 0 is set its a reply, if bit 1 is set we grant credits
     pub sender_pe: u8,
     pub sender_ep: u8,
     pub reply_ep: u8,   // for a normal message this is the reply epId
                         // for a reply this is the enpoint that receives credits
+    pub length: u16,
+    pub sender_vpe_id: u16,
+
+    pub reply_label: u64,
+}
+
+#[repr(C, packed)]
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Header {
+    pub flags: u8,
+    pub sender_pe: u8,
+    pub sender_ep: u8,
+    pub reply_ep: u8,
+
     pub length: u16,
     pub sender_vpe_id: u16,
 
@@ -202,7 +230,7 @@ impl DTU {
 
     pub fn try_sleep(_yield: bool, cycles: u64) -> Result<(), Error> {
         for _ in 0..100 {
-            if Self::read_dtu_reg(DtuReg::MsgCnt) > 0 {
+            if Self::read_dtu_reg(DtuReg::MSG_CNT) > 0 {
                 return Ok(())
             }
         }
@@ -223,7 +251,7 @@ impl DTU {
     }
 
     fn read_dtu_reg(reg: DtuReg) -> Reg {
-        Self::read_reg(reg as usize)
+        Self::read_reg(reg.val as usize)
     }
     fn read_cmd_reg(reg: CmdReg) -> Reg {
         Self::read_reg(DTU_REGS + reg as usize)
@@ -256,5 +284,25 @@ impl DTU {
 
     fn build_cmd(ep: EpId, c: CmdOpCode, flags: Reg, arg: Reg) -> Reg {
         c.val as Reg | ((ep as Reg) << 4) | (flags << 12) | (arg << 16)
+    }
+}
+
+#[cfg(feature = "kernel")]
+impl DTU {
+    pub fn set_ep(ep: EpId, regs: &[Reg]) {
+        let off = DTU_REGS + CMD_REGS + EP_REGS * ep;
+        let addr = (BASE_ADDR + off * 8) as *mut Reg;
+        for i in 0..EP_REGS {
+            unsafe {
+                ptr::write_volatile(addr.offset(i as isize), regs[i]);
+            }
+        }
+    }
+
+    pub fn dtu_reg_addr(reg: DtuReg) -> usize {
+        BASE_ADDR + (reg.val as usize) * 8
+    }
+    pub fn ep_regs_addr(ep: EpId) -> usize {
+        BASE_ADDR + (DTU_REGS + CMD_REGS + EP_REGS * ep) * 8
     }
 }

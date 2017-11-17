@@ -22,6 +22,7 @@ impl Closure {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Args {
     pos: isize,
 }

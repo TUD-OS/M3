@@ -1,13 +1,15 @@
 #![feature(alloc, allocator_internals)]
 #![feature(asm)]
 #![feature(compiler_builtins_lib)]
-#![feature(const_fn, const_cell_new)]
+#![feature(const_fn, const_cell_new, const_max_value)]
 #![feature(core_intrinsics)]
 #![feature(fnbox)]
 #![feature(i128_type)]
 #![feature(lang_items)]
 #![feature(macro_reexport)]
 #![feature(offset_to)]
+#![feature(shared)]
+#![feature(unique)]
 
 #![default_lib_allocator]
 #![no_std]
@@ -68,6 +70,9 @@ pub mod serialize;
 pub mod time;
 
 mod arch;
+mod globaddr;
+
+pub use globaddr::GlobAddr;
 
 pub mod cfg {
     pub use arch::cfg::*;

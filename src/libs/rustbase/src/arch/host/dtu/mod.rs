@@ -16,6 +16,8 @@ pub type PEId   = usize;
 const PE_COUNT: usize           = 16;
 const MAX_MSG_SIZE: usize       = 16 * 1024;
 
+pub const HEADER_COUNT: usize   = usize::max_value();
+
 pub const EP_COUNT: EpId        = 12;
 
 pub const SYSC_SEP: EpId        = 0;
@@ -38,7 +40,7 @@ int_enum! {
 }
 
 int_enum! {
-    struct EpReg : Reg {
+    pub struct EpReg : Reg {
         // receive buffer registers
         const BUF_ADDR      = 0;
         const BUF_ORDER     = 1;
@@ -130,8 +132,8 @@ pub struct Message {
     pub data: [u8],
 }
 
-const CMD_RCNT: usize = 8;
-const EPS_RCNT: usize = 14;
+pub const CMD_RCNT: usize = 8;
+pub const EPS_RCNT: usize = 14;
 
 static mut CMD_REGS: [Reg; CMD_RCNT] = [0; CMD_RCNT];
 static mut EP_REGS: [Reg; EPS_RCNT * EP_COUNT] = [0; EPS_RCNT * EP_COUNT];
@@ -269,6 +271,17 @@ impl DTU {
     fn set_ep(ep: EpId, reg: EpReg, val: Reg) {
         unsafe {
             ptr::write_volatile(&mut EP_REGS[ep * EPS_RCNT + reg.val as usize], val)
+        }
+    }
+}
+
+#[cfg(feature = "kernel")]
+impl DTU {
+    pub fn set_ep_regs(ep: EpId, regs: &[Reg]) {
+        for i in 0..EPS_RCNT {
+            unsafe {
+                ptr::write_volatile(&mut EP_REGS[ep * EPS_RCNT + i], regs[i])
+            }
         }
     }
 }

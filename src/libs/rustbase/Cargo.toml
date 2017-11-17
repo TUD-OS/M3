@@ -12,3 +12,7 @@ compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-built
 
 [target.x86_64-unknown-host-gnu.dependencies]
 libc = { version = "0.2", default-features = false }
+
+[features]
+default = []
+kernel = []

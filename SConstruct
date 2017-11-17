@@ -365,7 +365,11 @@ def RustProgram(env, target, libs = []):
         env.Glob('#src/libs/rust*/src/*/*/*.rs'),
         env.Glob('#src/libs/rust*/src/*/*/*/*.rs'),
     ])
-    env.Depends(stlib, env.Glob('src/*.rs'))
+    env.Depends(stlib, [
+        env.Glob('src/*.rs'),
+        env.Glob('src/*/*.rs'),
+        env.Glob('src/*/*/*.rs'),
+    ])
 
     if env['ARCH'] == 'gem5':
         sources = [env['LIBDIR'].abspath + '/crt0.o']

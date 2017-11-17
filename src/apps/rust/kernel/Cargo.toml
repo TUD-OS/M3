@@ -1,0 +1,11 @@
+[package]
+name = "rustkernel"
+version = "0.1.0"
+
+[lib]
+path = "src/rustkernel.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+base = { path = "../../../libs/rustbase", features = ["kernel"] }
+bitflags = "*"
