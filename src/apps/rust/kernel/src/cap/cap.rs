@@ -30,18 +30,17 @@ impl CapTable {
         self.caps.get_mut(|k| sel.cmp(k))
     }
 
-    pub fn insert(&mut self, mut cap: Capability) {
+    pub fn insert(&mut self, mut cap: Capability) -> &mut Capability {
         unsafe {
             cap.table = Some(as_shared(self));
         }
-        self.caps.insert(cap.sel(), cap);
+        self.caps.insert(cap.sel(), cap)
     }
 
     pub fn obtain(&mut self, sel: CapSel, cap: &mut Capability) {
         let mut nc: Capability = (*cap).clone();
         nc.sel = sel;
-        cap.inherit(&mut nc);
-        self.insert(nc);
+        cap.inherit(self.insert(nc));
     }
 
     pub fn revoke(&mut self, crd: CapRngDesc, own: bool) {
@@ -103,17 +102,16 @@ impl Capability {
         unsafe {
             child.parent = Some(as_shared(self));
             child.child = None;
-            self.child = Some(as_shared(child));
-
             child.next = self.child;
             child.prev = None;
             if let Some(n) = child.next {
                 (*n.as_ptr()).prev = Some(as_shared(child));
             }
+            self.child = Some(as_shared(child));
         }
     }
 
-    pub fn revoke(&mut self, rev_next: bool) {
+    fn revoke(&mut self, rev_next: bool) {
         unsafe {
             if let Some(n) = self.next {
                 (*n.as_ptr()).prev = self.prev;

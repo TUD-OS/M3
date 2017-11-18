@@ -106,7 +106,7 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
-    pub fn insert(&mut self, key: K, value: V) {
+    pub fn insert(&mut self, key: K, value: V) -> &mut V {
         unsafe {
             let mut q = &mut self.root;
             loop {
@@ -156,6 +156,8 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
 
             // fibonacci hashing to spread the priorities very even in the 32-bit room
             self.prio += Wrapping(0x9e3779b9);    // floor(2^32 / phi), with phi = golden ratio
+
+            &mut (*q.unwrap().as_ptr()).value
         }
     }
 
