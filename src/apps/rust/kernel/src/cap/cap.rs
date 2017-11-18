@@ -1,5 +1,6 @@
 use base::col::Treap;
 use base::kif::{CapRngDesc, CapSel};
+use core::fmt;
 use core::ptr::{Shared, Unique};
 
 use cap::KObject;
@@ -60,6 +61,12 @@ impl CapTable {
 
     fn remove(&mut self, sel: CapSel) -> Option<Capability> {
         self.caps.remove(|k| sel.cmp(k))
+    }
+}
+
+impl fmt::Debug for CapTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "CapTable[\n{:?}]", self.caps)
     }
 }
 
@@ -148,5 +155,36 @@ impl Capability {
     }
 
     fn release(&mut self) {
+    }
+}
+
+fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter, layer: u32) -> fmt::Result {
+    use core::fmt::Write;
+    let mut next = Some(cap);
+    loop {
+        match next {
+            None    => return Ok(()),
+            Some(n) => unsafe {
+                f.write_char('\n')?;
+                for _ in 0..layer {
+                    f.write_char(' ')?;
+                }
+                write!(f, "=> {:?}", *n.as_ptr())?;
+                if let Some(c) = (*n.as_ptr()).child {
+                    print_childs(c, f, layer + 1)?;
+                }
+                next = (*n.as_ptr()).next;
+            }
+        }
+    }
+}
+
+impl fmt::Debug for Capability {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Cap[sel={}, obj={:?}]", self.sel(), self.obj)?;
+        if let Some(c) = self.child {
+            print_childs(c, f, 5)?;
+        }
+        Ok(())
     }
 }

@@ -14,6 +14,16 @@ pub enum KObject {
     MGate(Rc<RefCell<MGateObject>>),
 }
 
+impl fmt::Debug for KObject {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            KObject::SGate(ref s) => write!(f, "{:?}", s.borrow()),
+            KObject::RGate(ref r) => write!(f, "{:?}", r.borrow()),
+            KObject::MGate(ref m) => write!(f, "{:?}", m.borrow()),
+        }
+    }
+}
+
 macro_rules! map_enum {
     ($v:expr, $e:ident) => (match $v {
         &KObject::$e(ref r)  => unsafe { Some(&*r.as_ptr()) },
@@ -31,9 +41,22 @@ impl KObject {
     pub fn as_rgate<'r>(&'r self) -> Option<&'r RGateObject> {
         map_enum!(self, RGate)
     }
-
     pub fn as_rgate_mut<'r>(&'r mut self) -> Option<&'r mut RGateObject> {
         map_enum_mut!(self, RGate)
+    }
+
+    pub fn as_sgate<'r>(&'r self) -> Option<&'r SGateObject> {
+        map_enum!(self, SGate)
+    }
+    pub fn as_sgate_mut<'r>(&'r mut self) -> Option<&'r mut SGateObject> {
+        map_enum_mut!(self, SGate)
+    }
+
+    pub fn as_mgate<'r>(&'r self) -> Option<&'r MGateObject> {
+        map_enum!(self, MGate)
+    }
+    pub fn as_mgate_mut<'r>(&'r mut self) -> Option<&'r mut MGateObject> {
+        map_enum_mut!(self, MGate)
     }
 }
 
@@ -83,9 +106,9 @@ impl RGateObject {
 
 impl fmt::Debug for RGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RGateObject[loc=")?;
+        write!(f, "RGate[loc=")?;
         self.print_dest(f)?;
-        write!(f, ", addr={:#x}, size={:#x}, msgsize={:#x}, header={:#x}]",
+        write!(f, ", addr={:#x}, sz={:#x}, msz={:#x}, hd={:#x}]",
             self.addr, self.size(), self.msg_size(), self.header)
     }
 }
@@ -108,9 +131,9 @@ impl SGateObject {
 
 impl fmt::Debug for SGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SGateObject[rgate=")?;
+        write!(f, "SGate[rgate=")?;
         self.rgate.borrow().print_dest(f)?;
-        write!(f, ", label={:#}, credits={}]", self.label, self.credits)
+        write!(f, ", lbl={:#}, crd={}]", self.label, self.credits)
     }
 }
 
@@ -138,7 +161,7 @@ impl MGateObject {
 
 impl fmt::Debug for MGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MGateObject[target=VPE{}:PE{}, addr={:#x}, size={:#x}, perms={:?}, derived={}]",
+        write!(f, "MGate[tgt=VPE{}:PE{}, addr={:#x}, sz={:#x}, perm={:?}, der={}]",
             self.pe, self.vpe, self.addr, self.size, self.perms, self.derived)
     }
 }

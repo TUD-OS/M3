@@ -238,7 +238,7 @@ fn print_rec<K, V>(node: Shared<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Res
                    where K : Copy + PartialOrd + Ord + fmt::Debug, V: fmt::Debug {
     let node_ptr = node.as_ptr();
     unsafe {
-        write!(f, "{:?} -> {:?}\n", (*node_ptr).key, (*node_ptr).value)?;
+        write!(f, "  {:?} -> {:?}\n", (*node_ptr).key, (*node_ptr).value)?;
         if let Some(l) = (*node_ptr).left {
             print_rec(l, f)?;
         }
