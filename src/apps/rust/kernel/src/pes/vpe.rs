@@ -6,7 +6,7 @@ use base::kif::PEDesc;
 use base::rc::{Rc, Weak};
 
 use arch::kdtu;
-use cap::{SGateObject, RGateObject, MGateObject};
+use cap::{CapTable, SGateObject, RGateObject, MGateObject};
 use pes::vpemng;
 use platform;
 
@@ -62,6 +62,7 @@ pub struct VPE {
     state: State,
     name: String,
     flags: VPEFlags,
+    obj_caps: CapTable,
     eps_addr: usize,
     args: Vec<String>,
     req: Vec<String>,
@@ -79,6 +80,7 @@ impl VPE {
             state: State::DEAD,
             name: name.to_string(),
             flags: flags,
+            obj_caps: CapTable::new(),
             eps_addr: 0,
             args: Vec::new(),
             req: Vec::new(),
@@ -159,6 +161,13 @@ impl VPE {
     }
     pub fn requirements(&self) -> &Vec<String> {
         &self.req
+    }
+
+    pub fn obj_caps(&self) -> &CapTable {
+        &self.obj_caps
+    }
+    pub fn obj_caps_mut(&mut self) -> &mut CapTable {
+        &mut self.obj_caps
     }
 
     pub fn state(&self) -> State {

@@ -58,7 +58,7 @@ impl Loader {
         let path = format!("/tmp/m3/{}\0", pid);
         let data = format!(
             "{}\n{}\n{}\n{}\n{}\n",
-            "",     // TODO SHM prefix
+            "foo",  // TODO SHM prefix
             pe,
             id,
             0,      // TODO syscall EP

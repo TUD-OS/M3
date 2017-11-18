@@ -1,4 +1,5 @@
 #![feature(core_intrinsics)]
+#![feature(shared, unique)]
 
 #![no_std]
 

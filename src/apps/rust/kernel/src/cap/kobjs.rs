@@ -7,6 +7,36 @@ use core::fmt;
 use pes::{INVALID_VPE, VPEId};
 use pes::vpemng;
 
+#[derive(Clone)]
+pub enum KObject {
+    RGate(Rc<RefCell<RGateObject>>),
+    SGate(Rc<RefCell<SGateObject>>),
+    MGate(Rc<RefCell<MGateObject>>),
+}
+
+macro_rules! map_enum {
+    ($v:expr, $e:ident) => (match $v {
+        &KObject::$e(ref r)  => unsafe { Some(&*r.as_ptr()) },
+        _                    => None,
+    })
+}
+macro_rules! map_enum_mut {
+    ($v:expr, $e:ident) => (match $v {
+        &mut KObject::$e(ref mut r) => unsafe { Some(&mut *r.as_ptr()) },
+        _                           => None,
+    })
+}
+
+impl KObject {
+    pub fn as_rgate<'r>(&'r self) -> Option<&'r RGateObject> {
+        map_enum!(self, RGate)
+    }
+
+    pub fn as_rgate_mut<'r>(&'r mut self) -> Option<&'r mut RGateObject> {
+        map_enum_mut!(self, RGate)
+    }
+}
+
 pub struct RGateObject {
     pub vpe: VPEId,
     pub ep: Option<EpId>,
