@@ -1,5 +1,6 @@
 use boxed::Box;
 use core::cmp::Ordering;
+use core::fmt;
 use core::mem;
 use core::num::Wrapping;
 use core::ptr::Shared;
@@ -228,5 +229,29 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
 impl<K : Copy + PartialOrd + Ord, V> Drop for Treap<K, V> {
     fn drop(&mut self) {
         self.clear();
+    }
+}
+
+fn print_rec<K, V>(node: Shared<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Result
+                   where K : Copy + PartialOrd + Ord + fmt::Debug, V: fmt::Debug {
+    let node_ptr = node.as_ptr();
+    unsafe {
+        write!(f, "{:?} -> {:?}\n", (*node_ptr).key, (*node_ptr).value)?;
+        if let Some(l) = (*node_ptr).left {
+            print_rec(l, f)?;
+        }
+        if let Some(r) = (*node_ptr).right {
+            print_rec(r, f)?;
+        }
+        Ok(())
+    }
+}
+
+impl<K : Copy + PartialOrd + Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for Treap<K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.root {
+            Some(r) => print_rec(r, f),
+            None    => Ok(())
+        }
     }
 }
