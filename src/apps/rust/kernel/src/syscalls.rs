@@ -12,6 +12,27 @@ use mem;
 use pes::{INVALID_VPE, vpemng};
 use pes::VPE;
 
+macro_rules! sysc_log {
+    ($vpe:expr, $fmt:tt, $($args:tt)*) => (
+        klog!(
+            SYSC,
+            concat!("{}:{}@{}: syscall::", $fmt),
+            $vpe.borrow().id(), $vpe.borrow().name(), $vpe.borrow().pe_id(), $($args)*
+        )
+    )
+}
+
+macro_rules! sysc_err {
+    ($vpe:expr, $e:expr, $fmt:tt, $($args:tt)*) => ({
+        klog!(
+            ERR,
+            concat!("\x1B[37;41m{}:{}@{}: ", $fmt, "\x1B[0m"),
+            $vpe.borrow().id(), $vpe.borrow().name(), $vpe.borrow().pe_id(), $($args)*
+        );
+        return Err(Error::new($e));
+    })
+}
+
 fn get_message<R: 'static>(msg: &'static dtu::Message) -> &'static R {
     let data: &[R] = unsafe { intrinsics::transmute(&msg.data) };
     &data[0]
@@ -20,6 +41,17 @@ fn get_message<R: 'static>(msg: &'static dtu::Message) -> &'static R {
 fn reply<T>(msg: &'static dtu::Message, rep: *const T) {
     dtu::DTU::reply(0, rep as *const u8, util::size_of::<T>(), msg)
         .expect("Reply failed");
+}
+
+fn reply_result(msg: &'static dtu::Message, code: u64) {
+    let rep = kif::syscalls::DefaultReply {
+        error: code,
+    };
+    reply(msg, &rep);
+}
+
+fn reply_success(msg: &'static dtu::Message) {
+    reply_result(msg, 0);
 }
 
 pub fn handle(msg: &'static dtu::Message) {
@@ -34,10 +66,7 @@ pub fn handle(msg: &'static dtu::Message) {
     };
 
     if let Err(e) = res {
-        let rep = kif::syscalls::DefaultReply {
-            error: e.code() as u64,
-        };
-        reply(msg, &rep);
+        reply_result(msg, e.code() as u64);
     }
 }
 
@@ -48,29 +77,27 @@ fn create_mgate(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     let size = req.size as usize;
     let perms = kif::Perm::from_bits_truncate(req.perms as u8);
 
-    klog!(SYSC, "{}:{}@{}: syscall::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
-        vpe.borrow().id(), vpe.borrow().name(), vpe.borrow().pe_id(),
-        dst_sel, addr, size, perms);
+    sysc_log!(
+        vpe, "create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
+        dst_sel, addr, size, perms
+    );
 
     if !vpe.borrow().obj_caps().unused(dst_sel) {
-        return Err(Error::new(Code::InvArgs));
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
     }
     if size == 0 || (size & kif::Perm::RWX.bits() as usize) != 0 || perms.is_empty() {
-        return Err(Error::new(Code::InvArgs));
+        sysc_err!(vpe, Code::InvArgs, "Invalid size or permissions",);
     }
 
     let alloc = mem::get().allocate(size, cfg::PAGE_SIZE)?;
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::MGate(MGateObject::new(
-            alloc.global().pe(), INVALID_VPE, alloc.global().offset(), alloc.size(), perms)
-        ))
+            alloc.global().pe(), INVALID_VPE, alloc.global().offset(), alloc.size(), perms
+        )))
     );
 
-    let rep = kif::syscalls::DefaultReply {
-        error: 0,
-    };
-    reply(msg, &rep);
+    reply_success(msg);
     Ok(())
 }
 
@@ -80,9 +107,10 @@ fn vpectrl(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
     let op = kif::syscalls::VPEOp::from(req.op);
     let arg = req.arg;
 
-    klog!(SYSC, "{}:{}@{}: syscall::vpectrl(vpe={}, op={:?}, arg={:#x})",
-        vpe.borrow().id(), vpe.borrow().name(), vpe.borrow().pe_id(),
-        vpe_sel, op, arg);
+    sysc_log!(
+        vpe, "vpectrl(vpe={}, op={:?}, arg={:#x})",
+        vpe_sel, op, arg
+    );
 
     match op {
         kif::syscalls::VPEOp::INIT  => vpe.borrow_mut().set_eps_addr(arg as usize),
@@ -93,10 +121,7 @@ fn vpectrl(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
         _                           => panic!("VPEOp unsupported: {:?}", op),
     }
 
-    let rep = kif::syscalls::DefaultReply {
-        error: 0,
-    };
-    reply(msg, &rep);
+    reply_success(msg);
     Ok(())
 }
 
@@ -106,20 +131,18 @@ fn revoke(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error
     let crd = CapRngDesc::new_from(req.crd);
     let own = req.own == 1;
 
-    klog!(SYSC, "{}:{}@{}: syscall::revoke(vpe={}, crd={}, own={})",
-        vpe.borrow().id(), vpe.borrow().name(), vpe.borrow().pe_id(),
-        vpe_sel, crd, own);
+    sysc_log!(
+        vpe, "revoke(vpe={}, crd={}, own={})",
+        vpe_sel, crd, own
+    );
 
     if crd.cap_type() == CapType::OBJECT && crd.start() < 2 {
-        return Err(Error::new(Code::InvArgs));
+        sysc_err!(vpe, Code::InvArgs, "Cap 0 and 1 are not revokeable",);
     }
 
     // TODO use vpe_sel
     vpe.borrow_mut().obj_caps_mut().revoke(crd, own);
 
-    let rep = kif::syscalls::DefaultReply {
-        error: 0,
-    };
-    reply(msg, &rep);
+    reply_success(msg);
     Ok(())
 }

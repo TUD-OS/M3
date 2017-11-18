@@ -1,4 +1,5 @@
 pub static DEF: bool    = true;
+pub static ERR: bool    = true;
 pub static EPS: bool    = true;
 pub static SYSC: bool   = true;
 pub static KENV: bool   = true;
