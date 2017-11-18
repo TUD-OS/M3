@@ -41,7 +41,7 @@ impl State {
 
     pub fn config_send(&mut self, ep: EpId, lbl: Label, pe: PEId, vpe: VPEId,
                        dst_ep: EpId, msg_size: usize, credits: u64) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[0] = (EpType::SEND.val << 61) |
                   ((vpe as Reg & 0xFFFF) << 16) |
                   (msg_size as Reg & 0xFFFF);
@@ -53,7 +53,7 @@ impl State {
     }
 
     pub fn config_recv(&mut self, ep: EpId, buf: usize, ord: i32, msg_ord: i32, header: usize) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         let buf_size = 1 << (ord - msg_ord);
         let msg_size = 1 << msg_ord;
         regs[0] = (EpType::RECEIVE.val << 61) |
@@ -65,7 +65,7 @@ impl State {
     }
 
     pub fn config_mem(&mut self, ep: EpId, pe: PEId, vpe: VPEId, addr: usize, size: usize, perm: Perm) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[0] = (EpType::MEMORY.val << 61) |
                   (size & 0x1FFF_FFFF_FFFF_FFFF) as Reg;
         regs[1] = addr as Reg;
@@ -129,7 +129,7 @@ impl KDTU {
     }
 
     fn do_set_vpe_id(&mut self, vpe: &VPEDesc, nid: VPEId) -> Result<(), Error> {
-        let vpe_id: Reg = nid as Reg;
+        let vpe_id = nid as Reg;
         self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &vpe_id as *const Reg as *const u8, 8)
     }
 

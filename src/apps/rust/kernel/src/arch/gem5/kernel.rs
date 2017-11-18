@@ -34,8 +34,6 @@ pub extern "C" fn env_run() {
         }
     }
 
-    klog!(DEF, "Hello World!");
-
     KDTU::init();
     platform::init();
     loader::init();
@@ -51,11 +49,14 @@ pub extern "C" fn env_run() {
 
     vpemng.start(args).expect("init failed");
 
+    klog!(DEF, "Kernel is ready!");
+
     while vpemng.count() > 0 {
         if let Some(msg) = dtu::DTU::fetch_msg(0) {
             syscalls::handle(msg);
         }
     }
 
+    klog!(DEF, "Shutting down");
     exit(0);
 }

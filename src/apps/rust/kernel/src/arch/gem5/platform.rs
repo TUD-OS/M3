@@ -25,7 +25,7 @@ pub fn init() -> platform::KEnv {
     );
 
     let mut count = 0;
-    let mem = mem::get();
+    let mem: &mut mem::MainMemory = mem::get();
     for i in 0..kenv.pe_count as usize {
         let pedesc = PEDesc::new_from(kenv.pes[i]);
         if pedesc.pe_type() == PEType::MEM {

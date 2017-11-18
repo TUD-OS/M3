@@ -39,7 +39,7 @@ impl MemMap {
     pub fn allocate(&mut self, size: usize, align: usize) -> Result<usize, Error> {
         // find an area with sufficient space
         let mut it = self.areas.iter_mut();
-        let a = loop {
+        let a: Option<&mut Area> = loop {
             match it.next() {
                 None    => break None,
                 Some(a) => {
@@ -80,7 +80,7 @@ impl MemMap {
     pub fn free(&mut self, addr: usize, size: usize) {
         // find the area behind ours
         let mut it = self.areas.iter_mut();
-        let n = loop {
+        let n: Option<&mut Area> = loop {
             match it.next() {
                 None    => break None,
                 Some(n) => if addr <= n.addr { break Some(n) },
@@ -88,7 +88,7 @@ impl MemMap {
         };
 
         let res = {
-            let p = it.peek_prev();
+            let p: Option<&mut Area> = it.peek_prev();
             match (p, n) {
                 // merge with prev and next
                 (Some(ref mut p), Some(ref n)) if p.addr + p.size == addr && addr + size == n.addr => {

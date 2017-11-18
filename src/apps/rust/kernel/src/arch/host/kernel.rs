@@ -48,14 +48,14 @@ pub fn main() -> i32 {
         }
     }
 
+    unsafe {
+        libc::mkdir("/tmp/m3\0".as_ptr() as *const i8, 0o755);
+    }
+
     mem::init();
     KDTU::init();
     platform::init();
     pes::vpemng::init();
-
-    unsafe {
-        libc::mkdir("/tmp/m3\0".as_ptr() as *const i8, 0o755);
-    }
 
     let rbuf = vec![0u8; 512 * 32];
     dtu::DTU::configure_recv(0, rbuf.as_ptr() as usize, 14, 9);
@@ -65,11 +65,14 @@ pub fn main() -> i32 {
     args.next();
     vpemng.start(args).expect("init failed");
 
+    klog!(DEF, "Kernel is ready!");
+
     while vpemng.count() > 0 {
         if let Some(msg) = dtu::DTU::fetch_msg(0) {
             syscalls::handle(msg);
         }
     }
 
+    klog!(DEF, "Shutting down");
     0
 }

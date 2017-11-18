@@ -20,7 +20,7 @@ impl Loader {
         }
     }
 
-    pub fn load_app(&mut self, mut vpe: RefMut<VPE>) -> Result<i32, Error> {
+    pub fn load_app(&mut self, vpe: RefMut<VPE>) -> Result<i32, Error> {
         let pid = unsafe { libc::fork() };
         match pid {
             -1  => Err(Error::new(Code::OutOfMem)),

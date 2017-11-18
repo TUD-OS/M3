@@ -197,12 +197,11 @@ impl VPE {
         let rgate = obj.rgate.borrow();
         assert!(rgate.activated());
 
-        let pe = vpemng::get().pe_of(rgate.vpe).unwrap();
-
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
 
+        let pe_id = vpemng::get().pe_of(rgate.vpe).unwrap();
         self.dtu_state.config_send(
-            ep, obj.label, pe, rgate.vpe, rgate.ep.unwrap(), rgate.msg_size(), obj.credits
+            ep, obj.label, pe_id, rgate.vpe, rgate.ep.unwrap(), rgate.msg_size(), obj.credits
         );
         self.update_ep(ep);
     }

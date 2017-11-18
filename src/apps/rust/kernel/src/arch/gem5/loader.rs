@@ -69,7 +69,7 @@ pub fn init() {
     }
 
     for i in platform::pes() {
-        let desc = platform::pe_desc(i);
+        let desc: kif::PEDesc = platform::pe_desc(i);
         klog!(KENV,
             "PE{:02}: {} {} {} KiB memory",
             i, desc.pe_type(), desc.isa(), desc.mem_size() / 1024
@@ -216,7 +216,7 @@ impl Loader {
 
         if self.idles[pe].is_none() {
             let (phys, size) = {
-                let (rctmux, _) = self.get_mod(&["rctmux".to_string()]).unwrap();
+                let rctmux: &BootModule = self.get_mod(&["rctmux".to_string()]).unwrap().0;
 
                 // copy the ELF file
                 let size = util::round_up(rctmux.size as usize, PAGE_SIZE);
@@ -240,7 +240,7 @@ impl Loader {
         }
 
         // load idle
-        let idle = self.idles[pe].as_ref().unwrap();
+        let idle: &BootModule = self.idles[pe].as_ref().unwrap();
         self.load_mod(vpe, idle, false, false)
     }
 
@@ -282,13 +282,13 @@ impl Loader {
 
         self.map_idle(&vpe)?;
 
-        let entry = {
+        let entry: usize = {
             let (app, first) = self.get_mod(vpe.args()).ok_or(Error::new(Code::NoSuchFile))?;
             klog!(KENV, "Loading mod '{}':", app.name());
             self.load_mod(&vpe, app, !first, true)?
         };
 
-        let argv_off = Self::write_arguments(vpe.desc(), vpe.args())?;
+        let argv_off: usize = Self::write_arguments(vpe.desc(), vpe.args())?;
 
         // build env
         let mut senv = envdata::EnvData::default();

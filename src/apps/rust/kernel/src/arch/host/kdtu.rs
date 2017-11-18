@@ -1,9 +1,11 @@
+use base::cell::RefCell;
 use base::dtu::*;
 use base::errors::{Code, Error};
 use base::kif::Perm;
+use base::rc::Rc;
 use base::util;
 
-use pes::{INVALID_VPE, VPEId, VPEDesc};
+use pes::{INVALID_VPE, VPE, VPEId, VPEDesc};
 use pes::vpemng;
 
 pub struct State {
@@ -28,7 +30,7 @@ impl State {
 
     pub fn config_send(&mut self, ep: EpId, lbl: Label, pe: PEId, _vpe: VPEId,
                        dst_ep: EpId, msg_size: usize, credits: u64) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[EpReg::LABEL.val as usize] = lbl;
         regs[EpReg::PE_ID.val as usize] = pe as Reg;
         regs[EpReg::EP_ID.val as usize] = dst_ep as Reg;
@@ -37,7 +39,7 @@ impl State {
     }
 
     pub fn config_recv(&mut self, ep: EpId, buf: usize, ord: i32, msg_ord: i32, _header: usize) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[EpReg::BUF_ADDR.val as usize]       = buf as Reg;
         regs[EpReg::BUF_ORDER.val as usize]      = ord as Reg;
         regs[EpReg::BUF_MSGORDER.val as usize]   = msg_ord as Reg;
@@ -49,7 +51,7 @@ impl State {
     }
 
     pub fn config_mem(&mut self, ep: EpId, pe: PEId, _vpe: VPEId, addr: usize, size: usize, perm: Perm) {
-        let regs = self.get_ep_mut(ep);
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
         assert!((addr & perm.bits() as usize) == 0);
         regs[EpReg::LABEL.val as usize]         = (addr | perm.bits() as usize) as Reg;
         regs[EpReg::PE_ID.val as usize]         = pe as Reg;
@@ -132,7 +134,7 @@ impl KDTU {
     }
 
     pub fn write_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId, regs: &[Reg]) -> Result<(), Error> {
-        let vpeobj = vpemng::get().vpe(vpe.vpe()).unwrap();
+        let vpeobj: Rc<RefCell<VPE>> = vpemng::get().vpe(vpe.vpe()).unwrap();
         let eps = vpeobj.borrow().eps_addr();
         let addr = eps + ep * EPS_RCNT * util::size_of::<Reg>();
         self.try_write_mem(vpe, addr, regs.as_ptr() as *const u8, EPS_RCNT * util::size_of::<Reg>())
