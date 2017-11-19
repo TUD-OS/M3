@@ -5,7 +5,7 @@ use base::libc;
 use base::util;
 
 use arch::platform;
-use pes::{INVALID_VPE, VPEId, VPEDesc};
+use pes::{VPEId, VPEDesc};
 use pes::rctmux;
 use pes::vpemng;
 
@@ -74,6 +74,20 @@ impl State {
                   (perm.bits() & 0x7) as Reg;
     }
 
+    pub fn invalidate(&mut self, ep: EpId, check: bool) -> Result<(), Error> {
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
+        if check && (regs[0] >> 61) == EpType::SEND.val {
+            if (regs[1] >> 16) & 0xFFFF != (regs[1] & 0xFFFF) {
+                return Err(Error::new(Code::InvArgs));
+            }
+        }
+
+        regs[0] = 0;
+        regs[1] = 0;
+        regs[2] = 0;
+        Ok(())
+    }
+
     pub fn restore(&mut self, vpe: &VPEDesc, vpe_id: VPEId) {
         // TODO copy the receive buffers back to the SPM
 
@@ -87,9 +101,12 @@ impl State {
         KDTU::get().try_write_mem(vpe, BASE_ADDR, self.dtu.as_mut_ptr() as *mut u8, size).unwrap();
 
         // restore headers (we've already set the VPE id)
-        KDTU::get().try_write_mem(&VPEDesc::new(vpe.pe(), vpe_id),
-                              BASE_ADDR + size, self.header.as_mut_ptr() as *mut u8,
-                              util::size_of_val(&self.header)).unwrap();
+        let ep = KDTU::get().ep;
+        let hdr_size = util::size_of_val(&self.header);
+        KDTU::get().state.config_mem(ep, vpe.pe_id(), vpe_id, BASE_ADDR + size, hdr_size, Perm::W);
+        KDTU::get().write_ep_local(ep);
+
+        DTU::write(ep, self.header.as_mut_ptr() as *mut u8, hdr_size, 0, CmdFlags::NOPF).unwrap();
     }
 
     pub fn reset(&mut self) {
@@ -117,7 +134,7 @@ impl KDTU {
 
         // set our own VPE id
         Self::get().do_set_vpe_id(
-            &VPEDesc::new(platform::kernel_pe(), INVALID_VPE),
+            &VPEDesc::new_mem(platform::kernel_pe()),
             vpemng::KERNEL_VPE
         ).unwrap();
     }
@@ -137,30 +154,35 @@ impl KDTU {
         DTU::set_ep(ep, self.state.get_ep(ep));
     }
 
+    pub fn invalidate_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId) -> Result<(), Error> {
+        let reg = ExtCmdOpCode::INV_EP.val | (ep << 3) as Reg;
+        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &reg as *const Reg as *const u8, 8)
+    }
+
     pub fn read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) {
-        assert!(vpe.vpe() == INVALID_VPE);
+        assert!(vpe.vpe().is_none());
         self.try_read_mem(vpe, addr, data, size).unwrap();
     }
 
     pub fn try_read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) -> Result<(), Error> {
         let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe(), vpe.vpe(), addr, size, Perm::R);
+        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
         self.write_ep_local(ep);
 
-        return DTU::read(ep, data, size, 0, CmdFlags::NOPF);
+        DTU::read(ep, data, size, 0, CmdFlags::NOPF)
     }
 
     pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
-        assert!(vpe.vpe() == INVALID_VPE);
+        assert!(vpe.vpe().is_none());
         self.try_write_mem(vpe, addr, data, size).unwrap();
     }
 
     pub fn try_write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) -> Result<(), Error> {
         let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe(), vpe.vpe(), addr, size, Perm::W);
+        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
         self.write_ep_local(ep);
 
-        return DTU::write(ep, data, size, 0, CmdFlags::NOPF);
+        DTU::write(ep, data, size, 0, CmdFlags::NOPF)
     }
 
     pub fn copy_clear(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize,

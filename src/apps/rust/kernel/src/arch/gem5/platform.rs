@@ -8,7 +8,7 @@ use core::intrinsics;
 
 use arch::kdtu::KDTU;
 use mem;
-use pes::{INVALID_VPE, VPEDesc};
+use pes::VPEDesc;
 use platform;
 
 const USABLE_MEM: usize     = 256 * 1024 * 1024;
@@ -20,7 +20,7 @@ pub fn init() -> platform::KEnv {
     let mut kenv: platform::KEnv = unsafe { intrinsics::uninit() };
     let kenv_addr = GlobAddr::new(envdata::get().kenv);
     KDTU::get().read_mem(
-        &VPEDesc::new(kenv_addr.pe(), INVALID_VPE), kenv_addr.offset(),
+        &VPEDesc::new_mem(kenv_addr.pe()), kenv_addr.offset(),
         &mut kenv as *mut platform::KEnv as *mut u8, util::size_of::<platform::KEnv>()
     );
 

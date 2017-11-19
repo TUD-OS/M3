@@ -10,7 +10,7 @@ use base::util;
 use core::intrinsics;
 
 use arch::kdtu::KDTU;
-use pes::{INVALID_VPE, State, VPE, VPEDesc};
+use pes::{State, VPE, VPEDesc};
 use pes::rctmux;
 use platform;
 use mem;
@@ -57,7 +57,7 @@ pub fn init() {
     for m in platform::mods() {
         let mut bmod: BootModule = unsafe { intrinsics::uninit() };
         KDTU::get().read_mem(
-            &VPEDesc::new(m.pe(), INVALID_VPE),
+            &VPEDesc::new_mem(m.pe()),
             m.offset(), &mut bmod as *mut BootModule as *mut u8, util::size_of::<BootModule>()
         );
 
@@ -120,7 +120,7 @@ impl Loader {
 
         let mut obj: T = unsafe { intrinsics::uninit() };
         KDTU::get().read_mem(
-            &VPEDesc::new(bm.addr.pe(), INVALID_VPE),
+            &VPEDesc::new_mem(bm.addr.pe()),
             bm.addr.offset() + off,
             &mut obj as *mut T as *mut u8,
             size
@@ -133,10 +133,10 @@ impl Loader {
         assert!(!vpe.pe_desc().has_virtmem());
         KDTU::get().copy_clear(
             // destination
-            vpe.desc(),
+            &vpe.desc(),
             virt,
             // source
-            &VPEDesc::new(phys.pe(), INVALID_VPE),
+            &VPEDesc::new_mem(phys.pe()),
             phys.offset(),
             size,
             false
@@ -180,10 +180,10 @@ impl Loader {
 
                 KDTU::get().copy_clear(
                     // destination
-                    vpe.desc(),
+                    &vpe.desc(),
                     virt,
                     // source
-                    &VPEDesc::new(bm.addr.pe(), INVALID_VPE),
+                    &VPEDesc::new_mem(bm.addr.pe()),
                     bm.addr.offset() + offset,
                     size,
                     phdr.filesz == 0
@@ -221,13 +221,13 @@ impl Loader {
                 // copy the ELF file
                 let size = util::round_up(rctmux.size as usize, PAGE_SIZE);
                 let phys = mem::get().allocate(size, PAGE_SIZE)?;
-                let bootvpe = VPEDesc::new(phys.global().pe(), INVALID_VPE);
+                let bootvpe = VPEDesc::new_mem(phys.global().pe());
                 KDTU::get().copy_clear(
                     // destination
                     &bootvpe,
                     phys.global().offset(),
                     // source
-                    &VPEDesc::new(rctmux.addr.pe(), INVALID_VPE),
+                    &VPEDesc::new_mem(rctmux.addr.pe()),
                     rctmux.addr.offset(),
                     rctmux.size as usize,
                     false
@@ -275,7 +275,7 @@ impl Loader {
         {
             // get DTU into correct state first
             vpe.dtu_state().reset();
-            let vpe_desc = VPEDesc::new(vpe.pe_id(), INVALID_VPE);
+            let vpe_desc = VPEDesc::new_mem(vpe.pe_id());
             let vpe_id = vpe.id();
             vpe.dtu_state().restore(&vpe_desc, vpe_id);
         }
@@ -288,7 +288,7 @@ impl Loader {
             self.load_mod(&vpe, app, !first, true)?
         };
 
-        let argv_off: usize = Self::write_arguments(vpe.desc(), vpe.args())?;
+        let argv_off: usize = Self::write_arguments(&vpe.desc(), vpe.args())?;
 
         // build env
         let mut senv = envdata::EnvData::default();
@@ -301,7 +301,7 @@ impl Loader {
 
         // write env to target PE
         KDTU::get().try_write_mem(
-            vpe.desc(),
+            &vpe.desc(),
             RT_START,
             &senv as *const envdata::EnvData as *const u8,
             util::size_of_val(&senv)
@@ -318,8 +318,8 @@ impl Loader {
             flags |= rctmux::Flags::RESTORE.bits();
             flags |= (vpe.pe_id() as u64) << 32;
 
-            KDTU::get().write_swstate(vpe.desc(), flags, report)?;
-            KDTU::get().wakeup(vpe.desc(), rctmux::ENTRY_ADDR)?;
+            KDTU::get().write_swstate(&vpe.desc(), flags, report)?;
+            KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR)?;
         }
 
         Ok(0)

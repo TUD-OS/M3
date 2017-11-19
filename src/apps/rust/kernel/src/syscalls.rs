@@ -59,6 +59,7 @@ pub fn handle(msg: &'static dtu::Message) {
     let opcode: &u64 = get_message(msg);
 
     let res = match kif::syscalls::Operation::from(*opcode) {
+        kif::syscalls::Operation::ACTIVATE      => activate(&vpe, msg),
         kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
@@ -96,6 +97,79 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
             alloc.global().pe(), INVALID_VPE, alloc.global().offset(), alloc.size(), perms
         )))
     );
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::Activate = get_message(msg);
+    let vpe_sel = req.vpe_sel as CapSel;
+    let gate_sel = req.gate_sel as CapSel;
+    let ep = req.ep as usize;
+    let addr = req.addr as usize;
+
+    sysc_log!(
+        vpe, "activate(vpe={}, gate={}, ep={}, addr={:#x})",
+        vpe_sel, gate_sel, ep, addr
+    );
+
+    if ep <= dtu::UPCALL_REP || ep >= dtu::EP_COUNT {
+        sysc_err!(vpe, Code::InvArgs, "Invalid EP",);
+    }
+
+    if let Some(mut old) = vpe.borrow().get_ep_cap(ep) {
+        if let Some(rgate) = old.as_rgate_mut() {
+            rgate.addr = 0;
+        }
+
+        vpe.borrow_mut().invalidate_ep(ep, true)?;
+    }
+
+    let maybe_kobj = match vpe.borrow().obj_caps().get(gate_sel) {
+        Some(ref cap)   => Some(cap.get().clone()),
+        None            => None
+    };
+
+    if let Some(kobj) = maybe_kobj {
+        match kobj {
+            KObject::RGate(ref r)    => {
+                let mut rgate = r.borrow_mut();
+                if rgate.activated() {
+                    sysc_err!(vpe, Code::InvArgs, "Receive gate is already activated",);
+                }
+
+                rgate.vpe = vpe.borrow().id();
+                rgate.addr = addr;
+                rgate.ep = Some(ep);
+
+                if let Err(e) = vpe.borrow_mut().config_rcv_ep(ep, &mut rgate) {
+                    rgate.addr = 0;
+                    sysc_err!(vpe, e.code(), "Unable to configure recv EP",);
+                }
+            },
+
+            KObject::MGate(ref r)    => {
+                if let Err(e) = vpe.borrow_mut().config_mem_ep(ep, &r.borrow(), addr) {
+                    sysc_err!(vpe, e.code(), "Unable to configure mem EP",);
+                }
+            },
+
+            KObject::SGate(ref s)    => {
+                let sgate = s.borrow();
+                assert!(sgate.rgate.borrow().activated());
+                vpe.borrow_mut().config_snd_ep(ep, &sgate);
+            },
+
+            // TODO
+            // _                     => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
+        };
+        vpe.borrow_mut().set_ep_cap(ep, Some(kobj));
+    }
+    else {
+        vpe.borrow_mut().invalidate_ep(ep, false)?;
+        vpe.borrow_mut().set_ep_cap(ep, None);
+    }
 
     reply_success(msg);
     Ok(())

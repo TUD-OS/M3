@@ -4,7 +4,7 @@ use base::dtu::PEId;
 use base::errors::{Code, Error};
 use base::libc;
 
-use pes::{VPE, VPEId};
+use pes::{State, VPE, VPEId};
 
 const MAX_ARGS_LEN: usize = 4096;
 
@@ -20,7 +20,7 @@ impl Loader {
         }
     }
 
-    pub fn load_app(&mut self, vpe: RefMut<VPE>) -> Result<i32, Error> {
+    pub fn load_app(&mut self, mut vpe: RefMut<VPE>) -> Result<i32, Error> {
         let pid = unsafe { libc::fork() };
         match pid {
             -1  => Err(Error::new(Code::OutOfMem)),
@@ -50,7 +50,10 @@ impl Loader {
                     libc::exit(255);
                 }
             }
-            pid => Ok(pid),
+            pid => {
+                vpe.set_state(State::RUNNING);
+                Ok(pid)
+            },
         }
     }
 

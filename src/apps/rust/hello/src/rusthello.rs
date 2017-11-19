@@ -12,6 +12,8 @@ pub fn main() -> i32 {
 
     let start = m3::time::start(0x666);
     let mgate = m3::com::MemGate::new(0x1000, m3::kif::Perm::RW).unwrap();
+    let data = [0xFFu8; 10];
+    mgate.write(&data, 0).expect("Write failed");
     let end = m3::time::stop(0x666);
     println!("Time: {} for {:?}", end - start, mgate);
 

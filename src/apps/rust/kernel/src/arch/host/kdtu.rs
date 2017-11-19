@@ -1,12 +1,9 @@
-use base::cell::RefCell;
 use base::dtu::*;
 use base::errors::{Code, Error};
 use base::kif::Perm;
-use base::rc::Rc;
 use base::util;
 
-use pes::{INVALID_VPE, VPE, VPEId, VPEDesc};
-use pes::vpemng;
+use pes::{VPEId, VPEDesc};
 
 pub struct State {
     cmd: [Reg; CMD_RCNT],
@@ -60,6 +57,14 @@ impl State {
         regs[EpReg::MSGORDER.val as usize]      = 0;
     }
 
+    pub fn invalidate(&mut self, ep: EpId, _check: bool) -> Result<(), Error> {
+        let regs: &mut [Reg] = self.get_ep_mut(ep);
+        for r in regs.iter_mut() {
+            *r = 0;
+        }
+        Ok(())
+    }
+
     pub fn restore(&mut self, _vpe: &VPEDesc, _vpe_id: VPEId) {
     }
 
@@ -94,27 +99,32 @@ impl KDTU {
         DTU::set_ep_regs(ep, self.state.get_ep(ep));
     }
 
+    pub fn invalidate_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId) -> Result<(), Error> {
+        let regs = [0 as Reg; EPS_RCNT * EP_COUNT];
+        self.write_ep_remote(vpe, ep, &regs)
+    }
+
     pub fn read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) {
-        assert!(vpe.vpe() == INVALID_VPE);
+        assert!(vpe.vpe().is_none());
         self.try_read_mem(vpe, addr, data, size).unwrap();
     }
 
     pub fn try_read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) -> Result<(), Error> {
         let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe(), vpe.vpe(), addr, size, Perm::R);
+        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
         self.write_ep_local(ep);
 
         return DTU::read(ep, data, size, 0, CmdFlags::NOPF);
     }
 
     pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
-        assert!(vpe.vpe() == INVALID_VPE);
+        assert!(vpe.vpe().is_none());
         self.try_write_mem(vpe, addr, data, size).unwrap();
     }
 
     pub fn try_write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) -> Result<(), Error> {
         let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe(), vpe.vpe(), addr, size, Perm::W);
+        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
         self.write_ep_local(ep);
 
         return DTU::write(ep, data, size, 0, CmdFlags::NOPF);
@@ -134,8 +144,7 @@ impl KDTU {
     }
 
     pub fn write_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId, regs: &[Reg]) -> Result<(), Error> {
-        let vpeobj: Rc<RefCell<VPE>> = vpemng::get().vpe(vpe.vpe()).unwrap();
-        let eps = vpeobj.borrow().eps_addr();
+        let eps = vpe.vpe().unwrap().eps_addr();
         let addr = eps + ep * EPS_RCNT * util::size_of::<Reg>();
         self.try_write_mem(vpe, addr, regs.as_ptr() as *const u8, EPS_RCNT * util::size_of::<Reg>())
     }

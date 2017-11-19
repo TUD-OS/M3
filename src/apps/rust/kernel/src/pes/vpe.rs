@@ -1,12 +1,12 @@
 use base::col::{String, ToString, Vec};
 use base::cell::{Ref, RefCell, RefMut};
-use base::dtu::{EpId, PEId, HEADER_COUNT};
+use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
 use base::kif::PEDesc;
 use base::rc::{Rc, Weak};
 
 use arch::kdtu;
-use cap::{CapTable, SGateObject, RGateObject, MGateObject};
+use cap::{CapTable, KObject, SGateObject, RGateObject, MGateObject};
 use pes::vpemng;
 use platform;
 
@@ -34,30 +34,44 @@ pub enum State {
 
 pub const INVALID_VPE: VPEId = 0xFFFF;
 
-pub struct VPEDesc {
+pub struct VPEDesc<'v> {
     pe: PEId,
-    vpe: VPEId,
+    vpe: Option<&'v VPE>,
 }
 
-impl VPEDesc {
-    pub fn new(pe: PEId, vpe: VPEId) -> Self {
+impl<'v> VPEDesc<'v> {
+    pub fn new(pe: PEId, vpe: &'v VPE) -> VPEDesc<'v> {
         VPEDesc {
             pe: pe,
-            vpe: vpe,
+            vpe: Some(vpe),
         }
     }
 
-    pub fn pe(&self) -> PEId {
+    pub fn new_mem(pe: PEId) -> Self {
+        VPEDesc {
+            pe: pe,
+            vpe: None,
+        }
+    }
+
+    pub fn vpe(&self) -> Option<&VPE> {
+        self.vpe
+    }
+    pub fn pe_id(&self) -> PEId {
         self.pe
     }
-    pub fn vpe(&self) -> VPEId {
-        self.vpe
+    pub fn vpe_id(&self) -> VPEId {
+        match self.vpe {
+            Some(v) => v.id(),
+            None    => INVALID_VPE,
+        }
     }
 }
 
 pub struct VPE {
     self_weak: Weak<RefCell<VPE>>,
-    desc: VPEDesc,
+    id: VPEId,
+    pe: PEId,
     pid: i32,
     state: State,
     name: String,
@@ -66,6 +80,7 @@ pub struct VPE {
     eps_addr: usize,
     args: Vec<String>,
     req: Vec<String>,
+    ep_caps: Vec<Option<KObject>>,
     dtu_state: kdtu::State,
     rbufs_size: usize,
     headers: usize,
@@ -75,7 +90,8 @@ impl VPE {
     pub fn new(name: &str, id: VPEId, pe: PEId, flags: VPEFlags) -> Rc<RefCell<Self>> {
         let vpe = Rc::new(RefCell::new(VPE {
             self_weak: Weak::new(),
-            desc: VPEDesc::new(pe, id),
+            id: id,
+            pe: pe,
             pid: 0,
             state: State::DEAD,
             name: name.to_string(),
@@ -84,6 +100,7 @@ impl VPE {
             eps_addr: 0,
             args: Vec::new(),
             req: Vec::new(),
+            ep_caps: vec![None; EP_COUNT - FIRST_FREE_EP],
             dtu_state: kdtu::State::new(),
             rbufs_size: 0,
             headers: 0,
@@ -142,13 +159,13 @@ impl VPE {
     }
 
     pub fn id(&self) -> VPEId {
-        self.desc.vpe()
-    }
-    pub fn desc(&self) -> &VPEDesc {
-        &self.desc
+        self.id
     }
     pub fn pe_id(&self) -> PEId {
-        self.desc.pe()
+        self.pe
+    }
+    pub fn desc(&self) -> VPEDesc {
+        VPEDesc::new(self.pe, self)
     }
     pub fn pe_desc(&self) -> PEDesc {
         platform::pe_desc(self.pe_id())
@@ -200,6 +217,13 @@ impl VPE {
 
     pub fn set_pid(&mut self, pid: i32) {
         self.pid = pid;
+    }
+
+    pub fn get_ep_cap(&self, ep: EpId) -> Option<KObject> {
+        self.ep_caps[ep].clone()
+    }
+    pub fn set_ep_cap(&mut self, ep: EpId, cap: Option<KObject>) {
+        self.ep_caps[ep] = cap;
     }
 
     pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>) {
@@ -259,9 +283,27 @@ impl VPE {
         Ok(())
     }
 
+    pub fn invalidate_ep(&mut self, ep: EpId, cmd: bool) -> Result<(), Error> {
+        klog!(EPS, "VPE{}:EP{} = invalid", self.id(), ep);
+
+        if cmd {
+            if self.state == State::RUNNING {
+                kdtu::KDTU::get().invalidate_ep_remote(&self.desc(), ep)?;
+            }
+            else {
+                self.dtu_state.invalidate(ep, true)?;
+            }
+        }
+        else {
+            self.dtu_state.invalidate(ep, false)?;
+            self.update_ep(ep);
+        }
+        Ok(())
+    }
+
     fn update_ep(&mut self, ep: EpId) {
         if self.state == State::RUNNING {
-            kdtu::KDTU::get().write_ep_remote(self.desc(), ep, self.dtu_state.get_ep(ep)).unwrap();
+            kdtu::KDTU::get().write_ep_remote(&self.desc(), ep, self.dtu_state.get_ep(ep)).unwrap();
         }
     }
 }
