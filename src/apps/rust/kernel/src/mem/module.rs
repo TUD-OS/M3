@@ -15,7 +15,7 @@ impl MemMod {
         MemMod {
             gaddr: GlobAddr::new_with(pe, offset),
             size: size,
-            map: MemMap::new(offset, size),
+            map: MemMap::new(0, size),
         }
     }
 

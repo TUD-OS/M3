@@ -33,7 +33,7 @@ pub fn init() -> platform::KEnv {
     };
     assert!(base != libc::MAP_FAILED);
 
-    let mut m = mem::MemMod::new(0, 0, cfg::MEM_SIZE);
+    let mut m = mem::MemMod::new(kernel_pe(), base as usize, cfg::MEM_SIZE);
     // allocate FS image
     m.allocate(cfg::FS_MAX_SIZE, 1).expect("Not enough space for FS image");
     mem::get().add(m);
