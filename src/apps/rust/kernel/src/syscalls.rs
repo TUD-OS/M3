@@ -59,9 +59,9 @@ pub fn handle(msg: &'static dtu::Message) {
     let opcode: &u64 = get_message(msg);
 
     let res = match kif::syscalls::Operation::from(*opcode) {
-        kif::syscalls::Operation::CREATE_MGATE  => create_mgate(vpe, msg),
-        kif::syscalls::Operation::VPE_CTRL      => vpectrl(vpe, msg),
-        kif::syscalls::Operation::REVOKE        => revoke(vpe, msg),
+        kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
+        kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
+        kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         _                                       => panic!("Unexpected operation: {}", opcode),
     };
 
@@ -70,7 +70,7 @@ pub fn handle(msg: &'static dtu::Message) {
     }
 }
 
-fn create_mgate(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateMGate = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
     let addr = req.addr as usize;
@@ -101,7 +101,7 @@ fn create_mgate(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     Ok(())
 }
 
-fn vpectrl(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::VPECtrl = get_message(msg);
     let vpe_sel = req.vpe_sel;
     let op = kif::syscalls::VPEOp::from(req.op);
@@ -125,7 +125,7 @@ fn vpectrl(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
     Ok(())
 }
 
-fn revoke(vpe: Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Revoke = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
     let crd = CapRngDesc::new_from(req.crd);
