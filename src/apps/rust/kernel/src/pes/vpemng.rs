@@ -118,7 +118,10 @@ impl VPEMng {
     }
 
     pub fn remove(&mut self, id: VPEId) {
-        assert!(self.vpes[id].is_some());
+        match self.vpes[id] {
+            Some(ref v) => v.borrow_mut().destroy(),
+            None        => panic!("Removing nonexisting VPE with id {}", id),
+        };
         self.vpes[id] = None;
         self.count -= 1;
     }

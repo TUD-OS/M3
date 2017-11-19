@@ -33,6 +33,19 @@ macro_rules! sysc_err {
     })
 }
 
+macro_rules! get_kobj {
+    ($vpe:expr, $sel:expr, $ty:ident) => ({
+        let kobj = match $vpe.borrow().obj_caps().get($sel) {
+            Some(c)         => c.get().clone(),
+            None            => sysc_err!($vpe, Code::InvArgs, "Invalid capability",),
+        };
+        match kobj {
+            KObject::$ty(k) => k,
+            _               => sysc_err!($vpe, Code::InvArgs, "Expected {:?} cap", stringify!($ty)),
+        }
+    })
+}
+
 fn get_message<R: 'static>(msg: &'static dtu::Message) -> &'static R {
     let data: &[R] = unsafe { intrinsics::transmute(&msg.data) };
     &data[0]
@@ -126,10 +139,8 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         vpe.borrow_mut().invalidate_ep(ep, true)?;
     }
 
-    let maybe_kobj = match vpe.borrow().obj_caps().get(gate_sel) {
-        Some(ref cap)   => Some(cap.get().clone()),
-        None            => None
-    };
+    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+    let maybe_kobj = vpe_ref.borrow().obj_caps().get(gate_sel).map(|cap| cap.get().clone());
 
     if let Some(kobj) = maybe_kobj {
         match kobj {
@@ -139,18 +150,18 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                     sysc_err!(vpe, Code::InvArgs, "Receive gate is already activated",);
                 }
 
-                rgate.vpe = vpe.borrow().id();
+                rgate.vpe = vpe_ref.borrow().id();
                 rgate.addr = addr;
                 rgate.ep = Some(ep);
 
-                if let Err(e) = vpe.borrow_mut().config_rcv_ep(ep, &mut rgate) {
+                if let Err(e) = vpe_ref.borrow_mut().config_rcv_ep(ep, &mut rgate) {
                     rgate.addr = 0;
                     sysc_err!(vpe, e.code(), "Unable to configure recv EP",);
                 }
             },
 
             KObject::MGate(ref r)    => {
-                if let Err(e) = vpe.borrow_mut().config_mem_ep(ep, &r.borrow(), addr) {
+                if let Err(e) = vpe_ref.borrow_mut().config_mem_ep(ep, &r.borrow(), addr) {
                     sysc_err!(vpe, e.code(), "Unable to configure mem EP",);
                 }
             },
@@ -158,17 +169,16 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
             KObject::SGate(ref s)    => {
                 let sgate = s.borrow();
                 assert!(sgate.rgate.borrow().activated());
-                vpe.borrow_mut().config_snd_ep(ep, &sgate);
+                vpe_ref.borrow_mut().config_snd_ep(ep, &sgate);
             },
 
-            // TODO
-            // _                     => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
+            _                        => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
         };
-        vpe.borrow_mut().set_ep_cap(ep, Some(kobj));
+        vpe_ref.borrow_mut().set_ep_cap(ep, Some(kobj));
     }
     else {
-        vpe.borrow_mut().invalidate_ep(ep, false)?;
-        vpe.borrow_mut().set_ep_cap(ep, None);
+        vpe_ref.borrow_mut().invalidate_ep(ep, false)?;
+        vpe_ref.borrow_mut().set_ep_cap(ep, None);
     }
 
     reply_success(msg);
@@ -177,7 +187,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
 fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::VPECtrl = get_message(msg);
-    let vpe_sel = req.vpe_sel;
+    let vpe_sel = req.vpe_sel as CapSel;
     let op = kif::syscalls::VPEOp::from(req.op);
     let arg = req.arg;
 
@@ -186,10 +196,13 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
         vpe_sel, op, arg
     );
 
+    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+
     match op {
-        kif::syscalls::VPEOp::INIT  => vpe.borrow_mut().set_eps_addr(arg as usize),
+        kif::syscalls::VPEOp::INIT  => vpe_ref.borrow_mut().set_eps_addr(arg as usize),
         kif::syscalls::VPEOp::STOP  => {
-            vpemng::get().remove(vpe.borrow().id());
+            let id = vpe_ref.borrow().id();
+            vpemng::get().remove(id);
             return Ok(());
         },
         _                           => panic!("VPEOp unsupported: {:?}", op),
@@ -214,8 +227,9 @@ fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
         sysc_err!(vpe, Code::InvArgs, "Cap 0 and 1 are not revokeable",);
     }
 
-    // TODO use vpe_sel
-    vpe.borrow_mut().obj_caps_mut().revoke(crd, own);
+    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+
+    vpe_ref.borrow_mut().obj_caps_mut().revoke(crd, own);
 
     reply_success(msg);
     Ok(())

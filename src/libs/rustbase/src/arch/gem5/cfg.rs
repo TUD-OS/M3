@@ -5,6 +5,8 @@ pub const RECVBUF_SPACE: usize      = 0x3FC00000;
 pub const RECVBUF_SIZE: usize       = 4 * PAGE_SIZE;
 pub const RECVBUF_SIZE_SPM: usize   = 16384;
 
+pub const MEM_CAP_END: usize        = RECVBUF_SPACE;
+
 pub const RT_START: usize           = 0x6000;
 pub const RT_SIZE: usize            = 0x2000;
 pub const STACK_SIZE: usize         = 0x8000;

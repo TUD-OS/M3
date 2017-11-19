@@ -1,12 +1,14 @@
 use base::col::{String, ToString, Vec};
 use base::cell::{Ref, RefCell, RefMut};
+use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
-use base::kif::PEDesc;
+use base::kif::{CapRngDesc, CapType, PEDesc, Perm};
 use base::rc::{Rc, Weak};
+use core::fmt;
 
 use arch::kdtu;
-use cap::{CapTable, KObject, SGateObject, RGateObject, MGateObject};
+use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
 use pes::vpemng;
 use platform;
 
@@ -25,7 +27,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum State {
     RUNNING,
     SUSPENDED,
@@ -106,8 +108,25 @@ impl VPE {
             headers: 0,
         }));
         vpe.borrow_mut().self_weak = Rc::downgrade(&vpe);
+
+        // cap for own VPE
+        vpe.borrow_mut().obj_caps_mut().insert(
+            Capability::new(0, KObject::VPE(vpe.clone()))
+        );
+        // cap for own memory
+        vpe.borrow_mut().obj_caps_mut().insert(
+            Capability::new(1, KObject::MGate(MGateObject::new(
+                pe, id, 0, cfg::MEM_CAP_END, Perm::RWX
+            )))
+        );
+
         vpe.borrow_mut().init();
         vpe
+    }
+
+    pub fn destroy(&mut self) {
+        // remove the circular reference
+        self.obj_caps.revoke(CapRngDesc::new(CapType::OBJECT, 0, 1), true);
     }
 
     #[cfg(target_os = "linux")]
@@ -305,5 +324,12 @@ impl VPE {
         if self.state == State::RUNNING {
             kdtu::KDTU::get().write_ep_remote(&self.desc(), ep, self.dtu_state.get_ep(ep)).unwrap();
         }
+    }
+}
+
+impl fmt::Debug for VPE {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "VPE[id={}, pe={}, name={}, state={:?}]",
+            self.id(), self.pe_id(), self.name(), self.state())
     }
 }

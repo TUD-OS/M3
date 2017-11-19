@@ -4,7 +4,7 @@ use base::kif;
 use base::rc::Rc;
 use core::fmt;
 
-use pes::{INVALID_VPE, VPEId};
+use pes::{INVALID_VPE, VPE, VPEId};
 use pes::vpemng;
 
 #[derive(Clone)]
@@ -12,14 +12,16 @@ pub enum KObject {
     RGate(Rc<RefCell<RGateObject>>),
     SGate(Rc<RefCell<SGateObject>>),
     MGate(Rc<RefCell<MGateObject>>),
+    VPE(Rc<RefCell<VPE>>),
 }
 
 impl fmt::Debug for KObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            KObject::SGate(ref s) => write!(f, "{:?}", s.borrow()),
-            KObject::RGate(ref r) => write!(f, "{:?}", r.borrow()),
-            KObject::MGate(ref m) => write!(f, "{:?}", m.borrow()),
+            KObject::SGate(ref s)   => write!(f, "{:?}", s.borrow()),
+            KObject::RGate(ref r)   => write!(f, "{:?}", r.borrow()),
+            KObject::MGate(ref m)   => write!(f, "{:?}", m.borrow()),
+            KObject::VPE(ref v)     => write!(f, "{:?}", v.borrow()),
         }
     }
 }
@@ -57,6 +59,13 @@ impl KObject {
     }
     pub fn as_mgate_mut<'r>(&'r mut self) -> Option<&'r mut MGateObject> {
         map_enum_mut!(self, MGate)
+    }
+
+    pub fn as_vpe<'r>(&'r self) -> Option<&'r VPE> {
+        map_enum!(self, VPE)
+    }
+    pub fn as_vpe_mut<'r>(&'r mut self) -> Option<&'r mut VPE> {
+        map_enum_mut!(self, VPE)
     }
 }
 
@@ -162,6 +171,6 @@ impl MGateObject {
 impl fmt::Debug for MGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MGate[tgt=VPE{}:PE{}, addr={:#x}, sz={:#x}, perm={:?}, der={}]",
-            self.pe, self.vpe, self.addr, self.size, self.perms, self.derived)
+            self.vpe, self.pe, self.addr, self.size, self.perms, self.derived)
     }
 }
