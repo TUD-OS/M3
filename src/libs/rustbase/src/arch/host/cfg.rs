@@ -1,6 +1,8 @@
 pub const PAGE_SIZE: usize          = 0x1000;
 pub const PAGE_BITS: usize          = PAGE_SIZE - 1;
 
+pub const MAX_RB_SIZE: usize        = usize::max_value();
+
 pub const MEM_CAP_END: usize        = 0xFFFF_FFFF_FFFF_FFFF;
 
 pub const PE_COUNT: usize           = 18;

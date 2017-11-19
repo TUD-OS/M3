@@ -7,7 +7,7 @@ use base::kif::{self, CapRngDesc, CapSel, CapType};
 use base::rc::Rc;
 use base::util;
 
-use cap::{Capability, KObject, MGateObject};
+use cap::{Capability, KObject, MGateObject, RGateObject};
 use mem;
 use pes::{INVALID_VPE, vpemng};
 use pes::VPE;
@@ -74,6 +74,7 @@ pub fn handle(msg: &'static dtu::Message) {
     let res = match kif::syscalls::Operation::from(*opcode) {
         kif::syscalls::Operation::ACTIVATE      => activate(&vpe, msg),
         kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_RGATE  => create_rgate(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         _                                       => panic!("Unexpected operation: {}", opcode),
@@ -115,6 +116,32 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     Ok(())
 }
 
+fn create_rgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateRGate = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let order = req.order as i32;
+    let msg_order = req.msgorder as i32;
+
+    sysc_log!(
+        vpe, "create_rgate(dst={}, size={:#x}, msg_size={:#x})",
+        dst_sel, 1 << order, 1 << msg_order
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+    if msg_order > order || (1 << (order - msg_order)) > cfg::MAX_RB_SIZE {
+        sysc_err!(vpe, Code::InvArgs, "Invalid size",);
+    }
+
+    vpe.borrow_mut().obj_caps_mut().insert(
+        Capability::new(dst_sel, KObject::RGate(RGateObject::new(order, msg_order)))
+    );
+
+    reply_success(msg);
+    Ok(())
+}
+
 fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Activate = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
@@ -131,15 +158,19 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         sysc_err!(vpe, Code::InvArgs, "Invalid EP",);
     }
 
-    if let Some(mut old) = vpe.borrow().get_ep_cap(ep) {
-        if let Some(rgate) = old.as_rgate_mut() {
-            rgate.addr = 0;
-        }
+    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
 
-        vpe.borrow_mut().invalidate_ep(ep, true)?;
+    {
+        let mut vpe_mut = vpe_ref.borrow_mut();
+        if let Some(mut old) = vpe_mut.get_ep_cap(ep) {
+            if let Some(rgate) = old.as_rgate_mut() {
+                rgate.addr = 0;
+            }
+
+            vpe_mut.invalidate_ep(ep, true)?;
+        }
     }
 
-    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
     let maybe_kobj = vpe_ref.borrow().obj_caps().get(gate_sel).map(|cap| cap.get().clone());
 
     if let Some(kobj) = maybe_kobj {

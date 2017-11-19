@@ -5,7 +5,6 @@ use base::rc::Rc;
 use core::fmt;
 
 use pes::{INVALID_VPE, VPE, VPEId};
-use pes::vpemng;
 
 #[derive(Clone)]
 pub enum KObject {
@@ -102,10 +101,6 @@ impl RGateObject {
 
     fn print_dest(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "VPE{}:", self.vpe)?;
-        match vpemng::get().pe_of(self.vpe) {
-            Some(pe) => write!(f, "PE{}:", pe)?,
-            None     => write!(f, "PE??:")?,
-        };
         match self.ep {
             Some(ep) => write!(f, "EP{}", ep),
             None     => write!(f, "EP??"),
