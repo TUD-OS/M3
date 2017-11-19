@@ -2,9 +2,11 @@ use base::col::Vec;
 use base::cell::RefMut;
 use base::dtu::PEId;
 use base::errors::{Code, Error};
+use base::kif;
 use base::libc;
 
 use pes::{State, VPE, VPEId};
+use platform;
 
 const MAX_ARGS_LEN: usize = 4096;
 
@@ -12,6 +14,16 @@ pub struct Loader {
 }
 
 static mut LOADER: Loader = Loader {};
+
+pub fn init() {
+    for i in platform::pes() {
+        let desc: kif::PEDesc = platform::pe_desc(i);
+        klog!(KENV,
+            "PE{:02}: {} {} {} KiB memory",
+            i, desc.pe_type(), desc.isa(), desc.mem_size() / 1024
+        );
+    }
+}
 
 impl Loader {
     pub fn get() -> &'static mut Loader {

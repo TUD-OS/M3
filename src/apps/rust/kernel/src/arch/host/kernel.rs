@@ -7,6 +7,7 @@ use base::kif;
 use base::libc;
 
 use arch::kdtu::KDTU;
+use arch::loader;
 use mem;
 use pes;
 use platform;
@@ -55,6 +56,7 @@ pub fn main() -> i32 {
     mem::init();
     KDTU::init();
     platform::init();
+    loader::init();
     pes::vpemng::init();
 
     let rbuf = vec![0u8; 512 * 32];
