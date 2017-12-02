@@ -4,7 +4,7 @@ use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
 use base::kif::{CapRngDesc, CapType, PEDesc, Perm};
-use base::rc::{Rc, Weak};
+use base::rc::Rc;
 use core::fmt;
 
 use arch::kdtu;
@@ -71,7 +71,6 @@ impl<'v> VPEDesc<'v> {
 }
 
 pub struct VPE {
-    self_weak: Weak<RefCell<VPE>>,
     id: VPEId,
     pe: PEId,
     pid: i32,
@@ -91,7 +90,6 @@ pub struct VPE {
 impl VPE {
     pub fn new(name: &str, id: VPEId, pe: PEId, flags: VPEFlags) -> Rc<RefCell<Self>> {
         let vpe = Rc::new(RefCell::new(VPE {
-            self_weak: Weak::new(),
             id: id,
             pe: pe,
             pid: 0,
@@ -107,7 +105,6 @@ impl VPE {
             rbufs_size: 0,
             headers: 0,
         }));
-        vpe.borrow_mut().self_weak = Rc::downgrade(&vpe);
 
         // cap for own VPE
         vpe.borrow_mut().obj_caps_mut().insert(
