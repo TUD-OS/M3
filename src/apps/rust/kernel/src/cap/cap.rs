@@ -37,12 +37,22 @@ impl CapTable {
     pub fn get_mut(&mut self, sel: CapSel) -> Option<&mut Capability> {
         self.caps.get_mut(|k| sel.cmp(k))
     }
+    pub unsafe fn get_shared(&mut self, sel: CapSel) -> Option<Shared<Capability>> {
+        self.caps.get_mut(|k| sel.cmp(k)).map(|cap| Shared::new_unchecked(cap))
+    }
 
     pub fn insert(&mut self, mut cap: Capability) -> &mut Capability {
         unsafe {
             cap.table = Some(as_shared(self));
         }
         self.caps.insert(cap.sel(), cap)
+    }
+
+    pub unsafe fn insert_as_child(&mut self, child: Capability, parent: Option<Shared<Capability>>) {
+        let mut child_cap = self.insert(child);
+        if let Some(parent_cap) = parent {
+            (*parent_cap.as_ptr()).inherit(&mut child_cap);
+        }
     }
 
     pub fn obtain(&mut self, sel: CapSel, cap: &mut Capability) {

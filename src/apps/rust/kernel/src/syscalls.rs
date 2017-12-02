@@ -1,4 +1,3 @@
-use core::intrinsics;
 use base::cell::RefCell;
 use base::cfg;
 use base::dtu;
@@ -6,8 +5,10 @@ use base::errors::{Error, Code};
 use base::kif::{self, CapRngDesc, CapSel, CapType};
 use base::rc::Rc;
 use base::util;
+use core::intrinsics;
+use core::ptr::Shared;
 
-use cap::{Capability, KObject, MGateObject, RGateObject};
+use cap::{Capability, CapTable, KObject, MGateObject, RGateObject, SGateObject};
 use mem;
 use pes::{INVALID_VPE, vpemng};
 use pes::VPE;
@@ -75,6 +76,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::ACTIVATE      => activate(&vpe, msg),
         kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_RGATE  => create_rgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         _                                       => panic!("Unexpected operation: {}", opcode),
@@ -137,6 +139,43 @@ fn create_rgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::RGate(RGateObject::new(order, msg_order)))
     );
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateSGate = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let rgate_sel = req.rgate_sel as CapSel;
+    let label = req.label as dtu::Label;
+    let credits = req.credits;
+
+    sysc_log!(
+        vpe, "create_sgate(dst={}, rgate={:#x}, label={:#x}, credits={:#x})",
+        dst_sel, rgate_sel, label, credits
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+
+    // TODO that's not nice
+    let cap = {
+        let rgate = get_kobj!(vpe, rgate_sel, RGate);
+        Capability::new(dst_sel, KObject::SGate(SGateObject::new(
+            &rgate, label, credits
+        )))
+    };
+
+    {
+        let mut vpe_mut = vpe.borrow_mut();
+        let captbl: &mut CapTable = vpe_mut.obj_caps_mut();
+        unsafe {
+            let parent: Option<Shared<Capability>> = captbl.get_shared(rgate_sel);
+            captbl.insert_as_child(cap, parent);
+        }
+    }
 
     reply_success(msg);
     Ok(())
