@@ -9,7 +9,6 @@ use core::fmt;
 
 use arch::kdtu;
 use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
-use pes::vpemng;
 use platform;
 
 pub type VPEId = usize;
@@ -106,18 +105,25 @@ impl VPE {
             headers: 0,
         }));
 
-        // cap for own VPE
-        vpe.borrow_mut().obj_caps_mut().insert(
-            Capability::new(0, KObject::VPE(vpe.clone()))
-        );
-        // cap for own memory
-        vpe.borrow_mut().obj_caps_mut().insert(
-            Capability::new(1, KObject::MGate(MGateObject::new(
-                pe, id, 0, cfg::MEM_CAP_END, Perm::RWX
-            )))
-        );
+        {
+            let mut vpe_mut = vpe.borrow_mut();
+            unsafe {
+                vpe_mut.obj_caps.set_vpe(vpe.as_ptr());
+            }
 
-        vpe.borrow_mut().init();
+            // cap for own VPE
+            vpe_mut.obj_caps_mut().insert(
+                Capability::new(0, KObject::VPE(vpe.clone()))
+            );
+            // cap for own memory
+            vpe_mut.obj_caps_mut().insert(
+                Capability::new(1, KObject::MGate(MGateObject::new(
+                    pe, id, 0, cfg::MEM_CAP_END, Perm::RWX
+                )))
+            );
+
+            vpe_mut.init();
+        }
         vpe
     }
 
@@ -134,6 +140,7 @@ impl VPE {
     fn init(&mut self) {
         use base::dtu;
         use base::cfg;
+        use pes::vpemng;
 
         let rgate = RGateObject::new(cfg::SYSC_RBUF_ORD, cfg::SYSC_RBUF_ORD);
 

@@ -3,10 +3,12 @@ use base::kif::{CapRngDesc, CapSel};
 use core::fmt;
 use core::ptr::{Shared, Unique};
 
+use pes::VPE;
 use cap::KObject;
 
 pub struct CapTable {
     caps: Treap<CapSel, Capability>,
+    vpe: Option<Shared<VPE>>,
 }
 
 unsafe fn as_shared<T>(obj: &mut T) -> Shared<T> {
@@ -17,7 +19,12 @@ impl CapTable {
     pub fn new() -> Self {
         CapTable {
             caps: Treap::new(),
+            vpe: None,
         }
+    }
+
+    pub unsafe fn set_vpe(&mut self, vpe: *mut VPE) {
+        self.vpe = Some(Shared::from(Unique::new_unchecked(vpe)));
     }
 
     pub fn unused(&self, sel: CapSel) -> bool {
