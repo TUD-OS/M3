@@ -79,6 +79,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
+        kif::syscalls::Operation::NOOP          => noop(&vpe, msg),
         _                                       => panic!("Unexpected operation: {}", opcode),
     };
 
@@ -302,6 +303,15 @@ fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
     let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
 
     vpe_ref.borrow_mut().obj_caps_mut().revoke(crd, own);
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn noop(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    sysc_log!(
+        vpe, "noop()",
+    );
 
     reply_success(msg);
     Ok(())
