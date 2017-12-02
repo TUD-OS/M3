@@ -199,8 +199,10 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
             KObject::SGate(ref s)    => {
                 let sgate = s.borrow();
+                // TODO
                 assert!(sgate.rgate.borrow().activated());
-                vpe_ref.borrow_mut().config_snd_ep(ep, &sgate);
+                let pe_id = vpemng::get().pe_of(sgate.rgate.borrow().vpe);
+                vpe_ref.borrow_mut().config_snd_ep(ep, &sgate, pe_id.unwrap());
             },
 
             _                        => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),

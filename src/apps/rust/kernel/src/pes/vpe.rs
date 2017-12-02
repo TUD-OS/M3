@@ -157,7 +157,7 @@ impl VPE {
 
         // attach syscall endpoint
         let sgate = SGateObject::new(&rgate, self.id() as dtu::Label, cfg::SYSC_RBUF_SIZE as u64);
-        self.config_snd_ep(dtu::SYSC_SEP, &sgate.borrow());
+        self.config_snd_ep(dtu::SYSC_SEP, &sgate.borrow(), platform::kernel_pe());
 
         // attach upcall receive endpoint
         {
@@ -249,13 +249,12 @@ impl VPE {
         self.ep_caps[ep] = cap;
     }
 
-    pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>) {
+    pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) {
         let rgate = obj.rgate.borrow();
         assert!(rgate.activated());
 
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
 
-        let pe_id = vpemng::get().pe_of(rgate.vpe).unwrap();
         self.dtu_state.config_send(
             ep, obj.label, pe_id, rgate.vpe, rgate.ep.unwrap(), rgate.msg_size(), obj.credits
         );
