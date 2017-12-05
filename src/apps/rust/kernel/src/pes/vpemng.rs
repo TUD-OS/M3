@@ -79,7 +79,7 @@ impl VPEMng {
                     panic!("Kernel argument before program argument");
                 }
                 else {
-                    vpe.borrow_mut().add_arg(&argv[i]);
+                    vpe.borrow_mut().add_arg(&argv[j]);
                 }
 
                 i += 1;
