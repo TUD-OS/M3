@@ -5,11 +5,12 @@ use errors::Error;
 use rc::Rc;
 use io::{Serial, Write};
 
-pub const SYSC: bool  = false;
-pub const HEAP: bool  = false;
-pub const FS: bool    = false;
-pub const SERV: bool  = false;
-pub const DTU: bool   = false;
+pub const SYSC: bool    = false;
+pub const HEAP: bool    = false;
+pub const FS: bool      = false;
+pub const SERV: bool    = false;
+pub const DTU: bool     = false;
+pub const THREAD: bool  = false;
 
 const MAX_LINE_LEN: usize = 160;
 const SUFFIX: &[u8] = b"\x1B[0m";

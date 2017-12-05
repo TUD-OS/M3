@@ -1,0 +1,11 @@
+[package]
+name = "thread"
+version = "0.1.0"
+
+[lib]
+name = "thread"
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+bitflags = "*"
+base = { path = "../rustbase" }
