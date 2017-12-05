@@ -152,7 +152,7 @@ impl fmt::Debug for SGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "SGate[rgate=")?;
         self.rgate.borrow().print_dest(f)?;
-        write!(f, ", lbl={:#}, crd={}]", self.label, self.credits)
+        write!(f, ", lbl={:#x}, crd={}]", self.label, self.credits)
     }
 }
 
