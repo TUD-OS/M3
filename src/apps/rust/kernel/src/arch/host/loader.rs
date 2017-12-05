@@ -56,6 +56,8 @@ impl Loader {
                 }
                 argv.push(0 as *const i8);
 
+                klog!(KENV, "Loading mod '{}':", vpe.args()[0]);
+
                 unsafe {
                     libc::execv(argv[0], argv.as_ptr());
                     // special error code to let the WorkLoop delete the VPE
