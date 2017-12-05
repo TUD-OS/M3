@@ -4,6 +4,7 @@
 extern crate m3;
 
 mod bdlist;
+mod bboxlist;
 mod btreap;
 mod btreemap;
 mod bmgate;
@@ -40,6 +41,7 @@ pub fn main() -> i32 {
     run_suite!(tester, bmgate::run);
     run_suite!(tester, bregfile::run);
     run_suite!(tester, bdlist::run);
+    run_suite!(tester, bboxlist::run);
     run_suite!(tester, bstream::run);
     run_suite!(tester, bsyscall::run);
 

@@ -1,7 +1,9 @@
 mod dlist;
+mod boxlist;
 mod treap;
 
 pub use self::dlist::DList;
+pub use self::boxlist::*;
 pub use self::treap::Treap;
 
 pub use ::alloc::binary_heap::BinaryHeap;
