@@ -1,16 +1,22 @@
-use base::dtu::{EpId, PEId, Label};
 use base::cell::RefCell;
+use base::col::String;
+use base::dtu::{self, EpId, PEId, Label};
 use base::kif;
 use base::rc::Rc;
+use base::util;
 use core::fmt;
+use thread;
 
 use pes::{INVALID_VPE, VPE, VPEId};
+use com::SendQueue;
 
 #[derive(Clone)]
 pub enum KObject {
     RGate(Rc<RefCell<RGateObject>>),
     SGate(Rc<RefCell<SGateObject>>),
     MGate(Rc<RefCell<MGateObject>>),
+    Serv(Rc<RefCell<ServObject>>),
+    Sess(Rc<RefCell<SessObject>>),
     VPE(Rc<RefCell<VPE>>),
 }
 
@@ -20,6 +26,8 @@ impl fmt::Debug for KObject {
             KObject::SGate(ref s)   => write!(f, "{:?}", s.borrow()),
             KObject::RGate(ref r)   => write!(f, "{:?}", r.borrow()),
             KObject::MGate(ref m)   => write!(f, "{:?}", m.borrow()),
+            KObject::Serv(ref s)    => write!(f, "{:?}", s.borrow()),
+            KObject::Sess(ref s)    => write!(f, "{:?}", s.borrow()),
             KObject::VPE(ref v)     => write!(f, "{:?}", v.borrow()),
         }
     }
@@ -65,6 +73,13 @@ impl KObject {
     }
     pub fn as_vpe_mut<'r>(&'r mut self) -> Option<&'r mut VPE> {
         map_enum_mut!(self, VPE)
+    }
+
+    pub fn as_serv<'r>(&'r self) -> Option<&'r ServObject> {
+        map_enum!(self, Serv)
+    }
+    pub fn as_serv_mut<'r>(&'r mut self) -> Option<&'r mut ServObject> {
+        map_enum_mut!(self, Serv)
     }
 }
 
@@ -167,5 +182,63 @@ impl fmt::Debug for MGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MGate[tgt=VPE{}:PE{}, addr={:#x}, sz={:#x}, perm={:?}, der={}]",
             self.vpe, self.pe, self.addr, self.size, self.perms, self.derived)
+    }
+}
+
+pub struct ServObject {
+    pub name: String,
+    pub rgate: Rc<RefCell<RGateObject>>,
+    pub queue: SendQueue,
+}
+
+impl ServObject {
+    pub fn new(vpe: &Rc<RefCell<VPE>>, name: String, rgate: Rc<RefCell<RGateObject>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(ServObject {
+            name: name,
+            rgate: rgate.clone(),
+            queue: SendQueue::new(vpe),
+        }))
+    }
+
+    pub fn send_receive<T>(&mut self, msg: &T) -> Option<&'static dtu::Message> {
+        self.send_receive_data(msg as *const T as *const u8, util::size_of::<T>())
+    }
+
+    fn send_receive_data(&mut self, msg: *const u8, size: usize) -> Option<&'static dtu::Message> {
+        let rep = self.rgate.borrow().ep.unwrap();
+        self.queue.send(rep, msg, size).and_then(|event| {
+            thread::ThreadManager::get().wait_for(event);
+            thread::ThreadManager::get().fetch_msg()
+        })
+    }
+}
+
+impl fmt::Debug for ServObject {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Serv[name={}, rgate=", self.name)?;
+        self.rgate.borrow().print_dest(f)?;
+        write!(f, "]")
+    }
+}
+
+pub struct SessObject {
+    pub srv: Rc<RefCell<ServObject>>,
+    pub ident: u64,
+    pub srv_owned: bool,
+}
+
+impl SessObject {
+    pub fn new(srv: &Rc<RefCell<ServObject>>, ident: u64, srv_owned: bool) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(SessObject {
+            srv: srv.clone(),
+            ident: ident,
+            srv_owned: srv_owned,
+        }))
+    }
+}
+
+impl fmt::Debug for SessObject {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Sess[service={}, ident={:#x}]", self.srv.borrow().name, self.ident)
     }
 }

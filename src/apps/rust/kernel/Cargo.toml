@@ -8,4 +8,5 @@ crate-type = ["staticlib"]
 
 [dependencies]
 base = { path = "../../../libs/rustbase", features = ["kernel"] }
+thread = { path = "../../../libs/rustthread" }
 bitflags = "*"

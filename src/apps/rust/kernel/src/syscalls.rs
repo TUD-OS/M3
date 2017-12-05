@@ -1,5 +1,6 @@
 use base::cell::RefCell;
 use base::cfg;
+use base::col::ToString;
 use base::dtu;
 use base::errors::{Error, Code};
 use base::kif::{self, CapRngDesc, CapSel, CapType};
@@ -8,7 +9,9 @@ use base::util;
 use core::intrinsics;
 use core::ptr::Shared;
 
-use cap::{Capability, CapTable, KObject, MGateObject, RGateObject, SGateObject};
+use cap::{Capability, CapTable, KObject};
+use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
+use com::ServiceList;
 use mem;
 use pes::{INVALID_VPE, vpemng};
 use pes::VPE;
@@ -77,6 +80,8 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_RGATE  => create_rgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         kif::syscalls::Operation::NOOP          => noop(&vpe, msg),
@@ -153,7 +158,7 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     let credits = req.credits;
 
     sysc_log!(
-        vpe, "create_sgate(dst={}, rgate={:#x}, label={:#x}, credits={:#x})",
+        vpe, "create_sgate(dst={}, rgate={}, label={:#x}, credits={:#x})",
         dst_sel, rgate_sel, label, credits
     );
 
@@ -175,6 +180,94 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
         unsafe {
             let parent: Option<Shared<Capability>> = captbl.get_shared(rgate_sel);
             captbl.insert_as_child(cap, parent);
+        }
+    }
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateSrv = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let rgate_sel = req.rgate_sel as CapSel;
+    let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
+
+    sysc_log!(
+        vpe, "create_srv(dst={}, rgate={}, name={})",
+        dst_sel, rgate_sel, name
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+    if ServiceList::get().find(&name).is_some() {
+        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
+    }
+
+    let rgate = get_kobj!(vpe, rgate_sel, RGate);
+
+    vpe.borrow_mut().obj_caps_mut().insert(
+        Capability::new(dst_sel, KObject::Serv(ServObject::new(vpe, name.to_string(), rgate)))
+    );
+
+    ServiceList::get().add(vpe, dst_sel);
+    vpemng::get().start_pending();
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateSess = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let arg = req.arg;
+    let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
+
+    sysc_log!(
+        vpe, "create_sess(dst={}, arg={:#x}, name={})",
+        dst_sel, arg, name
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+
+    let sentry = ServiceList::get().find(name);
+    if sentry.is_none() {
+        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
+    }
+
+    let smsg = kif::service::Open {
+        opcode: kif::service::Operation::OPEN.val as u64,
+        arg: arg,
+    };
+
+    let serv = sentry.unwrap().get_kobj();
+    let res = serv.borrow_mut().send_receive(&smsg);
+
+    match res {
+        None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", name),
+        Some(rmsg)  => {
+            let reply: &kif::service::OpenReply = get_message(rmsg);
+
+            sysc_log!(vpe, "create_sess continue with res={}", reply.res);
+
+            if reply.res != 0 {
+                sysc_err!(vpe, Code::from(reply.res as u32), "Server denied session creation",);
+            }
+            else {
+                let cap = Capability::new(dst_sel, KObject::Sess(SessObject::new(
+                    &serv, reply.sess, false
+                )));
+
+                // inherit the session-cap from the service-cap. this way, it will be automatically
+                // revoked if the service-cap is revoked
+                unsafe {
+                    let parent = sentry.unwrap().get_cap_shared();
+                    vpe.borrow_mut().obj_caps_mut().insert_as_child(cap, parent);
+                }
+            }
         }
     }
 
@@ -276,6 +369,7 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
         kif::syscalls::VPEOp::STOP  => {
             let id = vpe_ref.borrow().id();
             vpemng::get().remove(id);
+            // TODO mark message read
             return Ok(());
         },
         _                           => panic!("VPEOp unsupported: {:?}", op),

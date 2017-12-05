@@ -1,2 +1,2 @@
 Import('env')
-env.RustProgram(env, target = 'rustkernel')
+env.RustProgram(env, target = 'rustkernel', libs = ['thread'])

@@ -373,10 +373,10 @@ def RustProgram(env, target, libs = []):
 
     if env['ARCH'] == 'gem5':
         sources = [env['LIBDIR'].abspath + '/crt0.o']
-        libs    = ['c', 'heap', 'gcc', target]
+        libs    = ['c', 'heap', 'gcc', target] + libs
     else:
         sources = []
-        libs    = ['c', 'heap', 'gcc', 'host', 'pthread', target]
+        libs    = ['c', 'heap', 'gcc', 'host', 'pthread', target] + libs
 
     prog = env.M3Program(
         env,

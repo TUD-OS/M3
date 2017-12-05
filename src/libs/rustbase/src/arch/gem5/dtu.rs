@@ -23,6 +23,8 @@ pub const CMD_REGS: usize       = 5;
 pub const EP_REGS: usize        = 3;
 pub const HEADER_COUNT: usize   = 128;
 
+pub const CREDITS_UNLIM: u64    = 0xFFFF;
+
 // actual max is 64k - 1; use less for better alignment
 const MAX_PKT_SIZE: usize       = 60 * 1024;
 
@@ -297,6 +299,20 @@ impl DTU {
                 ptr::write_volatile(addr.offset(i as isize), regs[i]);
             }
         }
+    }
+
+    pub fn send_to(ep: EpId, msg: *const u8, size: usize, rlbl: Label,
+                   rep: EpId, sender: u64) -> Result<(), Error> {
+        Self::write_cmd_reg(CmdReg::Data, Self::build_data(msg, size));
+        if rlbl != 0 {
+            Self::write_cmd_reg(CmdReg::ReplyLabel, rlbl);
+        }
+        Self::write_cmd_reg(CmdReg::Offset, sender);
+        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
+            ep, CmdOpCode::SEND, 0, rep as Reg
+        ));
+
+        Self::get_error()
     }
 
     pub fn dtu_reg_addr(reg: DtuReg) -> usize {

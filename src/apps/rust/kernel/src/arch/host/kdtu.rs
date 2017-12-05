@@ -114,7 +114,7 @@ impl KDTU {
         self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
         self.write_ep_local(ep);
 
-        return DTU::read(ep, data, size, 0, CmdFlags::NOPF);
+        DTU::read(ep, data, size, 0, CmdFlags::NOPF)
     }
 
     pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
@@ -127,7 +127,17 @@ impl KDTU {
         self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
         self.write_ep_local(ep);
 
-        return DTU::write(ep, data, size, 0, CmdFlags::NOPF);
+        DTU::write(ep, data, size, 0, CmdFlags::NOPF)
+    }
+
+    pub fn send_to(&mut self, vpe: &VPEDesc, ep: EpId, lbl: Label, msg: *const u8, size: usize,
+                   rpl_lbl: Label, rpl_ep: EpId) -> Result<(), Error> {
+        let sep = self.ep;
+        let msg_size = size + util::size_of::<Header>();
+        self.state.config_send(sep, lbl, vpe.pe_id(), vpe.vpe_id(), ep, msg_size, !0);
+        self.write_ep_local(sep);
+
+        DTU::send(sep, msg, size, rpl_lbl, rpl_ep)
     }
 
     pub fn copy_clear(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize,

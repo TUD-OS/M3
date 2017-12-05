@@ -185,6 +185,21 @@ impl KDTU {
         DTU::write(ep, data, size, 0, CmdFlags::NOPF)
     }
 
+    pub fn send_to(&mut self, vpe: &VPEDesc, ep: EpId, lbl: Label, msg: *const u8, size: usize,
+                   rpl_lbl: Label, rpl_ep: EpId) -> Result<(), Error> {
+        let sep = self.ep;
+        let msg_size = size + util::size_of::<Header>();
+        self.state.config_send(sep, lbl, vpe.pe_id(), vpe.vpe_id(), ep, msg_size, CREDITS_UNLIM);
+        self.write_ep_local(sep);
+
+        let sender = platform::kernel_pe() |
+                     (vpemng::KERNEL_VPE << 8) |
+                     (EP_COUNT << 24) |
+                     (rpl_ep << 32);
+
+        DTU::send_to(sep, msg, size, rpl_lbl, rpl_ep, sender as u64)
+    }
+
     pub fn copy_clear(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize,
                                  src_vpe: &VPEDesc, mut src_addr: usize,
                                  size: usize, clear: bool) -> Result<(), Error> {

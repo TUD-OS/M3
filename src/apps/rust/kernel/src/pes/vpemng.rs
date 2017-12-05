@@ -1,5 +1,5 @@
 use base::cell::RefCell;
-use base::col::{ToString, Vec};
+use base::col::{DList, ToString, Vec};
 use base::dtu::PEId;
 use base::env;
 use base::errors::{Code, Error};
@@ -7,6 +7,7 @@ use base::rc::Rc;
 
 use arch::loader::Loader;
 use arch::platform;
+use com::ServiceList;
 use pes::{VPE, VPEId, VPEFlags};
 
 pub const MAX_VPES: usize   = 1024;
@@ -14,6 +15,7 @@ pub const KERNEL_VPE: usize = MAX_VPES;
 
 pub struct VPEMng {
     vpes: Vec<Option<Rc<RefCell<VPE>>>>,
+    pending: DList<VPEId>,
     count: usize,
     next_id: usize,
 }
@@ -30,6 +32,7 @@ pub fn init() {
     unsafe {
         INST = Some(VPEMng {
             vpes: vec![None; MAX_VPES],
+            pending: DList::new(),
             count: 0,
             next_id: 0,
         })
@@ -83,7 +86,7 @@ impl VPEMng {
             }
 
             if vpe.borrow().requirements().len() > 0 {
-                // TODO self.pending.push(Pending::new(id));
+                self.pending.push_back(id);
             }
             else {
                 let loader = Loader::get();
@@ -98,6 +101,28 @@ impl VPEMng {
         }
 
         Ok(())
+    }
+
+    pub fn start_pending(&mut self) {
+        let mut it = self.pending.iter_mut();
+        while let Some(id) = it.next() {
+            let vpe = self.vpes[*id as usize].as_ref().unwrap();
+            let mut fullfilled = true;
+            for r in vpe.borrow().requirements() {
+                if ServiceList::get().find(r).is_none() {
+                    fullfilled = false;
+                    break;
+                }
+            }
+
+            if fullfilled {
+                let loader = Loader::get();
+                let pid = loader.load_app(vpe.borrow_mut()).unwrap();
+                vpe.borrow_mut().set_pid(pid);
+
+                it.remove();
+            }
+        }
     }
 
     pub fn count(&self) -> usize {
