@@ -244,7 +244,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     };
 
     let serv = sentry.unwrap().get_kobj();
-    let res = serv.borrow_mut().send_receive(&smsg);
+    let res = ServObject::send_receive(&serv, &smsg);
 
     match res {
         None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", name),

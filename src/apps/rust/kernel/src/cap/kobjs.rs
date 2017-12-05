@@ -200,13 +200,15 @@ impl ServObject {
         }))
     }
 
-    pub fn send_receive<T>(&mut self, msg: &T) -> Option<&'static dtu::Message> {
-        self.send_receive_data(msg as *const T as *const u8, util::size_of::<T>())
-    }
+    pub fn send_receive<T>(serv: &Rc<RefCell<ServObject>>, msg: &T) -> Option<&'static dtu::Message> {
+        let addr = msg as *const T as *const u8;
+        let event = {
+            let mut serv_obj = serv.borrow_mut();
+            let rep = serv_obj.rgate.borrow().ep.unwrap();
+            serv_obj.queue.send(rep, addr, util::size_of::<T>())
+        };
 
-    fn send_receive_data(&mut self, msg: *const u8, size: usize) -> Option<&'static dtu::Message> {
-        let rep = self.rgate.borrow().ep.unwrap();
-        self.queue.send(rep, msg, size).and_then(|event| {
+        event.and_then(|event| {
             thread::ThreadManager::get().wait_for(event);
             thread::ThreadManager::get().fetch_msg()
         })
