@@ -49,9 +49,10 @@ impl MainMemory {
         }
         Err(Error::new(Code::NoSpace))
     }
-    // pub fn allocate_at(&mut self, offset: usize, size: usize) -> Result<Allocation, Error> {
-    //     Err(Error::new(Code::NoSpace))
-    // }
+    pub fn allocate_at(&mut self, offset: usize, size: usize) -> Result<Allocation, Error> {
+        // TODO check if that's actually ok
+        Ok(Allocation::new(self.mods[0].addr() + offset, size))
+    }
 
     pub fn free(&mut self, alloc: &Allocation) {
         for m in &mut self.mods {

@@ -82,6 +82,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
         kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
+        kif::syscalls::Operation::DERIVE_MEM    => derive_mem(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         kif::syscalls::Operation::NOOP          => noop(&vpe, msg),
@@ -112,7 +113,12 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
         sysc_err!(vpe, Code::InvArgs, "Invalid size or permissions",);
     }
 
-    let alloc = mem::get().allocate(size, cfg::PAGE_SIZE)?;
+    let alloc = if addr == !0 {
+        mem::get().allocate(size, cfg::PAGE_SIZE)
+    }
+    else {
+        mem::get().allocate_at(addr, size)
+    }?;
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::MGate(MGateObject::new(
@@ -268,6 +274,51 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
                     vpe.borrow_mut().obj_caps_mut().insert_as_child(cap, parent);
                 }
             }
+        }
+    }
+
+    reply_success(msg);
+    Ok(())
+}
+
+fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::DeriveMem = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let src_sel = req.src_sel as CapSel;
+    let offset = req.offset as usize;
+    let size = req.size as usize;
+    let perms = kif::Perm::from_bits_truncate(req.perms as u8);
+
+    sysc_log!(
+        vpe, "derive_mem(src={}, dst={}, size={:#x}, offset={:#x}, perms={:?})",
+        src_sel, dst_sel, size, offset, perms
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+
+    let cap = {
+        let mgate = get_kobj!(vpe, src_sel, MGate);
+
+        if offset + size < offset || offset + size > mgate.borrow().size || size == 0 {
+            sysc_err!(vpe, Code::InvArgs, "Size or offset invalid",);
+        }
+
+        let mgate_ref = mgate.borrow();
+        let mgate_obj = MGateObject::new(
+            mgate_ref.pe, mgate_ref.vpe, mgate_ref.addr + offset, size, perms & mgate_ref.perms
+        );
+        mgate_obj.borrow_mut().derived = true;
+        Capability::new(dst_sel, KObject::MGate(mgate_obj))
+    };
+
+    {
+        let mut vpe_mut = vpe.borrow_mut();
+        let captbl: &mut CapTable = vpe_mut.obj_caps_mut();
+        unsafe {
+            let parent: Option<Shared<Capability>> = captbl.get_shared(src_sel);
+            captbl.insert_as_child(cap, parent);
         }
     }
 

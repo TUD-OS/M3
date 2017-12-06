@@ -26,6 +26,10 @@ impl MemMod {
         self.map.size().0
     }
 
+    pub fn addr(&self) -> GlobAddr {
+        self.gaddr
+    }
+
     pub fn allocate(&mut self, size: usize, align: usize) -> Result<GlobAddr, Error> {
         self.map.allocate(size, align).map(|addr| self.gaddr + addr)
     }
