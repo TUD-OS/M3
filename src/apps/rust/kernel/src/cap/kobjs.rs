@@ -3,7 +3,6 @@ use base::col::String;
 use base::dtu::{self, EpId, PEId, Label};
 use base::kif;
 use base::rc::Rc;
-use base::util;
 use core::fmt;
 use thread;
 
@@ -204,12 +203,11 @@ impl ServObject {
         self.queue.vpe()
     }
 
-    pub fn send_receive<T>(serv: &Rc<RefCell<ServObject>>, msg: &T) -> Option<&'static dtu::Message> {
-        let addr = msg as *const T as *const u8;
+    pub fn send_receive(serv: &Rc<RefCell<ServObject>>, msg: &[u8]) -> Option<&'static dtu::Message> {
         let event = {
             let mut serv_obj = serv.borrow_mut();
             let rep = serv_obj.rgate.borrow().ep.unwrap();
-            serv_obj.queue.send(rep, addr, util::size_of::<T>())
+            serv_obj.queue.send(rep, msg, msg.len())
         };
 
         event.and_then(|event| {

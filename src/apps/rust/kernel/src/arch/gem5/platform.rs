@@ -42,8 +42,6 @@ pub fn init() -> platform::KEnv {
         }
     }
 
-    klog!(DEF, "mem = {:?}", mem);
-
     kenv
 }
 

@@ -252,7 +252,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     };
 
     let serv = sentry.unwrap().get_kobj();
-    let res = ServObject::send_receive(&serv, &smsg);
+    let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
 
     match res {
         None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", name),
@@ -392,7 +392,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
     }
 
     let serv = &sess.borrow().srv;
-    let res = ServObject::send_receive(serv, &smsg);
+    let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 
     match res {
         None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", serv.borrow().name),
