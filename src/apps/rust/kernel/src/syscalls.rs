@@ -55,7 +55,7 @@ fn get_message<R: 'static>(msg: &'static dtu::Message) -> &'static R {
     &data[0]
 }
 
-fn reply<T>(msg: &'static dtu::Message, rep: *const T) {
+fn send_reply<T>(msg: &'static dtu::Message, rep: *const T) {
     dtu::DTU::reply(0, rep as *const u8, util::size_of::<T>(), msg)
         .expect("Reply failed");
 }
@@ -64,7 +64,7 @@ fn reply_result(msg: &'static dtu::Message, code: u64) {
     let rep = kif::syscalls::DefaultReply {
         error: code,
     };
-    reply(msg, &rep);
+    send_reply(msg, &rep);
 }
 
 fn reply_success(msg: &'static dtu::Message) {
@@ -83,6 +83,8 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
         kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
         kif::syscalls::Operation::DERIVE_MEM    => derive_mem(&vpe, msg),
+        kif::syscalls::Operation::DELEGATE      => exchange_over_sess(&vpe, msg, false),
+        kif::syscalls::Operation::OBTAIN        => exchange_over_sess(&vpe, msg, true),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
         kif::syscalls::Operation::NOOP          => noop(&vpe, msg),
@@ -254,6 +256,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
 
     match res {
         None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", name),
+
         Some(rmsg)  => {
             let reply: &kif::service::OpenReply = get_message(rmsg);
 
@@ -323,6 +326,111 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     }
 
     reply_success(msg);
+    Ok(())
+}
+
+fn do_exchange(vpe1: &Rc<RefCell<VPE>>, vpe2: &Rc<RefCell<VPE>>,
+               c1: &kif::CapRngDesc, c2: &kif::CapRngDesc, obtain: bool) -> Result<(), Error> {
+    let src = if obtain { vpe2 } else { vpe1 };
+    let dst = if obtain { vpe1 } else { vpe2 };
+    let src_rng = if obtain { c2 } else { c1 };
+    let dst_rng = if obtain { c1 } else { c2 };
+
+    if vpe1.borrow().id() == vpe2.borrow().id() {
+        return Err(Error::new(Code::InvArgs));
+    }
+    if c1.cap_type() != c2.cap_type() {
+        return Err(Error::new(Code::InvArgs));
+    }
+    if (obtain && c2.count() > c1.count()) || (!obtain && c2.count() != c1.count()) {
+        return Err(Error::new(Code::InvArgs));
+    }
+    if !dst.borrow().obj_caps().range_unused(dst_rng) {
+        return Err(Error::new(Code::InvArgs));
+    }
+
+    let mut src_ref = src.borrow_mut();
+    let mut dst_ref = dst.borrow_mut();
+    for i in 0..c2.count() {
+        let src_sel = src_rng.start() + i;
+        let dst_sel = dst_rng.start() + i;
+        let src_cap = src_ref.obj_caps_mut().get_mut(src_sel);
+        src_cap.map(|c| dst_ref.obj_caps_mut().obtain(dst_sel, c));
+    }
+
+    Ok(())
+}
+
+fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain: bool) -> Result<(), Error> {
+    let req: &kif::syscalls::ExchangeSess = get_message(msg);
+    let sess_sel = req.sess_sel as CapSel;
+    let crd = CapRngDesc::new_from(req.crd);
+
+    sysc_log!(
+        vpe, "{}(sess={}, crd={})",
+        if obtain { "obtain" } else { "delegate" }, sess_sel, crd
+    );
+
+    let sess = get_kobj!(vpe, sess_sel, Sess);
+
+    let mut smsg = kif::service::Exchange {
+        opcode: if obtain {
+            kif::service::Operation::OBTAIN.val as u64
+        }
+        else {
+            kif::service::Operation::DELEGATE.val as u64
+        },
+        sess: sess.borrow().ident,
+        data: kif::service::ExchangeData {
+            caps: crd.count() as u64,
+            argcount: req.argcount,
+            args: unsafe { intrinsics::uninit() },
+        },
+    };
+    for i in 0..req.argcount as usize {
+        smsg.data.args[i] = req.args[i];
+    }
+
+    let serv = &sess.borrow().srv;
+    let res = ServObject::send_receive(serv, &smsg);
+
+    match res {
+        None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", serv.borrow().name),
+
+        Some(rmsg)  => {
+            let reply: &kif::service::ExchangeReply = get_message(rmsg);
+
+            sysc_log!(
+                vpe, "{} continue with res={}",
+                if obtain { "obtain" } else { "delegate" }, reply.res
+            );
+
+            if reply.res != 0 {
+                sysc_err!(vpe, Code::from(reply.res as u32), "Server denied cap exchange",);
+            }
+            else {
+                let err = do_exchange(
+                    vpe, serv.borrow().vpe(),
+                    &crd, &CapRngDesc::new_from(reply.data.caps), obtain
+                );
+                // TODO improve that
+                if let Err(e) = err {
+                    sysc_err!(vpe, e.code(), "Cap exchange failed",);
+                }
+            }
+
+            let mut kreply = kif::syscalls::ExchangeSessReply {
+                error: 0,
+                argcount: reply.data.argcount,
+                args: unsafe { intrinsics::uninit() },
+            };
+            for i in 0..reply.data.argcount as usize {
+                kreply.args[i] = reply.data.args[i];
+            }
+            send_reply(msg, &kreply);
+        }
+    }
+
     Ok(())
 }
 

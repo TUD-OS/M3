@@ -30,6 +30,14 @@ impl CapTable {
     pub fn unused(&self, sel: CapSel) -> bool {
         self.get(sel).is_none()
     }
+    pub fn range_unused(&self, crd: &CapRngDesc) -> bool {
+        for s in crd.start()..crd.start() + crd.count() {
+            if self.get(s).is_some() {
+                return false;
+            }
+        }
+        return true;
+    }
 
     pub fn get(&self, sel: CapSel) -> Option<&Capability> {
         self.caps.get(|k| sel.cmp(k))

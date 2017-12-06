@@ -200,6 +200,10 @@ impl ServObject {
         }))
     }
 
+    pub fn vpe(&self) -> &Rc<RefCell<VPE>> {
+        self.queue.vpe()
+    }
+
     pub fn send_receive<T>(serv: &Rc<RefCell<ServObject>>, msg: &T) -> Option<&'static dtu::Message> {
         let addr = msg as *const T as *const u8;
         let event = {

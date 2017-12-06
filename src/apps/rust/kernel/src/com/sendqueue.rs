@@ -62,6 +62,10 @@ impl SendQueue {
         }
     }
 
+    pub fn vpe(&self) -> &Rc<RefCell<VPE>> {
+        &self.vpe
+    }
+
     pub fn send(&mut self, rep: dtu::EpId, msg: *const u8, size: usize) -> Option<thread::Event> {
         klog!(SQUEUE, "SendQueue[{}]: trying to send msg", self.vpe.borrow().id());
 
