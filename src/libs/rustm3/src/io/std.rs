@@ -1,3 +1,4 @@
+use cell::MutCell;
 use io::Serial;
 use vfs::{Fd, FileRef, BufReader, BufWriter};
 use vpe::VPE;
@@ -6,18 +7,18 @@ pub const STDIN_FILENO: Fd      = 0;
 pub const STDOUT_FILENO: Fd     = 1;
 pub const STDERR_FILENO: Fd     = 2;
 
-static mut STDIN : Option<BufReader<FileRef>> = None;
-static mut STDOUT: Option<BufWriter<FileRef>> = None;
-static mut STDERR: Option<BufWriter<FileRef>> = None;
+static STDIN : MutCell<Option<BufReader<FileRef>>> = MutCell::new(None);
+static STDOUT: MutCell<Option<BufWriter<FileRef>>> = MutCell::new(None);
+static STDERR: MutCell<Option<BufWriter<FileRef>>> = MutCell::new(None);
 
 pub fn stdin() -> &'static mut BufReader<FileRef> {
-    unsafe { STDIN.as_mut().unwrap() }
+    STDIN.get_mut().as_mut().unwrap()
 }
 pub fn stdout() -> &'static mut BufWriter<FileRef> {
-    unsafe { STDOUT.as_mut().unwrap() }
+    STDOUT.get_mut().as_mut().unwrap()
 }
 pub fn stderr() -> &'static mut BufWriter<FileRef> {
-    unsafe { STDERR.as_mut().unwrap() }
+    STDERR.get_mut().as_mut().unwrap()
 }
 
 pub fn init() {
@@ -34,9 +35,7 @@ pub fn init() {
         }
     };
 
-    unsafe {
-        STDIN  = create_in(STDIN_FILENO);
-        STDOUT = create_out(STDOUT_FILENO);
-        STDERR = create_out(STDERR_FILENO);
-    }
+    STDIN .set(create_in(STDIN_FILENO));
+    STDOUT.set(create_out(STDOUT_FILENO));
+    STDERR.set(create_out(STDERR_FILENO));
 }

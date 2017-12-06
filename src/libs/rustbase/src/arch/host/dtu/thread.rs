@@ -1,4 +1,6 @@
 use arch::dtu::*;
+use cell::MutCell;
+use core::sync::atomic;
 use errors::{Code, Error};
 use kif;
 use io;
@@ -28,15 +30,15 @@ impl Buffer {
     }
 }
 
-static mut LOG: Option<io::log::Log> = None;
-static mut BUFFER: Buffer = Buffer::new();
+static LOG: MutCell<Option<io::log::Log>> = MutCell::new(None);
+static BUFFER: MutCell<Buffer> = MutCell::new(Buffer::new());
 
 fn log() -> &'static mut io::log::Log {
-    unsafe { LOG.as_mut().unwrap() }
+    LOG.get_mut().as_mut().unwrap()
 }
 
 fn buffer() -> &'static mut Buffer {
-    unsafe { &mut BUFFER }
+    BUFFER.get_mut()
 }
 
 macro_rules! log_impl {
@@ -516,14 +518,14 @@ fn handle_receive(backend: &backend::SocketBackend, ep: EpId) {
     }
 }
 
-static mut BACKEND: Option<backend::SocketBackend> = None;
-static mut RUN: bool = true;
+static BACKEND: MutCell<Option<backend::SocketBackend>> = MutCell::new(None);
+static RUN: atomic::AtomicUsize = atomic::AtomicUsize::new(1);
 static mut TID: libc::pthread_t = 0;
 
 extern "C" fn run(_arg: *mut libc::c_void) -> *mut libc::c_void {
-    let backend = unsafe { BACKEND.as_ref().unwrap() };
+    let backend = BACKEND.get_mut().as_mut().unwrap();
 
-    while unsafe { ptr::read_volatile(&mut RUN) } {
+    while RUN.load(atomic::Ordering::Relaxed) == 1 {
         if (DTU::get_cmd(CmdReg::CTRL) & Control::START.bits()) != 0 {
             handle_command(&backend);
         }
@@ -539,24 +541,23 @@ extern "C" fn run(_arg: *mut libc::c_void) -> *mut libc::c_void {
 }
 
 pub fn init() {
-    unsafe {
-        LOG = Some(io::log::Log::new());
-    }
+    LOG.set(Some(io::log::Log::new()));
     log().init();
 
-    unsafe {
-        BACKEND = Some(backend::SocketBackend::new());
+    BACKEND.set(Some(backend::SocketBackend::new()));
 
+    unsafe {
         let res = libc::pthread_create(&mut TID, ptr::null(), run, ptr::null_mut());
         assert!(res == 0);
     }
 }
 
 pub fn deinit() {
-    unsafe {
-        RUN = false;
-        assert!(libc::pthread_join(TID, ptr::null_mut()) == 0);
+    RUN.store(0, atomic::Ordering::Relaxed);
 
-        BACKEND = None;
+    unsafe {
+        assert!(libc::pthread_join(TID, ptr::null_mut()) == 0);
     }
+
+    BACKEND.set(None);
 }

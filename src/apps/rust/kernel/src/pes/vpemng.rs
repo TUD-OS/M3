@@ -1,4 +1,4 @@
-use base::cell::RefCell;
+use base::cell::{MutCell, RefCell};
 use base::col::{DList, ToString, Vec};
 use base::dtu::PEId;
 use base::env;
@@ -21,24 +21,20 @@ pub struct VPEMng {
     next_id: usize,
 }
 
-static mut INST: Option<VPEMng> = None;
+static INST: MutCell<Option<VPEMng>> = MutCell::new(None);
 
 pub fn get() -> &'static mut VPEMng {
-    unsafe {
-        INST.as_mut().unwrap()
-    }
+    INST.get_mut().as_mut().unwrap()
 }
 
 pub fn init() {
-    unsafe {
-        INST = Some(VPEMng {
-            vpes: vec![None; MAX_VPES],
-            pending: DList::new(),
-            count: 0,
-            daemons: 0,
-            next_id: 0,
-        })
-    }
+    INST.set(Some(VPEMng {
+        vpes: vec![None; MAX_VPES],
+        pending: DList::new(),
+        count: 0,
+        daemons: 0,
+        next_id: 0,
+    }));
 }
 
 impl VPEMng {

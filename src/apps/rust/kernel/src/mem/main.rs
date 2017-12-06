@@ -1,3 +1,4 @@
+use base::cell::MutCell;
 use base::col::Vec;
 use base::errors::{Code, Error};
 use base::GlobAddr;
@@ -82,16 +83,12 @@ impl fmt::Debug for MainMemory {
     }
 }
 
-static mut MEM: Option<MainMemory> = None;
+static MEM: MutCell<Option<MainMemory>> = MutCell::new(None);
 
 pub fn init() {
-    unsafe {
-        MEM = Some(MainMemory::new());
-    }
+    MEM.set(Some(MainMemory::new()));
 }
 
 pub fn get() -> &'static mut MainMemory {
-    unsafe {
-        MEM.as_mut().unwrap()
-    }
+    MEM.get_mut().as_mut().unwrap()
 }

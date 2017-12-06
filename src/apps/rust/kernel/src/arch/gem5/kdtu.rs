@@ -1,3 +1,4 @@
+use base::cell::MutCell;
 use base::dtu::*;
 use base::errors::{Code, Error};
 use base::kif::Perm;
@@ -120,17 +121,15 @@ pub struct KDTU {
     buf: [u8; 4096],
 }
 
-static mut INST: Option<KDTU> = None;
+static INST: MutCell<Option<KDTU>> = MutCell::new(None);
 
 impl KDTU {
     pub fn init() {
-        unsafe {
-            INST = Some(KDTU {
-                state: State::new(),
-                ep: 1,  // TODO
-                buf: [0u8; 4096],
-            });
-        }
+        INST.set(Some(KDTU {
+            state: State::new(),
+            ep: 1,  // TODO
+            buf: [0u8; 4096],
+        }));
 
         // set our own VPE id
         Self::get().do_set_vpe_id(
@@ -140,9 +139,7 @@ impl KDTU {
     }
 
     pub fn get() -> &'static mut KDTU {
-        unsafe {
-            INST.as_mut().unwrap()
-        }
+        INST.get_mut().as_mut().unwrap()
     }
 
     fn do_set_vpe_id(&mut self, vpe: &VPEDesc, nid: VPEId) -> Result<(), Error> {

@@ -1,5 +1,5 @@
 use base::col::Vec;
-use base::cell::RefMut;
+use base::cell::{MutCell, RefMut};
 use base::dtu::PEId;
 use base::errors::{Code, Error};
 use base::kif;
@@ -11,12 +11,6 @@ use pes::vpemng;
 use platform;
 
 const MAX_ARGS_LEN: usize = 4096;
-
-pub struct Loader {
-}
-
-static mut LOADER: Loader = Loader {};
-static mut SIGCHLDS: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
 
 pub fn init() {
     for i in platform::pes() {
@@ -31,6 +25,8 @@ pub fn init() {
         libc::signal(libc::SIGCHLD, sigchld_handler as usize);
     }
 }
+
+static mut SIGCHLDS: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
 
 extern "C" fn sigchld_handler(_sig: i32) {
     unsafe {
@@ -62,11 +58,13 @@ pub fn check_childs() {
     }
 }
 
+pub struct Loader {
+}
+
 impl Loader {
     pub fn get() -> &'static mut Loader {
-        unsafe {
-            &mut LOADER
-        }
+        static LOADER: MutCell<Loader> = MutCell::new(Loader {});
+        LOADER.get_mut()
     }
 
     pub fn load_app(&mut self, mut vpe: RefMut<VPE>) -> Result<i32, Error> {

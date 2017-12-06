@@ -1,7 +1,8 @@
 #![feature(alloc, allocator_internals)]
 #![feature(asm)]
 #![feature(compiler_builtins_lib)]
-#![feature(const_fn, const_cell_new, const_max_value)]
+#![feature(const_fn, const_cell_new, const_max_value, const_unsafe_cell_new)]
+#![feature(const_atomic_usize_new)]
 #![feature(core_intrinsics)]
 #![feature(fnbox)]
 #![feature(i128_type)]
@@ -47,10 +48,6 @@ pub mod arc {
     pub use alloc::arc::{Arc, Weak};
 }
 
-pub mod cell {
-    pub use core::cell::{Cell, Ref, RefCell, RefMut};
-}
-
 #[macro_use]
 pub mod io;
 #[macro_use]
@@ -60,6 +57,7 @@ pub mod test;
 
 pub mod backtrace;
 pub mod col;
+pub mod cell;
 pub mod elf;
 pub mod env;
 pub mod errors;

@@ -1,5 +1,5 @@
 use arch;
-use cell::RefCell;
+use cell::{MutCell, RefCell};
 use env;
 use errors::Error;
 use rc::Rc;
@@ -15,7 +15,7 @@ pub const THREAD: bool  = false;
 const MAX_LINE_LEN: usize = 160;
 const SUFFIX: &[u8] = b"\x1B[0m";
 
-static mut LOG: Option<Log> = None;
+static LOG: MutCell<Option<Log>> = MutCell::new(None);
 
 pub struct Log {
     serial: Rc<RefCell<Serial>>,
@@ -26,7 +26,7 @@ pub struct Log {
 
 impl Log {
     pub fn get() -> Option<&'static mut Log> {
-        unsafe { LOG.as_mut() }
+        LOG.get_mut().as_mut()
     }
 
     pub fn new() -> Self {
@@ -96,9 +96,7 @@ impl Write for Log {
 }
 
 pub fn init() {
-    unsafe {
-        LOG = Some(Log::new());
-    }
+    LOG.set(Some(Log::new()));
     reinit();
 }
 

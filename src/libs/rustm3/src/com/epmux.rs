@@ -1,4 +1,5 @@
 use cap::{CapFlags, Selector};
+use cell::MutCell;
 use com::gate::Gate;
 use dtu::{self, EpId};
 use errors::{Code, Error};
@@ -11,7 +12,7 @@ pub struct EpMux {
     next_victim: usize,
 }
 
-static mut EP_MUX: EpMux = EpMux::new();
+static EP_MUX: MutCell<EpMux> = MutCell::new(EpMux::new());
 
 impl EpMux {
     const fn new() -> Self {
@@ -22,9 +23,7 @@ impl EpMux {
     }
 
     pub fn get() -> &'static mut EpMux {
-        unsafe {
-            &mut EP_MUX
-        }
+        EP_MUX.get_mut()
     }
 
     pub fn reserve(&mut self, ep: EpId) {

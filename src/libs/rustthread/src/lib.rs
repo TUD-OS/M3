@@ -8,6 +8,7 @@
 extern crate base;
 
 use base::boxed::Box;
+use base::cell::MutCell;
 use base::cfg;
 use base::col::{BoxList, Vec};
 use base::dtu;
@@ -36,11 +37,9 @@ pub struct Regs {
 }
 
 fn alloc_id() -> u32 {
-    static mut NEXT_ID: u32 = 0;
-    unsafe {
-        NEXT_ID += 1;
-        NEXT_ID
-    }
+    static NEXT_ID: MutCell<u32> = MutCell::new(0);
+    NEXT_ID.set(NEXT_ID.get() + 1);
+    *NEXT_ID.get()
 }
 
 pub struct Thread {
@@ -161,12 +160,10 @@ pub struct ThreadManager {
     sleep: BoxList<Thread>,
 }
 
-static mut TMNG: Option<ThreadManager> = None;
+static TMNG: MutCell<Option<ThreadManager>> = MutCell::new(None);
 
 pub fn init() {
-    unsafe {
-        TMNG = Some(ThreadManager::new());
-    }
+    TMNG.set(Some(ThreadManager::new()));
 }
 
 impl ThreadManager {
@@ -180,9 +177,7 @@ impl ThreadManager {
     }
 
     pub fn get() -> &'static mut ThreadManager {
-        unsafe {
-            TMNG.as_mut().unwrap()
-        }
+        TMNG.get_mut().as_mut().unwrap()
     }
 
     pub fn cur(&self) -> &Box<Thread> {
@@ -214,17 +209,15 @@ impl ThreadManager {
     }
 
     pub fn alloc_event(&self) -> Event {
-        static mut NEXT_EVENT: Event = 0;
+        static NEXT_EVENT: MutCell<Event> = MutCell::new(0);
         // if we have no other threads available, don't use events
         if self.sleeping_count() == 0 {
             0
         }
         // otherwise, use a unique number
         else {
-            unsafe {
-                NEXT_EVENT += 1;
-                NEXT_EVENT
-            }
+            NEXT_EVENT.set(NEXT_EVENT.get() + 1);
+            *NEXT_EVENT.get()
         }
     }
 

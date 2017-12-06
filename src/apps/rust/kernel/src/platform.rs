@@ -1,4 +1,5 @@
 use arch;
+use base::cell::MutCell;
 use base::dtu::PEId;
 use base::GlobAddr;
 use base::kif::PEDesc;
@@ -14,8 +15,6 @@ pub struct KEnv {
     pub pe_count: u64,
     pub pes: [u32; MAX_PES],
 }
-
-static mut KENV: Option<KEnv> = None;
 
 pub struct PEIterator {
     id: PEId,
@@ -36,16 +35,14 @@ impl iter::Iterator for PEIterator {
     }
 }
 
+static KENV: MutCell<Option<KEnv>> = MutCell::new(None);
+
 pub fn init() {
-    unsafe {
-        KENV = Some(arch::platform::init())
-    }
+    KENV.set(Some(arch::platform::init()))
 }
 
 fn get() -> &'static mut KEnv {
-    unsafe {
-        KENV.as_mut().unwrap()
-    }
+    KENV.get_mut().as_mut().unwrap()
 }
 
 pub struct ModIterator {

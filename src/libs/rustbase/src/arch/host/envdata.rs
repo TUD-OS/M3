@@ -1,3 +1,4 @@
+use cell::MutCell;
 use kif::PEDesc;
 
 pub struct EnvData {
@@ -18,16 +19,12 @@ impl EnvData {
     }
 }
 
-static mut ENV_DATA: Option<EnvData> = None;
+static ENV_DATA: MutCell<Option<EnvData>> = MutCell::new(None);
 
 pub fn get() -> &'static mut EnvData {
-    unsafe {
-        ENV_DATA.as_mut().unwrap()
-    }
+    ENV_DATA.get_mut().as_mut().unwrap()
 }
 
 pub fn set(data: EnvData) {
-    unsafe {
-        ENV_DATA = Some(data)
-    }
+    ENV_DATA.set(Some(data))
 }

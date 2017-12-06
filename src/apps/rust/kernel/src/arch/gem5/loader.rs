@@ -1,5 +1,5 @@
 use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_BITS, PAGE_SIZE};
-use base::cell::{Cell, RefMut};
+use base::cell::{Cell, MutCell, RefMut};
 use base::col::{String, ToString, Vec};
 use base::elf;
 use base::envdata;
@@ -50,7 +50,7 @@ pub struct Loader {
     idles: Vec<Option<BootModule>>,
 }
 
-static mut LOADER: Option<Loader> = None;
+static LOADER: MutCell<Option<Loader>> = MutCell::new(None);
 
 pub fn init() {
     let mut mods = Vec::new();
@@ -76,20 +76,16 @@ pub fn init() {
         );
     }
 
-    unsafe {
-        LOADER = Some(Loader {
-            mods: mods,
-            loaded: Cell::new(0),
-            idles: vec![None; platform::MAX_PES],
-        });
-    }
+    LOADER.set(Some(Loader {
+        mods: mods,
+        loaded: Cell::new(0),
+        idles: vec![None; platform::MAX_PES],
+    }));
 }
 
 impl Loader {
     pub fn get() -> &'static mut Loader {
-        unsafe {
-            LOADER.as_mut().unwrap()
-        }
+        LOADER.get_mut().as_mut().unwrap()
     }
 
     fn get_mod(&self, args: &[String]) -> Option<(&BootModule, bool)> {

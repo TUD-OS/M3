@@ -1,3 +1,4 @@
+use base::cell::MutCell;
 use base::dtu::*;
 use base::errors::{Code, Error};
 use base::kif::Perm;
@@ -77,22 +78,18 @@ pub struct KDTU {
     ep: EpId,
 }
 
-static mut INST: Option<KDTU> = None;
+static INST: MutCell<Option<KDTU>> = MutCell::new(None);
 
 impl KDTU {
     pub fn init() {
-        unsafe {
-            INST = Some(KDTU {
-                state: State::new(),
-                ep: 1,  // TODO
-            });
-        }
+        INST.set(Some(KDTU {
+            state: State::new(),
+            ep: 1,  // TODO
+        }));
     }
 
     pub fn get() -> &'static mut KDTU {
-        unsafe {
-            INST.as_mut().unwrap()
-        }
+        INST.get_mut().as_mut().unwrap()
     }
 
     pub fn write_ep_local(&mut self, ep: EpId) {

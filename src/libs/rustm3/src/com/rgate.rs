@@ -1,5 +1,6 @@
 use cfg;
 use cap::{CapFlags, Selector};
+use cell::MutCell;
 use com::epmux::EpMux;
 use com::gate::Gate;
 use com::{GateIStream, SendGate};
@@ -14,9 +15,9 @@ use vpe;
 
 const DEF_MSG_ORD: i32          = 6;
 
-static mut SYS_RGATE: RecvGate  = RecvGate::new_def(dtu::SYSC_REP);
-static mut UPC_RGATE: RecvGate  = RecvGate::new_def(dtu::UPCALL_REP);
-static mut DEF_RGATE: RecvGate  = RecvGate::new_def(dtu::DEF_REP);
+static SYS_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::SYSC_REP));
+static UPC_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::UPCALL_REP));
+static DEF_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::DEF_REP));
 
 bitflags! {
     struct FreeFlags : u8 {
@@ -74,13 +75,13 @@ impl RGateArgs {
 
 impl RecvGate {
     pub fn syscall() -> &'static mut RecvGate {
-        unsafe { &mut SYS_RGATE }
+        SYS_RGATE.get_mut()
     }
     pub fn upcall() -> &'static mut RecvGate {
-        unsafe { &mut UPC_RGATE }
+        UPC_RGATE.get_mut()
     }
     pub fn def() -> &'static mut RecvGate {
-        unsafe { &mut DEF_RGATE }
+        DEF_RGATE.get_mut()
     }
 
     const fn new_def(ep: dtu::EpId) -> Self {

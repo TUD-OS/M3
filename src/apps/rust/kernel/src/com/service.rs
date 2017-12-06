@@ -1,4 +1,4 @@
-use base::cell::RefCell;
+use base::cell::{MutCell, RefCell};
 use base::col::DList;
 use base::kif::CapSel;
 use base::rc::Rc;
@@ -36,12 +36,10 @@ pub struct ServiceList {
     list: DList<Service>,
 }
 
-static mut SERVICES: Option<ServiceList> = None;
+static SERVICES: MutCell<Option<ServiceList>> = MutCell::new(None);
 
 pub fn init() {
-    unsafe {
-        SERVICES = Some(ServiceList::new());
-    }
+    SERVICES.set(Some(ServiceList::new()));
 }
 
 impl ServiceList {
@@ -52,9 +50,7 @@ impl ServiceList {
     }
 
     pub fn get() -> &'static mut Self {
-        unsafe {
-            SERVICES.as_mut().unwrap()
-        }
+        SERVICES.get_mut().as_mut().unwrap()
     }
 
     pub fn add(&mut self, vpe: &Rc<RefCell<VPE>>, sel: CapSel) {

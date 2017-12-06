@@ -1,3 +1,4 @@
+use base::cell::MutCell;
 use base::cfg;
 use base::envdata;
 use base::GlobAddr;
@@ -13,7 +14,7 @@ use platform;
 
 const USABLE_MEM: usize     = 256 * 1024 * 1024;
 
-static mut LAST_PE: PEId = 0;
+static LAST_PE: MutCell<PEId> = MutCell::new(0);
 
 pub fn init() -> platform::KEnv {
     // read kernel env
@@ -38,7 +39,7 @@ pub fn init() -> platform::KEnv {
             count += 1;
         }
         else {
-            unsafe { LAST_PE = i };
+            LAST_PE.set(i);
         }
     }
 
@@ -52,7 +53,7 @@ pub fn first_user_pe() -> PEId {
     kernel_pe() + 1
 }
 pub fn last_user_pe() -> PEId {
-    unsafe { LAST_PE }
+    *LAST_PE.get()
 }
 
 pub fn default_rcvbuf(pe: PEId) -> usize {

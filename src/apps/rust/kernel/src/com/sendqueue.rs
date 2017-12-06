@@ -1,4 +1,4 @@
-use base::cell::RefCell;
+use base::cell::{MutCell, RefCell};
 use base::col::{DList, Vec};
 use base::dtu;
 use base::rc::Rc;
@@ -40,11 +40,9 @@ pub struct SendQueue {
 }
 
 fn alloc_qid() -> u64 {
-    static mut NEXT_ID: u64 = 0;
-    unsafe {
-        NEXT_ID += 1;
-        NEXT_ID
-    }
+    static NEXT_ID: MutCell<u64> = MutCell::new(0);
+    NEXT_ID.set(NEXT_ID.get() + 1);
+    *NEXT_ID.get()
 }
 
 fn get_event(id: u64) -> thread::Event {
