@@ -73,8 +73,11 @@ impl VPEMng {
                     karg = true;
                 }
                 else if argv[j].starts_with("requires=") {
-                    vpe.borrow_mut().add_requirement(&argv[j]["requires=".len()..]);
-                    karg = true;
+                    let req = &argv[j]["requires=".len()..];
+                    if cfg!(target_os = "none") || req != "pager" {
+                        vpe.borrow_mut().add_requirement(req);
+                        karg = true;
+                    }
                 }
                 else if argv[j] == "--" {
                     break;
