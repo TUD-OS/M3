@@ -153,6 +153,9 @@ impl VPEMng {
         match self.vpes[id] {
             Some(ref v) => {
                 v.borrow_mut().destroy();
+                if !v.borrow().is_daemon() {
+                    self.count -= 1;
+                }
                 klog!(
                     VPES, "Removed VPE {} [id={}, pe={}]",
                     v.borrow().name(), v.borrow().id(), v.borrow().pe_id()
@@ -161,7 +164,6 @@ impl VPEMng {
             None        => panic!("Removing nonexisting VPE with id {}", id),
         };
         self.vpes[id] = None;
-        self.count -= 1;
     }
 
     fn get_id(&mut self) -> Result<usize, Error> {

@@ -221,6 +221,9 @@ impl VPE {
         &mut self.dtu_state
     }
 
+    pub fn is_daemon(&self) -> bool {
+        !(self.flags & VPEFlags::DAEMON).is_empty()
+    }
     pub fn make_daemon(&mut self) {
         self.flags |= VPEFlags::DAEMON;
     }
@@ -238,6 +241,9 @@ impl VPE {
         self.eps_addr = eps;
     }
 
+    pub fn pid(&self) -> i32 {
+        self.pid
+    }
     pub fn set_pid(&mut self, pid: i32) {
         self.pid = pid;
     }
