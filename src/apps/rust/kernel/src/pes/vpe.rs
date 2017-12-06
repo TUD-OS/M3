@@ -243,10 +243,10 @@ impl VPE {
     }
 
     pub fn get_ep_cap(&self, ep: EpId) -> Option<KObject> {
-        self.ep_caps[ep].clone()
+        self.ep_caps[ep - FIRST_FREE_EP].clone()
     }
     pub fn set_ep_cap(&mut self, ep: EpId, cap: Option<KObject>) {
-        self.ep_caps[ep] = cap;
+        self.ep_caps[ep - FIRST_FREE_EP] = cap;
     }
 
     pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) {
