@@ -4,8 +4,10 @@ use base::dtu::PEId;
 use base::errors::{Code, Error};
 use base::kif;
 use base::libc;
+use core::sync::atomic;
 
 use pes::{State, VPE, VPEId};
+use pes::vpemng;
 use platform;
 
 const MAX_ARGS_LEN: usize = 4096;
@@ -14,6 +16,7 @@ pub struct Loader {
 }
 
 static mut LOADER: Loader = Loader {};
+static mut SIGCHLDS: atomic::AtomicUsize = atomic::AtomicUsize::new(0);
 
 pub fn init() {
     for i in platform::pes() {
@@ -22,6 +25,40 @@ pub fn init() {
             "PE{:02}: {} {} {} KiB memory",
             i, desc.pe_type(), desc.isa(), desc.mem_size() / 1024
         );
+    }
+
+    unsafe {
+        libc::signal(libc::SIGCHLD, sigchld_handler as usize);
+    }
+}
+
+extern "C" fn sigchld_handler(_sig: i32) {
+    unsafe {
+        SIGCHLDS.fetch_add(1, atomic::Ordering::Relaxed);
+        libc::signal(libc::SIGCHLD, sigchld_handler as usize);
+    }
+}
+
+pub fn check_childs() {
+    unsafe {
+        while SIGCHLDS.load(atomic::Ordering::Relaxed) > 0 {
+            SIGCHLDS.fetch_sub(1, atomic::Ordering::Relaxed);
+
+            let mut status = 0;
+            let pid = libc::wait(&mut status);
+            if libc::WIFEXITED(status) {
+                klog!(VPES, "Child {} exited with status {}", pid, libc::WEXITSTATUS(status));
+            }
+            else if libc::WIFSIGNALED(status) {
+                klog!(VPES, "Child {} was killed by signal {}", pid, libc::WTERMSIG(status));
+            }
+
+            if libc::WIFSIGNALED(status) || libc::WEXITSTATUS(status) == 255 {
+                if let Some(vid) = vpemng::get().pid_to_vpeid(pid) {
+                    vpemng::get().remove(vid);
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 #![feature(core_intrinsics)]
 #![feature(shared, unique)]
+#![feature(const_atomic_usize_new)]
 
 #![no_std]
 

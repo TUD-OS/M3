@@ -139,6 +139,18 @@ impl VPEMng {
         self.daemons
     }
 
+    #[cfg(target_os = "linux")]
+    pub fn pid_to_vpeid(&mut self, pid: i32) -> Option<VPEId> {
+        for v in &self.vpes {
+            if let Some(vpe) = v.as_ref() {
+                if vpe.borrow().pid() == pid {
+                    return Some(vpe.borrow().id());
+                }
+            }
+        }
+        None
+    }
+
     pub fn vpe(&self, id: VPEId) -> Option<Rc<RefCell<VPE>>> {
         self.vpes[id].as_ref().map(|v| v.clone())
     }

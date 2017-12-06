@@ -27,5 +27,8 @@ pub fn workloop() {
         if thmng.ready_count() > 0 {
             thmng.try_yield();
         }
+
+        #[cfg(target_os = "linux")]
+        ::arch::loader::check_childs();
     }
 }
