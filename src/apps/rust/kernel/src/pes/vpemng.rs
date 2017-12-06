@@ -17,6 +17,7 @@ pub struct VPEMng {
     vpes: Vec<Option<Rc<RefCell<VPE>>>>,
     pending: DList<VPEId>,
     count: usize,
+    daemons: usize,
     next_id: usize,
 }
 
@@ -34,6 +35,7 @@ pub fn init() {
             vpes: vec![None; MAX_VPES],
             pending: DList::new(),
             count: 0,
+            daemons: 0,
             next_id: 0,
         })
     }
@@ -66,6 +68,7 @@ impl VPEMng {
             for j in i + 1..argv.len() {
                 if argv[j] == "daemon" {
                     vpe.borrow_mut().make_daemon();
+                    self.daemons += 1;
                     karg = true;
                 }
                 else if argv[j].starts_with("requires=") {
@@ -127,6 +130,9 @@ impl VPEMng {
 
     pub fn count(&self) -> usize {
         self.count
+    }
+    pub fn daemons(&self) -> usize {
+        self.daemons
     }
 
     pub fn vpe(&self, id: VPEId) -> Option<Rc<RefCell<VPE>>> {
