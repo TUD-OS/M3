@@ -5,6 +5,7 @@ pub static SYSC: bool   = true;
 pub static KENV: bool   = true;
 pub static MEM: bool    = true;
 pub static SQUEUE: bool = true;
+pub static VPES: bool   = true;
 
 #[macro_export]
 macro_rules! klog {

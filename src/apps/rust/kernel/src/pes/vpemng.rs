@@ -60,6 +60,7 @@ impl VPEMng {
 
             let id = self.get_id()?;
             let vpe = VPE::new(&arg, id, pe_id, VPEFlags::BOOTMOD);
+            klog!(VPES, "Created VPE {} [id={}, pe={}]", &arg, id, pe_id);
             pe_id += 1;
 
             // find end of arguments
@@ -150,7 +151,13 @@ impl VPEMng {
 
     pub fn remove(&mut self, id: VPEId) {
         match self.vpes[id] {
-            Some(ref v) => v.borrow_mut().destroy(),
+            Some(ref v) => {
+                v.borrow_mut().destroy();
+                klog!(
+                    VPES, "Removed VPE {} [id={}, pe={}]",
+                    v.borrow().name(), v.borrow().id(), v.borrow().pe_id()
+                );
+            },
             None        => panic!("Removing nonexisting VPE with id {}", id),
         };
         self.vpes[id] = None;
