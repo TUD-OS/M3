@@ -53,7 +53,7 @@ pub fn first_user_pe() -> PEId {
     kernel_pe() + 1
 }
 pub fn last_user_pe() -> PEId {
-    *LAST_PE.get()
+    *LAST_PE
 }
 
 pub fn default_rcvbuf(pe: PEId) -> usize {

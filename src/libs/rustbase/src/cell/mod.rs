@@ -1,5 +1,6 @@
 use core::marker::Sync;
 use core::mem;
+use core::ops::Deref;
 
 pub use core::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
 
@@ -29,5 +30,13 @@ impl<T: Sized> MutCell<T> {
 
     pub fn set(&self, val: T) {
         mem::replace(self.get_mut(), val);
+    }
+}
+
+impl<T: Sized> Deref for MutCell<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
     }
 }

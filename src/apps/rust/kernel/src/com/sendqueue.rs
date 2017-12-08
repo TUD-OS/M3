@@ -41,8 +41,8 @@ pub struct SendQueue {
 
 fn alloc_qid() -> u64 {
     static NEXT_ID: MutCell<u64> = MutCell::new(0);
-    NEXT_ID.set(NEXT_ID.get() + 1);
-    *NEXT_ID.get()
+    NEXT_ID.set(*NEXT_ID +  1);
+    *NEXT_ID
 }
 
 fn get_event(id: u64) -> thread::Event {

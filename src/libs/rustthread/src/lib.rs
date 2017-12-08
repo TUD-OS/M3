@@ -38,8 +38,8 @@ pub struct Regs {
 
 fn alloc_id() -> u32 {
     static NEXT_ID: MutCell<u32> = MutCell::new(0);
-    NEXT_ID.set(NEXT_ID.get() + 1);
-    *NEXT_ID.get()
+    NEXT_ID.set(*NEXT_ID + 1);
+    *NEXT_ID
 }
 
 pub struct Thread {
