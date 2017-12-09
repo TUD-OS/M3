@@ -27,7 +27,10 @@ pub fn collect(addr: &mut [usize]) -> usize {
         bp = base + (bp & cfg::STACK_SIZE - 1);
         let bp_ptr = bp as *const usize;
         unsafe {
-            addr[i] = *bp_ptr.offset(1) - 5;
+            addr[i] = *bp_ptr.offset(1);
+            if addr[i] >= 5 {
+                addr[i] -= 5;
+            }
             bp = *bp_ptr;
         }
     }
