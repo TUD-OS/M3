@@ -8,6 +8,7 @@ use base::rc::Rc;
 use base::util;
 use core::intrinsics;
 use core::ptr::Shared;
+use thread;
 
 use cap::{Capability, CapTable, KObject};
 use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
@@ -475,9 +476,11 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
     {
         let mut vpe_mut = vpe_ref.borrow_mut();
-        if let Some(mut old) = vpe_mut.get_ep_cap(ep) {
-            if let Some(rgate) = old.as_rgate_mut() {
-                rgate.addr = 0;
+        if let Some(old_sel) = vpe_mut.get_ep_sel(ep) {
+            if let Some(old_cap) = vpe_mut.obj_caps_mut().get_mut(old_sel) {
+                if let Some(rgate) = old_cap.get_mut().as_rgate_mut() {
+                    rgate.addr = 0;
+                }
             }
 
             vpe_mut.invalidate_ep(ep, true)?;
@@ -511,20 +514,31 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
             },
 
             KObject::SGate(ref s)    => {
+                let rgate = s.borrow().rgate.clone();
+
+                if !rgate.borrow().activated() {
+                    sysc_log!(vpe, "activate: waiting for rgate {:?}", rgate.borrow());
+
+                    let event = rgate.borrow().get_event();
+                    thread::ThreadManager::get().wait_for(event);
+
+                    sysc_log!(vpe, "activate: rgate {:?} is activated", rgate.borrow());
+                }
+
+                let pe_id = vpemng::get().pe_of(rgate.borrow().vpe);
                 let sgate = s.borrow();
-                // TODO
-                assert!(sgate.rgate.borrow().activated());
-                let pe_id = vpemng::get().pe_of(sgate.rgate.borrow().vpe);
-                vpe_ref.borrow_mut().config_snd_ep(ep, &sgate, pe_id.unwrap());
+                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &sgate, pe_id.unwrap()) {
+                    sysc_err!(vpe, e.code(), "Unable to configure send EP",);
+                }
             },
 
             _                        => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
         };
-        vpe_ref.borrow_mut().set_ep_cap(ep, Some(kobj));
+        vpe_ref.borrow_mut().set_ep_sel(ep, Some(gate_sel));
     }
     else {
         vpe_ref.borrow_mut().invalidate_ep(ep, false)?;
-        vpe_ref.borrow_mut().set_ep_cap(ep, None);
+        vpe_ref.borrow_mut().set_ep_sel(ep, None);
     }
 
     reply_success(msg);

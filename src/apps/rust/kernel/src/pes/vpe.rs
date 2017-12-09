@@ -3,9 +3,10 @@ use base::cell::{Ref, RefCell, RefMut};
 use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
-use base::kif::{CapRngDesc, CapType, PEDesc, Perm};
+use base::kif::{CapSel, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
+use thread;
 
 use arch::kdtu;
 use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
@@ -80,7 +81,7 @@ pub struct VPE {
     eps_addr: usize,
     args: Vec<String>,
     req: Vec<String>,
-    ep_caps: Vec<Option<KObject>>,
+    ep_caps: Vec<Option<CapSel>>,
     dtu_state: kdtu::State,
     rbufs_size: usize,
     headers: usize,
@@ -249,11 +250,20 @@ impl VPE {
         self.pid = pid;
     }
 
-    pub fn get_ep_cap(&self, ep: EpId) -> Option<KObject> {
+    pub fn ep_with_sel(&self, sel: CapSel) -> Option<EpId> {
+        for ep in 0..EP_COUNT - FIRST_FREE_EP {
+            match self.ep_caps[ep] {
+                Some(s)     => if s == sel { return Some(ep + FIRST_FREE_EP) },
+                None        => {},
+            }
+        }
+        None
+    }
+    pub fn get_ep_sel(&self, ep: EpId) -> Option<CapSel> {
         self.ep_caps[ep - FIRST_FREE_EP].clone()
     }
-    pub fn set_ep_cap(&mut self, ep: EpId, cap: Option<KObject>) {
-        self.ep_caps[ep - FIRST_FREE_EP] = cap;
+    pub fn set_ep_sel(&mut self, ep: EpId, sel: Option<CapSel>) {
+        self.ep_caps[ep - FIRST_FREE_EP] = sel;
     }
 
     pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) -> Result<(), Error> {
@@ -295,6 +305,8 @@ impl VPE {
 
         self.dtu_state.config_recv(ep, obj.addr, obj.order, obj.msg_order, obj.header);
         self.update_ep(ep)?;
+
+        thread::ThreadManager::get().notify(obj.get_event(), None);
 
         Ok(())
     }

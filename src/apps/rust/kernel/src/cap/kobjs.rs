@@ -113,6 +113,10 @@ impl RGateObject {
         1 << self.msg_order
     }
 
+    pub fn get_event(&self) -> thread::Event {
+        self as *const Self as thread::Event
+    }
+
     fn print_dest(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "VPE{}:", self.vpe)?;
         match self.ep {
