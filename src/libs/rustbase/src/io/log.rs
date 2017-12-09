@@ -38,7 +38,7 @@ impl Log {
         }
     }
 
-    fn write(&mut self, bytes: &[u8]) {
+    fn write_bytes(&mut self, bytes: &[u8]) {
         for b in bytes {
             self.put_char(*b)
         }
@@ -90,7 +90,7 @@ impl Write for Log {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
-        self.write(buf);
+        self.write_bytes(buf);
         Ok(buf.len())
     }
 }
