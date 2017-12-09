@@ -83,6 +83,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
         kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
         kif::syscalls::Operation::DERIVE_MEM    => derive_mem(&vpe, msg),
+        kif::syscalls::Operation::EXCHANGE      => exchange(&vpe, msg),
         kif::syscalls::Operation::DELEGATE      => exchange_over_sess(&vpe, msg, false),
         kif::syscalls::Operation::OBTAIN        => exchange_over_sess(&vpe, msg, true),
         kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
@@ -358,6 +359,26 @@ fn do_exchange(vpe1: &Rc<RefCell<VPE>>, vpe2: &Rc<RefCell<VPE>>,
         src_cap.map(|c| dst_ref.obj_caps_mut().obtain(dst_sel, c));
     }
 
+    Ok(())
+}
+
+fn exchange(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::Exchange = get_message(msg);
+    let vpe_sel = req.vpe_sel as CapSel;
+    let own_crd = CapRngDesc::new_from(req.own_crd);
+    let other_crd = CapRngDesc::new(own_crd.cap_type(), req.other_sel as CapSel, own_crd.count());
+    let obtain = req.obtain == 1;
+
+    sysc_log!(
+        vpe, "exchange(vpe={}, own={}, other={}, obtain={})",
+        vpe_sel, own_crd, other_crd, obtain
+    );
+
+    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+
+    do_exchange(vpe, &vpe_ref, &own_crd, &other_crd, obtain)?;
+
+    reply_success(msg);
     Ok(())
 }
 
