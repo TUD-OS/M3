@@ -198,10 +198,19 @@ impl Loader {
         }
 
         if needs_heap {
-            // create initial heap
-            let phys = mem::get().allocate(MOD_HEAP_SIZE, PAGE_SIZE)?;
             let end = util::round_up(end, PAGE_SIZE);
-            Self::map_segment(&vpe, phys.global(), end, MOD_HEAP_SIZE, kif::Perm::RW)?;
+
+            // clear initial heap
+            KDTU::get().copy_clear(
+                // destination
+                &vpe.desc(),
+                end,
+                // source
+                &vpe.desc(),
+                0,
+                MOD_HEAP_SIZE,
+                true
+            )?;
         }
 
         Ok(hdr.entry)
