@@ -12,7 +12,7 @@ use util;
 const MAX_MSG_SIZE: usize = 512;
 
 struct GateSink {
-    arr: [u64; MAX_MSG_SIZE],
+    arr: [u64; MAX_MSG_SIZE / 8],
     pos: usize,
 }
 
