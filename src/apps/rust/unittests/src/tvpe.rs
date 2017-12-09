@@ -20,7 +20,7 @@ fn run_arguments() {
     let act = assert_ok!(vpe.run(Box::new(|| {
         assert_eq!(env::args().count(), 1);
         assert!(env::args().nth(0).is_some());
-        assert!(env::args().nth(0).unwrap().ends_with("/bin/rustunittests"));
+        assert!(env::args().nth(0).unwrap().ends_with("rustunittests"));
         0
     })));
 
