@@ -1,3 +1,4 @@
+use base::cell::MutCell;
 use base::col::Treap;
 use base::kif::{CapRngDesc, CapSel};
 use core::fmt;
@@ -183,7 +184,8 @@ impl Capability {
     }
 }
 
-fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter, layer: u32) -> fmt::Result {
+fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter) -> fmt::Result {
+    static LAYER: MutCell<u32> = MutCell::new(5);
     use core::fmt::Write;
     let mut next = Some(cap);
     loop {
@@ -191,13 +193,13 @@ fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter, layer: u32) -> 
             None    => return Ok(()),
             Some(n) => unsafe {
                 f.write_char('\n')?;
-                for _ in 0..layer {
+                for _ in 0..*LAYER {
                     f.write_char(' ')?;
                 }
+                LAYER.set(*LAYER + 1);
                 write!(f, "=> {:?}", *n.as_ptr())?;
-                if let Some(c) = (*n.as_ptr()).child {
-                    print_childs(c, f, layer + 1)?;
-                }
+                LAYER.set(*LAYER - 1);
+
                 next = (*n.as_ptr()).next;
             }
         }
@@ -206,9 +208,9 @@ fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter, layer: u32) -> 
 
 impl fmt::Debug for Capability {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Cap[sel={}, obj={:?}]", self.sel(), self.obj)?;
+        write!(f, "Cap[vpe={}, sel={}, obj={:?}]", self.vpe().id(), self.sel(), self.obj)?;
         if let Some(c) = self.child {
-            print_childs(c, f, 5)?;
+            print_childs(c, f)?;
         }
         Ok(())
     }
