@@ -3,12 +3,13 @@ use base::col::{DList, ToString, Vec};
 use base::dtu::PEId;
 use base::env;
 use base::errors::{Code, Error};
+use base::kif;
 use base::rc::Rc;
 
-use arch::loader::Loader;
 use arch::platform;
 use com::ServiceList;
 use pes::{VPE, VPEId, VPEFlags};
+use pes::pemng;
 
 pub const MAX_VPES: usize   = 1024;
 pub const KERNEL_VPE: usize = MAX_VPES;
@@ -37,9 +38,14 @@ pub fn init() {
     }));
 }
 
+pub fn deinit() {
+    INST.set(None);
+}
+
 impl VPEMng {
     pub fn start(&mut self, args: env::Args) -> Result<(), Error> {
-        let mut pe_id = 1;  // TODO
+        // TODO temporary
+        let pedesc = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
 
         let mut argv = Vec::new();
         for arg in args {
@@ -55,9 +61,9 @@ impl VPEMng {
             }
 
             let id = self.get_id()?;
+            let pe_id = pemng::get().alloc_pe(&pedesc, None, false).ok_or(Error::new(Code::NoFreePE))?;
             let vpe = VPE::new(&arg, id, pe_id, VPEFlags::BOOTMOD);
             klog!(VPES, "Created VPE {} [id={}, pe={}]", &arg, id, pe_id);
-            pe_id += 1;
 
             // find end of arguments
             let mut karg = false;
@@ -92,9 +98,7 @@ impl VPEMng {
                 self.pending.push_back(id);
             }
             else {
-                let loader = Loader::get();
-                let pid = loader.load_app(vpe.borrow_mut())?;
-                vpe.borrow_mut().set_pid(pid);
+                vpe.borrow_mut().start(0)?;
             }
 
             self.vpes[id] = Some(vpe);
@@ -119,13 +123,24 @@ impl VPEMng {
             }
 
             if fullfilled {
-                let loader = Loader::get();
-                let pid = loader.load_app(vpe.borrow_mut()).unwrap();
-                vpe.borrow_mut().set_pid(pid);
+                vpe.borrow_mut().start(0).unwrap();
 
                 it.remove();
             }
         }
+    }
+
+    pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
+        let id = self.get_id()?;
+        let pe_id = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
+        let vpe = VPE::new(name, id, pe_id, VPEFlags::empty());
+
+        klog!(VPES, "Created VPE {} [id={}, pe={}]", name, id, pe_id);
+
+        let res = vpe.clone();
+        self.vpes[id] = Some(vpe);
+        self.count += 1;
+        Ok(res)
     }
 
     pub fn count(&self) -> usize {
@@ -162,19 +177,25 @@ impl VPEMng {
 
     pub fn remove(&mut self, id: VPEId) {
         match self.vpes[id] {
-            Some(ref v) => {
-                v.borrow_mut().destroy();
-                if !v.borrow().is_daemon() {
+            Some(ref v) => unsafe {
+                let vpe = &mut *v.as_ptr();
+                Self::destroy_vpe(vpe);
+                if !vpe.is_daemon() {
                     self.count -= 1;
                 }
-                klog!(
-                    VPES, "Removed VPE {} [id={}, pe={}]",
-                    v.borrow().name(), v.borrow().id(), v.borrow().pe_id()
-                );
             },
             None        => panic!("Removing nonexisting VPE with id {}", id),
         };
         self.vpes[id] = None;
+    }
+
+    fn destroy_vpe(vpe: &mut VPE) {
+        vpe.destroy();
+        pemng::get().free(vpe.pe_id());
+        klog!(
+            VPES, "Removed VPE {} [id={}, pe={}]",
+            vpe.name(), vpe.id(), vpe.pe_id()
+        );
     }
 
     fn get_id(&mut self) -> Result<usize, Error> {
@@ -193,5 +214,22 @@ impl VPEMng {
         }
 
         Err(Error::new(Code::NoSpace))
+    }
+}
+
+impl Drop for VPEMng {
+    fn drop(&mut self) {
+        for v in self.vpes.drain(0..) {
+            if let Some(vpe) = v {
+                unsafe {
+                    let vpe = &mut *vpe.as_ptr();
+
+                    #[cfg(target_os = "linux")]
+                    ::arch::loader::kill_child(vpe.pid());
+
+                    Self::destroy_vpe(vpe);
+                }
+            }
+        }
     }
 }

@@ -37,8 +37,8 @@ fn exchange() {
 
     {
         let cap = tbl1.get_mut(11).unwrap();
-        tbl2.obtain(12, cap);
-        tbl2.obtain(13, cap);
+        tbl2.obtain(12, cap, true);
+        tbl2.obtain(13, cap, true);
     }
 
     {

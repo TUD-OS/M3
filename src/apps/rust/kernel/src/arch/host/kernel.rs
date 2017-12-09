@@ -116,6 +116,7 @@ pub fn main() -> i32 {
     KDTU::init();
     platform::init();
     loader::init();
+    pes::pemng::init();
     pes::vpemng::init();
     thread::init();
 
@@ -140,6 +141,7 @@ pub fn main() -> i32 {
 
     workloop();
 
+    pes::vpemng::deinit();
     if let Some(path) = fs_image {
         copy_to_fs(path, fs_size);
     }

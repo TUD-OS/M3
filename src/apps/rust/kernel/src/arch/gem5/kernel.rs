@@ -39,6 +39,7 @@ pub extern "C" fn env_run() {
     KDTU::init();
     platform::init();
     loader::init();
+    pes::pemng::init();
     pes::vpemng::init();
     thread::init();
 
@@ -64,6 +65,7 @@ pub extern "C" fn env_run() {
 
     workloop();
 
+    pes::vpemng::deinit();
     klog!(DEF, "Shutting down");
     exit(0);
 }

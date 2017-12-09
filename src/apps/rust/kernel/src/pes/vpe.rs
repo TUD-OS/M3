@@ -6,10 +6,13 @@ use base::errors::{Code, Error};
 use base::kif::{CapSel, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
+use core::mem;
 use thread;
 
 use arch::kdtu;
+use arch::loader::Loader;
 use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
+use pes::vpemng;
 use platform;
 
 pub type VPEId = usize;
@@ -82,6 +85,7 @@ pub struct VPE {
     args: Vec<String>,
     req: Vec<String>,
     ep_caps: Vec<Option<CapSel>>,
+    exit_code: Option<i32>,
     dtu_state: kdtu::State,
     rbufs_size: usize,
     headers: usize,
@@ -101,6 +105,7 @@ impl VPE {
             args: Vec::new(),
             req: Vec::new(),
             ep_caps: vec![None; EP_COUNT - FIRST_FREE_EP],
+            exit_code: None,
             dtu_state: kdtu::State::new(),
             rbufs_size: 0,
             headers: 0,
@@ -130,8 +135,7 @@ impl VPE {
     }
 
     pub fn destroy(&mut self) {
-        // remove the circular reference
-        self.obj_caps.revoke(CapRngDesc::new(CapType::OBJECT, 0, 1), true);
+        self.obj_caps.revoke_all();
     }
 
     #[cfg(target_os = "linux")]
@@ -181,6 +185,11 @@ impl VPE {
 
         self.rbufs_size = rgate.borrow().addr + (1 << rgate.borrow().order);
         self.rbufs_size -= platform::default_rcvbuf(self.pe_id());
+
+        if !self.is_bootmod() {
+            let loader = Loader::get();
+            loader.init_app(self).unwrap();
+        }
     }
 
     pub fn id(&self) -> VPEId {
@@ -223,6 +232,9 @@ impl VPE {
         &mut self.dtu_state
     }
 
+    pub fn is_bootmod(&self) -> bool {
+        !(self.flags & VPEFlags::BOOTMOD).is_empty()
+    }
     pub fn is_daemon(&self) -> bool {
         !(self.flags & VPEFlags::DAEMON).is_empty()
     }
@@ -248,6 +260,41 @@ impl VPE {
     }
     pub fn set_pid(&mut self, pid: i32) {
         self.pid = pid;
+    }
+
+    fn exit_event(&self) -> thread::Event {
+        &self.exit_code as *const Option<i32> as thread::Event
+    }
+
+    pub fn start(&mut self, pid: i32) -> Result<(), Error> {
+        self.flags |= VPEFlags::HASAPP;
+        self.set_pid(pid);
+
+        let loader = Loader::get();
+        let pid = loader.load_app(self)?;
+        self.set_pid(pid);
+        Ok(())
+    }
+
+    pub fn wait(vpe: Rc<RefCell<VPE>>) -> Option<i32> {
+        let event = vpe.borrow().exit_event();
+        thread::ThreadManager::get().wait_for(event);
+        mem::replace(&mut vpe.borrow_mut().exit_code, None)
+    }
+
+    pub fn stop(vpe: Rc<RefCell<VPE>>, exit_code: i32) {
+        if vpe.borrow().flags.contains(VPEFlags::HASAPP) {
+            vpe.borrow_mut().flags.remove(VPEFlags::HASAPP);
+            vpe.borrow_mut().exit_code = Some(exit_code);
+
+            thread::ThreadManager::get().notify(vpe.borrow().exit_event(), None);
+
+            // if it's a boot module, there is nobody waiting for it; just remove it
+            if vpe.borrow().is_bootmod() {
+                let id = vpe.borrow().id();
+                vpemng::get().remove(id);
+            }
+        }
     }
 
     pub fn ep_with_sel(&self, sel: CapSel) -> Option<EpId> {

@@ -4,8 +4,9 @@ use base::kif::{CapRngDesc, CapSel};
 use core::fmt;
 use core::ptr::{Shared, Unique};
 
-use pes::VPE;
 use cap::KObject;
+use com::ServiceList;
+use pes::{vpemng, VPE};
 
 pub struct CapTable {
     caps: Treap<CapSel, Capability>,
@@ -64,15 +65,20 @@ impl CapTable {
         }
     }
 
-    pub fn obtain(&mut self, sel: CapSel, cap: &mut Capability) {
+    pub fn obtain(&mut self, sel: CapSel, cap: &mut Capability, child: bool) {
         let mut nc: Capability = (*cap).clone();
         nc.sel = sel;
-        cap.inherit(self.insert(nc));
+        if child {
+            cap.inherit(self.insert(nc));
+        }
+        else {
+            self.insert(nc).inherit(cap);
+        }
     }
 
     pub fn revoke(&mut self, crd: CapRngDesc, own: bool) {
         for sel in crd.start()..crd.start() + crd.count() {
-            self.get_mut(sel).map(|cap| {
+            self.caps.remove(|k| sel.cmp(k)).map(|mut cap| {
                 if own {
                     cap.revoke(false);
                 }
@@ -85,8 +91,10 @@ impl CapTable {
         }
     }
 
-    fn remove(&mut self, sel: CapSel) -> Option<Capability> {
-        self.caps.remove(|k| sel.cmp(k))
+    pub fn revoke_all(&mut self) {
+        while let Some(mut cap) = self.caps.remove_root() {
+            cap.revoke(false);
+        }
     }
 }
 
@@ -153,8 +161,8 @@ impl Capability {
                 (*p.as_ptr()).next = self.next;
             }
             if let Some(p) = self.parent {
-                let child = &mut (*p.as_ptr()).child;
-                if child.unwrap().as_ptr() == self {
+                if self.prev.is_none() {
+                    let child = &mut (*p.as_ptr()).child;
                     *child = self.next;
                 }
             }
@@ -166,21 +174,62 @@ impl Capability {
         self.release();
 
         unsafe {
-            let cap = (*self.table.unwrap().as_ptr()).remove(self.sel()).unwrap();
-
-            if let Some(c) = cap.child {
+            if let Some(c) = self.child {
                 (*c.as_ptr()).revoke_rec(true);
             }
             // on the first level, we don't want to revoke siblings
             if rev_next {
-                if let Some(n) = cap.next {
+                if let Some(n) = self.next {
                     (*n.as_ptr()).revoke_rec(true);
                 }
             }
         }
     }
 
+    fn vpe(&self) -> &VPE {
+        unsafe {
+            &*(*self.table.unwrap().as_ptr()).vpe.unwrap().as_ptr()
+        }
+    }
+    fn vpe_mut(&mut self) -> &mut VPE {
+        unsafe {
+            &mut *(*self.table.unwrap().as_ptr()).vpe.unwrap().as_ptr()
+        }
+    }
+
+    fn invalidate_ep(&mut self, sel: CapSel) {
+        let vpe = self.vpe_mut();
+        if let Some(ep) = vpe.ep_with_sel(sel) {
+            vpe.set_ep_sel(ep, None);
+            // if that fails, just ignore it
+            vpe.invalidate_ep(ep, false).ok();
+        }
+    }
+
     fn release(&mut self) {
+        match self.obj {
+            KObject::VPE(ref v) => {
+                // remove VPE if we revoked the root capability
+                if self.parent.is_none() && !v.borrow().is_bootmod() {
+                    let id = v.borrow().id();
+                    vpemng::get().remove(id);
+                }
+            },
+
+            KObject::SGate(_) | KObject::RGate(_) | KObject::MGate(_) => {
+                let sel = self.sel;
+                self.invalidate_ep(sel)
+            },
+
+            KObject::Serv(_) => {
+                let sel = self.sel;
+                let vpe = self.vpe_mut();
+                ServiceList::get().remove(vpe, sel);
+            },
+
+            _ => {
+            },
+        }
     }
 }
 

@@ -1,9 +1,10 @@
 use base::col::Vec;
-use base::cell::{MutCell, RefMut};
+use base::cell::MutCell;
 use base::dtu::PEId;
 use base::errors::{Code, Error};
 use base::kif;
 use base::libc;
+use core::ptr;
 use core::sync::atomic;
 
 use pes::{State, VPE, VPEId};
@@ -58,6 +59,13 @@ pub fn check_childs() {
     }
 }
 
+pub fn kill_child(pid: i32) {
+    unsafe {
+        libc::kill(pid, libc::SIGTERM);
+        libc::waitpid(pid, ptr::null_mut(), 0);
+    }
+}
+
 pub struct Loader {
 }
 
@@ -67,7 +75,13 @@ impl Loader {
         LOADER.get_mut()
     }
 
-    pub fn load_app(&mut self, mut vpe: RefMut<VPE>) -> Result<i32, Error> {
+    pub fn load_app(&mut self, vpe: &mut VPE) -> Result<i32, Error> {
+        if vpe.pid() != 0 {
+            vpe.set_state(State::RUNNING);
+            Self::write_env_file(vpe.pid(), vpe.id(), vpe.pe_id());
+            return Ok(vpe.pid());
+        }
+
         let pid = unsafe { libc::fork() };
         match pid {
             -1  => Err(Error::new(Code::OutOfMem)),

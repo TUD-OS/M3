@@ -83,6 +83,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
         kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
+        kif::syscalls::Operation::CREATE_VPE    => create_vpe(&vpe, msg),
         kif::syscalls::Operation::DERIVE_MEM    => derive_mem(&vpe, msg),
         kif::syscalls::Operation::EXCHANGE      => exchange(&vpe, msg),
         kif::syscalls::Operation::DELEGATE      => exchange_over_sess(&vpe, msg, false),
@@ -286,6 +287,62 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     Ok(())
 }
 
+fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateVPE = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let mgate_sel = req.mgate_sel as CapSel;
+    let sgate_sel = req.sgate_sel as CapSel;
+    let rgate_sel = req.rgate_sel as CapSel;
+    let pedesc = kif::PEDesc::new_from(req.pe as u32);
+    let sep = req.sep;
+    let rep = req.rep;
+    let muxable = req.muxable == 1;
+    let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
+
+    // TODO support that
+    assert!(sgate_sel == kif::INVALID_SEL);
+    assert!(rgate_sel == kif::INVALID_SEL);
+
+    sysc_log!(
+        vpe, "create_vpe(dst={}, mgate={}, sgate={}, rgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
+        dst_sel, mgate_sel, sgate_sel, rgate_sel, name, pedesc, sep, rep, muxable
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) || !vpe.borrow().obj_caps().unused(mgate_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} or {} already in use", dst_sel, mgate_sel);
+    }
+
+    let nvpe = vpemng::get().create(name, &pedesc, muxable)?;
+
+    // childs of daemons are daemons
+    if vpe.borrow().is_daemon() {
+        nvpe.borrow_mut().make_daemon();
+    }
+
+    // inherit VPE and mem caps to the parent
+    {
+        let mut vpe_ref  = vpe.borrow_mut();
+        let mut nvpe_ref = nvpe.borrow_mut();
+        {
+            let vpe_cap = nvpe_ref.obj_caps_mut().get_mut(0);
+            vpe_cap.map(|c| vpe_ref.obj_caps_mut().obtain(dst_sel, c, false));
+        }
+
+        {
+            let mem_cap = nvpe_ref.obj_caps_mut().get_mut(1);
+            mem_cap.map(|c| vpe_ref.obj_caps_mut().obtain(mgate_sel, c, true));
+        }
+    }
+
+    let kreply = kif::syscalls::CreateVPEReply {
+        error: 0,
+        pe: nvpe.borrow().pe_desc().value() as u64,
+    };
+    send_reply(msg, &kreply);
+
+    Ok(())
+}
+
 fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::DeriveMem = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -357,7 +414,7 @@ fn do_exchange(vpe1: &Rc<RefCell<VPE>>, vpe2: &Rc<RefCell<VPE>>,
         let src_sel = src_rng.start() + i;
         let dst_sel = dst_rng.start() + i;
         let src_cap = src_ref.obj_caps_mut().get_mut(src_sel);
-        src_cap.map(|c| dst_ref.obj_caps_mut().obtain(dst_sel, c));
+        src_cap.map(|c| dst_ref.obj_caps_mut().obtain(dst_sel, c, true));
     }
 
     Ok(())
@@ -432,7 +489,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
             }
             else {
                 let err = do_exchange(
-                    vpe, serv.borrow().vpe(),
+                    vpe, &serv.borrow().vpe(),
                     &crd, &CapRngDesc::new_from(reply.data.caps), obtain
                 );
                 // TODO improve that
@@ -558,18 +615,42 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
 
     let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
 
-    match op {
-        kif::syscalls::VPEOp::INIT  => vpe_ref.borrow_mut().set_eps_addr(arg as usize),
-        kif::syscalls::VPEOp::STOP  => {
-            let id = vpe_ref.borrow().id();
-            vpemng::get().remove(id);
-            // TODO mark message read
-            return Ok(());
+    let exitcode = match op {
+        kif::syscalls::VPEOp::INIT  => {
+            vpe_ref.borrow_mut().set_eps_addr(arg as usize);
+            0
         },
-        _                           => panic!("VPEOp unsupported: {:?}", op),
-    }
 
-    reply_success(msg);
+        kif::syscalls::VPEOp::START => {
+            vpe_ref.borrow_mut().start(arg as i32)?;
+            0
+        },
+
+        kif::syscalls::VPEOp::WAIT  => {
+            let exit_code = VPE::wait(vpe_ref);
+            if exit_code.is_none() {
+                sysc_err!(vpe, Code::InvArgs, "VPE was not running",);
+            }
+            exit_code.unwrap()
+        },
+
+        kif::syscalls::VPEOp::STOP  => {
+            VPE::stop(vpe_ref, arg as i32);
+            if vpe_sel == 0 {
+                dtu::DTU::mark_read(0, msg);
+                return Ok(());
+            }
+            0
+        },
+
+        _                           => panic!("VPEOp unsupported: {:?}", op),
+    };
+
+    let reply = kif::syscalls::VPECtrlReply {
+        error: 0,
+        exitcode: exitcode as u64,
+    };
+    send_reply(msg, &reply);
     Ok(())
 }
 
@@ -588,9 +669,14 @@ fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
         sysc_err!(vpe, Code::InvArgs, "Cap 0 and 1 are not revokeable",);
     }
 
-    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
-
-    vpe_ref.borrow_mut().obj_caps_mut().revoke(crd, own);
+    let mut kobj = match vpe.borrow().obj_caps().get(vpe_sel) {
+        Some(c)  => c.get().clone(),
+        None     => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
+    };
+    match kobj.as_vpe_mut() {
+        Some(ref mut v) => v.obj_caps_mut().revoke(crd, own),
+        None            => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
+    }
 
     reply_success(msg);
     Ok(())

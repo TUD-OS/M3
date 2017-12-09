@@ -1,5 +1,5 @@
 use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_BITS, PAGE_SIZE};
-use base::cell::{Cell, MutCell, RefMut};
+use base::cell::{Cell, MutCell};
 use base::col::{String, ToString, Vec};
 use base::elf;
 use base::envdata;
@@ -124,7 +124,7 @@ impl Loader {
         Ok(obj)
     }
 
-    fn map_segment(vpe: &RefMut<VPE>, phys: GlobAddr, virt: usize, size: usize,
+    fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: usize, size: usize,
                    _perm: kif::Perm) -> Result<(), Error> {
         assert!(!vpe.pe_desc().has_virtmem());
         KDTU::get().copy_clear(
@@ -139,7 +139,7 @@ impl Loader {
         )
     }
 
-    fn load_mod(&self, vpe: &RefMut<VPE>, bm: &BootModule,
+    fn load_mod(&self, vpe: &mut VPE, bm: &BootModule,
                 copy: bool, needs_heap: bool) -> Result<usize, Error> {
         let hdr: elf::Ehdr = Self::read_from_mod(bm, 0)?;
 
@@ -190,7 +190,7 @@ impl Loader {
             else {
                 assert!(phdr.memsz == phdr.filesz);
                 let size = (phdr.offset & PAGE_BITS) + phdr.filesz;
-                Self::map_segment(&vpe, bm.addr + offset, virt, size, perms)?;
+                Self::map_segment(vpe, bm.addr + offset, virt, size, perms)?;
                 end = virt + size;
             }
 
@@ -216,7 +216,7 @@ impl Loader {
         Ok(hdr.entry)
     }
 
-    fn map_idle(&mut self, vpe: &RefMut<VPE>) -> Result<usize, Error> {
+    fn map_idle(&mut self, vpe: &mut VPE) -> Result<usize, Error> {
         let pe = vpe.pe_id();
 
         if self.idles[pe].is_none() {
@@ -276,7 +276,7 @@ impl Loader {
         Ok(argoff)
     }
 
-    pub fn load_app(&mut self, mut vpe: RefMut<VPE>) -> Result<i32, Error> {
+    pub fn init_app(&mut self, vpe: &mut VPE) -> Result<(), Error> {
         {
             // get DTU into correct state first
             vpe.dtu_state().reset();
@@ -285,34 +285,43 @@ impl Loader {
             vpe.dtu_state().restore(&vpe_desc, vpe_id);
         }
 
-        self.map_idle(&vpe)?;
+        self.map_idle(vpe)?;
 
-        let entry: usize = {
-            let (app, first) = self.get_mod(vpe.args()).ok_or(Error::new(Code::NoSuchFile))?;
-            klog!(KENV, "Loading mod '{}':", app.name());
-            self.load_mod(&vpe, app, !first, true)?
-        };
+        if vpe.is_bootmod() {
+            let entry: usize = {
+                let (app, first) = self.get_mod(vpe.args()).ok_or(Error::new(Code::NoSuchFile))?;
+                klog!(KENV, "Loading mod '{}':", app.name());
+                self.load_mod(vpe, app, !first, true)?
+            };
 
-        let argv_off: usize = Self::write_arguments(&vpe.desc(), vpe.args())?;
+            let argv_off: usize = Self::write_arguments(&vpe.desc(), vpe.args())?;
 
-        // build env
-        let mut senv = envdata::EnvData::default();
-        senv.argc = vpe.args().len() as u32;
-        senv.argv = argv_off as u64;
-        senv.sp = STACK_TOP as u64;
-        senv.entry = entry as u64;
-        senv.pe_desc = vpe.pe_desc().value();
-        senv.heap_size = MOD_HEAP_SIZE as u64;
+            // build env
+            let mut senv = envdata::EnvData::default();
+            senv.argc = vpe.args().len() as u32;
+            senv.argv = argv_off as u64;
+            senv.sp = STACK_TOP as u64;
+            senv.entry = entry as u64;
+            senv.pe_desc = vpe.pe_desc().value();
+            senv.heap_size = MOD_HEAP_SIZE as u64;
 
-        // write env to target PE
-        KDTU::get().try_write_mem(
-            &vpe.desc(),
-            RT_START,
-            &senv as *const envdata::EnvData as *const u8,
-            util::size_of_val(&senv)
-        )?;
+            // write env to target PE
+            KDTU::get().try_write_mem(
+                &vpe.desc(),
+                RT_START,
+                &senv as *const envdata::EnvData as *const u8,
+                util::size_of_val(&senv)
+            )?;
+        }
 
         vpe.set_state(State::RUNNING);
+        Ok(())
+    }
+
+    pub fn load_app(&mut self, vpe: &mut VPE) -> Result<i32, Error> {
+        if vpe.state() == State::DEAD {
+            self.init_app(vpe)?;
+        }
 
         // notify rctmux
         {
