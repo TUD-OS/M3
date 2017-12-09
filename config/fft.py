@@ -37,7 +37,7 @@ pe = createCorePE(noc=root.noc,
                   no=num_pes,
                   cmdline=cmd_list[num_pes - 1],
                   memPE=mem_pe,
-                  spmsize='8MB',
+                  spmsize='16MB',
                   dtupos=0,
                   mmu=0)
 pes.append(pe)
