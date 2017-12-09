@@ -1,4 +1,5 @@
 use base::cell::MutCell;
+use base::col::Vec;
 use base::dtu::*;
 use base::errors::{Code, Error};
 use base::kif::Perm;
@@ -118,7 +119,7 @@ impl State {
 pub struct KDTU {
     state: State,
     ep: EpId,
-    buf: [u8; 4096],
+    buf: Vec<u8>,
 }
 
 static INST: MutCell<Option<KDTU>> = MutCell::new(None);
@@ -128,7 +129,7 @@ impl KDTU {
         INST.set(Some(KDTU {
             state: State::new(),
             ep: 1,  // TODO
-            buf: [0u8; 4096],
+            buf: vec![0u8; 4096],
         }));
 
         // set our own VPE id
@@ -207,13 +208,14 @@ impl KDTU {
         }
 
         let mut rem = size;
-        let mut buf = self.buf;
         while rem > 0 {
             let amount = util::min(rem, self.buf.len());
             if !clear {
-                self.try_read_mem(src_vpe, src_addr, buf.as_mut_ptr(), amount)?;
+                let buf = self.buf.as_mut_ptr();
+                self.try_read_mem(src_vpe, src_addr, buf, amount)?;
             }
-            self.try_write_mem(dst_vpe, dst_addr, buf.as_ptr(), amount)?;
+            let buf = self.buf.as_ptr();
+            self.try_write_mem(dst_vpe, dst_addr, buf, amount)?;
             src_addr += amount;
             dst_addr += amount;
             rem -= amount;
