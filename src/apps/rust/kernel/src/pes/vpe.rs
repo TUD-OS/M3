@@ -124,6 +124,7 @@ impl VPE {
 
             vpe_mut.init();
         }
+
         vpe
     }
 
@@ -152,8 +153,8 @@ impl VPE {
             rgate.msg_order = cfg::SYSC_RBUF_ORD;
             rgate.addr = platform::default_rcvbuf(self.pe_id());
             rgate.ep = Some(dtu::SYSC_SEP);
+            self.config_rcv_ep(dtu::SYSC_REP, &mut rgate).unwrap();
         }
-        self.config_rcv_ep(dtu::SYSC_REP, &mut rgate.borrow_mut()).unwrap();
 
         // attach syscall endpoint
         let sgate = SGateObject::new(&rgate, self.id() as dtu::Label, cfg::SYSC_RBUF_SIZE as u64);
@@ -165,8 +166,8 @@ impl VPE {
             rgate.order = cfg::UPCALL_RBUF_ORD;
             rgate.msg_order = cfg::UPCALL_RBUF_ORD;
             rgate.addr += cfg::SYSC_RBUF_SIZE;
+            self.config_rcv_ep(dtu::UPCALL_REP, &mut rgate).unwrap();
         }
-        self.config_rcv_ep(dtu::UPCALL_REP, &mut rgate.borrow_mut()).unwrap();
 
         // attach default receive endpoint
         {
@@ -174,8 +175,8 @@ impl VPE {
             rgate.order = cfg::DEF_RBUF_ORD;
             rgate.msg_order = cfg::DEF_RBUF_ORD;
             rgate.addr += cfg::DEF_RBUF_SIZE;
+            self.config_rcv_ep(dtu::DEF_REP, &mut rgate).unwrap();
         }
-        self.config_rcv_ep(dtu::DEF_REP, &mut rgate.borrow_mut()).unwrap();
 
         self.rbufs_size = rgate.borrow().addr + (1 << rgate.borrow().order);
         self.rbufs_size -= platform::default_rcvbuf(self.pe_id());
