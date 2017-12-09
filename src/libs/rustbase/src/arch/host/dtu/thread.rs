@@ -344,7 +344,7 @@ fn handle_write_cmd() {
     }
 }
 
-fn handle_read_cmd(backend: &backend::SocketBackend, ep: EpId) {
+fn handle_read_cmd(backend: &backend::SocketBackend, ep: EpId) -> Result<(), Error> {
     let buf = buffer();
     let base = buf.header.label & !(kif::Perm::RWX.bits() as Label);
 
@@ -377,7 +377,7 @@ fn handle_read_cmd(backend: &backend::SocketBackend, ep: EpId) {
         );
     }
 
-    send_msg(backend, ep, dst_pe, dst_ep);
+    send_msg(backend, ep, dst_pe, dst_ep)
 }
 
 fn handle_resp_cmd() {
@@ -403,7 +403,7 @@ fn handle_resp_cmd() {
     DTU::set_cmd(CmdReg::CTRL, resp << 16);
 }
 
-fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PEId, dst_ep: EpId) {
+fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PEId, dst_ep: EpId) -> Result<(), Error> {
     let buf = buffer();
 
     log_dtu!(
@@ -417,7 +417,12 @@ fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PEId, dst_ep: Ep
         buf.header.rpl_ep
     );
 
-    backend.send(dst_pe, dst_ep, buf);
+    if backend.send(dst_pe, dst_ep, buf) {
+        Ok(())
+    }
+    else {
+        Err(Error::new(Code::RecvGone))
+    }
 }
 
 fn handle_command(backend: &backend::SocketBackend) {
@@ -458,14 +463,17 @@ fn handle_command(backend: &backend::SocketBackend) {
                     buf.header.reply_label = DTU::get_cmd(CmdReg::REPLY_LBL);
                 }
 
-                send_msg(backend, ep, dst_pe, dst_ep);
-
-                if op == Command::READ {
-                    // wait for the response
-                    Ok(op.val << 3)
-                }
-                else {
-                    Ok(0)
+                match send_msg(backend, ep, dst_pe, dst_ep) {
+                    Err(e) => Err(e),
+                    Ok(_)  => {
+                        if op == Command::READ {
+                            // wait for the response
+                            Ok(op.val << 3)
+                        }
+                        else {
+                            Ok(0)
+                        }
+                    },
                 }
             },
             Ok((_, _))  => Ok(0),
@@ -484,7 +492,7 @@ fn handle_receive(backend: &backend::SocketBackend, ep: EpId) {
     if let Some(size) = backend.receive(ep, buf) {
         match Command::from(buf.header.opcode) {
             Command::SEND | Command::REPLY  => handle_msg(ep, size),
-            Command::READ                   => handle_read_cmd(backend, ep),
+            Command::READ                   => handle_read_cmd(backend, ep).unwrap(),
             Command::WRITE                  => handle_write_cmd(),
             Command::RESP                   => handle_resp_cmd(),
             _                               => panic!("Not supported!"),

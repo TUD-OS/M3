@@ -158,7 +158,7 @@ impl VPE {
 
         // attach syscall endpoint
         let sgate = SGateObject::new(&rgate, self.id() as dtu::Label, cfg::SYSC_RBUF_SIZE as u64);
-        self.config_snd_ep(dtu::SYSC_SEP, &sgate.borrow(), platform::kernel_pe());
+        self.config_snd_ep(dtu::SYSC_SEP, &sgate.borrow(), platform::kernel_pe()).unwrap();
 
         // attach upcall receive endpoint
         {
@@ -256,7 +256,7 @@ impl VPE {
         self.ep_caps[ep - FIRST_FREE_EP] = cap;
     }
 
-    pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) {
+    pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) -> Result<(), Error> {
         let rgate = obj.rgate.borrow();
         assert!(rgate.activated());
 
@@ -265,7 +265,7 @@ impl VPE {
         self.dtu_state.config_send(
             ep, obj.label, pe_id, rgate.vpe, rgate.ep.unwrap(), rgate.msg_size(), obj.credits
         );
-        self.update_ep(ep);
+        self.update_ep(ep)
     }
 
     pub fn config_rcv_ep(&mut self, ep: EpId, obj: &mut RefMut<RGateObject>) -> Result<(), Error> {
@@ -294,7 +294,7 @@ impl VPE {
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
 
         self.dtu_state.config_recv(ep, obj.addr, obj.order, obj.msg_order, obj.header);
-        self.update_ep(ep);
+        self.update_ep(ep)?;
 
         Ok(())
     }
@@ -308,8 +308,7 @@ impl VPE {
 
         // TODO
         self.dtu_state.config_mem(ep, obj.pe, obj.vpe, obj.addr + off, obj.size - off, obj.perms);
-        self.update_ep(ep);
-        Ok(())
+        self.update_ep(ep)
     }
 
     pub fn invalidate_ep(&mut self, ep: EpId, cmd: bool) -> Result<(), Error> {
@@ -325,14 +324,17 @@ impl VPE {
         }
         else {
             self.dtu_state.invalidate(ep, false)?;
-            self.update_ep(ep);
+            self.update_ep(ep)?;
         }
         Ok(())
     }
 
-    fn update_ep(&mut self, ep: EpId) {
+    fn update_ep(&mut self, ep: EpId) -> Result<(), Error> {
         if self.state == State::RUNNING {
-            kdtu::KDTU::get().write_ep_remote(&self.desc(), ep, self.dtu_state.get_ep(ep)).unwrap();
+            kdtu::KDTU::get().write_ep_remote(&self.desc(), ep, self.dtu_state.get_ep(ep))
+        }
+        else {
+            Ok(())
         }
     }
 }

@@ -57,7 +57,7 @@ impl SocketBackend {
         }
     }
 
-    pub fn send(&self, pe: PEId, ep: EpId, buf: &thread::Buffer) {
+    pub fn send(&self, pe: PEId, ep: EpId, buf: &thread::Buffer) -> bool {
         unsafe {
             let sock = &self.eps[pe * EP_COUNT + ep];
             let res = libc::sendto(
@@ -68,7 +68,7 @@ impl SocketBackend {
                 sock as *const libc::sockaddr_un as *const libc::sockaddr,
                 util::size_of::<libc::sockaddr_un>() as u32
             );
-            assert!(res != -1);
+            res != -1
         }
     }
 
