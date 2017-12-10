@@ -3,7 +3,7 @@ use base::heap;
 use base::io;
 use thread;
 
-use arch::kdtu::KDTU;
+use arch::kdtu;
 use arch::loader;
 use com;
 use mem;
@@ -36,7 +36,7 @@ pub extern "C" fn env_run() {
     }
 
     com::init();
-    KDTU::init();
+    kdtu::KDTU::init();
     platform::init();
     loader::init();
     pes::pemng::init();
@@ -48,11 +48,11 @@ pub extern "C" fn env_run() {
     }
 
     let sysc_rbuf = vec![0u8; 512 * 32];
-    KDTU::get().recv_msgs(0, sysc_rbuf.as_ptr() as usize, 14, 9)
+    kdtu::KDTU::get().recv_msgs(kdtu::KSYS_EP, sysc_rbuf.as_ptr() as usize, 14, 9)
         .expect("Unable to config syscall REP");
 
     let serv_rbuf = vec![0u8; 1024];
-    KDTU::get().recv_msgs(2, serv_rbuf.as_ptr() as usize, 10, 10)
+    kdtu::KDTU::get().recv_msgs(kdtu::KSRV_EP, serv_rbuf.as_ptr() as usize, 10, 10)
         .expect("Unable to config service REP");
 
     let vpemng = pes::vpemng::get();

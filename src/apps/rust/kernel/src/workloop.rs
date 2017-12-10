@@ -2,6 +2,7 @@ use base::dtu;
 use core::intrinsics;
 use thread;
 
+use arch::kdtu;
 use com;
 use pes;
 use syscalls;
@@ -13,11 +14,11 @@ pub fn workloop() {
     while vpemng.count() > vpemng.daemons() {
         dtu::DTU::try_sleep(false, 0).unwrap();
 
-        if let Some(msg) = dtu::DTU::fetch_msg(0) {
+        if let Some(msg) = dtu::DTU::fetch_msg(kdtu::KSYS_EP) {
             syscalls::handle(msg);
         }
 
-        if let Some(msg) = dtu::DTU::fetch_msg(2) {
+        if let Some(msg) = dtu::DTU::fetch_msg(kdtu::KSRV_EP) {
             unsafe {
                 let squeue: *mut com::SendQueue = intrinsics::transmute(msg.header.label);
                 (*squeue).received_reply(msg);

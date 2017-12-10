@@ -10,7 +10,7 @@ use base::libc;
 use core::intrinsics;
 use thread;
 
-use arch::kdtu::KDTU;
+use arch::kdtu;
 use arch::loader;
 use com;
 use mem;
@@ -113,7 +113,7 @@ pub fn main() -> i32 {
 
     com::init();
     mem::init();
-    KDTU::init();
+    kdtu::KDTU::init();
     platform::init();
     loader::init();
     pes::pemng::init();
@@ -127,10 +127,10 @@ pub fn main() -> i32 {
     }
 
     let rbuf = vec![0u8; 512 * 32];
-    dtu::DTU::configure_recv(0, rbuf.as_ptr() as usize, 14, 9);
+    dtu::DTU::configure_recv(kdtu::KSYS_EP, rbuf.as_ptr() as usize, 14, 9);
 
     let serv_rbuf = vec![0u8; 1024];
-    dtu::DTU::configure_recv(2, serv_rbuf.as_ptr() as usize, 10, 10);
+    dtu::DTU::configure_recv(kdtu::KSRV_EP, serv_rbuf.as_ptr() as usize, 10, 10);
 
     let vpemng = pes::vpemng::get();
     let mut args = env::args();

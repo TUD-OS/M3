@@ -7,8 +7,6 @@ use thread;
 use arch::kdtu;
 use pes::{State, VPE};
 
-const SRV_REP: dtu::EpId = 2;
-
 struct Entry {
     id: u64,
     rep: dtu::EpId,
@@ -93,7 +91,7 @@ impl SendQueue {
         thread::ThreadManager::get().notify(self.cur_event, Some(msg));
 
         // now that we've copied the message, we can mark it read
-        dtu::DTU::mark_read(SRV_REP, msg);
+        dtu::DTU::mark_read(kdtu::KSRV_EP, msg);
 
         self.send_pending();
     }
@@ -118,7 +116,7 @@ impl SendQueue {
 
         let label = self as *mut Self as dtu::Label;
         kdtu::KDTU::get().send_to(
-            &self.vpe.borrow().desc(), rep, 0, msg.as_ptr(), size, label, SRV_REP
+            &self.vpe.borrow().desc(), rep, 0, msg.as_ptr(), size, label, kdtu::KSRV_EP
         ).unwrap();
 
         self.cur_event

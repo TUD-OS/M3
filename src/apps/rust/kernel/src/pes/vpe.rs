@@ -153,15 +153,18 @@ impl VPE {
         // attach syscall receive endpoint
         {
             let mut rgate = rgate.borrow_mut();
-            rgate.vpe = vpemng::KERNEL_VPE;
             rgate.order = cfg::SYSC_RBUF_ORD;
             rgate.msg_order = cfg::SYSC_RBUF_ORD;
             rgate.addr = platform::default_rcvbuf(self.pe_id());
-            rgate.ep = Some(dtu::SYSC_SEP);
             self.config_rcv_ep(dtu::SYSC_REP, &mut rgate).unwrap();
         }
 
         // attach syscall endpoint
+        {
+            let mut rgate = rgate.borrow_mut();
+            rgate.vpe = vpemng::KERNEL_VPE;
+            rgate.ep = Some(kdtu::KSYS_EP);
+        }
         let sgate = SGateObject::new(&rgate, self.id() as dtu::Label, cfg::SYSC_RBUF_SIZE as u64);
         self.config_snd_ep(dtu::SYSC_SEP, &sgate.borrow(), platform::kernel_pe()).unwrap();
 

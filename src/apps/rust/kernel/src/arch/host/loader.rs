@@ -7,6 +7,7 @@ use base::libc;
 use core::ptr;
 use core::sync::atomic;
 
+use arch::kdtu;
 use pes::{State, VPE, VPEId};
 use pes::vpemng;
 use platform;
@@ -127,7 +128,7 @@ impl Loader {
             "foo",  // TODO SHM prefix
             pe,
             id,
-            0,      // TODO syscall EP
+            kdtu::KSYS_EP,
             512,    // TODO credits
         );
 

@@ -103,12 +103,11 @@ impl State {
         KDTU::get().try_write_mem(vpe, BASE_ADDR, self.dtu.as_mut_ptr() as *mut u8, size).unwrap();
 
         // restore headers (we've already set the VPE id)
-        let ep = KDTU::get().ep;
         let hdr_size = util::size_of_val(&self.header);
-        KDTU::get().state.config_mem(ep, vpe.pe_id(), vpe_id, BASE_ADDR + size, hdr_size, Perm::W);
-        KDTU::get().write_ep_local(ep);
+        KDTU::get().state.config_mem(KTMP_EP, vpe.pe_id(), vpe_id, BASE_ADDR + size, hdr_size, Perm::W);
+        KDTU::get().write_ep_local(KTMP_EP);
 
-        DTU::write(ep, self.header.as_mut_ptr() as *mut u8, hdr_size, 0, CmdFlags::NOPF).unwrap();
+        DTU::write(KTMP_EP, self.header.as_mut_ptr() as *mut u8, hdr_size, 0, CmdFlags::NOPF).unwrap();
     }
 
     pub fn reset(&mut self) {
@@ -118,9 +117,12 @@ impl State {
 
 pub struct KDTU {
     state: State,
-    ep: EpId,
     buf: Vec<u8>,
 }
+
+pub const KSYS_EP: EpId   = 0;
+pub const KSRV_EP: EpId   = 1;
+pub const KTMP_EP: EpId   = 2;
 
 static INST: MutCell<Option<KDTU>> = MutCell::new(None);
 
@@ -128,7 +130,6 @@ impl KDTU {
     pub fn init() {
         INST.set(Some(KDTU {
             state: State::new(),
-            ep: 1,  // TODO
             buf: vec![0u8; 4096],
         }));
 
@@ -163,11 +164,10 @@ impl KDTU {
     }
 
     pub fn try_read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) -> Result<(), Error> {
-        let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
-        self.write_ep_local(ep);
+        self.state.config_mem(KTMP_EP, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
+        self.write_ep_local(KTMP_EP);
 
-        DTU::read(ep, data, size, 0, CmdFlags::NOPF)
+        DTU::read(KTMP_EP, data, size, 0, CmdFlags::NOPF)
     }
 
     pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
@@ -176,26 +176,24 @@ impl KDTU {
     }
 
     pub fn try_write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) -> Result<(), Error> {
-        let ep = self.ep;
-        self.state.config_mem(ep, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
-        self.write_ep_local(ep);
+        self.state.config_mem(KTMP_EP, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
+        self.write_ep_local(KTMP_EP);
 
-        DTU::write(ep, data, size, 0, CmdFlags::NOPF)
+        DTU::write(KTMP_EP, data, size, 0, CmdFlags::NOPF)
     }
 
     pub fn send_to(&mut self, vpe: &VPEDesc, ep: EpId, lbl: Label, msg: *const u8, size: usize,
                    rpl_lbl: Label, rpl_ep: EpId) -> Result<(), Error> {
-        let sep = self.ep;
         let msg_size = size + util::size_of::<Header>();
-        self.state.config_send(sep, lbl, vpe.pe_id(), vpe.vpe_id(), ep, msg_size, CREDITS_UNLIM);
-        self.write_ep_local(sep);
+        self.state.config_send(KTMP_EP, lbl, vpe.pe_id(), vpe.vpe_id(), ep, msg_size, CREDITS_UNLIM);
+        self.write_ep_local(KTMP_EP);
 
         let sender = platform::kernel_pe() |
                      (vpemng::KERNEL_VPE << 8) |
                      (EP_COUNT << 24) |
                      (rpl_ep << 32);
 
-        DTU::send_to(sep, msg, size, rpl_lbl, rpl_ep, sender as u64)
+        DTU::send_to(KTMP_EP, msg, size, rpl_lbl, rpl_ep, sender as u64)
     }
 
     pub fn copy_clear(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize,

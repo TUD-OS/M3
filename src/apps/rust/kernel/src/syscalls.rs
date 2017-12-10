@@ -9,6 +9,7 @@ use base::util;
 use core::intrinsics;
 use thread;
 
+use arch::kdtu;
 use cap::{Capability, KObject};
 use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
 use com::{Service, ServiceList};
@@ -56,7 +57,7 @@ fn get_message<R: 'static>(msg: &'static dtu::Message) -> &'static R {
 }
 
 fn send_reply<T>(msg: &'static dtu::Message, rep: *const T) {
-    dtu::DTU::reply(0, rep as *const u8, util::size_of::<T>(), msg)
+    dtu::DTU::reply(kdtu::KSYS_EP, rep as *const u8, util::size_of::<T>(), msg)
         .expect("Reply failed");
 }
 
@@ -624,7 +625,7 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
         kif::syscalls::VPEOp::STOP  => {
             VPE::stop(vpe_ref, arg as i32);
             if vpe_sel == 0 {
-                dtu::DTU::mark_read(0, msg);
+                dtu::DTU::mark_read(kdtu::KSYS_EP, msg);
                 return Ok(());
             }
             0
