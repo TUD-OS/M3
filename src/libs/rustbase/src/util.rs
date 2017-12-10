@@ -113,12 +113,14 @@ macro_rules! __int_enum_impl {
     (
         struct $Name:ident: $T:ty {
             $(
+                $(#[$attr:ident $($args:tt)*])*
                 const $Flag:ident = $value:expr;
             )+
         }
     ) => (
         impl $Name {
             $(
+                $(#[$attr $($args)*])*
                 #[allow(dead_code)]
                 pub const $Flag: $Name = $Name { val: $value };
             )+
@@ -169,12 +171,15 @@ macro_rules! __int_enum_impl {
 #[macro_export]
 macro_rules! int_enum {
     (
+        $(#[$outer:meta])*
         pub struct $Name:ident: $T:ty {
             $(
+                $(#[$inner:ident $($args:tt)*])*
                 const $Flag:ident = $value:expr;
             )+
         }
     ) => (
+        $(#[$outer])*
         #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
         pub struct $Name {
             pub val: $T,
@@ -183,18 +188,22 @@ macro_rules! int_enum {
         __int_enum_impl! {
             struct $Name : $T {
                 $(
+                    $(#[$inner $($args)*])*
                     const $Flag = $value;
                 )+
             }
         }
     );
     (
+        $(#[$outer:meta])*
         struct $Name:ident: $T:ty {
             $(
+                $(#[$inner:ident $($args:tt)*])*
                 const $Flag:ident = $value:expr;
             )+
         }
     ) => (
+        $(#[$outer])*
         #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord)]
         struct $Name {
             pub val: $T,

@@ -1,3 +1,5 @@
+//! The system call interface
+
 /// The maximum message length that can be used
 pub const MAX_MSG_SIZE: usize = 440;
 
@@ -8,6 +10,7 @@ pub const MAX_STR_SIZE: usize = 32;
 pub const MAX_EXCHG_ARGS: usize = 8;
 
 int_enum! {
+    /// The system calls
     pub struct Operation : u64 {
         // sent by the DTU if the PF handler is not reachable
         const PAGEFAULT         = 0;
@@ -43,11 +46,13 @@ int_enum! {
     }
 }
 
+/// The default reply message that only contains the error code
 #[repr(C, packed)]
 pub struct DefaultReply {
     pub error: u64,
 }
 
+/// The pagefault request message
 #[repr(C, packed)]
 pub struct Pagefault {
     pub opcode: u64,
@@ -55,6 +60,7 @@ pub struct Pagefault {
     pub access: u64,
 }
 
+/// The create service request message
 #[repr(C, packed)]
 pub struct CreateSrv {
     pub opcode: u64,
@@ -64,6 +70,7 @@ pub struct CreateSrv {
     pub name: [u8; MAX_STR_SIZE],
 }
 
+/// The create session request message
 #[repr(C, packed)]
 pub struct CreateSess {
     pub opcode: u64,
@@ -73,6 +80,7 @@ pub struct CreateSess {
     pub name: [u8; MAX_STR_SIZE],
 }
 
+/// The create session at request message
 #[repr(C, packed)]
 pub struct CreateSessAt {
     pub opcode: u64,
@@ -81,6 +89,7 @@ pub struct CreateSessAt {
     pub ident: u64,
 }
 
+/// The create receive gate request message
 #[repr(C, packed)]
 pub struct CreateRGate {
     pub opcode: u64,
@@ -89,6 +98,7 @@ pub struct CreateRGate {
     pub msgorder: u64,
 }
 
+/// The create send gate request message
 #[repr(C, packed)]
 pub struct CreateSGate {
     pub opcode: u64,
@@ -98,6 +108,7 @@ pub struct CreateSGate {
     pub credits: u64,
 }
 
+/// The create memory gate request message
 #[repr(C, packed)]
 pub struct CreateMGate {
     pub opcode: u64,
@@ -107,6 +118,7 @@ pub struct CreateMGate {
     pub perms: u64,
 }
 
+/// The create mapping request message
 #[repr(C, packed)]
 pub struct CreateMap {
     pub opcode: u64,
@@ -118,6 +130,7 @@ pub struct CreateMap {
     pub perms: u64,
 }
 
+/// The create VPE request message
 #[repr(C, packed)]
 pub struct CreateVPE {
     pub opcode: u64,
@@ -133,12 +146,14 @@ pub struct CreateVPE {
     pub name: [u8; MAX_STR_SIZE],
 }
 
+/// The create VPE reply message
 #[repr(C, packed)]
 pub struct CreateVPEReply {
     pub error: u64,
     pub pe: u64,
 }
 
+/// The activate request message
 #[repr(C, packed)]
 pub struct Activate {
     pub opcode: u64,
@@ -149,6 +164,7 @@ pub struct Activate {
 }
 
 int_enum! {
+    /// The operations for the `vpe_ctrl` system call
     pub struct VPEOp : u64 {
         const INIT  = 0x0;
         const START = 0x1;
@@ -158,6 +174,7 @@ int_enum! {
     }
 }
 
+/// The VPE control request message
 #[repr(C, packed)]
 pub struct VPECtrl {
     pub opcode: u64,
@@ -166,12 +183,14 @@ pub struct VPECtrl {
     pub arg: u64,
 }
 
+/// The VPE control reply message
 #[repr(C, packed)]
 pub struct VPECtrlReply {
     pub error: u64,
     pub exitcode: u64,
 }
 
+/// The derive memory request message
 #[repr(C, packed)]
 pub struct DeriveMem {
     pub opcode: u64,
@@ -182,6 +201,7 @@ pub struct DeriveMem {
     pub perms: u64,
 }
 
+/// The exchange request message
 #[repr(C, packed)]
 pub struct Exchange {
     pub opcode: u64,
@@ -191,6 +211,7 @@ pub struct Exchange {
     pub obtain: u64,
 }
 
+/// The delegate/obtain request message
 #[repr(C, packed)]
 pub struct ExchangeSess {
     pub opcode: u64,
@@ -200,6 +221,7 @@ pub struct ExchangeSess {
     pub args: [u64; MAX_EXCHG_ARGS],
 }
 
+/// The delegate/obtain reply message
 #[repr(C, packed)]
 pub struct ExchangeSessReply {
     pub error: u64,
@@ -207,6 +229,7 @@ pub struct ExchangeSessReply {
     pub args: [u64; MAX_EXCHG_ARGS],
 }
 
+/// The revoke request message
 #[repr(C, packed)]
 pub struct Revoke {
     pub opcode: u64,
@@ -215,6 +238,7 @@ pub struct Revoke {
     pub own: u64,
 }
 
+/// The forward message request message
 #[repr(C, packed)]
 pub struct ForwardMsg {
     pub opcode: u64,
@@ -227,12 +251,14 @@ pub struct ForwardMsg {
 }
 
 bitflags! {
+    /// The flags for the `forward_mem` system call
     pub struct ForwardMemFlags : u32 {
         const NOPF      = 0x1;
         const WRITE     = 0x2;
     }
 }
 
+/// The forward memory request message
 #[repr(C, packed)]
 pub struct ForwardMem {
     pub opcode: u64,
@@ -244,12 +270,14 @@ pub struct ForwardMem {
     pub data: [u8; MAX_MSG_SIZE],
 }
 
+/// The forward memory reply message
 #[repr(C, packed)]
 pub struct ForwardMemReply {
     pub error: u64,
     pub data: [u8; MAX_MSG_SIZE],
 }
 
+/// The forward reply request message
 #[repr(C, packed)]
 pub struct ForwardReply {
     pub opcode: u64,
@@ -260,6 +288,7 @@ pub struct ForwardReply {
     pub msg: [u8; MAX_MSG_SIZE],
 }
 
+/// The noop request message
 #[repr(C, packed)]
 pub struct Noop {
     pub opcode: u64,

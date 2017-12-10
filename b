@@ -232,6 +232,12 @@ case "$cmd" in
         fi
         ;;
 
+    doc)
+        export RUST_TARGET_PATH=`readlink -f src/toolchain/rust`
+        ( cd src/libs/rustm3 && xargo doc --target x86_64-unknown-$M3_TARGET-gnu )
+        ( cd src/libs/rustthread && xargo doc --target x86_64-unknown-$M3_TARGET-gnu )
+        ;;
+
     dbg=*)
         if [ "$M3_TARGET" = "host" ]; then
             # does not work in release mode

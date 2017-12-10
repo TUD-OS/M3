@@ -1,9 +1,12 @@
+//! The service interface
+
 use serialize::{Source, Unmarshallable};
 use core::fmt;
 use core::intrinsics;
 use kif::syscalls;
 
 int_enum! {
+    /// The service calls
     pub struct Operation : u64 {
         const OPEN          = 0x0;
         const OBTAIN        = 0x1;
@@ -13,18 +16,21 @@ int_enum! {
     }
 }
 
+/// The open request message
 #[repr(C, packed)]
 pub struct Open {
     pub opcode: u64,
     pub arg: u64,
 }
 
+/// The open reply message
 #[repr(C, packed)]
 pub struct OpenReply {
     pub res: u64,
     pub sess: u64,
 }
 
+/// The data part of the delegate/obtain request messages
 #[repr(C, packed)]
 pub struct ExchangeData {
     pub caps: u64,
@@ -32,6 +38,7 @@ pub struct ExchangeData {
     pub args: [u64; syscalls::MAX_EXCHG_ARGS],
 }
 
+/// The delegate/obtain request message
 #[repr(C, packed)]
 pub struct Exchange {
     pub opcode: u64,
@@ -39,18 +46,21 @@ pub struct Exchange {
     pub data: ExchangeData,
 }
 
+/// The delegate/obtain reply message
 #[repr(C, packed)]
 pub struct ExchangeReply {
     pub res: u64,
     pub data: ExchangeData,
 }
 
+/// The close request message
 #[repr(C, packed)]
 pub struct Close {
     pub opcode: u64,
     pub sess: u64,
 }
 
+/// The shutdown request message
 #[repr(C, packed)]
 pub struct Shutdown {
     pub opcode: u64,
