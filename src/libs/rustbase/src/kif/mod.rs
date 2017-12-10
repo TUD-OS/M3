@@ -1,3 +1,5 @@
+//! Contains the kernel interface definitions
+
 mod cap;
 mod perm;
 mod pedesc;

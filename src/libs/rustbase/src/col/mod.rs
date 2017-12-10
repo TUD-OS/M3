@@ -1,3 +1,5 @@
+//! Contains various collections
+
 mod dlist;
 mod boxlist;
 mod treap;

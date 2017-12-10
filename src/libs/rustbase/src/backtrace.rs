@@ -1,3 +1,5 @@
+//! Contains the backtrace generation function
+
 use arch::cfg;
 use util;
 

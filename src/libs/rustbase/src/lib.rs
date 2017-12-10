@@ -28,22 +28,25 @@ pub extern crate core as _core;
 mod lang;
 pub use lang::{rust_begin_panic, rust_eh_personality, _Unwind_Resume};
 
-// libc
 #[cfg(target_os = "linux")]
 pub extern crate libc;
 #[cfg(target_os = "none")]
+/// The C library
 pub mod libc {
     pub use arch::libc::*;
 }
 
+/// Pointer types for heap allocation
 pub mod boxed {
     pub use alloc::boxed::{Box, FnBox};
 }
 
+/// Single-threaded reference-counting pointers
 pub mod rc {
     pub use alloc::rc::{Rc, Weak};
 }
 
+/// Thread-safe reference-counting pointers
 pub mod arc {
     pub use alloc::arc::{Arc, Weak};
 }
@@ -72,12 +75,15 @@ mod globaddr;
 
 pub use globaddr::GlobAddr;
 
+/// The target-dependent configuration
 pub mod cfg {
     pub use arch::cfg::*;
 }
+/// The Data Transfer Unit interface
 pub mod dtu {
     pub use arch::dtu::*;
 }
+/// The environment data
 pub mod envdata {
     pub use arch::envdata::*;
 }

@@ -1,3 +1,5 @@
+//! Shareable mutable containers
+
 use core::marker::Sync;
 use core::mem;
 use core::ops::Deref;
