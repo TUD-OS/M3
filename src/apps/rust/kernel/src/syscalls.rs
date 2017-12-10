@@ -11,7 +11,7 @@ use thread;
 
 use cap::{Capability, KObject};
 use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
-use com::ServiceList;
+use com::{Service, ServiceList};
 use mem;
 use pes::{INVALID_VPE, vpemng};
 use pes::VPE;
@@ -117,7 +117,7 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
         sysc_err!(vpe, Code::InvArgs, "Invalid size or permissions",);
     }
 
-    let alloc = if addr == !0 {
+    let alloc: mem::Allocation = if addr == !0 {
         mem::get().allocate(size, cfg::PAGE_SIZE)
     }
     else {
@@ -177,7 +177,7 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     }
 
     {
-        let rgate = get_kobj!(vpe, rgate_sel, RGate);
+        let rgate: Rc<RefCell<RGateObject>> = get_kobj!(vpe, rgate_sel, RGate);
         let cap = Capability::new(dst_sel, KObject::SGate(SGateObject::new(
             &rgate, label, credits
         )));
@@ -208,7 +208,7 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
     }
 
-    let rgate = get_kobj!(vpe, rgate_sel, RGate);
+    let rgate: Rc<RefCell<RGateObject>> = get_kobj!(vpe, rgate_sel, RGate);
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::Serv(ServObject::new(vpe, name.to_string(), rgate)))
@@ -236,7 +236,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
         sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
     }
 
-    let sentry = ServiceList::get().find(name);
+    let sentry: Option<&Service> = ServiceList::get().find(name);
     if sentry.is_none() {
         sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
     }
@@ -246,7 +246,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
         arg: arg,
     };
 
-    let serv = sentry.unwrap().get_kobj();
+    let serv: Rc<RefCell<ServObject>> = sentry.unwrap().get_kobj();
     let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
 
     match res {
@@ -305,7 +305,7 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::InvArgs, "Selector {} or {} already in use", dst_sel, mgate_sel);
     }
 
-    let nvpe = vpemng::get().create(name, &pedesc, muxable)?;
+    let nvpe: Rc<RefCell<VPE>> = vpemng::get().create(name, &pedesc, muxable)?;
 
     // childs of daemons are daemons
     if vpe.borrow().is_daemon() {
@@ -317,12 +317,12 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         let mut vpe_ref  = vpe.borrow_mut();
         let mut nvpe_ref = nvpe.borrow_mut();
         {
-            let vpe_cap = nvpe_ref.obj_caps_mut().get_mut(0);
+            let vpe_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(0);
             vpe_cap.map(|c| vpe_ref.obj_caps_mut().obtain(dst_sel, c, false));
         }
 
         {
-            let mem_cap = nvpe_ref.obj_caps_mut().get_mut(1);
+            let mem_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(1);
             mem_cap.map(|c| vpe_ref.obj_caps_mut().obtain(mgate_sel, c, true));
         }
     }
@@ -354,7 +354,7 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     }
 
     let cap = {
-        let mgate = get_kobj!(vpe, src_sel, MGate);
+        let mgate: Rc<RefCell<MGateObject>> = get_kobj!(vpe, src_sel, MGate);
 
         if offset + size < offset || offset + size > mgate.borrow().size || size == 0 {
             sysc_err!(vpe, Code::InvArgs, "Size or offset invalid",);
@@ -421,7 +421,7 @@ fn exchange(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         vpe_sel, own_crd, other_crd, obtain
     );
 
-    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+    let vpe_ref: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
 
     do_exchange(vpe, &vpe_ref, &own_crd, &other_crd, obtain)?;
 
@@ -439,7 +439,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
         if obtain { "obtain" } else { "delegate" }, sess_sel, crd
     );
 
-    let sess = get_kobj!(vpe, sess_sel, Sess);
+    let sess: Rc<RefCell<SessObject>> = get_kobj!(vpe, sess_sel, Sess);
 
     let mut smsg = kif::service::Exchange {
         opcode: if obtain {
@@ -459,7 +459,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
         smsg.data.args[i] = req.args[i];
     }
 
-    let serv = &sess.borrow().srv;
+    let serv: &Rc<RefCell<ServObject>> = &sess.borrow().srv;
     let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 
     match res {
@@ -518,7 +518,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         sysc_err!(vpe, Code::InvArgs, "Invalid EP",);
     }
 
-    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+    let vpe_ref: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
 
     {
         let mut vpe_mut = vpe_ref.borrow_mut();
@@ -534,7 +534,6 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
     }
 
     let maybe_kobj = vpe_ref.borrow().obj_caps().get(gate_sel).map(|cap| cap.get().clone());
-
     if let Some(kobj) = maybe_kobj {
         match kobj {
             KObject::RGate(ref r)    => {
@@ -560,7 +559,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
             },
 
             KObject::SGate(ref s)    => {
-                let rgate = s.borrow().rgate.clone();
+                let rgate: Rc<RefCell<RGateObject>> = s.borrow().rgate.clone();
 
                 if !rgate.borrow().activated() {
                     sysc_log!(vpe, "activate: waiting for rgate {:?}", rgate.borrow());
@@ -572,8 +571,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                 }
 
                 let pe_id = vpemng::get().pe_of(rgate.borrow().vpe);
-                let sgate = s.borrow();
-                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &sgate, pe_id.unwrap()) {
+                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &s.borrow(), pe_id.unwrap()) {
                     sysc_err!(vpe, e.code(), "Unable to configure send EP",);
                 }
             },
@@ -602,7 +600,7 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
         vpe_sel, op, arg
     );
 
-    let vpe_ref = get_kobj!(vpe, vpe_sel, VPE);
+    let vpe_ref: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
 
     let exitcode = match op {
         kif::syscalls::VPEOp::INIT  => {

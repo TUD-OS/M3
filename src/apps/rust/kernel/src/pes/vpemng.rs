@@ -1,5 +1,5 @@
 use base::cell::{MutCell, RefCell};
-use base::col::{DList, ToString, Vec};
+use base::col::{DList, String, ToString, Vec};
 use base::dtu::PEId;
 use base::env;
 use base::errors::{Code, Error};
@@ -64,9 +64,9 @@ impl VPEMng {
     }
 
     pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
-        let id = self.get_id()?;
-        let pe_id = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
-        let vpe = VPE::new(name, id, pe_id, VPEFlags::empty());
+        let id: VPEId = self.get_id()?;
+        let pe_id: PEId = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
+        let vpe: Rc<RefCell<VPE>> = VPE::new(name, id, pe_id, VPEFlags::empty());
 
         klog!(VPES, "Created VPE {} [id={}, pe={}]", name, id, pe_id);
 
@@ -87,15 +87,15 @@ impl VPEMng {
 
         let mut i = 0;
         while i < argv.len() {
-            let arg = &argv[i];
+            let arg: &String = &argv[i];
             if arg == "--" {
                 i += 1;
                 continue;
             }
 
-            let id = self.get_id()?;
-            let pe_id = pemng::get().alloc_pe(&pedesc, None, false).ok_or(Error::new(Code::NoFreePE))?;
-            let vpe = VPE::new(Self::path_to_name(&arg), id, pe_id, VPEFlags::BOOTMOD);
+            let id: VPEId = self.get_id()?;
+            let pe_id: PEId = pemng::get().alloc_pe(&pedesc, None, false).ok_or(Error::new(Code::NoFreePE))?;
+            let vpe: Rc<RefCell<VPE>> = VPE::new(Self::path_to_name(&arg), id, pe_id, VPEFlags::BOOTMOD);
             klog!(VPES, "Created VPE {} [id={}, pe={}]", &arg, id, pe_id);
 
             // find end of arguments
@@ -146,7 +146,7 @@ impl VPEMng {
     pub fn start_pending(&mut self) {
         let mut it = self.pending.iter_mut();
         while let Some(id) = it.next() {
-            let vpe = self.vpes[*id as usize].as_ref().unwrap();
+            let vpe: &Rc<RefCell<VPE>> = self.vpes[*id as usize].as_ref().unwrap();
             let mut fullfilled = true;
             for r in vpe.borrow().requirements() {
                 if ServiceList::get().find(r).is_none() {
@@ -166,7 +166,7 @@ impl VPEMng {
     pub fn remove(&mut self, id: VPEId) {
         match self.vpes[id] {
             Some(ref v) => unsafe {
-                let vpe = &mut *v.as_ptr();
+                let vpe: &mut VPE = &mut *v.as_ptr();
                 Self::destroy_vpe(vpe);
                 if !vpe.is_daemon() {
                     self.count -= 1;
@@ -229,7 +229,7 @@ impl Drop for VPEMng {
         for v in self.vpes.drain(0..) {
             if let Some(vpe) = v {
                 unsafe {
-                    let vpe = &mut *vpe.as_ptr();
+                    let vpe: &mut VPE = &mut *vpe.as_ptr();
 
                     #[cfg(target_os = "linux")]
                     ::arch::loader::kill_child(vpe.pid());

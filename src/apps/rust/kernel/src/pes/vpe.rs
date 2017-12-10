@@ -314,7 +314,7 @@ impl VPE {
     }
 
     pub fn config_snd_ep(&mut self, ep: EpId, obj: &Ref<SGateObject>, pe_id: PEId) -> Result<(), Error> {
-        let rgate = obj.rgate.borrow();
+        let rgate: Ref<RGateObject> = obj.rgate.borrow();
         assert!(rgate.activated());
 
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
