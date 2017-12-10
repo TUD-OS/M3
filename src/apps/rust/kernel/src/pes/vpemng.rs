@@ -62,7 +62,7 @@ impl VPEMng {
 
             let id = self.get_id()?;
             let pe_id = pemng::get().alloc_pe(&pedesc, None, false).ok_or(Error::new(Code::NoFreePE))?;
-            let vpe = VPE::new(&arg, id, pe_id, VPEFlags::BOOTMOD);
+            let vpe = VPE::new(Self::path_to_name(&arg), id, pe_id, VPEFlags::BOOTMOD);
             klog!(VPES, "Created VPE {} [id={}, pe={}]", &arg, id, pe_id);
 
             // find end of arguments
@@ -196,6 +196,13 @@ impl VPEMng {
             VPES, "Removed VPE {} [id={}, pe={}]",
             vpe.name(), vpe.id(), vpe.pe_id()
         );
+    }
+
+    fn path_to_name(path: &str) -> &str {
+        match path.bytes().rposition(|c| c == b'/') {
+            Some(p) => &path[p + 1..],
+            None    => path,
+        }
     }
 
     fn get_id(&mut self) -> Result<usize, Error> {
