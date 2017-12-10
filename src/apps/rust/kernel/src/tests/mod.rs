@@ -1,7 +1,6 @@
 use base::test::Tester;
 use base::heap;
 
-mod tcaps;
 mod tmemmap;
 
 struct MyTester {
@@ -25,6 +24,5 @@ impl Tester for MyTester {
 
 pub fn run() {
     let mut tester = MyTester {};
-    run_suite!(tester, tcaps::run);
     run_suite!(tester, tmemmap::run);
 }
