@@ -1,21 +1,30 @@
+//! Contains the basics of the ELF interface
+
 use kif;
 
 const EI_NIDENT: usize = 16;
 
 int_enum! {
+    /// The program header entry types
     pub struct PT : u32 {
+        /// Load segment
         const LOAD = 0x1;
     }
 }
 
 bitflags! {
+    /// The program header flags
     pub struct PF : u32 {
+        /// Executable
         const X = 0x1;
+        /// Writable
         const W = 0x2;
+        /// Readable
         const R = 0x4;
     }
 }
 
+/// ELF header
 #[derive(Default)]
 #[repr(C, packed)]
 pub struct Ehdr {
@@ -35,6 +44,7 @@ pub struct Ehdr {
     pub shstrndx: u16,
 }
 
+/// Program header
 #[derive(Default)]
 #[repr(C, packed)]
 pub struct Phdr {

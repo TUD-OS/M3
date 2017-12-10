@@ -12,6 +12,11 @@ fn get_bp() -> usize {
     val
 }
 
+/// Walks up the stack and stores the return addresses into the given slice and returns the number
+/// of addresses.
+///
+/// The function assumes that the stack is aligned by `cfg::STACK_SIZE` and ensures to not access
+/// below or above the stack.
 pub fn collect(addr: &mut [usize]) -> usize {
     let mut bp = get_bp();
 
