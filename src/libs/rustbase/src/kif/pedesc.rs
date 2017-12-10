@@ -1,3 +1,5 @@
+use core::fmt;
+
 int_enum! {
     pub struct PEType : ValueType {
         // Compute PE with internal memory
@@ -31,7 +33,7 @@ bitflags! {
 pub type ValueType = u32;
 
 #[repr(C, packed)]
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct PEDesc {
     val: ValueType,
 }
@@ -102,5 +104,11 @@ impl PEDesc {
     }
     pub fn has_mmu(&self) -> bool {
         !(self.flags() & PEFlags::MMU_VM).is_empty()
+    }
+}
+
+impl fmt::Debug for PEDesc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "PEDesc[type={}, isa={}, memsz={}]", self.pe_type(), self.isa(), self.mem_size())
     }
 }
