@@ -43,6 +43,39 @@ pub fn deinit() {
 }
 
 impl VPEMng {
+    pub fn count(&self) -> usize {
+        self.count
+    }
+    pub fn daemons(&self) -> usize {
+        self.daemons
+    }
+
+    pub fn vpe(&self, id: VPEId) -> Option<Rc<RefCell<VPE>>> {
+        self.vpes[id].as_ref().map(|v| v.clone())
+    }
+
+    pub fn pe_of(&self, id: VPEId) -> Option<PEId> {
+        if id == KERNEL_VPE {
+            Some(platform::kernel_pe())
+        }
+        else {
+            self.vpe(id).map(|v| v.borrow().pe_id())
+        }
+    }
+
+    pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
+        let id = self.get_id()?;
+        let pe_id = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
+        let vpe = VPE::new(name, id, pe_id, VPEFlags::empty());
+
+        klog!(VPES, "Created VPE {} [id={}, pe={}]", name, id, pe_id);
+
+        let res = vpe.clone();
+        self.vpes[id] = Some(vpe);
+        self.count += 1;
+        Ok(res)
+    }
+
     pub fn start(&mut self, args: env::Args) -> Result<(), Error> {
         // TODO temporary
         let pedesc = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
@@ -130,51 +163,6 @@ impl VPEMng {
         }
     }
 
-    pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
-        let id = self.get_id()?;
-        let pe_id = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
-        let vpe = VPE::new(name, id, pe_id, VPEFlags::empty());
-
-        klog!(VPES, "Created VPE {} [id={}, pe={}]", name, id, pe_id);
-
-        let res = vpe.clone();
-        self.vpes[id] = Some(vpe);
-        self.count += 1;
-        Ok(res)
-    }
-
-    pub fn count(&self) -> usize {
-        self.count
-    }
-    pub fn daemons(&self) -> usize {
-        self.daemons
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn pid_to_vpeid(&mut self, pid: i32) -> Option<VPEId> {
-        for v in &self.vpes {
-            if let Some(vpe) = v.as_ref() {
-                if vpe.borrow().pid() == pid {
-                    return Some(vpe.borrow().id());
-                }
-            }
-        }
-        None
-    }
-
-    pub fn vpe(&self, id: VPEId) -> Option<Rc<RefCell<VPE>>> {
-        self.vpes[id].as_ref().map(|v| v.clone())
-    }
-
-    pub fn pe_of(&self, id: VPEId) -> Option<PEId> {
-        if id == KERNEL_VPE {
-            Some(platform::kernel_pe())
-        }
-        else {
-            self.vpe(id).map(|v| v.borrow().pe_id())
-        }
-    }
-
     pub fn remove(&mut self, id: VPEId) {
         match self.vpes[id] {
             Some(ref v) => unsafe {
@@ -187,6 +175,18 @@ impl VPEMng {
             None        => panic!("Removing nonexisting VPE with id {}", id),
         };
         self.vpes[id] = None;
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn pid_to_vpeid(&mut self, pid: i32) -> Option<VPEId> {
+        for v in &self.vpes {
+            if let Some(vpe) = v.as_ref() {
+                if vpe.borrow().pid() == pid {
+                    return Some(vpe.borrow().id());
+                }
+            }
+        }
+        None
     }
 
     fn destroy_vpe(vpe: &mut VPE) {
