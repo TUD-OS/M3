@@ -6,8 +6,7 @@ use libc;
 use syscalls;
 use vpe;
 
-#[no_mangle]
-pub extern "C" fn exit(code: i32) {
+fn rust_exit(code: i32) {
     syscalls::exit(code);
     arch::dtu::deinit();
 }
@@ -33,5 +32,5 @@ pub extern "C" fn rust_init(argc: i32, argv: *const *const i8) {
 
 #[no_mangle]
 pub extern "C" fn rust_deinit(status: i32, _arg: *const libc::c_void) {
-    exit(status);
+    rust_exit(status);
 }

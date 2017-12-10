@@ -18,7 +18,7 @@ extern crate bitflags;
 #[cfg(target_os = "none")]
 pub use arch::init::{env_run, exit};
 #[cfg(target_os = "linux")]
-pub use arch::init::{rust_init, rust_deinit, exit};
+pub use arch::init::{rust_init, rust_deinit};
 
 #[macro_use]
 pub mod io;
