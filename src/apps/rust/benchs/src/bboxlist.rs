@@ -48,7 +48,7 @@ fn push_back() {
         }
     }
 
-    println!("Appending 100 elements: {}", prof.runner_with_id(&mut ListTester::default(), 0x50));
+    println!("Appending 100 elements: {}", prof.runner_with_id(&mut ListTester::default(), 0x60));
 }
 
 fn push_front() {
@@ -68,7 +68,7 @@ fn push_front() {
         }
     }
 
-    println!("Prepending 100 elements: {}", prof.runner_with_id(&mut ListTester::default(), 0x51));
+    println!("Prepending 100 elements: {}", prof.runner_with_id(&mut ListTester::default(), 0x61));
 }
 
 fn push_pop() {
@@ -91,7 +91,7 @@ fn push_pop() {
         }
     }
 
-    println!("Prepending 1 element: {}", prof.runner_with_id(&mut ListTester::default(), 0x52));
+    println!("Prepending 1 element: {}", prof.runner_with_id(&mut ListTester::default(), 0x62));
 }
 
 fn clear() {
@@ -111,5 +111,5 @@ fn clear() {
         }
     }
 
-    println!("Clearing 100-element list: {}", prof.runner_with_id(&mut ListTester::default(), 0x53));
+    println!("Clearing 100-element list: {}", prof.runner_with_id(&mut ListTester::default(), 0x63));
 }

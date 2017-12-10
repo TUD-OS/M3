@@ -25,7 +25,7 @@ fn insert() {
         }
     }
 
-    println!("Inserting 100 elements: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x51));
+    println!("Inserting 100 elements: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x81));
 }
 
 fn find() {
@@ -47,7 +47,7 @@ fn find() {
         }
     }
 
-    println!("Searching for 100 elements: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x51));
+    println!("Searching for 100 elements: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x82));
 }
 
 fn clear() {
@@ -67,5 +67,5 @@ fn clear() {
         }
     }
 
-    println!("Removing 100-element list: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x52));
+    println!("Removing 100-element list: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x83));
 }
