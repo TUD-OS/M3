@@ -100,10 +100,10 @@ impl PEDesc {
         self.has_dtuvm() || self.has_mmu()
     }
     pub fn has_dtuvm(&self) -> bool {
-        !(self.flags() & PEFlags::DTU_VM).is_empty()
+        self.flags().contains(PEFlags::DTU_VM)
     }
     pub fn has_mmu(&self) -> bool {
-        !(self.flags() & PEFlags::MMU_VM).is_empty()
+        self.flags().contains(PEFlags::MMU_VM)
     }
 }
 

@@ -14,12 +14,6 @@ int_enum! {
     }
 }
 
-impl fmt::Display for CapRngDesc {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CRD[{}: {}:{}]", self.cap_type(), self.start(), self.count())
-    }
-}
-
 impl CapRngDesc {
     pub fn new(ty: CapType, start: CapSel, count: CapSel) -> CapRngDesc {
         CapRngDesc {
@@ -44,5 +38,11 @@ impl CapRngDesc {
     }
     pub fn count(&self) -> CapSel {
         ((self.value >> 1) & 0xFFFFFFFF) as CapSel
+    }
+}
+
+impl fmt::Display for CapRngDesc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "CRD[{}: {}:{}]", self.cap_type(), self.start(), self.count())
     }
 }
