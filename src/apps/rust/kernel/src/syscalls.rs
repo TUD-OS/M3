@@ -7,10 +7,9 @@ use base::kif::{self, CapRngDesc, CapSel, CapType};
 use base::rc::Rc;
 use base::util;
 use core::intrinsics;
-use core::ptr::Shared;
 use thread;
 
-use cap::{Capability, CapTable, KObject};
+use cap::{Capability, KObject};
 use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
 use com::ServiceList;
 use mem;
@@ -177,21 +176,14 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
         sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
     }
 
-    // TODO that's not nice
-    let cap = {
-        let rgate = get_kobj!(vpe, rgate_sel, RGate);
-        Capability::new(dst_sel, KObject::SGate(SGateObject::new(
-            &rgate, label, credits
-        )))
-    };
-
     {
+        let rgate = get_kobj!(vpe, rgate_sel, RGate);
+        let cap = Capability::new(dst_sel, KObject::SGate(SGateObject::new(
+            &rgate, label, credits
+        )));
+
         let mut vpe_mut = vpe.borrow_mut();
-        let captbl: &mut CapTable = vpe_mut.obj_caps_mut();
-        unsafe {
-            let parent: Option<Shared<Capability>> = captbl.get_shared(rgate_sel);
-            captbl.insert_as_child(cap, parent);
-        }
+        vpe_mut.obj_caps_mut().insert_as_child(cap, rgate_sel);
     }
 
     reply_success(msg);
@@ -275,10 +267,11 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
 
                 // inherit the session-cap from the service-cap. this way, it will be automatically
                 // revoked if the service-cap is revoked
-                unsafe {
-                    let parent = sentry.unwrap().get_cap_shared();
-                    vpe.borrow_mut().obj_caps_mut().insert_as_child(cap, parent);
-                }
+                sentry.map(|se| {
+                    vpe.borrow_mut().obj_caps_mut().insert_as_child_from(
+                        cap, se.vpe().borrow_mut().obj_caps_mut(), se.sel()
+                    );
+                });
             }
         }
     }
@@ -377,11 +370,7 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
 
     {
         let mut vpe_mut = vpe.borrow_mut();
-        let captbl: &mut CapTable = vpe_mut.obj_caps_mut();
-        unsafe {
-            let parent: Option<Shared<Capability>> = captbl.get_shared(src_sel);
-            captbl.insert_as_child(cap, parent);
-        }
+        vpe_mut.obj_caps_mut().insert_as_child(cap, src_sel);
     }
 
     reply_success(msg);

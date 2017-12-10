@@ -47,9 +47,6 @@ impl CapTable {
     pub fn get_mut(&mut self, sel: CapSel) -> Option<&mut Capability> {
         self.caps.get_mut(|k| sel.cmp(k))
     }
-    pub unsafe fn get_shared(&mut self, sel: CapSel) -> Option<Shared<Capability>> {
-        self.caps.get_mut(|k| sel.cmp(k)).map(|cap| Shared::new_unchecked(cap))
-    }
 
     pub fn insert(&mut self, mut cap: Capability) -> &mut Capability {
         unsafe {
@@ -57,8 +54,23 @@ impl CapTable {
         }
         self.caps.insert(cap.sel(), cap)
     }
+    pub fn insert_as_child(&mut self, cap: Capability, parent_sel: CapSel) {
+        unsafe {
+            let parent: Option<Shared<Capability>> = self.get_shared(parent_sel);
+            self.do_insert(cap, parent);
+        }
+    }
+    pub fn insert_as_child_from(&mut self, cap: Capability, par_tbl: &mut CapTable, par_sel: CapSel) {
+        unsafe {
+            let parent: Option<Shared<Capability>> = par_tbl.get_shared(par_sel);
+            self.do_insert(cap, parent);
+        }
+    }
 
-    pub unsafe fn insert_as_child(&mut self, child: Capability, parent: Option<Shared<Capability>>) {
+    unsafe fn get_shared(&mut self, sel: CapSel) -> Option<Shared<Capability>> {
+        self.caps.get_mut(|k| sel.cmp(k)).map(|cap| Shared::new_unchecked(cap))
+    }
+    unsafe fn do_insert(&mut self, child: Capability, parent: Option<Shared<Capability>>) {
         let mut child_cap = self.insert(child);
         if let Some(parent_cap) = parent {
             (*parent_cap.as_ptr()).inherit(&mut child_cap);

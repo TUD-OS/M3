@@ -2,9 +2,8 @@ use base::cell::{MutCell, RefCell};
 use base::col::DList;
 use base::kif::CapSel;
 use base::rc::Rc;
-use core::ptr::Shared;
 
-use cap::{Capability, KObject, ServObject};
+use cap::{KObject, ServObject};
 use pes::VPE;
 
 pub struct Service {
@@ -20,8 +19,11 @@ impl Service {
         }
     }
 
-    pub unsafe fn get_cap_shared(&self) -> Option<Shared<Capability>> {
-        self.vpe.borrow_mut().obj_caps_mut().get_shared(self.sel)
+    pub fn sel(&self) -> CapSel {
+        self.sel
+    }
+    pub fn vpe(&self) -> &Rc<RefCell<VPE>> {
+        &self.vpe
     }
 
     pub fn get_kobj(&self) -> Rc<RefCell<ServObject>> {
