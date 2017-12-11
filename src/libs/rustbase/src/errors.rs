@@ -1,3 +1,5 @@
+//! Contains the error handling types
+
 use backtrace;
 use boxed::Box;
 use core::intrinsics;
@@ -5,6 +7,7 @@ use core::fmt;
 
 const MAX_BT_LEN: usize = 16;
 
+/// The error codes
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Code {
     // DTU errors
@@ -37,8 +40,10 @@ pub enum Code {
     CommitFailed,
     ReadFailed,
     WriteFailed,
+    InvalidFs,
 }
 
+/// The struct that stores information about an occurred error
 #[derive(Clone, Copy)]
 pub struct ErrorInfo {
     code: Code,
@@ -47,6 +52,9 @@ pub struct ErrorInfo {
 }
 
 impl ErrorInfo {
+    /// Creates a new object for given error code
+    ///
+    /// Note that this gathers and stores the backtrace
     pub fn new(code: Code) -> Self {
         let mut bt = [0usize; MAX_BT_LEN];
         let count = backtrace::collect(bt.as_mut());
@@ -59,21 +67,27 @@ impl ErrorInfo {
     }
 }
 
+/// The error struct that is passed around
 #[derive(Clone)]
 pub struct Error {
     info: Box<ErrorInfo>,
 }
 
 impl Error {
+    /// Creates a new object for given error code
+    ///
+    /// Note that this gathers and stores the backtrace
     pub fn new(code: Code) -> Self {
         Error {
             info: Box::new(ErrorInfo::new(code)),
         }
     }
 
+    /// Returns the error code
     pub fn code(&self) -> Code {
         self.info.code
     }
+    /// Returns the backtrace to the location where the error occurred
     pub fn backtrace(&self) -> &[usize] {
         self.info.bt.as_ref()
     }
