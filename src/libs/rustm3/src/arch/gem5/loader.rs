@@ -56,7 +56,7 @@ impl<'l> Loader<'l> {
 
             // copy data and heap
             let data_start = addr(&_data_start);
-            self.mem.write_bytes(&_data_start, heap::heap_used_end() - data_start, data_start)?;
+            self.mem.write_bytes(&_data_start, heap::used_end() - data_start, data_start)?;
 
             // copy end-area of heap
             let heap_area_size = util::size_of::<heap::HeapArea>();

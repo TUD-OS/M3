@@ -22,8 +22,8 @@ extern {
     pub fn heap_realloc(p: *mut libc::c_void, size: usize) -> *mut libc::c_void;
     pub fn heap_free(p: *mut libc::c_void);
 
-    pub fn heap_free_memory() -> usize;
-    pub fn heap_used_end() -> usize;
+    fn heap_free_memory() -> usize;
+    fn heap_used_end() -> usize;
 }
 
 extern {
@@ -99,6 +99,12 @@ pub fn init() {
 pub fn free_memory() -> usize {
     unsafe {
         heap_free_memory()
+    }
+}
+
+pub fn used_end() -> usize {
+    unsafe {
+        heap_used_end()
     }
 }
 
