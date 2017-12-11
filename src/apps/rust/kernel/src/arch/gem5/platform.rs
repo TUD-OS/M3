@@ -1,4 +1,4 @@
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::cfg;
 use base::envdata;
 use base::GlobAddr;
@@ -14,7 +14,7 @@ use platform;
 
 const USABLE_MEM: usize     = 256 * 1024 * 1024;
 
-static LAST_PE: MutCell<PEId> = MutCell::new(0);
+static LAST_PE: StaticCell<PEId> = StaticCell::new(0);
 
 pub fn init() -> platform::KEnv {
     // read kernel env

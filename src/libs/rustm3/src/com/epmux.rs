@@ -1,5 +1,5 @@
 use cap::{CapFlags, Selector};
-use cell::MutCell;
+use cell::StaticCell;
 use com::gate::Gate;
 use dtu::{self, EpId};
 use errors::{Code, Error};
@@ -12,7 +12,7 @@ pub struct EpMux {
     next_victim: usize,
 }
 
-static EP_MUX: MutCell<EpMux> = MutCell::new(EpMux::new());
+static EP_MUX: StaticCell<EpMux> = StaticCell::new(EpMux::new());
 
 impl EpMux {
     const fn new() -> Self {

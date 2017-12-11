@@ -1,4 +1,4 @@
-use base::cell::{MutCell, RefCell};
+use base::cell::{StaticCell, RefCell};
 use base::col::DList;
 use base::kif::CapSel;
 use base::rc::Rc;
@@ -38,7 +38,7 @@ pub struct ServiceList {
     list: DList<Service>,
 }
 
-static SERVICES: MutCell<Option<ServiceList>> = MutCell::new(None);
+static SERVICES: StaticCell<Option<ServiceList>> = StaticCell::new(None);
 
 pub fn init() {
     SERVICES.set(Some(ServiceList::new()));

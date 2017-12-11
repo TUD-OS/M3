@@ -6,15 +6,15 @@ use core::ops::Deref;
 
 pub use core::cell::{Cell, Ref, RefCell, RefMut, UnsafeCell};
 
-pub struct MutCell<T: Sized> {
+pub struct StaticCell<T: Sized> {
     inner: UnsafeCell<T>,
 }
 
-unsafe impl<T: Sized> Sync for MutCell<T> {}
+unsafe impl<T: Sized> Sync for StaticCell<T> {}
 
-impl<T: Sized> MutCell<T> {
+impl<T: Sized> StaticCell<T> {
     pub const fn new(val: T) -> Self {
-        MutCell {
+        StaticCell {
             inner: UnsafeCell::new(val),
         }
     }
@@ -35,7 +35,7 @@ impl<T: Sized> MutCell<T> {
     }
 }
 
-impl<T: Sized> Deref for MutCell<T> {
+impl<T: Sized> Deref for StaticCell<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

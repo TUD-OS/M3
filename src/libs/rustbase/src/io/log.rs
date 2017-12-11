@@ -1,7 +1,7 @@
 //! Contains the logger
 
 use arch;
-use cell::{MutCell, RefCell};
+use cell::{StaticCell, RefCell};
 use env;
 use errors::Error;
 use rc::Rc;
@@ -23,7 +23,7 @@ pub const THREAD: bool  = false;
 const MAX_LINE_LEN: usize = 160;
 const SUFFIX: &[u8] = b"\x1B[0m";
 
-static LOG: MutCell<Option<Log>> = MutCell::new(None);
+static LOG: StaticCell<Option<Log>> = StaticCell::new(None);
 
 /// A buffered logger that writes to the serial line
 pub struct Log {

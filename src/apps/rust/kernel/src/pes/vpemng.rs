@@ -1,4 +1,4 @@
-use base::cell::{MutCell, RefCell};
+use base::cell::{StaticCell, RefCell};
 use base::col::{DList, String, ToString, Vec};
 use base::dtu::PEId;
 use base::env;
@@ -22,7 +22,7 @@ pub struct VPEMng {
     next_id: usize,
 }
 
-static INST: MutCell<Option<VPEMng>> = MutCell::new(None);
+static INST: StaticCell<Option<VPEMng>> = StaticCell::new(None);
 
 pub fn get() -> &'static mut VPEMng {
     INST.get_mut().as_mut().unwrap()

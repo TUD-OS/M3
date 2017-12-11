@@ -1,7 +1,7 @@
 use arch;
 use base;
 use cap::Selector;
-use cell::MutCell;
+use cell::StaticCell;
 use col::{String, Vec};
 use com::SliceSource;
 use core::intrinsics;
@@ -107,7 +107,7 @@ fn read_line(fd: i32) -> String {
     unsafe { String::from_utf8_unchecked(vec) }
 }
 
-static ENV_DATA: MutCell<Option<EnvData>> = MutCell::new(None);
+static ENV_DATA: StaticCell<Option<EnvData>> = StaticCell::new(None);
 
 pub fn get() -> &'static mut EnvData {
     ENV_DATA.get_mut().as_mut().unwrap()

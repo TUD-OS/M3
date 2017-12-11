@@ -1,4 +1,4 @@
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::col::Treap;
 use base::kif::{CapRngDesc, CapSel};
 use core::fmt;
@@ -246,7 +246,7 @@ impl Capability {
 }
 
 fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter) -> fmt::Result {
-    static LAYER: MutCell<u32> = MutCell::new(5);
+    static LAYER: StaticCell<u32> = StaticCell::new(5);
     use core::fmt::Write;
     let mut next = Some(cap);
     loop {

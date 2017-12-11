@@ -1,4 +1,4 @@
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::col::Vec;
 use base::dtu::PEId;
 use base::kif;
@@ -9,7 +9,7 @@ pub struct PEMng {
     pes: Vec<bool>,
 }
 
-static INST: MutCell<Option<PEMng>> = MutCell::new(None);
+static INST: StaticCell<Option<PEMng>> = StaticCell::new(None);
 
 pub fn init() {
     INST.set(Some(PEMng::new()));

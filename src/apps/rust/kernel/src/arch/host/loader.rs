@@ -1,5 +1,5 @@
 use base::col::Vec;
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::dtu::PEId;
 use base::errors::{Code, Error};
 use base::kif;
@@ -72,7 +72,7 @@ pub struct Loader {
 
 impl Loader {
     pub fn get() -> &'static mut Loader {
-        static LOADER: MutCell<Loader> = MutCell::new(Loader {});
+        static LOADER: StaticCell<Loader> = StaticCell::new(Loader {});
         LOADER.get_mut()
     }
 

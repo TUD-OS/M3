@@ -4,7 +4,7 @@
 extern crate m3;
 
 use m3::errors::{Code, Error};
-use m3::cell::MutCell;
+use m3::cell::StaticCell;
 use m3::col::String;
 use m3::com::*;
 use m3::kif;
@@ -88,7 +88,7 @@ impl MyHandler {
         reply_vmsg!(is, res)?;
 
         // pretend that we're crashing after a few requests
-        static COUNT: MutCell<i32> = MutCell::new(0);
+        static COUNT: StaticCell<i32> = StaticCell::new(0);
         if *COUNT >= 5 {
             return Err(Error::new(Code::EndOfFile));
         }

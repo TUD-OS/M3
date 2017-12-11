@@ -1,5 +1,5 @@
 use arch;
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::dtu::PEId;
 use base::GlobAddr;
 use base::kif::PEDesc;
@@ -35,7 +35,7 @@ impl iter::Iterator for PEIterator {
     }
 }
 
-static KENV: MutCell<Option<KEnv>> = MutCell::new(None);
+static KENV: StaticCell<Option<KEnv>> = StaticCell::new(None);
 
 pub fn init() {
     KENV.set(Some(arch::platform::init()))

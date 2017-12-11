@@ -1,6 +1,6 @@
 use cfg;
 use cap::{CapFlags, Selector};
-use cell::MutCell;
+use cell::StaticCell;
 use com::epmux::EpMux;
 use com::gate::Gate;
 use com::{GateIStream, SendGate};
@@ -15,9 +15,9 @@ use vpe;
 
 const DEF_MSG_ORD: i32          = 6;
 
-static SYS_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::SYSC_REP));
-static UPC_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::UPCALL_REP));
-static DEF_RGATE: MutCell<RecvGate>  = MutCell::new(RecvGate::new_def(dtu::DEF_REP));
+static SYS_RGATE: StaticCell<RecvGate>  = StaticCell::new(RecvGate::new_def(dtu::SYSC_REP));
+static UPC_RGATE: StaticCell<RecvGate>  = StaticCell::new(RecvGate::new_def(dtu::UPCALL_REP));
+static DEF_RGATE: StaticCell<RecvGate>  = StaticCell::new(RecvGate::new_def(dtu::DEF_REP));
 
 bitflags! {
     struct FreeFlags : u8 {

@@ -1,5 +1,5 @@
 use arch::dtu::*;
-use cell::MutCell;
+use cell::StaticCell;
 use core::sync::atomic;
 use errors::{Code, Error};
 use kif;
@@ -30,8 +30,8 @@ impl Buffer {
     }
 }
 
-static LOG: MutCell<Option<io::log::Log>> = MutCell::new(None);
-static BUFFER: MutCell<Buffer> = MutCell::new(Buffer::new());
+static LOG: StaticCell<Option<io::log::Log>> = StaticCell::new(None);
+static BUFFER: StaticCell<Buffer> = StaticCell::new(Buffer::new());
 
 fn log() -> &'static mut io::log::Log {
     LOG.get_mut().as_mut().unwrap()
@@ -526,7 +526,7 @@ fn handle_receive(backend: &backend::SocketBackend, ep: EpId) {
     }
 }
 
-static BACKEND: MutCell<Option<backend::SocketBackend>> = MutCell::new(None);
+static BACKEND: StaticCell<Option<backend::SocketBackend>> = StaticCell::new(None);
 static RUN: atomic::AtomicUsize = atomic::AtomicUsize::new(1);
 static mut TID: libc::pthread_t = 0;
 

@@ -1,5 +1,5 @@
 use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_BITS, PAGE_SIZE};
-use base::cell::{Cell, MutCell};
+use base::cell::{Cell, StaticCell};
 use base::col::{String, ToString, Vec};
 use base::elf;
 use base::envdata;
@@ -50,7 +50,7 @@ pub struct Loader {
     idles: Vec<Option<BootModule>>,
 }
 
-static LOADER: MutCell<Option<Loader>> = MutCell::new(None);
+static LOADER: StaticCell<Option<Loader>> = StaticCell::new(None);
 
 pub fn init() {
     let mut mods = Vec::new();

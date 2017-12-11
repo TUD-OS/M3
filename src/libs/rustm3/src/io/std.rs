@@ -1,4 +1,4 @@
-use cell::MutCell;
+use cell::StaticCell;
 use io::Serial;
 use vfs::{Fd, FileRef, BufReader, BufWriter};
 use vpe::VPE;
@@ -7,9 +7,9 @@ pub const STDIN_FILENO: Fd      = 0;
 pub const STDOUT_FILENO: Fd     = 1;
 pub const STDERR_FILENO: Fd     = 2;
 
-static STDIN : MutCell<Option<BufReader<FileRef>>> = MutCell::new(None);
-static STDOUT: MutCell<Option<BufWriter<FileRef>>> = MutCell::new(None);
-static STDERR: MutCell<Option<BufWriter<FileRef>>> = MutCell::new(None);
+static STDIN : StaticCell<Option<BufReader<FileRef>>> = StaticCell::new(None);
+static STDOUT: StaticCell<Option<BufWriter<FileRef>>> = StaticCell::new(None);
+static STDERR: StaticCell<Option<BufWriter<FileRef>>> = StaticCell::new(None);
 
 pub fn stdin() -> &'static mut BufReader<FileRef> {
     STDIN.get_mut().as_mut().unwrap()

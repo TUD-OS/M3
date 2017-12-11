@@ -1,7 +1,7 @@
 use arch;
 use boxed::{Box, FnBox};
 use cap::{CapFlags, Capability, Selector};
-use cell::MutCell;
+use cell::StaticCell;
 use col::Vec;
 use com::MemGate;
 use core::fmt;
@@ -137,7 +137,7 @@ impl<'n, 'p> VPEArgs<'n, 'p> {
 
 const VMA_RBUF_SIZE: usize  = 64;
 
-static CUR: MutCell<Option<VPE>> = MutCell::new(None);
+static CUR: StaticCell<Option<VPE>> = StaticCell::new(None);
 
 impl VPE {
     fn new_cur() -> Self {

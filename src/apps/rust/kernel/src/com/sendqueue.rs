@@ -1,4 +1,4 @@
-use base::cell::{MutCell, RefCell};
+use base::cell::{StaticCell, RefCell};
 use base::col::{DList, Vec};
 use base::dtu;
 use base::rc::Rc;
@@ -38,7 +38,7 @@ pub struct SendQueue {
 }
 
 fn alloc_qid() -> u64 {
-    static NEXT_ID: MutCell<u64> = MutCell::new(0);
+    static NEXT_ID: StaticCell<u64> = StaticCell::new(0);
     NEXT_ID.set(*NEXT_ID +  1);
     *NEXT_ID
 }

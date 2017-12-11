@@ -1,4 +1,4 @@
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::col::Vec;
 use base::errors::{Code, Error};
 use base::GlobAddr;
@@ -83,7 +83,7 @@ impl fmt::Debug for MainMemory {
     }
 }
 
-static MEM: MutCell<Option<MainMemory>> = MutCell::new(None);
+static MEM: StaticCell<Option<MainMemory>> = StaticCell::new(None);
 
 pub fn init() {
     MEM.set(Some(MainMemory::new()));

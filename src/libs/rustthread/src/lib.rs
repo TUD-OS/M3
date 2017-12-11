@@ -8,7 +8,7 @@
 extern crate base;
 
 use base::boxed::Box;
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::cfg;
 use base::col::{BoxList, Vec};
 use base::dtu;
@@ -37,7 +37,7 @@ pub struct Regs {
 }
 
 fn alloc_id() -> u32 {
-    static NEXT_ID: MutCell<u32> = MutCell::new(0);
+    static NEXT_ID: StaticCell<u32> = StaticCell::new(0);
     NEXT_ID.set(*NEXT_ID + 1);
     *NEXT_ID
 }
@@ -160,7 +160,7 @@ pub struct ThreadManager {
     sleep: BoxList<Thread>,
 }
 
-static TMNG: MutCell<Option<ThreadManager>> = MutCell::new(None);
+static TMNG: StaticCell<Option<ThreadManager>> = StaticCell::new(None);
 
 pub fn init() {
     TMNG.set(Some(ThreadManager::new()));
@@ -209,7 +209,7 @@ impl ThreadManager {
     }
 
     pub fn alloc_event(&self) -> Event {
-        static NEXT_EVENT: MutCell<Event> = MutCell::new(0);
+        static NEXT_EVENT: StaticCell<Event> = StaticCell::new(0);
         // if we have no other threads available, don't use events
         if self.sleeping_count() == 0 {
             0

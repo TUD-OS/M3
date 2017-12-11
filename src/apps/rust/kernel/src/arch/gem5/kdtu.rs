@@ -1,4 +1,4 @@
-use base::cell::MutCell;
+use base::cell::StaticCell;
 use base::col::Vec;
 use base::dtu::*;
 use base::errors::{Code, Error};
@@ -124,7 +124,7 @@ pub const KSYS_EP: EpId   = 0;
 pub const KSRV_EP: EpId   = 1;
 pub const KTMP_EP: EpId   = 2;
 
-static INST: MutCell<Option<KDTU>> = MutCell::new(None);
+static INST: StaticCell<Option<KDTU>> = StaticCell::new(None);
 
 impl KDTU {
     pub fn init() {
