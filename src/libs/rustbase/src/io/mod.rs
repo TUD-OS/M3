@@ -1,3 +1,5 @@
+//! Contains the modules for serial output, logging, etc.
+
 pub mod log;
 mod rdwr;
 mod serial;
@@ -19,17 +21,28 @@ macro_rules! log_impl {
     })
 }
 
+/// Macro for logging (includes a trailing newline)
+///
+/// The arguments are printed if `io::log::$type` is enabled.
+///
+/// # Examples
+///
+/// ```
+/// log!(SYSC, "my log entry: {}, {}", 1, "test");
+/// ```
 #[macro_export]
 macro_rules! log {
     ($type:tt, $fmt:expr)              => (log_impl!($crate::io::log::$type, concat!($fmt, "\n")));
     ($type:tt, $fmt:expr, $($arg:tt)*) => (log_impl!($crate::io::log::$type, concat!($fmt, "\n"), $($arg)*));
 }
 
+/// Initializes the I/O module
 pub fn init() {
     arch::serial::init();
     log::init();
 }
 
+/// Reinitializes the I/O module (for VPE::run)
 pub fn reinit() {
     log::reinit();
 }

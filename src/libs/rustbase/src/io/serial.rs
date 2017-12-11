@@ -1,13 +1,17 @@
+//! Contains the serial struct
+
 use arch;
 use cell::RefCell;
 use errors::Error;
 use io;
 use rc::Rc;
 
+/// The serial line
 pub struct Serial {
 }
 
 impl Serial {
+    /// Creates a new serial line
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Serial {}))
     }

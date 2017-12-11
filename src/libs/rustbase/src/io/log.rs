@@ -1,3 +1,5 @@
+//! Contains the logger
+
 use arch;
 use cell::{MutCell, RefCell};
 use env;
@@ -5,11 +7,17 @@ use errors::Error;
 use rc::Rc;
 use io::{Serial, Write};
 
+/// Logs system calls
 pub const SYSC: bool    = false;
+/// Logs heap operations
 pub const HEAP: bool    = false;
+/// Logs file system operations
 pub const FS: bool      = false;
+/// Logs server operations
 pub const SERV: bool    = false;
+/// Logs DTU operations (only on host)
 pub const DTU: bool     = false;
+/// Logs thread switching etc.
 pub const THREAD: bool  = false;
 
 const MAX_LINE_LEN: usize = 160;
@@ -17,6 +25,7 @@ const SUFFIX: &[u8] = b"\x1B[0m";
 
 static LOG: MutCell<Option<Log>> = MutCell::new(None);
 
+/// A buffered logger that writes to the serial line
 pub struct Log {
     serial: Rc<RefCell<Serial>>,
     buf: [u8; MAX_LINE_LEN],
@@ -25,10 +34,12 @@ pub struct Log {
 }
 
 impl Log {
+    /// Returns the logger
     pub fn get() -> Option<&'static mut Log> {
         LOG.get_mut().as_mut()
     }
 
+    /// Creates a new logger
     pub fn new() -> Self {
         Log {
             serial: Serial::new(),
@@ -95,11 +106,13 @@ impl Write for Log {
     }
 }
 
+/// Initializes the logger
 pub fn init() {
     LOG.set(Some(Log::new()));
     reinit();
 }
 
+/// Reinitializes the logger (for VPE::run)
 pub fn reinit() {
     Log::get().unwrap().init();
 }
