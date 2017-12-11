@@ -1,23 +1,38 @@
+//! Contains the serializing basics, which is used for IPC
+
 use col::String;
 
+/// For types that can be marshalled into a [`Sink`](trait.Sink.html).
 pub trait Marshallable {
+    /// Writes this object into the given sink
     fn marshall(&self, s: &mut Sink);
 }
 
+/// For types that can be unmarshalled from a [`Source`](trait.Source.html).
 pub trait Unmarshallable : Sized {
+    /// Reads an object from the given source and returns it
     fn unmarshall(s: &mut Source) -> Self;
 }
 
+/// A sink allows to push objects into it
 pub trait Sink {
+    /// Returns the number of bytes in the sink
     fn size(&self) -> usize;
+    /// Returns the content as a u64-slice
     fn words(&self) -> &[u64];
+    /// Pushes the given marshallable object into this sink
     fn push(&mut self, item: &Marshallable);
+    /// Pushes the given word into this sink
     fn push_word(&mut self, word: u64);
+    /// Pushes the given string into this sink
     fn push_str(&mut self, b: &str);
 }
 
+/// A source allows to pop objects from it
 pub trait Source {
+    /// Pops a word from this source
     fn pop_word(&mut self) -> u64;
+    /// Pops a string from this source
     fn pop_str(&mut self) -> String;
 }
 

@@ -1,3 +1,5 @@
+//! Contains the malloc implementation
+
 use arch::cfg;
 use core::intrinsics;
 use libc;
@@ -17,9 +19,19 @@ extern {
     fn heap_set_oom_callback(cb: extern fn(size: usize));
     fn heap_set_dblfree_callback(cb: extern fn(p: *const u8));
 
+    /// Allocates `size` bytes on the heap
     pub fn heap_alloc(size: usize) -> *mut libc::c_void;
+
+    /// Allocates `n * size` on the heap and initializes it to 0
     pub fn heap_calloc(n: usize, size: usize) -> *mut libc::c_void;
+
+    /// Reallocates `n` to be `size` bytes large
+    ///
+    /// This implementation might increase the size of the area or shink it. It might also free the
+    /// current area and allocate a new area of `size` bytes.
     pub fn heap_realloc(p: *mut libc::c_void, size: usize) -> *mut libc::c_void;
+
+    /// Frees the area at `p`
     pub fn heap_free(p: *mut libc::c_void);
 
     fn heap_free_memory() -> usize;
@@ -96,12 +108,14 @@ pub fn init() {
     }
 }
 
+/// Returns the number of free bytes on the heap
 pub fn free_memory() -> usize {
     unsafe {
         heap_free_memory()
     }
 }
 
+/// Returns the end of used part of the heap
 pub fn used_end() -> usize {
     unsafe {
         heap_used_end()
