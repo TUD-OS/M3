@@ -5,18 +5,37 @@ use core::ptr::Shared;
 
 use boxed::Box;
 
+/// A reference to an element in the list
 pub type BoxRef<T> = Shared<T>;
 
+/// The trait for the list elements
 pub trait BoxItem {
+    /// The actual type of the element
     type T : BoxItem;
 
+    /// Returns the next element
     fn next(&self) -> Option<BoxRef<Self::T>>;
+    /// Sets the next element to `next`
     fn set_next(&mut self, next: Option<BoxRef<Self::T>>);
 
+    /// Returns the previous element
     fn prev(&self) -> Option<BoxRef<Self::T>>;
+    /// Sets the previous element to `prev`
     fn set_prev(&mut self, prev: Option<BoxRef<Self::T>>);
 }
 
+/// Convenience macro to implement `BoxItem` in the default way.
+///
+/// The macro expects a `$t` like:
+///
+/// ```
+/// struct $t {
+///     ...
+///     next: Option<Shared<$t>>,
+///     prev: Option<Shared<$t>>,
+///     ...
+/// }
+/// ```
 #[macro_export]
 macro_rules! impl_boxitem {
     ($t:ty) => (
@@ -32,12 +51,13 @@ macro_rules! impl_boxitem {
     )
 }
 
-pub struct Iter<'a, T: 'a> {
+/// The iterator for BoxList
+pub struct BoxListIter<'a, T: 'a> {
     head: Option<BoxRef<T>>,
     marker: PhantomData<&'a T>,
 }
 
-impl<'a, T: BoxItem> Iterator for Iter<'a, T> {
+impl<'a, T: BoxItem> Iterator for BoxListIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<&'a T> {
@@ -49,12 +69,13 @@ impl<'a, T: BoxItem> Iterator for Iter<'a, T> {
     }
 }
 
-pub struct IterMut<'a, T: 'a + BoxItem> {
+/// The mutable iterator for BoxList
+pub struct BoxListIterMut<'a, T: 'a + BoxItem> {
     list: &'a mut BoxList<T>,
     head: Option<BoxRef<T>>,
 }
 
-impl<'a, T: BoxItem> Iterator for IterMut<'a, T> {
+impl<'a, T: BoxItem> Iterator for BoxListIterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
@@ -66,12 +87,17 @@ impl<'a, T: BoxItem> Iterator for IterMut<'a, T> {
     }
 }
 
-impl<'a, T: BoxItem> IterMut<'a, T> {
+impl<'a, T: BoxItem> BoxListIterMut<'a, T> {
+    /// Removes the current element from the list and returns it
     ///
-    /// init state: 1 2 3 4 5
-    ///               ^
-    /// after rem : 1 3 4 5
-    ///             ^
+    /// # Examples
+    ///
+    /// ```
+    /// before remove: 1 2 3 4 5
+    ///                  ^
+    /// after remove : 1 3 4 5
+    ///                ^
+    /// ```
     pub fn remove(&mut self) -> Option<Box<T>> {
         match self.head {
             // if we already walked at the list-end, remove the last element
@@ -100,9 +126,16 @@ impl<'a, T: BoxItem> IterMut<'a, T> {
     }
 }
 
-pub struct IntoIter<T : BoxItem> {
+/// The owning iterator for BoxList
+pub struct BoxListIntoIter<T : BoxItem> {
     list: BoxList<T>,
 }
+
+/// A doubly linked list that does not allocate nodes, which embed the user object, but directly
+/// links the user objects
+///
+/// In consequence, BoxList leads to less heap allocations. In particular, objects can be moved
+/// between lists by just changing a few pointers.
 pub struct BoxList<T : BoxItem> {
     head: Option<BoxRef<T>>,
     tail: Option<BoxRef<T>>,
@@ -110,6 +143,7 @@ pub struct BoxList<T : BoxItem> {
 }
 
 impl<T : BoxItem> BoxList<T> {
+    /// Creates an empty list
     pub fn new() -> Self {
         BoxList {
             head: None,
@@ -118,53 +152,63 @@ impl<T : BoxItem> BoxList<T> {
         }
     }
 
+    /// Returns the number of elements
     pub fn len(&self) -> usize {
         self.len
     }
+    /// Returns true if the list is empty
     pub fn is_empty(&self) -> bool {
         self.head.is_none()
     }
 
+    /// Removes all elements from the list
     pub fn clear(&mut self) {
         *self = Self::new();
     }
 
+    /// Returns a reference to the first element
     pub fn front(&self) -> Option<&T> {
         unsafe {
             self.head.map(|n| &(*n.as_ptr()))
         }
     }
+    /// Returns a mutable reference to the first element
     pub fn front_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.head.map(|n| &mut (*n.as_ptr()))
         }
     }
 
+    /// Returns a reference to the last element
     pub fn back(&self) -> Option<&T> {
         unsafe {
             self.tail.map(|n| &(*n.as_ptr()))
         }
     }
+    /// Returns a mutable reference to the last element
     pub fn back_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.tail.map(|n| &mut (*n.as_ptr()))
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
-        Iter {
+    /// Returns an iterator for the list
+    pub fn iter<'a>(&'a self) -> BoxListIter<'a, T> {
+        BoxListIter {
             head: self.head,
             marker: PhantomData,
         }
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
-        IterMut {
+    /// Returns a mutable iterator for the list
+    pub fn iter_mut<'a>(&'a mut self) -> BoxListIterMut<'a, T> {
+        BoxListIterMut {
             head: self.head,
             list: self,
         }
     }
 
+    /// Inserts the given element at the front of the list
     pub fn push_front(&mut self, mut item: Box<T>) {
         unsafe {
             item.set_next(intrinsics::transmute(self.head));
@@ -182,6 +226,7 @@ impl<T : BoxItem> BoxList<T> {
         }
     }
 
+    /// Inserts the given element at the end of the list
     pub fn push_back(&mut self, mut item: Box<T>) {
         unsafe {
             item.set_next(None);
@@ -199,6 +244,7 @@ impl<T : BoxItem> BoxList<T> {
         }
     }
 
+    /// Removes the first element of the list and returns it
     pub fn pop_front(&mut self) -> Option<Box<T>> {
         self.head.map(|item| unsafe {
             let item = item.as_ptr();
@@ -214,6 +260,7 @@ impl<T : BoxItem> BoxList<T> {
         })
     }
 
+    /// Removes the last element of the list and returns it
     pub fn pop_back(&mut self) -> Option<Box<T>> {
         self.tail.map(|item| unsafe {
             let item = item.as_ptr();
@@ -249,7 +296,7 @@ impl<T : BoxItem + fmt::Debug> fmt::Debug for BoxList<T> {
     }
 }
 
-impl<T : BoxItem> Iterator for IntoIter<T> {
+impl<T : BoxItem> Iterator for BoxListIntoIter<T> {
     type Item = Box<T>;
 
     fn next(&mut self) -> Option<Box<T>> {
@@ -263,27 +310,27 @@ impl<T : BoxItem> Iterator for IntoIter<T> {
 
 impl<T : BoxItem> IntoIterator for BoxList<T> {
     type Item = Box<T>;
-    type IntoIter = IntoIter<T>;
+    type IntoIter = BoxListIntoIter<T>;
 
-    fn into_iter(self) -> IntoIter<T> {
-        IntoIter { list: self }
+    fn into_iter(self) -> BoxListIntoIter<T> {
+        BoxListIntoIter { list: self }
     }
 }
 
 impl<'a, T : BoxItem> IntoIterator for &'a BoxList<T> {
     type Item = &'a T;
-    type IntoIter = Iter<'a, T>;
+    type IntoIter = BoxListIter<'a, T>;
 
-    fn into_iter(self) -> Iter<'a, T> {
+    fn into_iter(self) -> BoxListIter<'a, T> {
         self.iter()
     }
 }
 
 impl<'a, T : BoxItem> IntoIterator for &'a mut BoxList<T> {
     type Item = &'a mut T;
-    type IntoIter = IterMut<'a, T>;
+    type IntoIter = BoxListIterMut<'a, T>;
 
-    fn into_iter(self) -> IterMut<'a, T> {
+    fn into_iter(self) -> BoxListIterMut<'a, T> {
         self.iter_mut()
     }
 }

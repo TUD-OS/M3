@@ -23,12 +23,13 @@ impl<T> Node<T> {
     }
 }
 
-pub struct Iter<'a, T: 'a> {
+/// The iterator for `DList`
+pub struct DListIter<'a, T: 'a> {
     head: Option<Shared<Node<T>>>,
     marker: PhantomData<&'a Node<T>>,
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
+impl<'a, T> Iterator for DListIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<&'a T> {
@@ -40,12 +41,13 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-pub struct IterMut<'a, T: 'a> {
+/// The mutable iterator for `DList`
+pub struct DListIterMut<'a, T: 'a> {
     list: &'a mut DList<T>,
     head: Option<Shared<Node<T>>>,
 }
 
-impl<'a, T> Iterator for IterMut<'a, T> {
+impl<'a, T> Iterator for DListIterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
@@ -57,7 +59,8 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
-impl<'a, T> IterMut<'a, T> {
+impl<'a, T> DListIterMut<'a, T> {
+    /// Returns a mutable reference to the previous element
     pub fn peek_prev(&mut self) -> Option<&mut T> {
         unsafe {
             let cur = match self.head {
@@ -69,11 +72,16 @@ impl<'a, T> IterMut<'a, T> {
         }
     }
 
+    /// Inserts the given element before the current element
     ///
-    /// init state: 1 3 4 5
-    ///               ^
-    /// after ins : 1 2 3 4 5
-    ///                 ^
+    /// # Examples
+    ///
+    /// ```
+    /// before insert: 1 3 4 5
+    ///                  ^
+    /// after insert : 1 2 3 4 5
+    ///                    ^
+    /// ```
     pub fn insert_before(&mut self, data: T) {
         if self.list.len < 2 {
             return self.list.push_front(data);
@@ -93,11 +101,19 @@ impl<'a, T> IterMut<'a, T> {
         }
     }
 
+    /// Inserts the given element after the current element
     ///
-    /// init state: 1 2 4 5
-    ///               ^
-    /// after ins : 1 2 3 4 5
-    ///                 ^
+    /// Note that the element will not be visible during the iteration, because the iterator will
+    /// return the following element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// before insert: 1 2 4 5
+    ///                  ^
+    /// after insert : 1 2 3 4 5
+    ///                    ^
+    /// ```
     pub fn insert_after(&mut self, data: T) {
         match self.head {
             None        => self.list.push_back(data),
@@ -125,11 +141,16 @@ impl<'a, T> IterMut<'a, T> {
         }
     }
 
+    /// Removes the current element from the list and returns it
     ///
-    /// init state: 1 2 3 4 5
-    ///               ^
-    /// after rem : 1 3 4 5
-    ///             ^
+    /// # Examples
+    ///
+    /// ```
+    /// before remove: 1 2 3 4 5
+    ///                  ^
+    /// after remove : 1 3 4 5
+    ///                ^
+    /// ```
     pub fn remove(&mut self) -> Option<T> {
         match self.head {
             // if we already walked at the list-end, remove the last element
@@ -158,9 +179,15 @@ impl<'a, T> IterMut<'a, T> {
     }
 }
 
-pub struct IntoIter<T> {
+/// An owning iterator over the elements of a DList
+pub struct DListIntoIter<T> {
     list: DList<T>,
 }
+
+/// A doubly-linked list
+///
+/// In contrast to `col::LinkedList`, it supports the insertion (before and after the current
+/// element) and removal of elements during iteration.
 pub struct DList<T> {
     head: Option<Shared<Node<T>>>,
     tail: Option<Shared<Node<T>>>,
@@ -169,6 +196,7 @@ pub struct DList<T> {
 }
 
 impl<T> DList<T> {
+    /// Creates an empty DList
     pub fn new() -> Self {
         DList {
             head: None,
@@ -178,53 +206,63 @@ impl<T> DList<T> {
         }
     }
 
+    /// Returns the number of elements
     pub fn len(&self) -> usize {
         self.len
     }
+    /// Returns true if the list is empty
     pub fn is_empty(&self) -> bool {
         self.head.is_none()
     }
 
+    /// Removes all elements from the list
     pub fn clear(&mut self) {
         *self = Self::new();
     }
 
+    /// Returns a reference to the first element
     pub fn front(&self) -> Option<&T> {
         unsafe {
             self.head.map(|n| &(*n.as_ptr()).data)
         }
     }
+    /// Returns a mutable reference to the first element
     pub fn front_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.head.map(|n| &mut (*n.as_ptr()).data)
         }
     }
 
+    /// Returns a reference to the last element
     pub fn back(&self) -> Option<&T> {
         unsafe {
             self.tail.map(|n| &(*n.as_ptr()).data)
         }
     }
+    /// Returns a mutable reference to the last element
     pub fn back_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.tail.map(|n| &mut (*n.as_ptr()).data)
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
-        Iter {
+    /// Returns an iterator for the list
+    pub fn iter<'a>(&'a self) -> DListIter<'a, T> {
+        DListIter {
             head: self.head,
             marker: PhantomData,
         }
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
-        IterMut {
+    /// Returns a mutable iterator for the list
+    pub fn iter_mut<'a>(&'a mut self) -> DListIterMut<'a, T> {
+        DListIterMut {
             head: self.head,
             list: self,
         }
     }
 
+    /// Inserts the given element at the front of the list
     pub fn push_front(&mut self, data: T) {
         unsafe {
             let mut node = Box::new(Node::new(data));
@@ -242,6 +280,7 @@ impl<T> DList<T> {
         }
     }
 
+    /// Removes the first element of the list and returns it
     pub fn pop_front(&mut self) -> Option<T> {
         self.head.map(|node| unsafe {
             let node = Box::from_raw(node.as_ptr());
@@ -257,6 +296,7 @@ impl<T> DList<T> {
         })
     }
 
+    /// Inserts the given element at the end of the list
     pub fn push_back(&mut self, data: T) {
         unsafe {
             let mut node = Box::new(Node::new(data));
@@ -274,6 +314,7 @@ impl<T> DList<T> {
         }
     }
 
+    /// Removes the last element of the list and returns it
     pub fn pop_back(&mut self) -> Option<T> {
         self.tail.map(|node| unsafe {
             let node = Box::from_raw(node.as_ptr());
@@ -309,7 +350,7 @@ impl<T: fmt::Debug> fmt::Debug for DList<T> {
     }
 }
 
-impl<T> Iterator for IntoIter<T> {
+impl<T> Iterator for DListIntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
@@ -323,27 +364,27 @@ impl<T> Iterator for IntoIter<T> {
 
 impl<T> IntoIterator for DList<T> {
     type Item = T;
-    type IntoIter = IntoIter<T>;
+    type IntoIter = DListIntoIter<T>;
 
-    fn into_iter(self) -> IntoIter<T> {
-        IntoIter { list: self }
+    fn into_iter(self) -> DListIntoIter<T> {
+        DListIntoIter { list: self }
     }
 }
 
 impl<'a, T> IntoIterator for &'a DList<T> {
     type Item = &'a T;
-    type IntoIter = Iter<'a, T>;
+    type IntoIter = DListIter<'a, T>;
 
-    fn into_iter(self) -> Iter<'a, T> {
+    fn into_iter(self) -> DListIter<'a, T> {
         self.iter()
     }
 }
 
 impl<'a, T> IntoIterator for &'a mut DList<T> {
     type Item = &'a mut T;
-    type IntoIter = IterMut<'a, T>;
+    type IntoIter = DListIterMut<'a, T>;
 
-    fn into_iter(self) -> IterMut<'a, T> {
+    fn into_iter(self) -> DListIterMut<'a, T> {
         self.iter_mut()
     }
 }

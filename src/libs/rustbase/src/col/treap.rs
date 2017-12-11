@@ -29,8 +29,11 @@ impl<K : Copy + PartialOrd + Ord, V> Node<K, V> {
     }
 }
 
+/// A balanced binary tree.
+///
 /// A treap is a combination of a binary tree and a heap. So the child-node on the left has a
 /// smaller key than the parent and the child on the right has a bigger key.
+///
 /// Additionally the root-node has the smallest priority and it increases when walking towards the
 /// leafs. The priority is "randomized" by fibonacci-hashing. This way, the tree is well balanced
 /// in most cases.
@@ -44,6 +47,7 @@ pub struct Treap<K : Copy + PartialOrd + Ord, V> {
 }
 
 impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
+    /// Creates an empty treap
     pub fn new() -> Self {
         Treap {
             root: None,
@@ -51,10 +55,12 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
+    /// Returns true if the treap has no elements
     pub fn is_empty(&self) -> bool {
         self.root.is_none()
     }
 
+    /// Removes all elements from the treap
     pub fn clear(&mut self) {
         mem::replace(&mut self.root, None).map(|r| unsafe {
             Self::remove_rec(r);
@@ -78,12 +84,14 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
+    /// Returns a reference to the value for which `pred` returns `Ordering::Equal`
     pub fn get<P: Fn(&K) -> Ordering>(&self, pred: P) -> Option<&V> {
         self.get_node(pred).map(|n| unsafe {
             &(*n.as_ptr()).value
         })
     }
 
+    /// Returns a mutable reference to the value for which `pred` returns `Ordering::Equal`
     pub fn get_mut<P: Fn(&K) -> Ordering>(&mut self, pred: P) -> Option<&mut V> {
         self.get_node(pred).map(|n| unsafe {
             &mut (*n.as_ptr()).value
@@ -106,6 +114,7 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
+    /// Inserts the value `V` for the key `K` and returns a mutable reference to the stored value
     pub fn insert(&mut self, key: K, value: V) -> &mut V {
         unsafe {
             let mut q = &mut self.root;
@@ -161,6 +170,7 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
+    /// Removes the root element of the treap and returns the value
     pub fn remove_root(&mut self) -> Option<V> {
         self.root.map(|r| {
             Self::remove_from(&mut self.root, r);
@@ -170,6 +180,8 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         })
     }
 
+    /// Removes the element from the treap for which `pred` returns `Ordering::Equal` and returns
+    /// the value
     pub fn remove<P: Fn(&K) -> Ordering>(&mut self, pred: P) -> Option<V> {
         let mut p = &mut self.root;
         loop {

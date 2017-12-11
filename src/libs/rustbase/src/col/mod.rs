@@ -4,8 +4,8 @@ mod dlist;
 mod boxlist;
 mod treap;
 
-pub use self::dlist::DList;
-pub use self::boxlist::*;
+pub use self::dlist::{DList, DListIter, DListIterMut};
+pub use self::boxlist::{BoxItem, BoxList, BoxListIter, BoxListIterMut, BoxRef};
 pub use self::treap::Treap;
 
 pub use ::alloc::binary_heap::BinaryHeap;
