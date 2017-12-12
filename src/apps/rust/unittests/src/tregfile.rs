@@ -232,7 +232,7 @@ fn _validate_pattern_file(filename: &str, size: usize) {
     let mut file = assert_ok!(VFS::open(filename, OpenFlags::R));
 
     let info = assert_ok!(file.borrow().stat());
-    assert_eq!(info.size, size);
+    assert_eq!({info.size}, size);
 
     let mut buf = [0u8; 1024];
     assert_eq!(_validate_pattern_content(&mut file, &mut buf), size);

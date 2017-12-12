@@ -70,7 +70,7 @@ impl fmt::Debug for ExchangeData {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "ExchangeData[")?;
         for i in 0..self.argcount {
-            write!(f, "{}", self.args[i as usize])?;
+            write!(f, "{}", {self.args[i as usize]})?;
             if i + 1 < self.argcount {
                 write!(f, ", ")?;
             }

@@ -256,7 +256,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
         Some(rmsg)  => {
             let reply: &kif::service::OpenReply = get_message(rmsg);
 
-            sysc_log!(vpe, "create_sess continue with res={}", reply.res);
+            sysc_log!(vpe, "create_sess continue with res={}", {reply.res});
 
             if reply.res != 0 {
                 sysc_err!(vpe, Code::from(reply.res as u32), "Server denied session creation",);
@@ -471,7 +471,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
 
             sysc_log!(
                 vpe, "{} continue with res={}",
-                if obtain { "obtain" } else { "delegate" }, reply.res
+                if obtain { "obtain" } else { "delegate" }, {reply.res}
             );
 
             if reply.res != 0 {

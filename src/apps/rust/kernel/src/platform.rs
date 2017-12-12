@@ -54,7 +54,7 @@ impl iter::Iterator for ModIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.idx += 1;
-        match get().mods[self.idx - 1] {
+        match {get().mods}[self.idx - 1] {
             0 => None,
             a => Some(GlobAddr::new(a)),
         }

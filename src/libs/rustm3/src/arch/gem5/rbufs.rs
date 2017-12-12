@@ -4,7 +4,7 @@ use errors::{Code, Error};
 use kif::PEDesc;
 
 #[repr(C, packed)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct RBufSpace {
     pub cur: usize,
     pub end: usize,

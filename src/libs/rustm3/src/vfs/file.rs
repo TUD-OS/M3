@@ -31,7 +31,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct FileInfo {
     pub devno: DevId,
@@ -49,14 +49,14 @@ pub struct FileInfo {
 impl Marshallable for FileInfo {
     fn marshall(&self, s: &mut Sink) {
         s.push(&self.devno);
-        s.push(&self.inode);
-        s.push(&self.mode);
-        s.push(&self.links);
-        s.push(&self.size);
-        s.push(&self.lastaccess);
-        s.push(&self.lastmod);
-        s.push(&self.extents);
-        s.push(&self.firstblock);
+        s.push(&{self.inode});
+        s.push(&{self.mode});
+        s.push(&{self.links});
+        s.push(&{self.size});
+        s.push(&{self.lastaccess});
+        s.push(&{self.lastmod});
+        s.push(&{self.extents});
+        s.push(&{self.firstblock});
     }
 }
 

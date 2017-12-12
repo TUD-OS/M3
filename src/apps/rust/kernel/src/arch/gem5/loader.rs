@@ -63,7 +63,7 @@ pub fn init() {
 
         klog!(KENV, "Module '{}':", bmod.name());
         klog!(KENV, "  addr: {:#x}", bmod.addr.raw());
-        klog!(KENV, "  size: {:#x}", bmod.size);
+        klog!(KENV, "  size: {:#x}", {bmod.size});
 
         mods.push(bmod);
     }
