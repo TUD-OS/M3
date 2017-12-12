@@ -3,7 +3,7 @@ use base::cell::{Ref, RefCell, RefMut};
 use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
-use base::kif::{CapSel, PEDesc, Perm};
+use base::kif::{CapRngDesc, CapSel, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
 use core::mem;
@@ -297,6 +297,13 @@ impl VPE {
                 let id = vpe.borrow().id();
                 vpemng::get().remove(id);
             }
+        }
+    }
+
+    pub fn revoke(vpe: &Rc<RefCell<VPE>>, crd: CapRngDesc, own: bool) {
+        // we can't use borrow_mut() here, because revoke might need to use borrow as well.
+        unsafe {
+            (*vpe.as_ptr()).obj_caps_mut().revoke(crd, own);
         }
     }
 

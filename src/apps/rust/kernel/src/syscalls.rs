@@ -525,8 +525,8 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         let mut vpe_mut = vpe_ref.borrow_mut();
         if let Some(old_sel) = vpe_mut.get_ep_sel(ep) {
             if let Some(old_cap) = vpe_mut.obj_caps_mut().get_mut(old_sel) {
-                if let Some(rgate) = old_cap.get_mut().as_rgate_mut() {
-                    rgate.addr = 0;
+                if let &mut KObject::RGate(ref mut rgate) = old_cap.get_mut() {
+                    rgate.borrow_mut().addr = 0;
                 }
             }
 
@@ -657,13 +657,16 @@ fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Erro
         sysc_err!(vpe, Code::InvArgs, "Cap 0 and 1 are not revokeable",);
     }
 
-    let mut kobj = match vpe.borrow().obj_caps().get(vpe_sel) {
+    let kobj = match vpe.borrow().obj_caps().get(vpe_sel) {
         Some(c)  => c.get().clone(),
         None     => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
     };
-    match kobj.as_vpe_mut() {
-        Some(ref mut v) => v.obj_caps_mut().revoke(crd, own),
-        None            => sysc_err!(vpe, Code::InvArgs, "Invalid capability",),
+
+    if let KObject::VPE(ref v) = kobj {
+        VPE::revoke(v, crd, own);
+    }
+    else {
+        sysc_err!(vpe, Code::InvArgs, "Invalid capability",);
     }
 
     reply_success(msg);

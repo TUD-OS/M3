@@ -32,56 +32,6 @@ impl fmt::Debug for KObject {
     }
 }
 
-macro_rules! map_enum {
-    ($v:expr, $e:ident) => (match $v {
-        &KObject::$e(ref r)  => unsafe { Some(&*r.as_ptr()) },
-        _                    => None,
-    })
-}
-macro_rules! map_enum_mut {
-    ($v:expr, $e:ident) => (match $v {
-        &mut KObject::$e(ref mut r) => unsafe { Some(&mut *r.as_ptr()) },
-        _                           => None,
-    })
-}
-
-impl KObject {
-    pub fn as_rgate<'r>(&'r self) -> Option<&'r RGateObject> {
-        map_enum!(self, RGate)
-    }
-    pub fn as_rgate_mut<'r>(&'r mut self) -> Option<&'r mut RGateObject> {
-        map_enum_mut!(self, RGate)
-    }
-
-    pub fn as_sgate<'r>(&'r self) -> Option<&'r SGateObject> {
-        map_enum!(self, SGate)
-    }
-    pub fn as_sgate_mut<'r>(&'r mut self) -> Option<&'r mut SGateObject> {
-        map_enum_mut!(self, SGate)
-    }
-
-    pub fn as_mgate<'r>(&'r self) -> Option<&'r MGateObject> {
-        map_enum!(self, MGate)
-    }
-    pub fn as_mgate_mut<'r>(&'r mut self) -> Option<&'r mut MGateObject> {
-        map_enum_mut!(self, MGate)
-    }
-
-    pub fn as_vpe<'r>(&'r self) -> Option<&'r VPE> {
-        map_enum!(self, VPE)
-    }
-    pub fn as_vpe_mut<'r>(&'r mut self) -> Option<&'r mut VPE> {
-        map_enum_mut!(self, VPE)
-    }
-
-    pub fn as_serv<'r>(&'r self) -> Option<&'r ServObject> {
-        map_enum!(self, Serv)
-    }
-    pub fn as_serv_mut<'r>(&'r mut self) -> Option<&'r mut ServObject> {
-        map_enum_mut!(self, Serv)
-    }
-}
-
 pub struct RGateObject {
     pub vpe: VPEId,
     pub ep: Option<EpId>,
