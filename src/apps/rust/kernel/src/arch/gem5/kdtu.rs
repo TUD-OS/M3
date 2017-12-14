@@ -94,7 +94,7 @@ impl State {
         // TODO copy the receive buffers back to the SPM
 
         // TODO reenable pagefaults
-        self.set_dtu_reg(DtuReg::FEATURES, 0);
+        self.set_dtu_reg(DtuReg::STATUS, 0);
         self.set_dtu_reg(DtuReg::VPE_ID, vpe_id as Reg);
         self.set_dtu_reg(DtuReg::IDLE_TIME, 0);
 

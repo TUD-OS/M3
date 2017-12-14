@@ -30,7 +30,7 @@ const MAX_PKT_SIZE: usize       = 60 * 1024;
 
 int_enum! {
     pub struct DtuReg : Reg {
-        const FEATURES    = 0;
+        const STATUS    = 0;
         const ROOT_PT     = 1;
         const PF_EP       = 2;
         const VPE_ID      = 3;
@@ -42,19 +42,33 @@ int_enum! {
 }
 
 #[allow(dead_code)]
-enum ReqReg {
-    ExtReq      = 0,
-    XlateReq    = 1,
-    XlateResp   = 2,
+bitflags! {
+    struct StatusFlags : Reg {
+        const PRIV         = 1 << 0;
+        const PAGEFAULTS   = 1 << 1;
+        const COM_DISABLED = 1 << 2;
+        const IRQ_WAKEUP   = 1 << 3;
+    }
 }
 
 #[allow(dead_code)]
-enum CmdReg {
-    Command     = 0,
-    Abort       = 1,
-    Data        = 2,
-    Offset      = 3,
-    ReplyLabel  = 4,
+int_enum! {
+    struct ReqReg : Reg {
+        const EXT_REQ     = 0x0;
+        const XLATE_REQ   = 0x1;
+        const XLATER_ESP  = 0x2;
+    }
+}
+
+#[allow(dead_code)]
+int_enum! {
+    struct CmdReg : Reg {
+        const COMMAND     = 0x0;
+        const ABORT       = 0x1;
+        const DATA        = 0x2;
+        const OFFSET      = 0x3;
+        const REPLY_LABEL = 0x4;
+    }
 }
 
 int_enum! {
@@ -140,11 +154,11 @@ pub struct DTU {
 
 impl DTU {
     pub fn send(ep: EpId, msg: *const u8, size: usize, reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
-        Self::write_cmd_reg(CmdReg::Data, Self::build_data(msg, size));
+        Self::write_cmd_reg(CmdReg::DATA, Self::build_data(msg, size));
         if reply_lbl != 0 {
-            Self::write_cmd_reg(CmdReg::ReplyLabel, reply_lbl);
+            Self::write_cmd_reg(CmdReg::REPLY_LABEL, reply_lbl);
         }
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(
             ep, CmdOpCode::SEND, 0, reply_ep as Reg
         ));
 
@@ -152,9 +166,9 @@ impl DTU {
     }
 
     pub fn reply(ep: EpId, reply: *const u8, size: usize, msg: &'static Message) -> Result<(), Error> {
-        Self::write_cmd_reg(CmdReg::Data, Self::build_data(reply, size));
+        Self::write_cmd_reg(CmdReg::DATA, Self::build_data(reply, size));
         let slice: u128 = unsafe { intrinsics::transmute(msg) };
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(
             ep, CmdOpCode::REPLY, 0, slice as u64
         ));
 
@@ -179,8 +193,8 @@ impl DTU {
         let mut data_addr = data;
         while left > 0 {
             let amount = util::min(left, MAX_PKT_SIZE);
-            Self::write_cmd_reg(CmdReg::Data, (data_addr | (amount << 48)) as Reg);
-            Self::write_cmd_reg(CmdReg::Command, cmd | (offset << 16) as Reg);
+            Self::write_cmd_reg(CmdReg::DATA, (data_addr | (amount << 48)) as Reg);
+            Self::write_cmd_reg(CmdReg::COMMAND, cmd | (offset << 16) as Reg);
 
             left -= amount;
             offset += amount;
@@ -192,8 +206,8 @@ impl DTU {
     }
 
     pub fn fetch_msg(ep: EpId) -> Option<&'static Message> {
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::FETCH_MSG, 0, 0));
-        let msg = Self::read_cmd_reg(CmdReg::Offset);
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(ep, CmdOpCode::FETCH_MSG, 0, 0));
+        let msg = Self::read_cmd_reg(CmdReg::OFFSET);
         if msg != 0 {
             unsafe {
                 let head: *const Header = intrinsics::transmute(msg);
@@ -214,18 +228,20 @@ impl DTU {
 
     pub fn mark_read(ep: EpId, msg: &Message) {
         let off = (msg as *const Message) as *const u8 as usize as Reg;
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(ep, CmdOpCode::ACK_MSG, 0, off));
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(ep, CmdOpCode::ACK_MSG, 0, off));
     }
 
     pub fn get_error() -> Result<(), Error> {
         loop {
-            let cmd = Self::read_cmd_reg(CmdReg::Command);
+            let cmd = Self::read_cmd_reg(CmdReg::COMMAND);
             if (cmd & 0xF) == CmdOpCode::IDLE.val {
                 let err = (cmd >> 13) & 0x7;
-                if err != 0 {
-                    return Err(Error::from(err as u32))
+                return if err == 0 {
+                    Ok(())
                 }
-                return Ok(())
+                else {
+                    Err(Error::from(err as u32))
+                }
             }
         }
     }
@@ -243,27 +259,27 @@ impl DTU {
     }
 
     pub fn sleep(cycles: u64) -> Result<(), Error> {
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::SLEEP, 0, cycles));
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(0, CmdOpCode::SLEEP, 0, cycles));
         Self::get_error()
     }
 
     pub fn print(s: &[u8]) {
-        Self::write_cmd_reg(CmdReg::Data, (s.as_ptr() as usize | (s.len() << 48)) as Reg);
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(0, CmdOpCode::PRINT, 0, 0));
+        Self::write_cmd_reg(CmdReg::DATA, (s.as_ptr() as usize | (s.len() << 48)) as Reg);
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(0, CmdOpCode::PRINT, 0, 0));
     }
 
     fn read_dtu_reg(reg: DtuReg) -> Reg {
         Self::read_reg(reg.val as usize)
     }
     fn read_cmd_reg(reg: CmdReg) -> Reg {
-        Self::read_reg(DTU_REGS + reg as usize)
+        Self::read_reg(DTU_REGS + reg.val as usize)
     }
     fn read_ep_reg(ep: EpId, reg: usize) -> Reg {
         Self::read_reg(DTU_REGS + CMD_REGS + EP_REGS * ep + reg)
     }
 
     fn write_cmd_reg(reg: CmdReg, val: Reg) {
-        Self::write_reg(DTU_REGS + reg as usize, val)
+        Self::write_reg(DTU_REGS + reg.val as usize, val)
     }
 
     fn read_reg(idx: usize) -> Reg {
@@ -303,12 +319,12 @@ impl DTU {
 
     pub fn send_to(ep: EpId, msg: *const u8, size: usize, rlbl: Label,
                    rep: EpId, sender: u64) -> Result<(), Error> {
-        Self::write_cmd_reg(CmdReg::Data, Self::build_data(msg, size));
+        Self::write_cmd_reg(CmdReg::DATA, Self::build_data(msg, size));
         if rlbl != 0 {
-            Self::write_cmd_reg(CmdReg::ReplyLabel, rlbl);
+            Self::write_cmd_reg(CmdReg::REPLY_LABEL, rlbl);
         }
-        Self::write_cmd_reg(CmdReg::Offset, sender);
-        Self::write_cmd_reg(CmdReg::Command, Self::build_cmd(
+        Self::write_cmd_reg(CmdReg::OFFSET, sender);
+        Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(
             ep, CmdOpCode::SEND, 0, rep as Reg
         ));
 
