@@ -15,7 +15,7 @@ pub struct Allocation {
 }
 
 impl Allocation {
-    fn new(gaddr: GlobAddr, size: usize) -> Self {
+    pub fn new(gaddr: GlobAddr, size: usize) -> Self {
         Allocation {
             gaddr: gaddr,
             size: size,

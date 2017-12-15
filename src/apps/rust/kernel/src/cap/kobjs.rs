@@ -1,13 +1,15 @@
 use base::cell::RefCell;
 use base::col::String;
 use base::dtu::{self, EpId, PEId, Label};
+use base::GlobAddr;
 use base::kif;
 use base::rc::Rc;
 use core::fmt;
 use thread;
 
-use pes::{INVALID_VPE, VPE, VPEId};
 use com::SendQueue;
+use mem;
+use pes::{INVALID_VPE, VPE, VPEId};
 
 #[derive(Clone)]
 pub enum KObject {
@@ -128,6 +130,16 @@ impl MGateObject {
             perms: perms,
             derived: false,
         }))
+    }
+}
+
+impl Drop for MGateObject {
+    fn drop(&mut self) {
+        // if it's not derived, it's always memory from mem-PEs
+        if !self.derived {
+            let gaddr = GlobAddr::new_with(self.pe, self.addr);
+            mem::get().free(&mem::Allocation::new(gaddr, self.size));
+        }
     }
 }
 
