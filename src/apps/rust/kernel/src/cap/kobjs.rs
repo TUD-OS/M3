@@ -4,6 +4,7 @@ use base::dtu::{self, EpId, PEId, Label};
 use base::GlobAddr;
 use base::kif;
 use base::rc::Rc;
+use base::util;
 use core::fmt;
 use thread;
 
@@ -169,12 +170,13 @@ impl ServObject {
         self.queue.vpe()
     }
 
+    pub fn send(&mut self, msg: &[u8]) -> Option<thread::Event> {
+        let rep = self.rgate.borrow().ep.unwrap();
+        self.queue.send(rep, msg, msg.len())
+    }
+
     pub fn send_receive(serv: &Rc<RefCell<ServObject>>, msg: &[u8]) -> Option<&'static dtu::Message> {
-        let event = {
-            let mut serv_obj = serv.borrow_mut();
-            let rep = serv_obj.rgate.borrow().ep.unwrap();
-            serv_obj.queue.send(rep, msg, msg.len())
-        };
+        let event = serv.borrow_mut().send(msg);
 
         event.and_then(|event| {
             thread::ThreadManager::get().wait_for(event);
@@ -204,6 +206,21 @@ impl SessObject {
             ident: ident,
             srv_owned: srv_owned,
         }))
+    }
+}
+
+impl Drop for SessObject {
+    fn drop(&mut self) {
+        let mut srv = self.srv.borrow_mut();
+        if srv.vpe().borrow().has_app() {
+            let smsg = kif::service::Close {
+                opcode: kif::service::Operation::CLOSE.val as u64,
+                sess: self.ident,
+            };
+
+            klog!(SERV, "Sending CLOSE(sess={:#x}) to service {}", self.ident, srv.name);
+            srv.send(util::object_to_bytes(&smsg));
+        }
     }
 }
 

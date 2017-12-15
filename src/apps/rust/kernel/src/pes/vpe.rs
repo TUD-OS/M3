@@ -235,11 +235,14 @@ impl VPE {
         &mut self.dtu_state
     }
 
+    pub fn has_app(&self) -> bool {
+        self.flags.contains(VPEFlags::HASAPP)
+    }
     pub fn is_bootmod(&self) -> bool {
-        !(self.flags & VPEFlags::BOOTMOD).is_empty()
+        self.flags.contains(VPEFlags::BOOTMOD)
     }
     pub fn is_daemon(&self) -> bool {
-        !(self.flags & VPEFlags::DAEMON).is_empty()
+        self.flags.contains(VPEFlags::DAEMON)
     }
     pub fn make_daemon(&mut self) {
         self.flags |= VPEFlags::DAEMON;

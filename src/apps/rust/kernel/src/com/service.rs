@@ -1,5 +1,5 @@
 use base::cell::{StaticCell, RefCell};
-use base::col::DList;
+use base::col::{DList, String};
 use base::kif::CapSel;
 use base::rc::Rc;
 
@@ -9,13 +9,15 @@ use pes::VPE;
 pub struct Service {
     vpe: Rc<RefCell<VPE>>,
     sel: CapSel,
+    name: String,
 }
 
 impl Service {
-    fn new(vpe: &Rc<RefCell<VPE>>, sel: CapSel) -> Self {
+    fn new(name: String, vpe: &Rc<RefCell<VPE>>, sel: CapSel) -> Self {
         Service {
             vpe: vpe.clone(),
             sel: sel,
+            name: name,
         }
     }
 
@@ -55,22 +57,20 @@ impl ServiceList {
         SERVICES.get_mut().as_mut().unwrap()
     }
 
-    pub fn add(&mut self, vpe: &Rc<RefCell<VPE>>, sel: CapSel) {
-        self.list.push_back(Service::new(vpe, sel))
+    pub fn add(&mut self, name: String, vpe: &Rc<RefCell<VPE>>, sel: CapSel) {
+        klog!(SERV, "Added service {} @ [VPE={}, sel={}]", name, vpe.borrow().id(), sel);
+        self.list.push_back(Service::new(name, vpe, sel));
     }
 
     pub fn find(&self, name: &str) -> Option<&Service> {
-        self.list.iter().find(|s| {
-            let serv: Rc<RefCell<ServObject>> = s.get_kobj();
-            let res = serv.borrow().name == *name;
-            res
-        })
+        self.list.iter().find(|s| s.name == *name)
     }
 
     pub fn remove(&mut self, vpe: &mut VPE, sel: CapSel) {
         let mut it = self.list.iter_mut();
         while let Some(s) = it.next() {
             if s.vpe.as_ptr() == vpe && s.sel == sel {
+                klog!(SERV, "Removed service {} @ [VPE={}, sel={}]", s.name, vpe.id(), sel);
                 it.remove();
                 break;
             }

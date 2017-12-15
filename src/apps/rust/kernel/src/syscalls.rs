@@ -215,7 +215,7 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         Capability::new(dst_sel, KObject::Serv(ServObject::new(vpe, name.to_string(), rgate)))
     );
 
-    ServiceList::get().add(vpe, dst_sel);
+    ServiceList::get().add(name.to_string(), vpe, dst_sel);
     vpemng::get().start_pending();
 
     reply_success(msg);
@@ -248,6 +248,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     };
 
     let serv: Rc<RefCell<ServObject>> = sentry.unwrap().get_kobj();
+    klog!(SERV, "Sending OPEN(arg={}) to service {}", arg, serv.borrow().name);
     let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
 
     match res {
@@ -461,6 +462,11 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
     }
 
     let serv: &Rc<RefCell<ServObject>> = &sess.borrow().srv;
+    klog!(
+        SERV, "Sending {}(sess={:#x}, {} caps, {} args) to service {}",
+        if obtain { "OBTAIN" } else { "DELEGATE" }, sess.borrow().ident,
+        crd.count(), req.argcount, serv.borrow().name
+    );
     let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 
     match res {
