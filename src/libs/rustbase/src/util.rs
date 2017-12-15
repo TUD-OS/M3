@@ -17,7 +17,7 @@ pub fn jmp_to(addr: usize) {
 
 /// Computes the square root of `n`.
 ///
-/// Source: https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+/// Source: [Wikipedia](https://en.wikipedia.org/wiki/Methods_of_computing_square_roots)
 pub fn sqrt(n: f32) -> f32 {
     let mut val_int: u32 = unsafe { intrinsics::transmute(n) };
 

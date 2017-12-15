@@ -38,8 +38,8 @@ impl<K : Copy + PartialOrd + Ord, V> Node<K, V> {
 /// leafs. The priority is "randomized" by fibonacci-hashing. This way, the tree is well balanced
 /// in most cases.
 ///
-/// The idea and parts of the implementation are taken from the MMIX simulator, written by
-/// Donald Knuth (http://mmix.cs.hm.edu/)
+/// The idea and parts of the implementation are taken from the [MMIX](http://mmix.cs.hm.edu/)
+/// simulator, written by Donald Knuth
 #[derive(Default)]
 pub struct Treap<K : Copy + PartialOrd + Ord, V> {
     root: Option<Shared<Node<K, V>>>,
