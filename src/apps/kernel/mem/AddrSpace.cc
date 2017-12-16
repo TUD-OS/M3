@@ -24,12 +24,11 @@
 
 namespace kernel {
 
-AddrSpace::AddrSpace(vpeid_t vpeid, epid_t sep, capsel_t sgate, epid_t rep, capsel_t rgate)
+AddrSpace::AddrSpace(vpeid_t vpeid, epid_t sep, epid_t rep, capsel_t sgate)
     : _vpeid(vpeid),
       _sep(sep),
       _rep(rep),
       _sgate(sgate),
-      _rgate(rgate),
       _root() {
     MainMemory::Allocation rootpt = MainMemory::get().allocate(PAGE_SIZE, PAGE_SIZE);
     _root = m3::DTU::build_gaddr(rootpt.pe(), rootpt.addr);

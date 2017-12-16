@@ -72,19 +72,17 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
 
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(), _pager->rgate().sel(),
+        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(),
             name, _pe, alloc_ep(), _pager->rep(), tmuxable);
-        // mark the pager caps allocated
+        // mark the send gate cap allocated
         _next_sel = Math::max(_pager->gate().sel() + 1, _next_sel);
-        if(_pager->rgate().sel() != ObjCap::INVALID)
-            _next_sel = Math::max(_pager->rgate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager
         _pager->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel(), 2));
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }
     else {
-        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, ObjCap::INVALID, name, _pe,
+        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, name, _pe,
             0, 0, tmuxable);
     }
 }

@@ -287,7 +287,6 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     let dst_sel = req.dst_sel as CapSel;
     let mgate_sel = req.mgate_sel as CapSel;
     let sgate_sel = req.sgate_sel as CapSel;
-    let rgate_sel = req.rgate_sel as CapSel;
     let pedesc = kif::PEDesc::new_from(req.pe as u32);
     let sep = req.sep;
     let rep = req.rep;
@@ -296,11 +295,10 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
 
     // TODO support that
     assert!(sgate_sel == kif::INVALID_SEL);
-    assert!(rgate_sel == kif::INVALID_SEL);
 
     sysc_log!(
-        vpe, "create_vpe(dst={}, mgate={}, sgate={}, rgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
-        dst_sel, mgate_sel, sgate_sel, rgate_sel, name, pedesc, sep, rep, muxable
+        vpe, "create_vpe(dst={}, mgate={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
+        dst_sel, mgate_sel, sgate_sel, name, pedesc, sep, rep, muxable
     );
 
     if !vpe.borrow().obj_caps().unused(dst_sel) || !vpe.borrow().obj_caps().unused(mgate_sel) {

@@ -368,7 +368,6 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     capsel_t dst = req->dst_sel;
     capsel_t mgate = req->mgate_sel;
     capsel_t sgate = req->sgate_sel;
-    capsel_t rgate = req->rgate_sel;
     m3::PEDesc::value_t pe = req->pe;
     epid_t sep = req->sep;
     epid_t rep = req->rep;
@@ -393,22 +392,9 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     else
         sep = VPE::INVALID_EP;
 
-    // with an MMU, we need an rgatecap
-    RGateCapability *rgatecap = nullptr;
-    if(rgate != m3::KIF::INV_SEL) {
-        rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
-        if(rgatecap == nullptr)
-            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid RecvGate cap(s)");
-    }
-    else {
-        if(m3::PEDesc(pe).has_mmu())
-            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "MMU requires a RecvGate");
-        rep = VPE::INVALID_EP;
-    }
-
     // create VPE
-    VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe), sep, sgate,
-        rep, rgate, tmuxable);
+    VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe),
+        sep, rep, sgate, tmuxable);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 
@@ -423,8 +409,6 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     // delegate pf gate to the new VPE
     if(sgate != m3::KIF::INV_SEL)
         nvpe->objcaps().obtain(sgate, sgatecap);
-    if(rgate != m3::KIF::INV_SEL)
-        nvpe->objcaps().obtain(rgate, rgatecap);
 
     m3::KIF::Syscall::CreateVPEReply reply;
     reply.error = m3::Errors::NONE;

@@ -137,7 +137,6 @@ pub struct CreateVPE {
     pub dst_sel: u64,
     pub mgate_sel: u64,
     pub sgate_sel: u64,
-    pub rgate_sel: u64,
     pub pe: u64,
     pub sep: u64,
     pub rep: u64,

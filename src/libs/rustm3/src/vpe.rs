@@ -220,14 +220,10 @@ impl VPE {
 
         vpe.pager = if let Some(mut pg) = pager {
             let sgate_sel = pg.sgate().sel();
-            let rgate_sel = match pg.rgate() {
-                Some(rg) => rg.sel(),
-                None     => INVALID_SEL,
-            };
 
             // now create VPE, which implicitly obtains the gate cap from us
             vpe.pe = syscalls::create_vpe(
-                vpe.sel(), vpe.mem().sel(), sgate_sel, rgate_sel, args.name,
+                vpe.sel(), vpe.mem().sel(), sgate_sel, args.name,
                 args.pe, vpe.alloc_ep()?, pg.rep(), args.muxable
             )?;
 
@@ -237,9 +233,6 @@ impl VPE {
 
             // mark the pager caps allocated
             vpe.next_sel = util::max(sgate_sel + 1, vpe.next_sel);
-            if rgate_sel != INVALID_SEL {
-                vpe.next_sel = util::max(rgate_sel + 1, vpe.next_sel);
-            }
             // now delegate our VPE cap and memory cap to the pager
             pg.delegate_caps(&vpe)?;
             // and delegate the pager cap to the VPE
@@ -248,7 +241,7 @@ impl VPE {
         }
         else {
             vpe.pe = syscalls::create_vpe(
-                sels + 0, sels + 1, INVALID_SEL, INVALID_SEL, args.name,
+                sels + 0, sels + 1, INVALID_SEL, args.name,
                 args.pe, 0, 0, args.muxable
             )?;
             None
@@ -404,6 +397,8 @@ impl VPE {
             // write args
             senv.set_argc(env.argc());
             senv.set_argv(loader.write_arguments(&mut off, env::args())?);
+
+            senv.set_pedesc(&self.pe());
 
             // write start env to PE
             self.mem.write_obj(&senv, cfg::RT_START)?;

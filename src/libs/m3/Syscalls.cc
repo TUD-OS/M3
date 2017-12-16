@@ -141,7 +141,7 @@ Errors::Code Syscalls::createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, cap
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, capsel_t rgate,
+Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate,
                                  const String &name, PEDesc &pe, epid_t sep, epid_t rep,
                                  bool tmuxable) {
     LLOG(SYSC, "createvpe(dst=" << dst << ", mgate=" << mgate << ", sgate=" << sgate
@@ -153,7 +153,6 @@ Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate, c
     req.dst_sel = dst;
     req.mgate_sel = mgate;
     req.sgate_sel = sgate;
-    req.rgate_sel = rgate;
     req.pe = pe.value();
     req.sep = sep;
     req.rep = rep;

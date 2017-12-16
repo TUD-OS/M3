@@ -148,8 +148,8 @@ vpeid_t VPEManager::get_id() {
     return id;
 }
 
-VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, capsel_t sgate,
-                        epid_t rep, capsel_t rgate, bool tmuxable) {
+VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epid_t rep,
+                        capsel_t sgate, bool tmuxable) {
     peid_t i = PEManager::get().find_pe(pe, 0, tmuxable);
     if(i == 0)
         return nullptr;
@@ -163,7 +163,7 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, cap
         return nullptr;
 
     uint flags = tmuxable ? VPE::F_MUXABLE : 0;
-    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, sep, sgate, rep, rgate);
+    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, sep, rep, sgate);
     assert(vpe == _vpes[id]);
 
     return vpe;

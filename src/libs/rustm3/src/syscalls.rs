@@ -159,12 +159,12 @@ pub fn create_rgate(dst: Selector, order: i32, msgorder: i32) -> Result<(), Erro
     send_receive_result(&req)
 }
 
-pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, rgate: Selector, name: &str,
+pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, name: &str,
                   pe: PEDesc, sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
     log!(
         SYSC,
-        "syscalls::create_vpe(dst={}, mgate={}, sgate={}, rgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
-        dst, mgate, sgate, rgate, name, pe, sep, rep, tmuxable
+        "syscalls::create_vpe(dst={}, mgate={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
+        dst, mgate, sgate, name, pe, sep, rep, tmuxable
     );
 
     let mut req = syscalls::CreateVPE {
@@ -172,7 +172,6 @@ pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, rgate: Select
         dst_sel: dst as u64,
         mgate_sel: mgate as u64,
         sgate_sel: sgate as u64,
-        rgate_sel: rgate as u64,
         pe: pe.value() as u64,
         sep: sep as u64,
         rep: rep as u64,

@@ -58,8 +58,8 @@ private:
 public:
     void init(int argc, char **argv);
 
-    VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, capsel_t sgate, epid_t rep,
-                capsel_t rgate, bool tmuxable = false);
+    VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epid_t rep,
+                capsel_t sgate, bool tmuxable = false);
 
     void start_pending(ServiceList &serv);
 

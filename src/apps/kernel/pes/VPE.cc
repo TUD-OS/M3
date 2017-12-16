@@ -29,8 +29,7 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, capsel_t sgate,
-         epid_t rep, capsel_t rgate)
+VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epid_t rep, capsel_t sgate)
     : SListItem(),
       SlabObject<VPE>(),
       RefCounted(),
@@ -49,7 +48,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, cap
       _dtustate(),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),
-      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, sep, sgate, rep, rgate) : nullptr),
+      _as(Platform::pe(pe()).has_virtmem() ? new AddrSpace(id, sep, rep, sgate) : nullptr),
       _headers(),
       _rbufcpy(),
       _requires(),
