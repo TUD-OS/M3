@@ -127,15 +127,14 @@ impl Loader {
     fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: usize, size: usize,
                    _perm: kif::Perm) -> Result<(), Error> {
         assert!(!vpe.pe_desc().has_virtmem());
-        KDTU::get().copy_clear(
+        KDTU::get().copy(
             // destination
             &vpe.desc(),
             virt,
             // source
             &VPEDesc::new_mem(phys.pe()),
             phys.offset(),
-            size,
-            false
+            size
         )
     }
 
@@ -174,16 +173,20 @@ impl Loader {
                 // let phys = mem::get().allocate(size, PAGE_SIZE)?;
                 // Self::map_segment(&vpe, phys.global(), virt, size, perms)?;
 
-                KDTU::get().copy_clear(
-                    // destination
-                    &vpe.desc(),
-                    virt,
-                    // source
-                    &VPEDesc::new_mem(bm.addr.pe()),
-                    bm.addr.offset() + offset,
-                    size,
-                    phdr.filesz == 0
-                )?;
+                if phdr.filesz == 0 {
+                    KDTU::get().clear(&vpe.desc(), virt, size)?;
+                }
+                else {
+                    KDTU::get().copy(
+                        // destination
+                        &vpe.desc(),
+                        virt,
+                        // source
+                        &VPEDesc::new_mem(bm.addr.pe()),
+                        bm.addr.offset() + offset,
+                        size
+                    )?;
+                }
 
                 end = virt + size;
             }
@@ -201,16 +204,7 @@ impl Loader {
             let end = util::round_up(end, PAGE_SIZE);
 
             // clear initial heap
-            KDTU::get().copy_clear(
-                // destination
-                &vpe.desc(),
-                end,
-                // source
-                &vpe.desc(),
-                0,
-                MOD_HEAP_SIZE,
-                true
-            )?;
+            KDTU::get().clear(&vpe.desc(), end, MOD_HEAP_SIZE)?;
         }
 
         Ok(hdr.entry)
@@ -227,15 +221,14 @@ impl Loader {
                 let size = util::round_up(rctmux.size as usize, PAGE_SIZE);
                 let phys = mem::get().allocate(size, PAGE_SIZE)?;
                 let bootvpe = VPEDesc::new_mem(phys.global().pe());
-                KDTU::get().copy_clear(
+                KDTU::get().copy(
                     // destination
                     &bootvpe,
                     phys.global().offset(),
                     // source
                     &VPEDesc::new_mem(rctmux.addr.pe()),
                     rctmux.addr.offset(),
-                    rctmux.size as usize,
-                    false
+                    rctmux.size as usize
                 )?;
 
                 (phys, size)

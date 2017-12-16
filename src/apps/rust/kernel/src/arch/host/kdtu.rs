@@ -136,9 +136,13 @@ impl KDTU {
         DTU::send(KTMP_EP, msg, size, rpl_lbl, rpl_ep)
     }
 
-    pub fn copy_clear(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize,
-                                 _src_vpe: &VPEDesc, mut _src_addr: usize,
-                                 _size: usize, _clear: bool) -> Result<(), Error> {
+    pub fn clear(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize, _size: usize) -> Result<(), Error> {
+        Err(Error::new(Code::NotSup))
+    }
+
+    pub fn copy(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize,
+                           _src_vpe: &VPEDesc, mut _src_addr: usize,
+                           _size: usize) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 

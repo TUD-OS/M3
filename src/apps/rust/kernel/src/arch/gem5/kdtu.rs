@@ -196,23 +196,30 @@ impl KDTU {
         DTU::send_to(KTMP_EP, msg, size, rpl_lbl, rpl_ep, sender as u64)
     }
 
-    pub fn copy_clear(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize,
-                                 src_vpe: &VPEDesc, mut src_addr: usize,
-                                 size: usize, clear: bool) -> Result<(), Error> {
-        if clear {
-            unsafe {
-                libc::memset(self.buf.as_ptr() as *mut libc::c_void, 0, self.buf.len());
-            }
+    pub fn clear(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize, size: usize) -> Result<(), Error> {
+        unsafe {
+            libc::memset(self.buf.as_ptr() as *mut libc::c_void, 0, self.buf.len());
         }
 
         let mut rem = size;
         while rem > 0 {
             let amount = util::min(rem, self.buf.len());
-            if !clear {
-                let buf = self.buf.as_mut_ptr();
-                self.try_read_mem(src_vpe, src_addr, buf, amount)?;
-            }
             let buf = self.buf.as_ptr();
+            self.try_write_mem(dst_vpe, dst_addr, buf, amount)?;
+            dst_addr += amount;
+            rem -= amount;
+        }
+        Ok(())
+    }
+
+    pub fn copy(&mut self, dst_vpe: &VPEDesc, mut dst_addr: usize,
+                           src_vpe: &VPEDesc, mut src_addr: usize,
+                           size: usize) -> Result<(), Error> {
+        let mut rem = size;
+        while rem > 0 {
+            let amount = util::min(rem, self.buf.len());
+            let buf = self.buf.as_mut_ptr();
+            self.try_read_mem(src_vpe, src_addr, buf, amount)?;
             self.try_write_mem(dst_vpe, dst_addr, buf, amount)?;
             src_addr += amount;
             dst_addr += amount;
