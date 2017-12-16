@@ -6,6 +6,7 @@ use base::errors::{Code, Error};
 use base::kif;
 use base::rc::Rc;
 
+use arch::kdtu::KDTU;
 use arch::platform;
 use com::ServiceList;
 use pes::{VPE, VPEId, VPEFlags};
@@ -191,6 +192,8 @@ impl VPEMng {
 
     fn destroy_vpe(vpe: &mut VPE) {
         vpe.destroy();
+        // TODO temporary
+        KDTU::get().reset(&vpe.desc()).unwrap();
         pemng::get().free(vpe.pe_id());
         klog!(
             VPES, "Removed VPE {} [id={}, pe={}]",

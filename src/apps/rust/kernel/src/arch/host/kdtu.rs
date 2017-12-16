@@ -154,4 +154,9 @@ impl KDTU {
         let addr = eps + ep * EPS_RCNT * util::size_of::<Reg>();
         self.try_write_mem(vpe, addr, regs.as_ptr() as *const u8, EPS_RCNT * util::size_of::<Reg>())
     }
+
+    pub fn reset(&mut self, _vpe: &VPEDesc) -> Result<(), Error> {
+        // nothing to do
+        Ok(())
+    }
 }

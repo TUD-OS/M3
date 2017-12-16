@@ -7,7 +7,7 @@ use base::libc;
 use base::util;
 
 use arch::platform;
-use pes::{VPEId, VPEDesc};
+use pes::{INVALID_VPE, VPEId, VPEDesc};
 use pes::rctmux;
 use pes::vpemng;
 
@@ -240,6 +240,12 @@ impl KDTU {
 
     fn do_ext_cmd(&mut self, vpe: &VPEDesc, cmd: Reg) -> Result<(), Error> {
         self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &cmd as *const u64 as *const u8, 8)
+    }
+
+    pub fn reset(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
+        // TODO temporary
+        let id = INVALID_VPE as Reg;
+        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &id as *const u64 as *const u8, 8)
     }
 
     pub fn wakeup(&mut self, vpe: &VPEDesc, addr: usize) -> Result<(), Error> {

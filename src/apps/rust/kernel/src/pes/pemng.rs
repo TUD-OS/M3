@@ -48,7 +48,6 @@ impl PEMng {
     }
 
     pub fn free(&mut self, pe: PEId) {
-        // TODO this doesn't work yet
-        // self.pes[pe] = false;
+        self.pes[pe] = false;
     }
 }
