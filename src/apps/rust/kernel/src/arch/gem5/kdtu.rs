@@ -5,6 +5,7 @@ use base::errors::{Code, Error};
 use base::kif::Perm;
 use base::libc;
 use base::util;
+use core::intrinsics;
 
 use arch::platform;
 use pes::{INVALID_VPE, VPEId, VPEDesc};
@@ -146,7 +147,7 @@ impl KDTU {
 
     fn do_set_vpe_id(&mut self, vpe: &VPEDesc, nid: VPEId) -> Result<(), Error> {
         let vpe_id = nid as Reg;
-        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &vpe_id as *const Reg as *const u8, 8)
+        self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &[vpe_id])
     }
 
     pub fn write_ep_local(&mut self, ep: EpId) {
@@ -155,7 +156,17 @@ impl KDTU {
 
     pub fn invalidate_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId) -> Result<(), Error> {
         let reg = ExtCmdOpCode::INV_EP.val | (ep << 3) as Reg;
-        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &reg as *const Reg as *const u8, 8)
+        self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &[reg])
+    }
+
+    pub fn read_obj<T>(&mut self, vpe: &VPEDesc, addr: usize) -> T {
+        self.try_read_obj(vpe, addr).unwrap()
+    }
+
+    pub fn try_read_obj<T>(&mut self, vpe: &VPEDesc, addr: usize) -> Result<T, Error> {
+        let mut obj: T = unsafe { intrinsics::uninit() };
+        self.try_read_mem(vpe, addr, &mut obj as *mut T as *mut u8, util::size_of::<T>())?;
+        Ok(obj)
     }
 
     pub fn read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) {
@@ -168,6 +179,14 @@ impl KDTU {
         self.write_ep_local(KTMP_EP);
 
         DTU::read(KTMP_EP, data, size, 0, CmdFlags::NOPF)
+    }
+
+    pub fn write_slice<T>(&mut self, vpe: &VPEDesc, addr: usize, sl: &[T]) {
+        self.write_mem(vpe, addr, sl.as_ptr() as *const u8, sl.len() * util::size_of::<T>());
+    }
+
+    pub fn try_write_slice<T>(&mut self, vpe: &VPEDesc, addr: usize, sl: &[T]) -> Result<(), Error> {
+        self.try_write_mem(vpe, addr, sl.as_ptr() as *const u8, sl.len() * util::size_of::<T>())
     }
 
     pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
@@ -242,17 +261,17 @@ impl KDTU {
     }
 
     pub fn write_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId, regs: &[Reg]) -> Result<(), Error> {
-        self.try_write_mem(vpe, DTU::ep_regs_addr(ep), regs.as_ptr() as *const u8, EP_REGS * 8)
+        self.try_write_slice(vpe, DTU::ep_regs_addr(ep), regs)
     }
 
     fn do_ext_cmd(&mut self, vpe: &VPEDesc, cmd: Reg) -> Result<(), Error> {
-        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &cmd as *const u64 as *const u8, 8)
+        self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &[cmd])
     }
 
     pub fn reset(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
         // TODO temporary
         let id = INVALID_VPE as Reg;
-        self.try_write_mem(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &id as *const u64 as *const u8, 8)
+        self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID), &[id])
     }
 
     pub fn wakeup(&mut self, vpe: &VPEDesc, addr: usize) -> Result<(), Error> {
@@ -262,16 +281,14 @@ impl KDTU {
 
     pub fn write_swstate(&mut self, vpe: &VPEDesc, flags: u64, notify: u64) -> Result<(), Error> {
         let vals = [notify, flags];
-        self.try_write_mem(vpe, rctmux::YIELD_ADDR, vals.as_ptr() as *const u8, 16)
+        self.try_write_slice(vpe, rctmux::YIELD_ADDR, &vals)
     }
 
     pub fn write_swflags(&mut self, vpe: &VPEDesc, flags: u64) -> Result<(), Error> {
-        self.try_write_mem(vpe, rctmux::FLAGS_ADDR, &flags as *const u64 as *const u8, 8)
+        self.try_write_slice(vpe, rctmux::FLAGS_ADDR, &[flags])
     }
 
     pub fn read_swflags(&mut self, vpe: &VPEDesc) -> Result<u64, Error> {
-        let mut flags = 0u64;
-        self.try_read_mem(vpe, rctmux::FLAGS_ADDR, &mut flags as *mut u64 as *mut u8, 8)?;
-        Ok(flags)
+        self.try_read_obj(vpe, rctmux::FLAGS_ADDR)
     }
 }

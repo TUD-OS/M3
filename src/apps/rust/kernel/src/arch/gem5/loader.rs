@@ -55,11 +55,7 @@ static LOADER: StaticCell<Option<Loader>> = StaticCell::new(None);
 pub fn init() {
     let mut mods = Vec::new();
     for m in platform::mods() {
-        let mut bmod: BootModule = unsafe { intrinsics::uninit() };
-        KDTU::get().read_mem(
-            &VPEDesc::new_mem(m.pe()),
-            m.offset(), &mut bmod as *mut BootModule as *mut u8, util::size_of::<BootModule>()
-        );
+        let mut bmod: BootModule = KDTU::get().read_obj(&VPEDesc::new_mem(m.pe()), m.offset());
 
         klog!(KENV, "Module '{}':", bmod.name());
         klog!(KENV, "  addr: {:#x}", bmod.addr.raw());
@@ -109,19 +105,11 @@ impl Loader {
     }
 
     fn read_from_mod<T>(bm: &BootModule, off: usize) -> Result<T, Error> {
-        let size = util::size_of::<T>();
-        if off + size > bm.size as usize {
+        if off + util::size_of::<T>() > bm.size as usize {
             return Err(Error::new(Code::InvalidElf))
         }
 
-        let mut obj: T = unsafe { intrinsics::uninit() };
-        KDTU::get().read_mem(
-            &VPEDesc::new_mem(bm.addr.pe()),
-            bm.addr.offset() + off,
-            &mut obj as *mut T as *mut u8,
-            size
-        );
-        Ok(obj)
+        Ok(KDTU::get().read_obj(&VPEDesc::new_mem(bm.addr.pe()), bm.addr.offset() + off))
     }
 
     fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: usize, size: usize,
@@ -299,12 +287,7 @@ impl Loader {
             senv.heap_size = MOD_HEAP_SIZE as u64;
 
             // write env to target PE
-            KDTU::get().try_write_mem(
-                &vpe.desc(),
-                RT_START,
-                &senv as *const envdata::EnvData as *const u8,
-                util::size_of_val(&senv)
-            )?;
+            KDTU::get().try_write_slice(&vpe.desc(), RT_START, &[senv])?;
         }
 
         vpe.set_state(State::RUNNING);
