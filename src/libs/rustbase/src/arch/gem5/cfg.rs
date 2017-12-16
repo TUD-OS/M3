@@ -1,5 +1,6 @@
-pub const PAGE_SIZE: usize          = 0x1000;
-pub const PAGE_BITS: usize          = PAGE_SIZE - 1;
+pub const PAGE_BITS: usize          = 12;
+pub const PAGE_SIZE: usize          = 1 << PAGE_BITS;
+pub const PAGE_MASK: usize          = PAGE_SIZE - 1;
 
 pub const RECVBUF_SPACE: usize      = 0x3FC00000;
 pub const RECVBUF_SIZE: usize       = 4 * PAGE_SIZE;

@@ -1,4 +1,4 @@
-use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_BITS, PAGE_SIZE};
+use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_MASK, PAGE_SIZE};
 use base::cell::{Cell, StaticCell};
 use base::col::{String, ToString, Vec};
 use base::elf;
@@ -155,7 +155,7 @@ impl Loader {
 
             // do we need new memory for this segment?
             if (copy && perms.contains(kif::Perm::W)) || phdr.filesz == 0 {
-                let size = util::round_up((phdr.vaddr & PAGE_BITS) + phdr.memsz, PAGE_SIZE);
+                let size = util::round_up((phdr.vaddr & PAGE_MASK) + phdr.memsz, PAGE_SIZE);
 
                 // TODO with VM, allocate new memory and map it
                 // let phys = mem::get().allocate(size, PAGE_SIZE)?;
@@ -180,7 +180,7 @@ impl Loader {
             }
             else {
                 assert!(phdr.memsz == phdr.filesz);
-                let size = (phdr.offset & PAGE_BITS) + phdr.filesz;
+                let size = (phdr.offset & PAGE_MASK) + phdr.filesz;
                 Self::map_segment(vpe, bm.addr + offset, virt, size, perms)?;
                 end = virt + size;
             }
