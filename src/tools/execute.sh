@@ -14,6 +14,10 @@ t2pcthip="$M3_SSH_PREFIX"thshell
 build=build/$M3_TARGET-$M3_ISA-$M3_BUILD
 bindir=$build/bin
 
+if [ "$M3_KERNEL" = "rustkernel" ]; then
+    KPREFIX=rust
+fi
+
 if [ "$M3_TARGET" = "t2" ] || [ "$M3_TARGET" = "t3" ]; then
     . hw/th/config.ini
 fi
@@ -101,8 +105,14 @@ remove_kernel_args() {
 }
 
 build_params_host() {
+    c=0
     generate_lines $1 | while read line; do
-        echo -n "$bindir/$line -- "
+        if [ $c -eq 0 ]; then
+            echo -n "$bindir/$KPREFIX$line -- "
+        else
+            echo -n "$bindir/$line -- "
+        fi
+        c=$((c + 1))
     done
 }
 
@@ -125,7 +135,7 @@ build_params_gem5() {
     c=0
     cmd=`generate_lines $1 | ( while read line; do
             if [ $c -eq 0 ]; then
-                echo -n $bindir/$line $kargs,
+                echo -n $bindir/$KPREFIX$line $kargs,
             else
                 echo -n $bindir/rctmux,
             fi

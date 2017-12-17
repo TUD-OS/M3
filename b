@@ -100,6 +100,7 @@ help() {
     echo "                             mode optimizations are disabled, debug infos are"
     echo "                             available and assertions are active. In release"
     echo "                             mode all that is disabled. The default is release."
+    echo "    M3_KERNEL:               the kernel to use (kernel or rustkernel)."
     echo "    M3_CFLAGS:               flags to pass to the preprocessor."
     echo "    M3_VERBOSE:              print executed commands in detail during build."
     echo "    M3_VALGRIND:             for runvalgrind: pass arguments to valgrind."
@@ -253,13 +254,14 @@ case "$cmd" in
 
             prog="${cmd#dbg=}"
             M3_WAIT="$prog" ./src/tools/execute.sh $script --debug=${cmd#dbg=} &
+            M3_KERNEL=${M3_KERNEL:-kernel}
 
-            pid=`pgrep -x kernel`
+            pid=`pgrep -x $M3_KERNEL`
             while [ "$pid" = "" ]; do
                 sleep 1
-                pid=`pgrep -x kernel`
+                pid=`pgrep -x $M3_KERNEL`
             done
-            if [ "$prog" != "kernel" ]; then
+            if [ "$prog" != "$M3_KERNEL" ]; then
                 line=`ps w --ppid $pid | grep "$prog\b"`
                 while [ "$line" = "" ]; do
                     sleep 1
@@ -272,7 +274,7 @@ case "$cmd" in
             echo "display/i \$pc" >> $tmp
             echo "b main" >> $tmp
             echo "set var wait_for_debugger = 0" >> $tmp
-            if [ "$prog" != "kernel" ]; then
+            if [ "$prog" != "$M3_KERNEL" ]; then
                 echo "set follow-fork-mode child" >> $tmp
             fi
             gdb --tui $build/bin/$prog $pid --command=$tmp
