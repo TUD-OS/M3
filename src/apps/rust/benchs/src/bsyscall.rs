@@ -134,6 +134,9 @@ fn create_sess() {
         }
         fn post(&mut self) {
             assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            // ensure that the kernel is ready; it needs to receive the response to the CLOSE
+            // message from the service
+            assert_ok!(syscalls::noop());
         }
     }
 
