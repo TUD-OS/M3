@@ -17,7 +17,7 @@ static LAST_PE: StaticCell<PEId> = StaticCell::new(0);
 pub fn init() -> platform::KEnv {
     // read kernel env
     let kenv_addr = GlobAddr::new(envdata::get().kenv);
-    let mut kenv: platform::KEnv = KDTU::get().read_obj(
+    let kenv: platform::KEnv = KDTU::get().read_obj(
         &VPEDesc::new_mem(kenv_addr.pe()), kenv_addr.offset()
     );
 
@@ -53,7 +53,12 @@ pub fn last_user_pe() -> PEId {
 }
 
 pub fn default_rcvbuf(pe: PEId) -> usize {
-    platform::pe_desc(pe).mem_size() - cfg::RECVBUF_SIZE_SPM
+    if platform::pe_desc(pe).has_virtmem() {
+        return cfg::RECVBUF_SPACE
+    }
+    else {
+        platform::pe_desc(pe).mem_size() - cfg::RECVBUF_SIZE_SPM
+    }
 }
 pub fn rcvbufs_size(pe: PEId) -> usize {
     match platform::pe_desc(pe).has_virtmem() {

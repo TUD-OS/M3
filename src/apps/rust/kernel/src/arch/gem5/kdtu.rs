@@ -1,4 +1,5 @@
 use base::cell::StaticCell;
+use base::cfg;
 use base::col::Vec;
 use base::dtu::*;
 use base::errors::{Code, Error};
@@ -268,6 +269,16 @@ impl KDTU {
         self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::EXT_CMD), &[cmd])
     }
 
+    pub fn invalidate_tlb(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
+        self.do_ext_cmd(vpe, ExtCmdOpCode::INV_TLB.val)
+    }
+
+    pub fn invlpg_remote(&mut self, vpe: &VPEDesc, mut virt: usize) -> Result<(), Error> {
+        virt &= !cfg::PAGE_MASK;
+        let cmd = ExtCmdOpCode::INV_PAGE.val | (virt << 3) as u64;
+        self.do_ext_cmd(vpe, cmd)
+    }
+
     pub fn reset(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
         // TODO temporary
         let id = INVALID_VPE as Reg;
@@ -277,6 +288,11 @@ impl KDTU {
     pub fn wakeup(&mut self, vpe: &VPEDesc, addr: usize) -> Result<(), Error> {
         let cmd = ExtCmdOpCode::WAKEUP_CORE.val | (addr << 3) as u64;
         self.do_ext_cmd(vpe, cmd)
+    }
+
+    pub fn inject_irq(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
+        let cmd = ExtReqOpCode::RCTMUX.val;
+        self.try_write_slice(vpe, DTU::dtu_req_addr(ReqReg::EXT_REQ), &[cmd])
     }
 
     pub fn write_swstate(&mut self, vpe: &VPEDesc, flags: u64, notify: u64) -> Result<(), Error> {

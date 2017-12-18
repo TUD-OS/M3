@@ -3,6 +3,7 @@ use base::cfg;
 use base::col::ToString;
 use base::dtu;
 use base::errors::{Error, Code};
+use base::GlobAddr;
 use base::kif::{self, CapRngDesc, CapSel, CapType};
 use base::rc::Rc;
 use base::util;
@@ -10,8 +11,9 @@ use core::intrinsics;
 use thread;
 
 use arch::kdtu;
-use cap::{Capability, KObject};
-use cap::{MGateObject, RGateObject, SGateObject, ServObject, SessObject};
+use arch::vm;
+use cap::{Capability, SelRange, KObject};
+use cap::{MGateObject, MapObject, RGateObject, SGateObject, ServObject, SessObject};
 use com::{Service, ServiceList};
 use mem;
 use pes::{INVALID_VPE, vpemng};
@@ -77,26 +79,75 @@ pub fn handle(msg: &'static dtu::Message) {
     let opcode: &u64 = get_message(msg);
 
     let res = match kif::syscalls::Operation::from(*opcode) {
-        kif::syscalls::Operation::ACTIVATE      => activate(&vpe, msg),
-        kif::syscalls::Operation::CREATE_MGATE  => create_mgate(&vpe, msg),
-        kif::syscalls::Operation::CREATE_RGATE  => create_rgate(&vpe, msg),
-        kif::syscalls::Operation::CREATE_SGATE  => create_sgate(&vpe, msg),
-        kif::syscalls::Operation::CREATE_SRV    => create_srv(&vpe, msg),
-        kif::syscalls::Operation::CREATE_SESS   => create_sess(&vpe, msg),
-        kif::syscalls::Operation::CREATE_VPE    => create_vpe(&vpe, msg),
-        kif::syscalls::Operation::DERIVE_MEM    => derive_mem(&vpe, msg),
-        kif::syscalls::Operation::EXCHANGE      => exchange(&vpe, msg),
-        kif::syscalls::Operation::DELEGATE      => exchange_over_sess(&vpe, msg, false),
-        kif::syscalls::Operation::OBTAIN        => exchange_over_sess(&vpe, msg, true),
-        kif::syscalls::Operation::VPE_CTRL      => vpectrl(&vpe, msg),
-        kif::syscalls::Operation::REVOKE        => revoke(&vpe, msg),
-        kif::syscalls::Operation::NOOP          => noop(&vpe, msg),
-        _                                       => panic!("Unexpected operation: {}", opcode),
+        kif::syscalls::Operation::PAGEFAULT         => pagefault(&vpe, msg),
+        kif::syscalls::Operation::ACTIVATE          => activate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_MGATE      => create_mgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_RGATE      => create_rgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SGATE      => create_sgate(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SRV        => create_srv(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SESS       => create_sess(&vpe, msg),
+        kif::syscalls::Operation::CREATE_SESS_AT    => create_sess_at(&vpe, msg),
+        kif::syscalls::Operation::CREATE_VPE        => create_vpe(&vpe, msg),
+        kif::syscalls::Operation::CREATE_MAP        => create_map(&vpe, msg),
+        kif::syscalls::Operation::DERIVE_MEM        => derive_mem(&vpe, msg),
+        kif::syscalls::Operation::EXCHANGE          => exchange(&vpe, msg),
+        kif::syscalls::Operation::DELEGATE          => exchange_over_sess(&vpe, msg, false),
+        kif::syscalls::Operation::OBTAIN            => exchange_over_sess(&vpe, msg, true),
+        kif::syscalls::Operation::VPE_CTRL          => vpectrl(&vpe, msg),
+        kif::syscalls::Operation::REVOKE            => revoke(&vpe, msg),
+        kif::syscalls::Operation::NOOP              => noop(&vpe, msg),
+        _                                           => panic!("Unexpected operation: {}", opcode),
     };
 
     if let Err(e) = res {
         reply_result(msg, e.code() as u64);
     }
+}
+
+fn pagefault(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::Pagefault = get_message(msg);
+    let virt = req.virt as usize;
+    let perms = kif::Perm::from_bits_truncate(req.access as u8);
+
+    sysc_log!(
+        vpe, "pagefault(virt={:#x}, access={:?})",
+        virt, perms
+    );
+
+    // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
+
+    // retrieve ep and selector
+    let (sep, sgate_sel) = {
+        if let Some(space) = vpe.borrow().addr_space() {
+            if let Some(sgate_sel) = space.sgate_sel() {
+                (space.sep().unwrap(), sgate_sel)
+            }
+            else {
+                // if we don't have a pager, it was probably because of speculative execution. just return an
+                // error in this case and don't print anything
+                return Err(Error::new(Code::InvArgs));
+            }
+        }
+        else {
+            sysc_err!(vpe, Code::NotSup, "No address space / PF handler",);
+        }
+    };
+
+    // activate send gate
+    {
+        let sgate: Rc<RefCell<SGateObject>> = get_kobj!(vpe, sgate_sel, SGate);
+        let rgate: Rc<RefCell<RGateObject>> = sgate.borrow().rgate.clone();
+        assert!(rgate.borrow().activated());
+
+        let pe_id = vpemng::get().pe_of(rgate.borrow().vpe);
+        let sgate_ref = sgate.borrow();
+        if let Err(e) = vpe.borrow_mut().config_snd_ep(sep, &sgate_ref, pe_id.unwrap()) {
+            sysc_err!(vpe, e.code(), "Unable to configure send EP",);
+        }
+    }
+
+    reply_success(msg);
+    Ok(())
 }
 
 fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
@@ -282,19 +333,45 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     Ok(())
 }
 
+fn create_sess_at(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateSessAt = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let srv_sel = req.srv_sel as CapSel;
+    let ident = req.ident;
+
+    sysc_log!(
+        vpe, "create_sess_at(dst={}, srv={}, ident={:#x})",
+        dst_sel, srv_sel, ident
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+
+    let cap = {
+        let serv: Rc<RefCell<ServObject>> = get_kobj!(vpe, srv_sel, Serv);
+
+        Capability::new(dst_sel, KObject::Sess(SessObject::new(
+            &serv, ident, true
+        )))
+    };
+
+    vpe.borrow_mut().obj_caps_mut().insert_as_child(cap, srv_sel);
+
+    reply_success(msg);
+    Ok(())
+}
+
 fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateVPE = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
     let mgate_sel = req.mgate_sel as CapSel;
     let sgate_sel = req.sgate_sel as CapSel;
     let pedesc = kif::PEDesc::new_from(req.pe as u32);
-    let sep = req.sep;
-    let rep = req.rep;
+    let sep = req.sep as dtu::EpId;
+    let rep = req.rep as dtu::EpId;
     let muxable = req.muxable == 1;
     let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
-
-    // TODO support that
-    assert!(sgate_sel == kif::INVALID_SEL);
 
     sysc_log!(
         vpe, "create_vpe(dst={}, mgate={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
@@ -305,25 +382,45 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::InvArgs, "Selector {} or {} already in use", dst_sel, mgate_sel);
     }
 
-    let nvpe: Rc<RefCell<VPE>> = vpemng::get().create(name, &pedesc, muxable)?;
+    let addr_space = if pedesc.has_virtmem() {
+        if cfg!(target_os = "none") && sgate_sel != kif::INVALID_SEL {
+            Some(vm::AddrSpace::new_with_pager(&pedesc, sep, rep, sgate_sel)?)
+        }
+        else {
+            Some(vm::AddrSpace::new(&pedesc)?)
+        }
+    }
+    else {
+        None
+    };
+
+    let nvpe: Rc<RefCell<VPE>> = vpemng::get().create(name, &pedesc, addr_space, muxable)?;
 
     // childs of daemons are daemons
     if vpe.borrow().is_daemon() {
         nvpe.borrow_mut().make_daemon();
     }
 
-    // inherit VPE and mem caps to the parent
+    // exchange caps
     {
         let mut vpe_ref  = vpe.borrow_mut();
         let mut nvpe_ref = nvpe.borrow_mut();
+        // VPE capability
         {
             let vpe_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(0);
             vpe_cap.map(|c| vpe_ref.obj_caps_mut().obtain(dst_sel, c, false));
         }
 
+        // memory capability
         {
             let mem_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(1);
             mem_cap.map(|c| vpe_ref.obj_caps_mut().obtain(mgate_sel, c, true));
+        }
+
+        // pagefault send gate capability
+        if sgate_sel != kif::INVALID_SEL {
+            let sgate_cap: Option<&mut Capability> = vpe_ref.obj_caps_mut().get_mut(sgate_sel);
+            sgate_cap.map(|c| nvpe_ref.obj_caps_mut().obtain(sgate_sel, c, true));
         }
     }
 
@@ -333,6 +430,76 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     };
     send_reply(msg, &kreply);
 
+    Ok(())
+}
+
+fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::CreateMap = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let mgate_sel = req.mgate_sel as CapSel;
+    let vpe_sel = req.vpe_sel as CapSel;
+    let first = req.first as CapSel;
+    let pages = req.pages as CapSel;
+    let perms = kif::Perm::from_bits_truncate(req.perms as u8);
+
+    sysc_log!(
+        vpe, "create_map(dst={}, vpe={}, mgate={}, first={}, pages={}, perms={:?})",
+        dst_sel, vpe_sel, mgate_sel, first, pages, perms
+    );
+
+    let dst_vpe: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
+    let mgate: Rc<RefCell<MGateObject>> = get_kobj!(vpe, mgate_sel, MGate);
+
+    if (mgate.borrow().addr & cfg::PAGE_MASK) != 0 || (mgate.borrow().size & cfg::PAGE_MASK) != 0 {
+        sysc_err!(
+            vpe, Code::InvArgs,
+            "Memory capability is not page aligned (addr={:#x}, size={:#x})",
+            mgate.borrow().addr, mgate.borrow().size
+        );
+    }
+
+    let total_pages = (mgate.borrow().size >> cfg::PAGE_BITS) as CapSel;
+    if first >= total_pages || first + pages > total_pages {
+        sysc_err!(vpe, Code::InvArgs, "Region of memory cap is invalid",);
+    }
+
+    let virt = (dst_sel as usize) << cfg::PAGE_BITS;
+    let phys = GlobAddr::new_with(
+        mgate.borrow().pe,
+        mgate.borrow().addr + cfg::PAGE_SIZE * first as usize
+    );
+
+    // retrieve/create map object
+    let (mut map_obj, exists) = {
+        let vpe_ref = dst_vpe.borrow();
+        let map_cap: Option<&Capability> = vpe_ref.map_caps().get(dst_sel);
+        match map_cap {
+            Some(c) => {
+                if c.len() != pages {
+                    sysc_err!(vpe, Code::InvArgs, "Map cap exists with different page count",);
+                }
+                (c.get().clone(), true)
+            },
+            None    => {
+                (KObject::Map(MapObject::new(phys, perms)), false)
+            },
+        }
+    };
+
+    // create/update the PTEs
+    if let KObject::Map(ref mut m) = map_obj {
+        m.borrow_mut().remap(&dst_vpe.borrow(), virt, pages as usize, phys, perms)?;
+    }
+
+    // create map cap, if not yet existing
+    if !exists {
+        let mut src_mut = vpe.borrow_mut();
+        let mut dst_mut = dst_vpe.borrow_mut();
+        let cap = Capability::new_range(SelRange::new_range(dst_sel, pages), map_obj);
+        dst_mut.map_caps_mut().insert_as_child_from(cap, src_mut.obj_caps_mut(), mgate_sel);
+    }
+
+    reply_success(msg);
     Ok(())
 }
 

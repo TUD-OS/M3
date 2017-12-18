@@ -7,10 +7,11 @@ use base::kif;
 use base::rc::Rc;
 
 use arch::kdtu::KDTU;
-use arch::platform;
+use arch::vm;
 use com::ServiceList;
 use pes::{VPE, VPEId, VPEFlags};
 use pes::pemng;
+use platform;
 
 pub const MAX_VPES: usize   = 1024;
 pub const KERNEL_VPE: usize = MAX_VPES;
@@ -64,10 +65,29 @@ impl VPEMng {
         }
     }
 
-    pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
+    pub fn get_id(&mut self) -> Result<usize, Error> {
+        for id in self.next_id..MAX_VPES {
+            if self.vpes[id].is_none() {
+                self.next_id = id + 1;
+                return Ok(id)
+            }
+        }
+
+        for id in 0..self.next_id {
+            if self.vpes[id].is_none() {
+                self.next_id = id + 1;
+                return Ok(id)
+            }
+        }
+
+        Err(Error::new(Code::NoSpace))
+    }
+
+    pub fn create(&mut self, name: &str, pedesc: &kif::PEDesc,
+                  addr_space: Option<vm::AddrSpace>, muxable: bool) -> Result<Rc<RefCell<VPE>>, Error> {
         let id: VPEId = self.get_id()?;
         let pe_id: PEId = pemng::get().alloc_pe(pedesc, None, muxable).ok_or(Error::new(Code::NoFreePE))?;
-        let vpe: Rc<RefCell<VPE>> = VPE::new(name, id, pe_id, VPEFlags::empty());
+        let vpe: Rc<RefCell<VPE>> = VPE::new(name, id, pe_id, VPEFlags::empty(), addr_space);
 
         klog!(VPES, "Created VPE {} [id={}, pe={}]", name, id, pe_id);
 
@@ -79,7 +99,14 @@ impl VPEMng {
 
     pub fn start(&mut self, args: env::Args) -> Result<(), Error> {
         // TODO temporary
-        let pedesc = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
+        let pe_imem = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
+        let pe_emem = kif::PEDesc::new(kif::PEType::COMP_EMEM, kif::PEISA::X86, 0);
+        let find_pe = || {
+            if let Some(pe_id) = pemng::get().alloc_pe(&pe_imem, None, false) {
+                return Ok(pe_id)
+            }
+            pemng::get().alloc_pe(&pe_emem, None, false).ok_or(Error::new(Code::NoFreePE))
+        };
 
         let mut argv = Vec::new();
         for arg in args {
@@ -95,8 +122,18 @@ impl VPEMng {
             }
 
             let id: VPEId = self.get_id()?;
-            let pe_id: PEId = pemng::get().alloc_pe(&pedesc, None, false).ok_or(Error::new(Code::NoFreePE))?;
-            let vpe: Rc<RefCell<VPE>> = VPE::new(Self::path_to_name(&arg), id, pe_id, VPEFlags::BOOTMOD);
+            let pe_id: PEId = find_pe()?;
+
+            let addr_space = if platform::pe_desc(pe_id).has_virtmem() {
+                Some(vm::AddrSpace::new(&platform::pe_desc(pe_id))?)
+            }
+            else {
+                None
+            };
+
+            let vpe: Rc<RefCell<VPE>> = VPE::new(
+                Self::path_to_name(&arg), id, pe_id, VPEFlags::BOOTMOD, addr_space
+            );
             klog!(VPES, "Created VPE {} [id={}, pe={}]", &arg, id, pe_id);
 
             // find end of arguments
@@ -206,24 +243,6 @@ impl VPEMng {
             Some(p) => &path[p + 1..],
             None    => path,
         }
-    }
-
-    fn get_id(&mut self) -> Result<usize, Error> {
-        for id in self.next_id..MAX_VPES {
-            if self.vpes[id].is_none() {
-                self.next_id = id + 1;
-                return Ok(id)
-            }
-        }
-
-        for id in 0..self.next_id {
-            if self.vpes[id].is_none() {
-                self.next_id = id + 1;
-                return Ok(id)
-            }
-        }
-
-        Err(Error::new(Code::NoSpace))
     }
 }
 

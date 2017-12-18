@@ -1,6 +1,7 @@
 use base::cell::RefCell;
 use base::col::String;
 use base::dtu::{self, EpId, PEId, Label};
+use base::errors::{Code, Error};
 use base::GlobAddr;
 use base::kif;
 use base::rc::Rc;
@@ -17,6 +18,7 @@ pub enum KObject {
     RGate(Rc<RefCell<RGateObject>>),
     SGate(Rc<RefCell<SGateObject>>),
     MGate(Rc<RefCell<MGateObject>>),
+    Map(Rc<RefCell<MapObject>>),
     Serv(Rc<RefCell<ServObject>>),
     Sess(Rc<RefCell<SessObject>>),
     VPE(Rc<RefCell<VPE>>),
@@ -28,6 +30,7 @@ impl fmt::Debug for KObject {
             KObject::SGate(ref s)   => write!(f, "{:?}", s.borrow()),
             KObject::RGate(ref r)   => write!(f, "{:?}", r.borrow()),
             KObject::MGate(ref m)   => write!(f, "{:?}", m.borrow()),
+            KObject::Map(ref m)     => write!(f, "{:?}", m.borrow()),
             KObject::Serv(ref s)    => write!(f, "{:?}", s.borrow()),
             KObject::Sess(ref s)    => write!(f, "{:?}", s.borrow()),
             KObject::VPE(ref v)     => write!(f, "{:?}", v.borrow()),
@@ -212,7 +215,7 @@ impl SessObject {
 impl Drop for SessObject {
     fn drop(&mut self) {
         let mut srv = self.srv.borrow_mut();
-        if srv.vpe().borrow().has_app() {
+        if !self.srv_owned && srv.vpe().borrow().has_app() {
             let smsg = kif::service::Close {
                 opcode: kif::service::Operation::CLOSE.val as u64,
                 sess: self.ident,
@@ -226,6 +229,45 @@ impl Drop for SessObject {
 
 impl fmt::Debug for SessObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Sess[service={}, ident={:#x}]", self.srv.borrow().name, self.ident)
+        write!(f, "Sess[service={}, ident={:#x}, srv_owned={}]",
+            self.srv.borrow().name, self.ident, self.srv_owned)
+    }
+}
+
+pub struct MapObject {
+    pub phys: GlobAddr,
+    pub attr: kif::Perm,
+}
+
+impl MapObject {
+    pub fn new(phys: GlobAddr, attr: kif::Perm) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(MapObject {
+            phys: phys,
+            attr: attr,
+        }))
+    }
+
+    pub fn remap(&mut self, vpe: &VPE, virt: usize, pages: usize,
+                 phys: GlobAddr, attr: kif::Perm) -> Result<(), Error> {
+        self.phys = phys;
+        self.attr = attr;
+        self.map(vpe, virt, pages)
+    }
+
+    pub fn map(&self, vpe: &VPE, virt: usize, pages: usize) -> Result<(), Error> {
+        match vpe.addr_space() {
+            Some(space) => space.map_pages(&vpe.desc(), virt, self.phys, pages, self.attr),
+            None        => Err(Error::new(Code::NotSup)),
+        }
+    }
+
+    pub fn unmap(&self, vpe: &VPE, virt: usize, pages: usize) {
+        vpe.addr_space().map(|space| space.unmap_pages(virt, pages));
+    }
+}
+
+impl fmt::Debug for MapObject {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Map[phys={:?}, attr={:#x}]", self.phys, self.attr)
     }
 }

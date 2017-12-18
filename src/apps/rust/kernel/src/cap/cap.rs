@@ -1,4 +1,5 @@
 use base::cell::StaticCell;
+use base::cfg;
 use base::col::{KeyOrd, Treap};
 use base::kif::{CapRngDesc, CapSel};
 use core::cmp;
@@ -293,6 +294,11 @@ impl Capability {
                 let sel = self.sel();
                 let vpe = self.vpe_mut();
                 ServiceList::get().remove(vpe, sel);
+            },
+
+            KObject::Map(ref m) => {
+                let virt = (self.sel() as usize) << cfg::PAGE_BITS;
+                m.borrow().unmap(self.vpe(), virt, self.len() as usize);
             },
 
             _ => {

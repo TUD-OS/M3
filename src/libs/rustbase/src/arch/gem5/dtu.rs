@@ -1,3 +1,4 @@
+use cfg;
 use core::intrinsics;
 use core::ptr;
 use errors::Error;
@@ -62,7 +63,7 @@ int_enum! {
 #[allow(dead_code)]
 bitflags! {
     /// The status flag for the `DtuReg::STATUS` register
-    struct StatusFlags : Reg {
+    pub struct StatusFlags : Reg {
         /// Whether the PE is privileged
         const PRIV         = 1 << 0;
         /// Whether page faults are send via `PF_EP`
@@ -77,7 +78,7 @@ bitflags! {
 #[allow(dead_code)]
 int_enum! {
     /// The request registers
-    struct ReqReg : Reg {
+    pub struct ReqReg : Reg {
         /// For external requests
         const EXT_REQ     = 0x0;
         /// For translation requests
@@ -153,6 +154,18 @@ int_enum! {
 }
 
 int_enum! {
+    /// The external requests
+    pub struct ExtReqOpCode : Reg {
+        /// Sets the root page table
+        const SET_ROOTPT  = 0x0;
+        /// Invalidates a TLB entry in the CU's MMU
+        const INV_PAGE    = 0x1;
+        /// Requests some rctmux action
+        const RCTMUX      = 0x2;
+    }
+}
+
+int_enum! {
     /// The external commands
     pub struct ExtCmdOpCode : Reg {
         /// The idle command has no effect
@@ -169,6 +182,44 @@ int_enum! {
         const RESET       = 5;
         /// Acknowledge a message
         const ACK_MSG     = 6;
+    }
+}
+
+pub const PTE_BITS: usize   = 3;
+pub const PTE_SIZE: usize   = 1 << PTE_BITS;
+pub const PTE_REC_IDX: usize= 0x10;
+
+pub const LEVEL_CNT: usize  = 4;
+pub const LEVEL_BITS: usize = cfg::PAGE_BITS - PTE_BITS;
+pub const LEVEL_MASK: usize = (1 << LEVEL_BITS) - 1;
+
+pub const LPAGE_BITS: usize = cfg::PAGE_BITS + LEVEL_BITS;
+pub const LPAGE_SIZE: usize = 1 << LPAGE_BITS;
+pub const LPAGE_MASK: usize = LPAGE_SIZE - 1;
+
+pub type PTE = u64;
+
+bitflags! {
+    /// The page table entry flags
+    pub struct PTEFlags : u64 {
+        /// Readable
+        const R             = 0b000001;
+        /// Writable
+        const W             = 0b000010;
+        /// Executable
+        const X             = 0b000100;
+        /// Internally accessible, i.e., by the CU
+        const I             = 0b001000;
+        /// Large page (2 MiB)
+        const LARGE         = 0b010000;
+        /// Unsupported by DTU, but used for MMU
+        const UNCACHED      = 0b100000;
+        /// Read+write
+        const RW            = Self::R.bits | Self::W.bits;
+        /// Read+write+execute
+        const RWX           = Self::R.bits | Self::W.bits | Self::X.bits;
+        /// Internal+read+write+execute
+        const IRWX          = Self::R.bits | Self::W.bits | Self::X.bits | Self::I.bits;
     }
 }
 
@@ -436,6 +487,11 @@ impl DTU {
     /// Returns the MMIO address of the given DTU register
     pub fn dtu_reg_addr(reg: DtuReg) -> usize {
         BASE_ADDR + (reg.val as usize) * 8
+    }
+    /// Returns the MMIO address of the given request register
+    pub fn dtu_req_addr(reg: ReqReg) -> usize {
+        use arch::cfg;
+        BASE_ADDR + cfg::PAGE_SIZE + (reg.val as usize) * 8
     }
     /// Returns the MMIO address of the given endpoint registers
     pub fn ep_regs_addr(ep: EpId) -> usize {

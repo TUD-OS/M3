@@ -3,7 +3,7 @@ use base::cell::{Ref, RefCell, RefMut};
 use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
-use base::kif::{CapRngDesc, CapSel, PEDesc, Perm};
+use base::kif::{CapRngDesc, CapSel, CapType, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
 use core::mem;
@@ -11,6 +11,7 @@ use thread;
 
 use arch::kdtu;
 use arch::loader::Loader;
+use arch::vm;
 use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
 use pes::vpemng;
 use platform;
@@ -81,18 +82,21 @@ pub struct VPE {
     name: String,
     flags: VPEFlags,
     obj_caps: CapTable,
+    map_caps: CapTable,
     eps_addr: usize,
     args: Vec<String>,
     req: Vec<String>,
     ep_caps: Vec<Option<CapSel>>,
     exit_code: Option<i32>,
     dtu_state: kdtu::State,
+    addr_space: Option<vm::AddrSpace>,
     rbufs_size: usize,
     headers: usize,
 }
 
 impl VPE {
-    pub fn new(name: &str, id: VPEId, pe: PEId, flags: VPEFlags) -> Rc<RefCell<Self>> {
+    pub fn new(name: &str, id: VPEId, pe: PEId,
+               flags: VPEFlags, addr_space: Option<vm::AddrSpace>) -> Rc<RefCell<Self>> {
         let vpe = Rc::new(RefCell::new(VPE {
             id: id,
             pe: pe,
@@ -101,12 +105,14 @@ impl VPE {
             name: name.to_string(),
             flags: flags,
             obj_caps: CapTable::new(),
+            map_caps: CapTable::new(),
             eps_addr: 0,
             args: Vec::new(),
             req: Vec::new(),
             ep_caps: vec![None; EP_COUNT - FIRST_FREE_EP],
             exit_code: None,
             dtu_state: kdtu::State::new(),
+            addr_space: addr_space,
             rbufs_size: 0,
             headers: 0,
         }));
@@ -115,6 +121,7 @@ impl VPE {
             let mut vpe_mut = vpe.borrow_mut();
             unsafe {
                 vpe_mut.obj_caps.set_vpe(vpe.as_ptr());
+                vpe_mut.map_caps.set_vpe(vpe.as_ptr());
             }
 
             // cap for own VPE
@@ -136,6 +143,7 @@ impl VPE {
 
     pub fn destroy(&mut self) {
         self.obj_caps.revoke_all();
+        self.map_caps.revoke_all();
     }
 
     #[cfg(target_os = "linux")]
@@ -217,11 +225,22 @@ impl VPE {
         &self.req
     }
 
+    pub fn addr_space(&self) -> Option<&vm::AddrSpace> {
+        self.addr_space.as_ref()
+    }
+
     pub fn obj_caps(&self) -> &CapTable {
         &self.obj_caps
     }
     pub fn obj_caps_mut(&mut self) -> &mut CapTable {
         &mut self.obj_caps
+    }
+
+    pub fn map_caps(&self) -> &CapTable {
+        &self.map_caps
+    }
+    pub fn map_caps_mut(&mut self) -> &mut CapTable {
+        &mut self.map_caps
     }
 
     pub fn state(&self) -> State {
@@ -306,7 +325,12 @@ impl VPE {
     pub fn revoke(vpe: &Rc<RefCell<VPE>>, crd: CapRngDesc, own: bool) {
         // we can't use borrow_mut() here, because revoke might need to use borrow as well.
         unsafe {
-            (*vpe.as_ptr()).obj_caps_mut().revoke(crd, own);
+            if crd.cap_type() == CapType::OBJECT {
+                (*vpe.as_ptr()).obj_caps_mut().revoke(crd, own);
+            }
+            else {
+                (*vpe.as_ptr()).map_caps_mut().revoke(crd, own);
+            }
         }
     }
 
