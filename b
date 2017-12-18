@@ -277,7 +277,11 @@ case "$cmd" in
             if [ "$prog" != "$M3_KERNEL" ]; then
                 echo "set follow-fork-mode child" >> $tmp
             fi
-            gdb --tui $build/bin/$prog $pid --command=$tmp
+            if hash rust-gdb 2>/dev/null; then
+                rust-gdb --tui $build/bin/$prog $pid --command=$tmp
+            else
+                gdb --tui $build/bin/$prog $pid --command=$tmp
+            fi
 
             kill_m3_procs
             rm $tmp
@@ -302,7 +306,11 @@ case "$cmd" in
             echo "target remote localhost:$port" > $gdbcmd
             echo "display/i \$pc" >> $gdbcmd
             echo "b main" >> $gdbcmd
-            ${crossprefix}gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+            if hash rust-gdb 2>/dev/null; then
+                rust-gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+            else
+                ${crossprefix}rust-gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+            fi
             killall -9 gem5.opt
             rm $gdbcmd
         elif [ "$M3_TARGET" = "t3" ]; then
