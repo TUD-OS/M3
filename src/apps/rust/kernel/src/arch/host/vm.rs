@@ -32,6 +32,7 @@ impl AddrSpace {
         Err(Error::new(Code::NotSup))
     }
 
-    pub fn unmap_pages(&self, _virt: usize, _pages: usize) {
+    pub fn unmap_pages(&self, _vpe: &VPEDesc, _virt: usize, _pages: usize) -> Result<(), Error> {
+        Err(Error::new(Code::NotSup))
     }
 }

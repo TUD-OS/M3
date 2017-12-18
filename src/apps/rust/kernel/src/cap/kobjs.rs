@@ -262,7 +262,7 @@ impl MapObject {
     }
 
     pub fn unmap(&self, vpe: &VPE, virt: usize, pages: usize) {
-        vpe.addr_space().map(|space| space.unmap_pages(virt, pages));
+        vpe.addr_space().map(|space| space.unmap_pages(&vpe.desc(), virt, pages));
     }
 }
 

@@ -7,7 +7,7 @@ use base::util;
 
 use arch::kdtu::KDTU;
 use mem;
-use pes::VPEDesc;
+use pes::{self, State, VPEDesc};
 
 pub struct AddrSpace {
     pe: PEDesc,
@@ -87,7 +87,13 @@ impl AddrSpace {
         Ok(())
     }
 
-    pub fn unmap_pages(&self, virt: usize, pages: usize) {
+    pub fn unmap_pages(&self, vpe: &VPEDesc, virt: usize, pages: usize) -> Result<(), Error> {
+        // don't do anything if the VPE is already dead (or if it's the kernel)
+        if vpe.vpe().map_or(true, |v| v.state() == State::DEAD) {
+            return Ok(());
+        }
+
+        self.map_pages(vpe, virt, GlobAddr::new(0), pages, Perm::empty())
     }
 
     fn get_pte_addr(mut virt: usize, lvl: usize) -> usize {
