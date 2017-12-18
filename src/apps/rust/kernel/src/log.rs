@@ -1,12 +1,13 @@
 pub static DEF: bool    = true;
 pub static ERR: bool    = true;
-pub static EPS: bool    = true;
-pub static SYSC: bool   = true;
-pub static KENV: bool   = true;
-pub static MEM: bool    = true;
-pub static SQUEUE: bool = true;
-pub static VPES: bool   = true;
-pub static SERV: bool   = true;
+pub static EPS: bool    = false;
+pub static SYSC: bool   = false;
+pub static KENV: bool   = false;
+pub static MEM: bool    = false;
+pub static SERV: bool   = false;
+pub static SQUEUE: bool = false;
+pub static PTES: bool   = false;
+pub static VPES: bool   = false;
 
 #[macro_export]
 macro_rules! klog {
