@@ -137,7 +137,7 @@ impl KDTU {
 
         // set our own VPE id
         Self::get().do_set_vpe_id(
-            &VPEDesc::new_mem(platform::kernel_pe()),
+            &VPEDesc::new_kernel(INVALID_VPE),
             vpemng::KERNEL_VPE
         ).unwrap();
     }

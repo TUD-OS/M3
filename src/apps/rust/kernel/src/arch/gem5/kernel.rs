@@ -5,6 +5,7 @@ use thread;
 
 use arch::kdtu;
 use arch::loader;
+use arch::vm;
 use com;
 use mem;
 use pes;
@@ -26,6 +27,7 @@ pub extern "C" fn exit(_code: i32) {
 #[no_mangle]
 pub extern "C" fn env_run() {
     heap::init();
+    vm::init();
     io::init();
     mem::init();
 

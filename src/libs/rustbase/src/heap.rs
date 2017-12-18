@@ -16,7 +16,7 @@ pub struct HeapArea {
 extern {
     fn heap_set_alloc_callback(cb: extern fn(p: *const u8, size: usize));
     fn heap_set_free_callback(cb: extern fn(p: *const u8));
-    fn heap_set_oom_callback(cb: extern fn(size: usize));
+    fn heap_set_oom_callback(cb: extern fn(size: usize) -> bool);
     fn heap_set_dblfree_callback(cb: extern fn(p: *const u8));
 
     /// Allocates `size` bytes on the heap
@@ -142,7 +142,7 @@ extern fn heap_dblfree_callback(p: *const u8) {
     panic!("Used bits not set for {:?}; double free?", p);
 }
 
-extern fn heap_oom_callback(size: usize) {
+extern fn heap_oom_callback(size: usize) -> bool {
     panic!("Unable to allocate {} bytes on the heap: out of memory", size);
 }
 

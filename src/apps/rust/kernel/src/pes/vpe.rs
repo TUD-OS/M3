@@ -42,6 +42,7 @@ pub const INVALID_VPE: VPEId = 0xFFFF;
 
 pub struct VPEDesc<'v> {
     pe: PEId,
+    vpe_id: VPEId,
     vpe: Option<&'v VPE>,
 }
 
@@ -49,13 +50,21 @@ impl<'v> VPEDesc<'v> {
     pub fn new(pe: PEId, vpe: &'v VPE) -> VPEDesc<'v> {
         VPEDesc {
             pe: pe,
+            vpe_id: vpe.id(),
             vpe: Some(vpe),
         }
     }
-
+    pub fn new_kernel(vpe_id: VPEId) -> Self {
+        VPEDesc {
+            pe: platform::kernel_pe(),
+            vpe_id: vpe_id,
+            vpe: None,
+        }
+    }
     pub fn new_mem(pe: PEId) -> Self {
         VPEDesc {
             pe: pe,
+            vpe_id: INVALID_VPE,
             vpe: None,
         }
     }
@@ -67,10 +76,7 @@ impl<'v> VPEDesc<'v> {
         self.pe
     }
     pub fn vpe_id(&self) -> VPEId {
-        match self.vpe {
-            Some(v) => v.id(),
-            None    => INVALID_VPE,
-        }
+        self.vpe_id
     }
 }
 

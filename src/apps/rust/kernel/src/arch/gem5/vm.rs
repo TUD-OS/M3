@@ -1,13 +1,16 @@
 use base::cfg;
 use base::dtu::{self, EpId};
 use base::errors::Error;
-use base::kif::{CapSel, Perm, PEDesc};
 use base::GlobAddr;
+use base::heap;
+use base::kif::{CapSel, Perm, PEDesc};
+use base::kif;
 use base::util;
 
 use arch::kdtu::KDTU;
 use mem;
 use pes::{self, State, VPEDesc};
+use platform;
 
 pub struct AddrSpace {
     pe: PEDesc,
@@ -26,6 +29,16 @@ impl AddrSpace {
             rep: None,
             sgate: None,
         })
+    }
+
+    pub fn new_kernel() -> Self {
+        AddrSpace {
+            pe: platform::pe_desc(platform::kernel_pe()),
+            root: GlobAddr::new(0), // unused
+            sep: None,
+            rep: None,
+            sgate: None,
+        }
     }
 
     pub fn new_with_pager(pe: &PEDesc, sep: EpId, rep: EpId, sgate: CapSel) -> Result<Self, Error> {
@@ -225,5 +238,37 @@ impl AddrSpace {
             &VPEDesc::new_mem(root_pt.global().pe()), root_pt.global().offset(), cfg::PAGE_SIZE
         )?;
         Ok(root_pt.global())
+    }
+}
+
+extern {
+    fn heap_set_oom_callback(cb: extern fn(size: usize) -> bool);
+
+    static mut heap_end: *mut heap::HeapArea;
+}
+
+extern fn kernel_oom_callback(size: usize) -> bool {
+    if !platform::pe_desc(platform::kernel_pe()).has_virtmem() {
+        panic!("Unable to allocate {} bytes on the heap: out of memory", size);
+    }
+
+    // allocate memory
+    let pages = util::max(8, util::round_up(size, cfg::PAGE_SIZE) >> cfg::PAGE_BITS);
+    let alloc = mem::get().allocate(pages * cfg::PAGE_SIZE, cfg::PAGE_SIZE).unwrap();
+
+    // map the memory
+    let virt = unsafe { util::round_up(heap_end as usize, cfg::PAGE_SIZE) };
+    let space = AddrSpace::new_kernel();
+    let vpe = &pes::VPEDesc::new_kernel(pes::vpemng::KERNEL_VPE);
+    space.map_pages(vpe, virt, alloc.global(), pages, kif::Perm::RW).unwrap();
+
+    // append to heap
+    heap::append(pages);
+    return true;
+}
+
+pub fn init() {
+    unsafe {
+        heap_set_oom_callback(kernel_oom_callback);
     }
 }
