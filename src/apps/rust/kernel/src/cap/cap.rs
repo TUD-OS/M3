@@ -134,7 +134,7 @@ impl CapTable {
 
     pub fn revoke(&mut self, crd: CapRngDesc, own: bool) {
         for sel in crd.start()..crd.start() + crd.count() {
-            self.caps.remove(&SelRange::new(sel)).map(|mut cap| {
+            self.get_mut(sel).map(|cap| {
                 if own {
                     cap.revoke(false);
                 }
@@ -148,7 +148,7 @@ impl CapTable {
     }
 
     pub fn revoke_all(&mut self) {
-        while let Some(mut cap) = self.caps.remove_root() {
+        while let Some(cap) = self.caps.get_root_mut() {
             cap.revoke(false);
         }
     }
@@ -239,12 +239,15 @@ impl Capability {
         self.release();
 
         unsafe {
-            if let Some(c) = self.child {
+            // remove it from the table
+            let cap = (*self.table.unwrap().as_ptr()).caps.remove(&SelRange::new(self.sel())).unwrap();
+
+            if let Some(c) = cap.child {
                 (*c.as_ptr()).revoke_rec(true);
             }
             // on the first level, we don't want to revoke siblings
             if rev_next {
-                if let Some(n) = self.next {
+                if let Some(n) = cap.next {
                     (*n.as_ptr()).revoke_rec(true);
                 }
             }

@@ -3,7 +3,7 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::mem;
 use core::num::Wrapping;
-use core::ptr::Shared;
+use core::ptr::{read_volatile, Shared};
 
 /// A trait for the comparison of keys
 pub trait KeyOrd {
@@ -113,6 +113,18 @@ impl<K : Copy + KeyOrd, V> Treap<K, V> {
         self.get_node(key).map(|n| unsafe {
             &mut (*n.as_ptr()).value
         })
+    }
+
+    /// Returns a mutable reference to the root value
+    pub fn get_root_mut(&mut self) -> Option<&mut V> {
+        unsafe {
+            // FIXME the read_volatile seems to be necessary to convince the compiler to re-extract
+            // the root element every time and not just once (see CapTable::revoke_all).
+            // looks like a compiler bug
+            read_volatile(&self.root).map(|r| {
+                &mut (*r.as_ptr()).value
+            })
+        }
     }
 
     fn get_node(&self, key: &K) -> Option<Shared<Node<K, V>>> {
