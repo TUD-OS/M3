@@ -42,7 +42,7 @@ fn find() {
         }
         fn run(&mut self) {
             for i in 0..100 {
-                let val = self.0.get(|k| i.cmp(k));
+                let val = self.0.get(&i);
                 assert_eq!(val, Some(&i));
             }
         }

@@ -34,14 +34,14 @@ fn test_add_and_rem(vals: &[u32]) {
 
     // find all
     for v in vals {
-        let val = treap.get(|k| v.cmp(k));
+        let val = treap.get(&v);
         assert_eq!(val, Some(v));
     }
 
     // remove
     for v in vals {
-        let val = treap.remove(|k| v.cmp(k));
+        let val = treap.remove(&v);
         assert_eq!(val, Some(*v));
-        assert_eq!(treap.get(|k| v.cmp(k)), None);
+        assert_eq!(treap.get(&v), None);
     }
 }

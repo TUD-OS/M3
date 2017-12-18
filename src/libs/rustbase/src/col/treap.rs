@@ -5,6 +5,23 @@ use core::mem;
 use core::num::Wrapping;
 use core::ptr::Shared;
 
+/// A trait for the comparison of keys
+pub trait KeyOrd {
+    /// Returns the relative order of `self` and `other`
+    fn compare(&self, other: &Self) -> Ordering;
+    /// Returns true if `self` is smaller than `other`
+    fn smaller(&self, other: &Self) -> bool;
+}
+
+impl KeyOrd for u32 {
+    fn compare(&self, other: &Self) -> Ordering {
+        self.cmp(other)
+    }
+    fn smaller(&self, other: &Self) -> bool {
+        self < other
+    }
+}
+
 struct Node<K, V> {
     left: Option<Shared<Node<K, V>>>,
     right: Option<Shared<Node<K, V>>>,
@@ -13,7 +30,7 @@ struct Node<K, V> {
     value: V,
 }
 
-impl<K : Copy + PartialOrd + Ord, V> Node<K, V> {
+impl<K : Copy + KeyOrd, V> Node<K, V> {
     fn new(key: K, value: V, prio: Wrapping<u32>) -> Self {
         Node {
             left: None,
@@ -41,12 +58,12 @@ impl<K : Copy + PartialOrd + Ord, V> Node<K, V> {
 /// The idea and parts of the implementation are taken from the [MMIX](http://mmix.cs.hm.edu/)
 /// simulator, written by Donald Knuth
 #[derive(Default)]
-pub struct Treap<K : Copy + PartialOrd + Ord, V> {
+pub struct Treap<K : Copy + KeyOrd, V> {
     root: Option<Shared<Node<K, V>>>,
     prio: Wrapping<u32>,
 }
 
-impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
+impl<K : Copy + KeyOrd, V> Treap<K, V> {
     /// Creates an empty treap
     pub fn new() -> Self {
         Treap {
@@ -84,26 +101,26 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         }
     }
 
-    /// Returns a reference to the value for which `pred` returns `Ordering::Equal`
-    pub fn get<P: Fn(&K) -> Ordering>(&self, pred: P) -> Option<&V> {
-        self.get_node(pred).map(|n| unsafe {
+    /// Returns a reference to the value for the given key
+    pub fn get(&self, key: &K) -> Option<&V> {
+        self.get_node(key).map(|n| unsafe {
             &(*n.as_ptr()).value
         })
     }
 
-    /// Returns a mutable reference to the value for which `pred` returns `Ordering::Equal`
-    pub fn get_mut<P: Fn(&K) -> Ordering>(&mut self, pred: P) -> Option<&mut V> {
-        self.get_node(pred).map(|n| unsafe {
+    /// Returns a mutable reference to the value for the given key
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        self.get_node(key).map(|n| unsafe {
             &mut (*n.as_ptr()).value
         })
     }
 
-    fn get_node<P: Fn(&K) -> Ordering>(&self, pred: P) -> Option<Shared<Node<K, V>>> {
+    fn get_node(&self, key: &K) -> Option<Shared<Node<K, V>>> {
         let mut node = self.root;
         loop {
             match node {
                 Some(n) => unsafe {
-                    match pred(&(*n.as_ptr()).key) {
+                    match key.compare(&(*n.as_ptr()).key) {
                         Ordering::Less      => node = (*n.as_ptr()).left,
                         Ordering::Greater   => node = (*n.as_ptr()).right,
                         Ordering::Equal     => return Some(n),
@@ -123,7 +140,7 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
                     None                                        => break,
                     Some(n) if (*n.as_ptr()).prio >= self.prio  => break,
                     Some(n) => {
-                        if key < (*n.as_ptr()).key {
+                        if key.smaller(&(*n.as_ptr()).key) {
                             q = &mut (*n.as_ptr()).left;
                         }
                         else {
@@ -144,13 +161,13 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
                 let mut r = &mut node.right;
                 loop {
                     match prev {
-                        None                                => break,
-                        Some(p) if key < (*p.as_ptr()).key  => {
+                        None                                        => break,
+                        Some(p) if key.smaller(&(*p.as_ptr()).key)  => {
                             *r = Some(p);
                             r = &mut (*p.as_ptr()).left;
                             prev = *r;
                         },
-                        Some(p)                             => {
+                        Some(p)                                     => {
                             *l = Some(p);
                             l = &mut (*p.as_ptr()).right;
                             prev = *l;
@@ -180,14 +197,13 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
         })
     }
 
-    /// Removes the element from the treap for which `pred` returns `Ordering::Equal` and returns
-    /// the value
-    pub fn remove<P: Fn(&K) -> Ordering>(&mut self, pred: P) -> Option<V> {
+    /// Removes the element from the treap for the given key and returns the value
+    pub fn remove(&mut self, key: &K) -> Option<V> {
         let mut p = &mut self.root;
         loop {
             match *p {
                 Some(n) => unsafe {
-                    match pred(&(*n.as_ptr()).key) {
+                    match key.compare(&(*n.as_ptr()).key) {
                         Ordering::Less      => p = &mut (*n.as_ptr()).left,
                         Ordering::Greater   => p = &mut (*n.as_ptr()).right,
                         Ordering::Equal     => break,
@@ -240,14 +256,14 @@ impl<K : Copy + PartialOrd + Ord, V> Treap<K, V> {
     }
 }
 
-impl<K : Copy + PartialOrd + Ord, V> Drop for Treap<K, V> {
+impl<K : Copy + KeyOrd, V> Drop for Treap<K, V> {
     fn drop(&mut self) {
         self.clear();
     }
 }
 
 fn print_rec<K, V>(node: Shared<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Result
-                   where K : Copy + PartialOrd + Ord + fmt::Debug, V: fmt::Debug {
+                   where K : Copy + KeyOrd + fmt::Debug, V: fmt::Debug {
     let node_ptr = node.as_ptr();
     unsafe {
         write!(f, "  {:?} -> {:?}\n", (*node_ptr).key, (*node_ptr).value)?;
@@ -261,7 +277,7 @@ fn print_rec<K, V>(node: Shared<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Res
     }
 }
 
-impl<K : Copy + PartialOrd + Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for Treap<K, V> {
+impl<K : Copy + KeyOrd + fmt::Debug, V: fmt::Debug> fmt::Debug for Treap<K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.root {
             Some(r) => print_rec(r, f),

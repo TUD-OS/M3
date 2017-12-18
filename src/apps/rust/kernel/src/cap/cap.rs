@@ -1,6 +1,7 @@
 use base::cell::StaticCell;
-use base::col::Treap;
+use base::col::{KeyOrd, Treap};
 use base::kif::{CapRngDesc, CapSel};
+use core::cmp;
 use core::fmt;
 use core::ptr::{Shared, Unique};
 
@@ -8,8 +9,51 @@ use cap::KObject;
 use com::ServiceList;
 use pes::{vpemng, VPE};
 
+#[derive(Copy, Clone)]
+pub struct SelRange {
+    start: CapSel,
+    count: CapSel,
+}
+
+impl SelRange {
+    pub fn new(sel: CapSel) -> Self {
+        Self::new_range(sel, 1)
+    }
+
+    pub fn new_range(sel: CapSel, count: CapSel) -> Self {
+        SelRange {
+            start: sel,
+            count: count,
+        }
+    }
+}
+
+impl fmt::Debug for SelRange {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.start)
+    }
+}
+
+impl KeyOrd for SelRange {
+    fn compare(&self, other: &Self) -> cmp::Ordering {
+        if self.start >= other.start && self.start < other.start + other.count {
+            cmp::Ordering::Equal
+        }
+        else if self.start < other.start {
+            cmp::Ordering::Less
+        }
+        else {
+            cmp::Ordering::Greater
+        }
+    }
+
+    fn smaller(&self, other: &Self) -> bool {
+        self.start < other.start
+    }
+}
+
 pub struct CapTable {
-    caps: Treap<CapSel, Capability>,
+    caps: Treap<SelRange, Capability>,
     vpe: Option<Shared<VPE>>,
 }
 
@@ -42,17 +86,17 @@ impl CapTable {
     }
 
     pub fn get(&self, sel: CapSel) -> Option<&Capability> {
-        self.caps.get(|k| sel.cmp(k))
+        self.caps.get(&SelRange::new(sel))
     }
     pub fn get_mut(&mut self, sel: CapSel) -> Option<&mut Capability> {
-        self.caps.get_mut(|k| sel.cmp(k))
+        self.caps.get_mut(&SelRange::new(sel))
     }
 
     pub fn insert(&mut self, mut cap: Capability) -> &mut Capability {
         unsafe {
             cap.table = Some(as_shared(self));
         }
-        self.caps.insert(cap.sel(), cap)
+        self.caps.insert(cap.sel_range().clone(), cap)
     }
     pub fn insert_as_child(&mut self, cap: Capability, parent_sel: CapSel) {
         unsafe {
@@ -68,7 +112,7 @@ impl CapTable {
     }
 
     unsafe fn get_shared(&mut self, sel: CapSel) -> Option<Shared<Capability>> {
-        self.caps.get_mut(|k| sel.cmp(k)).map(|cap| Shared::new_unchecked(cap))
+        self.caps.get_mut(&SelRange::new(sel)).map(|cap| Shared::new_unchecked(cap))
     }
     unsafe fn do_insert(&mut self, child: Capability, parent: Option<Shared<Capability>>) {
         let mut child_cap = self.insert(child);
@@ -79,7 +123,7 @@ impl CapTable {
 
     pub fn obtain(&mut self, sel: CapSel, cap: &mut Capability, child: bool) {
         let mut nc: Capability = (*cap).clone();
-        nc.sel = sel;
+        nc.sels = SelRange::new(sel);
         if child {
             cap.inherit(self.insert(nc));
         }
@@ -90,7 +134,7 @@ impl CapTable {
 
     pub fn revoke(&mut self, crd: CapRngDesc, own: bool) {
         for sel in crd.start()..crd.start() + crd.count() {
-            self.caps.remove(|k| sel.cmp(k)).map(|mut cap| {
+            self.caps.remove(&SelRange::new(sel)).map(|mut cap| {
                 if own {
                     cap.revoke(false);
                 }
@@ -118,7 +162,7 @@ impl fmt::Debug for CapTable {
 
 #[derive(Clone)]
 pub struct Capability {
-    sel: CapSel,
+    sels: SelRange,
     obj: KObject,
     table: Option<Shared<CapTable>>,
     child: Option<Shared<Capability>>,
@@ -129,8 +173,11 @@ pub struct Capability {
 
 impl Capability {
     pub fn new(sel: CapSel, obj: KObject) -> Self {
+        Self::new_range(SelRange::new(sel), obj)
+    }
+    pub fn new_range(sels: SelRange, obj: KObject) -> Self {
         Capability {
-            sel: sel,
+            sels: sels,
             obj: obj,
             table: None,
             child: None,
@@ -140,8 +187,14 @@ impl Capability {
         }
     }
 
+    pub fn sel_range(&self) -> &SelRange {
+        &self.sels
+    }
     pub fn sel(&self) -> CapSel {
-        self.sel
+        self.sels.start
+    }
+    pub fn len(&self) -> CapSel {
+        self.sels.count
     }
 
     pub fn get(&self) -> &KObject {
@@ -229,12 +282,12 @@ impl Capability {
             },
 
             KObject::SGate(_) | KObject::RGate(_) | KObject::MGate(_) => {
-                let sel = self.sel;
+                let sel = self.sel();
                 self.invalidate_ep(sel)
             },
 
             KObject::Serv(_) => {
-                let sel = self.sel;
+                let sel = self.sel();
                 let vpe = self.vpe_mut();
                 ServiceList::get().remove(vpe, sel);
             },
@@ -269,7 +322,8 @@ fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter) -> fmt::Result 
 
 impl fmt::Debug for Capability {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Cap[vpe={}, sel={}, obj={:?}]", self.vpe().id(), self.sel(), self.obj)?;
+        write!(f, "Cap[vpe={}, sel={}, len={}, obj={:?}]",
+            self.vpe().id(), self.sel(), self.len(), self.obj)?;
         if let Some(c) = self.child {
             print_childs(c, f)?;
         }
