@@ -16,7 +16,9 @@ pub fn read(buf: &mut [u8]) -> Result<usize, Error> {
 pub fn write(buf: &[u8]) -> Result<usize, Error> {
     dtu::DTU::print(buf);
     unsafe {
-        gem5_writefile(buf.as_ptr(), buf.len() as u64, 0, "stdout\0".as_ptr() as u64);
+        // put the string on the stack to prevent that gem5_writefile causes a pagefault
+        let file: [u8; 7] = *b"stdout\0";
+        gem5_writefile(buf.as_ptr(), buf.len() as u64, 0, file.as_ptr() as u64);
     }
     Ok(buf.len())
 }
