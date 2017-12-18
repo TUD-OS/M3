@@ -44,5 +44,7 @@ EXTERN_C void *heap_calloc(size_t n, size_t size);
 EXTERN_C void *heap_realloc(void *p, size_t size);
 EXTERN_C void heap_free(void *p);
 
+EXTERN_C void heap_append(size_t pages);
+
 EXTERN_C size_t heap_free_memory();
 EXTERN_C uintptr_t heap_used_end();

@@ -66,21 +66,7 @@ public:
         VPEDesc vpe(Platform::kernel_pe(), VPEManager::MAX_VPES);
         DTU::get().map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
 
-        // build new end Area and connect it
-        HeapArea *end = reinterpret_cast<HeapArea*>(virt + pages * PAGE_SIZE) - 1;
-        end->next = 0;
-        HeapArea *prev = m3::Heap::backwards(heap_end, heap_end->prev);
-        // if the last area is used, we have to keep _end and put us behind there
-        if(m3::Heap::is_used(prev)) {
-            end->prev = static_cast<size_t>(end - heap_end) * sizeof(HeapArea);
-            heap_end->next = end->prev;
-        }
-        // otherwise, merge it into the last area
-        else {
-            end->prev = heap_end->prev + pages * PAGE_SIZE;
-            prev->next += pages * PAGE_SIZE;
-        }
-        heap_end = end;
+        m3::Heap::append(pages);
         return true;
     }
 

@@ -15,6 +15,7 @@
  */
 
 #include <base/Common.h>
+#include <base/Config.h>
 #include <base/DTU.h>
 #include <heap/heap.h>
 #include <string.h>
@@ -173,6 +174,27 @@ USED void heap_free(void *p) {
         // adjust prev of next area
         nn->prev = a->next;
     }
+}
+
+void heap_append(size_t pages) {
+    size_t size = pages * PAGE_SIZE;
+    uintptr_t start = (reinterpret_cast<uintptr_t>(heap_end) + PAGE_SIZE - 1)
+        & ~static_cast<size_t>(PAGE_MASK);
+    HeapArea *end = reinterpret_cast<HeapArea*>(start + size) - 1;
+    end->next = 0;
+
+    HeapArea *prev = backwards(heap_end, heap_end->prev);
+    // if the last area is used, we have to keep _end and put us behind there
+    if(is_used(prev)) {
+        end->prev = static_cast<size_t>(end - heap_end) * sizeof(HeapArea);
+        heap_end->next = end->prev;
+    }
+    // otherwise, merge it into the last area
+    else {
+        end->prev = heap_end->prev + size;
+        prev->next += size;
+    }
+    heap_end = end;
 }
 
 size_t heap_free_memory() {

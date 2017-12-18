@@ -34,6 +34,8 @@ extern {
     /// Frees the area at `p`
     pub fn heap_free(p: *mut libc::c_void);
 
+    fn heap_append(pages: usize);
+
     fn heap_free_memory() -> usize;
     fn heap_used_end() -> usize;
 }
@@ -105,6 +107,12 @@ pub fn init() {
         }
         heap_set_dblfree_callback(heap_dblfree_callback);
         heap_set_oom_callback(heap_oom_callback);
+    }
+}
+
+pub fn append(pages: usize) {
+    unsafe {
+        heap_append(pages);
     }
 }
 

@@ -103,6 +103,13 @@ public:
     }
 
     /**
+     * Appends the given memory to the heap.
+     */
+    static void append(size_t pages) {
+        heap_append(pages);
+    }
+
+    /**
      * Determines the maximum amount of contiguous memory that is currently available. You can use
      * this to allocate the as much memory as possible, for example. Keep in mind, though, that
      * some M3 abstractions allocate memory, too!
