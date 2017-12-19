@@ -26,7 +26,8 @@ INIT_PRIO_DTU DTU DTU::inst;
 
 void DTU::try_sleep(bool yield, uint64_t cycles) {
     // check for messages a few times
-    for(int i = 0; i < 100; ++i) {
+    const int num = m3::env()->pedesc.has_mmu() ? 2 : 100;
+    for(int i = 0; i < num; ++i) {
         if(read_reg(DtuRegs::MSG_CNT) > 0)
             return;
     }
