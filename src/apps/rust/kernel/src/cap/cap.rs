@@ -241,7 +241,8 @@ impl Capability {
 
         unsafe {
             // remove it from the table
-            let cap = (*self.table.unwrap().as_ptr()).caps.remove(&SelRange::new(self.sel())).unwrap();
+            let sels = SelRange::new(self.sel());
+            let cap = self.table_mut().caps.remove(&sels).unwrap();
 
             if let Some(c) = cap.child {
                 (*c.as_ptr()).revoke_rec(true);
@@ -255,15 +256,18 @@ impl Capability {
         }
     }
 
+    fn table(&self) -> &CapTable {
+        unsafe { &*self.table.unwrap().as_ptr() }
+    }
+    fn table_mut(&mut self) -> &mut CapTable {
+        unsafe { &mut *self.table.unwrap().as_ptr() }
+    }
+
     fn vpe(&self) -> &VPE {
-        unsafe {
-            &*(*self.table.unwrap().as_ptr()).vpe.unwrap().as_ptr()
-        }
+        unsafe { &*(self.table().vpe.unwrap().as_ptr()) }
     }
     fn vpe_mut(&mut self) -> &mut VPE {
-        unsafe {
-            &mut *(*self.table.unwrap().as_ptr()).vpe.unwrap().as_ptr()
-        }
+        unsafe { &mut *(self.table_mut().vpe.unwrap().as_ptr()) }
     }
 
     fn invalidate_ep(&mut self, sel: CapSel) {
