@@ -54,14 +54,14 @@ int main() {
 
     cycles_t file = 0;
     for(size_t i = 0; i < COUNT; ++i) {
-        FileRef f("/zeros.bin", FILE_R);
+        FileRef f("/zeros.bin", FILE_RW);
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to open /zeros.bin");
 
         RegularFile *rfile = static_cast<RegularFile*>(&*f);
         uintptr_t virt = 0x31000000;
         Errors::Code res = VPE::self().pager()->map_ds(&virt, PAGES * PAGE_SIZE,
-            Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
+            Pager::READ | Pager::WRITE, 0, *rfile->fs(), rfile->fd(), 0);
         if(res != Errors::NONE)
             exitmsg("Unable to map /test.txt");
 
