@@ -313,7 +313,7 @@ impl DTU {
     pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, flags: CmdFlags) -> Result<(), Error> {
         let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags.bits(), 0);
         let res = Self::transfer(cmd, data as usize, size, off);
-        unsafe { intrinsics::atomic_fence_rel() };
+        unsafe { intrinsics::atomic_fence() };
         res
     }
 
