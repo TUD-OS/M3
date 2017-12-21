@@ -1,4 +1,5 @@
 use m3::com::{MemGate, RecvGate, Perm};
+use m3::cfg;
 use m3::kif;
 use m3::profile;
 use m3::syscalls;
@@ -11,6 +12,7 @@ pub fn run(t: &mut test::Tester) {
     run_test!(t, create_rgate);
     run_test!(t, create_sgate);
     run_test!(t, create_mgate);
+    run_test!(t, create_map);
     run_test!(t, create_srv);
     run_test!(t, create_sess);
     run_test!(t, derive_mem);
@@ -96,6 +98,30 @@ fn create_mgate() {
     }
 
     println!("{}", prof.runner_with_id(&mut Tester::default(), 0x14));
+}
+
+fn create_map() {
+    if !VPE::cur().pe().has_virtmem() {
+        println!("PE has no virtual memory support; skipping");
+        return;
+    }
+
+    const DEST: kif::CapSel = 0x3000_0000 >> cfg::PAGE_BITS;
+    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+
+    struct Tester(MemGate);
+
+    impl profile::Runner for Tester {
+        fn run(&mut self) {
+            assert_ok!(syscalls::create_map(DEST, 0, self.0.sel(), 0, 1, Perm::RW));
+        }
+        fn post(&mut self) {
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::MAPPING, DEST, 1), true));
+        }
+    }
+
+    let mut tester = Tester { 0: MemGate::new(0x1000, Perm::RW).unwrap() };
+    println!("{}", prof.runner_with_id(&mut tester, 0x14));
 }
 
 fn create_srv() {
