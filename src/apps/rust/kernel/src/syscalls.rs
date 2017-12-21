@@ -494,9 +494,14 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     // create map cap, if not yet existing
     if !exists {
         let mut src_mut = vpe.borrow_mut();
-        let mut dst_mut = dst_vpe.borrow_mut();
         let cap = Capability::new_range(SelRange::new_range(dst_sel, pages), map_obj);
-        dst_mut.map_caps_mut().insert_as_child_from(cap, src_mut.obj_caps_mut(), mgate_sel);
+        if vpe_sel == 0 {
+            src_mut.map_caps_mut().insert_as_child(cap, mgate_sel);
+        }
+        else {
+            let mut dst_mut = dst_vpe.borrow_mut();
+            dst_mut.map_caps_mut().insert_as_child_from(cap, src_mut.obj_caps_mut(), mgate_sel);
+        }
     }
 
     reply_success(msg);
