@@ -82,7 +82,7 @@ impl AddrSpace {
         KDTU::get().invalidate_tlb(vpe).unwrap();
     }
 
-    pub fn map_pages(&self, vpe: &VPEDesc, virt: usize, mut phys: GlobAddr,
+    pub fn map_pages(&self, vpe: &VPEDesc, mut virt: usize, mut phys: GlobAddr,
                      mut pages: usize, attr: Perm) -> Result<(), Error> {
         while pages > 0 {
             for lvl in (0..dtu::LEVEL_CNT).rev() {
@@ -93,7 +93,7 @@ impl AddrSpace {
                     self.create_pt(vpe, virt, pte_addr, pte, attr, lvl)?;
                 }
                 else {
-                    self.create_ptes(vpe, virt, pte_addr, pte, &mut phys, &mut pages, attr);
+                    self.create_ptes(vpe, &mut virt, pte_addr, pte, &mut phys, &mut pages, attr);
                 }
             }
         }
@@ -161,7 +161,7 @@ impl AddrSpace {
         Ok(false)
     }
 
-    fn create_ptes(&self, vpe: &VPEDesc, mut virt: usize, mut pte_addr: usize, pte: dtu::PTE,
+    fn create_ptes(&self, vpe: &VPEDesc, virt: &mut usize, mut pte_addr: usize, pte: dtu::PTE,
                    phys: &mut GlobAddr, pages: &mut usize, attr: Perm) -> bool {
         // note that we can assume here that map_pages is always called for the same set of
         // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
@@ -171,6 +171,13 @@ impl AddrSpace {
 
         let pte_dtu = self.to_dtu_pte(pte);
         let npte = phys.raw() | attr.bits() as dtu::PTE | dtu::PTEFlags::I.bits();
+
+        let end_pte = util::min(pte_addr + *pages * 8, util::round_up(pte_addr + 8, cfg::PAGE_SIZE));
+        let count = (end_pte - pte_addr) / 8;
+        assert!(count > 0);
+        *pages -= count;
+        *phys = *phys + (count << cfg::PAGE_BITS);
+
         if npte == pte_dtu {
             return true;
         }
@@ -181,13 +188,6 @@ impl AddrSpace {
         if (pte_dtu & rwx) != 0 && self.pe.has_virtmem() {
             downgrade = ((pte_dtu & rwx) & (!npte & rwx)) != 0;
         }
-
-        let end_pte = util::min(pte_addr + *pages * 8, util::round_up(pte_addr + 8, cfg::PAGE_SIZE));
-
-        let count = (end_pte - pte_addr) / 8;
-        assert!(count > 0);
-        *pages -= count;
-        *phys = *phys + (count << cfg::PAGE_BITS);
 
         let mut npte = self.to_mmu_pte(npte);
         while pte_addr < end_pte {
@@ -202,7 +202,7 @@ impl AddrSpace {
                 buf[i] = npte;
 
                 pte_addr += 8;
-                virt += cfg::PAGE_SIZE;
+                *virt += cfg::PAGE_SIZE;
                 npte += cfg::PAGE_SIZE as dtu::PTE;
                 i += 1;
             }
@@ -210,8 +210,8 @@ impl AddrSpace {
             KDTU::get().try_write_slice(vpe, start_addr, &buf[0..i]).unwrap();
 
             if downgrade {
-                let mut vaddr = virt - i * cfg::PAGE_SIZE;
-                while vaddr < virt {
+                let mut vaddr = *virt - i * cfg::PAGE_SIZE;
+                while vaddr < *virt {
                     KDTU::get().invlpg_remote(vpe, vaddr).unwrap();
                     vaddr += cfg::PAGE_SIZE;
                 }
