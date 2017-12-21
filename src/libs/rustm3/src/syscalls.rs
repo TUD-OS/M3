@@ -159,6 +159,26 @@ pub fn create_rgate(dst: Selector, order: i32, msgorder: i32) -> Result<(), Erro
     send_receive_result(&req)
 }
 
+pub fn create_map(dst: Selector, vpe: Selector, mgate: Selector, first: Selector,
+                  pages: u32, perms: Perm) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::create_map(dst={}, vpe={}, mgate={}, first={}, pages={}, perms={:?})",
+        dst, vpe, mgate, first, pages, perms
+    );
+
+    let req = syscalls::CreateMap {
+        opcode: syscalls::Operation::CREATE_MAP.val,
+        dst_sel: dst as u64,
+        vpe_sel: vpe as u64,
+        mgate_sel: mgate as u64,
+        first: first as u64,
+        pages: pages as u64,
+        perms: perms.bits() as u64,
+    };
+    send_receive_result(&req)
+}
+
 pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, name: &str,
                   pe: PEDesc, sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
     log!(
