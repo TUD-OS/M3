@@ -834,9 +834,9 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
     reply_msg(vpe, msg, &kreply, sizeof(kreply));
 }
 
-m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur) {
+m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur, bool need_app) {
     m3::Errors::Code res = m3::Errors::NONE;
-    while(tvpe.state() != VPE::RUNNING) {
+    while(res == m3::Errors::NONE && tvpe.state() != VPE::RUNNING) {
         cur->start_wait();
         tvpe.add_forward();
 
@@ -846,7 +846,7 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur)
 
         LOG_SYS(cur, name, ": waiting for VPE " << tvpe.id() << " at " << tvpe.pe());
 
-        if(!tvpe.resume(false))
+        if(!tvpe.resume(need_app))
             res = m3::Errors::VPE_GONE;
 
         tvpe.rem_forward();
@@ -899,7 +899,7 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     if(async)
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
 
-    m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe);
+    m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe, true);
 
     if(res == m3::Errors::NONE) {
         // re-enable the EP first, because the reply to the sent message below might otherwise
@@ -958,7 +958,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     if(async)
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
 
-    m3::Errors::Code res = wait_for(": syscall::forwardmem", tvpe, vpe);
+    m3::Errors::Code res = wait_for(": syscall::forwardmem", tvpe, vpe, false);
 
     m3::KIF::Syscall::ForwardMemReply reply;
     reply.error = res;
@@ -1024,7 +1024,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     if(async)
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
 
-    res = wait_for(": syscall::forwardreply", tvpe, vpe);
+    res = wait_for(": syscall::forwardreply", tvpe, vpe, true);
 
     if(res == m3::Errors::NONE) {
         uint64_t sender = vpe->pe() | (vpe->id() << 8) |

@@ -70,7 +70,7 @@ private:
     static void reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size);
     static void reply_result(VPE *vpe, const m3::DTU::Message *msg, m3::Errors::Code code);
 
-    static m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur);
+    static m3::Errors::Code wait_for(const char *name, VPE &tvpe, VPE *cur, bool need_app);
     static m3::Errors::Code do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
         const m3::KIF::CapRngDesc &c2, bool obtain);
     static void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
