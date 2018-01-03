@@ -494,7 +494,7 @@ m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uin
     if(idx == m3::DTU::HEADER_COUNT)
         return m3::Errors::INV_ARGS;
 
-    read_mem(vpe, m3::DTU::header_addr(idx), &head, sizeof(head));
+    read_mem(vpe, m3::DTU::header_addr(idx), head, sizeof(m3::DTU::ReplyHeader));
     return m3::Errors::NONE;
 }
 
@@ -504,7 +504,7 @@ m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uin
     if(idx == m3::DTU::HEADER_COUNT)
         return m3::Errors::INV_ARGS;
 
-    write_mem(vpe, m3::DTU::header_addr(idx), &head, sizeof(head));
+    write_mem(vpe, m3::DTU::header_addr(idx), head, sizeof(m3::DTU::ReplyHeader));
     return m3::Errors::NONE;
 }
 
