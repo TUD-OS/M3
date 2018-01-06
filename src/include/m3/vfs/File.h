@@ -47,7 +47,6 @@ public:
          */
         explicit Buffer(size_t _size)
             : buffer(_size ? new char[_size] : nullptr), size(_size), cur(), pos() {
-            assert(Math::is_aligned(buffer, DTU_PKG_SIZE) && Math::is_aligned(size, DTU_PKG_SIZE));
         }
         virtual ~Buffer() {
             delete[] buffer;
@@ -69,43 +68,30 @@ public:
         /**
          * Puts the given character back into the buffer.
          *
-         * @param off the current offset
          * @param c the character
          * @return true if successful
          */
-        virtual bool putback(size_t off, char c);
+        virtual bool putback(char c);
 
         /**
          * Reads <amount> bytes from the buffer into <dst>.
          *
          * @param file the file backend
-         * @param off the current offset
          * @param dst the destination buffer
          * @param amount the number of bytes to read
          * @return the number of read bytes (0 = EOF, <0 = error)
          */
-        virtual ssize_t read(File *file, size_t off, void *dst, size_t amount);
+        virtual ssize_t read(File *file, void *dst, size_t amount);
 
         /**
          * Writes <amount> bytes from <src> into the buffer.
          *
          * @param file the file backend
-         * @param off the current offset
          * @param src the data to write
          * @param amount the number of bytes to write
          * @return the number of written bytes (0 = EOF, <0 =  error)
          */
-        virtual ssize_t write(File *file, size_t off, const void *src, size_t amount);
-
-        /**
-         * Seeks to given offset.
-         *
-         * @param off the current offset
-         * @param whence the type of seek (SEEK_*)
-         * @param offset the offset to seek to
-         * @return >0 on seek, 0 on nothing done and <0 on error
-         */
-        virtual int seek(size_t off, int whence, size_t &offset);
+        virtual ssize_t write(File *file, const void *src, size_t amount);
 
         /**
          * Flushes the buffer.
@@ -134,14 +120,6 @@ public:
     }
 
     /**
-     * Creates a new buffer of given size
-     *
-     * @param size the size
-     * @return the buffer
-     */
-    virtual Buffer *create_buf(size_t size) = 0;
-
-    /**
      * Retrieves information about this file
      *
      * @param info the struct to fill
@@ -156,7 +134,7 @@ public:
      * @param whence the seek-type (SEEK_{SET,CUR,END}).
      * @return the new file-position
      */
-    virtual size_t seek(size_t offset, int whence) = 0;
+    virtual ssize_t seek(size_t offset, int whence) = 0;
 
     /**
      * Reads at most <count> bytes into <buffer>.

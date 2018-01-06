@@ -21,9 +21,9 @@
 namespace m3 {
 
 FStream::FStream(int fd, int perms, size_t bufsize, uint flags)
-    : IStream(), OStream(), _fd(fd), _fpos(),
-      _rbuf(file()->create_buf((perms & FILE_R) ? bufsize : 0)),
-      _wbuf(file()->create_buf((perms & FILE_W) ? bufsize : 0)),
+    : IStream(), OStream(), _fd(fd),
+      _rbuf(new File::Buffer((perms & FILE_R) ? bufsize : 0)),
+      _wbuf(new File::Buffer((perms & FILE_W) ? bufsize : 0)),
       _flags(FL_DEL_BUF | flags) {
 }
 
@@ -34,9 +34,9 @@ FStream::FStream(const char *filename, int perms, size_t bufsize)
 }
 
 FStream::FStream(const char *filename, size_t rsize, size_t wsize, int perms)
-    : IStream(), OStream(), _fd(VFS::open(filename, get_perms(perms))), _fpos(),
-      _rbuf(_fd != FileTable::INVALID ? file()->create_buf((perms & FILE_R) ? rsize : 0) : nullptr),
-      _wbuf(_fd != FileTable::INVALID ? file()->create_buf((perms & FILE_W) ? wsize : 0) : nullptr),
+    : IStream(), OStream(), _fd(VFS::open(filename, get_perms(perms))),
+      _rbuf(_fd != FileTable::INVALID ? new File::Buffer((perms & FILE_R) ? rsize : 0) : nullptr),
+      _wbuf(_fd != FileTable::INVALID ? new File::Buffer((perms & FILE_W) ? wsize : 0) : nullptr),
       _flags(FL_DEL_BUF | FL_DEL_FILE) {
     if(_fd == FileTable::INVALID)
         _state |= FL_ERROR;
@@ -71,14 +71,10 @@ size_t FStream::read(void *dst, size_t count) {
     // TODO maybe it's better to have just one buffer for both and track dirty regions?
     flush();
 
-    // simply use the unbuffered read, if the buffer is empty and all is aligned
-    if(_rbuf->empty() && Math::is_aligned(_fpos, DTU_PKG_SIZE) &&
-                         Math::is_aligned(dst, DTU_PKG_SIZE) &&
-                         Math::is_aligned(count, DTU_PKG_SIZE)) {
+    // use the unbuffered read, if the buffer is smaller
+    if(_rbuf->empty() && count > _rbuf->size) {
         ssize_t res = file()->read(dst, count);
-        if(res > 0)
-            _fpos += static_cast<size_t>(res);
-        else
+        if(res <= 0)
             set_error(res);
         return res < 0 ? 0 : static_cast<size_t>(res);
     }
@@ -91,7 +87,7 @@ size_t FStream::read(void *dst, size_t count) {
     size_t total = 0;
     char *buf = reinterpret_cast<char*>(dst);
     while(count > 0) {
-        ssize_t res = _rbuf->read(file(), _fpos + total, buf + total, count);
+        ssize_t res = _rbuf->read(file(), buf + total, count);
         if(res <= 0) {
             set_error(res);
             return total;
@@ -100,7 +96,6 @@ size_t FStream::read(void *dst, size_t count) {
         count -= static_cast<size_t>(res);
     }
 
-    _fpos += total;
     return total;
 }
 
@@ -118,34 +113,25 @@ size_t FStream::seek(size_t offset, int whence) {
         flush();
     }
 
-    // if we seek within our read-buffer, it's enough to set the position
-    size_t newpos = offset;
-    int res = _rbuf->seek(_fpos, whence, newpos);
-    if(res > 0) {
-        _fpos = newpos;
-        return _fpos;
-    }
-    // not supported?
+    // on relative seeks, take our position within the buffer into account
+    if(whence == M3FS_SEEK_CUR)
+        offset -= _rbuf->cur - _rbuf->pos;
+
+    ssize_t res = file()->seek(offset, whence);
     if(res < 0) {
         _state |= FL_ERROR;
         return 0;
     }
-
-    // File::seek assumes that it is aligned. _fpos needs to reflect the actual position, of course
-    size_t posoff = newpos & (DTU_PKG_SIZE - 1);
-    _fpos = file()->seek(newpos - posoff, whence) + posoff;
     _rbuf->invalidate();
-    return _fpos;
+    return static_cast<size_t>(res);
 }
 
 size_t FStream::write(const void *src, size_t count) {
     if(bad())
         return 0;
 
-    // simply use the unbuffered write, if the buffer is empty and all is aligned
-    if(_wbuf->empty() && Math::is_aligned(_fpos, DTU_PKG_SIZE) &&
-                         Math::is_aligned(src, DTU_PKG_SIZE) &&
-                         Math::is_aligned(count, DTU_PKG_SIZE)) {
+    // use the unbuffered write, if the buffer is smaller
+    if(_wbuf->empty() && count > _wbuf->size) {
         ssize_t res = file()->write(src, count);
         set_error(res);
         return res < 0 ? 0 : static_cast<size_t>(res);
@@ -159,7 +145,7 @@ size_t FStream::write(const void *src, size_t count) {
     const char *buf = reinterpret_cast<const char*>(src);
     size_t total = 0;
     while(count > 0) {
-        ssize_t res = _wbuf->write(file(), _fpos + total, buf + total, count);
+        ssize_t res = _wbuf->write(file(), buf + total, count);
         if(res <= 0) {
             set_error(res);
             return 0;
@@ -172,7 +158,6 @@ size_t FStream::write(const void *src, size_t count) {
             flush();
     }
 
-    _fpos += total;
     return total;
 }
 

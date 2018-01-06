@@ -32,13 +32,10 @@ class RegFileBuffer;
 
 /**
  * The File implementation for regular files. Note that this is the low-level API for working with
- * files. It expects your buffer and read-/write-sizes to be aligned by DTU_PKG_SIZE and every
- * read/write operation will actually issue a read/write operation using the DTU. It thus allows you
- * to reach the best possible performance. On the other hand, it might be inconvenient to use. For
- * that reason, FStream is provided as a buffered version on top of this that does not require
- * proper alignment and will delay read/write operations due to buffering. On the other hand, it
- * has a bit of overhead, obviously.
- * You can't instantiate this class, because VFS::open should be used.
+ * files. Every read/write operation will actually issue a read/write operation using the DTU.
+ * FStream is provided as a buffered version on top of this that will delay read/write operations
+ * due to buffering. On the other hand, it has a bit of overhead, obviously. You can't instantiate
+ * this class, because VFS::open should be used.
  */
 class RegularFile : public File {
     friend class FStream;
@@ -81,15 +78,10 @@ public:
         return _fs;
     }
 
-    virtual Buffer *create_buf(size_t size) override;
     virtual Errors::Code stat(FileInfo &info) const override;
-    virtual size_t seek(size_t offset, int whence) override;
-    virtual ssize_t read(void *buffer, size_t count) override {
-        return do_read(buffer, count, _pos);
-    }
-    virtual ssize_t write(const void *buffer, size_t count) override {
-        return do_write(buffer, count, _pos);
-    }
+    virtual ssize_t seek(size_t offset, int whence) override;
+    virtual ssize_t read(void *buffer, size_t count) override;
+    virtual ssize_t write(const void *buffer, size_t count) override;
 
     virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override;
     virtual Errors::Code begin_write(capsel_t *memgate, size_t *offset, size_t *length) override;
@@ -104,9 +96,6 @@ public:
     static RegularFile *unserialize(Unmarshaller &um);
 
 private:
-    ssize_t fill(void *buffer, size_t size);
-    ssize_t do_read(void *buffer, size_t count, Position &pos) const;
-    ssize_t do_write(const void *buffer, size_t count, Position &pos) const;
     ssize_t get_location(Position &pos, bool writing, bool rebind) const;
     size_t get_amount(size_t length, size_t count, Position &pos) const;
     void adjust_written_part();

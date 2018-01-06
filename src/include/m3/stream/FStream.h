@@ -135,11 +135,7 @@ public:
         return c;
     }
     virtual bool putback(char c) override {
-        if(_rbuf->putback(_fpos, c)) {
-            _fpos--;
-            return true;
-        }
-        return false;
+        return _rbuf->putback(c);
     }
     virtual void write(char c) override {
         write(&c, 1);
@@ -149,7 +145,6 @@ private:
     void set_error(ssize_t res);
 
     fd_t _fd;
-    size_t _fpos;
     File::Buffer *_rbuf;
     File::Buffer *_wbuf;
     uint _flags;

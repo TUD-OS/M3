@@ -26,95 +26,6 @@
 
 namespace m3 {
 
-class RegFileBuffer : public File::Buffer {
-public:
-    explicit RegFileBuffer(size_t size) : File::Buffer(size) {
-    }
-
-    virtual bool putback(size_t off, char c) override {
-        if(!cur || off <= pos || off > pos + cur)
-            return false;
-        buffer[off - 1 - pos] = c;
-        return true;
-    }
-
-    virtual ssize_t read(File *file, size_t off, void *dst, size_t amount) override {
-        // something in the buffer?
-        if(cur && off >= pos && off < pos + cur) {
-            size_t count = std::min(amount, pos + cur - off);
-            memcpy(dst, buffer + (off - pos), count);
-            return static_cast<ssize_t>(count);
-        }
-
-        size_t posoff = off & (DTU_PKG_SIZE - 1);
-        pos = off - posoff;
-        // we can assume here that we are always at the position (_idx, _off), because our
-        // read-buffer is empty, which means that we've used everything that we read via _file->read
-        // last time.
-        ssize_t res = file->read(buffer, size);
-        if(res <= 0)
-            return res;
-        cur = static_cast<size_t>(res);
-        size_t copyamnt = std::min(amount, std::min(static_cast<size_t>(res), size - posoff));
-        memcpy(dst, buffer + posoff, copyamnt);
-        return static_cast<ssize_t>(copyamnt);
-    }
-
-    virtual ssize_t write(File *file, size_t off, const void *src, size_t amount) override {
-        if(cur == 0) {
-            size_t posoff = off & (DTU_PKG_SIZE - 1);
-            pos = off - posoff;
-            cur = posoff;
-            if(cur > 0) {
-                ssize_t res = static_cast<RegularFile*>(file)->fill(buffer, DTU_PKG_SIZE);
-                if(res <= 0)
-                    return res;
-            }
-        }
-
-        if(cur == size) {
-            ssize_t res = flush(file);
-            if(res <= 0)
-                return res;
-        }
-
-        size_t count = std::min(size - cur, amount);
-        memcpy(buffer + cur, src, count);
-        cur += count;
-        return static_cast<ssize_t>(count);
-    }
-
-    virtual int seek(size_t off, int whence, size_t &offset) override {
-        // if we seek within our read-buffer, it's enough to set the position
-        offset = whence == M3FS_SEEK_CUR ? off + offset : offset;
-        if(cur) {
-            if(offset >= pos && offset <= pos + cur)
-                return 1;
-        }
-        return 0;
-    }
-
-    virtual ssize_t flush(File *file) override {
-        ssize_t res = 1;
-        if(cur > 0) {
-            size_t posoff = cur & (DTU_PKG_SIZE - 1);
-            // first, write the aligned part
-            if(cur - posoff > 0)
-                res = file->write(buffer, cur - posoff);
-
-            // if there is anything left, read that first and write it back
-            if(posoff != 0) {
-                alignas(DTU_PKG_SIZE) uint8_t tmpbuf[DTU_PKG_SIZE];
-                res = static_cast<RegularFile*>(file)->fill(tmpbuf, DTU_PKG_SIZE);
-                memcpy(tmpbuf, buffer + cur - posoff, posoff);
-                res = file->write(tmpbuf, DTU_PKG_SIZE);
-            }
-            cur = 0;
-        }
-        return res;
-    }
-};
-
 RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
     : File(perms), _fd(fd), _extended(), _begin(), _length(), _pos(),
       /* pass an arbitrary selector first */
@@ -131,10 +42,6 @@ RegularFile::~RegularFile() {
         _fs->close(_fd, _last_extent, _last_off);
 }
 
-File::Buffer *RegularFile::create_buf(size_t size) {
-    return new RegFileBuffer(size);
-}
-
 Errors::Code RegularFile::stat(FileInfo &info) const {
     return const_cast<Reference<M3FS>&>(_fs)->fstat(_fd, info);
 }
@@ -148,8 +55,7 @@ void RegularFile::adjust_written_part() {
     }
 }
 
-size_t RegularFile::seek(size_t off, int whence) {
-    assert((off & (DTU_PKG_SIZE - 1)) == 0);
+ssize_t RegularFile::seek(size_t off, int whence) {
     size_t global, extoff;
     size_t pos;
 
@@ -168,10 +74,9 @@ size_t RegularFile::seek(size_t off, int whence) {
             if(!len || (off >= begin && off < begin + len)) {
                 _pos.global += i - _pos.local;
                 _pos.local = i;
-                // this has to be aligned. read() will consider this
-                _pos.offset = (off - begin) & ~(DTU_PKG_SIZE - 1);
+                _pos.offset = off - begin;
                 adjust_written_part();
-                return off;
+                return static_cast<ssize_t>(off);
             }
             begin += len;
         }
@@ -197,7 +102,7 @@ size_t RegularFile::seek(size_t off, int whence) {
 
     LLOG(FS, "[" << _fd << "] seek (" << fmt(off, "#0x", 6) << ", " << whence << ") -> ("
         << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
-    return pos;
+    return static_cast<ssize_t>(pos);
 }
 
 size_t RegularFile::get_amount(size_t extlen, size_t count, Position &pos) const {
@@ -214,32 +119,29 @@ size_t RegularFile::get_amount(size_t extlen, size_t count, Position &pos) const
     return amount;
 }
 
-ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
-    assert(Math::is_aligned(buffer, DTU_PKG_SIZE) && Math::is_aligned(count, DTU_PKG_SIZE));
+ssize_t RegularFile::read(void *buffer, size_t count) {
     if(~flags() & FILE_R)
         return Errors::NO_PERM;
 
     char *buf = reinterpret_cast<char*>(buffer);
     while(count > 0) {
         // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(pos, false, true);
+        ssize_t extlen = get_location(_pos, false, true);
         if(extlen < 0)
             return extlen;
         if(extlen == 0)
             break;
 
         // determine next off and idx
-        size_t memoff = pos.offset;
-        size_t amount = get_amount(static_cast<size_t>(extlen), count, pos);
+        size_t memoff = _pos.offset;
+        size_t amount = get_amount(static_cast<size_t>(extlen), count, _pos);
 
         LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") -> ("
-            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "#0x", 6) << ")");
+            << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
 
         // read from global memory
-        // we need to round up here because the filesize might not be a multiple of DTU_PKG_SIZE
-        // in which case the last extent-size is not aligned
         Profile::start(0xaaaa);
-        _lastmem.read(buf, Math::round_up(amount, DTU_PKG_SIZE), memoff);
+        _lastmem.read(buf, amount, memoff);
         Profile::stop(0xaaaa);
         buf += amount;
         count -= amount;
@@ -247,24 +149,23 @@ ssize_t RegularFile::do_read(void *buffer, size_t count, Position &pos) const {
     return buf - reinterpret_cast<char*>(buffer);
 }
 
-ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) const {
-    assert(Math::is_aligned(buffer, DTU_PKG_SIZE) && Math::is_aligned(count, DTU_PKG_SIZE));
+ssize_t RegularFile::write(const void *buffer, size_t count) {
     if(~flags() & FILE_W)
         return Errors::NO_PERM;
 
     const char *buf = reinterpret_cast<const char*>(buffer);
     while(count > 0) {
         // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(pos, true, true);
+        ssize_t extlen = get_location(_pos, true, true);
         if(extlen < 0)
             return extlen;
         if(extlen == 0)
             break;
 
         // determine next off and idx
-        uint16_t lastglobal = pos.global;
-        size_t memoff = pos.offset;
-        size_t amount = get_amount(static_cast<size_t>(extlen), count, pos);
+        uint16_t lastglobal = _pos.global;
+        size_t memoff = _pos.offset;
+        size_t amount = get_amount(static_cast<size_t>(extlen), count, _pos);
 
         // remember the max. position we wrote to
         if(lastglobal >= _last_extent) {
@@ -274,7 +175,7 @@ ssize_t RegularFile::do_write(const void *buffer, size_t count, Position &pos) c
         }
 
         LLOG(FS, "[" << _fd << "] write(" << fmt(amount, "#0x", 6) << ") -> ("
-            << fmt(pos.global, 2) << ", " << fmt(pos.offset, "0", 6) << ")");
+            << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "0", 6) << ")");
 
         // write to global memory
         Profile::start(0xaaaa);
@@ -380,17 +281,6 @@ ssize_t RegularFile::get_location(Position &pos, bool writing, bool rebind) cons
             _lastmem.rebind(_memcaps.start() + pos.local);
         return static_cast<ssize_t>(length);
     }
-}
-
-ssize_t RegularFile::fill(void *buffer, size_t size) {
-    // don't change our internal position
-    Position pos = _pos;
-    ssize_t res = do_read(buffer, size, pos);
-    if(res == 0) {
-        memset(buffer, 0, size);
-        return static_cast<ssize_t>(size);
-    }
-    return res;
 }
 
 size_t RegularFile::serialize_length() {

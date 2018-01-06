@@ -154,8 +154,8 @@ void FSTestSuite::FileTestCase::run() {
         ssize_t count = file->write(content, contentsz);
         assert_size(static_cast<size_t>(count), contentsz);
 
-        assert_size(file->seek(0, M3FS_SEEK_CUR), contentsz);
-        assert_size(file->seek(0, M3FS_SEEK_SET), 0);
+        assert_ssize(file->seek(0, M3FS_SEEK_CUR), static_cast<ssize_t>(contentsz));
+        assert_ssize(file->seek(0, M3FS_SEEK_SET), 0);
 
         alignas(DTU_PKG_SIZE) char buf[contentsz];
         count = file->read(buf, sizeof(buf));
