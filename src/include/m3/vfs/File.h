@@ -48,7 +48,7 @@ public:
         explicit Buffer(size_t _size)
             : buffer(_size ? new char[_size] : nullptr), size(_size), cur(), pos() {
         }
-        virtual ~Buffer() {
+        ~Buffer() {
             delete[] buffer;
         }
 
@@ -71,7 +71,7 @@ public:
          * @param c the character
          * @return true if successful
          */
-        virtual bool putback(char c);
+        bool putback(char c);
 
         /**
          * Reads <amount> bytes from the buffer into <dst>.
@@ -81,7 +81,7 @@ public:
          * @param amount the number of bytes to read
          * @return the number of read bytes (0 = EOF, <0 = error)
          */
-        virtual ssize_t read(File *file, void *dst, size_t amount);
+        ssize_t read(File *file, void *dst, size_t amount);
 
         /**
          * Writes <amount> bytes from <src> into the buffer.
@@ -91,7 +91,7 @@ public:
          * @param amount the number of bytes to write
          * @return the number of written bytes (0 = EOF, <0 =  error)
          */
-        virtual ssize_t write(File *file, const void *src, size_t amount);
+        ssize_t write(File *file, const void *src, size_t amount);
 
         /**
          * Flushes the buffer.
@@ -99,7 +99,7 @@ public:
          * @param file the file backend
          * @return the number of bytes on success (0 = EOF, <0 =  error)
          */
-        virtual ssize_t flush(File *file);
+        ssize_t flush(File *file);
 
         char *buffer;
         size_t size;
