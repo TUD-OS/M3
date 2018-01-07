@@ -26,7 +26,7 @@ pub struct EnvData {
     pub caps: u64,
     pub exit_addr: u64,
 
-    pub _backend: u64,
+    pub vpe: u64,
     pub _isrs: u64,
 }
 

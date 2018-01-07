@@ -57,11 +57,11 @@ impl EnvData {
     }
 
     pub fn has_vpe(&self) -> bool {
-        self.base.fds != 0
+        self.base.vpe != 0
     }
     pub fn vpe(&self) -> &'static mut vpe::VPE {
         unsafe {
-            intrinsics::transmute(self.base.fds)
+            intrinsics::transmute(self.base.vpe)
         }
     }
 
@@ -114,7 +114,7 @@ impl EnvData {
     // --- gem5 specific API ---
 
     pub fn set_vpe(&mut self, vpe: &vpe::VPE) {
-        self.base.fds = vpe as *const vpe::VPE as u64;
+        self.base.vpe = vpe as *const vpe::VPE as u64;
     }
 
     pub fn exit_addr(&self) -> usize {
