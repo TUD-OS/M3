@@ -433,8 +433,11 @@ public:
 private:
     Errors::Code do_commit(M3FSSessionData *sess, int fd, size_t extent, size_t extoff) {
         M3FSSessionData::OpenFile *of = sess->get(fd);
+        if(!of)
+            return Errors::INV_ARGS;
+
         if(extent != 0 || extoff != 0) {
-            if(!of || (~of->flags & FILE_W))
+            if(~of->flags & FILE_W)
                 return Errors::INV_ARGS;
             if(of->xstate == TransactionState::ABORTED)
                 return Errors::COMMIT_FAILED;
