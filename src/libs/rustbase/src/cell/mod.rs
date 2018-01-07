@@ -37,9 +37,9 @@ impl<T: Sized> StaticCell<T> {
         }
     }
 
-    /// Sets the inner value to `val`
-    pub fn set(&self, val: T) {
-        mem::replace(self.get_mut(), val);
+    /// Sets the inner value to `val` and returns the old value
+    pub fn set(&self, val: T) -> T {
+        mem::replace(self.get_mut(), val)
     }
 }
 

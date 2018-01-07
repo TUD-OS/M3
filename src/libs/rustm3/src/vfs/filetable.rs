@@ -7,6 +7,7 @@ use io::Serial;
 use rc::Rc;
 use serialize::Sink;
 use vfs::{File, FileRef, MountTable, RegularFile};
+use vpe::VPE;
 
 pub type Fd = usize;
 
@@ -83,5 +84,14 @@ impl FileTable {
         }
 
         ft
+    }
+}
+
+pub fn deinit() {
+    let ft = VPE::cur().files();
+    for fd in 0..MAX_FILES {
+        if let Some(_) = ft.get(fd) {
+            ft.remove(fd);
+        }
     }
 }

@@ -26,3 +26,7 @@ pub use self::regfile::RegularFile;
 pub mod VFS {
     pub use vfs::vfs::*;
 }
+
+pub fn deinit() {
+    filetable::deinit();
+}

@@ -1,4 +1,5 @@
 use cell::StaticCell;
+use core::mem;
 use io::Serial;
 use vfs::{Fd, FileRef, BufReader, BufWriter};
 use vpe::VPE;
@@ -22,20 +23,35 @@ pub fn stderr() -> &'static mut BufWriter<FileRef> {
 }
 
 pub fn init() {
-    let create_in = |fd| {
-        match VPE::cur().files().get(fd) {
-            Some(f) => Some(BufReader::new(FileRef::new(f, fd))),
-            None    => Some(BufReader::new(FileRef::new(Serial::new(), fd))),
+    for fd in 0..3 {
+        if let None = VPE::cur().files().get(fd) {
+            VPE::cur().files().set(fd, Serial::new());
         }
+    }
+
+    let create_in = |fd| {
+        let f = VPE::cur().files().get(fd).unwrap();
+        Some(BufReader::new(FileRef::new(f, fd)))
     };
     let create_out = |fd| {
-        match VPE::cur().files().get(fd) {
-            Some(f) => Some(BufWriter::new(FileRef::new(f, fd))),
-            None    => Some(BufWriter::new(FileRef::new(Serial::new(), fd))),
-        }
+        let f = VPE::cur().files().get(fd).unwrap();
+        Some(BufWriter::new(FileRef::new(f, fd)))
     };
 
     STDIN .set(create_in(STDIN_FILENO));
     STDOUT.set(create_out(STDOUT_FILENO));
     STDERR.set(create_out(STDERR_FILENO));
+}
+
+pub fn reinit() {
+    mem::forget(STDIN .set(None));
+    mem::forget(STDOUT.set(None));
+    mem::forget(STDERR.set(None));
+    init();
+}
+
+pub fn deinit() {
+    STDIN .set(None);
+    STDOUT.set(None);
+    STDERR.set(None);
 }

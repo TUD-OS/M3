@@ -4,9 +4,12 @@ use heap;
 use io;
 use libc;
 use syscalls;
+use vfs;
 use vpe;
 
 fn rust_exit(code: i32) {
+    io::deinit();
+    vfs::deinit();
     syscalls::exit(code);
     arch::dtu::deinit();
 }

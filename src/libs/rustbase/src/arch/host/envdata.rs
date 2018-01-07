@@ -26,5 +26,5 @@ pub fn get() -> &'static mut EnvData {
 }
 
 pub fn set(data: EnvData) {
-    ENV_DATA.set(Some(data))
+    ENV_DATA.set(Some(data));
 }

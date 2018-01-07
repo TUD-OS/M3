@@ -4,10 +4,13 @@ use heap;
 use io;
 use syscalls;
 use util;
+use vfs;
 use vpe;
 
 #[no_mangle]
 pub extern "C" fn exit(code: i32) {
+    io::deinit();
+    vfs::deinit();
     syscalls::exit(code);
     util::jmp_to(arch::env::get().exit_addr());
 }

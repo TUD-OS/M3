@@ -27,4 +27,9 @@ pub fn init() {
 
 pub fn reinit() {
     ::base::io::reinit();
+    std::reinit();
+}
+
+pub fn deinit() {
+    std::deinit();
 }
