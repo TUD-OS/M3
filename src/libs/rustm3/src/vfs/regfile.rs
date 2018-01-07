@@ -341,7 +341,7 @@ impl vfs::Seek for RegularFile {
 
 impl io::Read for RegularFile {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        if (self.flags & vfs::OpenFlags::R).is_empty() {
+        if !self.flags.contains(vfs::OpenFlags::R) {
             return Err(Error::new(Code::NoPerm))
         }
 
@@ -373,7 +373,7 @@ impl io::Write for RegularFile {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
-        if (self.flags & vfs::OpenFlags::W).is_empty() {
+        if !self.flags.contains(vfs::OpenFlags::W) {
             return Err(Error::new(Code::NoPerm))
         }
 
