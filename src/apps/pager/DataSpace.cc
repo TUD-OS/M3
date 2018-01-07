@@ -110,14 +110,14 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
     // if we don't have memory yet, request it
     if(!reg->has_mem()) {
         size_t off;
-        m3::KIF::CapRngDesc crd;
         m3::loclist_type locs;
         // get memory caps for the region
         {
             size_t count = 1;
 
+            // TODO add a cache for that; currently, we request the same caps over and over again
             off = fileoff + pfoff;
-            m3::M3FS::get_locs(sess, id, &off, count, crd, locs, m3::M3FS::BYTE_OFFSET);
+            m3::M3FS::get_locs(sess, id, &off, count, locs, m3::M3FS::BYTE_OFFSET);
         }
 
         // first, resize the region to not be too large
@@ -136,20 +136,20 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
         }
 
         // ensure that we don't exceed the memcap size
-        if(reg->mem_offset() + reg->size() > locs.get(0))
-            reg->size(m3::Math::round_up(locs.get(0) - reg->mem_offset(), PAGE_SIZE));
+        if(reg->mem_offset() + reg->size() > locs.get_len(0))
+            reg->size(m3::Math::round_up(locs.get_len(0) - reg->mem_offset(), PAGE_SIZE));
 
         // if it's writable, create a copy
         // TODO let the mapper decide what to do (for m3fs, we get direct access to the file's
         // data, so that we have to copy that. but maybe this is not always the case)
         if(_flags & m3::DTU::PTE_W) {
-            m3::MemGate src(m3::MemGate::bind(crd.start(), 0));
+            m3::MemGate src(m3::MemGate::bind(locs.get_sel(0), 0));
             reg->mem(new PhysMem(_as->mem, addr(), reg->size(), m3::MemGate::RWX));
             copy_block(&src, reg->mem()->gate, reg->mem_offset(), reg->size());
             reg->mem_offset(0);
         }
         else
-            reg->mem(new PhysMem(_as->mem, addr(), crd.start()));
+            reg->mem(new PhysMem(_as->mem, addr(), locs.get_sel(0)));
 
         SLOG(PAGER, "Obtained memory for "
             << m3::fmt(reg->virt(), "p") << ".."

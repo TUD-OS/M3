@@ -65,7 +65,7 @@ public:
     virtual File *open(const char *path, int perms) override;
     virtual Errors::Code stat(const char *path, FileInfo &info) override;
     Errors::Code fstat(int fd, FileInfo &info);
-    Errors::Code seek(int fd, size_t off, int whence, size_t &global, size_t &extoff, size_t &pos);
+    Errors::Code seek(int fd, size_t off, int whence, uint16_t &ext, size_t &extoff, size_t &pos);
     virtual Errors::Code mkdir(const char *path, mode_t mode) override;
     virtual Errors::Code rmdir(const char *path) override;
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;
@@ -74,25 +74,25 @@ public:
     Errors::Code close(int fd, size_t extent, size_t off);
 
     template<size_t N>
-    bool get_locs(int fd, size_t offset, size_t count, KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
-        return get_locs(*this, fd, &offset, count, crd, locs, flags);
+    bool get_locs(int fd, size_t off, size_t count, LocList<N> &locs, uint flags) {
+        return get_locs(*this, fd, &off, count, locs, flags);
     }
 
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
-    static bool get_locs(Session &sess, int fd, size_t *offset, size_t count,
-            KIF::CapRngDesc &crd, LocList<N> &locs, uint flags) {
+    static bool get_locs(Session &sess, int fd, size_t *off, size_t count, LocList<N> &locs, uint flags) {
         xfer_t args[Math::max(2 + N, 4ul)];
         args[0] = static_cast<xfer_t>(fd);
-        args[1] = *offset;
+        args[1] = *off;
         args[2] = count;
         args[3] = flags;
         bool extended = false;
         size_t argcount = 4;
-        crd = sess.obtain(count, &argcount, args);
+        KIF::CapRngDesc crd = sess.obtain(count, &argcount, args);
         if(Errors::last == Errors::NONE) {
             extended = args[0];
-            *offset = args[1];
+            *off = args[1];
+            locs.set_sel(crd.start());
             for(size_t i = 2; i < argcount; ++i)
                 locs.append(args[i]);
         }

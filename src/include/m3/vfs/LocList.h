@@ -25,7 +25,7 @@ namespace m3 {
 template<size_t N>
 class LocList {
 public:
-    explicit LocList() : _count(), _lengths() {
+    explicit LocList() : _sel(ObjCap::INVALID), _count(), _lengths() {
     }
 
     void append(size_t length) {
@@ -37,11 +37,25 @@ public:
         memset(_lengths, 0, sizeof(_lengths));
     }
 
+    size_t total_length() const {
+        size_t len = 0;
+        for(size_t i = 0; i < _count; ++i)
+            len += _lengths[i];
+        return len;
+    }
+
     size_t count() const {
         return _count;
     }
-    size_t get(size_t i) const {
-        return _lengths[i];
+    size_t get_len(size_t i) const {
+        return i < _count ? _lengths[i] : 0;
+    }
+
+    capsel_t get_sel(size_t i) const {
+        return _sel + i;
+    }
+    void set_sel(capsel_t sel) {
+        _sel = sel;
     }
 
     friend OStream &operator <<(OStream &os, const LocList &l) {
@@ -56,6 +70,7 @@ public:
     }
 
 private:
+    capsel_t _sel;
     size_t _count;
     size_t _lengths[N];
 };

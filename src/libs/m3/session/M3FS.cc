@@ -51,12 +51,12 @@ Errors::Code M3FS::fstat(int fd, FileInfo &info) {
     return Errors::NONE;
 }
 
-Errors::Code M3FS::seek(int fd, size_t off, int whence, size_t &global, size_t &extoff, size_t &pos) {
-    GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, global, extoff);
+Errors::Code M3FS::seek(int fd, size_t off, int whence, uint16_t &ext, size_t &extoff, size_t &pos) {
+    GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, ext, extoff);
     reply >> Errors::last;
     if(Errors::last != Errors::NONE)
         return Errors::last;
-    reply >> global >> extoff >> pos;
+    reply >> ext >> extoff >> pos;
     return Errors::NONE;
 }
 

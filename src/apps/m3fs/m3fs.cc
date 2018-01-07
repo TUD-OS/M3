@@ -223,12 +223,12 @@ public:
         data.args[0] = extended;
         data.args[1] = firstOff;
         for(size_t i = 0; i < locs->count(); ++i)
-            data.args[2 + i] = locs->get(i);
+            data.args[2 + i] = locs->get_len(i);
 
         if(m3::ServiceLog::level & m3::ServiceLog::FS) {
             SLOG(FS, "Received " << locs->count() << " capabilities:");
             for(size_t i = 0; i < locs->count(); ++i)
-                SLOG(FS, "  " << fmt(locs->get(i), "#x"));
+                SLOG(FS, "  " << fmt(locs->get_len(i), "#x"));
         }
 
         of->caps.add(crd);

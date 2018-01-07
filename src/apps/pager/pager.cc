@@ -24,7 +24,6 @@
 #include <m3/server/Server.h>
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
-#include <m3/vfs/LocList.h>
 
 #include "AddrSpace.h"
 

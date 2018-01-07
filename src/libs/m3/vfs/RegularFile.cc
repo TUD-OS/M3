@@ -26,182 +26,168 @@
 
 namespace m3 {
 
+bool RegularFile::ExtentCache::find(size_t off, uint16_t &ext, size_t &extoff) const {
+    extoff = offset;
+    for(size_t i = 0; i < locs.count(); ++i) {
+        size_t len = locs.get_len(i);
+        if(len == 0 || (off >= extoff && off < extoff + len)) {
+            ext = i;
+            return true;
+        }
+        extoff += len;
+    }
+    return false;
+}
+
+Errors::Code RegularFile::ExtentCache::request_next(Reference<M3FS> &sess, int fd,
+                                                    bool writing, bool &extended) {
+    // move forward
+    offset += length;
+    length = 0;
+    first += locs.count();
+    locs.clear();
+
+    // get new locations
+    uint flags = writing ? M3FS::EXTEND : 0;
+    extended = sess->get_locs(fd, first, MAX_LOCS, locs, flags);
+    if(Errors::last != Errors::NONE || locs.count() == 0)
+        return Errors::last;
+
+    // cache new length
+    length = locs.total_length();
+
+    return Errors::NONE;
+}
+
 RegularFile::RegularFile(int fd, Reference<M3FS> fs, int perms)
-    : File(perms), _fd(fd), _extended(), _begin(), _length(), _pos(),
-      /* pass an arbitrary selector first */
-      _memcaps(), _locs(), _lastmem(MemGate::bind(0)), _last_extent(0), _last_off(0),
-      _fs(fs) {
+    : File(perms), _fd(fd), _fs(fs), _pos(), _cache(),
+      _mem(MemGate::bind(ObjCap::INVALID)), _extended(), _max_write() {
     if(flags() & FILE_APPEND)
         seek(0, M3FS_SEEK_END);
 }
 
 RegularFile::~RegularFile() {
     // the fs-service will revoke it. so don't try to "unactivate" it afterwards
-    _lastmem.rebind(ObjCap::INVALID);
+    _mem.rebind(ObjCap::INVALID);
     if(_fs.valid())
-        _fs->close(_fd, _last_extent, _last_off);
+        _fs->close(_fd, _max_write.ext, _max_write.extoff);
 }
 
 Errors::Code RegularFile::stat(FileInfo &info) const {
     return const_cast<Reference<M3FS>&>(_fs)->fstat(_fd, info);
 }
 
-void RegularFile::adjust_written_part() {
-    // allow seeks beyond the so far written part
-    // TODO actually, we should also append to the file, if necessary
-    if(_extended && (_pos.global > _last_extent || (_pos.global == _last_extent && _pos.offset > _last_off))) {
-        _last_extent = _pos.global;
-        _last_off = _pos.offset;
-    }
-}
-
-ssize_t RegularFile::seek(size_t off, int whence) {
-    size_t global, extoff;
-    size_t pos;
-
-    // seek to beginning?
-    if(whence == M3FS_SEEK_SET && off == 0) {
-        global = 0;
-        extoff = 0;
-        pos = 0;
-    }
-    // is it already in our local data?
-    // TODO we could support that for SEEK_CUR as well
-    else if(whence == M3FS_SEEK_SET && _pos.valid() && off >= _begin && off < _begin + _length) {
-        size_t begin = _begin;
-        for(size_t i = 0; i < MAX_LOCS; ++i) {
-            size_t len = _locs.get(i);
-            if(!len || (off >= begin && off < begin + len)) {
-                _pos.global += i - _pos.local;
-                _pos.local = i;
-                _pos.offset = off - begin;
-                adjust_written_part();
-                return static_cast<ssize_t>(off);
-            }
-            begin += len;
-        }
-        UNREACHED;
-    }
-    else {
-        global = _pos.global;
-        extoff = _pos.offset;
-        _fs->seek(_fd, off, whence, global, extoff, pos);
-    }
+void RegularFile::set_pos(const Position &pos) {
+    _pos = pos;
 
     // if our global extent has changed, we have to get new locations
-    if(_pos.global != global) {
-        _pos.global = global;
-        _pos.local = MAX_LOCS;
-        // only in this case, we have to reset our start-pos
-        _begin = pos;
-        // we don't have locations yet
-        _length = 0;
+    if(!_cache.contains_ext(pos.ext)) {
+        _cache.invalidate();
+        _cache.first = pos.ext;
+        _cache.offset = pos.abs;
     }
-    _pos.offset = extoff;
-    adjust_written_part();
 
-    LLOG(FS, "[" << _fd << "] seek (" << fmt(off, "#0x", 6) << ", " << whence << ") -> ("
-        << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
-    return static_cast<ssize_t>(pos);
+    // update last write pos accordingly
+    // TODO good idea?
+    if(_extended && _pos.abs > _max_write.abs) {
+        _max_write = _pos;
+    }
 }
 
-size_t RegularFile::get_amount(size_t extlen, size_t count, Position &pos) const {
-    // determine next off and idx
-    size_t amount;
-    if(count >= extlen - pos.offset) {
-        amount = extlen - pos.offset;
-        pos.next_extent();
+ssize_t RegularFile::get_ext_len(bool writing, bool rebind) {
+    if(!_cache.valid() || _cache.ext_len(_pos.ext) == 0) {
+        Errors::Code res = _cache.request_next(_fs, _fd, writing, _extended);
+        if(res != Errors::NONE)
+            return res;
+    }
+
+    // don't read past the so far written part
+    if(_extended && !writing && _pos.ext >= _max_write.ext) {
+        if(_pos.ext > _max_write.ext || _pos.extoff >= _max_write.extoff)
+            return 0;
+        else
+            return static_cast<ssize_t>(_max_write.extoff);
     }
     else {
-        amount = count;
-        pos.offset += amount;
+        size_t len = _cache.ext_len(_pos.ext);
+
+        if(rebind && len != 0 && _mem.sel() != _cache.sel(_pos.ext)) {
+            _mem.rebind(_cache.sel(_pos.ext));
+        }
+        return static_cast<ssize_t>(len);
     }
-    return amount;
+}
+
+ssize_t RegularFile::advance(size_t count, bool writing) {
+    ssize_t extlen = get_ext_len(writing, true);
+    if(extlen <= 0)
+        return extlen;
+
+    // determine next off and idx
+    auto lastpos = _pos;
+    size_t amount = _pos.advance(static_cast<size_t>(extlen), count);
+
+    // remember the max. position we wrote to
+    if(writing && lastpos.abs + amount > _max_write.abs) {
+        _max_write = lastpos;
+        _max_write.extoff += amount;
+        _max_write.abs += amount;
+    }
+
+    return static_cast<ssize_t>(amount);
 }
 
 ssize_t RegularFile::read(void *buffer, size_t count) {
     if(~flags() & FILE_R)
         return Errors::NO_PERM;
 
-    char *buf = reinterpret_cast<char*>(buffer);
-    while(count > 0) {
-        // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(_pos, false, true);
-        if(extlen < 0)
-            return extlen;
-        if(extlen == 0)
-            break;
+    // determine the amount that we can read
+    auto lastpos = _pos;
+    ssize_t amount = advance(count, false);
+    if(amount <= 0)
+        return amount;
 
-        // determine next off and idx
-        size_t memoff = _pos.offset;
-        size_t amount = get_amount(static_cast<size_t>(extlen), count, _pos);
+    LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") @ (" << lastpos << ")");
 
-        LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") -> ("
-            << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "#0x", 6) << ")");
+    Profile::start(0xaaaa);
+    _mem.read(buffer, static_cast<size_t>(amount), lastpos.extoff);
+    Profile::stop(0xaaaa);
 
-        // read from global memory
-        Profile::start(0xaaaa);
-        _lastmem.read(buf, amount, memoff);
-        Profile::stop(0xaaaa);
-        buf += amount;
-        count -= amount;
-    }
-    return buf - reinterpret_cast<char*>(buffer);
+    return amount;
 }
 
 ssize_t RegularFile::write(const void *buffer, size_t count) {
     if(~flags() & FILE_W)
         return Errors::NO_PERM;
 
-    const char *buf = reinterpret_cast<const char*>(buffer);
-    while(count > 0) {
-        // figure out where that part of the file is in memory, based on our location db
-        ssize_t extlen = get_location(_pos, true, true);
-        if(extlen < 0)
-            return extlen;
-        if(extlen == 0)
-            break;
+    // determine the amount that we can write
+    auto lastpos = _pos;
+    ssize_t amount = advance(count, true);
+    if(amount <= 0)
+        return amount;
 
-        // determine next off and idx
-        uint16_t lastglobal = _pos.global;
-        size_t memoff = _pos.offset;
-        size_t amount = get_amount(static_cast<size_t>(extlen), count, _pos);
+    LLOG(FS, "[" << _fd << "] write (" << fmt(amount, "#0x", 6) << ") @ (" << lastpos << ")");
 
-        // remember the max. position we wrote to
-        if(lastglobal >= _last_extent) {
-            if(lastglobal > _last_extent || memoff + amount > _last_off)
-                _last_off = memoff + amount;
-            _last_extent = lastglobal;
-        }
+    // write to global memory
+    Profile::start(0xaaaa);
+    _mem.write(buffer, static_cast<size_t>(amount), lastpos.extoff);
+    Profile::stop(0xaaaa);
 
-        LLOG(FS, "[" << _fd << "] write(" << fmt(amount, "#0x", 6) << ") -> ("
-            << fmt(_pos.global, 2) << ", " << fmt(_pos.offset, "0", 6) << ")");
-
-        // write to global memory
-        Profile::start(0xaaaa);
-        _lastmem.write(buf, amount, memoff);
-        Profile::stop(0xaaaa);
-        buf += amount;
-        count -= amount;
-    }
-    return buf - reinterpret_cast<const char*>(buffer);
+    return amount;
 }
 
 Errors::Code RegularFile::read_next(capsel_t *memgate, size_t *offset, size_t *length) {
     if(~flags() & FILE_R)
         return Errors::NO_PERM;
 
-    // figure out where that part of the file is in memory, based on our location db
-    ssize_t extlen = get_location(_pos, false, false);
-    if(extlen < 0)
-        return Errors::last;
+    // determine the amount that we can read
+    ssize_t extlen = get_ext_len(false, false);
+    if(extlen <= 0)
+        return static_cast<Errors::Code>(extlen);
 
-    *memgate = _memcaps.start() + _pos.local;
-    *offset = _pos.offset;
-    if(extlen == 0)
-        *length = 0;
-    else
-        *length = get_amount(static_cast<size_t>(extlen), std::numeric_limits<size_t>::max(), _pos);
+    *memgate = _cache.sel(_pos.ext);
+    *offset = _pos.extoff;
+    *length = _pos.advance(static_cast<size_t>(extlen), std::numeric_limits<size_t>::max());
     return Errors::NONE;
 }
 
@@ -209,78 +195,54 @@ Errors::Code RegularFile::begin_write(capsel_t *memgate, size_t *offset, size_t 
     if(~flags() & FILE_W)
         return Errors::NO_PERM;
 
-    // figure out where that part of the file is in memory, based on our location db
-    ssize_t extlen = get_location(_pos, true, false);
-    if(extlen < 0)
-        return Errors::last;
+    ssize_t extlen = get_ext_len(true, false);
+    if(extlen <= 0)
+        return static_cast<Errors::Code>(extlen);
 
-    *memgate = _memcaps.start() + _pos.local;
-    *offset = _pos.offset;
-    *length = static_cast<size_t>(extlen) - _pos.offset;
+    *memgate = _cache.sel(_pos.ext);
+    *offset = _pos.extoff;
+    *length = static_cast<size_t>(extlen) - _pos.extoff;
     return Errors::NONE;
 }
 
 void RegularFile::commit_write(size_t length) {
-    uint16_t lastglobal = _pos.global;
-    size_t extlen = _locs.get(_pos.local);
-    size_t offset = _pos.offset;
-    get_amount(extlen, length, _pos);
-
-    // remember the max. position we wrote to
-    if(lastglobal >= _last_extent) {
-        if(lastglobal > _last_extent || offset + length > _last_off)
-            _last_off = offset + length;
-        _last_extent = lastglobal;
-    }
+    advance(length, true);
 }
 
-ssize_t RegularFile::get_location(Position &pos, bool writing, bool rebind) const {
-    if(!pos.valid() || (writing && _locs.get(pos.local) == 0)) {
-        _locs.clear();
-
-        // move forward
-        _begin += _length;
-        _length = 0;
-
-        // get new locations
-        pos.local = 0;
-        // TODO it would be better to increment the number of blocks we create, like start with
-        // 4, then 8, then 16, up to a certain limit.
-        _extended |= const_cast<Reference<M3FS>&>(_fs)->get_locs(_fd, pos.global, MAX_LOCS,
-            _memcaps, _locs, writing ? M3FS::EXTEND : 0);
-        if(Errors::last != Errors::NONE || _locs.count() == 0)
-            return Errors::last;
-
-        // determine new length
-        for(size_t i = 0; i < _locs.count(); ++i)
-            _length += _locs.get(i);
-
-        // when seeking to the end, we might be already at the end of a extent. if that happened,
-        // go to the beginning of the next one
-        size_t length = _locs.get(0);
-        if(pos.offset == length)
-            pos.next_extent();
-        if(rebind)
-            _lastmem.rebind(_memcaps.start() + pos.local);
-        return static_cast<ssize_t>(_locs.get(pos.local));
+ssize_t RegularFile::seek(size_t off, int whence) {
+    // simple cases first
+    Position pos;
+    if(whence == SEEK_CUR && off == 0) {
+        pos = _pos;
     }
-    else {
-        // don't read past the so far written part
-        if(_extended && !writing && pos.global + pos.local >= _last_extent) {
-            if(pos.global + pos.local > _last_extent)
-                return 0;
-            // take care that there is at least something to read; if not, break here to not advance
-            // to the next extent (see get_amount).
-            if(pos.offset >= _last_off)
-                return 0;
-            return static_cast<ssize_t>(_last_off);
+    // nothing to do if we want to seek to the beginning
+    else if(!(whence == SEEK_SET && off == 0)) {
+        if(whence == SEEK_CUR) {
+            off += _pos.abs;
         }
 
-        size_t length = _locs.get(pos.local);
-        if(rebind && length && _lastmem.sel() != _memcaps.start() + pos.local)
-            _lastmem.rebind(_memcaps.start() + pos.local);
-        return static_cast<ssize_t>(length);
+        // is it already in our cache?
+        if(whence != SEEK_END && _cache.contains_pos(off)) {
+            uint16_t ext;
+            size_t begin;
+            // this is always successful, because we checked the range before
+            _cache.find(off, ext, begin);
+
+            pos = Position(_cache.first + ext, off - begin, off);
+        }
+        // otherwise, ask m3fs
+        else {
+            Errors::Code res = _fs->seek(_fd, off, whence, pos.ext, pos.extoff, pos.abs);
+            if(res != Errors::NONE)
+                return res;
+        }
     }
+
+    set_pos(pos);
+
+    LLOG(FS, "[" << _fd << "] seek (" << fmt(off, "#0x", 6) << ", " << whence << ") -> " << _pos << ")");
+
+    return static_cast<ssize_t>(_pos.abs);
 }
 
 size_t RegularFile::serialize_length() {
@@ -293,8 +255,7 @@ void RegularFile::delegate(VPE &) {
 
 void RegularFile::serialize(Marshaller &m) {
     size_t mid = VPE::self().mounts()->get_mount_id(&*_fs);
-    m << _fd << flags() << mid << _extended << _begin << _pos;
-    m << _last_extent << _last_off;
+    m << _fd << flags() << mid << _extended << _pos << _max_write;
 }
 
 RegularFile *RegularFile::unserialize(Unmarshaller &um) {
@@ -304,10 +265,7 @@ RegularFile *RegularFile::unserialize(Unmarshaller &um) {
 
     Reference<M3FS> fs(static_cast<M3FS*>(VPE::self().mounts()->get_mount(mid)));
     RegularFile *file = new RegularFile(fd, fs, flags);
-    um >> file->_extended >> file->_begin >> file->_pos;
-    um >> file->_last_extent >> file->_last_off;
-    // we want to get new mem caps
-    file->_pos.local = MAX_LOCS;
+    um >> file->_extended >> file->_pos >> file->_max_write;
     return file;
 }
 

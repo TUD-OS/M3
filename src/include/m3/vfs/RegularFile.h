@@ -42,24 +42,88 @@ class RegularFile : public File {
     friend class M3FS;
     friend class RegFileBuffer;
 
-    struct Position {
-        explicit Position() : local(MAX_LOCS), global(), offset() {
+    struct ExtentCache {
+    public:
+        explicit ExtentCache() : locs(), first(), offset(), length() {
         }
 
         bool valid() const {
-            return local < MAX_LOCS;
+            return locs.count() > 0;
+        }
+        void invalidate() {
+            locs.clear();
         }
 
-        void next_extent() {
-            local++;
-            global++;
-            offset = 0;
+        bool contains_pos(size_t off) const {
+            return valid() && off >= offset && off < offset + length;
+        }
+        bool contains_ext(uint16_t ext) const {
+            return ext >= first && ext < first + locs.count();
         }
 
-        uint16_t local;
-        uint16_t global;
+        size_t ext_len(uint16_t ext) const {
+            return locs.get_len(static_cast<size_t>(ext - first));
+        }
+        capsel_t sel(uint16_t ext) const {
+            return locs.get_sel(static_cast<size_t>(ext - first));
+        }
+
+        bool find(size_t off, uint16_t &ext, size_t &extoff) const;
+        Errors::Code request_next(Reference<M3FS> &sess, int fd, bool writing, bool &extended);
+
+        loclist_type locs;
+        uint16_t first;
         size_t offset;
-    } PACKED;
+        size_t length;
+    };
+
+    struct Position {
+        explicit Position() : ext(0), extoff(0), abs(0) {
+        }
+        explicit Position(uint16_t ext, size_t extoff, size_t abs) : ext(ext), extoff(extoff), abs(abs) {
+        }
+
+        size_t advance(size_t extlen, size_t count) {
+            if(count >= extlen - extoff) {
+                size_t res = extlen - extoff;
+                abs += res;
+                ext += 1;
+                extoff = 0;
+                return res;
+            }
+            else {
+                extoff += count;
+                abs += count;
+                return count;
+            }
+        }
+
+        friend OStream &operator<<(OStream &os, const Position &p) {
+            os << "Pos[abs=" << fmt(p.abs, "#0x")
+                 << ", ext=" << p.ext
+                 << ", extoff=" << fmt(p.extoff, "#0x") << "]";
+            return os;
+        }
+
+        uint16_t ext;
+        size_t extoff;
+        size_t abs;
+    };
+
+    friend inline Unmarshaller &operator>>(Unmarshaller &u, RegularFile::Position &pos) {
+        u >> pos.ext >> pos.extoff >> pos.abs;
+        return u;
+    }
+
+    friend inline GateIStream &operator>>(GateIStream &is, RegularFile::Position &pos) {
+        is >> pos.ext >> pos.extoff >> pos.abs;
+        return is;
+    }
+
+    friend inline Marshaller &operator<<(Marshaller &m, const RegularFile::Position &pos) {
+        m << pos.ext << pos.extoff << pos.abs;
+        return m;
+    }
 
     explicit RegularFile(int fd, Reference<M3FS> fs, int perms);
 public:
@@ -96,21 +160,17 @@ public:
     static RegularFile *unserialize(Unmarshaller &um);
 
 private:
-    ssize_t get_location(Position &pos, bool writing, bool rebind) const;
-    size_t get_amount(size_t length, size_t count, Position &pos) const;
-    void adjust_written_part();
+    void set_pos(const Position &pos);
+    ssize_t get_ext_len(bool writing, bool rebind);
+    ssize_t advance(size_t count, bool writing);
 
     int _fd;
-    mutable bool _extended;
-    mutable size_t _begin;
-    mutable size_t _length;
-    mutable Position _pos;
-    mutable KIF::CapRngDesc _memcaps;
-    mutable loclist_type _locs;
-    mutable MemGate _lastmem;
-    mutable uint16_t _last_extent;
-    mutable size_t _last_off;
     Reference<M3FS> _fs;
+    Position _pos;
+    ExtentCache _cache;
+    MemGate _mem;
+    bool _extended;
+    Position _max_write;
 };
 
 }
