@@ -1019,6 +1019,10 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     // doing the reply)
     DTU::get().mark_read_remote(vpe->desc(), ep, msgaddr);
 
+    // ensure that the VPE still exists since we don't have a capability, but only a message header
+    if(!VPEManager::get().exists(head.senderVpeId))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE does not exist");
+
     VPE &tvpe = VPEManager::get().vpe(head.senderVpeId);
     bool async = tvpe.state() != VPE::RUNNING && event;
     if(async)
