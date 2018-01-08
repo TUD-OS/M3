@@ -33,7 +33,7 @@ using namespace m3;
 class M3FSRequestHandler;
 
 struct LimitedCapContainer {
-    static constexpr size_t MAX_CAPS    = 256;
+    static constexpr size_t MAX_CAPS    = 1024;
 
     explicit LimitedCapContainer() : pos(), victim() {
         for(size_t j = 0; j < MAX_CAPS; ++j)
