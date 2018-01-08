@@ -1,4 +1,5 @@
 use cap::{CapFlags, Capability, Selector};
+use core::fmt;
 use errors::Error;
 use kif;
 use syscalls;
@@ -52,5 +53,11 @@ impl Session {
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, caps, count);
         let num = syscalls::obtain(self.sel(), crd, sargs, rargs)?;
         Ok((num, crd))
+    }
+}
+
+impl fmt::Debug for Session {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Session[sel: {}]", self.sel())
     }
 }

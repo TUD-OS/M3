@@ -1,5 +1,6 @@
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
+use core::fmt;
 use core::intrinsics;
 use dtu;
 use errors::{Code, Error};
@@ -10,7 +11,6 @@ use vpe;
 
 pub use kif::Perm;
 
-#[derive(Debug)]
 pub struct MemGate {
     gate: Gate,
 }
@@ -168,5 +168,11 @@ impl MemGate {
         *off += amount;
         *size -= amount;
         Ok(())
+    }
+}
+
+impl fmt::Debug for MemGate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "MemGate[sel: {}, ep: {:?}]", self.sel(), self.gate.ep())
     }
 }

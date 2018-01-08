@@ -2,10 +2,11 @@ use cap::Selector;
 use col::Vec;
 use com::VecSink;
 use core::any::Any;
+use core::fmt;
 use errors::Error;
 use vfs::{OpenFlags, FileHandle, FileInfo, FileMode};
 
-pub trait FileSystem {
+pub trait FileSystem : fmt::Debug {
     fn as_any(&self) -> &Any;
 
     fn open(&self, path: &str, perms: OpenFlags) -> Result<FileHandle, Error>;

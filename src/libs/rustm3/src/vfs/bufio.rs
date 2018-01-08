@@ -1,4 +1,5 @@
 use col::{Vec, String};
+use core::fmt;
 use errors::Error;
 use io::{Read, Write};
 use util;
@@ -85,6 +86,12 @@ impl<R: Read + Seek> Seek for BufReader<R> {
     }
 }
 
+impl<R: Read + fmt::Debug> fmt::Debug for BufReader<R> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "BufReader[reader={:?}, pos={}, cap={}]", self.reader, self.pos, self.cap)
+    }
+}
+
 pub struct BufWriter<W : Write> {
     writer: W,
     buf: Vec<u8>,
@@ -163,5 +170,11 @@ impl<W: Write + Seek> Seek for BufWriter<W> {
 impl<W: Write> Drop for BufWriter<W> {
     fn drop(&mut self) {
         self.flush().unwrap();
+    }
+}
+
+impl<W: Write + fmt::Debug> fmt::Debug for BufWriter<W> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "BufWriter[writer={:?}, pos={}]", self.writer, self.pos)
     }
 }

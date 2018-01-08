@@ -1,6 +1,7 @@
 use cap::Selector;
 use cell::RefCell;
 use col::Vec;
+use core::fmt;
 use com::{VecSink, SliceSource};
 use errors::{Code, Error};
 use io::Serial;
@@ -84,6 +85,18 @@ impl FileTable {
         }
 
         ft
+    }
+}
+
+impl fmt::Debug for FileTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FileTable[\n")?;
+        for fd in 0..MAX_FILES {
+            if let Some(ref file) = self.files[fd] {
+                write!(f, "  {} -> {:?}\n", fd, file)?;
+            }
+        }
+        write!(f, "]")
     }
 }
 

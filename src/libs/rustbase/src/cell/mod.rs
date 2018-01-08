@@ -1,5 +1,6 @@
 //! Shareable mutable containers
 
+use core::fmt;
 use core::marker::Sync;
 use core::mem;
 use core::ops::Deref;
@@ -48,5 +49,11 @@ impl<T: Sized> Deref for StaticCell<T> {
 
     fn deref(&self) -> &Self::Target {
         self.get()
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for StaticCell<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.get().fmt(f)
     }
 }

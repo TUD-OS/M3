@@ -2,6 +2,7 @@ use cap::Selector;
 use cell::RefCell;
 use col::{String, ToString, Vec};
 use com::{SliceSource, VecSink};
+use core::fmt;
 use errors::{Code, Error};
 use rc::Rc;
 use serialize::Sink;
@@ -147,5 +148,15 @@ impl MountTable {
             comp_count += 1;
         }
         comp_count
+    }
+}
+
+impl fmt::Debug for MountTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MountTable[\n")?;
+        for m in self.mounts.iter() {
+            write!(f, "  {} -> {:?}\n", m.path, m.fs.borrow())?;
+        }
+        write!(f, "]")
     }
 }

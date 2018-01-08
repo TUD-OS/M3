@@ -2,6 +2,7 @@
 
 use arch;
 use cell::RefCell;
+use core::fmt;
 use errors::Error;
 use io;
 use rc::Rc;
@@ -30,5 +31,11 @@ impl io::Write for Serial {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         arch::serial::write(buf)
+    }
+}
+
+impl fmt::Debug for Serial {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Serial")
     }
 }

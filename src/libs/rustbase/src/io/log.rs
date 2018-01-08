@@ -7,6 +7,8 @@ use errors::Error;
 use rc::Rc;
 use io::{Serial, Write};
 
+/// Default log message type
+pub const DEF: bool     = true;
 /// Logs system calls
 pub const SYSC: bool    = false;
 /// Logs heap operations

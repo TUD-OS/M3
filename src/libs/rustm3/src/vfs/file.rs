@@ -1,6 +1,7 @@
 use cap::Selector;
 use col::Vec;
 use com::VecSink;
+use core::fmt::Debug;
 use errors::Error;
 use io::{Read, Write};
 use kif;
@@ -76,7 +77,7 @@ impl Unmarshallable for FileInfo {
     }
 }
 
-pub trait File : Read + Write + Seek + Map {
+pub trait File : Read + Write + Seek + Map + Debug {
     fn flags(&self) -> OpenFlags;
 
     fn stat(&self) -> Result<FileInfo, Error>;

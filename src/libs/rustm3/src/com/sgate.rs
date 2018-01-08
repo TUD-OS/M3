@@ -1,6 +1,7 @@
 use cap::{CapFlags, Selector};
 use com::gate::Gate;
 use com::RecvGate;
+use core::fmt;
 use dtu;
 use errors::Error;
 use kif::INVALID_SEL;
@@ -8,7 +9,6 @@ use syscalls;
 use util;
 use vpe;
 
-#[derive(Debug)]
 pub struct SendGate {
     gate: Gate,
 }
@@ -91,5 +91,11 @@ impl SendGate {
     pub fn send_bytes(&self, msg: *const u8, size: usize, reply_gate: &RecvGate) -> Result<(), Error> {
         let ep = self.gate.activate()?;
         dtu::DTU::send(ep, msg, size, 0, reply_gate.ep().unwrap())
+    }
+}
+
+impl fmt::Debug for SendGate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "SendGate[sel: {}, ep: {:?}]", self.sel(), self.gate.ep())
     }
 }

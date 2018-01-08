@@ -410,3 +410,10 @@ impl Drop for RegularFile {
         sess_to_m3fs!(self.sess).close(self.fid, self.max_write.ext, self.max_write.extoff).unwrap();
     }
 }
+
+impl core::fmt::Debug for RegularFile {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "RegFile[fid={}, flags={:?}, pos={}, max_write={}]",
+            self.fid, self.flags, self.pos, self.max_write)
+    }
+}

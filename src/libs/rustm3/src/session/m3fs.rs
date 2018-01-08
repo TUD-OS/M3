@@ -255,3 +255,9 @@ impl M3FS {
         M3FS::new_bind(sess, sgate)
     }
 }
+
+impl fmt::Debug for M3FS {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "M3FS[sess={:?}, sgate={:?}]", self.sess, self.sgate)
+    }
+}
