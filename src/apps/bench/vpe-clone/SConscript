@@ -1,0 +1,7 @@
+Import('env')
+
+for size in [1, 1024 * 2048, 1024 * 4096, 1024 * 8192]:
+    myenv = env.Clone()
+    myenv.Append(CXXFLAGS = ' -DDUMMY_BUF_SIZE=' + str(size))
+    obj = myenv.Object(target = 'vpe-clone-' + str(size), source = 'vpe-clone.cc')
+    myenv.M3Program(myenv, 'bench-vpe-clone-' + str(size), obj)
