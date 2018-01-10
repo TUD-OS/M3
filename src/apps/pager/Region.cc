@@ -33,7 +33,7 @@ void copy_block(m3::MemGate *src, m3::MemGate *dst, size_t srcoff, size_t size) 
 
 Region::~Region() {
     // if another address space still uses this, we still want to unmap it from this one
-    if(has_mem() && !_mem->is_last()) {
+    if(_mapped && has_mem() && !_mem->is_last()) {
         m3::Syscalls::get().revoke(_ds->addrspace()->vpe.sel(),
             m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::MAP, virt() >> PAGE_BITS, size() >> PAGE_BITS));
     }
@@ -56,6 +56,7 @@ void Region::limit_to(size_t pos, size_t pages) {
 
 m3::Errors::Code Region::map(int flags) {
     if(has_mem()) {
+        _mapped = true;
         return m3::Syscalls::get().createmap(virt() >> PAGE_BITS,
             _ds->addrspace()->vpe.sel(), mem()->gate->sel(),
             mem_offset() >> PAGE_BITS, size() >> PAGE_BITS, flags);
