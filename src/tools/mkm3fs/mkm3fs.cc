@@ -62,7 +62,7 @@ static bool use_rand;
 static m3::blockno_t alloc_block(bool new_ext) {
     m3::blockno_t blk;
     if(sb.free_blocks == 0)
-        errx(1, "Not enough blocks\n");
+        errx(1, "Not enough blocks");
 
     // distribute most blocks randomly in memory, but put some directly after another
     if(!new_ext && last_block + 1 < sb.total_blocks && !block_bitmap->is_set(last_block + 1))
@@ -141,7 +141,7 @@ static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno
                 i - (m3::INODE_DIR_COUNT + sb.extents_per_block()), bno, 1, sb.extents_per_block(), new_ext);
         }
         else {
-            errx(1, "File '%s' is too large. Max no. of extents is %u\n",
+            errx(1, "File '%s' is too large. Max no. of extents is %u",
                  path, m3::INODE_DIR_COUNT + sb.extents_per_block() + sb.extents_per_block() * sb.extents_per_block());
         }
     }
@@ -182,14 +182,14 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
     struct stat st;
     int fd = open(path, O_RDONLY);
     if(fd < 0)
-        err(1, "open of '%s' failed\n",path);
+        err(1, "open of '%s' failed",path);
     if(fstat(fd, &st) != 0)
-        err(1, "stat of '%s' failed\n",path);
+        err(1, "stat of '%s' failed",path);
     if(level == 0 && !S_ISDIR(st.st_mode))
         errx(1, "'%s' is no directory", path);
 
     if(sb.free_inodes == 0)
-        errx(1, "Not enough inodes\n");
+        errx(1, "Not enough inodes");
 
     m3::INode ino;
     ino.devno = 0;
@@ -222,7 +222,7 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
     else if(S_ISDIR(ino.mode)) {
         DIR *d = opendir(path);
         if(!d)
-            err(1, "opendir of '%s' failed\n", path);
+            err(1, "opendir of '%s' failed", path);
 
         struct dirent *e;
         size_t diroff = 0;
@@ -301,18 +301,18 @@ int main(int argc,char **argv) {
     last_block = sb.first_data_block() - 1;
 
     if(sb.total_blocks > MAX_BLOCKS)
-        errx(1, "Too many blocks. Max is %d\n", MAX_BLOCKS);
+        errx(1, "Too many blocks. Max is %d", MAX_BLOCKS);
     if(sb.total_inodes > MAX_INODES)
-        errx(1, "Too many inodes. Max is %d\n", MAX_INODES);
+        errx(1, "Too many inodes. Max is %d", MAX_INODES);
     if(sb.first_data_block() > sb.free_blocks)
-        errx(1, "Not enough blocks\n");
+        errx(1, "Not enough blocks");
 
     block_bitmap = new m3::Bitmap(sb.total_blocks);
     inode_bitmap = new m3::Bitmap(sb.total_inodes);
 
     file = fopen(argv[1], "w+");
     if(!file)
-        err(1, "Unable to open '%s' for writing\n", argv[1]);
+        err(1, "Unable to open '%s' for writing", argv[1]);
 
     // first, init the fs-image with zeros
     ftruncate(fileno(file), sb.blocksize * sb.total_blocks);

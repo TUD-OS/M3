@@ -32,7 +32,7 @@ static void set_inode(m3::Bitmap &inodes, m3::inodeno_t ino) {
 
 static void set_block(m3::Bitmap &blocks, m3::blockno_t no) {
     if(blocks.is_set(no))
-        errx(1, "Block number %u is used (at least) twice\n", no);
+        errx(1, "Block number %u is used (at least) twice", no);
     blocks.set(no);
 }
 
@@ -44,7 +44,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
     set_inode(inodes, ino);
 
     if(inode.inode != ino)
-        errx(1, "Inode %u says that its inode-number is %u\n", ino, inode.inode);
+        errx(1, "Inode %u says that its inode-number is %u", ino, inode.inode);
 
     uint32_t block_count = (inode.size + sb.blocksize - 1) / sb.blocksize;
     if(M3FS_ISDIR(inode.mode)) {
@@ -52,7 +52,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
         for(uint32_t i = 0; i < block_count; ++i) {
             m3::blockno_t block = get_block_no(inode, i);
             if(block == 0) {
-                errx(1, "Inode %u has %u blocks, but %u can't be found in extents\n",
+                errx(1, "Inode %u has %u blocks, but %u can't be found in extents",
                     ino, block_count, i);
                 break;
             }
@@ -76,7 +76,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
         for(uint32_t i = 0; i < block_count; ++i) {
             m3::blockno_t block = get_block_no(inode, i);
             if(block == 0) {
-                errx(1, "Inode %u has %u blocks, but %u can't be found in extents\n",
+                errx(1, "Inode %u has %u blocks, but %u can't be found in extents",
                     ino, block_count, i);
                 break;
             }
@@ -86,16 +86,16 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
 
     if(inode.extents > m3::INODE_DIR_COUNT) {
         if(inode.indirect == 0)
-            errx(1, "Inode %u has %u extents, but indirect pointer is 0\n", ino, inode.extents);
+            errx(1, "Inode %u has %u extents, but indirect pointer is 0", ino, inode.extents);
         else
             set_block(blocks, inode.indirect);
     }
     else if(inode.indirect != 0)
-        errx(1, "Inode %u has %u extents, but indirect pointer is NOT 0\n", ino, inode.extents);
+        errx(1, "Inode %u has %u extents, but indirect pointer is NOT 0", ino, inode.extents);
 
     if(inode.extents > m3::INODE_DIR_COUNT + sb.extents_per_block()) {
         if(inode.dindirect == 0)
-            errx(1, "Inode %u has %u extents, but double-indirect pointer is 0\n", ino, inode.extents);
+            errx(1, "Inode %u has %u extents, but double-indirect pointer is 0", ino, inode.extents);
         else {
             uint32_t count = inode.extents - (m3::INODE_DIR_COUNT + sb.extents_per_block());
             count = (count + sb.extents_per_block() - 1) / sb.extents_per_block();
@@ -106,17 +106,17 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
 
             for(uint i = 0; i < sb.extents_per_block(); ++i) {
                 if(i < count && (extents[i].length == 0 || extents[i].start == 0)) {
-                    errx(1, "Inode %u has %u extents, but extent %u is empty\n", ino, inode.extents,
+                    errx(1, "Inode %u has %u extents, but extent %u is empty", ino, inode.extents,
                         i + m3::INODE_DIR_COUNT + sb.extents_per_block());
                 }
                 if(i >= count && (extents[i].length != 0 || extents[i].start != 0)) {
-                    errx(1, "Inode %u has %u extents, but extent %u is NOT empty\n", ino, inode.extents,
+                    errx(1, "Inode %u has %u extents, but extent %u is NOT empty", ino, inode.extents,
                         i + m3::INODE_DIR_COUNT + sb.extents_per_block());
                 }
 
                 if(extents[i].start && extents[i].length) {
                     if(extents[i].length != 1) {
-                        errx(1, "Double-indirect entry %u of inode %u has a length of %u instead of 1\n",
+                        errx(1, "Double-indirect entry %u of inode %u has a length of %u instead of 1",
                             i, ino, extents[i].length);
                     }
                     set_block(blocks, extents[i].start);
@@ -126,16 +126,16 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
         }
     }
     else if(inode.dindirect != 0)
-        errx(1, "Inode %u has %u extents, but double-indirect pointer is NOT 0\n", ino, inode.extents);
+        errx(1, "Inode %u has %u extents, but double-indirect pointer is NOT 0", ino, inode.extents);
 }
 
 static void compare_bitmaps(const char *name, const m3::Bitmap &used, const m3::Bitmap &marked, uint bits) {
     for(uint i = 0; i < bits; ++i) {
         if(used.is_set(i) != marked.is_set(i)) {
             if(used.is_set(i))
-                errx(1, "%s %u is in use, but NOT marked used\n", name, i);
+                errx(1, "%s %u is in use, but NOT marked used", name, i);
             else
-                errx(1, "%s %u is NOT in use, but marked used\n", name, i);
+                errx(1, "%s %u is NOT in use, but marked used", name, i);
         }
     }
 }
@@ -151,7 +151,7 @@ static void check_bitmap(const char *name, const m3::Bitmap &used, uint32_t tota
             count++;
     }
     if(count != free)
-        errx(1, "Superblock says %u free blocks, but block bitmap has %u free blocks\n", free, count);
+        errx(1, "Superblock says %u free blocks, but block bitmap has %u free blocks", free, count);
 
     compare_bitmaps(name, used, bm, total);
 }
@@ -172,21 +172,21 @@ int main(int argc, char **argv) {
     fread(&sb, sizeof(sb), 1, file);
 
     if(sb.checksum != sb.get_checksum()) {
-        errx(1, "Superblock checksum is invalid (is %#010x, should be %#010x)\n",
+        errx(1, "Superblock checksum is invalid (is %#010x, should be %#010x)",
             sb.checksum, sb.get_checksum());
     }
     if(sb.total_blocks == 0 || sb.total_inodes == 0)
-        errx(1, "Superblock is invalid (no blocks or inodes)\n");
+        errx(1, "Superblock is invalid (no blocks or inodes)");
     if(sb.blocksize == 0 || (sb.blocksize & (sb.blocksize - 1)) != 0)
-        errx(1, "Blocksize is no power of 2\n");
+        errx(1, "Blocksize is no power of 2");
     // don't continue if the superblock is bogus
     if(exitcode != 0)
         return exitcode;
 
     if(sb.free_blocks > sb.total_blocks)
-        errx(1, "Free blocks is larger than total blocks\n");
+        errx(1, "Free blocks is larger than total blocks");
     if(sb.free_inodes > sb.total_inodes)
-        errx(1, "Free inodes is larger than total inodes\n");
+        errx(1, "Free inodes is larger than total inodes");
 
     m3::Bitmap blocks(sb.total_blocks);
     m3::Bitmap inodes(sb.total_inodes);
