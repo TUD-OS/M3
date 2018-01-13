@@ -7,7 +7,7 @@ use errors::{Code, Error};
 use io::Serial;
 use rc::Rc;
 use serialize::Sink;
-use vfs::{File, FileRef, MountTable, RegularFile};
+use vfs::{File, FileRef, IndirectPipeReader, IndirectPipeWriter, MountTable, RegularFile};
 use vpe::VPE;
 
 pub type Fd = usize;
@@ -23,10 +23,14 @@ pub struct FileTable {
 
 impl FileTable {
     pub fn add(&mut self, file: FileHandle) -> Result<FileRef, Error> {
+        self.alloc(file.clone()).map(|fd| FileRef::new(file, fd))
+    }
+
+    pub fn alloc(&mut self, file: FileHandle) -> Result<Fd, Error> {
         for fd in 0..MAX_FILES {
             if self.files[fd].is_none() {
-                self.files[fd] = Some(file.clone());
-                return Ok(FileRef::new(file, fd));
+                self.files[fd] = Some(file);
+                return Ok(fd);
             }
         }
         Err(Error::new(Code::NoSpace))
@@ -80,6 +84,8 @@ impl FileTable {
             let fd: Fd = s.pop();
             let file_type: u8 = s.pop();
             ft.set(fd, match file_type {
+                b'I' => IndirectPipeReader::unserialize(s),
+                b'J' => IndirectPipeWriter::unserialize(s),
                 b'M' => RegularFile::unserialize(s),
                 b'S' => Serial::new(),
                 _    => panic!("Unexpected file type {}", file_type),

@@ -43,6 +43,15 @@ impl Pipe {
     pub fn sel(&self) -> Selector {
         self.sess.sel()
     }
+    pub fn meta_gate_sel(&self) -> Selector {
+        self.meta_gate.sel()
+    }
+    pub fn read_gate_sel(&self) -> Selector {
+        self.rd_gate.sel()
+    }
+    pub fn write_gate_sel(&self) -> Selector {
+        self.wr_gate.sel()
+    }
 
     pub fn attach(&self, reading: bool) -> Result<(), Error> {
         send_recv_res!(
