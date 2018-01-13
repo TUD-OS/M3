@@ -4,6 +4,7 @@ mod std;
 pub use base::io::*;
 pub use self::serial::*;
 pub use self::std::{stdin, stdout, stderr};
+pub use self::std::{STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO};
 
 #[macro_export]
 macro_rules! print {
