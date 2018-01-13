@@ -244,6 +244,11 @@ impl RegularFile {
 }
 
 impl vfs::File for RegularFile {
+    fn close(&mut self) {
+        // ignore errors here
+        sess_to_m3fs!(self.sess).close(self.fid, self.max_write.ext, self.max_write.extoff).ok();
+    }
+
     fn flags(&self) -> vfs::OpenFlags {
         self.flags
     }
@@ -402,12 +407,6 @@ impl io::Write for RegularFile {
 impl vfs::Map for RegularFile {
     fn map(&self, pager: &Pager, virt: usize, off: usize, len: usize, prot: Perm) -> Result<(), Error> {
         pager.map_ds(virt, len, off, prot, sess_to_m3fs!(self.sess).sess(), self.fid).map(|_| ())
-    }
-}
-
-impl Drop for RegularFile {
-    fn drop(&mut self) {
-        sess_to_m3fs!(self.sess).close(self.fid, self.max_write.ext, self.max_write.extoff).unwrap();
     }
 }
 

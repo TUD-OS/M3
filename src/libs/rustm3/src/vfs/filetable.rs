@@ -44,7 +44,9 @@ impl FileTable {
     }
 
     pub fn remove(&mut self, fd: Fd) {
-        assert!(self.files[fd].is_some());
+        if let Some(ref mut f) = self.files[fd] {
+            f.borrow_mut().close();
+        }
         self.files[fd] = None;
     }
 
@@ -103,8 +105,6 @@ impl fmt::Debug for FileTable {
 pub fn deinit() {
     let ft = VPE::cur().files();
     for fd in 0..MAX_FILES {
-        if let Some(_) = ft.get(fd) {
-            ft.remove(fd);
-        }
+        ft.remove(fd);
     }
 }

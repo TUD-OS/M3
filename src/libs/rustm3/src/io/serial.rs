@@ -21,6 +21,9 @@ impl vfs::Map for io::Serial {
 }
 
 impl vfs::File for io::Serial {
+    fn close(&mut self) {
+    }
+
     fn flags(&self) -> vfs::OpenFlags {
         vfs::OpenFlags::RW
     }

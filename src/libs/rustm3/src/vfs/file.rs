@@ -78,6 +78,8 @@ impl Unmarshallable for FileInfo {
 }
 
 pub trait File : Read + Write + Seek + Map + Debug {
+    fn close(&mut self);
+
     fn flags(&self) -> OpenFlags;
 
     fn stat(&self) -> Result<FileInfo, Error>;
