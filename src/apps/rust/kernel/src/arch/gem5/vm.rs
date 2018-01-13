@@ -253,7 +253,7 @@ extern fn kernel_oom_callback(size: usize) -> bool {
     }
 
     // allocate memory
-    let pages = util::max(8, util::round_up(size, cfg::PAGE_SIZE) >> cfg::PAGE_BITS);
+    let pages = util::max(256, util::round_up(size, cfg::PAGE_SIZE) >> cfg::PAGE_BITS);
     let alloc = mem::get().allocate(pages * cfg::PAGE_SIZE, cfg::PAGE_SIZE).unwrap();
 
     // map the memory
