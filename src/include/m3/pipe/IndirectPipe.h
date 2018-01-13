@@ -50,7 +50,6 @@ public:
     void close_writer();
 
 private:
-    MemGate &_mem;
     Pipe _pipe;
     fd_t _rdfd;
     fd_t _wrfd;
