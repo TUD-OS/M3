@@ -228,9 +228,9 @@ void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
         return;
 
     if(sess->flags & READ_EOF) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
         while(_pending.length() > 0) {
             RdWrRequest *req = _pending.remove_first();
+            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
             reply_vmsg_late(_rgate, req->lastmsg, Errors::END_OF_FILE);
             delete req;
         }
