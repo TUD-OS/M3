@@ -308,8 +308,10 @@ impl VPE {
     }
 
     pub fn wait(vpe: Rc<RefCell<VPE>>) -> Option<i32> {
-        let event = vpe.borrow().exit_event();
-        thread::ThreadManager::get().wait_for(event);
+        if vpe.borrow().flags.contains(VPEFlags::HASAPP) {
+            let event = vpe.borrow().exit_event();
+            thread::ThreadManager::get().wait_for(event);
+        }
         mem::replace(&mut vpe.borrow_mut().exit_code, None)
     }
 
