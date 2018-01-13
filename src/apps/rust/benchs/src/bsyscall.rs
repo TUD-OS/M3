@@ -1,4 +1,5 @@
 use m3::com::{MemGate, RecvGate, Perm};
+use m3::cell::StaticCell;
 use m3::cfg;
 use m3::kif;
 use m3::profile;
@@ -6,7 +7,11 @@ use m3::syscalls;
 use m3::test;
 use m3::vpe::{VPE, VPEArgs};
 
+static SEL: StaticCell<kif::CapSel> = StaticCell::new(0);
+
 pub fn run(t: &mut test::Tester) {
+    SEL.set(VPE::cur().alloc_cap());
+
     run_test!(t, noop);
     run_test!(t, activate);
     run_test!(t, create_rgate);
@@ -49,10 +54,10 @@ fn create_rgate() {
 
     impl profile::Runner for Tester {
         fn run(&mut self) {
-            assert_ok!(syscalls::create_rgate(100, 10, 10));
+            assert_ok!(syscalls::create_rgate(*SEL, 10, 10));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
         }
     }
 
@@ -72,10 +77,10 @@ fn create_sgate() {
             }
         }
         fn run(&mut self) {
-            assert_ok!(syscalls::create_sgate(100, self.0.as_ref().unwrap().sel(), 0x1234, 1024));
+            assert_ok!(syscalls::create_sgate(*SEL, self.0.as_ref().unwrap().sel(), 0x1234, 1024));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
         }
     }
 
@@ -90,10 +95,10 @@ fn create_mgate() {
 
     impl profile::Runner for Tester {
         fn run(&mut self) {
-            assert_ok!(syscalls::create_mgate(100, !0, 0x1000, Perm::RW));
+            assert_ok!(syscalls::create_mgate(*SEL, !0, 0x1000, Perm::RW));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
         }
     }
 
@@ -138,10 +143,10 @@ fn create_srv() {
             }
         }
         fn run(&mut self) {
-            assert_ok!(syscalls::create_srv(100, self.0.as_ref().unwrap().sel(), "test"));
+            assert_ok!(syscalls::create_srv(*SEL, self.0.as_ref().unwrap().sel(), "test"));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
         }
     }
 
@@ -156,10 +161,10 @@ fn create_sess() {
 
     impl profile::Runner for Tester {
         fn run(&mut self) {
-            assert_ok!(syscalls::create_sess(100, "m3fs", 0));
+            assert_ok!(syscalls::create_sess(*SEL, "m3fs", 0));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
             // ensure that the kernel is ready; it needs to receive the response to the CLOSE
             // message from the service
             assert_ok!(syscalls::noop());
@@ -182,10 +187,10 @@ fn derive_mem() {
             }
         }
         fn run(&mut self) {
-            assert_ok!(syscalls::derive_mem(100, self.0.as_ref().unwrap().sel(), 0, 0x1000, Perm::RW));
+            assert_ok!(syscalls::derive_mem(*SEL, self.0.as_ref().unwrap().sel(), 0, 0x1000, Perm::RW));
         }
         fn post(&mut self) {
-            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1), true));
+            assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));
         }
     }
 
@@ -208,14 +213,14 @@ fn exchange() {
             assert_ok!(syscalls::exchange(
                 self.0.as_ref().unwrap().sel(),
                 kif::CapRngDesc::new(kif::CapType::OBJECT, 1, 1),
-                100,
+                *SEL,
                 false,
             ));
         }
         fn post(&mut self) {
             assert_ok!(syscalls::revoke(
                 self.0.as_ref().unwrap().sel(),
-                kif::CapRngDesc::new(kif::CapType::OBJECT, 100, 1),
+                kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1),
                 true
             ));
         }
