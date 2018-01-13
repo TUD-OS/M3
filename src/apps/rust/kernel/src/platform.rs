@@ -38,7 +38,7 @@ impl iter::Iterator for PEIterator {
 static KENV: StaticCell<Option<KEnv>> = StaticCell::new(None);
 
 pub fn init() {
-    KENV.set(Some(arch::platform::init()))
+    KENV.set(Some(arch::platform::init()));
 }
 
 fn get() -> &'static mut KEnv {
