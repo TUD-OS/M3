@@ -32,34 +32,9 @@ ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     if(count == 0)
         return 0;
 
-    uint8_t *buf = reinterpret_cast<uint8_t*>(buffer);
-    size_t off = pos % DTU_PKG_SIZE;
-    if(off) {
-        uint8_t tmp[DTU_PKG_SIZE];
-        Profile::start(0xaaaa);
-        _mem.read(tmp, sizeof(tmp), Math::round_dn(pos, DTU_PKG_SIZE));
-        Profile::stop(0xaaaa);
-        memcpy(buf, tmp + off, DTU_PKG_SIZE - off);
-        pos = Math::round_up(pos, DTU_PKG_SIZE);
-        count -= DTU_PKG_SIZE - off;
-        buf += DTU_PKG_SIZE - off;
-    }
-
-    size_t rdamount = Math::round_dn(count, DTU_PKG_SIZE);
-    if(rdamount) {
-        Profile::start(0xaaaa);
-        _mem.read(buf, rdamount, pos);
-        Profile::stop(0xaaaa);
-    }
-
-    size_t rem = count % DTU_PKG_SIZE;
-    if(rem) {
-        uint8_t tmp[DTU_PKG_SIZE];
-        Profile::start(0xaaaa);
-        _mem.read(tmp, sizeof(tmp), pos + count - rem);
-        Profile::stop(0xaaaa);
-        memcpy(buf + count - rem, tmp, rem);
-    }
+    Profile::start(0xaaaa);
+    _mem.read(buffer, count, pos);
+    Profile::stop(0xaaaa);
     return static_cast<ssize_t>(count);
 }
 

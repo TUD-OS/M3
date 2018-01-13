@@ -25,13 +25,12 @@ ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     Profile::start(0xbbbb);
     Errors::Code res = _pipe->write(&pos, count, _lastwrite);
     Profile::stop(0xbbbb);
-    assert((pos % DTU_PKG_SIZE) == 0);
     if(res != Errors::NONE)
         return -1;
 
     _lastwrite = count;
     Profile::start(0xaaaa);
-    _mem.write(buffer, Math::round_up(count, DTU_PKG_SIZE), pos);
+    _mem.write(buffer, count, pos);
     Profile::stop(0xaaaa);
     return static_cast<ssize_t>(count);
 }
