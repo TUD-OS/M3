@@ -409,8 +409,8 @@ fn send_msg(backend: &backend::SocketBackend, ep: EpId, dst_pe: PEId, dst_ep: Ep
     log_dtu!(
         "{} {:3}b lbl={:#016x} over {} to pe:ep={}:{} (crd={:#x} rep={})",
         if buf.header.opcode == Command::REPLY.val as u8 { ">>" } else { "->" },
-        buf.header.length,
-        buf.header.label,
+        {buf.header.length},
+        {buf.header.label},
         buf.header.snd_ep,
         dst_pe, dst_ep,
         DTU::get_ep(ep, EpReg::CREDITS),
@@ -518,7 +518,7 @@ fn handle_receive(backend: &backend::SocketBackend, ep: EpId) {
         log_dtu!(
             "<- {:3}b lbl={:#016x} ep={} (cnt={:#x}, crd={:#x})",
             size - util::size_of::<Header>(),
-            buf.header.label,
+            {buf.header.label},
             ep,
             DTU::get_ep(ep, EpReg::BUF_MSG_CNT),
             DTU::get_ep(ep, EpReg::CREDITS),

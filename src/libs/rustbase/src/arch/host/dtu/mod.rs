@@ -94,7 +94,7 @@ bitflags! {
 }
 
 #[repr(C, packed)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Header {
     pub length: usize,
     pub opcode: u8,

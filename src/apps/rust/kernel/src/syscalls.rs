@@ -635,7 +635,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
     klog!(
         SERV, "Sending {}(sess={:#x}, {} caps, {} args) to service {}",
         if obtain { "OBTAIN" } else { "DELEGATE" }, sess.borrow().ident,
-        crd.count(), req.argcount, serv.borrow().name
+        crd.count(), {req.argcount}, serv.borrow().name
     );
     let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 

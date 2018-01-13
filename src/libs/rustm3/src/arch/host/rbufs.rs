@@ -3,7 +3,6 @@ use col::Vec;
 use errors::Error;
 use kif::PEDesc;
 
-#[repr(C, packed)]
 #[derive(Debug)]
 pub struct RBufSpace {
     bufs: Vec<Vec<u8>>,
