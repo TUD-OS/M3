@@ -3,14 +3,15 @@
 #[macro_use]
 extern crate m3;
 
-mod bdlist;
 mod bboxlist;
-mod btreap;
-mod btreemap;
+mod bdlist;
 mod bmgate;
+mod bpipe;
 mod bregfile;
 mod bstream;
 mod bsyscall;
+mod btreap;
+mod btreemap;
 
 use m3::test::Tester;
 
@@ -36,14 +37,15 @@ impl Tester for MyTester {
 #[no_mangle]
 pub fn main() -> i32 {
     let mut tester = MyTester {};
-    run_suite!(tester, btreap::run);
-    run_suite!(tester, btreemap::run);
-    run_suite!(tester, bmgate::run);
-    run_suite!(tester, bregfile::run);
-    run_suite!(tester, bdlist::run);
     run_suite!(tester, bboxlist::run);
+    run_suite!(tester, bdlist::run);
+    run_suite!(tester, bmgate::run);
+    run_suite!(tester, bpipe::run);
+    run_suite!(tester, bregfile::run);
     run_suite!(tester, bstream::run);
     run_suite!(tester, bsyscall::run);
+    run_suite!(tester, btreap::run);
+    run_suite!(tester, btreemap::run);
 
     0
 }

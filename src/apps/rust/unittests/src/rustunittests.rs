@@ -11,6 +11,7 @@ mod tdlist;
 mod tboxlist;
 mod tm3fs;
 mod tmgate;
+mod tpipe;
 mod tregfile;
 mod trgate;
 mod tsgate;
@@ -45,6 +46,7 @@ pub fn main() -> i32 {
     run_suite!(tester, tboxlist::run);
     run_suite!(tester, tm3fs::run);
     run_suite!(tester, tmgate::run);
+    run_suite!(tester, tpipe::run);
     run_suite!(tester, tregfile::run);
     run_suite!(tester, trgate::run);
     run_suite!(tester, tsgate::run);
