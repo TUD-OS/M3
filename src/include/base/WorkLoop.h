@@ -33,7 +33,7 @@ public:
 };
 
 class WorkLoop {
-    static const size_t MAX_ITEMS   = 8;
+    static const size_t MAX_ITEMS   = 32;
 
 public:
     explicit WorkLoop() : _changed(false), _permanents(0), _count(), _items() {
