@@ -55,6 +55,7 @@ impl ErrorInfo {
     /// Creates a new object for given error code
     ///
     /// Note that this gathers and stores the backtrace
+    #[inline(never)]
     pub fn new(code: Code) -> Self {
         let mut bt = [0usize; MAX_BT_LEN];
         let count = backtrace::collect(bt.as_mut());

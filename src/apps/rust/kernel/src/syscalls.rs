@@ -104,6 +104,7 @@ pub fn handle(msg: &'static dtu::Message) {
     }
 }
 
+#[inline(never)]
 fn pagefault(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Pagefault = get_message(msg);
     let virt = req.virt as usize;
@@ -150,6 +151,7 @@ fn pagefault(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), E
     Ok(())
 }
 
+#[inline(never)]
 fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateMGate = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -186,6 +188,7 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     Ok(())
 }
 
+#[inline(never)]
 fn create_rgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateRGate = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -212,6 +215,7 @@ fn create_rgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     Ok(())
 }
 
+#[inline(never)]
 fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSGate = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -242,6 +246,7 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     Ok(())
 }
 
+#[inline(never)]
 fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSrv = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -273,6 +278,7 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     Ok(())
 }
 
+#[inline(never)]
 fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSess = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -333,6 +339,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     Ok(())
 }
 
+#[inline(never)]
 fn create_sess_at(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSessAt = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -362,6 +369,7 @@ fn create_sess_at(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<
     Ok(())
 }
 
+#[inline(never)]
 fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateVPE = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -433,6 +441,7 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     Ok(())
 }
 
+#[inline(never)]
 fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateMap = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -508,6 +517,7 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     Ok(())
 }
 
+#[inline(never)]
 fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::DeriveMem = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
@@ -581,6 +591,7 @@ fn do_exchange(vpe1: &Rc<RefCell<VPE>>, vpe2: &Rc<RefCell<VPE>>,
     Ok(())
 }
 
+#[inline(never)]
 fn exchange(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Exchange = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
@@ -601,6 +612,7 @@ fn exchange(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
     Ok(())
 }
 
+#[inline(never)]
 fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain: bool) -> Result<(), Error> {
     let req: &kif::syscalls::ExchangeSess = get_message(msg);
     let sess_sel = req.sess_sel as CapSel;
@@ -679,6 +691,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
     Ok(())
 }
 
+#[inline(never)]
 fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Activate = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
@@ -766,6 +779,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
     Ok(())
 }
 
+#[inline(never)]
 fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::VPECtrl = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
@@ -818,6 +832,7 @@ fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Err
     Ok(())
 }
 
+#[inline(never)]
 fn revoke(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Revoke = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;

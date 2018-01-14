@@ -276,6 +276,7 @@ impl DTU {
     ///
     /// If the number of left credits is not sufficient, the function returns (`Code::MISS_CREDITS`).
     /// If the receiver is suspended, the function returns (`Code::VPE_GONE`).
+    #[inline(always)]
     pub fn send(ep: EpId, msg: *const u8, size: usize, reply_lbl: Label, reply_ep: EpId) -> Result<(), Error> {
         Self::write_cmd_reg(CmdReg::DATA, Self::build_data(msg, size));
         if reply_lbl != 0 {
@@ -293,6 +294,7 @@ impl DTU {
     /// # Errors
     ///
     /// If the receiver is suspended, the function returns (`Code::VPE_GONE`).
+    #[inline(always)]
     pub fn reply(ep: EpId, reply: *const u8, size: usize, msg: &'static Message) -> Result<(), Error> {
         Self::write_cmd_reg(CmdReg::DATA, Self::build_data(reply, size));
         let slice: u128 = unsafe { intrinsics::transmute(msg) };
@@ -348,6 +350,7 @@ impl DTU {
     }
 
     /// Tries to fetch a new message from the given endpoint.
+    #[inline(always)]
     pub fn fetch_msg(ep: EpId) -> Option<&'static Message> {
         Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(ep, CmdOpCode::FETCH_MSG, 0, 0));
         let msg = Self::read_cmd_reg(CmdReg::OFFSET);
@@ -365,18 +368,21 @@ impl DTU {
     }
 
     /// Returns true if the given endpoint is valid, i.e., a SEND, RECEIVE, or MEMORY endpoint
+    #[inline(always)]
     pub fn is_valid(ep: EpId) -> bool {
         let r0 = Self::read_ep_reg(ep, 0);
         (r0 >> 61) != EpType::INVALID.val
     }
 
     /// Marks the given message for receive endpoint `ep` as read
+    #[inline(always)]
     pub fn mark_read(ep: EpId, msg: &Message) {
         let off = (msg as *const Message) as *const u8 as usize as Reg;
         Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(ep, CmdOpCode::ACK_MSG, 0, off));
     }
 
     /// Waits until the current command is completed and returns the error, if any occurred
+    #[inline(always)]
     pub fn get_error() -> Result<(), Error> {
         loop {
             let cmd = Self::read_cmd_reg(CmdReg::COMMAND);
@@ -394,6 +400,7 @@ impl DTU {
 
     /// Tries to put the CU to sleep after checking for new messages a few times. Additionally, the
     /// kernel is notified about it, if required.
+    #[inline(always)]
     pub fn try_sleep(_yield: bool, cycles: u64) -> Result<(), Error> {
         for _ in 0..100 {
             if Self::read_dtu_reg(DtuReg::MSG_CNT) > 0 {
@@ -408,6 +415,7 @@ impl DTU {
 
     /// Puts the CU to sleep for at most `cycles` or until the CU is woken up (e.g., by a message
     /// reception).
+    #[inline(always)]
     pub fn sleep(cycles: u64) -> Result<(), Error> {
         Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(0, CmdOpCode::SLEEP, 0, cycles));
         Self::get_error()

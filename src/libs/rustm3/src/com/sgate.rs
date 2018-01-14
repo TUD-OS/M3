@@ -85,9 +85,11 @@ impl SendGate {
         self.gate.rebind(sel)
     }
 
+    #[inline(always)]
     pub fn send<T>(&self, msg: &[T], reply_gate: &RecvGate) -> Result<(), Error> {
         self.send_bytes(msg.as_ptr() as *const u8, msg.len() * util::size_of::<T>(), reply_gate)
     }
+    #[inline(always)]
     pub fn send_bytes(&self, msg: *const u8, size: usize, reply_gate: &RecvGate) -> Result<(), Error> {
         let ep = self.gate.activate()?;
         dtu::DTU::send(ep, msg, size, 0, reply_gate.ep().unwrap())

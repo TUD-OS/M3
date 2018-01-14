@@ -26,17 +26,21 @@ impl GateSink {
 }
 
 impl Sink for GateSink {
+    #[inline(always)]
     fn size(&self) -> usize {
         self.pos * util::size_of::<u64>()
     }
 
+    #[inline(always)]
     fn words(&self) -> &[u64] {
         &self.arr[0..self.pos]
     }
 
+    #[inline(always)]
     fn push(&mut self, item: &Marshallable) {
         item.marshall(self);
     }
+    #[inline(always)]
     fn push_word(&mut self, word: u64) {
         self.arr[self.pos] = word;
         self.pos += 1;
@@ -114,6 +118,7 @@ impl GateSource {
         }
     }
 
+    #[inline(always)]
     pub fn data(&self) -> &'static [u64] {
         unsafe {
             let ptr = self.msg.data.as_ptr() as *const u64;
@@ -132,6 +137,7 @@ fn copy_str_from(s: &[u64], len: usize) -> String {
 }
 
 impl Source for GateSource {
+    #[inline(always)]
     fn pop_word(&mut self) -> u64 {
         self.pos += 1;
         self.data()[self.pos - 1]
@@ -186,14 +192,17 @@ impl GateOStream {
         }
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.buf.size()
     }
 
+    #[inline(always)]
     pub fn push<T : Marshallable>(&mut self, item: &T) {
         item.marshall(&mut self.buf);
     }
 
+    #[inline(always)]
     pub fn send(&self, gate: &SendGate, reply_gate: &RecvGate) -> Result<(), Error> {
         gate.send(self.buf.words(), reply_gate)
     }
@@ -214,18 +223,22 @@ impl<'r> GateIStream<'r> {
         }
     }
 
+    #[inline(always)]
     pub fn label(&self) -> u64 {
         self.source.msg.header.label
     }
 
+    #[inline(always)]
     pub fn size(&self) -> usize {
         self.source.data().len() * util::size_of::<u64>()
     }
 
+    #[inline(always)]
     pub fn pop<T : Unmarshallable>(&mut self) -> T {
         T::unmarshall(&mut self.source)
     }
 
+    #[inline(always)]
     pub fn reply<T>(&mut self, reply: &[T]) -> Result<(), Error> {
         match self.rgate.reply(reply, self.source.msg) {
             Ok(_)   => {
@@ -236,6 +249,7 @@ impl<'r> GateIStream<'r> {
         }
     }
 
+    #[inline(always)]
     pub fn reply_os(&mut self, os: &GateOStream) -> Result<(), Error> {
         self.reply(os.buf.words())
     }
@@ -267,10 +281,12 @@ macro_rules! reply_vmsg {
     });
 }
 
+#[inline(always)]
 pub fn recv_msg<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
     recv_msg_from(rgate, None)
 }
 
+#[inline(always)]
 pub fn recv_msg_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
     rgate.wait(sgate)
 }
@@ -292,10 +308,12 @@ macro_rules! recv_vmsg {
     });
 }
 
+#[inline(always)]
 pub fn recv_res<'r>(rgate: &'r RecvGate) -> Result<GateIStream<'r>, Error> {
     recv_res_from(rgate, None)
 }
 
+#[inline(always)]
 pub fn recv_res_from<'r>(rgate: &'r RecvGate, sgate: Option<&SendGate>) -> Result<GateIStream<'r>, Error> {
     let mut reply = recv_msg_from(rgate, sgate)?;
     let res: u32 = reply.pop();

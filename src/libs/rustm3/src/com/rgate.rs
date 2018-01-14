@@ -198,13 +198,16 @@ impl RecvGate {
         }
     }
 
+    #[inline(always)]
     pub fn reply<T>(&self, reply: &[T], msg: &'static dtu::Message) -> Result<(), Error> {
         self.reply_bytes(reply.as_ptr() as *const u8, reply.len() * util::size_of::<T>(), msg)
     }
+    #[inline(always)]
     pub fn reply_bytes(&self, reply: *const u8, size: usize, msg: &'static dtu::Message) -> Result<(), Error> {
         dtu::DTU::reply(self.ep().unwrap(), reply, size, msg)
     }
 
+    #[inline(always)]
     pub fn wait(&self, sgate: Option<&SendGate>) -> Result<GateIStream, Error> {
         assert!(self.ep().is_some());
 
