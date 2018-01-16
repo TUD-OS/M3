@@ -29,13 +29,13 @@ class IndirectPipeWriter : public IndirectPipeFile {
     friend class IndirectPipe;
 
     explicit IndirectPipeWriter(capsel_t mem, Pipe *pipe)
-        : IndirectPipeFile(mem, pipe), _lastwrite() {
+        : IndirectPipeFile(mem, pipe), _lastwrite(static_cast<size_t>(-1)) {
     }
 
 public:
     explicit IndirectPipeWriter(capsel_t mem, capsel_t sess,
         capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
-        : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate), _lastwrite() {
+        : IndirectPipeFile(mem, sess, metagate, rdgate, wrgate), _lastwrite(static_cast<size_t>(-1)) {
     }
     ~IndirectPipeWriter() {
         _pipe->close(false, _lastwrite);

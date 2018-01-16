@@ -163,7 +163,7 @@ Errors::Code PipeWriteHandler::close(PipeSessionData *sess, size_t lastwrite) {
     if(sess->flags & WRITE_EOF)
         return Errors::INV_ARGS;
 
-    if(lastwriter && lastwriter == sess) {
+    if(lastwriter && lastwriter == sess && lastwrite != static_cast<size_t>(-1)) {
         SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastwrite);
         sess->rbuf.push(lastwrite);
         lastwriter = nullptr;
