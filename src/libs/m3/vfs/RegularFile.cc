@@ -182,7 +182,11 @@ Errors::Code RegularFile::read_next(capsel_t *memgate, size_t *offset, size_t *l
 
     // determine the amount that we can read
     ssize_t extlen = get_ext_len(false, false);
-    if(extlen <= 0)
+    if(extlen == 0) {
+        *length = 0;
+        return Errors::NONE;
+    }
+    if(extlen < 0)
         return static_cast<Errors::Code>(extlen);
 
     *memgate = _cache.sel(_pos.ext);
@@ -196,7 +200,11 @@ Errors::Code RegularFile::begin_write(capsel_t *memgate, size_t *offset, size_t 
         return Errors::NO_PERM;
 
     ssize_t extlen = get_ext_len(true, false);
-    if(extlen <= 0)
+    if(extlen == 0) {
+        *length = 0;
+        return Errors::NONE;
+    }
+    if(extlen < 0)
         return static_cast<Errors::Code>(extlen);
 
     *memgate = _cache.sel(_pos.ext);
