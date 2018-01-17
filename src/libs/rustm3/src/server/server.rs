@@ -29,7 +29,7 @@ pub trait Handler {
 
 impl Server {
     pub fn new(name: &str) -> Result<Self, Error> {
-        let sel = VPE::cur().alloc_cap();
+        let sel = VPE::cur().alloc_sel();
         let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
         rgate.activate()?;
 

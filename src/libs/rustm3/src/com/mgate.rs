@@ -52,7 +52,7 @@ impl MemGate {
 
     pub fn new_with(args: MGateArgs) -> Result<Self, Error> {
         let sel = if args.sel == INVALID_SEL {
-            vpe::VPE::cur().alloc_cap()
+            vpe::VPE::cur().alloc_sel()
         }
         else {
             args.sel
@@ -78,7 +78,7 @@ impl MemGate {
     }
 
     pub fn derive(&self, offset: usize, size: usize, perm: Perm) -> Result<Self, Error> {
-        let sel = vpe::VPE::cur().alloc_cap();
+        let sel = vpe::VPE::cur().alloc_sel();
         self.derive_with_sel(offset, size, perm, sel)
     }
 

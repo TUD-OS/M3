@@ -11,7 +11,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(name: &str, arg: u64) -> Result<Self, Error> {
-        let sel = vpe::VPE::cur().alloc_cap();
+        let sel = vpe::VPE::cur().alloc_sel();
         syscalls::create_sess(sel, name, arg)?;
         Ok(Session {
             cap: Capability::new(sel, CapFlags::empty()),
@@ -49,7 +49,7 @@ impl Session {
     }
 
     pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, kif::CapRngDesc), Error> {
-        let caps = vpe::VPE::cur().alloc_caps(count);
+        let caps = vpe::VPE::cur().alloc_sels(count);
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, caps, count);
         let num = syscalls::obtain(self.sel(), crd, sargs, rargs)?;
         Ok((num, crd))

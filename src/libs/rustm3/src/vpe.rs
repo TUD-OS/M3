@@ -182,7 +182,7 @@ impl VPE {
     }
 
     pub fn new_with(args: VPEArgs) -> Result<Self, Error> {
-        let sels = VPE::cur().alloc_caps(2);
+        let sels = VPE::cur().alloc_sels(2);
 
         let mut vpe = VPE {
             cap: Capability::new(sels + 0, CapFlags::empty()),
@@ -278,10 +278,10 @@ impl VPE {
         self.pager.as_ref()
     }
 
-    pub fn alloc_cap(&mut self) -> Selector {
-        self.alloc_caps(1)
+    pub fn alloc_sel(&mut self) -> Selector {
+        self.alloc_sels(1)
     }
-    pub fn alloc_caps(&mut self, count: u32) -> Selector {
+    pub fn alloc_sels(&mut self, count: u32) -> Selector {
         self.next_sel += count;
         self.next_sel - count
     }
@@ -326,7 +326,7 @@ impl VPE {
 
     pub fn obtain(&mut self, crd: CapRngDesc) -> Result<(), Error> {
         let count = crd.count();
-        let start = self.alloc_caps(count);
+        let start = self.alloc_sels(count);
         self.obtain_to(crd, start)
     }
 

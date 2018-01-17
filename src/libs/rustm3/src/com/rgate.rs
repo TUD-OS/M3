@@ -99,7 +99,7 @@ impl RecvGate {
 
     pub fn new_with(args: RGateArgs) -> Result<Self, Error> {
         let sel = if args.sel == INVALID_SEL {
-            vpe::VPE::cur().alloc_cap()
+            vpe::VPE::cur().alloc_sel()
         }
         else {
             args.sel
