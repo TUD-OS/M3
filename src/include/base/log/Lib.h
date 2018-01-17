@@ -38,6 +38,7 @@ public:
         FS          = 1 << 8,
         SERV        = 1 << 9,
         THREAD      = 1 << 10,
+        ACCEL       = 1 << 11,
     };
 
     static const int level = DTUERR;

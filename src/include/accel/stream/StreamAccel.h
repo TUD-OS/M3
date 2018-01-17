@@ -23,7 +23,7 @@ namespace accel {
 /**
  * Base class for the stream accelerators
  */
-class StreamAccel {
+class StreamAccelVPE : public m3::VPE {
 public:
     static const size_t MSG_SIZE    = 64;
     static const size_t RB_SIZE     = MSG_SIZE * 8;
@@ -57,21 +57,16 @@ public:
         uint64_t eof;
     } PACKED;
 
+    explicit StreamAccelVPE(const m3::PEDesc &desc, const char *pager, bool muxable);
+
     /**
      * Creates an accelerator, depending on which exists
      *
      * @param isa the ISA (fft, toupper)
      * @return the accelerator
      */
-    static StreamAccel *create(m3::PEISA isa);
+    static StreamAccelVPE *create(m3::PEISA isa);
 
-    virtual ~StreamAccel() {
-    }
-
-    /**
-     * @return the VPE for the accelerator
-     */
-    virtual m3::VPE &vpe() = 0;
     /**
      * @return the address of the receive buffer
      */
@@ -81,33 +76,21 @@ public:
 /**
  * A stream accelerator with SPM, i.e., internal memory.
  */
-class StreamIAccel : public StreamAccel {
+class StreamIAccelVPE : public StreamAccelVPE {
 public:
-    explicit StreamIAccel(m3::PEISA isa, bool muxable);
+    explicit StreamIAccelVPE(m3::PEISA isa, bool muxable);
 
-    m3::VPE &vpe() override {
-        return _vpe;
-    }
     uintptr_t getRBAddr() override;
-
-private:
-    m3::VPE _vpe;
 };
 
 /**
  * A stream accelerator with cache, i.e., external memory.
  */
-class StreamEAccel : public StreamAccel {
+class StreamEAccelVPE : public StreamAccelVPE {
 public:
-    explicit StreamEAccel(m3::PEISA isa, bool muxable);
+    explicit StreamEAccelVPE(m3::PEISA isa, bool muxable);
 
-    m3::VPE &vpe() override {
-        return _vpe;
-    }
     uintptr_t getRBAddr() override;
-
-private:
-    m3::VPE _vpe;
 };
 
 }

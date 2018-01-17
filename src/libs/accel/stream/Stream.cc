@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
+
 #include <m3/com/GateStream.h>
 #include <m3/stream/Standard.h>
 #include <m3/session/Pager.h>
@@ -26,29 +28,29 @@ using namespace m3;
 namespace accel {
 
 Stream::Stream(PEISA isa)
-    : _accel(StreamAccel::create(isa)),
+    : _accel(StreamAccelVPE::create(isa)),
       _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
-      _argate(RecvGate::create_for(_accel->vpe(), getnextlog2(StreamAccel::RB_SIZE),
-                                                  getnextlog2(StreamAccel::MSG_SIZE))),
-      _asgate(SendGate::create(&_rgate)),
+      _argate(RecvGate::create_for(*_accel, getnextlog2(StreamAccelVPE::RB_SIZE),
+                                            getnextlog2(StreamAccelVPE::MSG_SIZE))),
+      _asgate(SendGate::create(&_rgate, 0, StreamAccelVPE::RB_SIZE)),
       _sgate(SendGate::create(&_argate)) {
     // has to be activated
     _rgate.activate();
 
-    if(_accel->vpe().pager()) {
-        uintptr_t virt = StreamAccel::BUF_ADDR;
-        _accel->vpe().pager()->map_anon(&virt, StreamAccel::BUF_MAX_SIZE, Pager::Prot::RW, 0);
+    if(_accel->pager()) {
+        uintptr_t virt = StreamAccelVPE::BUF_ADDR;
+        _accel->pager()->map_anon(&virt, StreamAccelVPE::BUF_MAX_SIZE, Pager::Prot::RW, 0);
     }
 
     // delegate send and receive gate
-    _accel->vpe().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _argate.sel(), 1), StreamAccel::RGATE_SEL);
-    _accel->vpe().delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _asgate.sel(), 1), StreamAccel::SGATE_SEL);
+    _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _argate.sel(), 1), StreamAccelVPE::RGATE_SEL);
+    _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _asgate.sel(), 1), StreamAccelVPE::SGATE_SEL);
 
     // activate them
-    _argate.activate(StreamAccel::EP_RECV, _accel->getRBAddr());
-    _asgate.activate_for(_accel->vpe(), StreamAccel::EP_SEND);
+    _argate.activate(StreamAccelVPE::EP_RECV, _accel->getRBAddr());
+    _asgate.activate_for(*_accel, StreamAccelVPE::EP_SEND);
 
-    _accel->vpe().start();
+    _accel->start();
 }
 
 Stream::~Stream() {
@@ -56,30 +58,39 @@ Stream::~Stream() {
 }
 
 void Stream::sendInit(size_t bufsize, size_t outsize, size_t reportsize) {
-    StreamAccel::InitCommand init;
-    init.cmd = static_cast<int64_t>(StreamAccel::Command::INIT);
+    StreamAccelVPE::InitCommand init;
+    init.cmd = static_cast<int64_t>(StreamAccelVPE::Command::INIT);
     init.buf_size = bufsize;
     init.out_size = outsize;
     init.report_size = reportsize;
     init.comp_time = 0;
 
-    send_msg(_sgate, &init, sizeof(init));
+    LLOG(ACCEL, "send init("
+        << "bufsize=" << bufsize
+        << ", outsize=" << outsize
+        << ", reportsize=" << reportsize
+        << ")");
+
+    send_receive_msg(_sgate, &init, sizeof(init));
 }
 
 uint64_t Stream::sendRequest(uint64_t off, uint64_t len) {
-    StreamAccel::UpdateCommand req;
-    req.cmd = static_cast<uint64_t>(StreamAccel::Command::UPDATE);
+    LLOG(ACCEL, "send update(off=" << off << ", len=" << len << ", eof=1)");
+
+    StreamAccelVPE::UpdateCommand req;
+    req.cmd = static_cast<uint64_t>(StreamAccelVPE::Command::UPDATE);
     req.off = off;
     req.len = len;
     req.eof = true;
-    send_msg(_sgate, &req, sizeof(req));
+    send_receive_msg(_sgate, &req, sizeof(req));
 
     size_t done = 0;
     while(done < len) {
         GateIStream is = receive_msg(_rgate);
         is >> req;
-        // cout << "Finished off=" << req.off << ", len=" << req.len << "\n";
+        LLOG(ACCEL, "recv update(off=" << req.off << ", len=" << req.len << ", eof=" << req.eof << ")");
         done += req.len;
+        reply_vmsg(is, 0);
     }
     return done;
 }
@@ -100,12 +111,14 @@ Errors::Code Stream::execute(File *in, File *out, size_t bufsize) {
             if((err = in->read_next(&inmem, &inoff, &inlen)) != Errors::NONE)
                 return err;
 
+            LLOG(ACCEL, "input: sel=" << inmem << ", inoff=" << inoff << ", inlen=" << inlen);
+
             if(inlen == 0)
                 break;
 
             inpos = 0;
             if(inmem != lastin) {
-                MemGate::bind(inmem).activate_for(_accel->vpe(), StreamAccel::EP_INPUT);
+                MemGate::bind(inmem).activate_for(*_accel, StreamAccelVPE::EP_INPUT);
                 lastin = inmem;
             }
         }
@@ -116,15 +129,19 @@ Errors::Code Stream::execute(File *in, File *out, size_t bufsize) {
             if((err = out->begin_write(&outmem, &outoff, &outlen)) != Errors::NONE)
                 return err;
 
+            LLOG(ACCEL, "output: sel=" << outmem << ", outoff=" << outoff << ", outlen=" << outlen);
+
             outpos = 0;
         }
 
         // activate output mem with new offset
-        MemGate::bind(outmem).activate_for(_accel->vpe(), StreamAccel::EP_OUTPUT, outoff + outpos);
+        MemGate::bind(outmem).activate_for(*_accel, StreamAccelVPE::EP_OUTPUT, outoff + outpos);
 
         // use the minimum of both, because input and output have to be of the same size atm
         size_t amount = std::min(inlen - inpos, outlen - outpos);
         amount = sendRequest(inoff + inpos, amount);
+
+        LLOG(ACCEL, "commit_write(" << amount << ")");
 
         inpos += amount;
         outpos += amount;
@@ -144,11 +161,11 @@ Errors::Code Stream::execute_slow(File *in, File *out, size_t bufsize) {
     while((inlen = in->read(buffer, bufsize)) > 0) {
         size_t amount = static_cast<size_t>(inlen);
 
-        _accel->vpe().mem().write(buffer, amount, StreamAccel::BUF_ADDR);
+        _accel->mem().write(buffer, amount, StreamAccelVPE::BUF_ADDR);
 
         amount = sendRequest(0, amount);
 
-        _accel->vpe().mem().read(buffer, amount, StreamAccel::BUF_ADDR);
+        _accel->mem().read(buffer, amount, StreamAccelVPE::BUF_ADDR);
         out->write(buffer, amount);
     }
 

@@ -22,7 +22,7 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    size_t bufsize = accel::StreamAccel::BUF_MAX_SIZE;
+    size_t bufsize = accel::StreamAccelVPE::BUF_MAX_SIZE;
     File *in = VPE::self().fds()->get(STDIN_FD);
     File *out = VPE::self().fds()->get(STDOUT_FD);
 

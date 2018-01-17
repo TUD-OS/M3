@@ -32,34 +32,34 @@ using namespace m3;
 using namespace accel;
 
 int main() {
-    RecvGate rg = RecvGate::bind(StreamAccel::RGATE_SEL, getnextlog2(StreamAccel::RB_SIZE));
-    SendGate sg = SendGate::bind(StreamAccel::SGATE_SEL);
+    RecvGate rg = RecvGate::bind(StreamAccelVPE::RGATE_SEL, getnextlog2(StreamAccelVPE::RB_SIZE));
+    SendGate sg = SendGate::bind(StreamAccelVPE::SGATE_SEL);
     MemGate out = MemGate::bind(ObjCap::INVALID);
 
     // gates are already activated
-    rg.ep(StreamAccel::EP_RECV);
-    sg.ep(StreamAccel::EP_SEND);
-    out.ep(StreamAccel::EP_OUTPUT);
+    rg.ep(StreamAccelVPE::EP_RECV);
+    sg.ep(StreamAccelVPE::EP_SEND);
+    out.ep(StreamAccelVPE::EP_OUTPUT);
 
     size_t outSize = 0, reportSize = 0;
     ulong *buf = new ulong[SWFIL_BUF_SIZE / sizeof(ulong)];
 
-    alignas(64) StreamAccel::UpdateCommand updcmd;
-    updcmd.cmd = static_cast<uint64_t>(StreamAccel::Command::UPDATE);
+    alignas(64) StreamAccelVPE::UpdateCommand updcmd;
+    updcmd.cmd = static_cast<uint64_t>(StreamAccelVPE::Command::UPDATE);
 
     while(1) {
         GateIStream is = receive_msg(rg);
         uint64_t cmd;
         is >> cmd;
 
-        if(static_cast<StreamAccel::Command>(cmd) == StreamAccel::Command::INIT) {
-            auto *init = reinterpret_cast<const StreamAccel::InitCommand*>(is.message().data);
+        if(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::INIT) {
+            auto *init = reinterpret_cast<const StreamAccelVPE::InitCommand*>(is.message().data);
             outSize = init->out_size;
             reportSize = init->report_size;
             continue;
         }
 
-        auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
+        auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
         // cout << "got off=" << fmt(upd->off, "#x") << " len=" << fmt(upd->len, "#x") << "\n";
 
         size_t agg = 0;

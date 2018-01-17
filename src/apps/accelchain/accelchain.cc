@@ -61,7 +61,7 @@ static Errors::Code execute(RecvGate &rgate, ChainMember **chain, size_t num,
 
             inpos = 0;
             if(inmem != lastin) {
-                MemGate::bind(inmem).activate_for(chain[0]->vpe, StreamAccel::EP_INPUT);
+                MemGate::bind(inmem).activate_for(*chain[0]->vpe, StreamAccelVPE::EP_INPUT);
                 lastin = inmem;
             }
         }
@@ -76,7 +76,7 @@ static Errors::Code execute(RecvGate &rgate, ChainMember **chain, size_t num,
         }
 
         // activate output mem with new offset
-        MemGate::bind(outmem).activate_for(chain[num - 1]->vpe, StreamAccel::EP_OUTPUT, outoff + outpos);
+        MemGate::bind(outmem).activate_for(*chain[num - 1]->vpe, StreamAccelVPE::EP_OUTPUT, outoff + outpos);
 
         // use the minimum of both, because input and output have to be of the same size atm
         size_t amount = std::min(inlen - inpos, outlen - outpos);
@@ -113,8 +113,8 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
     for(size_t i = 0; i < num; ++i)
         sgates[i] = new SendGate(SendGate::create(&chain[i]->rgate));
 
-    MemGate buf1 = chain[0]->vpe.mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
-    MemGate bufn = chain[num - 1]->vpe.mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
+    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, StreamAccelVPE::BUF_MAX_SIZE);
+    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, StreamAccelVPE::BUF_MAX_SIZE);
 
     size_t total = 0, seen = 0;
     ssize_t count = in->read(buffer, bufsize);
@@ -135,7 +135,7 @@ static Errors::Code execute_indirect(RecvGate &rgate, ChainMember **chain, size_
         // cout << "got msg from " << label << "\n";
 
         if(label == num - 1) {
-            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
+            auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
             bufn.read(buffer, upd->len, 0);
             // cout << "write " << upd->len << " bytes\n";
             out->write(buffer, upd->len);
@@ -181,16 +181,15 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
     rgate.activate();
 
     ChainMember *chain[num];
-    StreamAccel *accel[num];
 
-    accel[num - 1] = StreamAccel::create(PEISA::ACCEL_FFT);
-    chain[num - 1] = new ChainMember(accel[num - 1]->vpe(), accel[num - 1]->getRBAddr(),
-        StreamAccel::RB_SIZE, rgate, num - 1);
+    auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT);
+    chain[num - 1] = new ChainMember(vpe, vpe->getRBAddr(),
+        StreamAccelVPE::RB_SIZE, rgate, num - 1);
 
     for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
-        accel[i] = StreamAccel::create(PEISA::ACCEL_FFT);
-        chain[i] = new ChainMember(accel[i]->vpe(), accel[i]->getRBAddr(),
-            StreamAccel::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
+        auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT);
+        chain[i] = new ChainMember(vpe, vpe->getRBAddr(),
+            StreamAccelVPE::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
     }
 
     for(auto *m : chain) {
@@ -199,14 +198,14 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
     }
 
     for(auto *m : chain) {
-        m->vpe.start();
+        m->vpe->start();
         m->activate_send();
     }
 
     for(size_t i = 0; i < num - 1; ++i) {
         MemGate *buf = new MemGate(
-            chain[i + 1]->vpe.mem().derive(StreamAccel::BUF_ADDR, bufsize));
-        buf->activate_for(chain[i]->vpe, StreamAccel::EP_OUTPUT);
+            chain[i + 1]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, bufsize));
+        buf->activate_for(*chain[i]->vpe, StreamAccelVPE::EP_OUTPUT);
 
         chain[i]->init(bufsize, bufsize, direct ? bufsize / 2 : bufsize, comptime);
     }
@@ -223,8 +222,8 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
     if(res != Errors::NONE)
         errmsg("Operation failed: " << Errors::to_string(res));
 
-    for(auto *a : accel)
-        delete a;
+    for(auto *c : chain)
+        delete c;
 }
 
 int main(int argc, char **argv) {

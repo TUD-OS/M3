@@ -30,7 +30,7 @@ class SerialFile : public File {
     static const size_t TMP_MEM_SIZE    = 1024;
 
 public:
-    explicit SerialFile() : File() {
+    explicit SerialFile() : File(), tmp(), tmp_write_pos() {
     }
 
     virtual Errors::Code stat(FileInfo &) const override {
@@ -70,6 +70,7 @@ public:
         *length = TMP_MEM_SIZE;
         *offset = 0;
         *memgate = tmp->sel();
+        tmp_write_pos = 0;
         return Errors::NONE;
     }
 
@@ -77,9 +78,10 @@ public:
         char buffer[256];
         for(size_t amount, off = 0; off < length; off += amount) {
             amount = std::min(sizeof(buffer), length - off);
-            tmp->read(buffer, amount, off);
+            tmp->read(buffer, amount, tmp_write_pos + off);
             write(buffer, amount);
         }
+        tmp_write_pos += length;
     }
 
     virtual char type() const override {
@@ -108,7 +110,8 @@ private:
             tmp = new MemGate(MemGate::create_global(TMP_MEM_SIZE, MemGate::RW));
     }
 
-    static MemGate *tmp;
+    MemGate *tmp;
+    size_t tmp_write_pos;
 };
 
 }

@@ -48,8 +48,8 @@ static Errors::Code execute_indirect(char *buffer, size_t arrsize, RecvGate &rga
     for(size_t i = 0; i < num; ++i)
         sgates[i] = new SendGate(SendGate::create(&chain[i]->rgate));
 
-    MemGate buf1 = chain[0]->vpe.mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
-    MemGate bufn = chain[num - 1]->vpe.mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
+    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, StreamAccelVPE::BUF_MAX_SIZE);
+    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, StreamAccelVPE::BUF_MAX_SIZE);
 
     size_t total = 0, seen = 0;
     buf1.write(buffer, bufsize, 0);
@@ -63,7 +63,7 @@ static Errors::Code execute_indirect(char *buffer, size_t arrsize, RecvGate &rga
         // cout << "got msg from " << label << "\n";
 
         if(label == num - 1) {
-            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
+            auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
             bufn.read(buffer + seen, upd->len, 0);
             // cout << "write " << upd->len << " bytes\n";
             seen += upd->len;
@@ -107,24 +107,23 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
 
     memset((void*)buffer, 0 , arrsize);
 
-    StreamAccel *accel[2];
     ChainMember *chain[3];
 
     // IFFT
-    accel[1] = StreamAccel::create(PEISA::ACCEL_FFT);
-    chain[IFFT] = new ChainMember(accel[1]->vpe(), accel[1]->getRBAddr(), StreamAccel::RB_SIZE,
+    auto ifft = StreamAccelVPE::create(PEISA::ACCEL_FFT);
+    chain[IFFT] = new ChainMember(ifft, ifft->getRBAddr(), StreamAccelVPE::RB_SIZE,
         rgate, IFFT);
 
     // multiplier
-    VPE mul("mul", PEDesc(PEType::COMP_IMEM, VPE::self().pe().isa()));
-    mul.fds(*VPE::self().fds());
-    mul.obtain_fds();
-    chain[MUL] = new ChainMember(mul, 0, StreamAccel::MSG_SIZE * 16,
+    auto mul = new VPE("mul", PEDesc(PEType::COMP_IMEM, VPE::self().pe().isa()));
+    mul->fds(*VPE::self().fds());
+    mul->obtain_fds();
+    chain[MUL] = new ChainMember(mul, 0, StreamAccelVPE::MSG_SIZE * 16,
         direct ? chain[IFFT]->rgate : rgate, MUL);
 
     // SFFT
-    accel[0] = StreamAccel::create(PEISA::ACCEL_FFT);
-    chain[SFFT] = new ChainMember(accel[0]->vpe(), accel[0]->getRBAddr(), StreamAccel::RB_SIZE,
+    auto sfft = StreamAccelVPE::create(PEISA::ACCEL_FFT);
+    chain[SFFT] = new ChainMember(sfft, sfft->getRBAddr(), StreamAccelVPE::RB_SIZE,
         direct ? chain[MUL]->rgate : rgate, SFFT);
 
     for(auto *m : chain) {
@@ -134,25 +133,25 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
 
     for(size_t i = 0; i < ARRAY_SIZE(chain); ++i) {
         if(i != MUL)
-            chain[i]->vpe.start();
+            chain[i]->vpe->start();
         else {
             const char *args[] = {"/bin/swfilter"};
-            chain[i]->vpe.exec(ARRAY_SIZE(args), args);
+            chain[i]->vpe->exec(ARRAY_SIZE(args), args);
         }
         chain[i]->activate_send();
     }
 
     MemGate sfftin = VPE::self().mem().derive(buffer, arrsize, MemGate::R);
-    sfftin.activate_for(chain[SFFT]->vpe, StreamAccel::EP_INPUT);
+    sfftin.activate_for(*chain[SFFT]->vpe, StreamAccelVPE::EP_INPUT);
 
-    MemGate sfftout = chain[MUL]->vpe.mem().derive(SWFIL_BUF_ADDR, SWFIL_BUF_SIZE);
-    sfftout.activate_for(chain[SFFT]->vpe, StreamAccel::EP_OUTPUT);
+    MemGate sfftout = chain[MUL]->vpe->mem().derive(SWFIL_BUF_ADDR, SWFIL_BUF_SIZE);
+    sfftout.activate_for(*chain[SFFT]->vpe, StreamAccelVPE::EP_OUTPUT);
 
-    MemGate mulout = chain[IFFT]->vpe.mem().derive(StreamAccel::BUF_ADDR, bufsize);
-    mulout.activate_for(chain[MUL]->vpe, StreamAccel::EP_OUTPUT);
+    MemGate mulout = chain[IFFT]->vpe->mem().derive(StreamAccelVPE::BUF_ADDR, bufsize);
+    mulout.activate_for(*chain[MUL]->vpe, StreamAccelVPE::EP_OUTPUT);
 
     MemGate ifftout = VPE::self().mem().derive(buffer, arrsize, MemGate::W);
-    ifftout.activate_for(chain[IFFT]->vpe, StreamAccel::EP_OUTPUT);
+    ifftout.activate_for(*chain[IFFT]->vpe, StreamAccelVPE::EP_OUTPUT);
 
     Errors::Code res;
     if(direct) {
@@ -178,8 +177,8 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
     if(res != Errors::NONE)
         errmsg("Operation failed: " << Errors::to_string(res));
 
-    for(auto *a : accel)
-        delete a;
+    for(auto *c : chain)
+        delete c;
 }
 
 int main(int argc, char **argv) {

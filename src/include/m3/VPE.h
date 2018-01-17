@@ -79,7 +79,7 @@ public:
      * @param tmuxable whether this VPE can share a PE with others
      */
     explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(), const char *pager = nullptr, bool tmuxable = false);
-    ~VPE();
+    virtual ~VPE();
 
     /**
      * @return the PE description this VPE has been assigned to
