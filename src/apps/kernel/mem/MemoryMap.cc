@@ -16,10 +16,39 @@
 
 #include <base/log/Kernel.h>
 #include <base/util/Math.h>
+#include <base/Init.h>
+#include <base/Panic.h>
 
 #include "mem/MemoryMap.h"
 
 namespace kernel {
+
+MemoryMap::Area *MemoryMap::freelist = nullptr;
+MemoryMap::Area MemoryMap::areas[MemoryMap::MAX_AREAS];
+
+INIT_PRIO_USER(1) MemoryMap::Init MemoryMap::Init::inst;
+
+MemoryMap::Init::Init() {
+    for(size_t i = 0; i < MAX_AREAS; ++i) {
+        areas[i].next = freelist;
+        freelist = areas + i;
+    }
+}
+
+void *MemoryMap::Area::operator new(size_t) {
+    if(freelist == nullptr)
+        PANIC("No free areas");
+
+    void *res = freelist;
+    freelist = freelist->next;
+    return res;
+}
+
+void MemoryMap::Area::operator delete(void *ptr) {
+    Area *a = static_cast<Area*>(ptr);
+    a->next = freelist;
+    freelist = a;
+}
 
 MemoryMap::MemoryMap(uintptr_t addr, size_t size) : list(new Area()) {
     list->addr = addr;

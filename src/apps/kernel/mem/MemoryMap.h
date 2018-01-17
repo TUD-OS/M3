@@ -26,7 +26,17 @@ class MemoryMap {
         uintptr_t addr;
         size_t size;
         Area *next;
+
+        static void *operator new(size_t);
+        static void operator delete(void *ptr);
     };
+
+    struct Init {
+        Init();
+        static Init inst;
+    };
+
+    static const size_t MAX_AREAS   = 4096;
 
 public:
     /**
@@ -80,6 +90,8 @@ public:
 
 private:
     Area *list;
+    static Area *freelist;
+    static Area areas[MAX_AREAS];
 };
 
 }
