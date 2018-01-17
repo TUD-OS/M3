@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
 #include <base/stream/IStringStream.h>
 #include <base/util/Profile.h>
 
@@ -23,12 +24,35 @@
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
+// TODO move that elsewhere
+#include "../accelchain/accelchain.h"
 #include "Args.h"
 #include "Parser.h"
 
 using namespace m3;
+using namespace accel;
 
-static const size_t PIPE_SHM_SIZE  = 128 * 1024;
+struct Chain {
+    explicit Chain(StreamAccelVPE *vpe)
+        : cmem(), rgate(RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val)) {
+        rgate.activate();
+
+        cmem = new ChainMember(vpe, vpe->getRBAddr(), StreamAccelVPE::RB_SIZE, rgate, 0);
+    }
+    ~Chain() {
+        // don't destroy the VPE in ~ChainMember again
+        cmem->vpe = nullptr;
+        delete cmem;
+    }
+
+    ChainMember *cmem;
+    RecvGate rgate;
+};
+
+static const size_t ACCEL_BUF_SIZE  = 8192;
+static const size_t ACCEL_COMP_TIME = 8192;
+
+static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 
 static struct {
     const char *name;
@@ -47,29 +71,115 @@ static PEDesc get_pe_type(const char *name) {
     return VPE::self().pe();
 }
 
+static void start_sw(const Command &cmd, VPE &vpe) {
+    vpe.fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
+    vpe.obtain_fds();
+
+    vpe.mounts(*VPE::self().mounts());
+    vpe.obtain_mounts();
+
+    vpe.exec(static_cast<int>(cmd.args->count), cmd.args->args);
+}
+
+static Chain *start_accel(const Command &, VPE *vpe) {
+    Chain *chain = new Chain(static_cast<StreamAccelVPE*>(vpe));
+
+    chain->cmem->send_caps();
+    chain->cmem->activate_recv();
+    chain->cmem->vpe->start();
+    chain->cmem->activate_send();
+
+    chain->cmem->init(ACCEL_BUF_SIZE, static_cast<size_t>(-1), static_cast<size_t>(-1), ACCEL_COMP_TIME);
+    return chain;
+}
+
+static Errors::Code exec_accel_chain(Chain *chain) {
+    File *in = chain->cmem->vpe->fds()->get(STDIN_FD);
+    File *out = chain->cmem->vpe->fds()->get(STDOUT_FD);
+    size_t inpos = 0, outpos = 0;
+    size_t inlen = 0, outlen = 0;
+    size_t inoff, outoff;
+    capsel_t inmem, outmem, lastin = ObjCap::INVALID;
+
+    SendGate sgate = SendGate::create(&chain->cmem->rgate);
+
+    Errors::Code err;
+    while(1) {
+        // input depleted?
+        if(inpos == inlen) {
+            // request next memory cap for input
+            if((err = in->read_next(&inmem, &inoff, &inlen)) != Errors::NONE)
+                return err;
+
+            LLOG(ACCEL, "input: sel=" << inmem << ", inoff=" << inoff << ", inlen=" << inlen);
+
+            if(inlen == 0)
+                break;
+
+            inpos = 0;
+            if(inmem != lastin) {
+                MemGate::bind(inmem).activate_for(*chain->cmem->vpe, StreamAccelVPE::EP_INPUT);
+                lastin = inmem;
+            }
+        }
+
+        // output depleted?
+        if(outpos == outlen) {
+            // request next memory cap for output
+            if((err = out->begin_write(&outmem, &outoff, &outlen)) != Errors::NONE)
+                return err;
+
+            LLOG(ACCEL, "output: sel=" << outmem << ", outoff=" << outoff << ", outlen=" << outlen);
+
+            outpos = 0;
+        }
+
+        // activate output mem with new offset
+        MemGate::bind(outmem).activate_for(*chain->cmem->vpe, StreamAccelVPE::EP_OUTPUT, outoff + outpos);
+
+        // use the minimum of both, because input and output have to be of the same size atm
+        size_t amount = std::min(inlen - inpos, outlen - outpos);
+        amount = requestResponse(sgate, chain->rgate, inoff + inpos, amount);
+
+        LLOG(ACCEL, "commit_write(" << amount << ")");
+
+        inpos += amount;
+        outpos += amount;
+        out->commit_write(amount);
+    }
+
+    return Errors::NONE;
+}
+
 static bool execute(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     MemGate *mems[MAX_CMDS] = {nullptr};
+    Chain *chain = nullptr;
 
     fd_t infd = STDIN_FD;
     fd_t outfd = STDOUT_FD;
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
-        PEDesc pe = VPE::self().pe();
-        for(size_t i = 0; i < cmd->vars->count; ++i) {
-            if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
-                pe = get_pe_type(cmd->vars->vars[i].value);
-                // use the current ISA for comp-PEs
-                // TODO we could let the user specify the ISA
-                if(pe.type() != PEType::MEM)
-                    pe = PEDesc(pe.type(), VPE::self().pe().isa(), pe.mem_size());
-                break;
+        if(strcmp(cmd->args->args[0], "/bin/toupper") == 0)
+            vpes[i] = StreamAccelVPE::create(PEISA::ACCEL_TOUP);
+        else {
+            PEDesc pe = VPE::self().pe();
+            for(size_t i = 0; i < cmd->vars->count; ++i) {
+                if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
+                    pe = get_pe_type(cmd->vars->vars[i].value);
+                    // use the current ISA for comp-PEs
+                    // TODO we could let the user specify the ISA
+                    if(pe.type() != PEType::MEM)
+                        pe = PEDesc(pe.type(), VPE::self().pe().isa(), pe.mem_size());
+                    break;
+                }
             }
+
+            vpes[i] = new VPE(cmd->args->args[0], pe, nullptr, muxed);
         }
 
-        vpes[i] = new VPE(cmd->args->args[0], pe, nullptr, muxed);
         if(Errors::last != Errors::NONE) {
             errmsg("Unable to create VPE for " << cmd->args->args[0]);
             break;
@@ -111,29 +221,43 @@ static bool execute(CmdList *list, bool muxed) {
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
 
-        vpes[i]->fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
-        vpes[i]->obtain_fds();
-
-        vpes[i]->mounts(*VPE::self().mounts());
-        vpes[i]->obtain_mounts();
-
-        Errors::Code err;
-        if((err = vpes[i]->exec(static_cast<int>(cmd->args->count), cmd->args->args)) != Errors::NONE) {
+        if(vpes[i]->pe().is_programmable())
+            start_sw(*cmd, *vpes[i]);
+        else
+            chain = start_accel(*cmd, vpes[i]);
+        if(Errors::last != Errors::NONE) {
             errmsg("Unable to execute '" << cmd->args->args[0] << "'");
             break;
         }
 
         if(i > 0) {
-            pipes[i - 1]->close_reader();
-            pipes[i - 1]->close_writer();
+            if(vpes[i]->pe().is_programmable())
+                pipes[i - 1]->close_reader();
+            if(vpes[i - 1]->pe().is_programmable())
+                pipes[i - 1]->close_writer();
+        }
+    }
+
+    if(chain && Errors::last == Errors::NONE) {
+        Errors::Code res = exec_accel_chain(chain);
+        if(res != Errors::NONE)
+            errmsg("Unable to execute accelerator pipeline");
+
+        for(size_t i = 1; i < list->count; ++i) {
+            if(!vpes[i]->pe().is_programmable())
+                pipes[i - 1]->close_reader();
+            if(!vpes[i - 1]->pe().is_programmable())
+                pipes[i - 1]->close_writer();
         }
     }
 
     for(size_t i = 0; i < list->count; ++i) {
         if(vpes[i]) {
-            int res = vpes[i]->wait();
-            if(res != 0)
-                cerr << "Program terminated with exit code " << res << "\n";
+            if(vpes[i]->pe().is_programmable()) {
+                int res = vpes[i]->wait();
+                if(res != 0)
+                    cerr << "Program terminated with exit code " << res << "\n";
+            }
             delete vpes[i];
         }
     }
@@ -141,10 +265,12 @@ static bool execute(CmdList *list, bool muxed) {
         delete mems[i];
         delete pipes[i];
     }
-    if(infd != STDIN_FD)
+    if(infd != STDIN_FD && infd != FileTable::INVALID)
         VFS::close(infd);
-    if(outfd != STDOUT_FD)
+    if(outfd != STDOUT_FD && outfd != FileTable::INVALID)
         VFS::close(outfd);
+
+    delete chain;
     return true;
 }
 

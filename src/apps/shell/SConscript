@@ -17,9 +17,9 @@ if conf.CheckBYACC():
     parserc = GenParser(myenv, target = '#src/apps/shell/parser.tab.c', source = 'cmds.y')
     parserobj = myenv.Object(source = 'parser.tab.c')
     myenv.Depends(parserobj, parserc)
-    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), parserobj])
+    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), parserobj], libs = ['accel'])
 else:
     print('Cannot execute byacc, skipping regeneration of parser.tab.{c,h}...')
-    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), myenv.Glob('*.c')])
+    myenv.M3Program(myenv, target = 'shell', source = [myenv.Glob('*.cc'), myenv.Glob('*.c')], libs = ['accel'])
 
 conf.Finish()
