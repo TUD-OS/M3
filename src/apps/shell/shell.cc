@@ -26,8 +26,8 @@
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
-// TODO move that elsewhere
-#include "../accelchain/accelchain.h"
+#include <accel/stream/StreamAccel.h>
+
 #include "Args.h"
 #include "Parser.h"
 
@@ -56,22 +56,23 @@ static PEDesc get_pe_type(const char *name) {
     return VPE::self().pe();
 }
 
+#if defined(__gem5__)
 static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, size_t end) {
     RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
     rgate.activate();
 
     size_t num = end - start + 1;
-    ChainMember *chain[num];
+    StreamAccel::ChainMember *chain[num];
 
     // create chain
     auto vpe_n = vpes[end];
-    chain[num - 1] = new ChainMember(vpe_n, StreamAccelVPE::getRBAddr(*vpe_n),
-        StreamAccelVPE::RB_SIZE, rgate, num - 1);
+    chain[num - 1] = new StreamAccel::ChainMember(vpe_n, StreamAccel::getRBAddr(*vpe_n),
+        StreamAccel::RB_SIZE, rgate, num - 1);
 
     for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
         auto vpe_i = vpes[start + static_cast<size_t>(i)];
-        chain[i] = new ChainMember(vpe_i, StreamAccelVPE::getRBAddr(*vpe_i),
-            StreamAccelVPE::RB_SIZE, chain[i + 1]->rgate, static_cast<label_t>(i));
+        chain[i] = new StreamAccel::ChainMember(vpe_i, StreamAccel::getRBAddr(*vpe_i),
+            StreamAccel::RB_SIZE, chain[i + 1]->rgate, static_cast<label_t>(i));
     }
 
     // connect them
@@ -110,71 +111,14 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
     // connect memory EPs
     for(size_t i = 0; i < num - 1; ++i) {
         MemGate *buf = new MemGate(chain[i + 1]->vpe->mem().derive(bufaddr[i + 1], ABUF_SIZE));
-        buf->activate_for(*chain[i]->vpe, StreamAccelVPE::EP_OUTPUT);
+        buf->activate_for(*chain[i]->vpe, StreamAccel::EP_OUTPUT);
     }
 
     // handle beginning and end of chain
     File *in = chain[0]->vpe->fds()->get(STDIN_FD);
     File *out = chain[num - 1]->vpe->fds()->get(STDOUT_FD);
-    size_t inpos = 0, outpos = 0;
-    size_t inlen = 0, outlen = 0;
-    size_t inoff, outoff;
-    capsel_t inmem, outmem, lastin = ObjCap::INVALID, lastout = ObjCap::INVALID;
-    size_t last_out_off = static_cast<size_t>(-1);
 
-    SendGate sgate = SendGate::create(&chain[0]->rgate);
-
-    Errors::Code err;
-    while(1) {
-        // input depleted?
-        if(inpos == inlen) {
-            // request next memory cap for input
-            if((err = in->read_next(&inmem, &inoff, &inlen)) != Errors::NONE)
-                return err;
-
-            LLOG(ACCEL, "input: sel=" << inmem << ", inoff=" << inoff << ", inlen=" << inlen);
-
-            if(inlen == 0)
-                break;
-
-            inpos = 0;
-            if(inmem != lastin) {
-                MemGate::bind(inmem).activate_for(*chain[0]->vpe, StreamAccelVPE::EP_INPUT);
-                lastin = inmem;
-            }
-        }
-
-        // output depleted?
-        if(outpos == outlen) {
-            // request next memory cap for output
-            if((err = out->begin_write(&outmem, &outoff, &outlen)) != Errors::NONE)
-                return err;
-
-            LLOG(ACCEL, "output: sel=" << outmem << ", outoff=" << outoff << ", outlen=" << outlen);
-
-            outpos = 0;
-        }
-
-        // activate output mem with new offset
-        if(outmem != lastout || last_out_off != outoff + outpos) {
-            MemGate::bind(outmem).activate_for(*chain[num - 1]->vpe, StreamAccelVPE::EP_OUTPUT, outoff + outpos);
-            lastout = outmem;
-            last_out_off = outoff + outpos;
-        }
-
-        // use the minimum of both, because input and output have to be of the same size atm
-        size_t amount = std::min(inlen - inpos, outlen - outpos);
-        amount = requestResponse(sgate, rgate, inoff + inpos, amount);
-
-        LLOG(ACCEL, "commit_write(" << amount << ")");
-
-        inpos += amount;
-        outpos += amount;
-        out->commit_write(amount);
-    }
-
-    // EOF
-    requestResponse(sgate, rgate, 0, 0);
+    Errors::Code res = StreamAccel::executeChain(rgate, in, out, *chain[0], *chain[num - 1]);
 
     // destroy chain
     for(auto *c : chain) {
@@ -183,8 +127,9 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
         delete c;
     }
 
-    return Errors::NONE;
+    return res;
 }
+#endif
 
 static bool is_accelerator(const char *path) {
     // TODO make that more general
@@ -212,8 +157,13 @@ static bool execute(CmdList *list, bool muxed) {
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
+#if defined(__gem5__)
         if(is_accelerator(cmd->args->args[0]))
-            vpes[i] = StreamAccelVPE::create(PEISA::ACCEL_TOUP, true);
+            vpes[i] = StreamAccel::create(PEISA::ACCEL_TOUP, true);
+#else
+        if(false)
+            ;
+#endif
         else {
             PEDesc pe = VPE::self().pe();
             for(size_t i = 0; i < cmd->vars->count; ++i) {
@@ -294,6 +244,7 @@ static bool execute(CmdList *list, bool muxed) {
     }
 
     // if there is an accelerator chain, we need to handle the beginning and end
+#if defined(__gem5__)
     if(chain_start != MAX_CMDS && Errors::last == Errors::NONE) {
         Errors::Code res = exec_accel_chain(list, vpes, chain_start, chain_end);
         if(res != Errors::NONE)
@@ -308,6 +259,7 @@ static bool execute(CmdList *list, bool muxed) {
             }
         }
     }
+#endif
 
     for(size_t i = 0; i < list->count; ++i) {
         if(vpes[i]) {

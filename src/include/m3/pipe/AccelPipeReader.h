@@ -23,7 +23,6 @@
 #include <m3/pipe/AccelPipeState.h>
 #include <m3/vfs/File.h>
 
-#include <accel/stream/Stream.h>
 #include <accel/stream/StreamAccel.h>
 
 namespace m3 {
@@ -34,11 +33,11 @@ namespace m3 {
 class AccelPipeReader : public File {
 public:
     explicit AccelPipeReader()
-        : _rgate(RecvGate::bind(accel::StreamAccelVPE::RGATE_SEL,
-                                getnextlog2(accel::StreamAccelVPE::RB_SIZE))),
+        : _rgate(RecvGate::bind(accel::StreamAccel::RGATE_SEL,
+                                getnextlog2(accel::StreamAccel::RB_SIZE))),
           _msg(), _buf() {
         // gate is already activated
-        _rgate.ep(accel::StreamAccelVPE::EP_RECV);
+        _rgate.ep(accel::StreamAccel::EP_RECV);
     }
     ~AccelPipeReader() {
         send_reply();
@@ -57,8 +56,8 @@ public:
 
             auto state = AccelPipeState::get();
 
-            assert(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::INIT);
-            auto *init = reinterpret_cast<const StreamAccelVPE::InitCommand*>(is.message().data);
+            assert(static_cast<StreamAccel::Command>(cmd) == StreamAccel::Command::INIT);
+            auto *init = reinterpret_cast<const StreamAccel::InitCommand*>(is.message().data);
             state->report_size = init->report_size;
             state->out_size = init->out_size;
             LLOG(ACCEL, "AccelPipeReader: got init("
@@ -133,8 +132,8 @@ private:
         uint64_t cmd;
         is >> cmd;
 
-        assert(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::UPDATE);
-        auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
+        assert(static_cast<StreamAccel::Command>(cmd) == StreamAccel::Command::UPDATE);
+        auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
         state->off = upd->off;
         state->len = upd->len;
         state->eof = upd->eof;

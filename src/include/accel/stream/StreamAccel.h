@@ -16,14 +16,21 @@
 
 #pragma once
 
+#include <m3/com/SendGate.h>
+#include <m3/com/RecvGate.h>
+#include <m3/com/GateStream.h>
 #include <m3/VPE.h>
+
+namespace m3 {
+class File;
+}
 
 namespace accel {
 
 /**
- * Base class for the stream accelerators
+ * Defines and helper functions for stream accelerators
  */
-class StreamAccelVPE {
+class StreamAccel {
 public:
     static const size_t MSG_SIZE    = 64;
     static const size_t RB_SIZE     = MSG_SIZE * 8;
@@ -57,6 +64,55 @@ public:
         uint64_t eof;
     } PACKED;
 
+    struct ChainMember {
+        explicit ChainMember(m3::VPE *_vpe, uintptr_t _rbuf, size_t rbSize, m3::RecvGate &rgdst, label_t label)
+            : vpe(_vpe), rbuf(_rbuf),
+              rgate(m3::RecvGate::create_for(*vpe, m3::getnextlog2(rbSize), m3::getnextlog2(MSG_SIZE))),
+              sgate(m3::SendGate::create(&rgdst, label, rbSize)) {
+        }
+        ~ChainMember() {
+            delete vpe;
+        }
+
+        void send_caps() {
+            vpe->delegate(m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, rgate.sel(), 1), RGATE_SEL);
+            vpe->delegate(m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sgate.sel(), 1), SGATE_SEL);
+        }
+
+        void activate_recv() {
+            if(rbuf)
+                rgate.activate(EP_RECV, rbuf);
+            else
+                rgate.activate(EP_RECV);
+        }
+
+        void activate_send() {
+            sgate.activate_for(*vpe, EP_SEND);
+        }
+
+        uintptr_t init(size_t bufsize, size_t outsize, size_t reportsize, cycles_t comptime) {
+            InitCommand init;
+            init.cmd = static_cast<int64_t>(Command::INIT);
+            init.buf_size = bufsize;
+            init.out_size = outsize;
+            init.report_size = reportsize;
+            init.comp_time = comptime;
+
+            m3::SendGate sgate = m3::SendGate::create(&rgate);
+
+            uintptr_t addr = BUF_ADDR;
+            m3::GateIStream reply = send_receive_msg(sgate, &init, sizeof(init));
+            if(reply.length() == sizeof(uintptr_t))
+                reply >> addr;
+            return addr;
+        }
+
+        m3::VPE *vpe;
+        uintptr_t rbuf;
+        m3::RecvGate rgate;
+        m3::SendGate sgate;
+    };
+
     /**
      * Creates an accelerator VPE, depending on which exists
      *
@@ -70,6 +126,40 @@ public:
      * @return the address of the receive buffer
      */
     static uintptr_t getRBAddr(const m3::VPE &vpe);
+
+    /**
+     * Sends the update request to the given send gate
+     *
+     * @param sgate the gate to send the update request to
+     * @param off the current offset
+     * @param len the length
+     */
+    static void sendUpdate(m3::SendGate &sgate, size_t off, uint64_t len);
+
+    /**
+     * Sends the update request and waits for the response.
+     *
+     * @param sgate the gate to send the update request to
+     * @param rgate the gate ro receive the reply from
+     * @param off the current offset
+     * @param len the length
+     * @return the returned length
+     */
+    static uint64_t update(m3::SendGate &sgate, m3::RecvGate &rgate, size_t off, uint64_t len);
+
+    /**
+     * Executes the given chain, i.e., connects <first> to <in> and <last> to <out> and handles
+     * the protocol with the file objects.
+     *
+     * @param rgate the gate ro receive the reply from
+     * @param in the input file
+     * @param out the output file
+     * @param first the first in the chain
+     * @param last the last in the chain
+     * @return the error code, if any
+     */
+    static m3::Errors::Code executeChain(m3::RecvGate &rgate, m3::File *in, m3::File *out,
+        ChainMember &first, ChainMember &last);
 };
 
 }

@@ -23,7 +23,6 @@
 #include <m3/pipe/AccelPipeState.h>
 #include <m3/vfs/File.h>
 
-#include <accel/stream/Stream.h>
 #include <accel/stream/StreamAccel.h>
 
 namespace m3 {
@@ -36,12 +35,12 @@ class AccelPipeWriter : public File {
 
 public:
     explicit AccelPipeWriter()
-        : _sgate(SendGate::bind(accel::StreamAccelVPE::SGATE_SEL)),
+        : _sgate(SendGate::bind(accel::StreamAccel::SGATE_SEL)),
           _mgate(MemGate::bind(ObjCap::INVALID)),
           _agg() {
         // gates are already activated
-        _sgate.ep(accel::StreamAccelVPE::EP_SEND);
-        _mgate.ep(accel::StreamAccelVPE::EP_OUTPUT);
+        _sgate.ep(accel::StreamAccel::EP_SEND);
+        _mgate.ep(accel::StreamAccel::EP_OUTPUT);
     }
     ~AccelPipeWriter() {
         notify_next(0, true);
@@ -107,8 +106,8 @@ public:
 
 private:
     void notify_next(size_t size, bool eof) {
-        accel::StreamAccelVPE::UpdateCommand updcmd;
-        updcmd.cmd = static_cast<uint64_t>(accel::StreamAccelVPE::Command::UPDATE);
+        accel::StreamAccel::UpdateCommand updcmd;
+        updcmd.cmd = static_cast<uint64_t>(accel::StreamAccel::Command::UPDATE);
         updcmd.off = _off + size - _agg;
         updcmd.len = _agg;
         updcmd.eof = eof;
