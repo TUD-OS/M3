@@ -50,7 +50,7 @@ struct ChainMember {
         sgate.activate_for(*vpe, accel::StreamAccelVPE::EP_SEND);
     }
 
-    void init(size_t bufsize, size_t outsize, size_t reportsize, cycles_t comptime) {
+    uintptr_t init(size_t bufsize, size_t outsize, size_t reportsize, cycles_t comptime) {
         accel::StreamAccelVPE::InitCommand init;
         init.cmd = static_cast<int64_t>(accel::StreamAccelVPE::Command::INIT);
         init.buf_size = bufsize;
@@ -59,7 +59,12 @@ struct ChainMember {
         init.comp_time = comptime;
 
         m3::SendGate sgate = m3::SendGate::create(&rgate);
-        send_receive_msg(sgate, &init, sizeof(init));
+
+        uintptr_t addr = accel::StreamAccelVPE::BUF_ADDR;
+        m3::GateIStream reply = send_receive_msg(sgate, &init, sizeof(init));
+        if(reply.length() == sizeof(uintptr_t))
+            reply >> addr;
+        return addr;
     }
 
     m3::VPE *vpe;
@@ -81,7 +86,7 @@ static inline uint64_t requestResponse(m3::SendGate &sgate, m3::RecvGate &rgate,
     sendRequest(sgate, off, len);
 
     size_t done = 0;
-    while(done < len) {
+    do {
         accel::StreamAccelVPE::UpdateCommand req;
         m3::GateIStream is = receive_msg(rgate);
         is >> req;
@@ -89,5 +94,6 @@ static inline uint64_t requestResponse(m3::SendGate &sgate, m3::RecvGate &rgate,
         done += req.len;
         reply_vmsg(is, 0);
     }
+    while(done < len);
     return done;
 }

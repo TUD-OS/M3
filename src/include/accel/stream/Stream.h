@@ -55,7 +55,7 @@ private:
     void sendInit(size_t bufsize, size_t outsize, size_t reportsize);
     uint64_t sendRequest(uint64_t off, uint64_t len);
 
-    StreamAccelVPE *_accel;
+    m3::VPE *_accel;
     m3::RecvGate _rgate;
     m3::RecvGate _argate;
     m3::SendGate _asgate;

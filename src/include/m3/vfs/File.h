@@ -178,6 +178,13 @@ public:
     }
 
     /**
+     * @return true if the buffer needs to be flushed now
+     */
+    virtual bool needs_flush() {
+        return false;
+    }
+
+    /**
      * @return the unique character for serialization
      */
     virtual char type() const = 0;

@@ -182,13 +182,13 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
 
     ChainMember *chain[num];
 
-    auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT);
-    chain[num - 1] = new ChainMember(vpe, vpe->getRBAddr(),
+    auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT, true);
+    chain[num - 1] = new ChainMember(vpe, StreamAccelVPE::getRBAddr(*vpe),
         StreamAccelVPE::RB_SIZE, rgate, num - 1);
 
     for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
-        auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT);
-        chain[i] = new ChainMember(vpe, vpe->getRBAddr(),
+        auto vpe = StreamAccelVPE::create(PEISA::ACCEL_FFT, true);
+        chain[i] = new ChainMember(vpe, StreamAccelVPE::getRBAddr(*vpe),
             StreamAccelVPE::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
     }
 

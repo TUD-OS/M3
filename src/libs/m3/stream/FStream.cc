@@ -154,7 +154,7 @@ size_t FStream::write(const void *src, size_t count) {
         total += static_cast<size_t>(res);
         count -= static_cast<size_t>(res);
 
-        if(count || ((_flags & FL_LINE_BUF) && buf[total - 1] == '\n'))
+        if(count || ((_flags & FL_LINE_BUF) && buf[total - 1] == '\n') || file()->needs_flush())
             flush();
     }
 

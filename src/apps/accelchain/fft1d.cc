@@ -20,6 +20,8 @@
 #include <base/PEDesc.h>
 
 #include <m3/stream/Standard.h>
+#include <m3/pipe/AccelPipeReader.h>
+#include <m3/pipe/AccelPipeWriter.h>
 #include <m3/session/Pager.h>
 #include <m3/vfs/VFS.h>
 
@@ -110,8 +112,8 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
     ChainMember *chain[3];
 
     // IFFT
-    auto ifft = StreamAccelVPE::create(PEISA::ACCEL_FFT);
-    chain[IFFT] = new ChainMember(ifft, ifft->getRBAddr(), StreamAccelVPE::RB_SIZE,
+    auto ifft = StreamAccelVPE::create(PEISA::ACCEL_FFT, true);
+    chain[IFFT] = new ChainMember(ifft, StreamAccelVPE::getRBAddr(*ifft), StreamAccelVPE::RB_SIZE,
         rgate, IFFT);
 
     // multiplier
@@ -122,8 +124,8 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         direct ? chain[IFFT]->rgate : rgate, MUL);
 
     // SFFT
-    auto sfft = StreamAccelVPE::create(PEISA::ACCEL_FFT);
-    chain[SFFT] = new ChainMember(sfft, sfft->getRBAddr(), StreamAccelVPE::RB_SIZE,
+    auto sfft = StreamAccelVPE::create(PEISA::ACCEL_FFT, true);
+    chain[SFFT] = new ChainMember(sfft, StreamAccelVPE::getRBAddr(*sfft), StreamAccelVPE::RB_SIZE,
         direct ? chain[MUL]->rgate : rgate, SFFT);
 
     for(auto *m : chain) {
@@ -135,6 +137,10 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         if(i != MUL)
             chain[i]->vpe->start();
         else {
+            chain[i]->vpe->fds()->set(STDIN_FD, new AccelPipeReader());
+            chain[i]->vpe->fds()->set(STDOUT_FD, new AccelPipeWriter());
+            chain[i]->vpe->obtain_fds();
+
             const char *args[] = {"/bin/swfilter"};
             chain[i]->vpe->exec(ARRAY_SIZE(args), args);
         }

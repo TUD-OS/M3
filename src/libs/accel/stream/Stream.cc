@@ -28,7 +28,7 @@ using namespace m3;
 namespace accel {
 
 Stream::Stream(PEISA isa)
-    : _accel(StreamAccelVPE::create(isa)),
+    : _accel(StreamAccelVPE::create(isa, true)),
       _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
       _argate(RecvGate::create_for(*_accel, getnextlog2(StreamAccelVPE::RB_SIZE),
                                             getnextlog2(StreamAccelVPE::MSG_SIZE))),
@@ -47,7 +47,7 @@ Stream::Stream(PEISA isa)
     _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _asgate.sel(), 1), StreamAccelVPE::SGATE_SEL);
 
     // activate them
-    _argate.activate(StreamAccelVPE::EP_RECV, _accel->getRBAddr());
+    _argate.activate(StreamAccelVPE::EP_RECV, StreamAccelVPE::getRBAddr(*_accel));
     _asgate.activate_for(*_accel, StreamAccelVPE::EP_SEND);
 
     _accel->start();

@@ -15,6 +15,8 @@
  */
 
 #include <m3/com/Marshalling.h>
+#include <m3/pipe/AccelPipeReader.h>
+#include <m3/pipe/AccelPipeWriter.h>
 #include <m3/pipe/DirectPipeReader.h>
 #include <m3/pipe/DirectPipeWriter.h>
 #include <m3/pipe/IndirectPipeReader.h>
@@ -87,6 +89,12 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
                 obj->_fds[fd] = DirectPipeReader::unserialize(um);
                 break;
 #endif
+            case 'A':
+                obj->_fds[fd] = AccelPipeReader::unserialize(um);
+                break;
+            case 'B':
+                obj->_fds[fd] = AccelPipeWriter::unserialize(um);
+                break;
             case 'I':
                 obj->_fds[fd] = IndirectPipeReader::unserialize(um);
                 break;

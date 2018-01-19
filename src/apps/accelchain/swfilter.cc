@@ -15,86 +15,32 @@
  */
 
 #include <base/Common.h>
-#include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
-#include <base/PEDesc.h>
 
-#include <m3/com/RecvGate.h>
-#include <m3/com/SendGate.h>
-#include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
-
-#include <accel/stream/Stream.h>
 
 #include "swfilter.h"
 
 using namespace m3;
-using namespace accel;
 
 int main() {
-    RecvGate rg = RecvGate::bind(StreamAccelVPE::RGATE_SEL, getnextlog2(StreamAccelVPE::RB_SIZE));
-    SendGate sg = SendGate::bind(StreamAccelVPE::SGATE_SEL);
-    MemGate out = MemGate::bind(ObjCap::INVALID);
+    File *in = VPE::self().fds()->get(STDIN_FD);
+    File *out = VPE::self().fds()->get(STDOUT_FD);
 
-    // gates are already activated
-    rg.ep(StreamAccelVPE::EP_RECV);
-    sg.ep(StreamAccelVPE::EP_SEND);
-    out.ep(StreamAccelVPE::EP_OUTPUT);
-
-    size_t outSize = 0, reportSize = 0;
     ulong *buf = new ulong[SWFIL_BUF_SIZE / sizeof(ulong)];
-
-    alignas(64) StreamAccelVPE::UpdateCommand updcmd;
-    updcmd.cmd = static_cast<uint64_t>(StreamAccelVPE::Command::UPDATE);
-
-    while(1) {
-        GateIStream is = receive_msg(rg);
-        uint64_t cmd;
-        is >> cmd;
-
-        if(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::INIT) {
-            auto *init = reinterpret_cast<const StreamAccelVPE::InitCommand*>(is.message().data);
-            outSize = init->out_size;
-            reportSize = init->report_size;
-            continue;
+    ssize_t amount;
+    while((amount = in->read(buf, SWFIL_BUF_SIZE)) > 0) {
+        size_t num = static_cast<size_t>(amount) / sizeof(ulong);
+        for(size_t i = 0; i < num; i += 4) {
+            buf[i] = (buf[i] > 100) ? 0 : buf[i];
+            buf[i + 1] = (buf[i + 1] > 100) ? 0 : buf[i + 1];
+            buf[i + 2] = (buf[i + 2] > 100) ? 0 : buf[i + 2];
+            buf[i + 3] = (buf[i + 3] > 100) ? 0 : buf[i + 3];
         }
 
-        auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
-        // cout << "got off=" << fmt(upd->off, "#x") << " len=" << fmt(upd->len, "#x") << "\n";
-
-        size_t agg = 0;
-        size_t outOff = 0;
-        size_t inOff = upd->off;
-        size_t rem = upd->len;
-        while(rem > 0) {
-            size_t amount = Math::min(SWFIL_BUF_SIZE, rem);
-
-            ulong *fl = reinterpret_cast<ulong*>(SWFIL_BUF_ADDR + inOff);
-            size_t num = amount / sizeof(ulong);
-            for(size_t i = 0; i < num; i += 4) {
-                buf[i] = (fl[i] > 100) ? 0 : fl[i];
-                buf[i + 1] = (fl[i + 1] > 100) ? 0 : fl[i + 1];
-                buf[i + 2] = (fl[i + 2] > 100) ? 0 : fl[i + 2];
-                buf[i + 3] = (fl[i + 3] > 100) ? 0 : fl[i + 3];
-            }
-
-            out.write(buf, amount, outOff);
-
-            agg += amount;
-            inOff += amount;
-            rem -= amount;
-
-            if((rem == 0 && upd->eof) || agg >= reportSize) {
-                updcmd.off = outOff + amount - agg;
-                updcmd.len = agg;
-                updcmd.eof = rem == 0 && upd->eof;
-                send_msg(sg, &updcmd, sizeof(updcmd));
-                agg = 0;
-            }
-
-            outOff = (outOff + amount) % outSize;
-        }
+        if(out->write(buf, static_cast<size_t>(amount)) < 0)
+            exitmsg("Unable to write to accel pipe");
     }
-
+    if(amount < 0)
+        exitmsg("Unable to read from accel pipe");
     return 0;
 }
