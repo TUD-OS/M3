@@ -18,7 +18,7 @@
 
 #include <base/Compiler.h>
 
-#define MAX_CMDS    4
+#define MAX_CMDS    8
 #define MAX_ARGS   32
 #define MAX_VARS    4
 
