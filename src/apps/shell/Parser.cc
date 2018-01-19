@@ -42,7 +42,7 @@ EXTERN_C int yylex() {
     char c;
     if(!eof) {
         while((c = in->read()) > 0) {
-            if(c == '|' || c == ';' || c == '>' || c == '<'  || c == '=') {
+            if(c == '|' || c == ';' || c == '>' || c == '<'  || c == '=' || c == '$') {
                 if(i == 0)
                     return c;
                 in->putback(c);
@@ -69,6 +69,18 @@ EXTERN_C int yylex() {
         return T_STRING;
     }
     return -1;
+}
+
+Expr *ast_expr_create(const char *name, int is_var) {
+    Expr *e = new Expr;
+    e->is_var = is_var;
+    e->name_val = name;
+    return e;
+}
+
+void ast_expr_destroy(Expr *e) {
+    Heap::free(const_cast<char*>(e->name_val));
+    delete e;
 }
 
 Command *ast_cmd_create(VarList *vars, ArgList *args, RedirList *redirs) {
@@ -134,7 +146,7 @@ ArgList *ast_args_create() {
     return list;
 }
 
-void ast_args_append(ArgList *list, const char *arg) {
+void ast_args_append(ArgList *list, Expr *arg) {
     if(list->count == MAX_ARGS)
         return;
 
@@ -144,7 +156,7 @@ void ast_args_append(ArgList *list, const char *arg) {
 void ast_args_destroy(ArgList *list) {
     if(list) {
         for(size_t i = 0; i < list->count; ++i)
-            Heap::free(const_cast<char*>(list->args[i]));
+            ast_expr_destroy(list->args[i]);
         delete list;
     }
 }
@@ -155,7 +167,7 @@ VarList *ast_vars_create(void) {
     return list;
 }
 
-void ast_vars_set(VarList *list, const char *name, const char *value) {
+void ast_vars_set(VarList *list, const char *name, Expr *value) {
     if(list->count == MAX_VARS)
         return;
 
@@ -167,7 +179,7 @@ void ast_vars_set(VarList *list, const char *name, const char *value) {
 void ast_vars_destroy(VarList *list) {
     for(size_t i = 0; i < list->count; ++i) {
         Heap::free(const_cast<char*>(list->vars[i].name));
-        Heap::free(const_cast<char*>(list->vars[i].value));
+        ast_expr_destroy(list->vars[i].value);
     }
 }
 

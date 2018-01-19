@@ -18,6 +18,7 @@
 #include <cstring>
 
 #include "Args.h"
+#include "Vars.h"
 
 using namespace m3;
 
@@ -62,7 +63,7 @@ int Args::strmatch(const char *pattern, const char *str) {
 
 void Args::glob(ArgList *list, size_t i) {
     char filepat[MAX_ARG_LEN];
-    char *pat = const_cast<char*>(list->args[i]);
+    char *pat = const_cast<char*>(expr_value(list->args[i]));
     char *slash = strrchr(pat, '/');
     char old = '\0';
     if(slash) {
@@ -90,11 +91,12 @@ void Args::glob(ArgList *list, size_t i) {
                     list->count++;
                 }
                 else
-                    Heap::free(const_cast<char*>(list->args[i]));
+                    ast_expr_destroy(list->args[i]);
 
-                list->args[i] = static_cast<char*>(Heap::alloc(patlen + strlen(e.name) + 1));
-                strcpy(const_cast<char*>(list->args[i]), pat);
-                strcpy(const_cast<char*>(list->args[i]) + patlen, e.name);
+                char *new_arg = static_cast<char*>(Heap::alloc(patlen + strlen(e.name) + 1));
+                strcpy(new_arg, pat);
+                strcpy(new_arg + patlen, e.name);
+                list->args[i] = ast_expr_create(new_arg, false);
                 i++;
                 found = true;
                 if(list->count >= ARRAY_SIZE(list->args))
@@ -108,7 +110,7 @@ void Args::glob(ArgList *list, size_t i) {
             slash[1] = old;
 
         // remove wildcard argument
-        Heap::free(const_cast<char*>(list->args[i]));
+        ast_expr_destroy(list->args[i]);
         for(size_t x = i; x < list->count - 1; ++x)
             list->args[x] = list->args[x + 1];
         list->count--;
@@ -116,19 +118,23 @@ void Args::glob(ArgList *list, size_t i) {
 }
 
 void Args::prefix_path(ArgList *args) {
-    if(args->args[0][0] != '/') {
-        size_t len = strlen(args->args[0]);
+    if(args->count == 0)
+        return;
+
+    const char *first = expr_value(args->args[0]);
+    if(first[0] != '/') {
+        size_t len = strlen(first);
         char *newstr = static_cast<char*>(Heap::alloc(len + 5 + 1));
         strcpy(newstr, "/bin/");
-        strcpy(newstr + 5, args->args[0]);
-        Heap::free(const_cast<char*>(args->args[0]));
-        args->args[0] = newstr;
+        strcpy(newstr + 5, first);
+        ast_expr_destroy(args->args[0]);
+        args->args[0] = ast_expr_create(newstr, false);
     }
 }
 
 void Args::expand(ArgList *list) {
     for(size_t i = 0; i < list->count; ++i) {
-        if(strchr(list->args[i], '*'))
+        if(strchr(expr_value(list->args[i]), '*'))
             glob(list, i);
     }
 }

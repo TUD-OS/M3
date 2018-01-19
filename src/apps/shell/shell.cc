@@ -30,6 +30,7 @@
 
 #include "Args.h"
 #include "Parser.h"
+#include "Vars.h"
 
 using namespace m3;
 using namespace accel;
@@ -63,6 +64,14 @@ static PEDesc get_pe_type(const char *name) {
             return petypes[i].pe;
     }
     return VPE::self().pe();
+}
+
+static char **build_args(Command *cmd) {
+    char **res = new char*[cmd->args->count + 1];
+    for(size_t i = 0; i < cmd->args->count; ++i)
+        res[i] = (char*)expr_value(cmd->args->args[i]);
+    res[cmd->args->count] = nullptr;
+    return res;
 }
 
 #if defined(__gem5__)
@@ -99,7 +108,10 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
             m->vpe->fds()->set(STDOUT_FD, new AccelPipeWriter());
             m->vpe->obtain_fds();
 
-            m->vpe->exec(static_cast<int>(list->cmds[i]->args->count), list->cmds[i]->args->args);
+            char **args = build_args(list->cmds[i]);
+            m->vpe->exec(static_cast<int>(list->cmds[i]->args->count), const_cast<const char**>(args));
+            delete[] args;
+
             if(Errors::last != Errors::NONE) {
                 errmsg("Unable to execute '" << list->cmds[i]->args->args[0] << "'");
                 return Errors::last;
@@ -157,7 +169,7 @@ static PEDesc get_pedesc(const VarList &vars, const char *path) {
 
     for(size_t i = 0; i < vars.count; ++i) {
         if(strcmp(vars.vars[i].name, "PE") == 0) {
-            PEDesc pe = get_pe_type(vars.vars[i].value);
+            PEDesc pe = get_pe_type(expr_value(vars.vars[i].value));
             // use the current ISA for comp-PEs
             // TODO we could let the user specify the ISA
             if(pe.type() != PEType::MEM)
@@ -168,7 +180,16 @@ static PEDesc get_pedesc(const VarList &vars, const char *path) {
     return VPE::self().pe();
 }
 
-static bool execute(CmdList *list, bool muxed) {
+static void execute_assignment(CmdList *list) {
+    Command *cmd = list->cmds[0];
+
+    for(size_t i = 0; i < cmd->vars->count; ++i) {
+        Var *v = cmd->vars->vars + i;
+        Vars::get().set(v->name, expr_value(v->value));
+    }
+}
+
+static bool execute_pipeline(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     MemGate *mems[MAX_CMDS] = {nullptr};
@@ -178,7 +199,12 @@ static bool execute(CmdList *list, bool muxed) {
     size_t chain_start = MAX_CMDS;
     size_t chain_end = MAX_CMDS;
     for(size_t i = 0; i < list->count; ++i) {
-        descs[i] = get_pedesc(*list->cmds[i]->vars, list->cmds[i]->args->args[0]);
+        if(list->cmds[i]->args->count == 0) {
+            errmsg("Command has no arguments");
+            return true;
+        }
+
+        descs[i] = get_pedesc(*list->cmds[i]->vars, expr_value(list->cmds[i]->args->args[0]));
         if(!descs[i].is_programmable()) {
             if(chain_start == MAX_CMDS)
                 chain_start = i;
@@ -191,9 +217,9 @@ static bool execute(CmdList *list, bool muxed) {
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
-        vpes[i] = new VPE(cmd->args->args[0], descs[i], nullptr, muxed);
+        vpes[i] = new VPE(expr_value(cmd->args->args[0]), descs[i], nullptr, muxed);
         if(Errors::last != Errors::NONE) {
-            errmsg("Unable to create VPE for " << cmd->args->args[0]);
+            errmsg("Unable to create VPE for " << expr_value(cmd->args->args[0]));
             break;
         }
 
@@ -240,9 +266,12 @@ static bool execute(CmdList *list, bool muxed) {
             vpes[i]->mounts(*VPE::self().mounts());
             vpes[i]->obtain_mounts();
 
-            vpes[i]->exec(static_cast<int>(cmd->args->count), cmd->args->args);
+            char **args = build_args(cmd);
+            vpes[i]->exec(static_cast<int>(cmd->args->count), const_cast<const char**>(args));
+            delete[] args;
+
             if(Errors::last != Errors::NONE) {
-                errmsg("Unable to execute '" << cmd->args->args[0] << "'");
+                errmsg("Unable to execute '" << expr_value(cmd->args->args[0]) << "'");
                 break;
             }
         }
@@ -294,6 +323,20 @@ static bool execute(CmdList *list, bool muxed) {
     return true;
 }
 
+static bool execute(CmdList *list, bool muxed) {
+    for(size_t i = 0; i < list->count; ++i) {
+        Args::prefix_path(list->cmds[i]->args);
+        Args::expand(list->cmds[i]->args);
+    }
+
+    bool res = true;
+    if(list->count == 1 && list->cmds[0]->args->count == 0)
+        execute_assignment(list);
+    else
+        res = execute_pipeline(list, muxed);
+    return res;
+}
+
 int main(int argc, char **argv) {
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
@@ -313,14 +356,10 @@ int main(int argc, char **argv) {
         if(!list)
             exitmsg("Unable to parse command '" << input << "'");
 
-        for(size_t i = 0; i < list->count; ++i) {
-            Args::prefix_path(list->cmds[i]->args);
-            Args::expand(list->cmds[i]->args);
-        }
-
         cycles_t start = Profile::start(0x1234);
         execute(list, muxed);
         cycles_t end = Profile::stop(0x1234);
+
         cerr << "Execution took " << (end - start) << " cycles\n";
         return 0;
     }
@@ -337,19 +376,6 @@ int main(int argc, char **argv) {
         CmdList *list = get_command(&cin);
         if(!list)
             continue;
-
-        // extract core type
-        // String core;
-        // if(strncmp(args[0], "CORE=", 5) == 0) {
-        //     core = args[0] + 5;
-        //     args++;
-        //     argc--;
-        // }
-
-        for(size_t i = 0; i < list->count; ++i) {
-            Args::prefix_path(list->cmds[i]->args);
-            Args::expand(list->cmds[i]->args);
-        }
 
         if(!execute(list, muxed))
             break;

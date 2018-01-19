@@ -9,6 +9,7 @@
 #ifndef YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
 typedef union {
+    Expr *expr;
     ArgList *arglist;
     VarList *varlist;
     CmdList *cmdlist;

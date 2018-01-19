@@ -10,6 +10,7 @@
 %}
 
 %union {
+    Expr *expr;
     ArgList *arglist;
     VarList *varlist;
     CmdList *cmdlist;
@@ -21,7 +22,8 @@
 %token T_STRING
 %left '|' '<' '>'
 
-%type <str> T_STRING arg
+%type <str> T_STRING
+%type <expr> expr arg
 %type <arglist> args
 %type <varlist> vars
 %type <cmd> cmd
@@ -35,6 +37,7 @@
 %destructor { ast_vars_destroy($$); } <vars>
 %destructor { ast_redirs_destroy($$); } <redirlist>
 %destructor { ast_cmd_destroy($$); } <cmd>
+%destructor { ast_expr_destroy($$); } <expr>
 
 %%
 
@@ -44,8 +47,7 @@ start:
                                                         $$ = NULL;
                                                     }
 
-cmds:       /* empty */                             { $$ = ast_cmds_create(); }
-            | cmd                                   {
+cmds:       cmd                                     {
                                                         $$ = ast_cmds_create();
                                                         ast_cmds_append($$, $1);
                                                     }
@@ -60,7 +62,7 @@ cmd:        vars args redirs                        { $$ = ast_cmd_create($1, $2
 
 vars:
             /* empty */                             { $$ = ast_vars_create(); }
-            | vars T_STRING '=' T_STRING            { $$ = $1; ast_vars_set($1, $2, $4); }
+            | vars T_STRING '=' expr                { $$ = $1; ast_vars_set($1, $2, $4); }
 ;
 
 redirs:
@@ -69,7 +71,8 @@ redirs:
             | redirs '>' T_STRING                   { $$ = $1; ast_redirs_set($1, 1, $3); }
 ;
 
-args:       arg                                     {
+args:       /* empty */                             { $$ = ast_args_create(); }
+            | arg                                   {
                                                         $$ = ast_args_create();
                                                         ast_args_append($$, $1);
                                                     }
@@ -78,7 +81,10 @@ args:       arg                                     {
                                                         ast_args_append($1, $2);
                                                     }
 
-arg:        T_STRING                                { $$ = $1; }
+arg:        expr                                    { $$ = $1; }
 ;
+
+expr:       T_STRING                                { $$ = ast_expr_create($1, 0); }
+            | '$' T_STRING                          { $$ = ast_expr_create($2, 1); }
 
 %%

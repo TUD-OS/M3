@@ -23,8 +23,13 @@
 #define MAX_VARS    4
 
 typedef struct {
+    int is_var;
+    const char *name_val;
+} Expr;
+
+typedef struct {
     unsigned count;
-    const char *args[MAX_ARGS];
+    Expr *args[MAX_ARGS];
 } ArgList;
 
 typedef struct {
@@ -33,7 +38,7 @@ typedef struct {
 
 typedef struct {
     const char *name;
-    const char *value;
+    Expr *value;
 } Var;
 
 typedef struct {
@@ -52,6 +57,9 @@ typedef struct {
     Command *cmds[MAX_CMDS];
 } CmdList;
 
+EXTERN_C Expr *ast_expr_create(const char *name, int is_var);
+EXTERN_C void ast_expr_destroy(Expr *e);
+
 EXTERN_C Command *ast_cmd_create(VarList *vars, ArgList *args, RedirList *redirs);
 EXTERN_C void ast_cmd_destroy(Command *cmd);
 
@@ -64,11 +72,11 @@ EXTERN_C void ast_cmds_append(CmdList *list, Command *cmd);
 EXTERN_C void ast_cmds_destroy(CmdList *list);
 
 EXTERN_C ArgList *ast_args_create(void);
-EXTERN_C void ast_args_append(ArgList *list, const char *arg);
+EXTERN_C void ast_args_append(ArgList *list, Expr *arg);
 EXTERN_C void ast_args_destroy(ArgList *list);
 
 EXTERN_C VarList *ast_vars_create(void);
-EXTERN_C void ast_vars_set(VarList *list, const char *name, const char *value);
+EXTERN_C void ast_vars_set(VarList *list, const char *name, Expr *value);
 EXTERN_C void ast_vars_destroy(VarList *list);
 
 #if defined(__cplusplus)
