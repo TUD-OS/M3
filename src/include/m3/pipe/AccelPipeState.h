@@ -20,6 +20,9 @@
 
 namespace m3 {
 
+/**
+ * The shared state between AccelPipeReader and AccelPipeWriter.
+ */
 struct AccelPipeState {
     static AccelPipeState *get() {
         return &inst;

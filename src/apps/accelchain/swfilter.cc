@@ -17,6 +17,7 @@
 #include <base/Common.h>
 
 #include <m3/stream/Standard.h>
+#include <m3/pipe/AccelPipeReader.h>
 
 #include "swfilter.h"
 
@@ -26,18 +27,22 @@ int main() {
     File *in = VPE::self().fds()->get(STDIN_FD);
     File *out = VPE::self().fds()->get(STDOUT_FD);
 
-    ulong *buf = new ulong[SWFIL_BUF_SIZE / sizeof(ulong)];
+    if(in->type() != 'A')
+        exitmsg("stdin should be an AccelPipeReader");
+
+    ulong *rbuf = reinterpret_cast<ulong*>(static_cast<AccelPipeReader*>(in)->get_buffer());
+    ulong *wbuf = new ulong[SWFIL_BUF_SIZE / sizeof(ulong)];
     ssize_t amount;
-    while((amount = in->read(buf, SWFIL_BUF_SIZE)) > 0) {
+    while((amount = in->read(nullptr, SWFIL_BUF_SIZE)) > 0) {
         size_t num = static_cast<size_t>(amount) / sizeof(ulong);
         for(size_t i = 0; i < num; i += 4) {
-            buf[i] = (buf[i] > 100) ? 0 : buf[i];
-            buf[i + 1] = (buf[i + 1] > 100) ? 0 : buf[i + 1];
-            buf[i + 2] = (buf[i + 2] > 100) ? 0 : buf[i + 2];
-            buf[i + 3] = (buf[i + 3] > 100) ? 0 : buf[i + 3];
+            wbuf[i] = (rbuf[i] > 100) ? 0 : rbuf[i];
+            wbuf[i + 1] = (rbuf[i + 1] > 100) ? 0 : rbuf[i + 1];
+            wbuf[i + 2] = (rbuf[i + 2] > 100) ? 0 : rbuf[i + 2];
+            wbuf[i + 3] = (rbuf[i + 3] > 100) ? 0 : rbuf[i + 3];
         }
 
-        if(out->write(buf, static_cast<size_t>(amount)) < 0)
+        if(out->write(wbuf, static_cast<size_t>(amount)) < 0)
             exitmsg("Unable to write to accel pipe");
     }
     if(amount < 0)

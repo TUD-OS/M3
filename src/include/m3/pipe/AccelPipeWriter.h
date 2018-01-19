@@ -28,6 +28,9 @@
 
 namespace m3 {
 
+/**
+ * The writing end of an accelerator pipe, i.e., we write to an accelerator.
+ */
 class AccelPipeWriter : public File {
     static const size_t BUF_SIZE = 8192;
 
@@ -80,6 +83,10 @@ public:
     }
 
     virtual bool needs_flush() override {
+        // this is required here, because we stream the data through the whole pipeline in steps.
+        // if one step is finished, we receive EOF from our predecessor. in this case, we have to
+        // notify our successor (if we're done with the data). if we are using a buffer for this
+        // file, we need to make sure that write() is actually called to notify the successor.
         auto state = AccelPipeState::get();
         return state->eof && state->pos == state->len;
     }

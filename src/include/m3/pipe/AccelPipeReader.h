@@ -28,6 +28,9 @@
 
 namespace m3 {
 
+/**
+ * The reading end of an accelerator pipe, i.e., we read from an accelerator.
+ */
 class AccelPipeReader : public File {
 public:
     explicit AccelPipeReader()
@@ -41,24 +44,18 @@ public:
         send_reply();
     }
 
-    virtual Errors::Code stat(FileInfo &) const override {
-        // not supported
-        return Errors::NOT_SUP;
-    }
-    virtual ssize_t seek(size_t, int) override {
-        // not supported
-        return Errors::NOT_SUP;
-    }
-
-    virtual ssize_t read(void *buffer, size_t size) override {
+    /**
+     * @return the internal buffer which already contains the data after calling read()
+     */
+    char *get_buffer() {
         using namespace accel;
-
-        auto state = AccelPipeState::get();
 
         if(_buf == nullptr) {
             GateIStream is = receive_msg(_rgate);
             uint64_t cmd;
             is >> cmd;
+
+            auto state = AccelPipeState::get();
 
             assert(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::INIT);
             auto *init = reinterpret_cast<const StreamAccelVPE::InitCommand*>(is.message().data);
@@ -73,30 +70,31 @@ public:
             reply_vmsg(is, (uintptr_t)_buf);
         }
 
-        if(state->pos == state->len) {
-            GateIStream is = receive_msg(_rgate);
-            uint64_t cmd;
-            is >> cmd;
+        return _buf;
+    }
 
-            assert(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::UPDATE);
-            auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
-            state->off = upd->off;
-            state->len = upd->len;
-            state->eof = upd->eof;
-            state->pos = 0;
-            LLOG(ACCEL, "AccelPipeReader: got update("
-                << "off=" << upd->off
-                << ", len=" << upd->len
-                << ", eof=" << upd->eof
-                << ")");
-            is.claim();
-            _msg = &is.message();
-        }
+    virtual Errors::Code stat(FileInfo &) const override {
+        // not supported
+        return Errors::NOT_SUP;
+    }
+    virtual ssize_t seek(size_t, int) override {
+        // not supported
+        return Errors::NOT_SUP;
+    }
+
+    virtual ssize_t read(void *buffer, size_t size) override {
+        auto state = AccelPipeState::get();
+
+        char *ibuf = get_buffer();
+
+        if(state->pos == state->len)
+            get_next();
 
         size_t amount = 0;
         if(state->pos < state->len) {
             amount = Math::min(state->len - state->pos, size);
-            memcpy(buffer, _buf + state->off + state->pos, amount);
+            if(buffer)
+                memcpy(buffer, ibuf + state->off + state->pos, amount);
             state->pos += amount;
 
             if(state->pos == state->len)
@@ -126,6 +124,32 @@ public:
     }
 
 private:
+    void get_next() {
+        using namespace accel;
+
+        auto state = AccelPipeState::get();
+
+        GateIStream is = receive_msg(_rgate);
+        uint64_t cmd;
+        is >> cmd;
+
+        assert(static_cast<StreamAccelVPE::Command>(cmd) == StreamAccelVPE::Command::UPDATE);
+        auto *upd = reinterpret_cast<const StreamAccelVPE::UpdateCommand*>(is.message().data);
+        state->off = upd->off;
+        state->len = upd->len;
+        state->eof = upd->eof;
+        state->pos = 0;
+        LLOG(ACCEL, "AccelPipeReader: got update("
+            << "off=" << upd->off
+            << ", len=" << upd->len
+            << ", eof=" << upd->eof
+            << ")");
+
+        // we want to reply later
+        is.claim();
+        _msg = &is.message();
+    }
+
     void send_reply() {
         if(_msg) {
             char dummy[1];
