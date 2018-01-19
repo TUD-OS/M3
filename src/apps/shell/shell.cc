@@ -48,6 +48,15 @@ static struct {
     /* MEM       */  {"mem",   PEDesc(PEType::MEM, PEISA::NONE)},
 };
 
+static struct {
+    const char *name;
+    PEISA isa;
+} isas[] = {
+    {"SHA",     PEISA::ACCEL_SHA},
+    {"FFT",     PEISA::ACCEL_FFT},
+    {"TOUP",    PEISA::ACCEL_TOUP},
+};
+
 static PEDesc get_pe_type(const char *name) {
     for(size_t i = 0; i < ARRAY_SIZE(petypes); ++i) {
         if(strcmp(name, petypes[i].name) == 0)
@@ -131,21 +140,46 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
 }
 #endif
 
-static bool is_accelerator(const char *path) {
-    // TODO make that more general
-    return strcmp(path, "/bin/toupper") == 0;
+static PEDesc get_pedesc(const VarList &vars, const char *path) {
+    FStream f(path, FILE_R | FILE_X);
+    if(f.bad())
+        return VPE::self().pe();
+
+    // accelerator description file?
+    if(f.read() == '@' && f.read() == '=') {
+        char line[128];
+        f.getline(line, sizeof(line));
+        for(size_t i = 0; i < ARRAY_SIZE(isas); ++i) {
+            if(strcmp(isas[i].name, line) == 0)
+                return PEDesc(PEType::COMP_IMEM, isas[i].isa);
+        }
+    }
+
+    for(size_t i = 0; i < vars.count; ++i) {
+        if(strcmp(vars.vars[i].name, "PE") == 0) {
+            PEDesc pe = get_pe_type(vars.vars[i].value);
+            // use the current ISA for comp-PEs
+            // TODO we could let the user specify the ISA
+            if(pe.type() != PEType::MEM)
+                pe = PEDesc(pe.type(), VPE::self().pe().isa(), pe.mem_size());
+            break;
+        }
+    }
+    return VPE::self().pe();
 }
 
 static bool execute(CmdList *list, bool muxed) {
     VPE *vpes[MAX_CMDS] = {nullptr};
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     MemGate *mems[MAX_CMDS] = {nullptr};
+    PEDesc descs[MAX_CMDS];
 
     // find accelerator chain
     size_t chain_start = MAX_CMDS;
     size_t chain_end = MAX_CMDS;
     for(size_t i = 0; i < list->count; ++i) {
-        if(is_accelerator(list->cmds[i]->args->args[0])) {
+        descs[i] = get_pedesc(*list->cmds[i]->vars, list->cmds[i]->args->args[0]);
+        if(!descs[i].is_programmable()) {
             if(chain_start == MAX_CMDS)
                 chain_start = i;
             chain_end = i;
@@ -157,29 +191,7 @@ static bool execute(CmdList *list, bool muxed) {
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
-#if defined(__gem5__)
-        if(is_accelerator(cmd->args->args[0]))
-            vpes[i] = StreamAccel::create(PEISA::ACCEL_TOUP, true);
-#else
-        if(false)
-            ;
-#endif
-        else {
-            PEDesc pe = VPE::self().pe();
-            for(size_t i = 0; i < cmd->vars->count; ++i) {
-                if(strcmp(cmd->vars->vars[i].name, "PE") == 0) {
-                    pe = get_pe_type(cmd->vars->vars[i].value);
-                    // use the current ISA for comp-PEs
-                    // TODO we could let the user specify the ISA
-                    if(pe.type() != PEType::MEM)
-                        pe = PEDesc(pe.type(), VPE::self().pe().isa(), pe.mem_size());
-                    break;
-                }
-            }
-
-            vpes[i] = new VPE(cmd->args->args[0], pe, nullptr, muxed);
-        }
-
+        vpes[i] = new VPE(cmd->args->args[0], descs[i], nullptr, muxed);
         if(Errors::last != Errors::NONE) {
             errmsg("Unable to create VPE for " << cmd->args->args[0]);
             break;
