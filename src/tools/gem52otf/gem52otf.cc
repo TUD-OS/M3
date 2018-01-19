@@ -284,12 +284,12 @@ uint32_t read_trace_file(const char *path, Mode mode, std::vector<Event> &buf) {
         std::string line(readbuf + numchars);
 
         if(strstr(line.c_str(), "rv") && std::regex_search(line, match, msg_rcv_regex)) {
+            uint32_t sender = strtoul(match[1].str().c_str(), nullptr, 0);
             Event ev = build_event(EVENT_MSG_RECV,
-                timestamp, pe, match[1].str(), match[2].str(), tag);
+                timestamp, pe, match[1].str(), match[2].str(), states[sender].tag);
             buf.push_back(ev);
 
             last_pe = std::max(pe, std::max(last_pe, ev.remote));
-            states[pe].tag = tag++;
         }
         else if(strstr(line.c_str(), "ing") && std::regex_search(line, match, suswake_regex)) {
             event_type type = match[1].str() == "Waking" ? EVENT_WAKEUP : EVENT_SUSPEND;
