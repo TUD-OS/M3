@@ -102,10 +102,10 @@ impl VPEMng {
         let pe_imem = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
         let pe_emem = kif::PEDesc::new(kif::PEType::COMP_EMEM, kif::PEISA::X86, 0);
         let find_pe = || {
-            if let Some(pe_id) = pemng::get().alloc_pe(&pe_imem, None, false) {
+            if let Some(pe_id) = pemng::get().alloc_pe(&pe_emem, None, false) {
                 return Ok(pe_id)
             }
-            pemng::get().alloc_pe(&pe_emem, None, false).ok_or(Error::new(Code::NoFreePE))
+            pemng::get().alloc_pe(&pe_imem, None, false).ok_or(Error::new(Code::NoFreePE))
         };
 
         let mut argv = Vec::new();
