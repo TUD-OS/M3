@@ -110,7 +110,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::EXCHANGE          => exchange(&vpe, msg),
         kif::syscalls::Operation::DELEGATE          => exchange_over_sess(&vpe, msg, false),
         kif::syscalls::Operation::OBTAIN            => exchange_over_sess(&vpe, msg, true),
-        kif::syscalls::Operation::VPE_CTRL          => vpectrl(&vpe, msg),
+        kif::syscalls::Operation::VPE_CTRL          => vpe_ctrl(&vpe, msg),
         kif::syscalls::Operation::REVOKE            => revoke(&vpe, msg),
         kif::syscalls::Operation::NOOP              => noop(&vpe, msg),
         _                                           => panic!("Unexpected operation: {}", opcode),
@@ -798,14 +798,14 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 }
 
 #[inline(never)]
-fn vpectrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+fn vpe_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::VPECtrl = get_message(msg);
     let vpe_sel = req.vpe_sel as CapSel;
     let op = kif::syscalls::VPEOp::from(req.op);
     let arg = req.arg;
 
     sysc_log!(
-        vpe, "vpectrl(vpe={}, op={:?}, arg={:#x})",
+        vpe, "vpe_ctrl(vpe={}, op={:?}, arg={:#x})",
         vpe_sel, op, arg
     );
 
