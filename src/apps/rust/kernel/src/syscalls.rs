@@ -484,6 +484,12 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
             mgate.borrow().addr(), mgate.borrow().size()
         );
     }
+    if mgate.borrow().vpe != INVALID_VPE {
+        sysc_err!(
+            vpe, Code::InvArgs,
+            "Memory capability refers to virtual memory"
+        );
+    }
 
     let total_pages = (mgate.borrow().size() >> cfg::PAGE_BITS) as CapSel;
     if first >= total_pages || first + pages > total_pages {
