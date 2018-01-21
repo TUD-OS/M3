@@ -113,7 +113,7 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
             delete[] args;
 
             if(Errors::last != Errors::NONE) {
-                errmsg("Unable to execute '" << list->cmds[i]->args->args[0] << "'");
+                errmsg("Unable to execute '" << expr_value(list->cmds[i]->args->args[0]) << "'");
                 return Errors::last;
             }
         }
