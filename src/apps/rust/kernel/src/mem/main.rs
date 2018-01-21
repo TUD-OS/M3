@@ -22,11 +22,29 @@ impl Allocation {
         }
     }
 
+    pub fn claim(&mut self) {
+        self.size = 0;
+    }
+
     pub fn global(&self) -> GlobAddr {
         self.gaddr
     }
     pub fn size(&self) -> usize {
         self.size
+    }
+}
+
+impl fmt::Debug for Allocation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Alloc[addr={:?}, size={:#x}]", self.gaddr, self.size)
+    }
+}
+
+impl Drop for Allocation {
+    fn drop(&mut self) {
+        if self.size > 0 {
+            get().free(self);
+        }
     }
 }
 

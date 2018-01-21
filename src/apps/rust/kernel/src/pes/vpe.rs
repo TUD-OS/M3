@@ -3,6 +3,7 @@ use base::cell::{Ref, RefCell, RefMut};
 use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
+use base::GlobAddr;
 use base::kif::{CapRngDesc, CapSel, CapType, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
@@ -13,6 +14,7 @@ use arch::kdtu;
 use arch::loader::Loader;
 use arch::vm;
 use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
+use mem::Allocation;
 use pes::vpemng;
 use platform;
 
@@ -137,7 +139,7 @@ impl VPE {
             // cap for own memory
             vpe_mut.obj_caps_mut().insert(
                 Capability::new(1, KObject::MGate(MGateObject::new(
-                    pe, id, 0, cfg::MEM_CAP_END, Perm::RWX
+                    id, Allocation::new(GlobAddr::new(0), cfg::MEM_CAP_END), Perm::RWX
                 )))
             );
 
@@ -403,15 +405,16 @@ impl VPE {
         Ok(())
     }
 
-    pub fn config_mem_ep(&mut self, ep: EpId, obj: &Ref<MGateObject>, off: usize) -> Result<(), Error> {
-        if off >= obj.size || obj.addr + off < off {
+    pub fn config_mem_ep(&mut self, ep: EpId, obj: &Ref<MGateObject>,
+                         pe_id: PEId, off: usize) -> Result<(), Error> {
+        if off >= obj.size() || obj.addr() + off < off {
             return Err(Error::new(Code::InvArgs));
         }
 
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
 
         // TODO
-        self.dtu_state.config_mem(ep, obj.pe, obj.vpe, obj.addr + off, obj.size - off, obj.perms);
+        self.dtu_state.config_mem(ep, pe_id, obj.vpe, obj.addr() + off, obj.size() - off, obj.perms);
         self.update_ep(ep)
     }
 

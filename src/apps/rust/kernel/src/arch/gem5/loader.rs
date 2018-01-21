@@ -176,8 +176,9 @@ impl Loader {
                 let size = util::round_up((phdr.vaddr & PAGE_MASK) + phdr.memsz, PAGE_SIZE);
 
                 if vpe.pe_desc().has_virtmem() {
-                    let phys = mem::get().allocate(size, PAGE_SIZE)?;
+                    let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
                     Self::map_segment(vpe, phys.global(), virt, size, perms)?;
+                    phys.claim();
                 }
 
                 if phdr.filesz == 0 {
@@ -210,8 +211,9 @@ impl Loader {
         // create initial heap
         if needs_heap && vpe.pe_desc().has_virtmem() {
             let end = util::round_up(end, PAGE_SIZE);
-            let phys = mem::get().allocate(MOD_HEAP_SIZE, PAGE_SIZE)?;
+            let mut phys = mem::get().allocate(MOD_HEAP_SIZE, PAGE_SIZE)?;
             Self::map_segment(vpe, phys.global(), end, MOD_HEAP_SIZE, kif::Perm::RW)?;
+            phys.claim();
         }
 
         Ok(hdr.entry)
@@ -221,12 +223,12 @@ impl Loader {
         let pe = vpe.pe_id();
 
         if self.idles[pe].is_none() {
-            let (phys, size) = {
+            let (mut phys, size) = {
                 let rctmux: &BootModule = self.get_mod(&["rctmux".to_string()]).unwrap().0;
 
                 // copy the ELF file
                 let size = util::round_up(rctmux.size as usize, PAGE_SIZE);
-                let phys = mem::get().allocate(size, PAGE_SIZE)?;
+                let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
                 let bootvpe = VPEDesc::new_mem(phys.global().pe());
                 KDTU::get().copy(
                     // destination
@@ -242,6 +244,7 @@ impl Loader {
             };
 
             self.idles[pe] = Some(BootModule::new("rctmux", phys.global(), size));
+            phys.claim();
         }
 
         // load idle
@@ -302,8 +305,9 @@ impl Loader {
                 // map runtime space
                 let virt = RT_START;
                 let size = STACK_TOP - virt;
-                let phys = mem::get().allocate(size, PAGE_SIZE)?;
+                let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
                 Self::map_segment(vpe, phys.global(), virt, size, kif::Perm::RW)?;
+                phys.claim();
             }
 
             let argv_off: usize = Self::write_arguments(&vpe.desc(), vpe.args())?;
@@ -323,8 +327,9 @@ impl Loader {
 
         if vpe.pe_desc().has_virtmem() {
             // map receive buffer
-            let phys = mem::get().allocate(RECVBUF_SIZE, PAGE_SIZE)?;
+            let mut phys = mem::get().allocate(RECVBUF_SIZE, PAGE_SIZE)?;
             Self::map_segment(vpe, phys.global(), RECVBUF_SPACE, RECVBUF_SIZE, kif::Perm::RW)?;
+            phys.claim();
         }
 
         vpe.set_state(State::RUNNING);

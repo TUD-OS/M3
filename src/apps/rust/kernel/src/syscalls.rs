@@ -198,7 +198,7 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::MGate(MGateObject::new(
-            alloc.global().pe(), INVALID_VPE, alloc.global().offset(), alloc.size(), perms
+            INVALID_VPE, alloc, perms
         )))
     );
 
@@ -477,23 +477,22 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     let dst_vpe: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
     let mgate: Rc<RefCell<MGateObject>> = get_kobj!(vpe, mgate_sel, MGate);
 
-    if (mgate.borrow().addr & cfg::PAGE_MASK) != 0 || (mgate.borrow().size & cfg::PAGE_MASK) != 0 {
+    if (mgate.borrow().addr() & cfg::PAGE_MASK) != 0 || (mgate.borrow().size() & cfg::PAGE_MASK) != 0 {
         sysc_err!(
             vpe, Code::InvArgs,
             "Memory capability is not page aligned (addr={:#x}, size={:#x})",
-            mgate.borrow().addr, mgate.borrow().size
+            mgate.borrow().addr(), mgate.borrow().size()
         );
     }
 
-    let total_pages = (mgate.borrow().size >> cfg::PAGE_BITS) as CapSel;
+    let total_pages = (mgate.borrow().size() >> cfg::PAGE_BITS) as CapSel;
     if first >= total_pages || first + pages > total_pages {
         sysc_err!(vpe, Code::InvArgs, "Region of memory cap is invalid");
     }
 
     let virt = (dst_sel as usize) << cfg::PAGE_BITS;
-    let phys = GlobAddr::new_with(
-        mgate.borrow().pe,
-        mgate.borrow().addr + cfg::PAGE_SIZE * first as usize
+    let phys = GlobAddr::new(
+        mgate.borrow().mem.global().raw() + (cfg::PAGE_SIZE * first as usize) as u64
     );
 
     // retrieve/create map object
@@ -556,13 +555,16 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     let cap = {
         let mgate: Rc<RefCell<MGateObject>> = get_kobj!(vpe, src_sel, MGate);
 
-        if offset + size < offset || offset + size > mgate.borrow().size || size == 0 {
+        if offset + size < offset || offset + size > mgate.borrow().size() || size == 0 {
             sysc_err!(vpe, Code::InvArgs, "Size or offset invalid");
         }
 
         let mgate_ref = mgate.borrow();
+        let new_mem = mem::Allocation::new(
+            GlobAddr::new(mgate_ref.mem.global().raw() + offset as u64), size
+        );
         let mgate_obj = MGateObject::new(
-            mgate_ref.pe, mgate_ref.vpe, mgate_ref.addr + offset, size, perms & mgate_ref.perms
+            mgate_ref.vpe, new_mem, perms & mgate_ref.perms
         );
         mgate_obj.borrow_mut().derived = true;
         Capability::new(dst_sel, KObject::MGate(mgate_obj))
@@ -760,8 +762,9 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                 }
             },
 
-            KObject::MGate(ref r)    => {
-                if let Err(e) = vpe_ref.borrow_mut().config_mem_ep(ep, &r.borrow(), addr) {
+            KObject::MGate(ref m)    => {
+                let pe_id = m.borrow().pe_id().unwrap();
+                if let Err(e) = vpe_ref.borrow_mut().config_mem_ep(ep, &m.borrow(), pe_id, addr) {
                     sysc_err!(vpe, e.code(), "Unable to configure mem EP");
                 }
             },
@@ -778,8 +781,8 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                     sysc_log!(vpe, "activate: rgate {:?} is activated", rgate.borrow());
                 }
 
-                let pe_id = vpemng::get().pe_of(rgate.borrow().vpe);
-                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &s.borrow(), pe_id.unwrap()) {
+                let pe_id = vpemng::get().pe_of(rgate.borrow().vpe).unwrap();
+                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &s.borrow(), pe_id) {
                     sysc_err!(vpe, e.code(), "Unable to configure send EP");
                 }
             },

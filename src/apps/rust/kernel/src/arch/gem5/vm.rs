@@ -141,13 +141,14 @@ impl AddrSpace {
             }
 
             // TODO this is prelimilary
-            let alloc = mem::get().allocate(cfg::PAGE_SIZE, cfg::PAGE_SIZE)?;
+            let mut alloc = mem::get().allocate(cfg::PAGE_SIZE, cfg::PAGE_SIZE)?;
 
             // clear PT
             let mut npte = alloc.global().raw();
             KDTU::get().clear(
                 &VPEDesc::new_mem(alloc.global().pe()), alloc.global().offset(), cfg::PAGE_SIZE
             ).unwrap();
+            alloc.claim();
 
             // insert PTE
             npte |= dtu::PTEFlags::IRWX.bits();
@@ -233,10 +234,11 @@ impl AddrSpace {
     }
 
     fn get_root_pt() -> Result<GlobAddr, Error> {
-        let root_pt = mem::get().allocate(cfg::PAGE_SIZE, cfg::PAGE_SIZE)?;
+        let mut root_pt = mem::get().allocate(cfg::PAGE_SIZE, cfg::PAGE_SIZE)?;
         KDTU::get().clear(
             &VPEDesc::new_mem(root_pt.global().pe()), root_pt.global().offset(), cfg::PAGE_SIZE
         )?;
+        root_pt.claim();
         Ok(root_pt.global())
     }
 }
@@ -254,13 +256,14 @@ extern fn kernel_oom_callback(size: usize) -> bool {
 
     // allocate memory
     let pages = util::max(256, util::round_up(size, cfg::PAGE_SIZE) >> cfg::PAGE_BITS);
-    let alloc = mem::get().allocate(pages * cfg::PAGE_SIZE, cfg::PAGE_SIZE).unwrap();
+    let mut alloc = mem::get().allocate(pages * cfg::PAGE_SIZE, cfg::PAGE_SIZE).unwrap();
 
     // map the memory
     let virt = unsafe { util::round_up(heap_end as usize, cfg::PAGE_SIZE) };
     let space = AddrSpace::new_kernel();
     let vpe = &pes::VPEDesc::new_kernel(pes::vpemng::KERNEL_VPE);
     space.map_pages(vpe, virt, alloc.global(), pages, kif::Perm::RW).unwrap();
+    alloc.claim();
 
     // append to heap
     heap::append(pages);

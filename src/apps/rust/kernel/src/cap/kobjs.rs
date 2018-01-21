@@ -11,7 +11,7 @@ use thread;
 
 use com::SendQueue;
 use mem;
-use pes::{INVALID_VPE, VPE, VPEId};
+use pes::{INVALID_VPE, VPE, VPEId, vpemng};
 
 #[derive(Clone)]
 pub enum KObject {
@@ -116,41 +116,52 @@ impl fmt::Debug for SGateObject {
 }
 
 pub struct MGateObject {
-    pub pe: PEId,
     pub vpe: VPEId,
-    pub addr: usize,
-    pub size: usize,
+    pub mem: mem::Allocation,
     pub perms: kif::Perm,
     pub derived: bool,
 }
 
 impl MGateObject {
-    pub fn new(pe: PEId, vpe: VPEId, addr: usize, size: usize, perms: kif::Perm) -> Rc<RefCell<Self>> {
+    pub fn new(vpe: VPEId, mem: mem::Allocation, perms: kif::Perm) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(MGateObject {
-            pe: pe,
             vpe: vpe,
-            addr: addr,
-            size: size,
+            mem: mem,
             perms: perms,
             derived: false,
         }))
+    }
+
+    pub fn pe_id(&self) -> Option<PEId> {
+        if self.vpe == INVALID_VPE {
+            Some(self.mem.global().pe())
+        }
+        else {
+            vpemng::get().pe_of(self.vpe)
+        }
+    }
+
+    pub fn addr(&self) -> usize {
+        self.mem.global().offset()
+    }
+    pub fn size(&self) -> usize {
+        self.mem.size()
     }
 }
 
 impl Drop for MGateObject {
     fn drop(&mut self) {
         // if it's not derived, it's always memory from mem-PEs
-        if !self.derived {
-            let gaddr = GlobAddr::new_with(self.pe, self.addr);
-            mem::get().free(&mem::Allocation::new(gaddr, self.size));
+        if self.derived {
+            self.mem.claim();
         }
     }
 }
 
 impl fmt::Debug for MGateObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MGate[tgt=VPE{}:PE{}, addr={:#x}, sz={:#x}, perm={:?}, der={}]",
-            self.vpe, self.pe, self.addr, self.size, self.perms, self.derived)
+        write!(f, "MGate[vpe={}, mem={:?}, perm={:?}, der={}]",
+            self.vpe, self.mem, self.perms, self.derived)
     }
 }
 
