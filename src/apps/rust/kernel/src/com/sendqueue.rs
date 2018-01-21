@@ -1,6 +1,7 @@
 use base::cell::{StaticCell, RefCell};
 use base::col::{DList, Vec};
 use base::dtu;
+use base::errors::{Code, Error};
 use base::rc::Rc;
 use thread;
 
@@ -61,15 +62,15 @@ impl SendQueue {
         &self.vpe
     }
 
-    pub fn send(&mut self, rep: dtu::EpId, msg: &[u8], size: usize) -> Option<thread::Event> {
+    pub fn send(&mut self, rep: dtu::EpId, msg: &[u8], size: usize) -> Result<thread::Event, Error> {
         klog!(SQUEUE, "SendQueue[{}]: trying to send msg", self.vpe.borrow().id());
 
         if self.state == QState::Aborted {
-            return None;
+            return Err(Error::new(Code::RecvGone));
         }
 
         if self.state == QState::Idle && self.vpe.borrow().state() == State::RUNNING {
-            return Some(self.do_send(rep, alloc_qid(), msg, size));
+            return self.do_send(rep, alloc_qid(), msg, size);
         }
 
         klog!(SQUEUE, "SendQueue[{}]: queuing msg", self.vpe.borrow().id());
@@ -79,7 +80,7 @@ impl SendQueue {
         // copy message to heap
         let vec = msg.to_vec();
         self.queue.push_back(Entry::new(qid, rep, vec));
-        Some(get_event(qid))
+        Ok(get_event(qid))
     }
 
     pub fn received_reply(&mut self, msg: &'static dtu::Message) {
@@ -97,18 +98,22 @@ impl SendQueue {
     }
 
     fn send_pending(&mut self) {
-        match self.queue.pop_front() {
-            None    => return,
+        loop {
+            match self.queue.pop_front() {
+                None    => return,
 
-            Some(e) => {
-                klog!(SQUEUE, "SendQueue[{}]: found pending message", self.vpe.borrow().id());
+                Some(e) => {
+                    klog!(SQUEUE, "SendQueue[{}]: found pending message", self.vpe.borrow().id());
 
-                self.do_send(e.rep, e.id, &e.msg, e.msg.len());
+                    if self.do_send(e.rep, e.id, &e.msg, e.msg.len()).is_ok() {
+                        break;
+                    }
+                }
             }
         }
     }
 
-    fn do_send(&mut self, rep: dtu::EpId, id: u64, msg: &[u8], size: usize) -> thread::Event {
+    fn do_send(&mut self, rep: dtu::EpId, id: u64, msg: &[u8], size: usize) -> Result<thread::Event, Error> {
         klog!(SQUEUE, "SendQueue[{}]: sending msg", self.vpe.borrow().id());
 
         self.cur_event = get_event(id);
@@ -117,8 +122,8 @@ impl SendQueue {
         let label = self as *mut Self as dtu::Label;
         kdtu::KDTU::get().send_to(
             &self.vpe.borrow().desc(), rep, 0, msg.as_ptr(), size, label, kdtu::KSRV_EP
-        ).unwrap();
+        )?;
 
-        self.cur_event
+        Ok(self.cur_event)
     }
 }

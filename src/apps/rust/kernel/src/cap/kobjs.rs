@@ -173,17 +173,17 @@ impl ServObject {
         self.queue.vpe()
     }
 
-    pub fn send(&mut self, msg: &[u8]) -> Option<thread::Event> {
+    pub fn send(&mut self, msg: &[u8]) -> Result<thread::Event, Error> {
         let rep = self.rgate.borrow().ep.unwrap();
         self.queue.send(rep, msg, msg.len())
     }
 
-    pub fn send_receive(serv: &Rc<RefCell<ServObject>>, msg: &[u8]) -> Option<&'static dtu::Message> {
+    pub fn send_receive(serv: &Rc<RefCell<ServObject>>, msg: &[u8]) -> Result<&'static dtu::Message, Error> {
         let event = serv.borrow_mut().send(msg);
 
         event.and_then(|event| {
             thread::ThreadManager::get().wait_for(event);
-            thread::ThreadManager::get().fetch_msg()
+            Ok(thread::ThreadManager::get().fetch_msg().unwrap())
         })
     }
 }
@@ -222,7 +222,7 @@ impl Drop for SessObject {
             };
 
             klog!(SERV, "Sending CLOSE(sess={:#x}) to service {}", self.ident, srv.name);
-            srv.send(util::object_to_bytes(&smsg));
+            srv.send(util::object_to_bytes(&smsg)).ok();
         }
     }
 }

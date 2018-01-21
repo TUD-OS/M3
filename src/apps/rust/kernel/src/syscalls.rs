@@ -327,9 +327,9 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
     let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
 
     match res {
-        None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", name),
+        Err(e)      => sysc_err!(vpe, e.code(), "Service {} unreachable", name),
 
-        Some(rmsg)  => {
+        Ok(rmsg)    => {
             let reply: &kif::service::OpenReply = get_message(rmsg);
 
             sysc_log!(vpe, "create_sess continue with res={}", {reply.res});
@@ -670,9 +670,9 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
     let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 
     match res {
-        None        => sysc_err!(vpe, Code::Exists, "Service {} unreachable", serv.borrow().name),
+        Err(e)      => sysc_err!(vpe, e.code(), "Service {} unreachable", serv.borrow().name),
 
-        Some(rmsg)  => {
+        Ok(rmsg)    => {
             let reply: &kif::service::ExchangeReply = get_message(rmsg);
 
             sysc_log!(
