@@ -35,9 +35,12 @@ public:
     explicit AccelPipeReader()
         : _rgate(RecvGate::bind(accel::StreamAccel::RGATE_SEL,
                                 getnextlog2(accel::StreamAccel::RB_SIZE))),
+          _mgate(MemGate::bind(ObjCap::INVALID)),
+          _mgate_valid(true),
           _msg(), _buf() {
-        // gate is already activated
+        // gates are already activated
         _rgate.ep(accel::StreamAccel::EP_RECV);
+        _mgate.ep(accel::StreamAccel::EP_INPUT);
     }
     ~AccelPipeReader() {
         send_reply();
@@ -144,6 +147,11 @@ private:
             << ", eof=" << upd->eof
             << ")");
 
+        if(_mgate_valid) {
+            if(_mgate.read(_buf + state->off, upd->len, upd->off) != Errors::NONE)
+                _mgate_valid = false;
+        }
+
         // we want to reply later
         is.claim();
         _msg = &is.message();
@@ -160,6 +168,8 @@ private:
     }
 
     RecvGate _rgate;
+    MemGate _mgate;
+    bool _mgate_valid;
     const DTU::Message *_msg;
     char *_buf;
 };

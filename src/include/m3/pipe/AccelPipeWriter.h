@@ -65,7 +65,7 @@ public:
 
         auto state = AccelPipeState::get();
 
-        LLOG(ACCEL, "AccelPipeReader: write(" << size << ")");
+        LLOG(ACCEL, "AccelPipeWriter: write(" << size << ")");
 
         _mgate.write(buffer, size, _off);
         _agg += size;
@@ -76,7 +76,10 @@ public:
             _agg = 0;
         }
 
-        _off = (_off + size) % state->out_size;
+        if(eof)
+            _off = 0;
+        else
+            _off = (_off + size) % state->out_size;
 
         return static_cast<ssize_t>(size);
     }
@@ -111,7 +114,7 @@ private:
         updcmd.off = _off + size - _agg;
         updcmd.len = _agg;
         updcmd.eof = eof;
-        LLOG(ACCEL, "AccelPipeReader: sending update(off="
+        LLOG(ACCEL, "AccelPipeWriter: sending update(off="
             << updcmd.off << ", len=" << updcmd.len << ", eof=" << eof << ")");
         send_receive_msg(_sgate, &updcmd, sizeof(updcmd));
     }
