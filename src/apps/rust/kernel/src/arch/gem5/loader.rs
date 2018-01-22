@@ -2,6 +2,7 @@ use base::cfg::{MOD_HEAP_SIZE, RT_START, STACK_TOP, PAGE_BITS, PAGE_MASK, PAGE_S
 use base::cfg::{RECVBUF_SPACE, RECVBUF_SIZE};
 use base::cell::{Cell, StaticCell};
 use base::col::{String, ToString, Vec};
+use base::dtu;
 use base::elf;
 use base::envdata;
 use base::errors::{Code, Error};
@@ -11,7 +12,7 @@ use base::util;
 use core::intrinsics;
 
 use arch::kdtu::KDTU;
-use cap::{Capability, SelRange, KObject, MapObject};
+use cap::{Capability, KObject, MapFlags, MapObject, SelRange};
 use pes::{State, VPE, VPEDesc};
 use pes::rctmux;
 use platform;
@@ -117,12 +118,12 @@ impl Loader {
     }
 
     fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: usize, size: usize,
-                   perm: kif::Perm) -> Result<(), Error> {
+                   flags: MapFlags) -> Result<(), Error> {
         if vpe.pe_desc().has_virtmem() {
             let dst_sel = virt >> PAGE_BITS;
             let pages = util::round_up(size, PAGE_SIZE) >> PAGE_BITS;
 
-            let map_obj = MapObject::new(phys, perm);
+            let map_obj = MapObject::new(phys, flags);
             map_obj.borrow().map(vpe, virt, pages)?;
 
             vpe.map_caps_mut().insert(
@@ -147,7 +148,7 @@ impl Loader {
     }
 
     fn load_mod(&self, vpe: &mut VPE, bm: &BootModule,
-                copy: bool, needs_heap: bool) -> Result<usize, Error> {
+                copy: bool, needs_heap: bool, to_mem: bool) -> Result<usize, Error> {
         let hdr: elf::Ehdr = Self::read_from_mod(bm, 0)?;
 
         if hdr.ident[0] != '\x7F' as u8 ||
@@ -169,28 +170,38 @@ impl Loader {
                 continue;
             }
 
-            let perms = kif::Perm::from(elf::PF::from_bits_truncate(phdr.flags));
+            let flags = MapFlags::from(kif::Perm::from(elf::PF::from_bits_truncate(phdr.flags)));
             let offset = util::round_dn(phdr.offset, PAGE_SIZE);
             let virt = util::round_dn(phdr.vaddr, PAGE_SIZE);
 
             // do we need new memory for this segment?
-            if (copy && perms.contains(kif::Perm::W)) || phdr.filesz == 0 {
+            if (copy && flags.contains(MapFlags::W)) || phdr.filesz == 0 {
                 let size = util::round_up((phdr.vaddr & PAGE_MASK) + phdr.memsz, PAGE_SIZE);
 
-                if vpe.pe_desc().has_virtmem() {
+                let (dst_vpe, dst_virt) = if vpe.pe_desc().has_virtmem() {
                     let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
-                    Self::map_segment(vpe, phys.global(), virt, size, perms)?;
+                    Self::map_segment(vpe, phys.global(), virt, size, flags)?;
                     phys.claim();
+
+                    if to_mem {
+                        (VPEDesc::new_mem(phys.global().pe()), phys.global().offset())
+                    }
+                    else {
+                        (vpe.desc(), virt)
+                    }
                 }
+                else {
+                    (vpe.desc(), virt)
+                };
 
                 if phdr.filesz == 0 {
-                    KDTU::get().clear(&vpe.desc(), virt, size)?;
+                    KDTU::get().clear(&dst_vpe, dst_virt, size)?;
                 }
                 else {
                     KDTU::get().copy(
                         // destination
-                        &vpe.desc(),
-                        virt,
+                        &dst_vpe,
+                        dst_virt,
                         // source
                         &VPEDesc::new_mem(bm.addr.pe()),
                         bm.addr.offset() + offset,
@@ -203,7 +214,7 @@ impl Loader {
             else {
                 assert!(phdr.memsz == phdr.filesz);
                 let size = (phdr.offset & PAGE_MASK) + phdr.filesz;
-                Self::map_segment(vpe, bm.addr + offset, virt, size, perms)?;
+                Self::map_segment(vpe, bm.addr + offset, virt, size, flags)?;
                 end = virt + size;
             }
 
@@ -214,7 +225,7 @@ impl Loader {
         if needs_heap && vpe.pe_desc().has_virtmem() {
             let end = util::round_up(end, PAGE_SIZE);
             let mut phys = mem::get().allocate(MOD_HEAP_SIZE, PAGE_SIZE)?;
-            Self::map_segment(vpe, phys.global(), end, MOD_HEAP_SIZE, kif::Perm::RW)?;
+            Self::map_segment(vpe, phys.global(), end, MOD_HEAP_SIZE, MapFlags::RW)?;
             phys.claim();
         }
 
@@ -251,7 +262,28 @@ impl Loader {
 
         // load idle
         let idle: &BootModule = self.idles[pe].as_ref().unwrap();
-        self.load_mod(vpe, idle, false, false)
+        let to_mem = vpe.pe_desc().has_mmu();
+        let entry = self.load_mod(vpe, idle, false, false, to_mem)?;
+
+        if vpe.pe_desc().has_mmu() {
+            // clear rctmux variables
+            KDTU::get().clear(
+                &VPEDesc::new_mem(idle.addr.pe()), idle.addr.offset() + rctmux::YIELD_ADDR, 16
+            )?;
+
+            // map DTU
+            Self::map_segment(
+                vpe, GlobAddr::new(dtu::BASE_ADDR as u64), dtu::BASE_ADDR, PAGE_SIZE,
+                MapFlags::RW | MapFlags::I | MapFlags::UNCACHED
+            )?;
+            // map the privileged registers only for ring 0
+            Self::map_segment(
+                vpe, GlobAddr::new(dtu::BASE_REQ_ADDR as u64), dtu::BASE_REQ_ADDR, PAGE_SIZE,
+                MapFlags::RW | MapFlags::UNCACHED
+            )?;
+        }
+
+        Ok(entry)
     }
 
     fn write_arguments(vpe: &VPEDesc, args: &Vec<String>) -> Result<usize, Error> {
@@ -290,17 +322,31 @@ impl Loader {
             vpe.dtu_state().restore(&vpe_desc, vpe_id);
         }
 
-        if let Some(aspace) = vpe.addr_space() {
-            aspace.setup(&vpe.desc());
-        }
+        if vpe.pe_desc().has_mmu() {
+            // we have to init it in external memory first until we have rctmux running
+            vpe.set_state(State::SUSPENDED);
+            self.map_idle(vpe)?;
+            vpe.set_state(State::RUNNING);
 
-        self.map_idle(vpe)?;
+            if let Some(aspace) = vpe.addr_space() {
+                aspace.setup(&vpe.desc());
+            }
+        }
+        else {
+            vpe.set_state(State::RUNNING);
+
+            if let Some(aspace) = vpe.addr_space() {
+                aspace.setup(&vpe.desc());
+            }
+
+            self.map_idle(vpe)?;
+        }
 
         if vpe.is_bootmod() {
             let entry: usize = {
                 let (app, first) = self.get_mod(vpe.args()).ok_or(Error::new(Code::NoSuchFile))?;
                 klog!(KENV, "Loading mod '{}':", app.name());
-                self.load_mod(vpe, app, !first, true)?
+                self.load_mod(vpe, app, !first, true, false)?
             };
 
             if vpe.pe_desc().has_virtmem() {
@@ -308,7 +354,7 @@ impl Loader {
                 let virt = RT_START;
                 let size = STACK_TOP - virt;
                 let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
-                Self::map_segment(vpe, phys.global(), virt, size, kif::Perm::RW)?;
+                Self::map_segment(vpe, phys.global(), virt, size, MapFlags::RW)?;
                 phys.claim();
             }
 
@@ -330,11 +376,10 @@ impl Loader {
         if vpe.pe_desc().has_virtmem() {
             // map receive buffer
             let mut phys = mem::get().allocate(RECVBUF_SIZE, PAGE_SIZE)?;
-            Self::map_segment(vpe, phys.global(), RECVBUF_SPACE, RECVBUF_SIZE, kif::Perm::RW)?;
+            Self::map_segment(vpe, phys.global(), RECVBUF_SPACE, RECVBUF_SIZE, MapFlags::RW)?;
             phys.claim();
         }
 
-        vpe.set_state(State::RUNNING);
         Ok(())
     }
 
@@ -353,7 +398,12 @@ impl Loader {
             flags |= (vpe.pe_id() as u64) << 32;
 
             KDTU::get().write_swstate(&vpe.desc(), flags, report)?;
-            KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR)?;
+            if !vpe.pe_desc().has_mmu() && vpe.pe_desc().is_programmable() {
+                KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR)?;
+            }
+            else {
+                KDTU::get().inject_irq(&vpe.desc(), dtu::ExtReqOpCode::RCTMUX.val)?;
+            }
         }
 
         Ok(0)

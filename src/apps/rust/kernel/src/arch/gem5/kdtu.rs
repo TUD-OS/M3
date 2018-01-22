@@ -290,8 +290,7 @@ impl KDTU {
         self.do_ext_cmd(vpe, cmd)
     }
 
-    pub fn inject_irq(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
-        let cmd = ExtReqOpCode::RCTMUX.val;
+    pub fn inject_irq(&mut self, vpe: &VPEDesc, cmd: Reg) -> Result<(), Error> {
         self.try_write_slice(vpe, DTU::dtu_req_addr(ReqReg::EXT_REQ), &[cmd])
     }
 

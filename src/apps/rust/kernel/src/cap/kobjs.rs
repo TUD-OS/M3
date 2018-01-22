@@ -245,29 +245,48 @@ impl fmt::Debug for SessObject {
     }
 }
 
+bitflags! {
+    pub struct MapFlags : u64 {
+        const R             = 0b000001;
+        const W             = 0b000010;
+        const X             = 0b000100;
+        const I             = 0b001000;
+        const UNCACHED      = 0b100000;
+        const RW            = Self::R.bits | Self::W.bits;
+        const RWX           = Self::R.bits | Self::W.bits | Self::X.bits;
+        const IRWX          = Self::R.bits | Self::W.bits | Self::X.bits | Self::I.bits;
+    }
+}
+
+impl From<kif::Perm> for MapFlags {
+    fn from(perm: kif::Perm) -> Self {
+        MapFlags::from_bits_truncate(perm.bits() as u64)
+    }
+}
+
 pub struct MapObject {
     pub phys: GlobAddr,
-    pub attr: kif::Perm,
+    pub flags: MapFlags,
 }
 
 impl MapObject {
-    pub fn new(phys: GlobAddr, attr: kif::Perm) -> Rc<RefCell<Self>> {
+    pub fn new(phys: GlobAddr, flags: MapFlags) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(MapObject {
             phys: phys,
-            attr: attr,
+            flags: flags,
         }))
     }
 
     pub fn remap(&mut self, vpe: &VPE, virt: usize, pages: usize,
-                 phys: GlobAddr, attr: kif::Perm) -> Result<(), Error> {
+                 phys: GlobAddr, flags: MapFlags) -> Result<(), Error> {
         self.phys = phys;
-        self.attr = attr;
+        self.flags = flags;
         self.map(vpe, virt, pages)
     }
 
     pub fn map(&self, vpe: &VPE, virt: usize, pages: usize) -> Result<(), Error> {
         match vpe.addr_space() {
-            Some(space) => space.map_pages(&vpe.desc(), virt, self.phys, pages, self.attr),
+            Some(space) => space.map_pages(&vpe.desc(), virt, self.phys, pages, self.flags),
             None        => Err(Error::new(Code::NotSup)),
         }
     }
@@ -279,6 +298,6 @@ impl MapObject {
 
 impl fmt::Debug for MapObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Map[phys={:?}, attr={:#x}]", self.phys, self.attr)
+        write!(f, "Map[phys={:?}, flags={:#x}]", self.phys, self.flags)
     }
 }

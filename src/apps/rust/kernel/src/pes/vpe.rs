@@ -150,6 +150,8 @@ impl VPE {
     }
 
     pub fn destroy(&mut self) {
+        self.state = State::DEAD;
+
         self.obj_caps.revoke_all();
         self.map_caps.revoke_all();
     }

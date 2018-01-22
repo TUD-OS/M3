@@ -12,7 +12,7 @@ use thread;
 
 use arch::kdtu;
 use arch::vm;
-use cap::{Capability, SelRange, KObject};
+use cap::{Capability, KObject, MapFlags, SelRange};
 use cap::{MGateObject, MapObject, RGateObject, SGateObject, ServObject, SessObject};
 use com::{Service, ServiceList};
 use mem;
@@ -513,14 +513,14 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
                 (c.get().clone(), true)
             },
             None    => {
-                (KObject::Map(MapObject::new(phys, perms)), false)
+                (KObject::Map(MapObject::new(phys, MapFlags::from(perms))), false)
             },
         }
     };
 
     // create/update the PTEs
     if let KObject::Map(ref mut m) = map_obj {
-        m.borrow_mut().remap(&dst_vpe.borrow(), virt, pages as usize, phys, perms)?;
+        m.borrow_mut().remap(&dst_vpe.borrow(), virt, pages as usize, phys, MapFlags::from(perms))?;
     }
 
     // create map cap, if not yet existing

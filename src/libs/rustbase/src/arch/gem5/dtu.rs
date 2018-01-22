@@ -29,6 +29,8 @@ pub const FIRST_FREE_EP: EpId   = 4;
 
 /// The base address of the DTU's MMIO area
 pub const BASE_ADDR: usize      = 0xF0000000;
+/// The base address of the DTU's MMIO area for external requests
+pub const BASE_REQ_ADDR: usize  = BASE_ADDR + cfg::PAGE_SIZE;
 /// The number of DTU registers
 pub const DTU_REGS: usize       = 8;
 // const REQ_REGS: usize        = 3;
@@ -498,8 +500,7 @@ impl DTU {
     }
     /// Returns the MMIO address of the given request register
     pub fn dtu_req_addr(reg: ReqReg) -> usize {
-        use arch::cfg;
-        BASE_ADDR + cfg::PAGE_SIZE + (reg.val as usize) * 8
+        BASE_REQ_ADDR + (reg.val as usize) * 8
     }
     /// Returns the MMIO address of the given endpoint registers
     pub fn ep_regs_addr(ep: EpId) -> usize {
