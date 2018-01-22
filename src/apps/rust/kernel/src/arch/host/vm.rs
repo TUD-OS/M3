@@ -1,8 +1,9 @@
 use base::dtu::EpId;
 use base::errors::{Code, Error};
-use base::kif::{CapSel, PEDesc, Perm};
+use base::kif::{CapSel, PEDesc};
 use base::GlobAddr;
 
+use cap::MapFlags;
 use pes::VPEDesc;
 
 pub struct AddrSpace {
@@ -28,7 +29,7 @@ impl AddrSpace {
     }
 
     pub fn map_pages(&self, _vpe: &VPEDesc, _virt: usize, _phys: GlobAddr,
-                     _pages: usize, _attr: Perm) -> Result<(), Error> {
+                     _pages: usize, _attr: MapFlags) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 
