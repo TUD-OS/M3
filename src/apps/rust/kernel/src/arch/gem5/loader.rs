@@ -87,6 +87,8 @@ impl Loader {
     }
 
     fn get_mod(&self, args: &[String]) -> Option<(&BootModule, bool)> {
+        const_assert!(util::size_of::<u64>() * 8 >= platform::MAX_MODS);
+
         let mut arg_str = String::new();
         for (i, a) in args.iter().enumerate() {
             arg_str.push_str(a);

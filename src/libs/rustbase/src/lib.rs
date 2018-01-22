@@ -16,13 +16,14 @@
 #![no_std]
 
 #[macro_reexport(vec, format)]
-#[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate bitflags;
 extern crate compiler_builtins;
 // for int_enum!
 pub extern crate core as _core;
+#[macro_reexport(const_assert)]
+pub extern crate static_assertions;
 
 // lang stuff
 mod lang;

@@ -9,6 +9,7 @@ crate-type = ["rlib", "staticlib"]
 [dependencies]
 bitflags = "*"
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
+static_assertions = "0.2.5"
 
 [target.x86_64-unknown-host-gnu.dependencies]
 libc = { version = "0.2", default-features = false }

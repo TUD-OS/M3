@@ -141,6 +141,9 @@ static CUR: StaticCell<Option<VPE>> = StaticCell::new(None);
 
 impl VPE {
     fn new_cur() -> Self {
+        // currently, the bitmask limits us to 64 endpoints
+        const_assert!(EP_COUNT < util::size_of::<u64>() * 8);
+
         VPE {
             cap: Capability::new(0, CapFlags::KEEP_CAP),
             pe: PEDesc::new_from(0),
