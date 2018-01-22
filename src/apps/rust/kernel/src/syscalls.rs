@@ -749,7 +749,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
         }
     }
 
-    let maybe_kobj = vpe_ref.borrow().obj_caps().get(gate_sel).map(|cap| cap.get().clone());
+    let maybe_kobj = vpe.borrow().obj_caps().get(gate_sel).map(|cap| cap.get().clone());
     if let Some(kobj) = maybe_kobj {
         match kobj {
             KObject::RGate(ref r)    => {
