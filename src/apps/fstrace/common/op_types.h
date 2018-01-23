@@ -100,6 +100,7 @@ typedef enum {
     LSEEK_OP,
     FTRUNCATE_OP,
     FSTAT_OP,
+    FSTATAT_OP,
     STAT_OP,
     RENAME_OP,
     UNLINK_OP,
@@ -125,6 +126,7 @@ typedef struct { int err; int fd; size_t size; off_t offset; } pwrite_args_t;
 typedef struct { off_t err; int fd; off_t offset; int whence; } lseek_args_t;
 typedef struct { int err; int fd; off_t offset; } ftruncate_args_t;
 typedef struct { int err; int fd; } fstat_args_t;
+typedef struct { int err; char const * name; } fstatat_args_t;
 typedef struct { int err; char const * name; } stat_args_t;
 typedef struct { int err; char const * from; char const * to; } rename_args_t;
 typedef struct { int err; char const * name; } unlink_args_t;
@@ -148,6 +150,7 @@ typedef struct {
         lseek_args_t      lseek;
         ftruncate_args_t  ftruncate;
         fstat_args_t      fstat;
+        fstatat_args_t    fstatat;
         stat_args_t       stat;
         rename_args_t     rename;
         unlink_args_t     unlink;

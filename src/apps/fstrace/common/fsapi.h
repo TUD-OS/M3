@@ -40,6 +40,7 @@ public:
     virtual void lseek(const lseek_args_t *args, int lineNo) = 0;
     virtual void ftruncate(const ftruncate_args_t *args, int lineNo) = 0;
     virtual void fstat(const fstat_args_t *args, int lineNo) = 0;
+    virtual void fstatat(const fstatat_args_t *args, int lineNo) = 0;
     virtual void stat(const stat_args_t *args, int lineNo) = 0;
     virtual void rename(const rename_args_t *args, int lineNo) = 0;
     virtual void unlink(const unlink_args_t *args, int lineNo) = 0;

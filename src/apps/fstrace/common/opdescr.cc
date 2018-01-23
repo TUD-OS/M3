@@ -290,6 +290,12 @@ public:
 };
 
 
+class FStatAtOpDescr: public OpDescr {
+public:
+    FStatAtOpDescr(const std::string &str);
+};
+
+
 class StatOpDescr: public OpDescr {
 public:
     StatOpDescr(const std::string &str);
@@ -507,6 +513,19 @@ FStatOpDescr::FStatOpDescr(const string &in) {
  * *************************************************************************
  */
 
+FStatAtOpDescr::FStatAtOpDescr(const string &in) {
+
+    string retVal;
+    ArgsVector args(4);
+
+    extractValues(in, 4, args, retVal);
+    buildCodeLine("FSTATAT_OP", "fstatat", retVal + ", " + args[1]);
+}
+
+/*
+ * *************************************************************************
+ */
+
 StatOpDescr::StatOpDescr(const string &in) {
 
     string retVal;
@@ -650,6 +669,8 @@ OpDescr *OpDescrFactory::create(const string &line) {
         return new StatOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "stat("))
         return new StatOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "newfstatat("))
+        return new FStatAtOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "rename("))
         return new RenameOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "unlink("))

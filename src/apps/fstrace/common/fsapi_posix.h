@@ -133,6 +133,13 @@ public:
             THROW1(ReturnValueException, err, args->err, lineNo);
     }
 
+    virtual void fstatat(const fstatat_args_t *args, int lineNo) override {
+        struct stat st;
+        off64_t err = ::stat(redirectPath(args->name), &st);
+        if (err != args->err)
+            THROW1(ReturnValueException, err, args->err, lineNo);
+    }
+
     virtual void stat(const stat_args_t *args, int lineNo) override {
         struct stat st;
         off64_t err = ::stat(redirectPath(args->name), &st);

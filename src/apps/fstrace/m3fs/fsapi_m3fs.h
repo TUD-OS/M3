@@ -141,6 +141,13 @@ public:
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
+    virtual void fstatat(const fstatat_args_t *args, UNUSED int lineNo) override {
+        m3::FileInfo info;
+        int res = m3::VFS::stat(add_prefix(args->name), info);
+        if ((res == m3::Errors::NONE) != (args->err == 0))
+            THROW1(ReturnValueException, res, args->err, lineNo);
+    }
+
     virtual void stat(const stat_args_t *args, UNUSED int lineNo) override {
         m3::FileInfo info;
         int res = m3::VFS::stat(add_prefix(args->name), info);

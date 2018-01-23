@@ -144,6 +144,11 @@ int TracePlayer::play(bool keep_time, bool) {
                 fs->fstat(&op->args.fstat, lineNo);
                 break;
             }
+            case FSTATAT_OP:
+            {
+                fs->fstatat(&op->args.fstatat, lineNo);
+                break;
+            }
             case STAT_OP:
             {
                 fs->stat(&op->args.stat, lineNo);
