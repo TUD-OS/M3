@@ -22,6 +22,7 @@
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
+#include <m3/VPE.h>
 
 #include "common/exceptions.h"
 #include "common/fsapi.h"
@@ -31,9 +32,8 @@ class FSAPI_M3FS : public FSAPI {
     enum { MaxOpenFds = 8 };
 
     void checkFd(int fd) {
-        if(fdMap[fd] == nullptr)
+        if(fdMap[fd] == 0)
             exitmsg("Using uninitialized file @ " << fd);
-        fdMap[fd]->clear_state();
     }
 
 public:
@@ -63,7 +63,7 @@ public:
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
-        if(fdMap[args->fd] != nullptr || dirMap[args->fd] != nullptr)
+        if(fdMap[args->fd] != 0 || dirMap[args->fd] != nullptr)
             exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
@@ -72,16 +72,16 @@ public:
                 THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
         }
         else {
-            fdMap[args->fd] = new m3::FStream(add_prefix(args->name), args->flags);
-            if (fdMap[args->fd] == nullptr && args->fd >= 0)
+            fdMap[args->fd] = m3::VFS::open(add_prefix(args->name), args->flags);
+            if(fdMap[args->fd] == m3::FileTable::INVALID)
                 THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
         }
     }
 
     virtual void close(const close_args_t *args, int ) override {
         if(fdMap[args->fd]) {
-            delete fdMap[args->fd];
-            fdMap[args->fd] = nullptr;
+            m3::VFS::close(fdMap[args->fd]);
+            fdMap[args->fd] = 0;
         }
         else if(dirMap[args->fd]) {
             delete dirMap[args->fd];
@@ -97,29 +97,29 @@ public:
 
     virtual ssize_t read(int fd, void *buffer, size_t size) override {
         checkFd(fd);
-        return static_cast<ssize_t>(fdMap[fd]->read(buffer, size));
+        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->read(buffer, size));
     }
 
     virtual ssize_t write(int fd, const void *buffer, size_t size) override {
         checkFd(fd);
-        return static_cast<ssize_t>(fdMap[fd]->write(buffer, size));
+        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->write(buffer, size));
     }
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
-        return static_cast<ssize_t>(fdMap[fd]->read(buffer, size));
+        m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
+        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->read(buffer, size));
     }
 
     virtual ssize_t pwrite(int fd, const void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        fdMap[fd]->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
-        return static_cast<ssize_t>(fdMap[fd]->write(buffer, size));
+        m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
+        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->write(buffer, size));
     }
 
     virtual void lseek(const lseek_args_t *args, UNUSED int lineNo) override {
         checkFd(args->fd);
-        fdMap[args->fd]->seek(static_cast<size_t>(args->offset), args->whence);
+        m3::VPE::self().fds()->get(fdMap[args->fd])->seek(static_cast<size_t>(args->offset), args->whence);
         // if (res != args->err)
         //     THROW1(ReturnValueException, res, args->offset, lineNo);
     }
@@ -132,7 +132,7 @@ public:
         int res;
         m3::FileInfo info;
         if(fdMap[args->fd])
-            res = fdMap[args->fd]->stat(info);
+            res = m3::VPE::self().fds()->get(fdMap[args->fd])->stat(info);
         else if(dirMap[args->fd])
             res = dirMap[args->fd]->stat(info);
         else
@@ -182,13 +182,13 @@ public:
         assert(args->offset == nullptr);
         checkFd(args->in_fd);
         checkFd(args->out_fd);
-        m3::FStream *in = fdMap[args->in_fd];
-        m3::FStream *out = fdMap[args->out_fd];
+        m3::File *in = m3::VPE::self().fds()->get(fdMap[args->in_fd]);
+        m3::File *out = m3::VPE::self().fds()->get(fdMap[args->out_fd]);
         char *rbuf = buf.readBuffer(Buffer::MaxBufferSize);
         size_t rem = args->count;
         while(rem > 0) {
             size_t amount = m3::Math::min(static_cast<size_t>(Buffer::MaxBufferSize), rem);
-            size_t res = in->read(rbuf, amount);
+            size_t res = static_cast<size_t>(in->read(rbuf, amount));
             out->write(rbuf, res);
             rem -= amount;
         }
@@ -229,6 +229,6 @@ private:
     bool _wait;
     cycles_t _start;
     const m3::String _prefix;
-    m3::FStream *fdMap[MaxOpenFds];
+    fd_t fdMap[MaxOpenFds];
     m3::Dir *dirMap[MaxOpenFds];
 };
