@@ -54,7 +54,7 @@ class MeasuringTracePlayer: public TracePlayer {
         // play trace
         for (int i = 0; i < num_iterations; i++) {
             //cout << "replay trace: iteration " << i + 1 << " of " << num_iterations << endl;
-            TracePlayer::play(keep_time, mode == Interval);
+            TracePlayer::play(true, keep_time, mode == Interval);
 
             // sync/checkpoint FS, if requested
             if (mode == None)

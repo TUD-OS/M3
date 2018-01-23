@@ -37,8 +37,8 @@ class FSAPI_M3FS : public FSAPI {
     }
 
 public:
-    explicit FSAPI_M3FS(m3::String const &prefix)
-        : _start(), _prefix(prefix), fdMap(), dirMap() {
+    explicit FSAPI_M3FS(bool wait, m3::String const &prefix)
+        : _wait(wait), _start(), _prefix(prefix), fdMap(), dirMap() {
     }
 
     virtual void start() override {
@@ -58,7 +58,8 @@ public:
     }
 
     virtual void waituntil(UNUSED const waituntil_args_t *args, int) override {
-        m3::CPU::compute(args->timestamp);
+        if(_wait)
+            m3::CPU::compute(args->timestamp);
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
@@ -225,6 +226,7 @@ private:
         return tmp;
     }
 
+    bool _wait;
     cycles_t _start;
     const m3::String _prefix;
     m3::FStream *fdMap[MaxOpenFds];

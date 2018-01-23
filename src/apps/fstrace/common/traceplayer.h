@@ -30,7 +30,7 @@ class TracePlayer {
         : pathPrefix(rootDir) { }
 
     virtual ~TracePlayer() { };
-    virtual int play(bool keep_time = false, bool make_chkpt = false);
+    virtual int play(bool wait, bool keep_time = false, bool make_chkpt = false);
 
   protected:
     const char *pathPrefix;

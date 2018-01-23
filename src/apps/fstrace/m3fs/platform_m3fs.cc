@@ -30,8 +30,8 @@ void Platform::init(int /*argc*/, const char * const * /*argv*/) {
 }
 
 
-FSAPI *Platform::fsapi(const char *root) {
-    return new FSAPI_M3FS(root);
+FSAPI *Platform::fsapi(bool wait, const char *root) {
+    return new FSAPI_M3FS(wait, root);
 }
 
 

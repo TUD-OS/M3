@@ -30,7 +30,7 @@
  * *************************************************************************
  */
 
-int TracePlayer::play(bool keep_time, bool) {
+int TracePlayer::play(bool wait, bool keep_time, bool) {
     trace_op_t *op = trace_ops;
 
     // touch all operations to make sure we don't get pagefaults in trace_ops arrary
@@ -46,7 +46,7 @@ int TracePlayer::play(bool keep_time, bool) {
     Buffer buf;
     int lineNo = 1;
     unsigned int numReplayed = 0;
-    FSAPI *fs = Platform::fsapi(pathPrefix);
+    FSAPI *fs = Platform::fsapi(wait, pathPrefix);
 
     fs->start();
 #ifndef __LINUX__

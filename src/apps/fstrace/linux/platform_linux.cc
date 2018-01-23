@@ -28,7 +28,7 @@ void Platform::init(int /*argc*/, const char * const * /*argv*/) {
 
 }
 
-FSAPI *Platform::fsapi(const char *root) {
+FSAPI *Platform::fsapi(bool, const char *root) {
     return new FSAPI_POSIX(root);
 }
 

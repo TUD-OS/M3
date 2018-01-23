@@ -15,9 +15,11 @@
  */
 
 #include <base/Common.h>
+#include <base/Panic.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
+#include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
 
 #include "common/traceplayer.h"
@@ -25,22 +27,59 @@
 
 using namespace m3;
 
+static const size_t MAX_TMP_FILES   = 16;
+static const bool VERBOSE           = 0;
+
+static void cleanup() {
+    Dir dir("/tmp");
+    if(Errors::occurred())
+        return;
+
+    size_t x = 0;
+    String *entries[MAX_TMP_FILES];
+
+    if(VERBOSE) cout << "Collecting files in /tmp\n";
+
+    // remove all entries; we assume here that they are files
+    Dir::Entry e;
+    char path[128];
+    while(dir.readdir(e)) {
+        if(strcmp(e.name, ".") == 0 || strcmp(e.name, "..") == 0)
+            continue;
+
+        OStringStream file(path, sizeof(path));
+        file << "/tmp/" << e.name;
+        if(x > ARRAY_SIZE(entries))
+            PANIC("Too few entries");
+        entries[x++] = new String(file.str());
+    }
+
+    for(; x > 0; --x) {
+        if(VERBOSE) cout << "Unlinking " << *(entries[x - 1]) << "\n";
+        VFS::unlink(entries[x - 1]->c_str());
+        delete entries[x - 1];
+    }
+}
+
 int main(int argc, char **argv) {
     Platform::init(argc, argv);
 
     VFS::mount("/", "m3fs");
 
     // defaults
-    long num_iterations = 4;
-    bool keep_time   = true;
-    bool make_ckpt   = false;
+    int num_iterations  = 4;
+    bool keep_time      = true;
+    bool make_ckpt      = false;
+    bool wait           = false;
 
     // playback / revert to init-trace contents
     const char *prefix = "";
     if(argc > 1) {
         prefix = argv[1];
-        VFS::mkdir(prefix, 0755);
+        if(*prefix)
+            VFS::mkdir(prefix, 0755);
     }
+
     TracePlayer player(prefix);
 
     // print parameters for reference
@@ -49,8 +88,10 @@ int main(int argc, char **argv) {
          << "keeptime=" << (keep_time   ? "yes" : "no")
          << "]\n";
 
-    for(int i = 0; i < num_iterations; ++i)
-        player.play(keep_time, make_ckpt);
+    for(int i = 0; i < num_iterations; ++i) {
+        player.play(wait, keep_time, make_ckpt);
+        cleanup();
+    }
 
     cout << "VPFS trace_bench benchmark terminated\n";
 

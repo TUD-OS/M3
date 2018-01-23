@@ -29,7 +29,7 @@ class Platform {
     /**
      * @brief return the FSAPI object
      */
-    static FSAPI *fsapi(const char *root);
+    static FSAPI *fsapi(bool wait, const char *root);
 
     /*
      * @brief Shutdown platform subsystems (if any).
