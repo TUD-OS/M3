@@ -1,2 +1,2 @@
 Import('env')
-env.M3Program(env, target = 'cppbench', source = Glob('*.cc'))
+env.M3Program(env, target = 'cppbench', source = [Glob('*.cc'), Glob('benchs/*.cc')])

@@ -76,6 +76,15 @@ public:
         return ((uintptr_t)ptr & (align - 1)) == 0;
     }
 
+    static float sqrt(float n) {
+        // Source: https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+        uint32_t val_int = *reinterpret_cast<uint32_t*>(&n);
+        val_int -= 1 << 23; /* Subtract 2^m. */
+        val_int >>= 1;      /* Divide by 2. */
+        val_int += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+        return *reinterpret_cast<float*>(&val_int);
+    }
+
     static constexpr float nan() {
         return FloatInt(static_cast<uint32_t>(0x7FC00000)).f;
     }

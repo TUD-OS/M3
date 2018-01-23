@@ -14,17 +14,20 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Standard.h>
+#define RUN_SUITE(name)                                             \
+    m3::cout << "Running benchmark suite " << #name << " ...\n";    \
+    name();                                                         \
+    m3::cout << "Done\n";
 
-#include "cppbench.h"
+#define RUN_BENCH(name)                                             \
+    m3::cout << "-- Running benchmark " << #name << " ...\n";          \
+    name();                                                         \
+    m3::cout << "-- Done\n";
 
-int main() {
-    RUN_SUITE(bdlist);
-    RUN_SUITE(bslist);
-    RUN_SUITE(btreap);
-    RUN_SUITE(bregfile);
-    RUN_SUITE(bmemgate);
-    RUN_SUITE(bsyscall);
-    RUN_SUITE(bpipe);
-    return 0;
-}
+void bslist();
+void bdlist();
+void btreap();
+void bregfile();
+void bmemgate();
+void bsyscall();
+void bpipe();
