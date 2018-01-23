@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/KIF.h>
 
 #include <m3/stream/Standard.h>
@@ -39,9 +39,9 @@ int main() {
 
         alignas(64) char buf[8];
         for(size_t p = 0; p < PAGES; ++p) {
-            cycles_t start = Profile::start(0);
+            cycles_t start = Time::start(0);
             VPE::self().mem().read(buf, sizeof(buf), virt + p * PAGE_SIZE);
-            cycles_t end = Profile::stop(0);
+            cycles_t end = Time::stop(0);
             xfer += end - start;
         }
 

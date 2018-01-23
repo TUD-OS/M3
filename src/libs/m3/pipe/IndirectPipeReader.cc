@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/pipe/IndirectPipeReader.h>
 
@@ -24,17 +24,17 @@ namespace m3 {
 
 ssize_t IndirectPipeReader::read(void *buffer, size_t count) {
     size_t pos;
-    Profile::start(0xbbbb);
+    Time::start(0xbbbb);
     Errors::Code res = _pipe->read(&pos, &count);
-    Profile::stop(0xbbbb);
+    Time::stop(0xbbbb);
     if(res != Errors::NONE)
         return -1;
     if(count == 0)
         return 0;
 
-    Profile::start(0xaaaa);
+    Time::start(0xaaaa);
     _mem.read(buffer, count, pos);
-    Profile::stop(0xaaaa);
+    Time::stop(0xaaaa);
     return static_cast<ssize_t>(count);
 }
 

@@ -15,7 +15,7 @@
  */
 
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
@@ -30,14 +30,14 @@ int main(int argc, char *argv[]) {
         size = IStringStream::read_from<size_t>(argv[1]);
     char *buffer = new char[size];
 
-    cycles_t start1 = Profile::start(0);
+    cycles_t start1 = Time::start(0);
     MemGate mem = MemGate::create_global(SIZE, MemGate::R);
-    cycles_t end1 = Profile::stop(0);
+    cycles_t end1 = Time::stop(0);
 
-    cycles_t start2 = Profile::start(1);
+    cycles_t start2 = Time::start(1);
     for(size_t i = 0; i < SIZE / size; ++i)
         mem.read(buffer, size, 0x0);
-    cycles_t end2 = Profile::stop(1);
+    cycles_t end2 = Time::stop(1);
 
     cout << "Setup time: " << (end1 - start1) << "\n";
     cout << "Read time: " << (end2 - start2) << "\n";

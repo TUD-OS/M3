@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
@@ -266,10 +266,10 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
     ch->length = count;
     if(h.clear_blocks()) {
         uint32_t blocksize = h.sb().blocksize;
-        Profile::start(0xaaaa);
+        Time::start(0xaaaa);
         for(uint32_t i = 0; i < count; ++i)
             h.mem().write(zeros, blocksize, (ch->start + i) * blocksize);
-        Profile::stop(0xaaaa);
+        Time::stop(0xaaaa);
     }
     inode->extents++;
     inode->size = (inode->size + h.sb().blocksize - 1) & ~(h.sb().blocksize - 1);

@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/Serial.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
@@ -37,7 +37,7 @@ USED static char dummy[DUMMY_BUF_SIZE] = {'a'};
 int main(int argc, char **) {
     // for the exec benchmark
     if(argc > 1) {
-        Profile::stop(1);
+        Time::stop(1);
         return 0;
     }
 
@@ -46,11 +46,11 @@ int main(int argc, char **) {
     cycles_t exec_time = 0;
 
     for(int i = 0; i < COUNT; ++i) {
-        cycles_t start2 = Profile::start(1);
+        cycles_t start2 = Time::start(1);
 
         VPE vpe("hello");
         Errors::Code res = vpe.run([start2]() {
-            cycles_t end = Profile::stop(1);
+            cycles_t end = Time::stop(1);
             return end - start2;
         });
         if(res != Errors::NONE)

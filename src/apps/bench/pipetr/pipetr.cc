@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/DirectPipe.h>
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
         exitmsg("Usage: " << argv[0] << " <in> <out> <s> <r>");
 
     cycles_t apptime = 0;
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
 
     VPE writer("writer");
     MemGate mem = MemGate::create_global(MEM_SIZE, MemGate::RW);
@@ -80,9 +80,9 @@ int main(int argc, char **argv) {
         ssize_t res;
         File *in = VPE::self().fds()->get(pipe.reader_fd());
         while((res = in->read(buffer, sizeof(buffer))) > 0) {
-            cycles_t cstart = Profile::start(0xbbbb);
+            cycles_t cstart = Time::start(0xbbbb);
             replace(buffer, res, c1, c2);
-            cycles_t cend = Profile::stop(0xbbbb);
+            cycles_t cend = Time::stop(0xbbbb);
             apptime += cend - cstart;
             output->write(buffer, static_cast<size_t>(res));
         }
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     pipe.close_reader();
     writer.wait();
 
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
     cout << "Total time: " << (end - start) << " cycles\n";
     cout << "App time: " << apptime << " cycles\n";
     return 0;

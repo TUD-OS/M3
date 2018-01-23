@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/DirectPipe.h>
@@ -33,7 +33,7 @@ alignas(64) static char buffer[BUF_SIZE];
 
 template<class PIPE>
 static void child_to_parent(const char *name, VPE &writer, PIPE &pipe) {
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
 
     writer.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe.writer_fd()));
     writer.obtain_fds();
@@ -54,14 +54,14 @@ static void child_to_parent(const char *name, VPE &writer, PIPE &pipe) {
     pipe.close_reader();
     writer.wait();
 
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
     cout << "[" << name << "] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
     cout << (end - start) << " cycles\n";
 }
 
 template<class PIPE>
 static void parent_to_child(const char *name, VPE &reader, PIPE &pipe) {
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
 
     reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));
     reader.obtain_fds();
@@ -82,7 +82,7 @@ static void parent_to_child(const char *name, VPE &reader, PIPE &pipe) {
     pipe.close_writer();
     reader.wait();
 
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
     cout << "[" << name << "] Transferred " << TOTAL << "b in " << BUF_SIZE << "b steps: ";
     cout << (end - start) << " cycles\n";
 }

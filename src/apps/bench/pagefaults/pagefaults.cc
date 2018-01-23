@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
@@ -28,20 +28,20 @@ static const size_t COUNT       = 4;
 static const size_t PAGES       = 64;
 
 static cycles_t do_warmup(volatile char *data, unsigned id1) {
-    cycles_t start = Profile::start(id1);
+    cycles_t start = Time::start(id1);
     for(size_t i = 0; i < PAGES; ++i)
         data[i * PAGE_SIZE] = i;
-    return Profile::stop(id1) - start;
+    return Time::stop(id1) - start;
 }
 
 static cycles_t do_bench(volatile char *data, unsigned id1, unsigned id2) {
-    cycles_t start = Profile::start(id1);
+    cycles_t start = Time::start(id1);
     for(size_t i = 0; i < PAGES; ++i) {
-        Profile::start(id2);
+        Time::start(id2);
         data[i * PAGE_SIZE] = i;
-        Profile::stop(id2);
+        Time::stop(id2);
     }
-    return Profile::stop(id1) - start;
+    return Time::stop(id1) - start;
 }
 
 int main(int argc, char **argv) {

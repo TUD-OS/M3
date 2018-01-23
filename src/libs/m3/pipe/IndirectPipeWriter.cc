@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/pipe/IndirectPipeWriter.h>
 
@@ -22,16 +22,16 @@ namespace m3 {
 
 ssize_t IndirectPipeWriter::write(const void *buffer, size_t count) {
     size_t pos = 0;
-    Profile::start(0xbbbb);
+    Time::start(0xbbbb);
     Errors::Code res = _pipe->write(&pos, count, _lastwrite);
-    Profile::stop(0xbbbb);
+    Time::stop(0xbbbb);
     if(res != Errors::NONE)
         return -1;
 
     _lastwrite = count;
-    Profile::start(0xaaaa);
+    Time::start(0xaaaa);
     _mem.write(buffer, count, pos);
-    Profile::stop(0xaaaa);
+    Time::stop(0xaaaa);
     return static_cast<ssize_t>(count);
 }
 

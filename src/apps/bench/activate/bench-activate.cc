@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
@@ -32,9 +32,9 @@ int main() {
     mem.read(buffer, sizeof(buffer), 0);
     cycles_t total = 0;
     for(int i = 0; i < COUNT; ++i) {
-        cycles_t start = Profile::start(0);
+        cycles_t start = Time::start(0);
         Syscalls::get().activate(VPE::self().sel(), mem.sel(), mem.ep(), 0);
-        cycles_t end = Profile::stop(0);
+        cycles_t end = Time::stop(0);
         total += end - start;
     }
     cout << "Per activate: " << (total / COUNT) << "\n";

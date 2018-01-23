@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/PEDesc.h>
 
 #include <m3/stream/Standard.h>
@@ -196,9 +196,9 @@ int main(int argc, char **argv) {
     cycles_t comptime = IStringStream::read_from<cycles_t>(argv[5]);
     size_t num = IStringStream::read_from<size_t>(argv[6]);
 
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
     execchain(in, out, num, bufsize, comptime, direct);
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
 
     cout << "Total time: " << (end - start) << " cycles\n";
     return 0;

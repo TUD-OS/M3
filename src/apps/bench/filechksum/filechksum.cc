@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
@@ -30,16 +30,16 @@ int main(int argc, char **argv) {
     if(argc < 2)
         exitmsg("Usage: " << argv[0] << " <filename>");
 
-    cycles_t start1 = Profile::start(0);
+    cycles_t start1 = Time::start(0);
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
     FileRef file(argv[1], FILE_R);
     if(Errors::occurred())
         exitmsg("open of " << argv[1] << " failed");
-    cycles_t end1 = Profile::stop(0);
+    cycles_t end1 = Time::stop(0);
 
-    cycles_t start2 = Profile::start(1);
+    cycles_t start2 = Time::start(1);
     ssize_t count;
     size_t total = 0;
     uint checksum = 0;
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
         while(b < e)
             checksum += *b++;
     }
-    cycles_t end2 = Profile::stop(1);
+    cycles_t end2 = Time::stop(1);
 
     cout << "Read " << total << " bytes; checksum=" << checksum << "\n";
     cout << "Setup time: " << (end1 - start1) << "\n";

@@ -15,7 +15,7 @@
 */
 
 #include <base/Common.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
@@ -105,9 +105,9 @@ int main(int argc, char **argv) {
     for(int i = 0; i < REPEAT; ++i) {
         int no = i % 2;
 
-        cycles_t start = Profile::start(0x1234);
+        cycles_t start = Time::start(0x1234);
         GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
-        cycles_t end = Profile::stop(0x1234);
+        cycles_t end = Time::stop(0x1234);
 
         int res;
         reply >> res;

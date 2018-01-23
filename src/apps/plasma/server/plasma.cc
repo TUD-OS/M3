@@ -16,7 +16,7 @@
  */
 
 #include <base/arch/host/HWInterrupts.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
@@ -348,7 +348,7 @@ public:
 };
 
 static inline cycles_t tsc() {
-    return Profile::start();
+    return Time::start();
 }
 
 static IntroAnimator<VGA::ROWS, VGA::COLS> ia;

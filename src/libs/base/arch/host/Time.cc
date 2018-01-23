@@ -14,17 +14,17 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <sys/time.h>
 
 namespace m3 {
 
-cycles_t Profile::start(unsigned u) {
+cycles_t Time::start(unsigned u) {
     return stop(u);
 }
 
-cycles_t Profile::stop(unsigned) {
+cycles_t Time::stop(unsigned) {
 #if defined(__i386__) or defined(__x86_64__)
     uint32_t u, l;
     asm volatile ("rdtsc" : "=a" (l), "=d" (u) : : "memory");

@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/stream/IStringStream.h>
 
 #include <m3/session/M3FS.h>
@@ -50,11 +50,11 @@ int main(int argc, char **argv) {
         if(Errors::occurred())
             exitmsg("open of " << argv[2] << " failed");
 
-        cycles_t start = Profile::start(1);
+        cycles_t start = Time::start(1);
         ssize_t count;
         while((count = input->read(buffer, sizeof(buffer))) > 0)
             output->write(buffer, static_cast<size_t>(count));
-        cycles_t end = Profile::stop(1);
+        cycles_t end = Time::stop(1);
 
         cout << "Copy time: " << (end - start) << " cycles\n";
     }

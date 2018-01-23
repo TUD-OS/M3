@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/log/Lib.h>
 
 #include <m3/session/M3FS.h>
@@ -149,9 +149,9 @@ ssize_t RegularFile::read(void *buffer, size_t count) {
 
     LLOG(FS, "[" << _fd << "] read (" << fmt(amount, "#0x", 6) << ") @ (" << lastpos << ")");
 
-    Profile::start(0xaaaa);
+    Time::start(0xaaaa);
     _mem.read(buffer, static_cast<size_t>(amount), lastpos.extoff);
-    Profile::stop(0xaaaa);
+    Time::stop(0xaaaa);
 
     return amount;
 }
@@ -169,9 +169,9 @@ ssize_t RegularFile::write(const void *buffer, size_t count) {
     LLOG(FS, "[" << _fd << "] write (" << fmt(amount, "#0x", 6) << ") @ (" << lastpos << ")");
 
     // write to global memory
-    Profile::start(0xaaaa);
+    Time::start(0xaaaa);
     _mem.write(buffer, static_cast<size_t>(amount), lastpos.extoff);
-    Profile::stop(0xaaaa);
+    Time::stop(0xaaaa);
 
     return amount;
 }

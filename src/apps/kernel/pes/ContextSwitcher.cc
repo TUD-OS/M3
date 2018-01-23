@@ -16,7 +16,7 @@
 
 #include <base/RCTMux.h>
 #include <base/log/Kernel.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include "pes/ContextSwitcher.h"
 #include "pes/Timeouts.h"
@@ -163,7 +163,7 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
     if(_state != S_IDLE)
         return;
 
-    m3::Profile::start(0xcccc);
+    m3::Time::start(0xcccc);
     _state = S_RESTORE_WAIT;
     next_state(0);
 }
@@ -240,7 +240,7 @@ bool ContextSwitcher::start_switch(bool timedout) {
     if(_state != S_IDLE)
         return false;
 
-    m3::Profile::start(0xcccc);
+    m3::Time::start(0xcccc);
 
     // if no VPE is running, directly switch to a new VPE
     if (_cur == nullptr)
@@ -250,7 +250,7 @@ bool ContextSwitcher::start_switch(bool timedout) {
 
     bool finished = next_state(0);
     if(finished)
-        m3::Profile::stop(0xcccc);
+        m3::Time::stop(0xcccc);
     return finished;
 }
 
@@ -268,7 +268,7 @@ void ContextSwitcher::continue_switch() {
     }
     else {
         if(next_state(flags))
-            m3::Profile::stop(0xcccc);
+            m3::Time::stop(0xcccc);
     }
 }
 

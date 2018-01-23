@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>

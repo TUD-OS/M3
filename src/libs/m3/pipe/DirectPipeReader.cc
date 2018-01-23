@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/pipe/DirectPipe.h>
 #include <m3/pipe/DirectPipeReader.h>
@@ -76,9 +76,9 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
         _state->_eof |= DirectPipe::WRITE_EOF;
     else {
         size_t aligned_amount = Math::round_up(amount, DTU_PKG_SIZE);
-        Profile::start(0xaaaa);
+        Time::start(0xaaaa);
         _state->_mgate.read(buffer, aligned_amount, _state->_pos);
-        Profile::stop(0xaaaa);
+        Time::stop(0xaaaa);
         _state->_pos += aligned_amount;
         _state->_rem -= amount;
     }

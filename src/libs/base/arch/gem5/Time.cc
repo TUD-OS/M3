@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/DTU.h>
 
 static inline cycles_t gem5_debug(unsigned msg) {
@@ -29,12 +29,12 @@ static inline cycles_t gem5_debug(unsigned msg) {
 
 namespace m3 {
 
-cycles_t Profile::start(unsigned msg) {
+cycles_t Time::start(unsigned msg) {
     CPU::compiler_barrier();
     return gem5_debug(START_TSC | msg);
 }
 
-cycles_t Profile::stop(unsigned msg) {
+cycles_t Time::stop(unsigned msg) {
     cycles_t res = gem5_debug(STOP_TSC | msg);
     CPU::compiler_barrier();
     return res;

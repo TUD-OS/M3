@@ -17,7 +17,7 @@
 #include <base/Common.h>
 #include <base/stream/Serial.h>
 #include <base/stream/OStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     os << "/bin/bench-vpe-clone-" << argv[1];
 
     for(int i = 0; i < COUNT; ++i) {
-        Profile::start(1);
+        Time::start(1);
 
         VPE vpe("hello");
         const char *args[] = {os.str(), "dummy"};

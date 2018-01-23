@@ -18,13 +18,13 @@
 #include <base/stream/OStream.h>
 #include <base/stream/Serial.h>
 #include <base/tracing/Tracing.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/CPU.h>
 #include <base/Init.h>
 
 #if defined(TRACE_ENABLED)
 
-#define GET_CYCLES      Profile::start()
+#define GET_CYCLES      Time::start()
 
 namespace m3 {
 

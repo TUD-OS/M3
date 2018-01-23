@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/Serial.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/stream/Standard.h>
@@ -33,9 +33,9 @@ static cycles_t exec_time = 0;
 int main() {
     {
         for(int i = 0; i < COUNT; ++i) {
-            cycles_t start = Profile::start(0);
+            cycles_t start = Time::start(0);
             VPE vpe("hello");
-            exec_time += Profile::stop(0) - start;
+            exec_time += Time::stop(0) - start;
         }
 
         cout << "Time for VPE-creation: " << (exec_time / COUNT) << " cycles\n";
@@ -46,9 +46,9 @@ int main() {
     {
         for(int i = 0; i < COUNT; ++i) {
             VPE vpe("hello");
-            cycles_t start2 = Profile::start(1);
+            cycles_t start2 = Time::start(1);
             Errors::Code res = vpe.run([start2]() {
-                cycles_t end = Profile::stop(1);
+                cycles_t end = Time::stop(1);
                 return end - start2;
             });
             if(res != Errors::NONE)
@@ -66,7 +66,7 @@ int main() {
     {
         for(int i = 0; i < COUNT; ++i) {
             VPE vpe("hello");
-            cycles_t start = Profile::start(2);
+            cycles_t start = Time::start(2);
             Errors::Code res = vpe.run([]() {
                 return 0;
             });
@@ -74,7 +74,7 @@ int main() {
                 exitmsg("VPE::run failed");
 
             vpe.wait();
-            cycles_t end = Profile::stop(2);
+            cycles_t end = Time::stop(2);
             exec_time += end - start;
         }
     }
@@ -86,7 +86,7 @@ int main() {
     {
         VPE vpe("hello");
         for(int i = 0; i < COUNT; ++i) {
-            cycles_t start = Profile::start(3);
+            cycles_t start = Time::start(3);
             Errors::Code res = vpe.run([]() {
                 return 0;
             });
@@ -94,7 +94,7 @@ int main() {
                 exitmsg("VPE::run failed");
 
             vpe.wait();
-            cycles_t end = Profile::stop(3);
+            cycles_t end = Time::stop(3);
             exec_time += end - start;
         }
     }
@@ -106,14 +106,14 @@ int main() {
     {
         for(int i = 0; i < COUNT; ++i) {
             VPE vpe("hello");
-            cycles_t start = Profile::start(4);
+            cycles_t start = Time::start(4);
             const char *args[] = {"/bin/noop"};
             Errors::Code res = vpe.exec(ARRAY_SIZE(args), args);
             if(res != Errors::NONE)
                 exitmsg("Unable to load " << args[0]);
 
             vpe.wait();
-            cycles_t end = Profile::stop(4);
+            cycles_t end = Time::stop(4);
             exec_time += end - start;
         }
     }

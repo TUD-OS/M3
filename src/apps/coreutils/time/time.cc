@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
         exitmsg("Usage: " << argv[0] << " <file>...");
 
     int res;
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
     {
         VPE child(argv[1]);
         if(Errors::last != Errors::NONE)
@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
         res = child.wait();
     }
 
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
 
     cerr << "VPE (" << argv[1] << ") terminated with exit-code " << res << "\n";
     cerr << "Runtime: " << (end - start) << " cycles\n";

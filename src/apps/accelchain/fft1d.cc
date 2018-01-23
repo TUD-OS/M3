@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/PEDesc.h>
 
 #include <m3/stream/Standard.h>
@@ -164,9 +164,9 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         chain[MUL]->init(0, bufsize, bufsize / 2, FFT1D_CYCLES);
         chain[IFFT]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1), FFT1D_CYCLES);
 
-        cycles_t start = Profile::start(1);
+        cycles_t start = Time::start(1);
         res = execute(arrsize, rgate, chain);
-        cycles_t end = Profile::stop(1);
+        cycles_t end = Time::stop(1);
         cout << "Exec time: " << (end - start) << " cycles\n";
     }
     else {
@@ -174,9 +174,9 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         chain[MUL]->init(0, bufsize, bufsize, FFT1D_CYCLES);
         chain[IFFT]->init(bufsize, bufsize, bufsize, FFT1D_CYCLES);
 
-        cycles_t start = Profile::start(1);
+        cycles_t start = Time::start(1);
         res = execute_indirect((char*)buffer, arrsize, rgate, chain, 3, bufsize);
-        cycles_t end = Profile::stop(1);
+        cycles_t end = Time::stop(1);
         cout << "Exec time: " << (end - start) << " cycles\n";
     }
     if(res != Errors::NONE)
@@ -199,9 +199,9 @@ int main(int argc, char **argv) {
     size_t arrsize = IStringStream::read_from<size_t>(argv[2]);
     size_t bufsize = IStringStream::read_from<size_t>(argv[3]);
 
-    cycles_t start = Profile::start(0);
+    cycles_t start = Time::start(0);
     execchain(arrsize, bufsize, direct);
-    cycles_t end = Profile::stop(0);
+    cycles_t end = Time::stop(0);
 
     cout << "Total time: " << (end - start) << " cycles\n";
     return 0;

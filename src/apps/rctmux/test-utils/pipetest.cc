@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
                 PANIC("Cannot mount root fs");
         }
 
-        cycles_t start = Profile::start(0x1234);
+        cycles_t start = Time::start(0x1234);
 
         // start writer
         apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe->writer_fd()));
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
             if(VERBOSE) cout << apps[i]->argv[0] << " exited with " << res << "\n";
         }
 
-        cycles_t end = Profile::stop(0x1234);
+        cycles_t end = Time::stop(0x1234);
         cout << "Time: " << (end - start) << "\n";
 
         if(VERBOSE) cout << "Deleting VPEs...\n";

@@ -21,8 +21,8 @@
 
 namespace m3 {
 
-class Profile {
-    Profile() = delete;
+class Time {
+    Time() = delete;
 
     static const unsigned START_TSC     = 0x1FF10000;
     static const unsigned STOP_TSC      = 0x1FF20000;
@@ -33,13 +33,13 @@ public:
 };
 
 #if defined(__t3__)
-inline cycles_t Profile::start(unsigned id) {
+inline cycles_t Time::start(unsigned id) {
     CPU::compiler_barrier();
     DTU::get().debug_msg(START_TSC | id);
     return 0;
 }
 
-inline cycles_t Profile::stop(unsigned id) {
+inline cycles_t Time::stop(unsigned id) {
     DTU::get().debug_msg(STOP_TSC | id);
     CPU::compiler_barrier();
     return 0;

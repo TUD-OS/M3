@@ -18,7 +18,7 @@
 #include <base/col/DList.h>
 #include <base/col/SList.h>
 #include <base/col/Treap.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/Panic.h>
 
 #include <m3/stream/Standard.h>
@@ -49,14 +49,14 @@ struct MyTItem : public TreapNode<MyTItem, uint32_t> {
 NOINLINE static void bench_slist_append() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
 
         SList<MySItem> list;
         for(uint32_t i = 0; i < 100; ++i) {
             list.append(new MySItem(i));
         }
 
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
 
         for(auto it = list.begin(); it != list.end(); ) {
@@ -76,12 +76,12 @@ NOINLINE static void bench_slist_clear() {
             list.append(new MySItem(i));
         }
 
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         for(auto it = list.begin(); it != list.end(); ) {
             auto old = it++;
             delete &*old;
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
     }
 
@@ -91,12 +91,12 @@ NOINLINE static void bench_slist_clear() {
 NOINLINE static void bench_dlist_append() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         DList<MyDItem> list;
         for(uint32_t i = 0; i < 100; ++i) {
             list.append(new MyDItem(i));
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
 
         for(auto it = list.begin(); it != list.end(); ) {
@@ -116,12 +116,12 @@ NOINLINE static void bench_dlist_clear() {
             list.append(new MyDItem(i));
         }
 
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         for(auto it = list.begin(); it != list.end(); ) {
             auto old = it++;
             delete &*old;
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
     }
 
@@ -131,12 +131,12 @@ NOINLINE static void bench_dlist_clear() {
 NOINLINE static void bench_treap_append() {
     cycles_t total = 0;
     for(int j = 0; j < 10; ++j) {
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         Treap<MyTItem> list;
         for(uint32_t i = 0; i < 100; ++i) {
             list.insert(new MyTItem(i));
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
 
         MyTItem *item;
@@ -156,13 +156,13 @@ NOINLINE static void bench_treap_find() {
             list.insert(new MyTItem(i));
         }
 
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         for(uint32_t i = 0; i < 100; ++i) {
             MyTItem *item = list.find(i);
             if(!item || item->val != i)
                 PANIC("Test failed: " << (item ? item->val : 0) << " != " << i);
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
 
         MyTItem *item;
@@ -182,12 +182,12 @@ NOINLINE static void bench_treap_clear() {
             list.insert(new MyTItem(i));
         }
 
-        cycles_t start = Profile::start();
+        cycles_t start = Time::start();
         MyTItem *item;
         while((item = list.remove_root()) != nullptr) {
             delete item;
         }
-        cycles_t end = Profile::stop();
+        cycles_t end = Time::stop();
         total += end - start;
     }
 

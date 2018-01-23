@@ -15,7 +15,7 @@
  */
 
 #include <base/Common.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
@@ -78,9 +78,9 @@ static void bench(Hash &accel, const char *path) {
         gethash<AUTO>(accel, algos[algo].algo, path, res, sizeof(res));
 
     for(int j = 0; j < REPEATS; ++j) {
-        Profile::start(NAME);
+        Time::start(NAME);
         gethash<AUTO>(accel, algos[algo].algo, path, res, sizeof(res));
-        Profile::stop(NAME);
+        Time::stop(NAME);
     }
 }
 

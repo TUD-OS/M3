@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/session/Session.h>
 #include <m3/stream/Standard.h>
@@ -30,9 +30,9 @@ int main() {
     cycles_t total = 0;
 
     for(uint i = 0; i < COUNT; ++i) {
-        cycles_t begin = Profile::start(0x1234);
+        cycles_t begin = Time::start(0x1234);
         Session sess("test");
-        cycles_t end = Profile::stop(0x1234);
+        cycles_t end = Time::stop(0x1234);
         total += end - begin;
     }
 

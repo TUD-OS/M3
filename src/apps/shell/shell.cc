@@ -16,7 +16,7 @@
 
 #include <base/log/Lib.h>
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/pipe/AccelPipeReader.h>
@@ -356,9 +356,9 @@ int main(int argc, char **argv) {
         if(!list)
             exitmsg("Unable to parse command '" << input << "'");
 
-        cycles_t start = Profile::start(0x1234);
+        cycles_t start = Time::start(0x1234);
         execute(list, muxed);
-        cycles_t end = Profile::stop(0x1234);
+        cycles_t end = Time::stop(0x1234);
 
         cerr << "Execution took " << (end - start) << " cycles\n";
         return 0;

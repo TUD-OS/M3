@@ -14,16 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 #include <base/CPU.h>
 
 namespace m3 {
 
-cycles_t Profile::start(UNUSED unsigned id) {
+cycles_t Time::start(UNUSED unsigned id) {
     return stop(id);
 }
 
-cycles_t Profile::stop(UNUSED unsigned id) {
+cycles_t Time::stop(UNUSED unsigned id) {
     cycles_t cycles = 0;
 
     DTU::get().set_target(SLOT_NO, CCOUNT_CORE, CCOUNT_ADDR);

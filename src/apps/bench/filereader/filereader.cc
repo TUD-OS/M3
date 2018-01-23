@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
@@ -40,10 +40,10 @@ int main(int argc, char **argv) {
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");
 
-        cycles_t start = Profile::start(1);
+        cycles_t start = Time::start(1);
         while(file->read(buffer, sizeof(buffer)) > 0)
             ;
-        cycles_t end = Profile::stop(1);
+        cycles_t end = Time::stop(1);
 
         cout << "Read time: " << (end - start) << " cycles\n";
     }

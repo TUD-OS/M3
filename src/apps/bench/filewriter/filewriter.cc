@@ -15,7 +15,7 @@
  */
 
 #include <base/stream/IStringStream.h>
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
@@ -45,10 +45,10 @@ int main(int argc, char **argv) {
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");
 
-        cycles_t start = Profile::start(1);
+        cycles_t start = Time::start(1);
         for(size_t total = 0; total < size; total += sizeof(buffer))
             file->write(buffer, sizeof(buffer));
-        cycles_t end = Profile::stop(1);
+        cycles_t end = Time::stop(1);
 
         cout << "Write time: " << (end - start) << " cycles\n";
     }

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <base/util/Profile.h>
+#include <base/util/Time.h>
 
 #include <m3/stream/Standard.h>
 #include <m3/vfs/File.h>
@@ -42,10 +42,10 @@ public:
     }
 
     virtual void start() override {
-        _start = m3::Profile::start(0);
+        _start = m3::Time::start(0);
     }
     virtual void stop() override {
-        cycles_t end = m3::Profile::stop(0);
+        cycles_t end = m3::Time::stop(0);
         m3::cout << "Total time: " << (end - _start) << " cycles\n";
     }
 
