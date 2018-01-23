@@ -97,24 +97,42 @@ public:
 
     virtual ssize_t read(int fd, void *buffer, size_t size) override {
         checkFd(fd);
-        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->read(buffer, size));
+        m3::File *file = m3::VPE::self().fds()->get(fdMap[fd]);
+        char *buf = reinterpret_cast<char*>(buffer);
+        while(size > 0) {
+            ssize_t res = file->read(buf, size);
+            if(res <= 0)
+                return res;
+            size -= static_cast<size_t>(res);
+            buf += res;
+        }
+        return buf - reinterpret_cast<char*>(buffer);
     }
 
     virtual ssize_t write(int fd, const void *buffer, size_t size) override {
         checkFd(fd);
-        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->write(buffer, size));
+        m3::File *file = m3::VPE::self().fds()->get(fdMap[fd]);
+        const char *buf = reinterpret_cast<const char*>(buffer);
+        while(size > 0) {
+            ssize_t res = file->write(buf, size);
+            if(res <= 0)
+                return res;
+            size -= static_cast<size_t>(res);
+            buf += res;
+        }
+        return buf - reinterpret_cast<const char*>(buffer);
     }
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
         m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
-        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->read(buffer, size));
+        return read(fd, buffer, size);
     }
 
     virtual ssize_t pwrite(int fd, const void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
         m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
-        return static_cast<ssize_t>(m3::VPE::self().fds()->get(fdMap[fd])->write(buffer, size));
+        return write(fd, buffer, size);
     }
 
     virtual void lseek(const lseek_args_t *args, UNUSED int lineNo) override {
