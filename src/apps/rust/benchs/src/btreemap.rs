@@ -9,7 +9,7 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn insert() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct BTreeTester(BTreeMap<u32, u32>);
@@ -29,7 +29,7 @@ fn insert() {
 }
 
 fn find() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct BTreeTester(BTreeMap<u32, u32>);
@@ -51,7 +51,7 @@ fn find() {
 }
 
 fn clear() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct BTreeTester(BTreeMap<u32, u32>);

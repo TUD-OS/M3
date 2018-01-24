@@ -47,7 +47,7 @@ fn activate() {
 }
 
 fn create_rgate() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester();
@@ -65,7 +65,7 @@ fn create_rgate() {
 }
 
 fn create_sgate() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester(Option<RecvGate>);
@@ -88,7 +88,7 @@ fn create_sgate() {
 }
 
 fn create_mgate() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester();
@@ -112,7 +112,7 @@ fn create_map() {
     }
 
     const DEST: kif::CapSel = 0x3000_0000 >> cfg::PAGE_BITS;
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     struct Tester(MemGate);
 
@@ -130,7 +130,7 @@ fn create_map() {
 }
 
 fn create_srv() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester(Option<RecvGate>);
@@ -154,7 +154,7 @@ fn create_srv() {
 }
 
 fn create_sess() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester();
@@ -175,7 +175,7 @@ fn create_sess() {
 }
 
 fn derive_mem() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester(Option<MemGate>);
@@ -198,7 +198,7 @@ fn derive_mem() {
 }
 
 fn exchange() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester(Option<VPE>);
@@ -230,7 +230,7 @@ fn exchange() {
 }
 
 fn revoke() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(4);
+    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
     struct Tester(Option<MemGate>);

@@ -9,7 +9,7 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn push_back() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(DList<u32>);
@@ -29,7 +29,7 @@ fn push_back() {
 }
 
 fn push_front() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(DList<u32>);
@@ -49,7 +49,7 @@ fn push_front() {
 }
 
 fn clear() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(DList<u32>);

@@ -32,7 +32,7 @@ pub fn run(t: &mut test::Tester) {
 }
 
 fn push_back() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(BoxList<TestItem>);
@@ -52,7 +52,7 @@ fn push_back() {
 }
 
 fn push_front() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(BoxList<TestItem>);
@@ -72,7 +72,7 @@ fn push_front() {
 }
 
 fn push_pop() {
-    let mut prof = profile::Profiler::new().repeats(100).warmup(10);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(BoxList<TestItem>, Option<Box<TestItem>>, usize);
@@ -95,7 +95,7 @@ fn push_pop() {
 }
 
 fn clear() {
-    let mut prof = profile::Profiler::new().repeats(10).warmup(0);
+    let mut prof = profile::Profiler::new().repeats(30);
 
     #[derive(Default)]
     struct ListTester(BoxList<TestItem>);
