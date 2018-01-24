@@ -26,27 +26,37 @@
 
 using namespace m3;
 
+static const size_t SIZE = 2 * 1024 * 1024;
+
 alignas(64) static char buf[8192];
 
 NOINLINE static void read() {
     MemGate mgate = MemGate::create_global(8192, MemGate::R);
 
-    Profile pr;
-    cout << "8K: " << pr.run_with_id([&mgate] {
-        mgate.read(buf, sizeof(buf), 0);
-        if(Errors::occurred())
-            PANIC("read failed");
+    Profile pr(2, 1);;
+    cout << "2 MiB with 8K buf: " << pr.run_with_id([&mgate] {
+        size_t total = 0;
+        while(total < SIZE) {
+            mgate.read(buf, sizeof(buf), 0);
+            if(Errors::occurred())
+                PANIC("read failed");
+            total += sizeof(buf);
+        }
     }, 0x40) << "\n";
 }
 
 NOINLINE static void write() {
     MemGate mgate = MemGate::create_global(8192, MemGate::W);
 
-    Profile pr;
-    cout << "8K: " << pr.run_with_id([&mgate] {
-        mgate.write(buf, sizeof(buf), 0);
-        if(Errors::occurred())
-            PANIC("write failed");
+    Profile pr(2, 1);
+    cout << "2 MiB with 8K buf: " << pr.run_with_id([&mgate] {
+        size_t total = 0;
+        while(total < SIZE) {
+            mgate.write(buf, sizeof(buf), 0);
+            if(Errors::occurred())
+                PANIC("write failed");
+            total += sizeof(buf);
+        }
     }, 0x41) << "\n";
 }
 
