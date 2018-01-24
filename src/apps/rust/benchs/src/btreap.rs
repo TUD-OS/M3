@@ -46,6 +46,9 @@ fn find() {
                 assert_eq!(val, Some(&i));
             }
         }
+        fn post(&mut self) {
+            self.0.clear();
+        }
     }
 
     println!("Searching for 100 elements: {}", prof.runner_with_id(&mut BTreeTester::default(), 0x72));
