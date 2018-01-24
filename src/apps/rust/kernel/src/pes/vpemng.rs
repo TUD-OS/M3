@@ -260,5 +260,7 @@ impl Drop for VPEMng {
                 }
             }
         }
+        // TODO workaround for compiler bug (?); without that, heap_free(0x40) gets called!??
+        self.pending.push_back(1);
     }
 }
