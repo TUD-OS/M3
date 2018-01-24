@@ -101,8 +101,10 @@ public:
         char *buf = reinterpret_cast<char*>(buffer);
         while(size > 0) {
             ssize_t res = file->read(buf, size);
-            if(res <= 0)
+            if(res < 0)
                 return res;
+            if(res == 0)
+                break;
             size -= static_cast<size_t>(res);
             buf += res;
         }
