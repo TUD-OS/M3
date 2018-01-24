@@ -198,7 +198,7 @@ fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::MGate(MGateObject::new(
-            INVALID_VPE, alloc, perms
+            INVALID_VPE, alloc, perms, false
         )))
     );
 
@@ -570,9 +570,8 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
             GlobAddr::new(mgate_ref.mem.global().raw() + offset as u64), size
         );
         let mgate_obj = MGateObject::new(
-            mgate_ref.vpe, new_mem, perms & mgate_ref.perms
+            mgate_ref.vpe, new_mem, perms & mgate_ref.perms, true
         );
-        mgate_obj.borrow_mut().derived = true;
         Capability::new(dst_sel, KObject::MGate(mgate_obj))
     };
 

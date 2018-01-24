@@ -123,12 +123,12 @@ pub struct MGateObject {
 }
 
 impl MGateObject {
-    pub fn new(vpe: VPEId, mem: mem::Allocation, perms: kif::Perm) -> Rc<RefCell<Self>> {
+    pub fn new(vpe: VPEId, mem: mem::Allocation, perms: kif::Perm, derived: bool) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(MGateObject {
             vpe: vpe,
             mem: mem,
             perms: perms,
-            derived: false,
+            derived: derived,
         }))
     }
 

@@ -139,7 +139,8 @@ impl VPE {
             // cap for own memory
             vpe_mut.obj_caps_mut().insert(
                 Capability::new(1, KObject::MGate(MGateObject::new(
-                    id, Allocation::new(GlobAddr::new(0), cfg::MEM_CAP_END), Perm::RWX
+                    // pretend that it's derived; we don't want to free it
+                    id, Allocation::new(GlobAddr::new(0), cfg::MEM_CAP_END), Perm::RWX, true
                 )))
             );
 
