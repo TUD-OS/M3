@@ -1,7 +1,9 @@
 use cfg;
 use core::intrinsics;
 use core::ptr;
+use arch;
 use errors::Error;
+use kif::PEDesc;
 use util;
 
 /// A DTU register
@@ -404,7 +406,8 @@ impl DTU {
     /// kernel is notified about it, if required.
     #[inline(always)]
     pub fn try_sleep(_yield: bool, cycles: u64) -> Result<(), Error> {
-        for _ in 0..100 {
+        let num = if PEDesc::new_from(arch::envdata::get().pe_desc).has_mmu() { 2 } else { 100 };
+        for _ in 0..num {
             if Self::read_dtu_reg(DtuReg::MSG_CNT) > 0 {
                 return Ok(())
             }
