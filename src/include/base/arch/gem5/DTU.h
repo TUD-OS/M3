@@ -222,13 +222,13 @@ public:
     }
 
     static peid_t gaddr_to_pe(gaddr_t noc) {
-        return (noc >> 44) - 0x80;
+        return (noc >> 56) - 0x80;
     }
     static uintptr_t gaddr_to_virt(gaddr_t noc) {
-        return noc & ((static_cast<gaddr_t>(1) << 44) - 1);
+        return noc & ((static_cast<gaddr_t>(1) << 56) - 1);
     }
     static gaddr_t build_gaddr(peid_t pe, uintptr_t virt) {
-        return (static_cast<gaddr_t>(0x80 + pe) << 44) | virt;
+        return (static_cast<gaddr_t>(0x80 + pe) << 56) | virt;
     }
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);

@@ -64,6 +64,8 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
 
 static m3::DTU::pte_t to_dtu_pte(uint64_t pte) {
     m3::DTU::pte_t res = pte & ~static_cast<m3::DTU::pte_t>(PAGE_MASK);
+    // translate physical address to NoC address
+    res = (res & ~0x0000FF0000000000ULL) | ((res & 0x0000FF0000000000ULL) << 16);
     if(pte & 0x1) // present
         res |= m3::DTU::PTE_R;
     if(pte & 0x2) // writable

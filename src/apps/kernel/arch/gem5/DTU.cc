@@ -105,11 +105,6 @@ void DTU::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
         read_mem(vpe, extarg_addr, &mstreq, sizeof(mstreq));
 }
 
-void DTU::set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt) {
-    assert(Platform::pe(vpe.pe).has_mmu());
-    mmu_cmd_remote(vpe, rootpt | m3::DTU::ExtReqOpCode::SET_ROOTPT);
-}
-
 void DTU::invlpg_remote(const VPEDesc &vpe, uintptr_t virt) {
     virt &= ~static_cast<uintptr_t>(PAGE_MASK);
     if(Platform::pe(vpe.pe).has_mmu())
@@ -137,6 +132,9 @@ static mmu_pte_t to_mmu_pte(peid_t pe, m3::DTU::pte_t pte) {
         return pte;
 
     mmu_pte_t res = pte & ~static_cast<m3::DTU::pte_t>(PAGE_MASK);
+    // translate NoC address to physical address
+    res = (res & ~0xFF00000000000000ULL) | ((res & 0xFF00000000000000ULL) >> 16);
+
     if(pte & m3::DTU::PTE_RWX)
         res |= X86_PTE_PRESENT;
     if(pte & m3::DTU::PTE_W)
@@ -157,6 +155,9 @@ static m3::DTU::pte_t to_dtu_pte(peid_t pe, mmu_pte_t pte) {
         return pte;
 
     m3::DTU::pte_t res = pte & ~static_cast<m3::DTU::pte_t>(PAGE_MASK);
+    // translate physical address to NoC address
+    res = (res & ~0x0000FF0000000000ULL) | ((res & 0x0000FF0000000000ULL) << 16);
+
     if(pte & X86_PTE_PRESENT)
         res |= m3::DTU::PTE_R;
     if(pte & X86_PTE_WRITE)
@@ -168,6 +169,11 @@ static m3::DTU::pte_t to_dtu_pte(peid_t pe, mmu_pte_t pte) {
     if(~pte & X86_PTE_NOEXEC)
         res |= m3::DTU::PTE_X;
     return res;
+}
+
+void DTU::set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt) {
+    assert(Platform::pe(vpe.pe).has_mmu());
+    mmu_cmd_remote(vpe, to_mmu_pte(vpe.pe, rootpt) | m3::DTU::ExtReqOpCode::SET_ROOTPT);
 }
 
 void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep) {
@@ -330,6 +336,7 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt
 
         m3::DTU::pte_t pte;
         read_mem(vpe, pt, &pte, sizeof(pte));
+        pte = to_dtu_pte(vpe.pe, pte);
 
         pt = m3::DTU::gaddr_to_virt(pte & ~PAGE_MASK);
     }
@@ -361,6 +368,8 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages
 
             m3::DTU::pte_t pte;
             read_mem(rvpe, pteAddr, &pte, sizeof(pte));
+            pte = to_dtu_pte(rvpe.pe, pte);
+
             if(level > 0) {
                 if(create_pt(rvpe, vpe.id, virt, pteAddr, pte, phys, pages, perm, level))
                     break;
@@ -381,7 +390,7 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     map_pages(vpe, virt, 0, pages, 0);
 }
 
-void DTU::remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level) {
+void DTU::remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, uintptr_t virt, int level) {
     static_assert(sizeof(buffer) >= PAGE_SIZE, "Buffer smaller than a page");
 
     // load entire page table
@@ -400,7 +409,7 @@ void DTU::remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level) {
                 continue;
             }
 
-            gaddr_t gaddr = ptes[i] & ~PAGE_MASK;
+            gaddr_t gaddr = to_dtu_pte(vpe.pe, ptes[i]) & ~PAGE_MASK;
             if(level > 1) {
                 remove_pts_rec(vpe, gaddr, virt, level - 1);
 
@@ -409,7 +418,7 @@ void DTU::remove_pts_rec(vpeid_t vpe, gaddr_t pt, uintptr_t virt, int level) {
                 read_mem(memvpe, m3::DTU::gaddr_to_virt(pt + off), buffer + off, PAGE_SIZE - off);
             }
             // free page table
-            KLOG(PTES, "VPE" << vpe << ": lvl " << level << " PTE for " << m3::fmt(virt, "p") << " removed");
+            KLOG(PTES, "VPE" << vpe.id << ": lvl " << level << " PTE for " << m3::fmt(virt, "p") << " removed");
             MainMemory::get().free(MainMemory::get().build_allocation(gaddr, PAGE_SIZE));
         }
 
@@ -424,7 +433,7 @@ void DTU::remove_pts(vpeid_t vpe) {
     // don't destroy page tables of idle VPEs. we need them to execute something on the other PEs
     if(!v.is_idle()) {
         gaddr_t root = v.address_space()->root_pt();
-        remove_pts_rec(vpe, root, 0, m3::DTU::LEVEL_CNT - 1);
+        remove_pts_rec(v.desc(), root, 0, m3::DTU::LEVEL_CNT - 1);
     }
 }
 
