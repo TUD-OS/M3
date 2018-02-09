@@ -99,7 +99,8 @@ impl AddrSpace {
             KDTU::get().try_write_slice(vpe, dtu::DTU::dtu_reg_addr(dtu::DtuReg::PF_EP), &[reg]).unwrap();
 
             // set root PT
-            Self::mmu_cmd_remote(vpe, self.root.raw() | dtu::ExtReqOpCode::SET_ROOTPT.val);
+            let rootpt = self.to_mmu_pte(self.root.raw());
+            Self::mmu_cmd_remote(vpe, rootpt | dtu::ExtReqOpCode::SET_ROOTPT.val);
         }
 
         // invalidate TLB, because we have changed the root PT
@@ -117,13 +118,13 @@ impl AddrSpace {
         while pages > 0 {
             for lvl in (0..dtu::LEVEL_CNT).rev() {
                 let pte_addr = if !running {
-                    Self::get_pte_addr_mem(rvpe, self.root, virt, lvl)
+                    self.get_pte_addr_mem(rvpe, self.root, virt, lvl)
                 }
                 else {
                     Self::get_pte_addr(virt, lvl)
                 };
 
-                let pte: dtu::PTE = KDTU::get().read_obj(rvpe, pte_addr);
+                let pte: dtu::PTE = self.to_dtu_pte(KDTU::get().read_obj(rvpe, pte_addr));
                 if lvl > 0 {
                     self.create_pt(
                         rvpe, vpe.vpe_id(), virt, pte_addr, pte, flags, lvl
@@ -170,7 +171,7 @@ impl AddrSpace {
         virt
     }
 
-    fn get_pte_addr_mem(vpe: &VPEDesc, root: GlobAddr, virt: usize, lvl: usize) -> usize {
+    fn get_pte_addr_mem(&self, vpe: &VPEDesc, root: GlobAddr, virt: usize, lvl: usize) -> usize {
         let mut pt = root.offset();
 
         for l in (0..dtu::LEVEL_CNT).rev() {
@@ -181,7 +182,7 @@ impl AddrSpace {
                 return pt;
             }
 
-            let pte: dtu::PTE = KDTU::get().read_obj(vpe, pt);
+            let pte: dtu::PTE = self.to_dtu_pte(KDTU::get().read_obj(vpe, pt));
 
             pt = GlobAddr::new(pte).offset() & !cfg::PAGE_MASK;
         }
@@ -295,6 +296,7 @@ impl AddrSpace {
 
         let dtu_pte = dtu::PTEFlags::from_bits_truncate(pte);
         let addr = pte & !cfg::PAGE_MASK as dtu::PTE;
+
         let mut flags = X86PTE::empty();
         if dtu_pte.intersects(dtu::PTEFlags::RWX) {
             flags.insert(X86PTE::PRESENT);
@@ -314,6 +316,9 @@ impl AddrSpace {
         if !dtu_pte.contains(dtu::PTEFlags::X) {
             flags.insert(X86PTE::NOEXEC);
         }
+
+        // translate NoC address to physical address
+        let addr = (addr & !0xFF00_0000_0000_0000) | ((addr & 0xFF00_0000_0000_0000) >> 16);
         return addr | flags.bits()
     }
 
@@ -323,6 +328,7 @@ impl AddrSpace {
         }
 
         let mut res = pte & !cfg::PAGE_MASK as dtu::PTE;
+
         let x86_pte = X86PTE::from_bits_truncate(pte);
         if x86_pte.contains(X86PTE::PRESENT) {
             res |= dtu::PTEFlags::R.bits();
@@ -339,6 +345,9 @@ impl AddrSpace {
         if !x86_pte.contains(X86PTE::NOEXEC) {
             res |= dtu::PTEFlags::X.bits();
         }
+
+        // translate physical address to NoC address
+        res = (res & !0x0000_FF00_0000_0000) | ((res & 0x0000_FF00_0000_0000) << 16);
         return res;
     }
 

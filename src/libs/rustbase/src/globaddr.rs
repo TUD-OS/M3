@@ -13,7 +13,7 @@ pub struct GlobAddr {
 }
 
 #[cfg(target_os = "none")]
-const PE_SHIFT: u32 = 44;
+const PE_SHIFT: u32 = 56;
 #[cfg(target_os = "linux")]
 const PE_SHIFT: u32 = 48;
 
