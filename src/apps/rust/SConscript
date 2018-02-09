@@ -1,2 +1,16 @@
 Import('env')
-env.SConscript(env.Glob('*/SConscript'), 'env')
+
+# check for xargo
+def CheckRust(context):
+    context.Message('Checking for xargo...')
+    result = context.TryAction('xargo')[0]
+    context.Result(result)
+    return result
+
+rustenv = env.Clone()
+conf = Configure(rustenv, custom_tests={'CheckRust': CheckRust})
+
+if conf.CheckRust():
+    env.SConscript(env.Glob('*/SConscript'), 'env')
+
+conf.Finish()
