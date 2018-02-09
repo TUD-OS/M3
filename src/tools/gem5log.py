@@ -44,7 +44,7 @@ for i in range(2, len(sys.argv)):
         if not line:
             break
 
-        m = re.match(b'^([a-f0-9]+) ([a-f0-9]+) (t|T|w|W) ([A-Za-z0-9_:\.\~ ]+)', line)
+        m = re.match(b'^([a-f0-9]+) ([a-f0-9]+) (t|T|w|W) ([A-Za-z0-9_:\.\~<>, ]+)', line)
         if m:
             funcs.append({
                 'addr': int(m.group(1), 16),
