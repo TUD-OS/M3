@@ -16,9 +16,11 @@
 
 #pragma once
 
+#include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/GateStream.h>
+#include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
 namespace m3 {
@@ -40,8 +42,10 @@ public:
     static const size_t EP_INPUT    = 8;
     static const size_t EP_OUTPUT   = 9;
     static const size_t EP_SEND     = 10;
+    static const size_t EP_CTX      = 11;
 
-    static const size_t BUF_MAX_SIZE;
+    static const size_t STATE_SIZE  = 1024;
+    static const size_t BUF_SIZE    = 8192;
     static const size_t BUF_ADDR;
 
     enum class Command {
@@ -51,7 +55,6 @@ public:
 
     struct InitCommand {
         uint64_t cmd;
-        uint64_t buf_size;
         uint64_t out_size;
         uint64_t report_size;
         uint64_t comp_time;
@@ -68,7 +71,9 @@ public:
         explicit ChainMember(m3::VPE *_vpe, uintptr_t _rbuf, size_t rbSize, m3::RecvGate &rgdst, label_t label)
             : vpe(_vpe), rbuf(_rbuf),
               rgate(m3::RecvGate::create_for(*vpe, m3::getnextlog2(rbSize), m3::getnextlog2(MSG_SIZE))),
-              sgate(m3::SendGate::create(&rgdst, label, rbSize)) {
+              sgate(m3::SendGate::create(&rgdst, label, rbSize)),
+              spm(m3::MemGate::create_global(BUF_SIZE + STATE_SIZE, m3::MemGate::RW)) {
+            m3::Syscalls::get().activate(vpe->sel(), spm.sel(), EP_CTX, 0);
         }
         ~ChainMember() {
             delete vpe;
@@ -90,10 +95,9 @@ public:
             sgate.activate_for(*vpe, EP_SEND);
         }
 
-        uintptr_t init(size_t bufsize, size_t outsize, size_t reportsize, cycles_t comptime) {
+        uintptr_t init(size_t outsize, size_t reportsize, cycles_t comptime) {
             InitCommand init;
             init.cmd = static_cast<int64_t>(Command::INIT);
-            init.buf_size = bufsize;
             init.out_size = outsize;
             init.report_size = reportsize;
             init.comp_time = comptime;
@@ -111,6 +115,7 @@ public:
         uintptr_t rbuf;
         m3::RecvGate rgate;
         m3::SendGate sgate;
+        m3::MemGate spm;
     };
 
     /**

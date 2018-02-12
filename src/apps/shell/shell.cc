@@ -35,8 +35,7 @@
 using namespace m3;
 using namespace accel;
 
-static const size_t ABUF_SIZE  = 8192;
-static const size_t ACOMP_TIME = 8192;
+static const size_t ACOMP_TIME = 32768;
 
 static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 
@@ -125,13 +124,13 @@ static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, si
     // send init
     uintptr_t bufaddr[num];
     for(size_t i = 0; i < num - 1; ++i)
-        bufaddr[i] = chain[i]->init(ABUF_SIZE, ABUF_SIZE, ABUF_SIZE / 2, ACOMP_TIME);
-    bufaddr[num - 1] = chain[num - 1]->init(ABUF_SIZE,
+        bufaddr[i] = chain[i]->init(StreamAccel::BUF_SIZE, StreamAccel::BUF_SIZE / 2, ACOMP_TIME);
+    bufaddr[num - 1] = chain[num - 1]->init(
         static_cast<size_t>(-1), static_cast<size_t>(-1), ACOMP_TIME);
 
     // connect memory EPs
     for(size_t i = 0; i < num - 1; ++i) {
-        MemGate *buf = new MemGate(chain[i + 1]->vpe->mem().derive(bufaddr[i + 1], ABUF_SIZE));
+        MemGate *buf = new MemGate(chain[i + 1]->vpe->mem().derive(bufaddr[i + 1], StreamAccel::BUF_SIZE));
         buf->activate_for(*chain[i]->vpe, StreamAccel::EP_OUTPUT);
     }
 

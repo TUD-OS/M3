@@ -49,8 +49,8 @@ static Errors::Code execute_indirect(char *buffer, size_t arrsize, RecvGate &rga
     for(size_t i = 0; i < num; ++i)
         sgates[i] = new SendGate(SendGate::create(&chain[i]->rgate));
 
-    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
-    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
+    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
+    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
 
     size_t total = 0, seen = 0;
     buf1.write(buffer, bufsize, 0);
@@ -160,9 +160,9 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
 
     Errors::Code res;
     if(direct) {
-        chain[SFFT]->init(bufsize, bufsize, bufsize, FFT1D_CYCLES);
-        chain[MUL]->init(0, bufsize, bufsize / 2, FFT1D_CYCLES);
-        chain[IFFT]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1), FFT1D_CYCLES);
+        chain[SFFT]->init(bufsize, bufsize, FFT1D_CYCLES);
+        chain[MUL]->init(bufsize, bufsize / 2, FFT1D_CYCLES);
+        chain[IFFT]->init(static_cast<size_t>(-1), static_cast<size_t>(-1), FFT1D_CYCLES);
 
         cycles_t start = Time::start(1);
         res = execute(arrsize, rgate, chain);
@@ -170,9 +170,9 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         cout << "Exec time: " << (end - start) << " cycles\n";
     }
     else {
-        chain[SFFT]->init(bufsize, bufsize, bufsize, FFT1D_CYCLES);
-        chain[MUL]->init(0, bufsize, bufsize, FFT1D_CYCLES);
-        chain[IFFT]->init(bufsize, bufsize, bufsize, FFT1D_CYCLES);
+        chain[SFFT]->init(bufsize, bufsize, FFT1D_CYCLES);
+        chain[MUL]->init(bufsize, bufsize, FFT1D_CYCLES);
+        chain[IFFT]->init(bufsize, bufsize, FFT1D_CYCLES);
 
         cycles_t start = Time::start(1);
         res = execute_indirect((char*)buffer, arrsize, rgate, chain, 3, bufsize);

@@ -26,7 +26,6 @@ using namespace m3;
 
 namespace accel {
 
-const size_t StreamAccel::BUF_MAX_SIZE  = 0x8000;
 const size_t StreamAccel::BUF_ADDR      = 0x6000;
 
 VPE *StreamAccel::create(m3::PEISA isa, bool muxable) {

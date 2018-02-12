@@ -66,9 +66,8 @@ public:
             LLOG(ACCEL, "AccelPipeReader: got init("
                 << "report_size=" << init->report_size
                 << ", out_size=" << init->out_size
-                << ", buf_size=" << init->buf_size
                 << ")");
-            _buf = new char[init->buf_size];
+            _buf = new char[StreamAccel::BUF_SIZE];
             reply_vmsg(is, (uintptr_t)_buf);
         }
 

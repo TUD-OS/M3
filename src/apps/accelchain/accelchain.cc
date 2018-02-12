@@ -67,8 +67,8 @@ static Errors::Code execute_indirect(RecvGate &rgate, StreamAccel::ChainMember *
     for(size_t i = 0; i < num; ++i)
         sgates[i] = new SendGate(SendGate::create(&chain[i]->rgate));
 
-    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
-    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_MAX_SIZE);
+    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
+    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
 
     size_t total = 0, seen = 0;
     ssize_t count = in->read(buffer, bufsize);
@@ -129,7 +129,7 @@ error:
     return err;
 }
 
-static void execchain(const char *in, const char *out, size_t num, size_t bufsize,
+static void execchain(const char *in, const char *out, size_t num,
                       cycles_t comptime, bool direct) {
     RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
     rgate.activate();
@@ -158,20 +158,21 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
 
     for(size_t i = 0; i < num - 1; ++i) {
         MemGate *buf = new MemGate(
-            chain[i + 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, bufsize));
+            chain[i + 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE));
         buf->activate_for(*chain[i]->vpe, StreamAccel::EP_OUTPUT);
 
-        chain[i]->init(bufsize, bufsize, direct ? bufsize / 2 : bufsize, comptime);
+        chain[i]->init(StreamAccel::BUF_SIZE,
+            direct ? StreamAccel::BUF_SIZE / 2 : StreamAccel::BUF_SIZE, comptime);
     }
 
     Errors::Code res;
     if(direct) {
-        chain[num - 1]->init(bufsize, static_cast<size_t>(-1), static_cast<size_t>(-1), comptime);
+        chain[num - 1]->init(static_cast<size_t>(-1), static_cast<size_t>(-1), comptime);
         res = execute(rgate, chain, num, in, out);
     }
     else {
-        chain[num - 1]->init(bufsize, bufsize, bufsize, comptime);
-        res = execute_indirect(rgate, chain, num, in, out, bufsize);
+        chain[num - 1]->init(StreamAccel::BUF_SIZE, StreamAccel::BUF_SIZE, comptime);
+        res = execute_indirect(rgate, chain, num, in, out, StreamAccel::BUF_SIZE);
     }
     if(res != Errors::NONE)
         errmsg("Operation failed: " << Errors::to_string(res));
@@ -181,8 +182,8 @@ static void execchain(const char *in, const char *out, size_t num, size_t bufsiz
 }
 
 int main(int argc, char **argv) {
-    if(argc < 7)
-        exitmsg("Usage: " << argv[0] << " <in> <out> <direct> <bufsize> <comptime> <num>");
+    if(argc < 6)
+        exitmsg("Usage: " << argv[0] << " <in> <out> <direct> <comptime> <num>");
 
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
@@ -192,12 +193,11 @@ int main(int argc, char **argv) {
     const char *in = argv[1];
     const char *out = argv[2];
     bool direct = IStringStream::read_from<int>(argv[3]);
-    size_t bufsize = IStringStream::read_from<size_t>(argv[4]);
-    cycles_t comptime = IStringStream::read_from<cycles_t>(argv[5]);
-    size_t num = IStringStream::read_from<size_t>(argv[6]);
+    cycles_t comptime = IStringStream::read_from<cycles_t>(argv[4]);
+    size_t num = IStringStream::read_from<size_t>(argv[5]);
 
     cycles_t start = Time::start(0);
-    execchain(in, out, num, bufsize, comptime, direct);
+    execchain(in, out, num, comptime, direct);
     cycles_t end = Time::stop(0);
 
     cout << "Total time: " << (end - start) << " cycles\n";
