@@ -93,7 +93,7 @@ void ContextSwitcher::init() {
     _idle = new VPE(m3::String("rctmux"), _pe, VPEManager::get().get_id(),
         VPE::F_IDLE | VPE::F_INIT, VPE::INVALID_EP, m3::KIF::INV_SEL);
 
-    KLOG(CTXSW, "CTXSW[" << _pe << "] initialized (idle="
+    KLOG(CTXSW, "CtxSw[" << _pe << "] initialized (idle="
         << _idle->id() << ", muxable=" << _muxable << ")");
 #endif
 
