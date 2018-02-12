@@ -172,10 +172,14 @@ void ContextSwitcher::stop_vpe(VPE *vpe) {
     dequeue(vpe);
 
     if(_cur == vpe && _state == S_IDLE) {
-        // the VPE id is expected to be invalid in S_SWITCH
-        DTU::get().unset_vpeid(_cur->desc());
-        vpe->_state = VPE::SUSPENDED;
-        _cur = nullptr;
+        // for non-programmable accelerator, we have to do the save first, because we cannot
+        // interrupt the accelerator at arbitrary points in time (this might screw up his FSM)
+        if(Platform::pe(_pe).is_programmable()) {
+            // the VPE id is expected to be invalid in S_SWITCH
+            DTU::get().unset_vpeid(_cur->desc());
+            vpe->_state = VPE::SUSPENDED;
+            _cur = nullptr;
+        }
         start_switch();
     }
 }
