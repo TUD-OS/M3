@@ -50,7 +50,7 @@ for i in range(0, num_mem):
 
 # create accelerator PEs
 accs = ['hash', 'fft', 'toupper']
-for i in range(0, 3):
+for i in range(0, len(accs)):
     pe = createAccelPE(noc=root.noc,
                        options=options,
                        no=num_pes + num_mem + i,

@@ -59,16 +59,16 @@ void StreamAccel::sendUpdate(m3::SendGate &sgate, size_t off, uint64_t len) {
 uint64_t StreamAccel::update(m3::SendGate &sgate, m3::RecvGate &rgate, size_t off, uint64_t len) {
     sendUpdate(sgate, off, len);
 
+    UpdateCommand req;
     size_t done = 0;
     do {
-        UpdateCommand req;
         m3::GateIStream is = receive_msg(rgate);
         is >> req;
         LLOG(ACCEL, "Finished off=" << req.off << ", len=" << req.len);
         done += req.len;
         reply_vmsg(is, 0);
     }
-    while(done < len);
+    while(!req.eof);
     return done;
 }
 
@@ -121,14 +121,14 @@ Errors::Code StreamAccel::executeChain(RecvGate &rgate, File *in, File *out,
         }
 
         // use the minimum of both, because input and output have to be of the same size atm
-        size_t amount = std::min(inlen - inpos, outlen - outpos);
-        amount = update(sgate, rgate, inoff + inpos, amount);
+        size_t readsz = std::min(inlen - inpos, outlen - outpos);
+        size_t writesz = update(sgate, rgate, inoff + inpos, readsz);
 
-        LLOG(ACCEL, "commit_write(" << amount << ")");
+        LLOG(ACCEL, "commit_write(" << writesz << ")");
 
-        inpos += amount;
-        outpos += amount;
-        out->commit_write(amount);
+        inpos += readsz;
+        outpos += writesz;
+        out->commit_write(writesz);
     }
 
     // EOF
