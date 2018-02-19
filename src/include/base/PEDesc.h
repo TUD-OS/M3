@@ -43,6 +43,10 @@ enum class PEISA {
     ACCEL_SHA   = 4,
     ACCEL_FFT   = 5,
     ACCEL_TOUP  = 6,
+    ACCEL_STE   = 7,
+    ACCEL_MD    = 8,
+    ACCEL_SPMV  = 9,
+    ACCEL_AFFT  = 10,
 };
 
 /**
@@ -93,13 +97,13 @@ struct PEDesc {
      * @return the isa of the PE
      */
     PEISA isa() const {
-        return static_cast<PEISA>((_value >> 3) & 0x7);
+        return static_cast<PEISA>((_value >> 3) & 0xF);
     }
     /**
      * @return the flags
      */
     PEFlags flags() const {
-        return static_cast<PEFlags>((_value >> 6) & 0x3);
+        return static_cast<PEFlags>((_value >> 7) & 0x3);
     }
     /**
      * @return if the PE has a core that is programmable
@@ -143,7 +147,7 @@ struct PEDesc {
      * @return true if the PE has virtual memory support of some form
      */
     bool has_virtmem() const {
-        return has_dtuvm() || has_mmu();
+        return has_cache();
     }
     /**
      * @return true if the PE has virtual memory support in the DTU

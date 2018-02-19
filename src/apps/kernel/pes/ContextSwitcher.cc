@@ -219,6 +219,8 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 }
 
 void ContextSwitcher::update_yield() {
+    // TODO track the number of ready VPEs per PE-type. if only the fft accelerator is
+    // over-subscribed, there is no point in letting general purpose PEs notify us about idling
     bool yield = _global_ready > 0;
     if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield) {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating yield=" << yield);
