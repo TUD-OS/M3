@@ -32,7 +32,7 @@
 
 using namespace m3;
 
-static int step_size = 100; // percent
+static ssize_t step_size = -1;
 static bool use_files = false;
 static bool map_eager = false;
 
@@ -94,7 +94,7 @@ public:
         cycles_t start = Time::start(0x1234);
 
         size_t count = 0;
-        size_t per_step = iterations * ((float)step_size / 100);
+        size_t per_step = step_size == -1 ? iterations : static_cast<size_t>(step_size);
         while(count < iterations) {
             msg.iterations = Math::min(iterations - count, per_step);
             invoke(msg);
@@ -168,7 +168,7 @@ static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
 
 static void usage(const char *name) {
     Serial::get() << "Usage: " << name << " [-s <step_size>] [-f] [-e] (stencil|md|spmv|fft)\n";
-    Serial::get() << "  -s: the step size in percent\n";
+    Serial::get() << "  -s: the step size\n";
     Serial::get() << "  -f: use files for input and output\n";
     Serial::get() << "  -e: map all memory eagerly\n";
     exit(1);
