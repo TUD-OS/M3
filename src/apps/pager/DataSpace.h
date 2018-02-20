@@ -41,6 +41,9 @@ public:
         return k >= addr() && k < addr() + _size;
     }
 
+    RegionList &regions() {
+        return _regs;
+    }
     ulong id() const {
         return _id;
     }

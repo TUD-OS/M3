@@ -33,6 +33,11 @@ private:
     }
 
 public:
+    enum DelOp {
+        DATASPACE,
+        MEMGATE,
+    };
+
     enum Operation {
         PAGEFAULT,
         CLONE,
@@ -85,6 +90,7 @@ public:
     Errors::Code map_anon(uintptr_t *virt, size_t len, int prot, int flags);
     Errors::Code map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
         int fd, size_t offset);
+    Errors::Code map_mem(uintptr_t *virt, MemGate &mem, size_t len, int prot);
     Errors::Code unmap(uintptr_t virt);
 
 private:

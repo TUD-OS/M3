@@ -94,8 +94,8 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
             reg->copy(_as->mem, addr());
         reg->flags(reg->flags() ^ Region::COW);
     }
-    else {
-        // otherwise, there is nothing to do
+    else if(reg->is_mapped()) {
+        // there is nothing to do
         return m3::Errors::NONE;
     }
 
@@ -161,8 +161,8 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
             reg->copy(_as->mem, addr());
         reg->flags(reg->flags() ^ Region::COW);
     }
-    else {
-        // otherwise, there is nothing to do
+    else if(reg->is_mapped()) {
+        // there is nothing to do
         return m3::Errors::NONE;
     }
 

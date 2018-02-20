@@ -56,7 +56,10 @@ public:
         if(sess->vpe.sel() == ObjCap::INVALID)
             sel = sess->init(VPE::self().alloc_caps(2));
         else {
-            sel = map_ds(sess, data.argcount, data.args, &virt);
+            if(data.args[0] == Pager::DelOp::DATASPACE)
+                sel = map_ds(sess, data.argcount, data.args, &virt);
+            else
+                sel = map_mem(sess, data.argcount, data.args, &virt);
             data.argcount = 1;
             data.args[0] = virt;
         }
@@ -187,15 +190,47 @@ public:
         reply_vmsg(is, Errors::NONE, virt);
     }
 
-    capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
-        if(argc != 5)
+    capsel_t map_mem(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
+        if(argc != 4)
             return Errors::INV_ARGS;
 
-        *virt = args[0];
-        size_t len = args[1];
-        int flags = args[2];
-        int id = args[3];
-        size_t offset = args[4];
+        *virt = args[1];
+        size_t len = args[2];
+        int prot = args[3];
+
+        len = Math::round_up(len + (*virt & PAGE_MASK), PAGE_SIZE);
+        *virt = Math::round_dn(*virt, PAGE_SIZE);
+
+        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_mem(virt=" << fmt(*virt, "p")
+            << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x") << ")");
+
+        if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
+            SLOG(PAGER, "Virtual address or size not properly aligned");
+            return Errors::INV_ARGS;
+        }
+
+        // TODO determine/validate virt+len
+        AnonDataSpace *ds = new AnonDataSpace(sess, maxAnonPages, *virt, len, prot);
+
+        // immediately insert a region, so that we don't allocate new memory on PFs
+        Region *r = new Region(ds, 0, len);
+        r->mem(new PhysMem(sess->mem, *virt, VPE::self().alloc_cap()));
+        ds->regions().append(r);
+
+        sess->add(ds);
+
+        return r->mem()->gate->sel();
+    }
+
+    capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
+        if(argc != 6)
+            return Errors::INV_ARGS;
+
+        *virt = args[1];
+        size_t len = args[2];
+        int flags = args[3];
+        int id = args[4];
+        size_t offset = args[5];
 
         len = Math::round_up(len + (*virt & PAGE_MASK), PAGE_SIZE);
         *virt = Math::round_dn(*virt, PAGE_SIZE);

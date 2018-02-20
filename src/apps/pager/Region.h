@@ -55,6 +55,9 @@ public:
         _ds = ds;
     }
 
+    bool is_mapped() const {
+        return _mapped;
+    }
     bool has_mem() const {
         return _mem.valid();
     }
