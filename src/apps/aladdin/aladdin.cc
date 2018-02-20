@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
                 usage(argv[0]);
         }
     }
-    if(CmdArgs::ind >= argc || step_size <= 0 || step_size > 100)
+    if(CmdArgs::ind >= argc)
         usage(argv[0]);
 
     const char *bench = argv[CmdArgs::ind];
