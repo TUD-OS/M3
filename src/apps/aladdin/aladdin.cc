@@ -17,6 +17,7 @@
 #include <base/Common.h>
 #include <base/stream/Serial.h>
 #include <base/stream/IStringStream.h>
+#include <base/util/Time.h>
 #include <base/CmdArgs.h>
 
 #include <m3/stream/Standard.h>
@@ -90,6 +91,8 @@ public:
     }
 
     void run(InvokeMessage &msg, size_t iterations) {
+        cycles_t start = Time::start(0x1234);
+
         size_t count = 0;
         size_t per_step = iterations * ((float)step_size / 100);
         while(count < iterations) {
@@ -97,6 +100,9 @@ public:
             invoke(msg);
             count += msg.iterations;
         }
+
+        cycles_t end = Time::stop(0x1234);
+        cout << "Benchmark took " << (end - start) << " cycles\n";
     }
 
     VPE *_accel;
