@@ -139,10 +139,8 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
         if(reg->mem_offset() + reg->size() > locs.get_len(0))
             reg->size(m3::Math::round_up(locs.get_len(0) - reg->mem_offset(), PAGE_SIZE));
 
-        // if it's writable, create a copy
-        // TODO let the mapper decide what to do (for m3fs, we get direct access to the file's
-        // data, so that we have to copy that. but maybe this is not always the case)
-        if(_flags & m3::DTU::PTE_W) {
+        // if it's writable and should not be shared, create a copy
+        if(!(_flags & m3::Pager::MAP_SHARED) && (_flags & m3::DTU::PTE_W)) {
             m3::MemGate src(m3::MemGate::bind(locs.get_sel(0), 0));
             reg->mem(new PhysMem(_as->mem, addr(), reg->size(), m3::MemGate::RWX));
             copy_block(&src, reg->mem()->gate, reg->mem_offset(), reg->size());

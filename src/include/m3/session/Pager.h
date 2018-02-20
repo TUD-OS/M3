@@ -46,6 +46,11 @@ public:
         COUNT,
     };
 
+    enum Flags {
+        MAP_PRIVATE = 0,
+        MAP_SHARED  = 0x2000,
+    };
+
     enum Prot {
         READ    = MemGate::R,
         WRITE   = MemGate::W,
