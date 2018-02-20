@@ -45,7 +45,7 @@ void DataSpace::inherit(DataSpace *ds) {
     for(auto reg = ds->_regs.begin(); reg != ds->_regs.end(); ++reg) {
         // make it readonly, if it's writable and we have not done that yet
         if(!(reg->flags() & Region::COW) && ds->_flags & m3::DTU::PTE_W)
-            reg->map(ds->_flags ^ m3::DTU::PTE_W);
+            reg->map(ds->map_flags() ^ m3::DTU::PTE_W);
 
         Region *nreg = new Region(*reg);
         nreg->ds(this);
@@ -99,7 +99,7 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
         return m3::Errors::NONE;
     }
 
-    return reg->map(flags());
+    return reg->map(map_flags());
 }
 
 m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
@@ -164,6 +164,6 @@ m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
         return m3::Errors::NONE;
     }
 
-    return reg->map(flags());
+    return reg->map(map_flags());
 }
 

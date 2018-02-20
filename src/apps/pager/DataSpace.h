@@ -22,6 +22,7 @@
 #include <base/stream/OStream.h>
 #include <base/Errors.h>
 
+#include <m3/com/MemGate.h>
 #include <m3/session/Session.h>
 
 #include "RegionList.h"
@@ -49,6 +50,9 @@ public:
     }
     AddrSpace *addrspace() {
         return _as;
+    }
+    int map_flags() const {
+        return _flags & m3::MemGate::RWX;
     }
     int flags() const {
         return _flags;
