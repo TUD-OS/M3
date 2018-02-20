@@ -112,16 +112,39 @@ public:
     m3::SendGate _sgate;
 };
 
+static String get_file(size_t size, size_t *off) {
+    // take care that we do not use the same file data twice.
+    // (otherwise, we experience more cache hits than we should...)
+    static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
+    static size_t offs[ARRAY_SIZE(sizes)] = {0};
+
+    for(size_t i = 0; i < ARRAY_SIZE(sizes); ++i) {
+        if(size < sizes[i] * 1024 - offs[i]) {
+            OStringStream os;
+            os << "/data/" << sizes[i] << "k.txt";
+            *off = offs[i];
+            offs[i] += size;
+            return os.str();
+        }
+    }
+
+    exitmsg("Unable to find file for data size " << size);
+}
+
 static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
     static uintptr_t virt = 0x1000000;
     size_t psize = Math::round_up(size, PAGE_SIZE);
 
     if(use_files) {
         int perms = (prot & MemGate::W) ? FILE_RW : FILE_R;
-        fd_t fd = VFS::open("/zeros.bin", perms);
+        size_t off = 0;
+        String filename = get_file(size, &off);
+        fd_t fd = VFS::open(filename.c_str(), perms);
+        if(fd == FileTable::INVALID)
+            exitmsg("Unable to open '" << filename << "'");
         RegularFile *file = static_cast<RegularFile*>(VPE::self().fds()->get(fd));
         int flags = (prot & MemGate::W) ? Pager::MAP_SHARED : Pager::MAP_PRIVATE;
-        alad._accel->pager()->map_ds(&virt, psize, prot, flags, *file->fs(), file->fd(), 0);
+        alad._accel->pager()->map_ds(&virt, psize, prot, flags, *file->fs(), file->fd(), off);
     }
     else {
         MemGate *mem = new MemGate(MemGate::create_global(psize, prot));
