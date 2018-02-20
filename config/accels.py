@@ -39,6 +39,8 @@ for i in range(0, num_mem):
                      content=fsimg if i == 0 else None)
     pes.append(pe)
 
+options.cpu_clock = '1GHz'
+
 # create accelerator PEs
 accs = ['hash', 'fft', 'toupper']
 for i in range(0, len(accs)):
