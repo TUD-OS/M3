@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
     else if(strcmp(bench, "md") == 0) {
         Aladdin alad(PEISA::ACCEL_MD);
 
-        const size_t ATOMS = 4096;
+        const size_t ATOMS = 1024;
         const size_t MAX_NEIGHBORS = 16;
         const size_t ATOM_SET = ATOMS * sizeof(double);
 
