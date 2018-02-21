@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
         const size_t COLS = 32;
         const size_t ROWS = 64;
         const size_t SIZE = HEIGHT * ROWS * COLS * sizeof(uint32_t);
-        const size_t ITERATIONS = 1 + (HEIGHT - 2) * (COLS - 2);
+        const size_t ITERATIONS = (HEIGHT - 2) * (COLS - 2);
 
         uintptr_t dataAddr = 0x1000000;
         alad._accel->pager()->map_anon(&dataAddr, SIZE * 2, Pager::Prot::RW, 0);
