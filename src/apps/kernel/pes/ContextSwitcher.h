@@ -77,7 +77,7 @@ public:
     bool unblock_vpe(VPE *vpe, bool force);
 
     void start_vpe(VPE *vpe);
-    void stop_vpe(VPE *vpe);
+    void stop_vpe(VPE *vpe, bool force = false);
 
     VPE *steal_vpe();
 

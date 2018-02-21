@@ -128,7 +128,7 @@ void ContextSwitcher::add_vpe(VPE *vpe) {
 }
 
 void ContextSwitcher::remove_vpe(VPE *vpe) {
-    stop_vpe(vpe);
+    stop_vpe(vpe, true);
 
     if(--_count == 0)
         _muxable = Platform::pe(_pe).supports_multictx();
@@ -168,13 +168,13 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
     next_state(0);
 }
 
-void ContextSwitcher::stop_vpe(VPE *vpe) {
+void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
     dequeue(vpe);
 
     if(_cur == vpe && _state == S_IDLE) {
         // for non-programmable accelerator, we have to do the save first, because we cannot
         // interrupt the accelerator at arbitrary points in time (this might screw up his FSM)
-        if(Platform::pe(_pe).is_programmable()) {
+        if(force || Platform::pe(_pe).is_programmable()) {
             // the VPE id is expected to be invalid in S_SWITCH
             DTU::get().unset_vpeid(_cur->desc());
             vpe->_state = VPE::SUSPENDED;
