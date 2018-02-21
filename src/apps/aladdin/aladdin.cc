@@ -32,6 +32,8 @@
 
 using namespace m3;
 
+static const int REPEATS = 2;
+
 static size_t step_size = 0;
 static bool use_files = false;
 static bool map_eager = false;
@@ -62,7 +64,7 @@ public:
     } PACKED;
 
     explicit Aladdin(PEISA isa)
-        : _accel(new VPE("aladdin", PEDesc(PEType::COMP_EMEM, isa), "pager")),
+        : _accel(new VPE("aladdin", PEDesc(PEType::COMP_EMEM, isa), "pager", true)),
           _lastmem(ObjCap::INVALID),
           _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
           _srgate(RecvGate::create_for(*_accel, getnextlog2(RB_SIZE), getnextlog2(RB_SIZE))),
@@ -112,11 +114,19 @@ public:
     m3::SendGate _sgate;
 };
 
+static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
+static size_t offs[ARRAY_SIZE(sizes)] = {0};
+static uintptr_t virt = 0x1000000;
+
+static void reset() {
+    virt = 0x1000000;
+    for(size_t i = 0; i < ARRAY_SIZE(sizes); ++i)
+        offs[i] = 0;
+}
+
 static String get_file(size_t size, size_t *off) {
     // take care that we do not use the same file data twice.
     // (otherwise, we experience more cache hits than we should...)
-    static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
-    static size_t offs[ARRAY_SIZE(sizes)] = {0};
 
     for(size_t i = 0; i < ARRAY_SIZE(sizes); ++i) {
         if(size < sizes[i] * 1024 - offs[i]) {
@@ -132,7 +142,6 @@ static String get_file(size_t size, size_t *off) {
 }
 
 static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
-    static uintptr_t virt = 0x1000000;
     size_t psize = Math::round_up(size, PAGE_SIZE);
 
     if(use_files) {
@@ -166,29 +175,7 @@ static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
     virt += psize;
 }
 
-static void usage(const char *name) {
-    Serial::get() << "Usage: " << name << " [-s <step_size>] [-f] [-e] (stencil|md|spmv|fft)\n";
-    Serial::get() << "  -s: the step size (0 = unlimited)\n";
-    Serial::get() << "  -f: use files for input and output\n";
-    Serial::get() << "  -e: map all memory eagerly\n";
-    exit(1);
-}
-
-int main(int argc, char **argv) {
-    int opt;
-    while((opt = CmdArgs::get(argc, argv, "s:fe")) != -1) {
-        switch(opt) {
-            case 's': step_size = IStringStream::read_from<size_t>(CmdArgs::arg); break;
-            case 'f': use_files = true; break;
-            case 'e': map_eager = true; break;
-            default:
-                usage(argv[0]);
-        }
-    }
-    if(CmdArgs::ind >= argc)
-        usage(argv[0]);
-
-    const char *bench = argv[CmdArgs::ind];
+static void run(const char *bench) {
     if(strcmp(bench, "stencil") == 0) {
         Aladdin alad(PEISA::ACCEL_STE);
 
@@ -258,6 +245,35 @@ int main(int argc, char **argv) {
         add(alad, SIZE, msg.arrays + 1, MemGate::RW);                       // work_y
 
         alad.run(msg, ITERS);
+    }
+}
+
+static void usage(const char *name) {
+    Serial::get() << "Usage: " << name << " [-s <step_size>] [-f] [-e] (stencil|md|spmv|fft)\n";
+    Serial::get() << "  -s: the step size (0 = unlimited)\n";
+    Serial::get() << "  -f: use files for input and output\n";
+    Serial::get() << "  -e: map all memory eagerly\n";
+    exit(1);
+}
+
+int main(int argc, char **argv) {
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "s:fe")) != -1) {
+        switch(opt) {
+            case 's': step_size = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 'f': use_files = true; break;
+            case 'e': map_eager = true; break;
+            default:
+                usage(argv[0]);
+        }
+    }
+    if(CmdArgs::ind >= argc)
+        usage(argv[0]);
+
+    const char *bench = argv[CmdArgs::ind];
+    for(int i = 0; i < REPEATS; ++i) {
+        run(bench);
+        reset();
     }
     return 0;
 }
