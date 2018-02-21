@@ -110,12 +110,13 @@ public:
 
 private:
 #if defined(__gem5__)
-    bool create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t pteAddr,
+    bool create_pt(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level);
-    bool create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintptr_t pteAddr,
+    bool create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
     void remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, uintptr_t virt, int level);
-    uintptr_t get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level);
+    uintptr_t get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
+        uintptr_t virt, int level);
     void do_inject_irq(const VPEDesc &vpe, uint64_t cmd);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);

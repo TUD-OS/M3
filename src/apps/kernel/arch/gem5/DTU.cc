@@ -211,15 +211,15 @@ void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
 }
 
-bool DTU::create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t pteAddr,
+bool DTU::create_pt(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level) {
     // use a large page, if possible
     if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
                      pages * PAGE_SIZE >= m3::DTU::LPAGE_SIZE) {
         pte = to_mmu_pte(vpe.pe, phys | static_cast<uint>(perm) | m3::DTU::PTE_I | m3::DTU::PTE_LARGE);
-        KLOG(PTES, "VPE" << vpeid << ": lvl " << level << " PTE for "
+        KLOG(PTES, "VPE" << vpe.id << ": lvl " << level << " PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
-        write_mem(vpe, pteAddr, &pte, sizeof(pte));
+        write_mem(dst, pteAddr, &pte, sizeof(pte));
         phys += m3::DTU::LPAGE_SIZE;
         pages -= m3::DTU::LPAGE_SIZE / PAGE_SIZE;
         return true;
@@ -243,14 +243,14 @@ bool DTU::create_pt(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t virt, uintptr_t
         pte |= m3::DTU::PTE_IRWX;
         pte = to_mmu_pte(vpe.pe, pte);
         const size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
-        KLOG(PTES, "VPE" << vpeid << ": lvl " << level << " PTE for "
+        KLOG(PTES, "VPE" << vpe.id << ": lvl " << level << " PTE for "
             << m3::fmt(virt & ~(ptsize - 1), "p") << ": " << m3::fmt(pte, "#0x", 16));
-        write_mem(vpe, pteAddr, &pte, sizeof(pte));
+        write_mem(dst, pteAddr, &pte, sizeof(pte));
     }
     return false;
 }
 
-bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintptr_t pteAddr,
+bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm) {
     // note that we can assume here that map_pages is always called for the same set of
     // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
@@ -265,7 +265,7 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
 
     bool downgrade = false;
     // do not invalidate pages if we are writing to a memory PE
-    if((pteDTU & m3::DTU::PTE_RWX) && Platform::pe(vpe.pe).has_virtmem())
+    if((pteDTU & m3::DTU::PTE_RWX) && Platform::pe(dst.pe).has_virtmem())
         downgrade = ((pteDTU & m3::DTU::PTE_RWX) & (~npte & m3::DTU::PTE_RWX)) != 0;
 
     uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
@@ -282,9 +282,10 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
         uintptr_t startAddr = pteAddr;
         m3::DTU::pte_t buf[16];
         for(; pteAddr < endpte && i < ARRAY_SIZE(buf); ++i) {
-            KLOG(PTES, "VPE" << vpeid << ": lvl 0 PTE for "
+            KLOG(PTES, "VPE" << vpe.id << ": lvl 0 PTE for "
                 << m3::fmt(virt, "p") << ": " << m3::fmt(npte, "#0x", 16)
-                << (downgrade ? " (invalidating)" : ""));
+                << (downgrade ? " (invalidating)" : "")
+                << (Platform::pe(dst.pe).type() == m3::PEType::MEM ? " (to mem)" : ""));
 
             buf[i] = npte;
 
@@ -293,11 +294,11 @@ bool DTU::create_ptes(const VPEDesc &vpe, vpeid_t vpeid, uintptr_t &virt, uintpt
             npte += PAGE_SIZE;
         }
 
-        write_mem(vpe, startAddr, buf, i * sizeof(buf[0]));
+        write_mem(dst, startAddr, buf, i * sizeof(buf[0]));
 
         if(downgrade) {
             for(uintptr_t vaddr = virt - i * PAGE_SIZE; vaddr < virt; vaddr += PAGE_SIZE)
-                invlpg_remote(vpe, vaddr);
+                invlpg_remote(dst, vaddr);
         }
     }
     return false;
@@ -325,7 +326,8 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt, int level) {
+uintptr_t DTU::get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
+        uintptr_t virt, int level) {
     uintptr_t pt = m3::DTU::gaddr_to_virt(root);
     for(int l = m3::DTU::LEVEL_CNT - 1; l >= 0; --l) {
         size_t idx = (virt >> (PAGE_BITS + m3::DTU::LEVEL_BITS * l)) & m3::DTU::LEVEL_MASK;
@@ -335,7 +337,7 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, uintptr_t virt
             return pt;
 
         m3::DTU::pte_t pte;
-        read_mem(vpe, pt, &pte, sizeof(pte));
+        read_mem(dst, pt, &pte, sizeof(pte));
         pte = to_dtu_pte(vpe.pe, pte);
 
         pt = m3::DTU::gaddr_to_virt(pte & ~PAGE_MASK);
@@ -362,20 +364,20 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages
         for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
             uintptr_t pteAddr;
             if(!running)
-                pteAddr = get_pte_addr_mem(rvpe, root, virt, level);
+                pteAddr = get_pte_addr_mem(rvpe, vpe, root, virt, level);
             else
                 pteAddr = get_pte_addr(virt, level);
 
             m3::DTU::pte_t pte;
             read_mem(rvpe, pteAddr, &pte, sizeof(pte));
-            pte = to_dtu_pte(rvpe.pe, pte);
+            pte = to_dtu_pte(vpe.pe, pte);
 
             if(level > 0) {
-                if(create_pt(rvpe, vpe.id, virt, pteAddr, pte, phys, pages, perm, level))
+                if(create_pt(rvpe, vpe, virt, pteAddr, pte, phys, pages, perm, level))
                     break;
             }
             else {
-                if(create_ptes(rvpe, vpe.id, virt, pteAddr, pte, phys, pages, perm))
+                if(create_ptes(rvpe, vpe, virt, pteAddr, pte, phys, pages, perm))
                     return;
             }
         }
