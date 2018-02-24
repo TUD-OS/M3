@@ -16,9 +16,10 @@
 
 #include <base/Asm.h>
 
+.global rctmux_stack
 .extern interrupt_handler
-.extern _sleep
-.global _rctmux_stack
+.extern init
+.extern sleep
 
 .text
 
@@ -32,26 +33,26 @@ BEGIN_FUNC(_start)
 .endr
 
     // use a small stack
-    mov     $_rctmux_stack, %rsp
+    mov     $rctmux_stack, %rsp
     mov     $0, %rbp
 
-    call    _init
+    call    init
     test    %rax, %rax
     jne     2f
 
     // return to idle code
     pushq   $(2 << 3) | 3   // ss
-    pushq   $_rctmux_stack  // rsp
+    pushq   $rctmux_stack   // rsp
     pushq   $0x200          // rflags: interrupts enabled
     pushq   $(1 << 3) | 3   // cs
-    pushq   $_idle          // rip
+    pushq   $idle           // rip
     iretq
 END_FUNC(_start)
 
-BEGIN_FUNC(_idle)
-1:  call    _sleep
+BEGIN_FUNC(idle)
+1:  call    sleep
     jmp     1b
-END_FUNC(_idle)
+END_FUNC(idle)
 
 BEGIN_FUNC(isr_common)
     push    %rax
@@ -153,4 +154,4 @@ END_FUNC(gem5_writefile)
 
     .align 16
     .space 1024, 0
-_rctmux_stack:
+rctmux_stack:

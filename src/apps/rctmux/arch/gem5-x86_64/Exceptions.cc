@@ -20,7 +20,7 @@
 
 #include "Exceptions.h"
 
-EXTERN_C void *_rctmux_stack;
+EXTERN_C void *rctmux_stack;
 
 // Our ISRs
 EXTERN_C void isr_0();
@@ -71,7 +71,7 @@ void Exceptions::init() {
     setDesc(gdt + SEG_KDATA, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::DATA_RW, Desc::DPL_KERNEL);
     setDesc(gdt + SEG_UCODE, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::CODE_XR, Desc::DPL_USER);
     setDesc(gdt + SEG_UDATA, 0, ~0UL >> PAGE_BITS, Desc::GRANU_PAGES, Desc::DATA_RW, Desc::DPL_USER);
-    setTSS(gdt, &tss, reinterpret_cast<uintptr_t>(&_rctmux_stack));
+    setTSS(gdt, &tss, reinterpret_cast<uintptr_t>(&rctmux_stack));
 
     // now load GDT and TSS
     loadGDT(&gdtTable);

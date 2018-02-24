@@ -33,7 +33,7 @@ class VPE;
 }
 
 namespace RCTMux {
-struct PFHandler;
+class VMA;
 }
 
 namespace m3 {
@@ -43,7 +43,7 @@ class DTU {
     friend class kernel::DTURegs;
     friend class kernel::DTUState;
     friend class kernel::VPE;
-    friend struct RCTMux::PFHandler;
+    friend class RCTMux::VMA;
 
     explicit DTU() {
     }

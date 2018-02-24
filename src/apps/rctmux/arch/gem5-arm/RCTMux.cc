@@ -20,69 +20,39 @@
 #include <base/Exceptions.h>
 
 #include "../../RCTMux.h"
-
-EXTERN_C void _save(void *state);
-EXTERN_C void *_restore();
-EXTERN_C void _signal();
+#include "../../Print.h"
 
 namespace RCTMux {
 
 static m3::Exceptions::isr_func isrs[8];
 
-struct PFHandler {
+class VMA {
+public:
 
 static void *isr_irq(m3::Exceptions::State *state) {
     m3::DTU &dtu = m3::DTU::get();
 
     m3::DTU::reg_t ext_req = dtu.get_ext_req();
-    assert(ext_req != 0);
-
     // ack
     dtu.set_ext_req(0);
 
     uint cmd = ext_req & 0x3;
     switch(cmd) {
         case m3::DTU::ExtReqOpCode::SET_ROOTPT:
-            assert(false);
+            PRINTSTR("Unsupported: SET_ROOTPT\n");
             break;
 
         case m3::DTU::ExtReqOpCode::INV_PAGE:
-            assert(false);
+            PRINTSTR("Unsupported: INV_PAGE\n");
             break;
 
         case m3::DTU::ExtReqOpCode::RCTMUX: {
-            // context switch request from kernel?
-            uint64_t flags = flags_get();
-
-            if(flags & m3::RESTORE) {
-                PRINTSTR("restore from interrupt\n");
-                m3::DTU::get().clear_irq();
-                return _restore();
-            }
-
-            if(flags & m3::STORE) {
-                _save(state);
-
-                m3::DTU::get().clear_irq();
-
-                // stay here until reset
-                asm volatile (
-                    "mrs     r0, CPSR;\n"
-                    "bic     r0, #1 << 7;\n"
-                    "msr     CPSR, r0;\n"
-                );
-                while(1)
-                    sleep();
-                UNREACHED;
-            }
-
-            if(flags & m3::WAITING)
-                _signal();
-            break;
+            dtu.clear_irq();
+            return ctxsw_protocol(state);
         }
     }
 
-    m3::DTU::get().clear_irq();
+    dtu.clear_irq();
     return state;
 }
 
@@ -99,10 +69,20 @@ EXTERN_C void exc_handler(m3::Exceptions::State *state) {
     isrs[state->vector](state);
 }
 
+namespace Arch {
+
 void init() {
     for(size_t i = 0; i < ARRAY_SIZE(isrs); ++i)
-        isrs[i] = PFHandler::isr_null;
-    isrs[6] = PFHandler::isr_irq;
+        isrs[i] = VMA::isr_null;
+    isrs[6] = VMA::isr_irq;
+}
+
+void enable_ints() {
+    asm volatile (
+        "mrs     r0, CPSR;\n"
+        "bic     r0, #1 << 7;\n"
+        "msr     CPSR, r0;\n"
+    );
 }
 
 void *init_state() {
@@ -121,4 +101,5 @@ void *init_state() {
     return state;
 }
 
-} /* namespace RCTMux */
+}
+}

@@ -16,8 +16,9 @@
 
 #include <base/Asm.h>
 
-.global _vector_table
 .extern exc_handler
+.extern init
+.extern sleep
 
 .text
 
@@ -41,11 +42,11 @@ BEGIN_FUNC(_start)
     mcr     p15, 0, r0, c1, c0, 0
 
     // setup stack
-    ldr     sp, =_rctmux_stack
+    ldr     sp, =rctmux_stack
     mov     fp, #0
 
     // check if have an application
-    bl      _init
+    bl      init
     cmp     r0, #0
     bne     2f
 
@@ -53,17 +54,17 @@ BEGIN_FUNC(_start)
     mov     r0, #0x13
     msr     CPSR, r0
     // start idling
-    ldr     r0, =_idle
+    ldr     r0, =idle
     mov     pc, r0
 END_FUNC(_start)
 
-BEGIN_FUNC(_idle)
-1:  bl      _sleep
+BEGIN_FUNC(idle)
+1:  bl      sleep
     b       1b
-END_FUNC(_idle)
+END_FUNC(idle)
 
 .macro BUILD_ENTRY, no
-BEGIN_FUNC(_entry_\no)
+BEGIN_FUNC(entry_\no)
     // temporarily save lr (old pc)
     ldr     sp, =_tmp
     str     lr, [sp]
@@ -85,11 +86,11 @@ BEGIN_FUNC(_entry_\no)
     sub     sp, sp, #4
 .else
     // use our own stack
-    ldr     sp, =_rctmux_stack
+    ldr     sp, =rctmux_stack
 .endif
 
-    b       _exc_common
-END_FUNC(_entry_\no)
+    b       exc_common
+END_FUNC(entry_\no)
 .endm
 
 BUILD_ENTRY 0
@@ -100,7 +101,7 @@ BUILD_ENTRY 4
 BUILD_ENTRY 6
 BUILD_ENTRY 7
 
-BEGIN_FUNC(_exc_common)
+BEGIN_FUNC(exc_common)
     // save regs
     push    {r0-r12, lr}
 
@@ -125,7 +126,7 @@ BEGIN_FUNC(_exc_common)
     pop     {r0-r12, lr}
     // continue execution
     pop     {pc}
-END_FUNC(_exc_common)
+END_FUNC(exc_common)
 
 .bss
 _tmp:
@@ -136,4 +137,4 @@ _tmp:
 
     .align      2
     .space 1024,0
-_rctmux_stack:
+rctmux_stack:

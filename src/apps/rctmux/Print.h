@@ -1,6 +1,6 @@
 /**
- * Copyright (C) 2015-2016, René Küttner <rene.kuettner@.tu-dresden.de>
- * Economic rights: Technische Universität Dresden (Germany)
+ * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel for Minimalist Manycores).
  *
@@ -17,25 +17,12 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/RCTMux.h>
-#include <base/Config.h>
 
 namespace RCTMux {
 
-namespace Arch {
+void print_num(uint64_t num, uint base);
+void print(const char *str, size_t len);
 
-void init();
-void *init_state();
-void abort();
-void resume();
-void enable_ints();
-void sleep();
+#define PRINTSTR(str)   print(str, sizeof(str) - 1)
 
 }
-
-void *ctxsw_protocol(void *s);
-
-EXTERN_C void *init();
-EXTERN_C void sleep();
-
-} /* namespace RCTMux */
