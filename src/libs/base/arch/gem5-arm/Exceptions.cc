@@ -42,7 +42,7 @@ void Exceptions::init() {
     }
 }
 
-void Exceptions::handler(State *state) {
+void *Exceptions::handler(State *state) {
     auto &ser = Serial::get();
     ser << "Interruption @ " << fmt(state->pc, "p") << "\n";
     ser << "  vector: ";
@@ -61,6 +61,7 @@ void Exceptions::handler(State *state) {
     ser << "    lr: " << fmt(state->lr, "#0x", 8) << "\n";
 
     env()->exit(1);
+    return state;
 }
 
 }
