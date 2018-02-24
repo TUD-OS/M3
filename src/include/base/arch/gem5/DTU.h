@@ -299,7 +299,7 @@ public:
     }
 
     void print(const char *str, size_t len) {
-        write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(str) | (len << 48));
+        write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(str) | (static_cast<reg_t>(len) << 48));
         CPU::memory_barrier();
         write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::PRINT));
     }

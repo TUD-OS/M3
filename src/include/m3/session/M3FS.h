@@ -81,7 +81,7 @@ public:
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
     static bool get_locs(Session &sess, int fd, size_t *off, size_t count, LocList<N> &locs, uint flags) {
-        xfer_t args[Math::max(2 + N, 4ul)];
+        xfer_t args[Math::max(2 + N, static_cast<size_t>(4))];
         args[0] = static_cast<xfer_t>(fd);
         args[1] = *off;
         args[2] = count;

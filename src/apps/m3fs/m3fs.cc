@@ -475,7 +475,7 @@ private:
                     if(&*s == sess)
                         continue;
                     for(size_t i = 0; i < M3FSSessionData::MAX_FILES; ++i) {
-                        M3FSSessionData::OpenFile *f = s->get(i);
+                        M3FSSessionData::OpenFile *f = s->get(static_cast<int>(i));
                         if(f && f->ino == of->ino && f->xstate == TransactionState::OPEN) {
                             memcpy(&f->inode, inode, sizeof(*inode));
                             f->xstate = TransactionState::ABORTED;

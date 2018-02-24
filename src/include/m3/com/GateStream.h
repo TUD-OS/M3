@@ -208,7 +208,7 @@ public:
      */
     template<typename T>
     T label() const {
-        return reinterpret_cast<T>(_msg->label);
+        return (T)_msg->label;
     }
     /**
      * @return the current position, i.e. the offset of the unread data

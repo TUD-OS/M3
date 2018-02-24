@@ -29,7 +29,7 @@ DTU m3::DTU::inst;
 /* Re-implement the necessary DTU methods we need. */
 
 Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep) {
-    write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(msg) | (static_cast<reg_t>(size) << 48));
+    write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 48));
     if(replylbl)
         write_reg(CmdRegs::REPLY_LABEL, replylbl);
     CPU::compiler_barrier();

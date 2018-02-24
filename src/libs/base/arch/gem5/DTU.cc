@@ -71,7 +71,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
     static_assert(KIF::Perm::W == DTU::PTE_W, "DTU::PTE_W does not match KIF::Perm::W");
     static_assert(KIF::Perm::X == DTU::PTE_X, "DTU::PTE_X does not match KIF::Perm::X");
 
-    write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(msg) | (static_cast<reg_t>(size) << 48));
+    write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 48));
     if(replylbl)
         write_reg(CmdRegs::REPLY_LABEL, replylbl);
     CPU::compiler_barrier();
@@ -81,7 +81,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
 }
 
 Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t off) {
-    write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(msg) | (size << 48));
+    write_reg(CmdRegs::DATA, reinterpret_cast<reg_t>(msg) | (static_cast<reg_t>(size) << 48));
     CPU::compiler_barrier();
     write_reg(CmdRegs::COMMAND, buildCommand(ep, CmdOpCode::REPLY, 0, off));
 
@@ -92,9 +92,9 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, goff_t off) {
     size_t left = size;
     while(left > 0) {
         size_t amount = Math::min<size_t>(left, MAX_PKT_SIZE);
-        write_reg(CmdRegs::DATA, reinterpret_cast<uintptr_t>(data) | (amount << 48));
+        write_reg(CmdRegs::DATA, data | (static_cast<reg_t>(amount) << 48));
         CPU::compiler_barrier();
-        write_reg(CmdRegs::COMMAND, cmd | (off << 16));
+        write_reg(CmdRegs::COMMAND, cmd | (static_cast<reg_t>(off) << 16));
 
         left -= amount;
         data += amount;

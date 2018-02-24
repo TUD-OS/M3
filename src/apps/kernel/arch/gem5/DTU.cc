@@ -316,13 +316,13 @@ static goff_t get_pte_addr(goff_t virt, int level) {
     virt <<= m3::DTU::PTE_BITS;
 
     // now put in one PTE_REC_IDX's for each loop that we need to take
-    int shift = level + 1;
-    goff_t remMask = (1UL << (PAGE_BITS + m3::DTU::LEVEL_BITS * (m3::DTU::LEVEL_CNT - shift))) - 1;
+    int mask_shift = (m3::DTU::LEVEL_BITS * (m3::DTU::LEVEL_CNT - (level + 1)) + PAGE_BITS);
+    goff_t remMask = (static_cast<goff_t>(1) << mask_shift) - 1;
     virt |= recMask & ~remMask;
 
     // finally, make sure that we stay within the bounds for virtual addresses
     // this is because of recMask, that might actually have too many of those.
-    virt &= (1UL << (m3::DTU::LEVEL_CNT * m3::DTU::LEVEL_BITS + PAGE_BITS)) - 1;
+    virt &= (static_cast<goff_t>(1) << (m3::DTU::LEVEL_CNT * m3::DTU::LEVEL_BITS + PAGE_BITS)) - 1;
     return virt;
 }
 
@@ -411,7 +411,7 @@ void DTU::remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, goff_t virt, int level)
                 continue;
             }
 
-            gaddr_t gaddr = to_dtu_pte(vpe.pe, ptes[i]) & ~PAGE_MASK;
+            gaddr_t gaddr = to_dtu_pte(vpe.pe, ptes[i]) & ~static_cast<gaddr_t>(PAGE_MASK);
             if(level > 1) {
                 remove_pts_rec(vpe, gaddr, virt, level - 1);
 
