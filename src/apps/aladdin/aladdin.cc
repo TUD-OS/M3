@@ -185,11 +185,6 @@ static void run(const char *bench) {
         const size_t SIZE = HEIGHT * ROWS * COLS * sizeof(uint32_t);
         const size_t ITERATIONS = (HEIGHT - 2) * (COLS - 2);
 
-        uintptr_t dataAddr = 0x1000000;
-        alad._accel->pager()->map_anon(&dataAddr, SIZE * 2, Pager::Prot::RW, 0);
-        uintptr_t filAddr = dataAddr + SIZE * 2;
-        alad._accel->pager()->map_anon(&filAddr, 8, Pager::Prot::RW, 0);
-
         Aladdin::InvokeMessage msg;
         msg.array_count = 3;
         add(alad, SIZE, msg.arrays + 0, MemGate::R);                        // orig
