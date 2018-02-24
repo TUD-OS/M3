@@ -41,7 +41,8 @@ elif env['ARCH'] == 'gem5':
         ],
         NoSup = True,
         varAddr = False,
-        ldscript = myenv.File('ld-final.conf')
+        ldscript = myenv.File('ld-final.conf'),
+        libs = ['gcc', 'c']
     )
 
 # build test and dev programs

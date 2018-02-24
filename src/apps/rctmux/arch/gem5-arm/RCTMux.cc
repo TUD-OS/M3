@@ -21,35 +21,76 @@
 
 #include "../../RCTMux.h"
 
-EXTERN_C void *_vector_table;
-EXTERN_C void *_entry_0;
-EXTERN_C void *_entry_1;
-EXTERN_C void *_entry_2;
-EXTERN_C void *_entry_3;
-EXTERN_C void *_entry_4;
-EXTERN_C void *_entry_6;
-EXTERN_C void *_entry_7;
-
 EXTERN_C void _save(void *state);
+EXTERN_C void *_restore();
+EXTERN_C void _signal();
 
 namespace RCTMux {
 
 static m3::Exceptions::isr_func isrs[8];
 
-static void isr_irq(m3::Exceptions::State *state) {
-    _save(state);
+struct PFHandler {
+
+static void *isr_irq(m3::Exceptions::State *state) {
+    m3::DTU &dtu = m3::DTU::get();
+
+    m3::DTU::reg_t ext_req = dtu.get_ext_req();
+    assert(ext_req != 0);
+
+    // ack
+    dtu.set_ext_req(0);
+
+    uint cmd = ext_req & 0x3;
+    switch(cmd) {
+        case m3::DTU::ExtReqOpCode::SET_ROOTPT:
+            assert(false);
+            break;
+
+        case m3::DTU::ExtReqOpCode::INV_PAGE:
+            assert(false);
+            break;
+
+        case m3::DTU::ExtReqOpCode::RCTMUX: {
+            // context switch request from kernel?
+            uint64_t flags = flags_get();
+
+            if(flags & m3::RESTORE) {
+                PRINTSTR("restore from interrupt\n");
+                m3::DTU::get().clear_irq();
+                return _restore();
+            }
+
+            if(flags & m3::STORE) {
+                _save(state);
+
+                m3::DTU::get().clear_irq();
+
+                // stay here until reset
+                asm volatile (
+                    "mrs     r0, CPSR;\n"
+                    "bic     r0, #1 << 7;\n"
+                    "msr     CPSR, r0;\n"
+                );
+                while(1)
+                    sleep();
+                UNREACHED;
+            }
+
+            if(flags & m3::WAITING)
+                _signal();
+            break;
+        }
+    }
+
     m3::DTU::get().clear_irq();
+    return state;
 }
 
-static void isr_null(m3::Exceptions::State *) {
+static void *isr_null(m3::Exceptions::State *state) {
+    return state;
 }
 
-static void install_handler(uint irq, void *handler_func) {
-    uint32_t *v = reinterpret_cast<uint32_t*>(&_vector_table);
-    size_t off = reinterpret_cast<uint32_t>(handler_func);
-    off -= 8 + sizeof(uint32_t) * irq;
-    v[irq] = 0xEA000000 | (off >> 2);
-}
+};
 
 EXTERN_C void exc_handler(m3::Exceptions::State *state) {
     // repeat last instruction, except for SWIs
@@ -59,17 +100,9 @@ EXTERN_C void exc_handler(m3::Exceptions::State *state) {
 }
 
 void init() {
-    install_handler(0, &_entry_0);
-    install_handler(1, &_entry_1);
-    install_handler(2, &_entry_2);
-    install_handler(3, &_entry_3);
-    install_handler(4, &_entry_4);
-    install_handler(6, &_entry_6);
-    install_handler(7, &_entry_7);
-
     for(size_t i = 0; i < ARRAY_SIZE(isrs); ++i)
-        isrs[i] = isr_null;
-    isrs[6] = isr_irq;
+        isrs[i] = PFHandler::isr_null;
+    isrs[6] = PFHandler::isr_irq;
 }
 
 void *init_state() {

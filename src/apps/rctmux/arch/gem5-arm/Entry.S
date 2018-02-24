@@ -19,14 +19,6 @@
 .global _vector_table
 .extern exc_handler
 
-.section .vectors
-
-// will be filled at runtime
-_vector_table:
-.rept   1023
-    nop
-.endr
-
 .text
 
 BEGIN_FUNC(_start)
@@ -53,35 +45,22 @@ BEGIN_FUNC(_start)
     mov     fp, #0
 
     // check if have an application
-    bl      _start_app
+    bl      _init
     cmp     r0, #0
-    bne     1f
+    bne     2f
 
-    // set idle stack
-    ldr     sp, =_idle_stack
-
-    // enable interrupts
-    mrs     r0, CPSR
-    bic     r0, #1 << 7
+    // enable interrupts and supervisor mode
+    mov     r0, #0x13
     msr     CPSR, r0
-
-    // wait until we get waked up
-    bl      _sleep
-
-    // try again
-    b       _start
-
-1:
-    // skip vector number
-    add     sp, r0, #4
-    // restore CPSR
-    pop     {r0}
-    msr     CPSR, r0
-    // restore register
-    pop     {r0-r12, lr}
-    // continue execution
-    pop     {pc}
+    // start idling
+    ldr     r0, =_idle
+    mov     pc, r0
 END_FUNC(_start)
+
+BEGIN_FUNC(_idle)
+1:  bl      _sleep
+    b       1b
+END_FUNC(_idle)
 
 .macro BUILD_ENTRY, no
 BEGIN_FUNC(_entry_\no)
@@ -136,17 +115,21 @@ BEGIN_FUNC(_exc_common)
     mov     r0, sp
     bl      exc_handler
 
-    // the kernel will reset the PE
-1:  mrs     r0, CPSR
-    bic     r0, #1 << 7
+2:
+    // skip vector number
+    add     sp, r0, #4
+    // restore CPSR
+    pop     {r0}
     msr     CPSR, r0
-    // wait for interrupt
-    wfi
-    b       1b
+    // restore register
+    pop     {r0-r12, lr}
+    // continue execution
+    pop     {pc}
 END_FUNC(_exc_common)
 
 .bss
 _tmp:
+    // temporary place for pc, cpsr and vector number
     .long       0
     .long       0
     .long       0
@@ -154,6 +137,3 @@ _tmp:
     .align      2
     .space 1024,0
 _rctmux_stack:
-
-    .space 512, 0
-_idle_stack:
