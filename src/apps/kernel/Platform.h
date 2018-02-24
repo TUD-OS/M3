@@ -47,7 +47,7 @@ public:
         return _kenv.pes[no];
     }
 
-    static uintptr_t def_recvbuf(peid_t no);
+    static goff_t def_recvbuf(peid_t no);
 
 private:
     static KEnv _kenv;

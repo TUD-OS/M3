@@ -23,7 +23,7 @@
 using namespace m3;
 
 int main() {
-    uintptr_t virt = 0x20000000;
+    goff_t virt = 0x20000000;
 
     VPE cc("child");
     cc.fds()->set(STDIN_FD, VPE::self().fds()->get(STDIN_FD));

@@ -46,7 +46,7 @@ void DTU::clear_pt(gaddr_t pt) {
     // clear the pagetable
     memset(buffer, 0, sizeof(buffer));
     peid_t pe = m3::DTU::gaddr_to_pe(pt);
-    uintptr_t addr = m3::DTU::gaddr_to_virt(pt);
+    goff_t addr = m3::DTU::gaddr_to_virt(pt);
     for(size_t i = 0; i < PAGE_SIZE / sizeof(buffer); ++i)
         write_mem(VPEDesc(pe, VPE::INVALID_ID), addr + i * sizeof(buffer), buffer, sizeof(buffer));
 }
@@ -79,7 +79,7 @@ void DTU::unset_vpeid(const VPEDesc &vpe) {
     do_set_vpeid(vpe, VPE::INVALID_ID);
 }
 
-void DTU::wakeup(const VPEDesc &vpe, uintptr_t addr) {
+void DTU::wakeup(const VPEDesc &vpe, goff_t addr) {
     m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE) | addr << 3;
     do_ext_cmd(vpe, cmd);
 }
@@ -100,13 +100,13 @@ void DTU::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
 
     // wait until the remote core sends us an ACK (writes 0 to MASTER_REQ)
     m3::DTU::reg_t mstreq = 1;
-    uintptr_t extarg_addr = m3::DTU::dtu_reg_addr(m3::DTU::ReqRegs::EXT_REQ);
+    goff_t extarg_addr = m3::DTU::dtu_reg_addr(m3::DTU::ReqRegs::EXT_REQ);
     while(mstreq != 0)
         read_mem(vpe, extarg_addr, &mstreq, sizeof(mstreq));
 }
 
-void DTU::invlpg_remote(const VPEDesc &vpe, uintptr_t virt) {
-    virt &= ~static_cast<uintptr_t>(PAGE_MASK);
+void DTU::invlpg_remote(const VPEDesc &vpe, goff_t virt) {
+    virt &= ~static_cast<goff_t>(PAGE_MASK);
     if(Platform::pe(vpe.pe).has_mmu())
         mmu_cmd_remote(vpe, virt | m3::DTU::ExtReqOpCode::INV_PAGE);
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_PAGE) | (virt << 3));
@@ -178,7 +178,7 @@ void DTU::set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt) {
 
 void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep) {
     // insert recursive entry
-    uintptr_t addr = m3::DTU::gaddr_to_virt(rootpt);
+    goff_t addr = m3::DTU::gaddr_to_virt(rootpt);
     m3::DTU::pte_t pte = to_mmu_pte(vpe.pe, rootpt | m3::DTU::PTE_RWX);
     write_mem(VPEDesc(m3::DTU::gaddr_to_pe(rootpt), VPE::INVALID_ID),
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
@@ -211,7 +211,7 @@ void DTU::config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_
     do_ext_cmd(vpe, static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_TLB));
 }
 
-bool DTU::create_pt(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
+bool DTU::create_pt(const VPEDesc &dst, const VPEDesc &vpe, goff_t virt, goff_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level) {
     // use a large page, if possible
     if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
@@ -250,7 +250,7 @@ bool DTU::create_pt(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t virt, uint
     return false;
 }
 
-bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr,
+bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, goff_t &virt, goff_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm) {
     // note that we can assume here that map_pages is always called for the same set of
     // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
@@ -268,8 +268,8 @@ bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, u
     if((pteDTU & m3::DTU::PTE_RWX) && Platform::pe(dst.pe).has_virtmem())
         downgrade = ((pteDTU & m3::DTU::PTE_RWX) & (~npte & m3::DTU::PTE_RWX)) != 0;
 
-    uintptr_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
-        m3::Math::round_up(pteAddr + sizeof(npte), PAGE_SIZE));
+    goff_t endpte = m3::Math::min(pteAddr + pages * sizeof(npte),
+        m3::Math::round_up(pteAddr + sizeof(npte), static_cast<goff_t>(PAGE_SIZE)));
 
     uint count = (endpte - pteAddr) / sizeof(npte);
     assert(count > 0);
@@ -279,7 +279,7 @@ bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, u
     npte = to_mmu_pte(vpe.pe, npte);
     while(pteAddr < endpte) {
         size_t i = 0;
-        uintptr_t startAddr = pteAddr;
+        goff_t startAddr = pteAddr;
         m3::DTU::pte_t buf[16];
         for(; pteAddr < endpte && i < ARRAY_SIZE(buf); ++i) {
             KLOG(PTES, "VPE" << vpe.id << ": lvl 0 PTE for "
@@ -297,19 +297,19 @@ bool DTU::create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, u
         write_mem(dst, startAddr, buf, i * sizeof(buf[0]));
 
         if(downgrade) {
-            for(uintptr_t vaddr = virt - i * PAGE_SIZE; vaddr < virt; vaddr += PAGE_SIZE)
+            for(goff_t vaddr = virt - i * PAGE_SIZE; vaddr < virt; vaddr += PAGE_SIZE)
                 invlpg_remote(dst, vaddr);
         }
     }
     return false;
 }
 
-static uintptr_t get_pte_addr(uintptr_t virt, int level) {
-    static uintptr_t recMask =
-        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 3)) |
-        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
-        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 1)) |
-        (static_cast<uintptr_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 0));
+static goff_t get_pte_addr(goff_t virt, int level) {
+    static goff_t recMask =
+        (static_cast<goff_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 3)) |
+        (static_cast<goff_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 2)) |
+        (static_cast<goff_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 1)) |
+        (static_cast<goff_t>(m3::DTU::PTE_REC_IDX) << (PAGE_BITS + m3::DTU::LEVEL_BITS * 0));
 
     // at first, just shift it accordingly.
     virt >>= PAGE_BITS + level * m3::DTU::LEVEL_BITS;
@@ -317,7 +317,7 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
 
     // now put in one PTE_REC_IDX's for each loop that we need to take
     int shift = level + 1;
-    uintptr_t remMask = (1UL << (PAGE_BITS + m3::DTU::LEVEL_BITS * (m3::DTU::LEVEL_CNT - shift))) - 1;
+    goff_t remMask = (1UL << (PAGE_BITS + m3::DTU::LEVEL_BITS * (m3::DTU::LEVEL_CNT - shift))) - 1;
     virt |= recMask & ~remMask;
 
     // finally, make sure that we stay within the bounds for virtual addresses
@@ -326,9 +326,9 @@ static uintptr_t get_pte_addr(uintptr_t virt, int level) {
     return virt;
 }
 
-uintptr_t DTU::get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
-        uintptr_t virt, int level) {
-    uintptr_t pt = m3::DTU::gaddr_to_virt(root);
+goff_t DTU::get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
+        goff_t virt, int level) {
+    goff_t pt = m3::DTU::gaddr_to_virt(root);
     for(int l = m3::DTU::LEVEL_CNT - 1; l >= 0; --l) {
         size_t idx = (virt >> (PAGE_BITS + m3::DTU::LEVEL_BITS * l)) & m3::DTU::LEVEL_MASK;
         pt += idx * m3::DTU::PTE_SIZE;
@@ -346,7 +346,7 @@ uintptr_t DTU::get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t 
     UNREACHED;
 }
 
-void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm) {
+void DTU::map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pages, int perm) {
     bool running = vpe.pe == Platform::kernel_pe() ||
         VPEManager::get().vpe(vpe.id).state() == VPE::RUNNING;
 
@@ -362,7 +362,7 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages
 
     while(pages > 0) {
         for(int level = m3::DTU::LEVEL_CNT - 1; level >= 0; --level) {
-            uintptr_t pteAddr;
+            goff_t pteAddr;
             if(!running)
                 pteAddr = get_pte_addr_mem(rvpe, vpe, root, virt, level);
             else
@@ -384,7 +384,7 @@ void DTU::map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages
     }
 }
 
-void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
+void DTU::unmap_pages(const VPEDesc &vpe, goff_t virt, uint pages) {
     // don't do anything if the VPE is already dead
     if(vpe.pe != Platform::kernel_pe() && VPEManager::get().vpe(vpe.id).state() == VPE::DEAD)
         return;
@@ -392,7 +392,7 @@ void DTU::unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages) {
     map_pages(vpe, virt, 0, pages, 0);
 }
 
-void DTU::remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, uintptr_t virt, int level) {
+void DTU::remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, goff_t virt, int level) {
     static_assert(sizeof(buffer) >= PAGE_SIZE, "Buffer smaller than a page");
 
     // load entire page table
@@ -443,7 +443,7 @@ m3::Errors::Code DTU::inval_ep_remote(const kernel::VPEDesc &vpe, epid_t ep) {
     alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg =
         static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::INV_EP) | (ep << 3);
     m3::CPU::compiler_barrier();
-    uintptr_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD);
+    goff_t addr = m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::EXT_CMD);
     return try_write_mem(vpe, addr, &reg, sizeof(reg));
 }
 
@@ -464,7 +464,7 @@ void DTU::write_ep_local(epid_t ep) {
         dst[i] = src[i];
 }
 
-void DTU::mark_read_remote(const VPEDesc &vpe, epid_t ep, uintptr_t msg) {
+void DTU::mark_read_remote(const VPEDesc &vpe, epid_t ep, goff_t msg) {
     m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::ACK_MSG);
     do_ext_cmd(vpe, cmd | (ep << 3) | (static_cast<m3::DTU::reg_t>(msg) << 11));
 }
@@ -476,7 +476,7 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     if((regs[0] & 0xFFFF) == 0)
         return;
 
-    uintptr_t base = regs[1];
+    goff_t base = regs[1];
     size_t bufsize = (regs[0] >> 16) & 0xFFFF;
     size_t msgsize = (regs[0] >> 32) & 0xFFFF;
     word_t unread = regs[2] >> 32;
@@ -484,12 +484,12 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
         if(unread & (1UL << i)) {
             m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i * msgsize));
             if(msg->label == label)
-                m3::DTU::get().mark_read(ep, reinterpret_cast<uintptr_t>(msg));
+                m3::DTU::get().mark_read(ep, reinterpret_cast<size_t>(msg));
         }
     }
 }
 
-static size_t get_msgidx(const RGateObject *obj, uintptr_t msgaddr) {
+static size_t get_msgidx(const RGateObject *obj, goff_t msgaddr) {
     // the message has to be within the receive buffer
     if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
         return m3::DTU::HEADER_COUNT;
@@ -499,7 +499,7 @@ static size_t get_msgidx(const RGateObject *obj, uintptr_t msgaddr) {
     return idx + obj->header;
 }
 
-m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
+m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,
                                  void *head) {
     size_t idx = get_msgidx(obj, msgaddr);
     if(idx == m3::DTU::HEADER_COUNT)
@@ -509,7 +509,7 @@ m3::Errors::Code DTU::get_header(const VPEDesc &vpe, const RGateObject *obj, uin
     return m3::Errors::NONE;
 }
 
-m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
+m3::Errors::Code DTU::set_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,
                                  const void *head) {
     size_t idx = get_msgidx(obj, msgaddr);
     if(idx == m3::DTU::HEADER_COUNT)
@@ -534,13 +534,14 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
 
-    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA, reinterpret_cast<uintptr_t>(msg) | (size << 48));
+    m3::DTU::get().write_reg(m3::DTU::CmdRegs::DATA, reinterpret_cast<m3::DTU::reg_t>(msg) |
+        (static_cast<m3::DTU::reg_t>(size) << 48));
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::REPLY_LABEL, replylbl);
     if(sender == static_cast<uint64_t>(-1)) {
         sender = Platform::kernel_pe() |
                  (VPEManager::MAX_VPES << 8) |
                  (EP_COUNT << 24) |
-                 (static_cast<uint64_t>(replyep) << 32);
+                 (static_cast<m3::DTU::reg_t>(replyep) << 32);
     }
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::OFFSET, sender);
     m3::CPU::compiler_barrier();
@@ -580,7 +581,7 @@ void DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *ms
     send_to(vpe, rep, label, msg, size, 0, 0, sender);
 }
 
-m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size) {
     if(_state.config_mem_cached(_ep, vpe.pe, vpe.id))
         write_ep_local(_ep);
 
@@ -588,15 +589,15 @@ m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const vo
     return m3::DTU::get().write(_ep, data, size, addr, m3::DTU::CmdFlags::NOPF);
 }
 
-m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, goff_t addr, void *data, size_t size) {
     if(_state.config_mem_cached(_ep, vpe.pe, vpe.id))
         write_ep_local(_ep);
 
     return m3::DTU::get().read(_ep, data, size, addr, m3::DTU::CmdFlags::NOPF);
 }
 
-void DTU::copy_clear(const VPEDesc &dstvpe, uintptr_t dstaddr,
-                     const VPEDesc &srcvpe, uintptr_t srcaddr,
+void DTU::copy_clear(const VPEDesc &dstvpe, goff_t dstaddr,
+                     const VPEDesc &srcvpe, goff_t srcaddr,
                      size_t size, bool clear) {
     if(clear)
         memset(buffer, 0, sizeof(buffer));

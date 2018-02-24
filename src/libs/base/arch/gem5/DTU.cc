@@ -88,7 +88,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t off) {
     return get_error();
 }
 
-Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
+Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, goff_t off) {
     size_t left = size;
     while(left > 0) {
         size_t amount = Math::min<size_t>(left, MAX_PKT_SIZE);
@@ -107,7 +107,7 @@ Errors::Code DTU::transfer(reg_t cmd, uintptr_t data, size_t size, size_t off) {
     return Errors::NONE;
 }
 
-Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::read(epid_t ep, void *data, size_t size, goff_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::READ, flags, 0);
     Errors::Code res = transfer(cmd, dataaddr, size, off);
@@ -115,7 +115,7 @@ Errors::Code DTU::read(epid_t ep, void *data, size_t size, size_t off, uint flag
     return res;
 }
 
-Errors::Code DTU::write(epid_t ep, const void *data, size_t size, size_t off, uint flags) {
+Errors::Code DTU::write(epid_t ep, const void *data, size_t size, goff_t off, uint flags) {
     uintptr_t dataaddr = reinterpret_cast<uintptr_t>(data);
     reg_t cmd = buildCommand(ep, CmdOpCode::WRITE, flags, 0);
     return transfer(cmd, dataaddr, size, off);

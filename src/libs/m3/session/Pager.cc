@@ -19,14 +19,14 @@
 
 namespace m3 {
 
-Errors::Code Pager::pagefault(uintptr_t addr, uint access) {
+Errors::Code Pager::pagefault(goff_t addr, uint access) {
     GateIStream reply = send_receive_vmsg(_gate, PAGEFAULT, addr, access);
     Errors::Code res;
     reply >> res;
     return res;
 }
 
-Errors::Code Pager::map_anon(uintptr_t *virt, size_t len, int prot, int flags) {
+Errors::Code Pager::map_anon(goff_t *virt, size_t len, int prot, int flags) {
     GateIStream reply = send_receive_vmsg(_gate, MAP_ANON, *virt, len, prot, flags);
     Errors::Code res;
     reply >> res;
@@ -36,7 +36,7 @@ Errors::Code Pager::map_anon(uintptr_t *virt, size_t len, int prot, int flags) {
     return Errors::NONE;
 }
 
-Errors::Code Pager::map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
+Errors::Code Pager::map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
         int fd, size_t offset) {
     xfer_t args[6];
     args[0] = DelOp::DATASPACE;
@@ -53,7 +53,7 @@ Errors::Code Pager::map_ds(uintptr_t *virt, size_t len, int prot, int flags, con
     return Errors::NONE;
 }
 
-Errors::Code Pager::map_mem(uintptr_t *virt, MemGate &mem, size_t len, int prot) {
+Errors::Code Pager::map_mem(goff_t *virt, MemGate &mem, size_t len, int prot) {
     xfer_t args[4];
     args[0] = DelOp::MEMGATE;
     args[1] = *virt;
@@ -67,7 +67,7 @@ Errors::Code Pager::map_mem(uintptr_t *virt, MemGate &mem, size_t len, int prot)
     return Errors::NONE;
 }
 
-Errors::Code Pager::unmap(uintptr_t virt) {
+Errors::Code Pager::unmap(goff_t virt) {
     GateIStream reply = send_receive_vmsg(_gate, UNMAP, virt);
     Errors::Code res;
     reply >> res;

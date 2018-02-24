@@ -34,7 +34,7 @@ int main() {
         file->stat(info);
         // TODO that is not nice
         RegularFile *rfile = static_cast<RegularFile*>(&*file);
-        uintptr_t virt = 0x104000;
+        goff_t virt = 0x104000;
         Errors::Code res = VPE::self().pager()->map_ds(&virt, Math::round_up(info.size, PAGE_SIZE),
             Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
         if(res != Errors::NONE)

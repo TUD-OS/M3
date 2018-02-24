@@ -58,7 +58,7 @@ public:
      * @return the memory gate
      */
     static MemGate create_global(size_t size, int perms, capsel_t sel = INVALID) {
-        return create_global_for(static_cast<uintptr_t>(-1), size, perms, sel);
+        return create_global_for(static_cast<goff_t>(-1), size, perms, sel);
     }
 
     /**
@@ -70,7 +70,7 @@ public:
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      * @return the memory gate
      */
-    static MemGate create_global_for(uintptr_t addr, size_t size, int perms, capsel_t sel = INVALID);
+    static MemGate create_global_for(goff_t addr, size_t size, int perms, capsel_t sel = INVALID);
 
     /**
      * Binds this gate for read/write/cmpxchg to the given memory capability. That is, the
@@ -92,7 +92,7 @@ public:
      * @param offset the offset within this memory region
      * @return the result
      */
-    Errors::Code activate_for(VPE &vpe, epid_t ep, size_t offset = 0);
+    Errors::Code activate_for(VPE &vpe, epid_t ep, goff_t offset = 0);
 
     /**
      * @return the command flags
@@ -116,7 +116,7 @@ public:
      * @param perms the permissions (you can only downgrade)
      * @return the new memory gate
      */
-    MemGate derive(size_t offset, size_t size, int perms = RWX) const;
+    MemGate derive(goff_t offset, size_t size, int perms = RWX) const;
 
     /**
      * Derives memory from this memory gate and uses <sel> for it. That is, it creates a new memory
@@ -128,7 +128,7 @@ public:
      * @param perms the permissions (you can only downgrade)
      * @return the new memory gate
      */
-    MemGate derive(capsel_t sel, size_t offset, size_t size, int perms = RWX) const;
+    MemGate derive(capsel_t sel, goff_t offset, size_t size, int perms = RWX) const;
 
     /**
      * Writes the <len> bytes at <data> to <offset>.
@@ -138,7 +138,7 @@ public:
      * @param offset the start-offset
      * @return the error code or Errors::NONE
      */
-    Errors::Code write(const void *data, size_t len, size_t offset);
+    Errors::Code write(const void *data, size_t len, goff_t offset);
 
     /**
      * Reads <len> bytes from <offset> into <data>.
@@ -148,10 +148,10 @@ public:
      * @param offset the start-offset
      * @return the error code or Errors::NONE
      */
-    Errors::Code read(void *data, size_t len, size_t offset);
+    Errors::Code read(void *data, size_t len, goff_t offset);
 
 private:
-    Errors::Code forward(void *&data, size_t &len, size_t &offset, uint flags);
+    Errors::Code forward(void *&data, size_t &len, goff_t &offset, uint flags);
 
     uint _cmdflags;
 };

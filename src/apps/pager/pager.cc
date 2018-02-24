@@ -29,7 +29,8 @@
 
 using namespace m3;
 
-static constexpr size_t MAX_VIRT_ADDR = (1UL << (DTU::LEVEL_CNT * DTU::LEVEL_BITS + PAGE_BITS)) - 1;
+static constexpr int SHIFT = DTU::LEVEL_CNT * DTU::LEVEL_BITS + PAGE_BITS;
+static constexpr goff_t MAX_VIRT_ADDR = (static_cast<goff_t>(1) << SHIFT) - 1;
 
 class MemReqHandler;
 typedef RequestHandler<MemReqHandler, Pager::Operation, Pager::COUNT, AddrSpace> base_class_t;
@@ -52,7 +53,7 @@ public:
             return Errors::INV_ARGS;
 
         capsel_t sel;
-        uintptr_t virt = 0;
+        goff_t virt = 0;
         if(sess->vpe.sel() == ObjCap::INVALID)
             sel = sess->init(VPE::self().alloc_caps(2));
         else {
@@ -90,7 +91,7 @@ public:
     void pf(GateIStream &is) {
         AddrSpace *sess = is.label<AddrSpace*>();
 
-        uintptr_t virt;
+        uint64_t virt;
         int access;
         is >> virt >> access;
 
@@ -155,13 +156,13 @@ public:
 
     void map_anon(GateIStream &is) {
         AddrSpace *sess = is.label<AddrSpace*>();
-        uintptr_t virt;
+        goff_t virt;
         size_t len;
         int prot, flags;
         is >> virt >> len >> prot >> flags;
 
-        len = Math::round_up(len + (virt & PAGE_MASK), PAGE_SIZE);
-        virt = Math::round_dn(virt, PAGE_SIZE);
+        len = Math::round_up(len + (virt & PAGE_MASK), static_cast<goff_t>(PAGE_SIZE));
+        virt = Math::round_dn(virt, static_cast<goff_t>(PAGE_SIZE));
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_anon(virt=" << fmt(virt, "p")
             << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x")
@@ -190,7 +191,7 @@ public:
         reply_vmsg(is, Errors::NONE, virt);
     }
 
-    capsel_t map_mem(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
+    capsel_t map_mem(AddrSpace *sess, size_t argc, const xfer_t *args, goff_t *virt) {
         if(argc != 4)
             return Errors::INV_ARGS;
 
@@ -198,8 +199,8 @@ public:
         size_t len = args[2];
         int prot = args[3];
 
-        len = Math::round_up(len + (*virt & PAGE_MASK), PAGE_SIZE);
-        *virt = Math::round_dn(*virt, PAGE_SIZE);
+        len = Math::round_up(len + (*virt & PAGE_MASK), static_cast<goff_t>(PAGE_SIZE));
+        *virt = Math::round_dn(*virt, static_cast<goff_t>(PAGE_SIZE));
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_mem(virt=" << fmt(*virt, "p")
             << ", len=" << fmt(len, "#x") << ", prot=" << fmt(prot, "#x") << ")");
@@ -222,7 +223,7 @@ public:
         return r->mem()->gate->sel();
     }
 
-    capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, uintptr_t *virt) {
+    capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, goff_t *virt) {
         if(argc != 6)
             return Errors::INV_ARGS;
 
@@ -232,8 +233,8 @@ public:
         int id = args[4];
         size_t offset = args[5];
 
-        len = Math::round_up(len + (*virt & PAGE_MASK), PAGE_SIZE);
-        *virt = Math::round_dn(*virt, PAGE_SIZE);
+        len = Math::round_up(len + (*virt & PAGE_MASK), static_cast<goff_t>(PAGE_SIZE));
+        *virt = Math::round_dn(*virt, static_cast<goff_t>(PAGE_SIZE));
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
             << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x") << ", id=" << id
@@ -253,7 +254,7 @@ public:
 
     void unmap(GateIStream &is) {
         AddrSpace *sess = is.label<AddrSpace*>();
-        uintptr_t virt;
+        goff_t virt;
         is >> virt;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::unmap(virt=" << fmt(virt, "p") << ")");

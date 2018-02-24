@@ -35,7 +35,7 @@ public:
     struct Allocation {
         explicit Allocation() : mod(), addr(), size() {
         }
-        explicit Allocation(size_t _mod, uintptr_t _addr, size_t _size)
+        explicit Allocation(size_t _mod, goff_t _addr, size_t _size)
             : mod(_mod), addr(_addr), size(_size) {
         }
 
@@ -47,7 +47,7 @@ public:
         }
 
         size_t mod;
-        uintptr_t addr;
+        goff_t addr;
         size_t size;
     };
 
@@ -61,9 +61,9 @@ public:
     Allocation build_allocation(gaddr_t addr, size_t size) const;
 
     Allocation allocate(size_t size, size_t align);
-    Allocation allocate_at(uintptr_t offset, size_t size);
+    Allocation allocate_at(goff_t offset, size_t size);
 
-    void free(peid_t pe, uintptr_t addr, size_t size);
+    void free(peid_t pe, goff_t addr, size_t size);
     void free(const Allocation &alloc);
 
     size_t size() const;

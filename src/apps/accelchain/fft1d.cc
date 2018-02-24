@@ -102,7 +102,7 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
         SFFT    = 0,
     };
 
-    uintptr_t buffer = 0x20000000;
+    goff_t buffer = 0x20000000;
     if(VPE::self().pager()->map_anon(&buffer, arrsize, Pager::RW, Pager::MAP_ANON) != Errors::NONE)
         exitmsg("Unable to map buffer");
 

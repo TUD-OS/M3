@@ -47,7 +47,7 @@ cycles_t DTU::get_time() {
     return 0;
 }
 
-void DTU::wakeup(const VPEDesc &, uintptr_t) {
+void DTU::wakeup(const VPEDesc &, goff_t) {
     // nothing to do
 }
 
@@ -67,11 +67,11 @@ void DTU::set_rootpt_remote(const VPEDesc &, gaddr_t) {
     // unsupported
 }
 
-void DTU::map_pages(const VPEDesc &, uintptr_t, uintptr_t, uint, int) {
+void DTU::map_pages(const VPEDesc &, goff_t, gaddr_t, uint, int) {
     // unsupported
 }
 
-void DTU::unmap_pages(const VPEDesc &, uintptr_t, uint) {
+void DTU::unmap_pages(const VPEDesc &, goff_t, uint) {
     // unsupported
 }
 
@@ -105,7 +105,7 @@ void DTU::write_ep_local(epid_t ep) {
     memcpy(reinterpret_cast<void*>(addr), _state.get_ep(ep), m3::DTU::EPS_RCNT * sizeof(word_t));
 }
 
-void DTU::mark_read_remote(const VPEDesc &, epid_t, uintptr_t) {
+void DTU::mark_read_remote(const VPEDesc &, epid_t, goff_t) {
     // not supported
 }
 
@@ -116,7 +116,7 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     if(regs[m3::DTU::EP_BUF_MSGCNT] == 0)
         return;
 
-    uintptr_t base = regs[m3::DTU::EP_BUF_ADDR];
+    goff_t base = regs[m3::DTU::EP_BUF_ADDR];
     int order = regs[m3::DTU::EP_BUF_ORDER];
     int msgorder = regs[m3::DTU::EP_BUF_MSGORDER];
     word_t unread = regs[m3::DTU::EP_BUF_UNREAD];
@@ -124,19 +124,19 @@ void DTU::drop_msgs(epid_t ep, label_t label) {
     for(int i = 0; i < max; ++i) {
         if(unread & (1UL << i)) {
             m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(
-                base + (static_cast<uintptr_t>(i) << msgorder));
+                base + (static_cast<goff_t>(i) << msgorder));
             if(msg->label == label)
-                m3::DTU::get().mark_read(ep, reinterpret_cast<uintptr_t>(msg));
+                m3::DTU::get().mark_read(ep, reinterpret_cast<goff_t>(msg));
         }
     }
 }
 
-m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, uintptr_t &, void *) {
+m3::Errors::Code get_header(const VPEDesc &, const RGateObject *, goff_t &, void *) {
     // unused
     return m3::Errors::NONE;
 }
 
-m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, uintptr_t &, const void *) {
+m3::Errors::Code set_header(const VPEDesc &, const RGateObject *, goff_t &, const void *) {
     // unused
     return m3::Errors::NONE;
 }
@@ -161,19 +161,19 @@ void DTU::reply_to(const VPEDesc &, epid_t, label_t, const void *, size_t, uint6
     // UNUSED
 }
 
-m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size) {
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.pe, 0, size, 0);
     m3::DTU::get().write(_ep, data, size, 0, 0);
     return m3::Errors::NONE;
 }
 
-m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+m3::Errors::Code DTU::try_read_mem(const VPEDesc &vpe, goff_t addr, void *data, size_t size) {
     m3::DTU::get().configure(_ep, addr | m3::KIF::Perm::RWX, vpe.pe, 0, size, 0);
     m3::DTU::get().read(_ep, data, size, 0, 0);
     return m3::Errors::NONE;
 }
 
-void DTU::copy_clear(const VPEDesc &, uintptr_t, const VPEDesc &, uintptr_t, size_t, bool) {
+void DTU::copy_clear(const VPEDesc &, goff_t, const VPEDesc &, goff_t, size_t, bool) {
     // not supported
 }
 

@@ -41,7 +41,7 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
 
     if(count == 0) {
         for(size_t i = 0; i < Platform::MAX_MODS && Platform::mod(i); ++i) {
-            uintptr_t addr = m3::DTU::gaddr_to_virt(Platform::mod(i));
+            goff_t addr = m3::DTU::gaddr_to_virt(Platform::mod(i));
             peid_t pe = m3::DTU::gaddr_to_pe(Platform::mod(i));
             DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, &mods[i], sizeof(mods[i]));
 
@@ -94,12 +94,12 @@ static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offse
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file");
 
-    uintptr_t addr = m3::DTU::gaddr_to_virt(mod->addr + offset);
+    goff_t addr = m3::DTU::gaddr_to_virt(mod->addr + offset);
     peid_t pe = m3::DTU::gaddr_to_pe(mod->addr + offset);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, data, size);
 }
 
-static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int perms) {
+static void map_segment(VPE &vpe, gaddr_t phys, goff_t virt, size_t size, int perms) {
     if(Platform::pe(vpe.pe()).has_virtmem()) {
         capsel_t dst = virt >> PAGE_BITS;
         size_t pages = m3::Math::round_up(size, PAGE_SIZE) >> PAGE_BITS;
@@ -113,7 +113,7 @@ static void map_segment(VPE &vpe, gaddr_t phys, uintptr_t virt, size_t size, int
     }
 }
 
-static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bool to_mem) {
+static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bool to_mem) {
     // load and check ELF header
     m3::ElfEh header;
     read_from_mod(mod, &header, sizeof(header), 0);
@@ -123,7 +123,7 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap,
         PANIC("Invalid ELF file");
 
     // map load segments
-    uintptr_t end = 0;
+    goff_t end = 0;
     size_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
@@ -142,8 +142,8 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap,
         if(pheader.p_flags & PF_X)
             perms |= m3::DTU::PTE_X;
 
-        uintptr_t offset = m3::Math::round_dn(pheader.p_offset, PAGE_SIZE);
-        uintptr_t virt = m3::Math::round_dn(pheader.p_vaddr, PAGE_SIZE);
+        goff_t offset = m3::Math::round_dn(pheader.p_offset, PAGE_SIZE);
+        goff_t virt = m3::Math::round_dn(pheader.p_vaddr, PAGE_SIZE);
 
         // do we need new memory for this segment?
         if((copy && (perms & m3::DTU::PTE_W)) || pheader.p_filesz == 0) {
@@ -181,13 +181,14 @@ static uintptr_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap,
     if(needs_heap) {
         // create initial heap
         gaddr_t phys = alloc_mem(MOD_HEAP_SIZE);
-        map_segment(vpe, phys, m3::Math::round_up(end, PAGE_SIZE), MOD_HEAP_SIZE, m3::DTU::PTE_RW);
+        goff_t virt = m3::Math::round_up(end, static_cast<goff_t>(PAGE_SIZE));
+        map_segment(vpe, phys, virt, MOD_HEAP_SIZE, m3::DTU::PTE_RW);
     }
 
     return header.e_entry;
 }
 
-static uintptr_t map_idle(VPE &vpe) {
+static goff_t map_idle(VPE &vpe) {
     BootModule *idle = idles[vpe.pe()];
     if(!idle) {
         bool first;
@@ -214,7 +215,7 @@ static uintptr_t map_idle(VPE &vpe) {
         PANIC("Unable to find boot module 'idle'");
 
     // load idle
-    uintptr_t res = load_mod(vpe, idle, false, false, Platform::pe(vpe.pe()).has_mmu());
+    goff_t res = load_mod(vpe, idle, false, false, Platform::pe(vpe.pe()).has_mmu());
 
     // clear RCTMUX_*
     if(Platform::pe(vpe.pe()).has_mmu()) {
@@ -246,13 +247,13 @@ void VPE::load_app() {
 
     if(Platform::pe(pe()).has_virtmem()) {
         // map runtime space
-        uintptr_t virt = RT_START;
+        goff_t virt = RT_START;
         gaddr_t phys = alloc_mem(STACK_TOP - virt);
         map_segment(*this, phys, virt, STACK_TOP - virt, m3::DTU::PTE_RW);
     }
 
     // load app
-    uintptr_t entry = load_mod(*this, mod, !appFirst, true, false);
+    goff_t entry = load_mod(*this, mod, !appFirst, true, false);
 
     // count arguments
     size_t argc = 1;

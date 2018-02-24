@@ -73,7 +73,7 @@ public:
         _rgate.activate();
 
         if(_accel->pager()) {
-            uintptr_t virt = STATE_ADDR;
+            goff_t virt = STATE_ADDR;
             _accel->pager()->map_anon(&virt, STATE_SIZE + BUF_SIZE, Pager::Prot::RW, 0);
         }
 
@@ -116,7 +116,7 @@ public:
 
 static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
 static size_t offs[ARRAY_SIZE(sizes)] = {0};
-static uintptr_t virt = 0x1000000;
+static goff_t virt = 0x1000000;
 
 static void reset() {
     virt = 0x1000000;

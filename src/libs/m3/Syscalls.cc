@@ -112,7 +112,7 @@ Errors::Code Syscalls::createsgate(capsel_t dst, capsel_t rgate, label_t label, 
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createmgate(capsel_t dst, uintptr_t addr, size_t size, int perms) {
+Errors::Code Syscalls::createmgate(capsel_t dst, goff_t addr, size_t size, int perms) {
     LLOG(SYSC, "createmgate(dst=" << dst << ", addr=" << addr << ", size=" << size
         << ", perms=" << perms << ")");
 
@@ -172,7 +172,7 @@ Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate,
     return Errors::last;
 }
 
-Errors::Code Syscalls::activate(capsel_t vpe, capsel_t gate, epid_t ep, uintptr_t addr) {
+Errors::Code Syscalls::activate(capsel_t vpe, capsel_t gate, epid_t ep, goff_t addr) {
     LLOG(SYSC, "activate(vpe=" << vpe << ", gate=" << gate << ", ep=" << ep << ")");
 
     KIF::Syscall::Activate req;
@@ -204,7 +204,7 @@ Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg
     return Errors::last;
 }
 
-Errors::Code Syscalls::derivemem(capsel_t dst, capsel_t src, size_t offset, size_t size, int perms) {
+Errors::Code Syscalls::derivemem(capsel_t dst, capsel_t src, goff_t offset, size_t size, int perms) {
     LLOG(SYSC, "derivemem(dst=" << dst << ", src=" << src << ", off=" << offset
             << ", size=" << size << ", perms=" << perms << ")");
 
@@ -299,7 +299,7 @@ Errors::Code Syscalls::forwardmsg(capsel_t sgate, capsel_t rgate, const void *ms
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t offset,
+Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, goff_t offset,
                                   uint flags, event_t event) {
     LLOG(SYSC, "forwardmem(mgate=" << mgate << ", data=" << data << ", len=" << len
         << ", offset=" << offset << ", flags=" << fmt(flags, "0x") << ", event=" << fmt(event, "0x") << ")");
@@ -326,7 +326,7 @@ Errors::Code Syscalls::forwardmem(capsel_t mgate, void *data, size_t len, size_t
 }
 
 Errors::Code Syscalls::forwardreply(capsel_t rgate, const void *msg, size_t len,
-                                    uintptr_t msgaddr, event_t event) {
+                                    goff_t msgaddr, event_t event) {
     LLOG(SYSC, "forwardreply(rgate=" << rgate << ", msg=" << msg << ", len=" << len
         << ", msgaddr=" << (void*)msgaddr << ", event=" << fmt(event, "0x") << ")");
 

@@ -91,12 +91,12 @@ public:
 
     Pager *create_clone(VPE &vpe);
     Errors::Code clone();
-    Errors::Code pagefault(uintptr_t addr, uint access);
-    Errors::Code map_anon(uintptr_t *virt, size_t len, int prot, int flags);
-    Errors::Code map_ds(uintptr_t *virt, size_t len, int prot, int flags, const Session &sess,
+    Errors::Code pagefault(goff_t addr, uint access);
+    Errors::Code map_anon(goff_t *virt, size_t len, int prot, int flags);
+    Errors::Code map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
         int fd, size_t offset);
-    Errors::Code map_mem(uintptr_t *virt, MemGate &mem, size_t len, int prot);
-    Errors::Code unmap(uintptr_t virt);
+    Errors::Code map_mem(goff_t *virt, MemGate &mem, size_t len, int prot);
+    Errors::Code unmap(goff_t virt);
 
 private:
     // the receive gate is only necessary for the PF handler in RCTMux. it needs a dedicated one

@@ -40,7 +40,7 @@ public:
         delete mem;
     }
 
-    const DataSpace *find(uintptr_t virt) const {
+    const DataSpace *find(goff_t virt) const {
         return dstree.find(virt);
     }
 

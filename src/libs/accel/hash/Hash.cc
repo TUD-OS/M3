@@ -35,7 +35,7 @@ Hash::Hash()
     _rgate.activate();
 
     if(_accel->vpe().pager()) {
-        uintptr_t virt = HashAccel::STATE_ADDR;
+        goff_t virt = HashAccel::STATE_ADDR;
         _accel->vpe().pager()->map_anon(&virt, HashAccel::STATE_SIZE + HashAccel::BUF_SIZE, Pager::Prot::RW, 0);
     }
 

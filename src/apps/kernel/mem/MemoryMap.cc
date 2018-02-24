@@ -50,7 +50,7 @@ void MemoryMap::Area::operator delete(void *ptr) {
     freelist = a;
 }
 
-MemoryMap::MemoryMap(uintptr_t addr, size_t size) : list(new Area()) {
+MemoryMap::MemoryMap(goff_t addr, size_t size) : list(new Area()) {
     list->addr = addr;
     list->size = size;
     list->next = nullptr;
@@ -65,19 +65,19 @@ MemoryMap::~MemoryMap() {
     list = nullptr;
 }
 
-uintptr_t MemoryMap::allocate(size_t size, size_t align) {
+goff_t MemoryMap::allocate(size_t size, size_t align) {
     Area *a;
     Area *p = nullptr;
     for(a = list; a != nullptr; p = a, a = a->next) {
-        size_t diff = m3::Math::round_up(a->addr, align) - a->addr;
+        size_t diff = m3::Math::round_up(a->addr, static_cast<goff_t>(align)) - a->addr;
         if(a->size - diff >= size)
             break;
     }
     if(a == nullptr)
-        return static_cast<uintptr_t>(-1);
+        return static_cast<goff_t>(-1);
 
     /* if we need to do some alignment, create a new area in front of a */
-    size_t diff = m3::Math::round_up(a->addr, align) - a->addr;
+    size_t diff = m3::Math::round_up(a->addr, static_cast<goff_t>(align)) - a->addr;
     if(diff) {
         Area *n = new Area();
         n->addr = a->addr;
@@ -94,7 +94,7 @@ uintptr_t MemoryMap::allocate(size_t size, size_t align) {
     }
 
     /* take it from the front */
-    uintptr_t res = a->addr;
+    goff_t res = a->addr;
     a->size -= size;
     a->addr += size;
     /* if the area is empty now, remove it */
@@ -109,7 +109,7 @@ uintptr_t MemoryMap::allocate(size_t size, size_t align) {
     return res;
 }
 
-void MemoryMap::free(uintptr_t addr, size_t size) {
+void MemoryMap::free(goff_t addr, size_t size) {
     KLOG(MEM, "Free'd " << (size / 1024) << " KiB of memory @ " << m3::fmt(addr, "p"));
 
     /* find the area behind ours */

@@ -23,7 +23,7 @@ namespace kernel {
 
 class MemoryMap {
     struct Area {
-        uintptr_t addr;
+        goff_t addr;
         size_t size;
         Area *next;
 
@@ -45,7 +45,7 @@ public:
      * @param addr the base address
      * @param size the mem size
      */
-    explicit MemoryMap(uintptr_t addr, size_t size);
+    explicit MemoryMap(goff_t addr, size_t size);
 
     /**
      * Destroys this map
@@ -60,7 +60,7 @@ public:
      * @param align the desired alignment
      * @return the address of -1 if failed
      */
-    uintptr_t allocate(size_t size, size_t align);
+    goff_t allocate(size_t size, size_t align);
 
     /**
      * Frees the area at <addr> with <size> bytes.
@@ -69,7 +69,7 @@ public:
      * @param addr the address of the area
      * @param size the size of the area
      */
-    void free(uintptr_t addr, size_t size);
+    void free(goff_t addr, size_t size);
 
     /**
      * Just for debugging/testing: Determines the total number of free bytes in the map

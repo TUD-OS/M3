@@ -27,7 +27,7 @@
 
 namespace m3 {
 
-MemGate MemGate::create_global_for(uintptr_t addr, size_t size, int perms, capsel_t sel) {
+MemGate MemGate::create_global_for(goff_t addr, size_t size, int perms, capsel_t sel) {
     uint flags = 0;
     if(sel == INVALID)
         sel = VPE::self().alloc_cap();
@@ -35,22 +35,22 @@ MemGate MemGate::create_global_for(uintptr_t addr, size_t size, int perms, capse
     return MemGate(flags, sel);
 }
 
-MemGate MemGate::derive(size_t offset, size_t size, int perms) const {
+MemGate MemGate::derive(goff_t offset, size_t size, int perms) const {
     capsel_t cap = VPE::self().alloc_cap();
     Syscalls::get().derivemem(cap, sel(), offset, size, perms);
     return MemGate(0, cap);
 }
 
-MemGate MemGate::derive(capsel_t cap, size_t offset, size_t size, int perms) const {
+MemGate MemGate::derive(capsel_t cap, goff_t offset, size_t size, int perms) const {
     Syscalls::get().derivemem(cap, sel(), offset, size, perms);
     return MemGate(0, cap);
 }
 
-Errors::Code MemGate::activate_for(VPE &vpe, epid_t ep, size_t offset) {
+Errors::Code MemGate::activate_for(VPE &vpe, epid_t ep, goff_t offset) {
     return Syscalls::get().activate(vpe.sel(), sel(), ep, offset);
 }
 
-Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint flags) {
+Errors::Code MemGate::forward(void *&data, size_t &len, goff_t &offset, uint flags) {
     event_t event = ThreadManager::get().get_wait_event();
     size_t amount = Math::min(static_cast<size_t>(KIF::MAX_MSG_SIZE), len);
     Errors::Code res = Syscalls::get().forwardmem(sel(), data, amount, offset, flags, event);
@@ -71,7 +71,7 @@ Errors::Code MemGate::forward(void *&data, size_t &len, size_t &offset, uint fla
     return res;
 }
 
-Errors::Code MemGate::read(void *data, size_t len, size_t offset) {
+Errors::Code MemGate::read(void *data, size_t len, goff_t offset) {
     EVENT_TRACER_read();
     ensure_activated();
 
@@ -86,7 +86,7 @@ retry:
     return res;
 }
 
-Errors::Code MemGate::write(const void *data, size_t len, size_t offset) {
+Errors::Code MemGate::write(const void *data, size_t len, goff_t offset) {
     EVENT_TRACER_write();
     ensure_activated();
 

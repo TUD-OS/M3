@@ -34,7 +34,7 @@ uintptr_t VPE::get_entry() {
 }
 
 Errors::Code VPE::copy_sections() {
-    uintptr_t start_addr, end_addr;
+    goff_t start_addr, end_addr;
 
     if(_pager) {
         if(VPE::self().pager()) {

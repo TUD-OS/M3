@@ -48,7 +48,7 @@ void DTUState::move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save) {
         m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
         // receive EP and any slot occupied?
         if(static_cast<m3::DTU::EpType>(r[0] >> 61) == m3::DTU::EpType::RECEIVE && r[2]) {
-            const uintptr_t addr = r[1];
+            const goff_t addr = r[1];
             const size_t size = ((r[0] >> 16) & 0xFFFF) * ((r[0] >> 32) & 0xFFFF);
             if(save)
                 DTU::get().copy_clear(memvpe, offset, vpe, addr, size, false);
@@ -132,7 +132,7 @@ void DTUState::forward_mem(epid_t ep, peid_t pe) {
     r[2] |= pe << 4;
 }
 
-size_t DTUState::get_header_idx(epid_t ep, uintptr_t msgaddr) {
+size_t DTUState::get_header_idx(epid_t ep, goff_t msgaddr) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     return ((r[0] >> 5) & 0x7FF) + ((msgaddr - r[1]) / ((r[0] >> 32) & 0xFFFF));
 }
@@ -141,7 +141,7 @@ void DTUState::read_ep(const VPEDesc &vpe, epid_t ep) {
     DTU::get().read_ep_remote(vpe, ep, get_ep(ep));
 }
 
-void DTUState::config_recv(epid_t ep, uintptr_t buf, int order, int msgorder, uint header) {
+void DTUState::config_recv(epid_t ep, goff_t buf, int order, int msgorder, uint header) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     m3::DTU::reg_t bufSize = static_cast<m3::DTU::reg_t>(1) << (order - msgorder);
     m3::DTU::reg_t msgSize = static_cast<m3::DTU::reg_t>(1) << msgorder;
@@ -163,7 +163,7 @@ void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_
     r[2] = lbl;
 }
 
-void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t vpe, uintptr_t addr, size_t size, int perm) {
+void DTUState::config_mem(epid_t ep, peid_t pe, vpeid_t vpe, goff_t addr, size_t size, int perm) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::MEMORY) << 61) | (size & 0x1FFFFFFFFFFFFFFF);
     r[1] = addr;

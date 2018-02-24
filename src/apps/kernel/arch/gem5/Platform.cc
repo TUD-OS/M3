@@ -32,7 +32,7 @@ static peid_t last_pe_id;
 Platform::KEnv::KEnv() {
     // read kernel env
     peid_t pe = m3::DTU::gaddr_to_pe(m3::env()->kenv);
-    uintptr_t addr = m3::DTU::gaddr_to_virt(m3::env()->kenv);
+    goff_t addr = m3::DTU::gaddr_to_virt(m3::env()->kenv);
     DTU::get().read_mem(VPEDesc(pe, VPE::INVALID_ID), addr, this, sizeof(*this));
 
     // register memory modules
@@ -66,7 +66,7 @@ peid_t Platform::last_pe() {
     return last_pe_id;
 }
 
-uintptr_t Platform::def_recvbuf(peid_t no) {
+goff_t Platform::def_recvbuf(peid_t no) {
     if(pe(no).has_virtmem())
         return RECVBUF_SPACE;
     return pe(no).mem_size() - RECVBUF_SIZE_SPM;

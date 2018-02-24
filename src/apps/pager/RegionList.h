@@ -48,7 +48,7 @@ public:
         return _regs.end();
     }
 
-    Region *pagefault(uintptr_t offset);
+    Region *pagefault(goff_t offset);
 
     void print(m3::OStream &os) const;
 

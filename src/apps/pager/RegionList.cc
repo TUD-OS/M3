@@ -24,7 +24,7 @@ void RegionList::clear() {
     }
 }
 
-Region *RegionList::pagefault(uintptr_t offset) {
+Region *RegionList::pagefault(goff_t offset) {
     Region *last = nullptr;
     auto r = _regs.begin();
     // search for the region that contains <offset> or is behind <offset>
@@ -40,8 +40,8 @@ Region *RegionList::pagefault(uintptr_t offset) {
         return &*r;
 
     // ok, build a new region that spans from the previous one to the next one
-    uintptr_t end = r == _regs.end() ? _ds->size() : r->offset();
-    uintptr_t start = last ? last->offset() + last->size() : 0;
+    goff_t end = r == _regs.end() ? _ds->size() : r->offset();
+    goff_t start = last ? last->offset() + last->size() : 0;
     Region *n = new Region(_ds, start, end - start);
     _regs.insert(last, n);
     return n;

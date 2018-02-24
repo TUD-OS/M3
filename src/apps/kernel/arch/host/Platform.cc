@@ -57,7 +57,7 @@ peid_t Platform::last_pe() {
     return _kenv.pe_count - 1;
 }
 
-uintptr_t Platform::def_recvbuf(peid_t) {
+goff_t Platform::def_recvbuf(peid_t) {
     // unused
     return 0;
 }

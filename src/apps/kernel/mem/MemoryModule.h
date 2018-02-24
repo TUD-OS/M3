@@ -23,7 +23,7 @@ namespace kernel {
 
 class MemoryModule {
 public:
-    explicit MemoryModule(bool avail, peid_t pe, uintptr_t addr, size_t size)
+    explicit MemoryModule(bool avail, peid_t pe, goff_t addr, size_t size)
         : _avail(avail), _pe(pe), _addr(addr), _size(size), _map(addr, size) {
     }
 
@@ -33,7 +33,7 @@ public:
     peid_t pe() const {
         return _pe;
     }
-    uintptr_t addr() const {
+    goff_t addr() const {
         return _addr;
     }
     size_t size() const {
@@ -46,7 +46,7 @@ public:
 private:
     bool _avail;
     peid_t _pe;
-    uintptr_t _addr;
+    goff_t _addr;
     size_t _size;
     MemoryMap _map;
 };

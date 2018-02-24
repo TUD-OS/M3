@@ -121,10 +121,10 @@ public:
         return _rbufcpy;
     }
 
-    uintptr_t ep_addr() const {
+    goff_t ep_addr() const {
         return _epaddr;
     }
-    void set_ep_addr(uintptr_t addr) {
+    void set_ep_addr(goff_t addr) {
         _epaddr = addr;
         init();
     }
@@ -204,7 +204,7 @@ public:
 
     m3::Errors::Code config_rcv_ep(epid_t ep, RGateObject &obj);
     void config_snd_ep(epid_t ep, const SGateObject &obj);
-    m3::Errors::Code config_mem_ep(epid_t ep, const MGateObject &obj, uintptr_t off = 0);
+    m3::Errors::Code config_mem_ep(epid_t ep, const MGateObject &obj, goff_t off = 0);
 
     void make_daemon();
 
@@ -253,7 +253,7 @@ private:
     m3::SList<ServName> _requires;
     size_t _argc;
     char **_argv;
-    uintptr_t _epaddr;
+    goff_t _epaddr;
 };
 
 }

@@ -251,7 +251,7 @@ void VPE::forward_mem(epid_t ep, peid_t pe) {
 
 m3::Errors::Code VPE::config_rcv_ep(epid_t ep, RGateObject &obj) {
     // it needs to be in the receive buffer space
-    const uintptr_t addr = Platform::def_recvbuf(pe());
+    const goff_t addr = Platform::def_recvbuf(pe());
     const size_t size = Platform::pe(pe()).has_virtmem() ? RECVBUF_SIZE : RECVBUF_SIZE_SPM;
     // def_recvbuf() == 0 means that we do not validate it
     if(addr && (obj.addr < addr || obj.addr > addr + size || obj.addr + obj.size() > addr + size))
@@ -296,7 +296,7 @@ void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
     update_ep(ep);
 }
 
-m3::Errors::Code VPE::config_mem_ep(epid_t ep, const MGateObject &obj, uintptr_t off) {
+m3::Errors::Code VPE::config_mem_ep(epid_t ep, const MGateObject &obj, goff_t off) {
     if(off >= obj.size || obj.addr + off < off)
         return m3::Errors::INV_ARGS;
 

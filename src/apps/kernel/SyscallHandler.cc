@@ -330,7 +330,7 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
 
     auto req = get_message<m3::KIF::Syscall::CreateMGate>(msg);
     capsel_t dst = req->dst_sel;
-    uintptr_t addr = req->addr;
+    goff_t addr = req->addr;
     size_t size = req->size;
     int perms = req->perms;
 
@@ -349,8 +349,8 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
     if(size >= m3::DTU::LPAGE_SIZE)
         align = m3::DTU::LPAGE_SIZE;
 #endif
-    MainMemory::Allocation alloc = addr == static_cast<uintptr_t>(-1) ? mem.allocate(size, align)
-                                                                      : mem.allocate_at(addr, size);
+    MainMemory::Allocation alloc = addr == static_cast<goff_t>(-1) ? mem.allocate(size, align)
+                                                                   : mem.allocate_at(addr, size);
     if(!alloc)
         SYS_ERROR(vpe, msg, m3::Errors::OUT_OF_MEM, "Not enough memory");
 
@@ -476,7 +476,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
     capsel_t tvpe = req->vpe_sel;
     capsel_t gate = req->gate_sel;
     epid_t ep = req->ep;
-    uintptr_t addr = req->addr;
+    goff_t addr = req->addr;
 
     LOG_SYS(vpe, ": syscall::activate", "(vpe=" << tvpe << ", gate=" << gate << ", ep=" << ep
         << ", addr=#" << m3::fmt(addr, "x") << ")");
@@ -638,7 +638,7 @@ void SyscallHandler::derivemem(VPE *vpe, const m3::DTU::Message *msg) {
     auto req = get_message<m3::KIF::Syscall::DeriveMem>(msg);
     capsel_t dst = req->dst_sel;
     capsel_t src = req->src_sel;
-    size_t offset = req->offset;
+    goff_t offset = req->offset;
     size_t size = req->size;
     int perms = req->perms;
 
@@ -913,7 +913,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     auto *req = get_message<m3::KIF::Syscall::ForwardMem>(msg);
     capsel_t mgate = req->mgate_sel;
     size_t len = m3::Math::min(sizeof(req->data), static_cast<size_t>(req->len));
-    size_t offset = req->offset;
+    goff_t offset = req->offset;
     uint flags = req->flags;
     word_t event = req->event;
 
@@ -981,7 +981,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
 #else
     auto *req = get_message<m3::KIF::Syscall::ForwardReply>(msg);
     capsel_t rgate = req->rgate_sel;
-    uintptr_t msgaddr = req->msgaddr;
+    goff_t msgaddr = req->msgaddr;
     size_t len = m3::Math::min(sizeof(req->msg), static_cast<size_t>(req->len));
     word_t event = req->event;
 

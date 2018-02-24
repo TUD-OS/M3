@@ -125,7 +125,7 @@ public:
 
     vpeid_t vpe;
     epid_t ep;
-    uintptr_t addr;
+    goff_t addr;
     int order;
     int msgorder;
     uint header;
@@ -146,14 +146,14 @@ public:
 
 class MGateObject : public SlabObject<MGateObject>, public m3::RefCounted {
 public:
-    explicit MGateObject(peid_t _pe, vpeid_t _vpe, uintptr_t _addr, size_t _size, int _perms)
+    explicit MGateObject(peid_t _pe, vpeid_t _vpe, goff_t _addr, size_t _size, int _perms)
         : RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size), perms(_perms), derived(false) {
     }
     virtual ~MGateObject();
 
     peid_t pe;
     vpeid_t vpe;
-    uintptr_t addr;
+    goff_t addr;
     size_t size;
     int perms;
     bool derived;
@@ -215,7 +215,7 @@ public:
 
 class MGateCapability : public SlabObject<MGateCapability>, public Capability {
 public:
-    explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, uintptr_t addr,
+    explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, goff_t addr,
         size_t size, int perms)
         : Capability(tbl, sel, MGATE), obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }

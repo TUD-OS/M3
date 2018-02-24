@@ -82,7 +82,7 @@ Errors::Code VPE::run(void *lambda) {
     senv.rbufcur = _rbufcur;
     senv.rbufend = _rbufend;
     senv.caps = _next_sel;
-    senv.eps = reinterpret_cast<uintptr_t>(_eps);
+    senv.eps = _eps;
     senv.pager_sgate = 0;
     senv.pager_rgate = 0;
     senv.pager_sess = 0;
@@ -193,7 +193,7 @@ Errors::Code VPE::load_segment(ElfPh &pheader, char *buffer) {
         if(pheader.p_flags & PF_X)
             prot |= Pager::EXEC;
 
-        uintptr_t virt = pheader.p_vaddr;
+        goff_t virt = pheader.p_vaddr;
         size_t sz = Math::round_up(pheader.p_memsz, static_cast<size_t>(PAGE_SIZE));
         if(pheader.p_memsz == pheader.p_filesz) {
             const RegularFile *rfile = static_cast<const RegularFile*>(_exec->file());
@@ -237,7 +237,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
         return Errors::INVALID_ELF;
 
     /* copy load segments to destination PE */
-    uintptr_t end = 0;
+    goff_t end = 0;
     size_t off = header.e_phoff;
     for(uint i = 0; i < header.e_phnum; ++i, off += header.e_phentsize) {
         /* load program header */
@@ -257,7 +257,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
 
     if(_pager) {
         // create area for boot/runtime stuff
-        uintptr_t virt = RT_START;
+        goff_t virt = RT_START;
         Errors::Code err = _pager->map_anon(&virt, RT_END - virt, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NONE)
             return err;
@@ -269,7 +269,7 @@ Errors::Code VPE::load(int argc, const char **argv, uintptr_t *entry, char *buff
             return err;
 
         // create heap
-        virt = Math::round_up(end, static_cast<uintptr_t>(PAGE_SIZE));
+        virt = Math::round_up(end, static_cast<goff_t>(PAGE_SIZE));
         err = _pager->map_anon(&virt, APP_HEAP_SIZE, Pager::READ | Pager::WRITE, 0);
         if(err != Errors::NONE)
             return err;

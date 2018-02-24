@@ -78,10 +78,10 @@ public:
         _flags = flags;
     }
 
-    uintptr_t virt() const;
+    goff_t virt() const;
     void limit_to(size_t pos, size_t pages);
     m3::Errors::Code map(int flags);
-    void copy(m3::MemGate *mem, uintptr_t virt);
+    void copy(m3::MemGate *mem, goff_t virt);
     void clear();
 
     size_t offset() const {

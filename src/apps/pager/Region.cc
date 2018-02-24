@@ -39,18 +39,18 @@ Region::~Region() {
     }
 }
 
-uintptr_t Region::virt() const {
+goff_t Region::virt() const {
     return _ds->addr() + _offset;
 }
 
 void Region::limit_to(size_t pos, size_t pages) {
     if(size() > pages * PAGE_SIZE) {
-        uintptr_t end = offset() + size();
+        goff_t end = offset() + size();
         if(pos > (pages / 2) * PAGE_SIZE)
             offset(m3::Math::max(offset(), pos - (pages / 2) * PAGE_SIZE));
         else
             offset(0);
-        size(m3::Math::min(pages * PAGE_SIZE, end - offset()));
+        size(m3::Math::min(static_cast<goff_t>(pages * PAGE_SIZE), end - offset()));
     }
 }
 
@@ -64,7 +64,7 @@ m3::Errors::Code Region::map(int flags) {
     return m3::Errors::NONE;
 }
 
-void Region::copy(m3::MemGate *mem, uintptr_t virt) {
+void Region::copy(m3::MemGate *mem, goff_t virt) {
     // if we are the last one, we can just take the memory
     if(_mem->is_last()) {
         SLOG(PAGER, "Keeping memory "
@@ -79,7 +79,7 @@ void Region::copy(m3::MemGate *mem, uintptr_t virt) {
 
     // make a copy; either from owner memory or the physical memory
     m3::MemGate *ogate = _mem->owner_mem ? _mem->owner_mem : _mem->gate;
-    uintptr_t off = _mem->owner_mem ? _mem->owner_virt : _memoff;
+    goff_t off = _mem->owner_mem ? _mem->owner_virt : _memoff;
     m3::MemGate *ngate = new m3::MemGate(m3::MemGate::create_global(size(), m3::MemGate::RWX));
 
     SLOG(PAGER, "Copying memory "

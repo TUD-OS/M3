@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     if(strcmp(argv[1], "anon") == 0) {
         cycles_t anon = 0;
         for(size_t i = 0; i < COUNT; ++i) {
-            uintptr_t virt = 0x30000000;
+            goff_t virt = 0x30000000;
             Errors::Code res = VPE::self().pager()->map_anon(&virt, PAGES * PAGE_SIZE,
                 Pager::READ | Pager::WRITE, 0);
             if(res != Errors::NONE)
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
                 exitmsg("Unable to open /zeros.bin");
 
             RegularFile *rfile = static_cast<RegularFile*>(&*f);
-            uintptr_t virt = 0x31000000;
+            goff_t virt = 0x31000000;
             Errors::Code res = VPE::self().pager()->map_ds(&virt, PAGES * PAGE_SIZE,
                 Pager::READ | Pager::WRITE, 0, *rfile->fs(), rfile->fd(), 0);
             if(res != Errors::NONE)

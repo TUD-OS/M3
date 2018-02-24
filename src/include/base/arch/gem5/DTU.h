@@ -224,17 +224,17 @@ public:
     static peid_t gaddr_to_pe(gaddr_t noc) {
         return (noc >> 56) - 0x80;
     }
-    static uintptr_t gaddr_to_virt(gaddr_t noc) {
+    static gaddr_t gaddr_to_virt(gaddr_t noc) {
         return noc & ((static_cast<gaddr_t>(1) << 56) - 1);
     }
-    static gaddr_t build_gaddr(peid_t pe, uintptr_t virt) {
+    static gaddr_t build_gaddr(peid_t pe, gaddr_t virt) {
         return (static_cast<gaddr_t>(0x80 + pe) << 56) | virt;
     }
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t reply_ep);
     Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t off);
-    Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint flags);
-    Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint flags);
+    Errors::Code read(epid_t ep, void *msg, size_t size, goff_t off, uint flags);
+    Errors::Code write(epid_t ep, const void *msg, size_t size, goff_t off, uint flags);
 
     m3::DTU::reg_t abort(uint flags, reg_t *cmdreg) {
         // save the old value before aborting
@@ -309,7 +309,7 @@ public:
     }
 
 private:
-    Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, size_t off);
+    Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, goff_t off);
 
     reg_t get_pfep() const {
         return read_reg(DtuRegs::PF_EP);

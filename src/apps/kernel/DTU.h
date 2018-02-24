@@ -52,17 +52,17 @@ public:
     void unset_vpeid(const VPEDesc &vpe);
 
     cycles_t get_time();
-    void wakeup(const VPEDesc &vpe, uintptr_t addr = 0);
+    void wakeup(const VPEDesc &vpe, goff_t addr = 0);
     void suspend(const VPEDesc &vpe);
     void inject_irq(const VPEDesc &vpe);
 
     void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
 
     void set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt);
-    void invlpg_remote(const VPEDesc &vpe, uintptr_t virt);
+    void invlpg_remote(const VPEDesc &vpe, goff_t virt);
 
-    void map_pages(const VPEDesc &vpe, uintptr_t virt, gaddr_t phys, uint pages, int perm);
-    void unmap_pages(const VPEDesc &vpe, uintptr_t virt, uint pages);
+    void map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pages, int perm);
+    void unmap_pages(const VPEDesc &vpe, goff_t virt, uint pages);
     void remove_pts(vpeid_t vpe);
 
     m3::Errors::Code inval_ep_remote(const VPEDesc &vpe, epid_t ep);
@@ -70,13 +70,13 @@ public:
     void write_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
     void write_ep_local(epid_t ep);
 
-    void mark_read_remote(const VPEDesc &vpe, epid_t ep, uintptr_t msg);
+    void mark_read_remote(const VPEDesc &vpe, epid_t ep, goff_t msg);
 
     void drop_msgs(epid_t ep, label_t label);
 
-    m3::Errors::Code get_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
+    m3::Errors::Code get_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,
         void *head);
-    m3::Errors::Code set_header(const VPEDesc &vpe, const RGateObject *obj, uintptr_t &msgaddr,
+    m3::Errors::Code set_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,
         const void *head);
 
     void recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder);
@@ -88,20 +88,20 @@ public:
     void reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg, size_t size,
         uint64_t sender);
 
-    m3::Errors::Code try_write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size);
-    m3::Errors::Code try_read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size);
+    m3::Errors::Code try_write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size);
+    m3::Errors::Code try_read_mem(const VPEDesc &vpe, goff_t addr, void *data, size_t size);
 
-    void write_mem(const VPEDesc &vpe, uintptr_t addr, const void *data, size_t size) {
+    void write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size) {
         if(try_write_mem(vpe, addr, data, size) != m3::Errors::NONE)
             PANIC("write failed");
     }
-    void read_mem(const VPEDesc &vpe, uintptr_t addr, void *data, size_t size) {
+    void read_mem(const VPEDesc &vpe, goff_t addr, void *data, size_t size) {
         if(try_read_mem(vpe, addr, data, size) != m3::Errors::NONE)
             PANIC("read failed");
     }
 
-    void copy_clear(const VPEDesc &dstvpe, uintptr_t dstaddr,
-                    const VPEDesc &srcvpe, uintptr_t srcaddr,
+    void copy_clear(const VPEDesc &dstvpe, goff_t dstaddr,
+                    const VPEDesc &srcvpe, goff_t srcaddr,
                     size_t size, bool clear);
 
     void write_swstate(const VPEDesc &vpe, uint64_t flags, uint64_t notify);
@@ -110,13 +110,13 @@ public:
 
 private:
 #if defined(__gem5__)
-    bool create_pt(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t virt, uintptr_t pteAddr,
+    bool create_pt(const VPEDesc &dst, const VPEDesc &vpe, goff_t virt, goff_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level);
-    bool create_ptes(const VPEDesc &dst, const VPEDesc &vpe, uintptr_t &virt, uintptr_t pteAddr,
+    bool create_ptes(const VPEDesc &dst, const VPEDesc &vpe, goff_t &virt, goff_t pteAddr,
         m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
-    void remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, uintptr_t virt, int level);
-    uintptr_t get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
-        uintptr_t virt, int level);
+    void remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, goff_t virt, int level);
+    goff_t get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
+        goff_t virt, int level);
     void do_inject_irq(const VPEDesc &vpe, uint64_t cmd);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);

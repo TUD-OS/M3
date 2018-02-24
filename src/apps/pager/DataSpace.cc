@@ -67,8 +67,8 @@ void DataSpace::print(m3::OStream &os) const {
     _regs.print(os);
 }
 
-m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
-    size_t offset = m3::Math::round_dn(vaddr - addr(), PAGE_SIZE);
+m3::Errors::Code AnonDataSpace::handle_pf(goff_t vaddr) {
+    size_t offset = m3::Math::round_dn(vaddr - addr(), static_cast<goff_t>(PAGE_SIZE));
     Region *reg = _regs.pagefault(offset);
 
     // if it isn't backed with memory yet, allocate memory for it
@@ -102,9 +102,9 @@ m3::Errors::Code AnonDataSpace::handle_pf(uintptr_t vaddr) {
     return reg->map(map_flags());
 }
 
-m3::Errors::Code ExternalDataSpace::handle_pf(uintptr_t vaddr) {
+m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
     // find the region
-    size_t pfoff = m3::Math::round_dn(vaddr - addr(), PAGE_SIZE);
+    size_t pfoff = m3::Math::round_dn(vaddr - addr(), static_cast<goff_t>(PAGE_SIZE));
     Region *reg = _regs.pagefault(pfoff);
 
     // if we don't have memory yet, request it
