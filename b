@@ -306,10 +306,10 @@ case "$cmd" in
             echo "target remote localhost:$port" > $gdbcmd
             echo "display/i \$pc" >> $gdbcmd
             echo "b main" >> $gdbcmd
-            if hash rust-gdb 2>/dev/null; then
+            if [ "$M3_ISA" = "x86_64" ] && hash rust-gdb 2>/dev/null; then
                 rust-gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
             else
-                ${crossprefix}rust-gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
+                ${crossprefix}gdb --tui $bindir/${cmd#dbg=} --command=$gdbcmd
             fi
             killall -9 gem5.opt
             rm $gdbcmd
