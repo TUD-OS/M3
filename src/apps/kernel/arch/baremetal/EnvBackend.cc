@@ -63,8 +63,10 @@ public:
         uintptr_t virt = m3::Math::round_up<uintptr_t>(
             reinterpret_cast<uintptr_t>(heap_end), PAGE_SIZE);
         gaddr_t phys = m3::DTU::build_gaddr(alloc.pe(), alloc.addr);
+
         VPEDesc vpe(Platform::kernel_pe(), VPEManager::MAX_VPES);
-        DTU::get().map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
+        AddrSpace kas(vpe.id);
+        kas.map_pages(vpe, virt, phys, pages, m3::KIF::Perm::RW);
 
         m3::Heap::append(pages);
         return true;

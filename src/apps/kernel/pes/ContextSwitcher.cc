@@ -350,7 +350,7 @@ retry:
             if(_cur->_flags & VPE::F_INIT)
                 _cur->init_memory();
             else if(Platform::pe(_pe).has_mmu())
-                DTU::get().set_rootpt_remote(_cur->desc(), _cur->address_space()->root_pt());
+                _cur->address_space()->set_rootpt_remote(_cur->desc());
 
             [[fallthrough]];
         }

@@ -59,26 +59,6 @@ void DTU::inject_irq(const VPEDesc &) {
     // unsupported
 }
 
-void DTU::config_pf_remote(const VPEDesc &, gaddr_t, epid_t, epid_t) {
-    // unsupported
-}
-
-void DTU::set_rootpt_remote(const VPEDesc &, gaddr_t) {
-    // unsupported
-}
-
-void DTU::map_pages(const VPEDesc &, goff_t, gaddr_t, uint, int) {
-    // unsupported
-}
-
-void DTU::unmap_pages(const VPEDesc &, goff_t, uint) {
-    // unsupported
-}
-
-void DTU::remove_pts(vpeid_t) {
-    // unsupported
-}
-
 m3::Errors::Code DTU::inval_ep_remote(const VPEDesc &vpe, epid_t ep) {
     word_t regs[m3::DTU::EPS_RCNT];
     memset(regs, 0, sizeof(regs));

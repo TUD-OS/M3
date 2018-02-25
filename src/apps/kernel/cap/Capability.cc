@@ -80,19 +80,19 @@ void MGateCapability::revoke() {
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, int _attr)
     : Capability(tbl, sel, MAP, _pages), phys(_phys), attr(_attr) {
     VPE &vpe = VPEManager::get().vpe(tbl->id() - 1);
-    DTU::get().map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
+    vpe.address_space()->map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
 }
 
 void MapCapability::remap(gaddr_t _phys, int _attr) {
     phys = _phys;
     attr = _attr;
     VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
-    DTU::get().map_pages(vpe.desc(), sel() << PAGE_BITS, phys, length, attr);
+    vpe.address_space()->map_pages(vpe.desc(), sel() << PAGE_BITS, phys, length, attr);
 }
 
 void MapCapability::revoke() {
     VPE &vpe = VPEManager::get().vpe(table()->id() - 1);
-    DTU::get().unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
+    vpe.address_space()->unmap_pages(vpe.desc(), sel() << PAGE_BITS, length);
 }
 
 void SessCapability::revoke() {

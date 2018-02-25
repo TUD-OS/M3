@@ -26,6 +26,7 @@
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
 
 namespace kernel {
+class AddrSpace;
 class DTU;
 class DTURegs;
 class DTUState;
@@ -39,6 +40,7 @@ class VMA;
 namespace m3 {
 
 class DTU {
+    friend class kernel::AddrSpace;
     friend class kernel::DTU;
     friend class kernel::DTURegs;
     friend class kernel::DTUState;

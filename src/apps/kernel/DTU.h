@@ -55,15 +55,10 @@ public:
     void wakeup(const VPEDesc &vpe, goff_t addr = 0);
     void suspend(const VPEDesc &vpe);
     void inject_irq(const VPEDesc &vpe);
+    void ext_request(const VPEDesc &vpe, uint64_t req);
 
-    void config_pf_remote(const VPEDesc &vpe, gaddr_t rootpt, epid_t sep, epid_t rep);
-
-    void set_rootpt_remote(const VPEDesc &vpe, gaddr_t rootpt);
+    void invtlb_remote(const VPEDesc &vpe);
     void invlpg_remote(const VPEDesc &vpe, goff_t virt);
-
-    void map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pages, int perm);
-    void unmap_pages(const VPEDesc &vpe, goff_t virt, uint pages);
-    void remove_pts(vpeid_t vpe);
 
     m3::Errors::Code inval_ep_remote(const VPEDesc &vpe, epid_t ep);
     void read_ep_remote(const VPEDesc &vpe, epid_t ep, void *regs);
@@ -110,18 +105,8 @@ public:
 
 private:
 #if defined(__gem5__)
-    bool create_pt(const VPEDesc &dst, const VPEDesc &vpe, goff_t virt, goff_t pteAddr,
-        m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm, int level);
-    bool create_ptes(const VPEDesc &dst, const VPEDesc &vpe, goff_t &virt, goff_t pteAddr,
-        m3::DTU::pte_t pte, gaddr_t &phys, uint &pages, int perm);
-    void remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, goff_t virt, int level);
-    goff_t get_pte_addr_mem(const VPEDesc &dst, const VPEDesc &vpe, gaddr_t root,
-        goff_t virt, int level);
-    void do_inject_irq(const VPEDesc &vpe, uint64_t cmd);
     void do_set_vpeid(const VPEDesc &vpe, vpeid_t nid);
     void do_ext_cmd(const VPEDesc &vpe, m3::DTU::reg_t cmd);
-    void mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg);
-    void clear_pt(gaddr_t);
 #endif
 
     epid_t _ep;

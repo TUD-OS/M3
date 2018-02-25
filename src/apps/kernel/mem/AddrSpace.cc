@@ -19,13 +19,15 @@
 
 #include "mem/AddrSpace.h"
 #include "mem/MainMemory.h"
+#include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 
 namespace kernel {
 
-AddrSpace::AddrSpace(vpeid_t vpeid, epid_t sep, epid_t rep, capsel_t sgate)
-    : _vpeid(vpeid),
+AddrSpace::AddrSpace(peid_t pe, vpeid_t vpeid, epid_t sep, epid_t rep, capsel_t sgate)
+    : _pe(Platform::pe(pe)),
+      _vpeid(vpeid),
       _sep(sep),
       _rep(rep),
       _sgate(sgate),
@@ -41,8 +43,11 @@ AddrSpace::AddrSpace(vpeid_t vpeid, epid_t sep, epid_t rep, capsel_t sgate)
 }
 
 AddrSpace::~AddrSpace() {
-    // the root PT is free'd via the recursive entry
-    DTU::get().remove_pts(_vpeid);
+    // don't do that for the kernel
+    if(_vpeid != VPEManager::MAX_VPES) {
+        // the root PT is free'd via the recursive entry
+        remove_pts(_vpeid);
+    }
 }
 
 }

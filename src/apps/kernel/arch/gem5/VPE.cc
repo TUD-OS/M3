@@ -307,8 +307,7 @@ void VPE::init_memory() {
         else {
             _dtustate.config_pf(address_space()->root_pt(),
                 address_space()->sep(), address_space()->rep());
-            DTU::get().config_pf_remote(desc(), address_space()->root_pt(),
-                address_space()->sep(), address_space()->rep());
+            address_space()->setup(desc());
         }
     }
 
@@ -324,8 +323,7 @@ void VPE::init_memory() {
         _state = VPE::RUNNING;
         _dtustate.config_pf(address_space()->root_pt(),
             address_space()->sep(), address_space()->rep());
-        DTU::get().config_pf_remote(desc(), address_space()->root_pt(),
-            address_space()->sep(), address_space()->rep());
+        address_space()->setup(desc());
     }
 
     if(vm) {
