@@ -18,6 +18,7 @@
 #include <base/DTU.h>
 
 static inline cycles_t gem5_debug(unsigned msg) {
+#if defined(__x86_64__)
     cycles_t res;
     asm volatile (
         ".byte 0x0F, 0x04;"
@@ -25,6 +26,14 @@ static inline cycles_t gem5_debug(unsigned msg) {
         : "=a"(res) : "D"(msg)
     );
     return res;
+#else
+    register cycles_t r0 asm ("r0") = msg;
+    asm volatile (
+        ".long 0xEE630110"
+        : "+r"(r0)
+    );
+    return r0;
+#endif
 }
 
 namespace m3 {
