@@ -249,22 +249,27 @@ void HeapTestSuite::TestCase8::run() {
 void HeapTestSuite::TestCase9::run() {
     check_heap_before();
 
-    void *ptrs[HEAP_SIZE / 0x200];
+    if(VPE::self().pe().has_cache()) {
+        cout << "Skipping alloc-all test case on cache PE.\n";
+        return;
+    }
+
+    void *ptrs[HEAP_SIZE / 0x4000];
 
     // free backwards
     ssize_t i;
     for(i = 0; i < static_cast<ssize_t>(ARRAY_SIZE(ptrs)); ++i) {
-        ptrs[i] = Heap::try_alloc(0x200);
+        ptrs[i] = Heap::try_alloc(0x4000);
         if(ptrs[i] == nullptr)
             break;
     }
     assert_true(ptrs[i] == nullptr);
-    for(; i >= 0; --i)
+    for(i--; i >= 0; --i)
         Heap::free(ptrs[i]);
 
     // free forward
     for(i = 0; i < static_cast<ssize_t>(ARRAY_SIZE(ptrs)); ++i) {
-        ptrs[i] = Heap::try_alloc(0x200);
+        ptrs[i] = Heap::try_alloc(0x4000);
         if(ptrs[i] == nullptr)
             break;
     }

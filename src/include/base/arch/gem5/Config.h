@@ -26,7 +26,7 @@
 #define MOD_HEAP_SIZE       (1024 * 1024)
 #define APP_HEAP_SIZE       (64 * 1024 * 1024)
 
-#define HEAP_SIZE           0x20000
+#define HEAP_SIZE           0x800000
 #define EP_COUNT            12
 
 #define RT_START            0x6000
