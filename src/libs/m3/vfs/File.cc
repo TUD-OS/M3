@@ -56,10 +56,14 @@ ssize_t File::Buffer::write(File *file, const void *src, size_t amount) {
 }
 
 ssize_t File::Buffer::flush(File *file) {
-    if(cur > 0) {
-        file->write(buffer, cur);
-        cur = 0;
+    size_t off = 0;
+    while(off < cur) {
+        ssize_t res = file->write(buffer + off, cur - off);
+        if(res < 0)
+            return res;
+        off += static_cast<size_t>(res);
     }
+    cur = 0;
     return 1;
 }
 
