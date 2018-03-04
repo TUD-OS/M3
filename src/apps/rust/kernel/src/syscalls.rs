@@ -13,7 +13,7 @@ use thread;
 use arch::kdtu;
 use arch::vm;
 use cap::{Capability, KObject, MapFlags, SelRange};
-use cap::{MGateObject, MapObject, RGateObject, SGateObject, ServObject, SessObject};
+use cap::{EPObject, MGateObject, MapObject, RGateObject, SGateObject, ServObject, SessObject};
 use com::{Service, ServiceList};
 use mem;
 use pes::{INVALID_VPE, vpemng};
@@ -390,8 +390,7 @@ fn create_sess_at(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<
 #[inline(never)]
 fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateVPE = get_message(msg);
-    let dst_sel = req.dst_sel as CapSel;
-    let mgate_sel = req.mgate_sel as CapSel;
+    let dst_crd = CapRngDesc::new_from(req.dst_crd);
     let sgate_sel = req.sgate_sel as CapSel;
     let pedesc = kif::PEDesc::new_from(req.pe as u32);
     let sep = req.sep as dtu::EpId;
@@ -400,12 +399,13 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
 
     sysc_log!(
-        vpe, "create_vpe(dst={}, mgate={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
-        dst_sel, mgate_sel, sgate_sel, name, pedesc, sep, rep, muxable
+        vpe, "create_vpe(dst={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, muxable={})",
+        dst_crd, sgate_sel, name, pedesc, sep, rep, muxable
     );
 
-    if !vpe.borrow().obj_caps().unused(dst_sel) || !vpe.borrow().obj_caps().unused(mgate_sel) {
-        sysc_err!(vpe, Code::InvArgs, "Selector {} or {} already in use", dst_sel, mgate_sel);
+    let cap_count = (2 + dtu::EP_COUNT - dtu::FIRST_FREE_EP) as CapSel;
+    if dst_crd.count() != cap_count || !vpe.borrow().obj_caps().range_unused(&dst_crd) {
+        sysc_err!(vpe, Code::InvArgs, "Selectors {} already in use", dst_crd);
     }
 
     let addr_space = if pedesc.has_virtmem() {
@@ -431,16 +431,9 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     {
         let mut vpe_ref  = vpe.borrow_mut();
         let mut nvpe_ref = nvpe.borrow_mut();
-        // VPE capability
-        {
-            let vpe_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(0);
-            vpe_cap.map(|c| vpe_ref.obj_caps_mut().obtain(dst_sel, c, false));
-        }
-
-        // memory capability
-        {
-            let mem_cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(1);
-            mem_cap.map(|c| vpe_ref.obj_caps_mut().obtain(mgate_sel, c, true));
+        for sel in 0..cap_count {
+            let cap: Option<&mut Capability> = nvpe_ref.obj_caps_mut().get_mut(sel);
+            cap.map(|c| vpe_ref.obj_caps_mut().obtain(dst_crd.start() + sel, c, false));
         }
 
         // pagefault send gate capability
@@ -719,32 +712,29 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
 #[inline(never)]
 fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::Activate = get_message(msg);
-    let vpe_sel = req.vpe_sel as CapSel;
+    let ep_sel = req.ep_sel as CapSel;
     let gate_sel = req.gate_sel as CapSel;
-    let ep = req.ep as usize;
     let addr = req.addr as usize;
 
     sysc_log!(
-        vpe, "activate(vpe={}, gate={}, ep={}, addr={:#x})",
-        vpe_sel, gate_sel, ep, addr
+        vpe, "activate(ep={}, gate={}, addr={:#x})",
+        ep_sel, gate_sel, addr
     );
 
-    if ep <= dtu::UPCALL_REP || ep >= dtu::EP_COUNT {
-        sysc_err!(vpe, Code::InvArgs, "Invalid EP");
-    }
-
-    let vpe_ref: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
+    let ep: Rc<RefCell<EPObject>> = get_kobj!(vpe, ep_sel, EP);
+    let vpe_ref = vpemng::get().vpe(ep.borrow().vpe).unwrap();
+    let epid = ep.borrow().ep;
 
     {
         let mut vpe_mut = vpe_ref.borrow_mut();
-        if let Some(old_sel) = vpe_mut.get_ep_sel(ep) {
+        if let Some(old_sel) = vpe_mut.get_ep_sel(epid) {
             if let Some(old_cap) = vpe_mut.obj_caps_mut().get_mut(old_sel) {
                 if let &mut KObject::RGate(ref mut rgate) = old_cap.get_mut() {
                     rgate.borrow_mut().addr = 0;
                 }
             }
 
-            vpe_mut.invalidate_ep(ep, true)?;
+            vpe_mut.invalidate_ep(epid, true)?;
         }
     }
 
@@ -759,9 +749,9 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
                 rgate.vpe = vpe_ref.borrow().id();
                 rgate.addr = addr;
-                rgate.ep = Some(ep);
+                rgate.ep = Some(epid);
 
-                if let Err(e) = vpe_ref.borrow_mut().config_rcv_ep(ep, &mut rgate) {
+                if let Err(e) = vpe_ref.borrow_mut().config_rcv_ep(epid, &mut rgate) {
                     rgate.addr = 0;
                     sysc_err!(vpe, e.code(), "Unable to configure recv EP");
                 }
@@ -769,7 +759,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
             KObject::MGate(ref m)    => {
                 let pe_id = m.borrow().pe_id().unwrap();
-                if let Err(e) = vpe_ref.borrow_mut().config_mem_ep(ep, &m.borrow(), pe_id, addr) {
+                if let Err(e) = vpe_ref.borrow_mut().config_mem_ep(epid, &m.borrow(), pe_id, addr) {
                     sysc_err!(vpe, e.code(), "Unable to configure mem EP");
                 }
             },
@@ -787,18 +777,18 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                 }
 
                 let pe_id = vpemng::get().pe_of(rgate.borrow().vpe).unwrap();
-                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(ep, &s.borrow(), pe_id) {
+                if let Err(e) = vpe_ref.borrow_mut().config_snd_ep(epid, &s.borrow(), pe_id) {
                     sysc_err!(vpe, e.code(), "Unable to configure send EP");
                 }
             },
 
             _                        => sysc_err!(vpe, Code::InvArgs, "Invalid capability"),
         };
-        vpe_ref.borrow_mut().set_ep_sel(ep, Some(gate_sel));
+        vpe_ref.borrow_mut().set_ep_sel(epid, Some(gate_sel));
     }
     else {
-        vpe_ref.borrow_mut().invalidate_ep(ep, false)?;
-        vpe_ref.borrow_mut().set_ep_sel(ep, None);
+        vpe_ref.borrow_mut().invalidate_ep(epid, false)?;
+        vpe_ref.borrow_mut().set_ep_sel(epid, None);
     }
 
     reply_success(msg);

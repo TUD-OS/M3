@@ -63,7 +63,7 @@ uint64_t Hash::sendRequest(HashAccel::Command cmd, uint64_t arg1, uint64_t arg2)
 bool Hash::update(capsel_t mem, size_t offset, size_t len) {
     // that assumes that we never reuse a selector for a different capability
     if(_lastmem != mem) {
-        Syscalls::get().activate(_accel->vpe().sel(), mem, HashAccel::DATA_EP, 0);
+        Syscalls::get().activate(_accel->vpe().ep_sel(HashAccel::DATA_EP), mem, 0);
         _lastmem = mem;
     }
 

@@ -58,7 +58,7 @@ public:
     /**
      * The first available selector
      */
-    static constexpr uint SEL_START     = 2;
+    static constexpr uint SEL_START     = 2 + (EP_COUNT - DTU::FIRST_FREE_EP);
 
     explicit VPE();
 
@@ -86,6 +86,10 @@ public:
      */
     const PEDesc &pe() const {
         return _pe;
+    }
+
+    capsel_t ep_sel(epid_t ep) {
+        return sel() + 2 + ep - DTU::FIRST_FREE_EP;
     }
 
     /**

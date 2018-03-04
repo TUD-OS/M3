@@ -29,7 +29,7 @@ impl EpMux {
     pub fn reserve(&mut self, ep: EpId) {
         // take care that some non-fixed gate could already use that endpoint
         if let Some(g) = self.gate_at_ep(ep) {
-            syscalls::activate(0, INVALID_SEL, g.ep().unwrap(), 0).ok();
+            self.activate(g.ep().unwrap(), INVALID_SEL).ok();
             g.unset_ep();
         }
         self.gates[ep] = None;
@@ -40,7 +40,7 @@ impl EpMux {
             Some(idx) => Ok(idx),
             None      => {
                 let idx = self.select_victim()?;
-                syscalls::activate(0, g.sel(), idx, 0)?;
+                self.activate(idx, g.sel())?;
                 self.gates[idx] = Some(g);
                 g.set_ep(idx);
                 Ok(idx)
@@ -50,7 +50,7 @@ impl EpMux {
 
     pub fn switch_cap(&mut self, g: &Gate, sel: Selector) -> Result<(), Error> {
         if let Some(ep) = g.ep() {
-            syscalls::activate(0, sel, ep, 0)?;
+            self.activate(ep, sel)?;
             if sel == INVALID_SEL {
                 self.gates[ep] = None;
                 g.unset_ep();
@@ -64,7 +64,7 @@ impl EpMux {
             self.gates[ep] = None;
             // only necessary if we won't revoke the gate anyway
             if !(g.flags() & CapFlags::KEEP_CAP).is_empty() {
-                syscalls::activate(0, INVALID_SEL, ep, 0).ok();
+                self.activate(ep, INVALID_SEL).ok();
             }
             g.unset_ep();
         }
@@ -108,5 +108,9 @@ impl EpMux {
         else {
             None
         }
+    }
+
+    fn activate(&self, ep: EpId, gate: Selector) -> Result<(), Error> {
+        syscalls::activate(vpe::VPE::cur().ep_sel(ep), gate, 0)
     }
 }

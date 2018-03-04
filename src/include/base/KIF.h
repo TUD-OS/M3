@@ -207,8 +207,7 @@ struct KIF {
         } PACKED;
 
         struct CreateVPE : public DefaultRequest {
-            xfer_t dst_sel;
-            xfer_t mgate_sel;
+            xfer_t dst_crd;
             xfer_t sgate_sel;
             xfer_t pe;
             xfer_t sep;
@@ -223,9 +222,8 @@ struct KIF {
         } PACKED;
 
         struct Activate : public DefaultRequest {
-            xfer_t vpe_sel;
+            xfer_t ep_sel;
             xfer_t gate_sel;
-            xfer_t ep;
             xfer_t addr;
         } PACKED;
 

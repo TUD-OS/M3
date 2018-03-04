@@ -22,6 +22,7 @@ pub enum KObject {
     Serv(Rc<RefCell<ServObject>>),
     Sess(Rc<RefCell<SessObject>>),
     VPE(Rc<RefCell<VPE>>),
+    EP(Rc<RefCell<EPObject>>),
 }
 
 impl fmt::Debug for KObject {
@@ -34,6 +35,7 @@ impl fmt::Debug for KObject {
             KObject::Serv(ref s)    => write!(f, "{:?}", s.borrow()),
             KObject::Sess(ref s)    => write!(f, "{:?}", s.borrow()),
             KObject::VPE(ref v)     => write!(f, "{:?}", v.borrow()),
+            KObject::EP(ref e)      => write!(f, "{:?}", e.borrow()),
         }
     }
 }
@@ -242,6 +244,26 @@ impl fmt::Debug for SessObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Sess[service={}, ident={:#x}, srv_owned={}]",
             self.srv.borrow().name, self.ident, self.srv_owned)
+    }
+}
+
+pub struct EPObject {
+    pub vpe: VPEId,
+    pub ep: EpId,
+}
+
+impl EPObject {
+    pub fn new(vpe: VPEId, ep: EpId) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(EPObject {
+            vpe: vpe,
+            ep: ep,
+        }))
+    }
+}
+
+impl fmt::Debug for EPObject {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "EPMask[vpe={}, ep={}]", self.vpe, self.ep)
     }
 }
 

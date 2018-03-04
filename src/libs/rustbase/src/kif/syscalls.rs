@@ -134,8 +134,7 @@ pub struct CreateMap {
 #[repr(C, packed)]
 pub struct CreateVPE {
     pub opcode: u64,
-    pub dst_sel: u64,
-    pub mgate_sel: u64,
+    pub dst_crd: u64,
     pub sgate_sel: u64,
     pub pe: u64,
     pub sep: u64,
@@ -156,9 +155,8 @@ pub struct CreateVPEReply {
 #[repr(C, packed)]
 pub struct Activate {
     pub opcode: u64,
-    pub vpe_sel: u64,
+    pub ep_sel: u64,
     pub gate_sel: u64,
-    pub ep: u64,
     pub addr: u64,
 }
 

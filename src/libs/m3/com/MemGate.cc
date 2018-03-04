@@ -47,7 +47,7 @@ MemGate MemGate::derive(capsel_t cap, goff_t offset, size_t size, int perms) con
 }
 
 Errors::Code MemGate::activate_for(VPE &vpe, epid_t ep, goff_t offset) {
-    return Syscalls::get().activate(vpe.sel(), sel(), ep, offset);
+    return Syscalls::get().activate(vpe.ep_sel(ep), sel(), offset);
 }
 
 Errors::Code MemGate::forward(void *&data, size_t &len, goff_t &offset, uint flags) {

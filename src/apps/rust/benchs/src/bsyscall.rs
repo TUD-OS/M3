@@ -42,7 +42,7 @@ fn activate() {
     let mut prof = profile::Profiler::new();
 
     println!("{}", prof.run_with_id(|| {
-        assert_ok!(syscalls::activate(VPE::cur().sel(), mgate.sel(), ep, 0));
+        assert_ok!(syscalls::activate(VPE::cur().ep_sel(ep), mgate.sel(), 0));
     }, 0x11));
 }
 

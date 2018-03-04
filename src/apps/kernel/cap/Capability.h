@@ -49,6 +49,7 @@ public:
         MGATE   = 0x10,
         MAP     = 0x20,
         VIRTPE  = 0x40,
+        EP      = 0x80,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
@@ -173,6 +174,16 @@ public:
     m3::Reference<Service> srv;
 };
 
+class EPObject : public SlabObject<EPObject>, public m3::RefCounted {
+public:
+    explicit EPObject(vpeid_t _vpe, epid_t _ep)
+        : RefCounted(), ep(_ep), vpe(_vpe) {
+    }
+
+    epid_t ep;
+    vpeid_t vpe;
+};
+
 class RGateCapability : public SlabObject<RGateCapability>, public Capability {
 public:
     explicit RGateCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
@@ -290,6 +301,25 @@ private:
 
 public:
     m3::Reference<SessObject> obj;
+};
+
+class EPCapability : public SlabObject<EPCapability>, public Capability {
+public:
+    explicit EPCapability(CapTable *tbl, capsel_t sel, vpeid_t vpe, epid_t ep)
+        : Capability(tbl, sel, EP), obj(new EPObject(vpe, ep)) {
+    }
+
+    void printInfo(m3::OStream &os) const override;
+
+private:
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        EPCapability *e = new EPCapability(*this);
+        e->put(tbl, sel);
+        return e;
+    }
+
+public:
+    m3::Reference<EPObject> obj;
 };
 
 class VPECapability : public SlabObject<VPECapability>, public Capability {

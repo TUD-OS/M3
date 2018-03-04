@@ -13,7 +13,7 @@ use thread;
 use arch::kdtu;
 use arch::loader::Loader;
 use arch::vm;
-use cap::{Capability, CapTable, KObject, SGateObject, RGateObject, MGateObject};
+use cap::{Capability, CapTable, EPObject, KObject, SGateObject, RGateObject, MGateObject};
 use mem::Allocation;
 use pes::vpemng;
 use platform;
@@ -143,6 +143,13 @@ impl VPE {
                     id, Allocation::new(GlobAddr::new(0), cfg::MEM_CAP_END), Perm::RWX, true
                 )))
             );
+            // ep caps
+            for ep in FIRST_FREE_EP..EP_COUNT {
+                let sel = 2 + (ep - FIRST_FREE_EP) as CapSel;
+                vpe_mut.obj_caps_mut().insert(
+                    Capability::new(sel, KObject::EP(EPObject::new(id, ep)))
+                );
+            }
 
             vpe_mut.init();
         }

@@ -148,8 +148,8 @@ impl VPE {
             cap: Capability::new(0, CapFlags::KEEP_CAP),
             pe: PEDesc::new_from(0),
             mem: MemGate::new_bind(1),
-            // 0 and 1 are reserved for VPE cap and mem cap
-            next_sel: 2,
+            // 0 and 1 are reserved for VPE cap and mem cap; the rest are used for EP caps
+            next_sel: 2 + (EP_COUNT - FIRST_FREE_EP) as Selector,
             eps: 0,
             rbufs: arch::rbufs::RBufSpace::new(),
             pager: None,
@@ -185,13 +185,14 @@ impl VPE {
     }
 
     pub fn new_with(args: VPEArgs) -> Result<Self, Error> {
-        let sels = VPE::cur().alloc_sels(2);
+        let cap_count = 2 + (EP_COUNT - FIRST_FREE_EP) as Selector;
+        let sels = VPE::cur().alloc_sels(cap_count);
 
         let mut vpe = VPE {
             cap: Capability::new(sels + 0, CapFlags::empty()),
             pe: args.pe,
             mem: MemGate::new_bind(sels + 1),
-            next_sel: 2,
+            next_sel: cap_count,
             eps: 0,
             rbufs: arch::rbufs::RBufSpace::new(),
             pager: None,
@@ -221,18 +222,19 @@ impl VPE {
             None
         };
 
+        let crd = CapRngDesc::new(CapType::OBJECT, vpe.sel(), cap_count);
         vpe.pager = if let Some(mut pg) = pager {
             let sgate_sel = pg.sgate().sel();
 
             // now create VPE, which implicitly obtains the gate cap from us
             vpe.pe = syscalls::create_vpe(
-                vpe.sel(), vpe.mem().sel(), sgate_sel, args.name,
+                crd, sgate_sel, args.name,
                 args.pe, vpe.alloc_ep()?, pg.rep(), args.muxable
             )?;
 
             // after the VPE creation, we can activate the receive gate
             // note that we do that here in case neither run nor exec is used
-            pg.activate(vpe.sel())?;
+            pg.activate(vpe.ep_sel(FIRST_FREE_EP))?;
 
             // mark the pager caps allocated
             vpe.next_sel = util::max(sgate_sel + 1, vpe.next_sel);
@@ -244,7 +246,7 @@ impl VPE {
         }
         else {
             vpe.pe = syscalls::create_vpe(
-                sels + 0, sels + 1, INVALID_SEL, args.name,
+                crd, INVALID_SEL, args.name,
                 args.pe, 0, 0, args.muxable
             )?;
             None
@@ -264,6 +266,9 @@ impl VPE {
     }
     pub fn mem(&self) -> &MemGate {
         &self.mem
+    }
+    pub fn ep_sel(&self, ep: EpId) -> Selector {
+        self.sel() + 2 + (ep - FIRST_FREE_EP) as Selector
     }
 
     pub(crate) fn rbufs(&mut self) -> &mut arch::rbufs::RBufSpace {
@@ -370,9 +375,9 @@ impl VPE {
                   where F: FnBox() -> i32, F: Send + 'static {
         use cfg;
 
-        let sel = self.sel();
+        let first_ep_sel = self.ep_sel(FIRST_FREE_EP);
         if let Some(ref mut pg) = self.pager {
-            pg.activate(sel)?;
+            pg.activate(first_ep_sel)?;
         }
 
         let env = arch::env::get();
@@ -468,9 +473,9 @@ impl VPE {
         let file = VFS::open(args[0].as_ref(), OpenFlags::RX)?;
         let mut file = BufReader::new(file);
 
-        let sel = self.sel();
+        let first_ep_sel = self.ep_sel(FIRST_FREE_EP);
         if let Some(ref mut pg) = self.pager {
-            pg.activate(sel)?;
+            pg.activate(first_ep_sel)?;
         }
 
         let mut senv = arch::env::EnvData::default();

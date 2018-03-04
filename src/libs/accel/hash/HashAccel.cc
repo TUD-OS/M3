@@ -31,7 +31,7 @@ const size_t HashAccel::STATE_ADDR  = BUF_ADDR - STATE_SIZE;
 HashIAccel::HashIAccel(bool muxable)
     : _vpe("acc", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_SHA), nullptr, muxable),
       _spm(MemGate::create_global(BUF_SIZE + STATE_SIZE, MemGate::RW)) {
-    Syscalls::get().activate(_vpe.sel(), _spm.sel(), MEM_EP, 0);
+    Syscalls::get().activate(_vpe.ep_sel(MEM_EP), _spm.sel(), 0);
 }
 
 HashEAccel::HashEAccel(bool muxable)

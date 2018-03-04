@@ -56,6 +56,10 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _argv() {
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MGateCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
+    for(epid_t ep = m3::DTU::FIRST_FREE_EP; ep < EP_COUNT; ++ep) {
+        capsel_t sel = 2 + ep - m3::DTU::FIRST_FREE_EP;
+        _objcaps.set(sel, new EPCapability(&_objcaps, sel, id, ep));
+    }
 
     if(!Platform::pe(pe()).has_virtmem())
         _rbufcpy = MainMemory::get().allocate(RECVBUF_SIZE_SPM, PAGE_SIZE);

@@ -44,7 +44,8 @@ public:
         RECV_GATE,
         SERVICE,
         SESSION,
-        VIRTPE
+        VIRTPE,
+        EPMASK,
     };
 
     /**

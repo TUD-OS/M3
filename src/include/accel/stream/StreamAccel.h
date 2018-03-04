@@ -73,7 +73,7 @@ public:
               rgate(m3::RecvGate::create_for(*vpe, m3::getnextlog2(rbSize), m3::getnextlog2(MSG_SIZE))),
               sgate(m3::SendGate::create(&rgdst, label, rbSize)),
               spm(m3::MemGate::create_global(BUF_SIZE + STATE_SIZE, m3::MemGate::RW)) {
-            m3::Syscalls::get().activate(vpe->sel(), spm.sel(), EP_CTX, 0);
+            m3::Syscalls::get().activate(vpe->ep_sel(EP_CTX), spm.sel(), 0);
         }
         ~ChainMember() {
             delete vpe;

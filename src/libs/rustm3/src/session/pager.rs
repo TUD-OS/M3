@@ -87,10 +87,10 @@ impl Pager {
             rg.deactivate();
         }
     }
-    pub fn activate(&mut self, vpe: cap::Selector) -> Result<(), Error> {
+    pub fn activate(&mut self, first_ep: cap::Selector) -> Result<(), Error> {
         if let Some(ref mut rg) = self.rgate {
             assert!(self.rbuf != 0);
-            rg.activate_for(vpe, self.rep, self.rbuf)
+            rg.activate_for(first_ep, self.rep, self.rbuf)
         }
         else {
             Ok(())

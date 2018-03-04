@@ -34,7 +34,8 @@ INIT_PRIO_VPE VPE VPE::_self;
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
     : ObjCap(VIRTPE, 0, KEEP_CAP), _pe(env()->pedesc),
-      _mem(MemGate::bind(1)), _next_sel(SEL_START), _eps(), _pager(), _rbufcur(), _rbufend(),
+      _mem(MemGate::bind(1)),
+      _next_sel(SEL_START), _eps(), _pager(), _rbufcur(), _rbufend(),
       _ms(), _fds(), _exec() {
     static_assert(EP_COUNT < 64, "64 endpoints are the maximum due to the 64-bit bitmask");
     init_state();
@@ -55,7 +56,7 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
-        : ObjCap(VIRTPE, VPE::self().alloc_caps(2)),
+        : ObjCap(VIRTPE, VPE::self().alloc_caps(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _next_sel(SEL_START), _eps(),
           _pager(), _rbufcur(), _rbufend(),
@@ -70,10 +71,11 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
             return;
     }
 
+    KIF::CapRngDesc dst(KIF::CapRngDesc::OBJ, sel(), 2 + EP_COUNT - DTU::FIRST_FREE_EP);
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
-        Syscalls::get().createvpe(sel(), _mem.sel(), _pager->gate().sel(),
-            name, _pe, alloc_ep(), _pager->rep(), tmuxable);
+        Syscalls::get().createvpe(dst, _pager->gate().sel(), name, _pe,
+            alloc_ep(), _pager->rep(), tmuxable);
         // mark the send gate cap allocated
         _next_sel = Math::max(_pager->gate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager
@@ -81,10 +83,8 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         // and delegate the pager cap to the VPE
         delegate_obj(_pager->sel());
     }
-    else {
-        Syscalls::get().createvpe(sel(), _mem.sel(), ObjCap::INVALID, name, _pe,
-            0, 0, tmuxable);
-    }
+    else
+        Syscalls::get().createvpe(dst, ObjCap::INVALID, name, _pe, 0, 0, tmuxable);
 }
 
 VPE::~VPE() {

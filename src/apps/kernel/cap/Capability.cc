@@ -159,6 +159,12 @@ void SessCapability::printInfo(m3::OStream &os) const {
         << ", servowned=" << obj->servowned << "]";
 }
 
+void EPCapability::printInfo(m3::OStream &os) const {
+    os << ": ep  [refs=" << obj->refcount()
+        << ", vpe=" << obj->vpe
+        << ", ep=" << obj->ep << "]";
+}
+
 void VPECapability::printInfo(m3::OStream &os) const {
     os << ": vpe  [refs=" << obj->refcount()
        << ", name=" << obj->name() << "]";

@@ -49,12 +49,12 @@ public:
     Errors::Code creatergate(capsel_t dst, int order, int msgorder);
     Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);
     Errors::Code createmgate(capsel_t dst, goff_t addr, size_t size, int perms);
-    Errors::Code createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate,
-                           const String &name, PEDesc &pe, epid_t sep, epid_t rep, bool tmuxable);
+    Errors::Code createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, const String &name, PEDesc &pe,
+                           epid_t sep, epid_t rep, bool tmuxable);
     Errors::Code createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, capsel_t first,
                            capsel_t pages, int perms);
 
-    Errors::Code activate(capsel_t vpe, capsel_t gate, epid_t ep, goff_t addr);
+    Errors::Code activate(capsel_t ep, capsel_t gate, goff_t addr);
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg);
     Errors::Code derivemem(capsel_t dst, capsel_t src, goff_t offset, size_t size, int perms);
 

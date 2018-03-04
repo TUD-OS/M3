@@ -69,18 +69,17 @@ pub fn create_srv(dst: Selector, rgate: Selector, name: &str) -> Result<(), Erro
     send_receive_result(&req)
 }
 
-pub fn activate(vpe: Selector, gate: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
+pub fn activate(ep: Selector, gate: Selector, addr: usize) -> Result<(), Error> {
     log!(
         SYSC,
-        "syscalls::activate(vpe={}, gate={}, ep={}, addr={})",
-        vpe, gate, ep, addr
+        "syscalls::activate(ep={}, gate={}, addr={})",
+        ep, gate, addr
     );
 
     let req = syscalls::Activate {
         opcode: syscalls::Operation::ACTIVATE.val,
-        vpe_sel: vpe as u64,
+        ep_sel: ep as u64,
         gate_sel: gate as u64,
-        ep: ep as u64,
         addr: addr as u64,
     };
     send_receive_result(&req)
@@ -179,18 +178,17 @@ pub fn create_map(dst: Selector, vpe: Selector, mgate: Selector, first: Selector
     send_receive_result(&req)
 }
 
-pub fn create_vpe(dst: Selector, mgate: Selector, sgate: Selector, name: &str,
-                  pe: PEDesc, sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
+pub fn create_vpe(dst: CapRngDesc, sgate: Selector, name: &str, pe: PEDesc,
+                  sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
     log!(
         SYSC,
-        "syscalls::create_vpe(dst={}, mgate={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
-        dst, mgate, sgate, name, pe, sep, rep, tmuxable
+        "syscalls::create_vpe(dst={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
+        dst, sgate, name, pe, sep, rep, tmuxable
     );
 
     let mut req = syscalls::CreateVPE {
         opcode: syscalls::Operation::CREATE_VPE.val,
-        dst_sel: dst as u64,
-        mgate_sel: mgate as u64,
+        dst_crd: dst.value() as u64,
         sgate_sel: sgate as u64,
         pe: pe.value() as u64,
         sep: sep as u64,

@@ -156,7 +156,7 @@ impl RecvGate {
                 self.buf
             };
 
-            self.activate_for(vpe.sel(), ep, buf)?;
+            self.activate_for(vpe.ep_sel(dtu::FIRST_FREE_EP), ep, buf)?;
             if self.buf == 0 {
                 self.buf = buf;
                 self.free |= FreeFlags::FREE_BUF;
@@ -166,12 +166,13 @@ impl RecvGate {
         Ok(())
     }
 
-    pub fn activate_for(&mut self, vpe: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
+    pub fn activate_for(&mut self, first_ep: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
         if self.ep().is_none() {
             self.gate.set_ep(ep);
 
             if self.sel() != INVALID_SEL {
-                syscalls::activate(vpe, self.sel(), ep, addr)?;
+                let ep_sel = first_ep + (ep - dtu::FIRST_FREE_EP) as Selector;
+                syscalls::activate(ep_sel, self.sel(), addr)?;
             }
         }
         Ok(())

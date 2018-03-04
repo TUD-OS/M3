@@ -141,17 +141,15 @@ Errors::Code Syscalls::createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, cap
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate,
-                                 const String &name, PEDesc &pe, epid_t sep, epid_t rep,
-                                 bool tmuxable) {
-    LLOG(SYSC, "createvpe(dst=" << dst << ", mgate=" << mgate << ", sgate=" << sgate
+Errors::Code Syscalls::createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, const String &name,
+                                 PEDesc &pe, epid_t sep, epid_t rep, bool tmuxable) {
+    LLOG(SYSC, "createvpe(dst=" << dst << ", sgate=" << sgate
         << ", name=" << name << ", type=" << static_cast<int>(pe.type())
         << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable << ")");
 
     KIF::Syscall::CreateVPE req;
     req.opcode = KIF::Syscall::CREATE_VPE;
-    req.dst_sel = dst;
-    req.mgate_sel = mgate;
+    req.dst_crd = dst.value();
     req.sgate_sel = sgate;
     req.pe = pe.value();
     req.sep = sep;
@@ -172,14 +170,13 @@ Errors::Code Syscalls::createvpe(capsel_t dst, capsel_t mgate, capsel_t sgate,
     return Errors::last;
 }
 
-Errors::Code Syscalls::activate(capsel_t vpe, capsel_t gate, epid_t ep, goff_t addr) {
-    LLOG(SYSC, "activate(vpe=" << vpe << ", gate=" << gate << ", ep=" << ep << ")");
+Errors::Code Syscalls::activate(capsel_t ep, capsel_t gate, goff_t addr) {
+    LLOG(SYSC, "activate(ep=" << ep << ", gate=" << gate << ")");
 
     KIF::Syscall::Activate req;
     req.opcode = KIF::Syscall::ACTIVATE;
-    req.vpe_sel = vpe;
+    req.ep_sel = ep;
     req.gate_sel = gate;
-    req.ep = ep;
     req.addr = addr;
     return send_receive_result(&req, sizeof(req));
 }

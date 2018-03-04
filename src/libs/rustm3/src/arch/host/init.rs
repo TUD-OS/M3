@@ -28,8 +28,8 @@ pub extern "C" fn rust_init(argc: i32, argv: *const *const i8) {
     heap::init();
     arch::env::init(argc, argv);
     vpe::init();
-    io::init();
     com::init();
+    io::init();
     arch::dtu::init();
 }
 

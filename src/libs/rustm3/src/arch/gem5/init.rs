@@ -23,8 +23,8 @@ extern "C" {
 pub extern "C" fn env_run() {
     let res = if arch::env::get().has_lambda() {
         io::reinit();
-        vpe::reinit();
         com::reinit();
+        vpe::reinit();
         arch::env::closure().call()
     }
     else {
