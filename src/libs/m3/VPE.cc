@@ -105,6 +105,11 @@ epid_t VPE::alloc_ep() {
     for(epid_t ep = DTU::FIRST_FREE_EP; ep < EP_COUNT; ++ep) {
         if(is_ep_free(ep)) {
             _eps |= static_cast<uint64_t>(1) << ep;
+
+            // invalidate the EP if necessary
+            if(this == &VPE::self())
+                EPMux::get().reserve(ep);
+
             return ep;
         }
     }

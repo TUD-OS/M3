@@ -3,7 +3,7 @@ use boxed::{Box, FnBox};
 use cap::{CapFlags, Capability, Selector};
 use cell::StaticCell;
 use col::Vec;
-use com::MemGate;
+use com::{EpMux, MemGate};
 use core::fmt;
 use dtu::{EP_COUNT, FIRST_FREE_EP, EpId};
 use env;
@@ -293,6 +293,12 @@ impl VPE {
         for ep in FIRST_FREE_EP..EP_COUNT {
             if self.is_ep_free(ep) {
                 self.eps |= 1 << ep;
+
+                // invalidate the EP if necessary
+                if self.sel() == 0 {
+                    EpMux::get().reserve(ep);
+                }
+
                 return Ok(ep)
             }
         }

@@ -136,10 +136,6 @@ void RecvGate::activate(epid_t _ep, uintptr_t addr) {
 
     ep(_ep);
 
-    // first reserve the endpoint; we might need to invalidate it
-    if(&_vpe == &VPE::self())
-        EPMux::get().reserve(ep());
-
 #if defined(__t3__)
     // required for t3 because one can't write to these registers externally
     DTU::get().configure_recv(ep(), addr, order(), msgorder(), flags());

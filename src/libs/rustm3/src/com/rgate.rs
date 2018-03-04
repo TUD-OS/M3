@@ -1,7 +1,6 @@
 use cfg;
 use cap::{CapFlags, Selector};
 use cell::StaticCell;
-use com::epmux::EpMux;
 use com::gate::Gate;
 use com::{GateIStream, SendGate};
 use core::fmt;
@@ -141,7 +140,6 @@ impl RecvGate {
             let vpe = vpe::VPE::cur();
             let ep = vpe.alloc_ep()?;
             self.free |= FreeFlags::FREE_EP;
-            EpMux::get().reserve(ep);
             self.activate_ep(ep)?;
         }
         Ok(())
