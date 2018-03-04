@@ -1,6 +1,7 @@
 use core::ops::Deref;
 use core::fmt;
 use errors::Error;
+use goff;
 use io::{Read, Write};
 use kif;
 use session::Pager;
@@ -66,7 +67,7 @@ impl Seek for FileRef {
 }
 
 impl Map for FileRef {
-    fn map(&self, pager: &Pager, virt: usize, off: usize, len: usize, prot: kif::Perm) -> Result<(), Error> {
+    fn map(&self, pager: &Pager, virt: goff, off: usize, len: usize, prot: kif::Perm) -> Result<(), Error> {
         self.file.borrow().map(pager, virt, off, len, prot)
     }
 }

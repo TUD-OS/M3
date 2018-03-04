@@ -44,19 +44,38 @@ pub struct Ehdr {
     pub shstrndx: u16,
 }
 
-/// Program header
+/// Program header for 32-bit ELF files
 #[derive(Default)]
 #[repr(C, packed)]
-pub struct Phdr {
+pub struct Phdr32 {
     pub ty: u32,
-    pub flags: u32,
-    pub offset: usize,
+    pub offset: u32,
     pub vaddr: usize,
     pub paddr: usize,
-    pub filesz: usize,
-    pub memsz: usize,
-    pub align: usize,
+    pub filesz: u32,
+    pub memsz: u32,
+    pub flags: u32,
+    pub align: u32,
 }
+
+/// Program header for 64-bit ELF files
+#[derive(Default)]
+#[repr(C, packed)]
+pub struct Phdr64 {
+    pub ty: u32,
+    pub flags: u32,
+    pub offset: u64,
+    pub vaddr: usize,
+    pub paddr: usize,
+    pub filesz: u64,
+    pub memsz: u64,
+    pub align: u64,
+}
+
+#[cfg(target_pointer_width = "64")]
+pub type Phdr = Phdr64;
+#[cfg(target_pointer_width = "32")]
+pub type Phdr = Phdr32;
 
 impl From<PF> for kif::Perm {
     fn from(flags: PF) -> Self {

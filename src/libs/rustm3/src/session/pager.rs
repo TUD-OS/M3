@@ -3,6 +3,7 @@ use com::{SendGate, RecvGate, RGateArgs};
 use core::fmt;
 use dtu::{EpId, FIRST_FREE_EP};
 use errors::Error;
+use goff;
 use kif;
 use session::ClientSession;
 use vpe::VPE;
@@ -118,7 +119,7 @@ impl Pager {
 
         if let Some(ref mut rg) = self.rgate {
             assert!(self.rbuf != 0);
-            rg.activate_for(first_ep, self.rep, self.rbuf)
+            rg.activate_for(first_ep, self.rep, self.rbuf as goff)
         }
         else {
             Ok(())
@@ -132,14 +133,14 @@ impl Pager {
         ).map(|_| ())
     }
 
-    pub fn pagefault(&self, addr: usize, access: u32) -> Result<(), Error> {
+    pub fn pagefault(&self, addr: goff, access: u32) -> Result<(), Error> {
         send_recv_res!(
             &self.own_sgate, RecvGate::def(),
             Operation::PAGEFAULT, addr, access
         ).map(|_| ())
     }
 
-    pub fn map_anon(&self, addr: usize, len: usize, prot: kif::Perm) -> Result<usize, Error> {
+    pub fn map_anon(&self, addr: goff, len: usize, prot: kif::Perm) -> Result<goff, Error> {
         let mut reply = send_recv_res!(
             &self.own_sgate, RecvGate::def(),
             Operation::MAP_ANON, addr, len, prot.bits(), 0
@@ -147,8 +148,8 @@ impl Pager {
         Ok(reply.pop())
     }
 
-    pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
-                  sess: &ClientSession) -> Result<usize, Error> {
+    pub fn map_ds(&self, addr: goff, len: usize, off: usize, prot: kif::Perm,
+                  sess: &ClientSession) -> Result<goff, Error> {
         let mut args = kif::syscalls::ExchangeArgs {
             count: 5,
             vals: kif::syscalls::ExchangeUnion {
@@ -166,11 +167,11 @@ impl Pager {
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sess.sel(), 1);
         self.sess.delegate(crd, &mut args)?;
         unsafe {
-            Ok(args.vals.i[0] as usize)
+            Ok(args.vals.i[0] as goff)
         }
     }
 
-    pub fn unmap(&self, addr: usize) -> Result<(), Error> {
+    pub fn unmap(&self, addr: goff) -> Result<(), Error> {
         send_recv_res!(
             &self.own_sgate, RecvGate::def(),
             Operation::UNMAP, addr

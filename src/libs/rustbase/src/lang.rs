@@ -40,3 +40,31 @@ pub extern fn rust_eh_personality() {
 pub extern "C" fn _Unwind_Resume() -> ! {
     unsafe { intrinsics::abort() }
 }
+
+#[cfg(target_arch = "arm")]
+#[no_mangle]
+pub extern "C" fn __sync_synchronize() {
+    // TODO memory barrier
+    // unsafe { asm!("dmb"); }
+}
+
+macro_rules! def_cmpswap {
+    ($name:ident, $type:ty) => {
+        #[cfg(target_arch = "arm")]
+        #[no_mangle]
+        pub extern "C" fn $name(ptr: *mut $type, oldval: $type, newval: $type) -> $type {
+            unsafe {
+                let old = *ptr;
+                if old == oldval {
+                    *ptr = newval
+                }
+                return old;
+            }
+        }
+    };
+}
+
+def_cmpswap!(__sync_val_compare_and_swap_1, u8);
+def_cmpswap!(__sync_val_compare_and_swap_2, u16);
+def_cmpswap!(__sync_val_compare_and_swap_4, u32);
+def_cmpswap!(__sync_val_compare_and_swap_8, u64);

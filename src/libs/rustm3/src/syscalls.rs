@@ -2,6 +2,7 @@ use cap::Selector;
 use core::intrinsics;
 use dtu;
 use errors::Error;
+use goff;
 use kif::{CapRngDesc, syscalls, Perm, PEDesc};
 use util;
 
@@ -86,7 +87,7 @@ pub fn create_sgate(dst: Selector, rgate: Selector, label: dtu::Label, credits: 
     send_receive_result(&req)
 }
 
-pub fn create_mgate(dst: Selector, addr: usize, size: usize, perms: Perm) -> Result<(), Error> {
+pub fn create_mgate(dst: Selector, addr: goff, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::create_mgate(dst={}, addr={:#x}, size={:#x}, perms={:?})",
@@ -187,7 +188,7 @@ pub fn create_vpe(dst: CapRngDesc, sgate: Selector, name: &str, pe: PEDesc,
     }
 }
 
-pub fn derive_mem(dst: Selector, src: Selector, offset: usize, size: usize, perms: Perm) -> Result<(), Error> {
+pub fn derive_mem(dst: Selector, src: Selector, offset: goff, size: usize, perms: Perm) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::derive_mem(dst={}, src={}, off={:#x}, size={:#x}, perms={:?})",
@@ -319,7 +320,7 @@ fn exchange_sess(vpe: Selector, op: syscalls::Operation, sess: Selector, crd: Ca
     }
 }
 
-pub fn activate(ep: Selector, gate: Selector, addr: usize) -> Result<(), Error> {
+pub fn activate(ep: Selector, gate: Selector, addr: goff) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::activate(ep={}, gate={}, addr={})",
@@ -351,7 +352,7 @@ pub fn revoke(vpe: Selector, crd: CapRngDesc, own: bool) -> Result<(), Error> {
     send_receive_result(&req)
 }
 
-pub fn forward_write(mgate: Selector, data: &[u8], off: usize,
+pub fn forward_write(mgate: Selector, data: &[u8], off: goff,
                      flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
     log!(
         SYSC,
@@ -373,7 +374,7 @@ pub fn forward_write(mgate: Selector, data: &[u8], off: usize,
     send_receive_result(&req)
 }
 
-pub fn forward_read(mgate: Selector, data: &mut [u8], off: usize,
+pub fn forward_read(mgate: Selector, data: &mut [u8], off: goff,
                     flags: syscalls::ForwardMemFlags, event: u64) -> Result<(), Error> {
     log!(
         SYSC,

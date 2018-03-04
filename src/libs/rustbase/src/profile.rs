@@ -143,7 +143,7 @@ impl Profiler {
     /// The id is used for `time::start` and `time::stop`, which allows to identify this benchmark
     /// in the gem5 log.
     #[inline(always)]
-    pub fn run_with_id<F: FnMut()>(&mut self, mut func: F, id: u64) -> Results {
+    pub fn run_with_id<F: FnMut()>(&mut self, mut func: F, id: usize) -> Results {
         let mut res = Results::new((self.warmup + self.repeats) as usize);
         for i in 0..self.warmup + self.repeats {
             let start = time::start(id);
@@ -163,7 +163,7 @@ impl Profiler {
     /// The id is used for `time::start` and `time::stop`, which allows to identify this benchmark
     /// in the gem5 log.
     #[inline(always)]
-    pub fn runner_with_id<R: Runner>(&mut self, runner: &mut R, id: u64) -> Results {
+    pub fn runner_with_id<R: Runner>(&mut self, runner: &mut R, id: usize) -> Results {
         let mut res = Results::new((self.warmup + self.repeats) as usize);
         for i in 0..self.warmup + self.repeats {
             runner.pre();

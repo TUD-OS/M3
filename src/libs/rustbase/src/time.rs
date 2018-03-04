@@ -6,11 +6,11 @@ use arch::time;
 pub type Time = u64;
 
 /// Starts a time measurement with given message
-pub fn start(msg: u64) -> Time {
+pub fn start(msg: usize) -> Time {
     time::start(msg)
 }
 
 /// Stops a time measurement with given message
-pub fn stop(msg: u64) -> Time {
+pub fn stop(msg: usize) -> Time {
     time::stop(msg)
 }

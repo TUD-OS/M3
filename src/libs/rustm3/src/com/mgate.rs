@@ -4,6 +4,7 @@ use core::fmt;
 use core::intrinsics;
 use dtu;
 use errors::{Code, Error};
+use goff;
 use kif::{self, INVALID_SEL};
 use syscalls;
 use util;
@@ -17,7 +18,7 @@ pub struct MemGate {
 
 pub struct MGateArgs {
     size: usize,
-    addr: usize,
+    addr: goff,
     perm: Perm,
     sel: Selector,
     flags: CapFlags,
@@ -34,7 +35,7 @@ impl MGateArgs {
         }
     }
 
-    pub fn addr(mut self, addr: usize) -> Self {
+    pub fn addr(mut self, addr: goff) -> Self {
         self.addr = addr;
         self
     }
@@ -83,12 +84,12 @@ impl MemGate {
         self.gate.sel()
     }
 
-    pub fn derive(&self, offset: usize, size: usize, perm: Perm) -> Result<Self, Error> {
+    pub fn derive(&self, offset: goff, size: usize, perm: Perm) -> Result<Self, Error> {
         let sel = vpe::VPE::cur().alloc_sel();
         self.derive_with_sel(offset, size, perm, sel)
     }
 
-    pub fn derive_with_sel(&self, offset: usize, size: usize,
+    pub fn derive_with_sel(&self, offset: goff, size: usize,
                            perm: Perm, sel: Selector) -> Result<Self, Error> {
         syscalls::derive_mem(sel, self.sel(), offset, size, perm)?;
         Ok(MemGate {
@@ -100,17 +101,17 @@ impl MemGate {
         self.gate.rebind(sel)
     }
 
-    pub fn read<T>(&self, data: &mut [T], off: usize) -> Result<(), Error> {
+    pub fn read<T>(&self, data: &mut [T], off: goff) -> Result<(), Error> {
         self.read_bytes(data.as_mut_ptr() as *mut u8, data.len() * util::size_of::<T>(), off)
     }
 
-    pub fn read_obj<T>(&self, off: usize) -> Result<T, Error> {
+    pub fn read_obj<T>(&self, off: goff) -> Result<T, Error> {
         let mut obj: T = unsafe { intrinsics::uninit() };
         self.read_bytes(&mut obj as *mut T as *mut u8, util::size_of::<T>(), off)?;
         Ok(obj)
     }
 
-    pub fn read_bytes(&self, mut data: *mut u8, mut size: usize, mut off: usize) -> Result<(), Error> {
+    pub fn read_bytes(&self, mut data: *mut u8, mut size: usize, mut off: goff) -> Result<(), Error> {
         let ep = self.gate.activate()?;
 
         loop {
@@ -127,15 +128,15 @@ impl MemGate {
         }
     }
 
-    pub fn write<T>(&self, data: &[T], off: usize) -> Result<(), Error> {
+    pub fn write<T>(&self, data: &[T], off: goff) -> Result<(), Error> {
         self.write_bytes(data.as_ptr() as *const u8, data.len() * util::size_of::<T>(), off)
     }
 
-    pub fn write_obj<T>(&self, obj: *const T, off: usize) -> Result<(), Error> {
+    pub fn write_obj<T>(&self, obj: *const T, off: goff) -> Result<(), Error> {
         self.write_bytes(obj as *const u8, util::size_of::<T>(), off)
     }
 
-    pub fn write_bytes(&self, mut data: *const u8, mut size: usize, mut off: usize) -> Result<(), Error> {
+    pub fn write_bytes(&self, mut data: *const u8, mut size: usize, mut off: goff) -> Result<(), Error> {
         let ep = self.gate.activate()?;
 
         loop {
@@ -152,26 +153,26 @@ impl MemGate {
         }
     }
 
-    fn forward_read(&self, data: &mut *mut u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
+    fn forward_read(&self, data: &mut *mut u8, size: &mut usize, off: &mut goff) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
         syscalls::forward_read(
             self.sel(), unsafe { util::slice_for_mut(*data, amount) }, *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
         )?;
         *data = unsafe { (*data).offset(amount as isize) };
-        *off += amount;
+        *off += amount as goff;
         *size -= amount;
         Ok(())
     }
 
-    fn forward_write(&self, data: &mut *const u8, size: &mut usize, off: &mut usize) -> Result<(), Error> {
+    fn forward_write(&self, data: &mut *const u8, size: &mut usize, off: &mut goff) -> Result<(), Error> {
         let amount = util::min(kif::syscalls::MAX_MSG_SIZE, *size);
         syscalls::forward_write(
             self.sel(), unsafe { util::slice_for(*data, amount) }, *off,
             kif::syscalls::ForwardMemFlags::empty(), 0
         )?;
         *data = unsafe { (*data).offset(amount as isize) };
-        *off += amount;
+        *off += amount as goff;
         *size -= amount;
         Ok(())
     }

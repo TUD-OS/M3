@@ -76,13 +76,14 @@ fn read_write_object() {
 
 #[cfg(target_os = "none")]
 fn read_write_forward_small() {
+    use m3::goff;
     use m3::kif;
     use m3::vpe;
 
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
-    const TEST_ADDR: usize = 0x20000;
+    const TEST_ADDR: goff = 0x20000;
 
     if let Some(ref mut pg) = vpe1.pager() {
         assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));
@@ -106,13 +107,14 @@ fn read_write_forward_small() {
 
 #[cfg(target_os = "none")]
 fn read_write_forward_big() {
+    use m3::goff;
     use m3::kif;
     use m3::vpe;
 
     let vpe1 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v1").muxable(true)));
     let vpe2 = assert_ok!(vpe::VPE::new_with(vpe::VPEArgs::new("v2").muxable(true)));
 
-    const TEST_ADDR: usize = 0x20000;
+    const TEST_ADDR: goff = 0x20000;
 
     if let Some(ref mut pg) = vpe1.pager() {
         assert_ok!(pg.map_anon(TEST_ADDR, 0x1000, kif::Perm::RW));

@@ -12,10 +12,10 @@ fn rdtsc() -> time::Time {
     (u as time::Time) << 32 | (l as time::Time)
 }
 
-pub fn start(_msg: u64) -> time::Time {
+pub fn start(_msg: usize) -> time::Time {
     rdtsc()
 }
 
-pub fn stop(_msg: u64) -> time::Time {
+pub fn stop(_msg: usize) -> time::Time {
     rdtsc()
 }

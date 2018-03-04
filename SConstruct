@@ -31,8 +31,10 @@ elif target == 'gem5':
     if isa is None:
         isa = 'x86_64'
     if isa == 'arm':
+        rustabi = 'gnueabihf'
         cross = 'arm-none-eabi-'
     else:
+        rustabi = 'gnu'
         cross = ''
     configpath = Dir('.')
 else:
@@ -40,6 +42,7 @@ else:
     isa = os.popen("uname -m").read().strip()
     target = 'host'
     cross = ''
+    rustabi = 'gnu'
     configpath = Dir('.')
 
 # build basic environment
@@ -104,7 +107,7 @@ env.Append(
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
     LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
-    CRGFLAGS = ' --target x86_64-unknown-' + target + '-gnu',
+    CRGFLAGS = ' --target ' + isa + '-unknown-' + target + '-' + rustabi,
 )
 
 env.Append(ENV = {
@@ -351,35 +354,37 @@ def Cargo(env, target, source):
     )
 
 def RustProgram(env, target, libs = []):
-    stlib = env.Cargo(
-        target = '$RUSTDIR/x86_64-unknown-$ARCH-gnu/$BUILD/lib' + target + '.a',
+    myenv = env.Clone()
+    myenv.Append(LINKFLAGS = ' -Wl,-z,muldefs')
+    stlib = myenv.Cargo(
+        target = '$RUSTDIR/$ISA-unknown-$ARCH-' + rustabi + '/$BUILD/lib' + target + '.a',
         source = 'src/' + target + '.rs'
     )
-    env.Install(env['LIBDIR'], stlib)
-    env.Depends(stlib, env.File('Cargo.toml'))
-    env.Depends(stlib, [env.File('#src/Cargo.toml'), env.File('#src/Xargo.toml')])
-    env.Depends(stlib, env.File('#src/toolchain/rust/x86_64-unknown-$ARCH-gnu.json'))
-    env.Depends(stlib, [
-        env.Glob('#src/libs/rust*/src/*.rs'),
-        env.Glob('#src/libs/rust*/src/*/*.rs'),
-        env.Glob('#src/libs/rust*/src/*/*/*.rs'),
-        env.Glob('#src/libs/rust*/src/*/*/*/*.rs'),
+    myenv.Install(myenv['LIBDIR'], stlib)
+    myenv.Depends(stlib, myenv.File('Cargo.toml'))
+    myenv.Depends(stlib, [myenv.File('#src/Cargo.toml'), myenv.File('#src/Xargo.toml')])
+    myenv.Depends(stlib, myenv.File('#src/toolchain/rust/$ISA-unknown-$ARCH-' + rustabi + '.json'))
+    myenv.Depends(stlib, [
+        myenv.Glob('#src/libs/rust*/src/*.rs'),
+        myenv.Glob('#src/libs/rust*/src/*/*.rs'),
+        myenv.Glob('#src/libs/rust*/src/*/*/*.rs'),
+        myenv.Glob('#src/libs/rust*/src/*/*/*/*.rs'),
     ])
-    env.Depends(stlib, [
-        env.Glob('src/*.rs'),
-        env.Glob('src/*/*.rs'),
-        env.Glob('src/*/*/*.rs'),
+    myenv.Depends(stlib, [
+        myenv.Glob('src/*.rs'),
+        myenv.Glob('src/*/*.rs'),
+        myenv.Glob('src/*/*/*.rs'),
     ])
 
-    if env['ARCH'] == 'gem5':
-        sources = [env['LIBDIR'].abspath + '/crt0.o']
+    if myenv['ARCH'] == 'gem5':
+        sources = [myenv['LIBDIR'].abspath + '/crt0.o']
         libs    = ['c', 'heap', 'gcc', target] + libs
     else:
         sources = []
         libs    = ['c', 'heap', 'gcc', 'host', 'pthread', target] + libs
 
-    prog = env.M3Program(
-        env,
+    prog = myenv.M3Program(
+        myenv,
         target = target,
         source = sources,
         libs = libs,

@@ -2,6 +2,7 @@ use arch;
 use core::intrinsics;
 use core::ptr;
 use errors::Error;
+use goff;
 use libc;
 use util;
 
@@ -153,12 +154,12 @@ impl DTU {
         Ok(())
     }
 
-    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, _flags: CmdFlags) -> Result<(), Error> {
-        Self::fire(ep, Command::READ, data, size, off, size, 0, 0)
+    pub fn read(ep: EpId, data: *mut u8, size: usize, off: goff, _flags: CmdFlags) -> Result<(), Error> {
+        Self::fire(ep, Command::READ, data, size, off as usize, size, 0, 0)
     }
 
-    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, _flags: CmdFlags) -> Result<(), Error> {
-        Self::fire(ep, Command::WRITE, data, size, off, size, 0, 0)
+    pub fn write(ep: EpId, data: *const u8, size: usize, off: goff, _flags: CmdFlags) -> Result<(), Error> {
+        Self::fire(ep, Command::WRITE, data, size, off as usize, size, 0, 0)
     }
 
     pub fn fetch_msg(ep: EpId) -> Option<&'static Message> {
@@ -176,9 +177,8 @@ impl DTU {
         if msg != 0 {
             unsafe {
                 let head: *const Header = intrinsics::transmute(msg);
-                let msg_len = (*head).length as usize;
-                let fat_ptr: u128 = (msg as u128) | (msg_len as u128) << 64;
-                Some(intrinsics::transmute(fat_ptr))
+                let slice: [usize; 2] = [msg as usize, (*head).length as usize];
+                Some(intrinsics::transmute(slice))
             }
         }
         else {

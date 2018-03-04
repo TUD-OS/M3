@@ -4,6 +4,7 @@ use col::Vec;
 use core::iter;
 use elf;
 use errors::{Code, Error};
+use goff;
 use heap;
 use io::{Read, read_object};
 use kif;
@@ -52,18 +53,18 @@ impl<'l> Loader<'l> {
             // copy text
             let text_start = addr(&_text_start);
             let text_end = addr(&_text_end);
-            self.mem.write_bytes(&_text_start, text_end - text_start, text_start)?;
+            self.mem.write_bytes(&_text_start, text_end - text_start, text_start as goff)?;
 
             // copy data and heap
             let data_start = addr(&_data_start);
-            self.mem.write_bytes(&_data_start, heap::used_end() - data_start, data_start)?;
+            self.mem.write_bytes(&_data_start, heap::used_end() - data_start, data_start as goff)?;
 
             // copy end-area of heap
             let heap_area_size = util::size_of::<heap::HeapArea>();
-            self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end)?;
+            self.mem.write_bytes(heap_end as *const u8, heap_area_size, heap_end as goff)?;
 
             // copy stack
-            self.mem.write_bytes(sp as *const u8, cfg::STACK_TOP - sp, sp)?;
+            self.mem.write_bytes(sp as *const u8, cfg::STACK_TOP - sp, sp as goff)?;
 
             Ok(text_start)
         }
@@ -80,7 +81,7 @@ impl<'l> Loader<'l> {
 
         while count > 0 {
             let amount = util::min(count, buf.len());
-            self.mem.write(&buf[0..amount], dst)?;
+            self.mem.write(&buf[0..amount], dst as goff)?;
             count -= amount;
             dst += amount;
         }
@@ -90,34 +91,34 @@ impl<'l> Loader<'l> {
 
     pub fn load_segment(&self, file: &mut BufReader<FileRef>,
                         phdr: &elf::Phdr, buf: &mut [u8]) -> Result<(), Error> {
-        file.seek(phdr.offset, SeekMode::SET)?;
+        file.seek(phdr.offset as usize, SeekMode::SET)?;
 
-        let mut count = phdr.filesz;
+        let mut count = phdr.filesz as usize;
         let mut segoff = phdr.vaddr;
         while count > 0 {
             let amount = util::min(count, buf.len());
             let amount = file.read(&mut buf[0..amount])?;
 
-            self.mem.write(&buf[0..amount], segoff)?;
+            self.mem.write(&buf[0..amount], segoff as goff)?;
 
             count -= amount;
             segoff += amount;
         }
 
-        self.clear_mem(buf, phdr.memsz - phdr.filesz, segoff)
+        self.clear_mem(buf, (phdr.memsz - phdr.filesz) as usize, segoff)
     }
 
     pub fn map_segment(&self, file: &mut BufReader<FileRef>, pager: &Pager,
                        phdr: &elf::Phdr) -> Result<(), Error> {
         let prot = kif::Perm::from(elf::PF::from_bits_truncate(phdr.flags));
 
-        let size = util::round_up(phdr.memsz, cfg::PAGE_SIZE);
+        let size = util::round_up(phdr.memsz as usize, cfg::PAGE_SIZE);
         if phdr.memsz == phdr.filesz {
-            file.get_ref().map(pager, phdr.vaddr, phdr.offset, size, prot)
+            file.get_ref().map(pager, phdr.vaddr as goff, phdr.offset as usize, size, prot)
         }
         else {
             assert!(phdr.filesz == 0);
-            pager.map_anon(phdr.vaddr, size, prot).map(|_| ())
+            pager.map_anon(phdr.vaddr as goff, size, prot).map(|_| ())
         }
     }
 
@@ -139,6 +140,7 @@ impl<'l> Loader<'l> {
             // load program header
             file.seek(off, SeekMode::SET)?;
             let phdr: elf::Phdr = read_object(file)?;
+            off += hdr.phentsize as usize;
 
             // we're only interested in non-empty load segments
             if phdr.ty != elf::PT::LOAD.val || phdr.memsz == 0 {
@@ -151,20 +153,20 @@ impl<'l> Loader<'l> {
             else {
                 self.load_segment(file, &phdr, &mut *buf)?;
             }
-            off += hdr.phentsize as usize;
 
-            end = phdr.vaddr + phdr.memsz;
+            end = phdr.vaddr + phdr.memsz as usize;
         }
 
         if let Some(ref pg) = self.pager {
             // create area for boot/runtime stuff
-            pg.map_anon(cfg::RT_START, cfg::RT_SIZE, kif::Perm::RW)?;
+            pg.map_anon(cfg::RT_START as goff, cfg::RT_SIZE, kif::Perm::RW)?;
 
             // create area for stack
-            pg.map_anon(cfg::STACK_BOTTOM, cfg::STACK_SIZE, kif::Perm::RW)?;
+            pg.map_anon(cfg::STACK_BOTTOM as goff, cfg::STACK_SIZE, kif::Perm::RW)?;
 
             // create heap
-            pg.map_anon(util::round_up(end, cfg::PAGE_SIZE), cfg::APP_HEAP_SIZE, kif::Perm::RW)?;
+            let heap_begin = util::round_up(end, cfg::PAGE_SIZE);
+            pg.map_anon(heap_begin as goff, cfg::APP_HEAP_SIZE, kif::Perm::RW)?;
         }
 
         Ok(hdr.entry)
@@ -172,13 +174,13 @@ impl<'l> Loader<'l> {
 
     pub fn write_arguments<I, S>(&self, off: &mut usize, args: I) -> Result<usize, Error>
                                  where I: iter::IntoIterator<Item = S>, S: AsRef<str> {
-        let mut argptr = Vec::new();
+        let mut argptr = Vec::<u64>::new();
         let mut argbuf = Vec::new();
 
         let mut argoff = *off;
         for s in args {
             // push argv entry
-            argptr.push(argoff);
+            argptr.push(argoff as u64);
 
             // push string
             let arg = s.as_ref().as_bytes();
@@ -190,17 +192,11 @@ impl<'l> Loader<'l> {
             argoff += arg.len() + 1;
         }
 
-        self.mem.write(&argbuf, *off)?;
-        self.mem.write(&argptr, argoff)?;
-        *off = argoff + argptr.len() * util::size_of::<usize>();
-        Ok(argoff)
-    }
-}
+        self.mem.write(&argbuf, *off as goff)?;
+        argoff = util::round_up(argoff, util::size_of::<u64>());
+        self.mem.write(&argptr, argoff as goff)?;
 
-pub fn get_sp() -> usize {
-    let res: usize;
-    unsafe {
-        asm!("mov %rsp, $0" : "=r"(res));
+        *off = argoff + argptr.len() * util::size_of::<u64>();
+        Ok(argoff as usize)
     }
-    res
 }

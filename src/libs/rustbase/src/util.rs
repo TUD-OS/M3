@@ -4,17 +4,6 @@ use core::intrinsics;
 use core::slice;
 use libc;
 
-// TODO move to proper place
-/// Jumps to the given address
-pub fn jmp_to(addr: usize) {
-    unsafe {
-        asm!(
-            "jmp *$0"
-            : : "r"(addr)
-        );
-    }
-}
-
 /// Computes the square root of `n`.
 ///
 /// Source: [Wikipedia](https://en.wikipedia.org/wiki/Methods_of_computing_square_roots)

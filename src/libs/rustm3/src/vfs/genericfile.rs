@@ -5,6 +5,7 @@ use core::fmt;
 use com::{MemGate, RecvGate, SendGate, SliceSource, VecSink};
 use serialize::Sink;
 use errors::Error;
+use goff;
 use io::{Read, Write};
 use kif::{CapRngDesc, CapType, INVALID_SEL, Perm, syscalls};
 use rc::Rc;
@@ -192,7 +193,7 @@ impl Read for GenericFile {
         let amount = util::min(buf.len(), self.len - self.pos);
         if amount > 0 {
             time::start(0xaaaa);
-            self.mgate.read(&mut buf[0..amount], self.off + self.pos)?;
+            self.mgate.read(&mut buf[0..amount], (self.off + self.pos) as goff)?;
             time::stop(0xaaaa);
             self.pos += amount;
         }
@@ -213,7 +214,7 @@ impl Write for GenericFile {
             time::start(0xbbbb);
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::WRITE, 0
+                Operation::WRITE, 0usize
             )?;
             time::stop(0xbbbb);
             self.goff += self.len;
@@ -225,7 +226,7 @@ impl Write for GenericFile {
         let amount = util::min(buf.len(), self.len - self.pos);
         if amount > 0 {
             time::start(0xaaaa);
-            self.mgate.write(&buf[0..amount], self.off + self.pos)?;
+            self.mgate.write(&buf[0..amount], (self.off + self.pos) as goff)?;
             time::stop(0xaaaa);
             self.pos += amount;
         }
@@ -235,7 +236,7 @@ impl Write for GenericFile {
 }
 
 impl vfs::Map for GenericFile {
-    fn map(&self, pager: &Pager, virt: usize, off: usize, len: usize, prot: Perm) -> Result<(), Error> {
+    fn map(&self, pager: &Pager, virt: goff, off: usize, len: usize, prot: Perm) -> Result<(), Error> {
         // TODO maybe check here whether self is a pipe and return an error?
         pager.map_ds(virt, len, off, prot, &self.sess).map(|_| ())
     }

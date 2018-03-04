@@ -20,7 +20,7 @@ pub fn workloop() {
 
         if let Some(msg) = dtu::DTU::fetch_msg(kdtu::KSRV_EP) {
             unsafe {
-                let squeue: *mut com::SendQueue = intrinsics::transmute(msg.header.label);
+                let squeue: *mut com::SendQueue = intrinsics::transmute(msg.header.label as usize);
                 (*squeue).received_reply(msg);
             }
         }

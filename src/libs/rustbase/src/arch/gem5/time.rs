@@ -1,25 +1,13 @@
+use arch::cpu;
 use time;
 
-const START_TSC: u64    = 0x1FF10000;
-const STOP_TSC: u64     = 0x1FF20000;
+const START_TSC: usize    = 0x1FF10000;
+const STOP_TSC: usize     = 0x1FF20000;
 
-fn gem5_debug(msg: u64) -> time::Time {
-    let res: time::Time;
-    unsafe {
-        asm!(
-            ".byte 0x0F, 0x04;
-             .word 0x63"
-            : "={rax}"(res)
-            : "{rdi}"(msg)
-        );
-    }
-    res
+pub fn start(msg: usize) -> time::Time {
+    cpu::gem5_debug(START_TSC | msg)
 }
 
-pub fn start(msg: u64) -> time::Time {
-    gem5_debug(START_TSC | msg)
-}
-
-pub fn stop(msg: u64) -> time::Time {
-    gem5_debug(STOP_TSC | msg)
+pub fn stop(msg: usize) -> time::Time {
+    cpu::gem5_debug(STOP_TSC | msg)
 }

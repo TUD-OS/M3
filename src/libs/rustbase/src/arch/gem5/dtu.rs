@@ -1,8 +1,8 @@
 use cfg;
 use core::intrinsics;
-use core::ptr;
 use arch;
 use errors::Error;
+use goff;
 use kif::PEDesc;
 use util;
 
@@ -301,9 +301,9 @@ impl DTU {
     #[inline(always)]
     pub fn reply(ep: EpId, reply: *const u8, size: usize, msg: &'static Message) -> Result<(), Error> {
         Self::write_cmd_reg(CmdReg::DATA, Self::build_data(reply, size));
-        let slice: u128 = unsafe { intrinsics::transmute(msg) };
+        let slice: [usize; 2] = unsafe { intrinsics::transmute(msg) };
         Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(
-            ep, CmdOpCode::REPLY, 0, slice as u64
+            ep, CmdOpCode::REPLY, 0, slice[0] as u64
         ));
 
         Self::get_error()
@@ -316,7 +316,7 @@ impl DTU {
     /// # Errors
     ///
     /// If the receiver is suspended, the function returns (`Code::VPE_GONE`).
-    pub fn read(ep: EpId, data: *mut u8, size: usize, off: usize, flags: CmdFlags) -> Result<(), Error> {
+    pub fn read(ep: EpId, data: *mut u8, size: usize, off: goff, flags: CmdFlags) -> Result<(), Error> {
         let cmd = Self::build_cmd(ep, CmdOpCode::READ, flags.bits(), 0);
         let res = Self::transfer(cmd, data as usize, size, off);
         unsafe { intrinsics::atomic_fence() };
@@ -330,22 +330,22 @@ impl DTU {
     /// # Errors
     ///
     /// If the receiver is suspended, the function returns (`Code::VPE_GONE`).
-    pub fn write(ep: EpId, data: *const u8, size: usize, off: usize, flags: CmdFlags) -> Result<(), Error> {
+    pub fn write(ep: EpId, data: *const u8, size: usize, off: goff, flags: CmdFlags) -> Result<(), Error> {
         let cmd = Self::build_cmd(ep, CmdOpCode::WRITE, flags.bits(), 0);
         Self::transfer(cmd, data as usize, size, off)
     }
 
-    fn transfer(cmd: Reg, data: usize, size: usize, off: usize) -> Result<(), Error> {
+    fn transfer(cmd: Reg, data: usize, size: usize, off: goff) -> Result<(), Error> {
         let mut left = size;
         let mut offset = off;
         let mut data_addr = data;
         while left > 0 {
             let amount = util::min(left, MAX_PKT_SIZE);
-            Self::write_cmd_reg(CmdReg::DATA, (data_addr | (amount << 48)) as Reg);
-            Self::write_cmd_reg(CmdReg::COMMAND, cmd | (offset << 16) as Reg);
+            Self::write_cmd_reg(CmdReg::DATA, data_addr as Reg | ((amount as Reg) << 48));
+            Self::write_cmd_reg(CmdReg::COMMAND, cmd | ((offset as Reg) << 16));
 
             left -= amount;
-            offset += amount;
+            offset += amount as goff;
             data_addr += amount;
 
             Self::get_error()?;
@@ -360,10 +360,9 @@ impl DTU {
         let msg = Self::read_cmd_reg(CmdReg::OFFSET);
         if msg != 0 {
             unsafe {
-                let head: *const Header = intrinsics::transmute(msg);
-                let msg_len = (*head).length as usize;
-                let fat_ptr: u128 = (msg as u128) | (msg_len as u128) << 64;
-                Some(intrinsics::transmute(fat_ptr))
+                let head: *const Header = intrinsics::transmute(msg as usize);
+                let slice: [usize; 2] = [msg as usize, (*head).length as usize];
+                Some(intrinsics::transmute(slice))
             }
         }
         else {
@@ -428,7 +427,7 @@ impl DTU {
 
     /// Prints the given message into the gem5 log
     pub fn print(s: &[u8]) {
-        Self::write_cmd_reg(CmdReg::DATA, (s.as_ptr() as usize | (s.len() << 48)) as Reg);
+        Self::write_cmd_reg(CmdReg::DATA, s.as_ptr() as Reg | (s.len() as Reg) << 48);
         Self::write_cmd_reg(CmdReg::COMMAND, Self::build_cmd(0, CmdOpCode::PRINT, 0, 0));
     }
 
@@ -447,21 +446,15 @@ impl DTU {
     }
 
     fn read_reg(idx: usize) -> Reg {
-        unsafe {
-            let addr: *const Reg = (BASE_ADDR + idx * 8) as *const Reg;
-            ptr::read_volatile(addr)
-        }
+        arch::cpu::read8b(BASE_ADDR + idx * 8)
     }
 
     fn write_reg(idx: usize, val: Reg) {
-        unsafe {
-            let addr: *mut Reg = (BASE_ADDR + idx * 8) as *mut Reg;
-            ptr::write_volatile(addr, val);
-        }
+        arch::cpu::write8b(BASE_ADDR + idx * 8, val);
     }
 
     fn build_data(addr: *const u8, size: usize) -> Reg {
-        (addr as usize | (size << 48)) as Reg
+        addr as Reg | (size as Reg) << 48
     }
 
     fn build_cmd(ep: EpId, c: CmdOpCode, flags: Reg, arg: Reg) -> Reg {
@@ -474,11 +467,9 @@ impl DTU {
     /// Configures the given endpoint
     pub fn set_ep(ep: EpId, regs: &[Reg]) {
         let off = DTU_REGS + CMD_REGS + EP_REGS * ep;
-        let addr = (BASE_ADDR + off * 8) as *mut Reg;
+        let addr = BASE_ADDR + off * 8;
         for i in 0..EP_REGS {
-            unsafe {
-                ptr::write_volatile(addr.offset(i as isize), regs[i]);
-            }
+            arch::cpu::write8b(addr + i * util::size_of::<Reg>(), regs[i]);
         }
     }
 

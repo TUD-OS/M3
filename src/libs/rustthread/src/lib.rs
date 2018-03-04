@@ -104,9 +104,8 @@ impl Thread {
         if mem::replace(&mut self.has_msg, false) {
             unsafe {
                 let head: *const dtu::Header = intrinsics::transmute(self.msg.as_ptr());
-                let msg_len = (*head).length as usize;
-                let fat_ptr: u128 = (head as u128) | (msg_len as u128) << 64;
-                Some(intrinsics::transmute(fat_ptr))
+                let slice: [usize; 2] = [head as usize, (*head).length as usize];
+                Some(intrinsics::transmute(slice))
             }
         }
         else {

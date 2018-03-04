@@ -171,12 +171,12 @@ impl Loader {
             }
 
             let flags = MapFlags::from(kif::Perm::from(elf::PF::from_bits_truncate(phdr.flags)));
-            let offset = util::round_dn(phdr.offset, PAGE_SIZE);
+            let offset = util::round_dn(phdr.offset as usize, PAGE_SIZE);
             let virt = util::round_dn(phdr.vaddr, PAGE_SIZE);
 
             // do we need new memory for this segment?
             if (copy && flags.contains(MapFlags::W)) || phdr.filesz == 0 {
-                let size = util::round_up((phdr.vaddr & PAGE_MASK) + phdr.memsz, PAGE_SIZE);
+                let size = util::round_up((phdr.vaddr & PAGE_MASK) + phdr.memsz as usize, PAGE_SIZE);
 
                 let (dst_vpe, dst_virt) = if vpe.pe_desc().has_virtmem() {
                     let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
@@ -213,7 +213,7 @@ impl Loader {
             }
             else {
                 assert!(phdr.memsz == phdr.filesz);
-                let size = (phdr.offset & PAGE_MASK) + phdr.filesz;
+                let size = (phdr.offset as usize & PAGE_MASK) + phdr.filesz as usize;
                 Self::map_segment(vpe, bm.addr + offset, virt, size, flags)?;
                 end = virt + size;
             }

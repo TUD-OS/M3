@@ -2,6 +2,7 @@ use cap::Selector;
 use col::Vec;
 use com::VecSink;
 use errors::{Code, Error};
+use goff;
 use io;
 use kif;
 use session::Pager;
@@ -14,7 +15,7 @@ impl vfs::Seek for io::Serial {
 }
 
 impl vfs::Map for io::Serial {
-    fn map(&self, _pager: &Pager, _virt: usize,
+    fn map(&self, _pager: &Pager, _virt: goff,
            _off: usize, _len: usize, _prot: kif::Perm) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }

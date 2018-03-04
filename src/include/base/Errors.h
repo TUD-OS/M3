@@ -16,13 +16,15 @@
 
 #pragma once
 
+#include <base/Types.h>
+
 namespace m3 {
 
 /**
  * The error codes for M3
  */
 struct Errors {
-    enum Code {
+    enum Code : int32_t {
         NONE,
         // DTU errors
         MISS_CREDITS,

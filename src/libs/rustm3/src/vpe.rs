@@ -375,6 +375,8 @@ impl VPE {
     pub fn run<F>(&mut self, func: Box<F>) -> Result<ClosureActivity, Error>
                   where F: FnBox() -> i32, F: Send + 'static {
         use cfg;
+        use cpu;
+        use goff;
 
         let first_ep_sel = self.ep_sel(FIRST_FREE_EP);
         if let Some(ref mut pg) = self.pager {
@@ -392,7 +394,7 @@ impl VPE {
             );
 
             // copy all regions to child
-            senv.set_sp(arch::loader::get_sp());
+            senv.set_sp(cpu::get_sp());
             let entry = loader.copy_regions(senv.sp())?;
             senv.set_entry(entry);
             senv.set_heap_size(env.heap_size());
@@ -406,7 +408,7 @@ impl VPE {
 
             // create and write closure
             let closure = env::Closure::new(func);
-            self.mem.write_obj(&closure, off)?;
+            self.mem.write_obj(&closure, off as goff)?;
             off += util::size_of_val(&closure);
 
             // write args
@@ -416,7 +418,7 @@ impl VPE {
             senv.set_pedesc(&self.pe());
 
             // write start env to PE
-            self.mem.write_obj(&senv, cfg::RT_START)?;
+            self.mem.write_obj(&senv, cfg::RT_START as goff)?;
 
             closure
         };
@@ -468,6 +470,7 @@ impl VPE {
     #[cfg(target_os = "none")]
     pub fn exec<S: AsRef<str>>(&mut self, args: &[S]) -> Result<ExecActivity, Error> {
         use cfg;
+        use goff;
         use serialize::Sink;
         use com::VecSink;
 
@@ -501,7 +504,7 @@ impl VPE {
             {
                 let mut fds = VecSink::new();
                 self.files.serialize(&mut fds);
-                self.mem.write(fds.words(), off)?;
+                self.mem.write(fds.words(), off as goff)?;
                 senv.set_files(off, fds.size());
                 off += fds.size();
             }
@@ -510,7 +513,7 @@ impl VPE {
             {
                 let mut mounts = VecSink::new();
                 self.mounts.serialize(&mut mounts);
-                self.mem.write(mounts.words(), off)?;
+                self.mem.write(mounts.words(), off as goff)?;
                 senv.set_mounts(off, mounts.size());
             }
 
@@ -525,7 +528,7 @@ impl VPE {
             }
 
             // write start env to PE
-            self.mem.write_obj(&senv, cfg::RT_START)?;
+            self.mem.write_obj(&senv, cfg::RT_START as goff)?;
         }
 
         // go!

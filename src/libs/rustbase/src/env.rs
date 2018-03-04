@@ -46,9 +46,9 @@ pub struct Args {
 impl Args {
     fn arg(&self, idx: isize) -> &'static str {
         unsafe {
-            let args = arch::envdata::get().argv as *const *const i8;
+            let args = arch::envdata::get().argv as *const u64;
             let arg = *args.offset(idx);
-            util::cstr_to_str(arg)
+            util::cstr_to_str(arg as *const i8)
         }
     }
 

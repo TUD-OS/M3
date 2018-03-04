@@ -26,7 +26,7 @@ pub extern crate static_assertions;
 
 // lang stuff
 mod lang;
-pub use lang::{rust_begin_panic, rust_eh_personality, _Unwind_Resume};
+pub use lang::*;
 
 #[cfg(target_os = "linux")]
 pub extern crate libc;
@@ -74,10 +74,16 @@ mod arch;
 mod globaddr;
 
 pub use globaddr::GlobAddr;
+#[allow(non_camel_case_types)]
+pub type goff = u64;
 
 /// The target-dependent configuration
 pub mod cfg {
     pub use arch::cfg::*;
+}
+/// CPU-specific functions
+pub mod cpu {
+    pub use arch::cpu::*;
 }
 /// The Data Transfer Unit interface
 pub mod dtu {

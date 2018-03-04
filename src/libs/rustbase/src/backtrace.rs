@@ -1,18 +1,8 @@
 //! Contains the backtrace generation function
 
 use arch::cfg;
+use arch::cpu;
 use util;
-
-fn get_bp() -> usize {
-    let val: usize;
-    unsafe {
-        asm!(
-            "mov %rbp, $0"
-            : "=r"(val)
-        );
-    }
-    val
-}
 
 /// Walks up the stack and stores the return addresses into the given slice and returns the number
 /// of addresses.
@@ -20,7 +10,7 @@ fn get_bp() -> usize {
 /// The function assumes that the stack is aligned by `cfg::STACK_SIZE` and ensures to not access
 /// below or above the stack.
 pub fn collect(addr: &mut [usize]) -> usize {
-    let mut bp = get_bp();
+    let mut bp = cpu::get_bp();
 
     let base = util::round_dn(bp, cfg::STACK_SIZE);
     let end = util::round_up(bp, cfg::STACK_SIZE);

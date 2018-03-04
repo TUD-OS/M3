@@ -3,6 +3,7 @@ use col::Vec;
 use com::VecSink;
 use core::fmt::Debug;
 use errors::Error;
+use goff;
 use io::{Read, Write};
 use kif;
 use serialize::{Marshallable, Unmarshallable, Sink, Source};
@@ -99,6 +100,6 @@ pub trait Seek {
 }
 
 pub trait Map {
-    fn map(&self, pager: &Pager, virt: usize,
+    fn map(&self, pager: &Pager, virt: goff,
            off: usize, len: usize, prot: kif::Perm) -> Result<(), Error>;
 }

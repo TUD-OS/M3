@@ -7,6 +7,7 @@ use core::fmt;
 use core::ops;
 use dtu;
 use errors::{Code, Error};
+use goff;
 use kif::INVALID_SEL;
 use syscalls;
 use util;
@@ -156,7 +157,7 @@ impl RecvGate {
                 self.buf
             };
 
-            self.activate_for(vpe.ep_sel(dtu::FIRST_FREE_EP), ep, buf)?;
+            self.activate_for(vpe.ep_sel(dtu::FIRST_FREE_EP), ep, buf as goff)?;
             if self.buf == 0 {
                 self.buf = buf;
                 self.free |= FreeFlags::FREE_BUF;
@@ -166,7 +167,7 @@ impl RecvGate {
         Ok(())
     }
 
-    pub fn activate_for(&mut self, first_ep: Selector, ep: dtu::EpId, addr: usize) -> Result<(), Error> {
+    pub fn activate_for(&mut self, first_ep: Selector, ep: dtu::EpId, addr: goff) -> Result<(), Error> {
         if self.ep().is_none() {
             self.gate.set_ep(ep);
 

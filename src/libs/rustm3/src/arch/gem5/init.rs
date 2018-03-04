@@ -1,9 +1,9 @@
 use arch;
 use com;
+use cpu;
 use heap;
 use io;
 use syscalls;
-use util;
 use vfs;
 use vpe;
 
@@ -12,7 +12,7 @@ pub extern "C" fn exit(code: i32) {
     io::deinit();
     vfs::deinit();
     syscalls::exit(code);
-    util::jmp_to(arch::env::get().exit_addr());
+    cpu::jmp_to(arch::env::get().exit_addr());
 }
 
 extern "C" {

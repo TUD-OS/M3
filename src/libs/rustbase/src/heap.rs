@@ -6,13 +6,13 @@ use io;
 use libc;
 use util;
 
-const HEAP_USED_BITS: u64 = 0x5 << (8 * 8 - 3);
+const HEAP_USED_BITS: usize = 0x5 << (8 * util::size_of::<usize>() - 3);
 
 #[repr(C, packed)]
 pub struct HeapArea {
-    pub next: u64,    /* HEAP_USED_BITS set = used */
-    pub prev: u64,
-    _pad: [u8; 64 - 16],
+    pub next: usize,    /* HEAP_USED_BITS set = used */
+    pub prev: usize,
+    _pad: [u8; 64 - util::size_of::<usize>() * 2],
 }
 
 impl HeapArea {
@@ -106,15 +106,15 @@ pub fn init() {
     init_heap();
 
     unsafe {
-        let num_areas = heap_begin.offset_to(heap_end).unwrap() as i64;
-        let space = num_areas * util::size_of::<HeapArea>() as i64;
+        let num_areas = heap_begin.offset_to(heap_end).unwrap() as isize;
+        let space = num_areas * util::size_of::<HeapArea>() as isize;
 
         log!(HEAP, "Heap has {} bytes", space);
 
         (*heap_end).next = 0;
-        (*heap_end).prev = space as u64;
+        (*heap_end).prev = space as usize;
 
-        (*heap_begin).next = space as u64;
+        (*heap_begin).next = space as usize;
         (*heap_begin).prev = 0;
 
         if io::log::HEAP {

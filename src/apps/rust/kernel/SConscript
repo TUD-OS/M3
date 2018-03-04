@@ -1,2 +1,3 @@
 Import('env')
-env.RustProgram(env, target = 'rustkernel', libs = ['thread'])
+if env['ISA'] == 'x86_64':
+    env.RustProgram(env, target = 'rustkernel', libs = ['thread'])

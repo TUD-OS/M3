@@ -62,7 +62,7 @@ impl EnvData {
     }
     pub fn vpe(&self) -> &'static mut vpe::VPE {
         unsafe {
-            intrinsics::transmute(self.base.vpe)
+            intrinsics::transmute(self.base.vpe as usize)
         }
     }
 
@@ -161,12 +161,12 @@ impl EnvData {
 
 pub fn get() -> &'static mut EnvData {
     unsafe {
-        intrinsics::transmute(0x6000 as u64)
+        intrinsics::transmute(0x6000 as usize)
     }
 }
 
 pub fn closure() -> &'static mut env::Closure {
     unsafe {
-        intrinsics::transmute((0x6000 + util::size_of::<EnvData>()) as u64)
+        intrinsics::transmute(0x6000 as usize + util::size_of::<EnvData>())
     }
 }
