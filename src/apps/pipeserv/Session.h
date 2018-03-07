@@ -15,136 +15,151 @@
  */
 
 #include <base/Common.h>
+#include <base/col/SList.h>
 
 #include <m3/com/GateStream.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
 #include <m3/session/Pipe.h>
+#include <m3/vfs/GenericFile.h>
 
 #include "VarRingBuf.h"
 
-class PipeReadHandler;
-class PipeWriteHandler;
+class PipeData;
 
-class PipeSessionData : public m3::RequestSessionData {
-    struct WorkItem : public m3::WorkItem {
-        virtual void work() override;
-
-        PipeSessionData *sess;
+class PipeSession : public m3::RequestSessionData {
+public:
+    enum Type {
+        META,
+        RCHAN,
+        WCHAN,
     };
 
-public:
-    // unused
-    explicit PipeSessionData()
-        : m3::RequestSessionData(), flags(), reader(), writer(), workitem(), rbuf(0) {
+    virtual ~PipeSession() {
     }
-    explicit PipeSessionData(size_t _memsize)
-        : m3::RequestSessionData(), flags(), reader(), writer(), workitem(), rbuf(_memsize) {
+
+    virtual Type type() const {
+        // TODO only necessary because every session needs to be (default)-constructable
+        return META;
     }
-    virtual ~PipeSessionData();
 
-    void init();
-
-    uint flags;
-    PipeReadHandler *reader;
-    PipeWriteHandler *writer;
-    WorkItem *workitem;
-    VarRingBuf rbuf;
-private:
-    static int _nextid;
+    virtual void read(m3::GateIStream &is) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void write(m3::GateIStream &is, size_t) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual m3::Errors::Code close() {
+        return m3::Errors::NOT_SUP;
+    }
 };
 
-template<class SUB>
-class PipeHandler {
+class PipeChannel : public PipeSession {
 public:
-    using handler_func = void (SUB::*)(m3::GateIStream &is);
-
-    struct RdWrRequest : public m3::SListItem {
-        explicit RdWrRequest(size_t _amount, const m3::DTU::Message* _lastmsg)
-            : m3::SListItem(), amount(_amount), lastmsg(_lastmsg) {
-        }
-
-        size_t amount;
-        const m3::DTU::Message *lastmsg;
-    };
-
     enum {
         READ_EOF    = 1,
         WRITE_EOF   = 2,
     };
 
-    static const size_t BUFSIZE     = 256;
-    static const size_t MSGSIZE     = 64;
-
-    explicit PipeHandler(PipeSessionData *sess)
-        : refs(1),
-          _rgate(m3::RecvGate::create(m3::nextlog2<BUFSIZE>::val, m3::nextlog2<MSGSIZE>::val)),
-          _sgate(m3::SendGate::create(&_rgate, reinterpret_cast<label_t>(sess), MSGSIZE)),
-          _pending(),
-          _callbacks() {
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-        _rgate.start(std::bind(&PipeHandler<SUB>::handle_message, this, _1));
+    explicit PipeChannel(PipeData *pipe, capsel_t srv);
+    virtual ~PipeChannel() {
     }
 
-    m3::SendGate &sendgate() {
-        return _sgate;
+    PipeChannel *clone(capsel_t srv) const;
+
+    void set_ep(capsel_t ep) {
+        epcap = ep;
+    }
+    m3::KIF::CapRngDesc crd() const {
+        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, caps, 2);
     }
 
-    void add_operation(handler_func func) {
-        _callbacks[0] = func;
-    }
+    m3::Errors::Code activate();
 
-    void handle_message(m3::GateIStream &msg) {
-        EVENT_TRACER_Service_request();
-        (static_cast<SUB*>(this)->*_callbacks[0])(msg);
-    }
-
-protected:
-    int refs;
-    m3::RecvGate _rgate;
-    m3::SendGate _sgate;
-    m3::SList<RdWrRequest> _pending;
-
-private:
-    handler_func _callbacks[1];
+    int id;
+    capsel_t caps;
+    capsel_t epcap;
+    size_t lastamount;
+    m3::SendGate sgate;
+    PipeData *pipe;
 };
 
-class PipeReadHandler : public PipeHandler<PipeReadHandler> {
+class PipeReadChannel : public PipeChannel {
 public:
-    explicit PipeReadHandler(PipeSessionData *sess)
-        : PipeHandler<PipeReadHandler>(sess), lastreader(), lastread() {
-        add_operation(&PipeReadHandler::read);
+    explicit PipeReadChannel(PipeData *pipe, capsel_t srv) : PipeChannel(pipe, srv) {
     }
 
-    m3::Errors::Code attach(PipeSessionData *sess);
-    m3::Errors::Code close(PipeSessionData *sess);
+    virtual Type type() const override {
+        return RCHAN;
+    }
 
-    void read(m3::GateIStream &is);
-    void handle_pending_read(PipeSessionData *sess);
+    virtual void read(m3::GateIStream &is) override;
+    virtual m3::Errors::Code close() override;
 
 private:
-    void append_request(PipeSessionData *sess, m3::GateIStream &is, size_t amount);
-
-    PipeSessionData *lastreader;
-    size_t lastread;
+    void append_request(PipeData *pipe, m3::GateIStream &is);
 };
 
-class PipeWriteHandler : public PipeHandler<PipeWriteHandler> {
+class PipeWriteChannel : public PipeChannel {
 public:
-    explicit PipeWriteHandler(PipeSessionData *sess)
-        : PipeHandler<PipeWriteHandler>(sess), lastwriter() {
-        add_operation(&PipeWriteHandler::write);
+    explicit PipeWriteChannel(PipeData *pipe, capsel_t srv) : PipeChannel(pipe, srv) {
     }
 
-    m3::Errors::Code attach(PipeSessionData *sess);
-    m3::Errors::Code close(PipeSessionData *sess, size_t lastwrite);
+    virtual Type type() const override {
+        return WCHAN;
+    }
 
-    void write(m3::GateIStream &is);
-    void handle_pending_write(PipeSessionData *sess);
+    virtual void write(m3::GateIStream &is, size_t submit) override;
+    virtual m3::Errors::Code close() override;
 
 private:
-    void append_request(PipeSessionData *sess, m3::GateIStream &is, size_t amount);
+    void append_request(PipeData *pipe, m3::GateIStream &is);
+};
 
-    PipeSessionData *lastwriter;
+class PipeData : public PipeSession {
+    struct WorkItem : public m3::WorkItem {
+        virtual void work() override;
+
+        PipeData *pipe;
+    };
+
+public:
+    template<class T>
+    struct RdWrRequest : public m3::SListItem {
+        explicit RdWrRequest(T *_chan, const m3::DTU::Message* _lastmsg)
+            : m3::SListItem(), chan(_chan), lastmsg(_lastmsg) {
+        }
+
+        T *chan;
+        const m3::DTU::Message *lastmsg;
+    };
+
+    // unused
+    explicit PipeData() : memory(), rbuf(0) {
+    }
+
+    explicit PipeData(m3::RecvGate *rgate, size_t _memsize);
+    virtual ~PipeData();
+
+    virtual Type type() const override {
+        return META;
+    }
+
+    PipeChannel *attach(capsel_t srv, bool read);
+    void handle_pending_read();
+    void handle_pending_write();
+
+    int nextid;
+    uint flags;
+    m3::MemGate *memory;
+    m3::RecvGate *rgate;
+    VarRingBuf rbuf;
+    WorkItem workitem;
+    // XXX we are currently using the SListItem here and in Handler
+    m3::SList<PipeReadChannel> reader;
+    m3::SList<PipeWriteChannel> writer;
+    PipeReadChannel *last_reader;
+    PipeWriteChannel *last_writer;
+    m3::SList<RdWrRequest<PipeReadChannel>> pending_reads;
+    m3::SList<RdWrRequest<PipeWriteChannel>> pending_writes;
 };

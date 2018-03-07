@@ -80,14 +80,16 @@ void FSTestSuite::FileTestCase::run() {
             FileRef file(filename, FILE_R);
             if(Errors::occurred())
                 exitmsg("open of " << filename << " failed");
-            assert_long(file->write(buf, sizeof(buf)), Errors::NO_PERM);
+            assert_long(file->write(buf, sizeof(buf)), -1);
+            assert_true(Errors::last == Errors::NO_PERM);
         }
 
         {
             FileRef file(filename, FILE_W);
             if(Errors::occurred())
                 exitmsg("open of " << filename << " failed");
-            assert_long(file->read(buf, sizeof(buf)), Errors::NO_PERM);
+            assert_long(file->read(buf, sizeof(buf)), -1);
+            assert_true(Errors::last == Errors::NO_PERM);
         }
     }
 

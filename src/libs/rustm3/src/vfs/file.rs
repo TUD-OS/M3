@@ -7,7 +7,7 @@ use io::{Read, Write};
 use kif;
 use serialize::{Marshallable, Unmarshallable, Sink, Source};
 use session::Pager;
-use vfs::{BlockId, DevId, INodeId, FileMode, MountTable};
+use vfs::{BlockId, DevId, INodeId, FileMode};
 
 int_enum! {
     pub struct SeekMode : u32 {
@@ -80,13 +80,11 @@ impl Unmarshallable for FileInfo {
 pub trait File : Read + Write + Seek + Map + Debug {
     fn close(&mut self);
 
-    fn flags(&self) -> OpenFlags;
-
     fn stat(&self) -> Result<FileInfo, Error>;
 
     fn file_type(&self) -> u8;
-    fn collect_caps(&self, caps: &mut Vec<Selector>);
-    fn serialize(&self, mounts: &MountTable, s: &mut VecSink);
+    fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector);
+    fn serialize(&self, s: &mut VecSink);
 }
 
 pub trait Seek {

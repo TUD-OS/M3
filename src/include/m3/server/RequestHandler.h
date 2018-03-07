@@ -69,6 +69,10 @@ public:
         _callbacks[op] = func;
     }
 
+    RecvGate &recvgate() {
+        return _rgate;
+    }
+
 protected:
     virtual Errors::Code handle_obtain(SESS *sess, KIF::Service::ExchangeData &data) override {
         if(sess->send_gate() || data.args.count > 0 || data.caps != 1)

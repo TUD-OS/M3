@@ -48,12 +48,12 @@ impl Session {
 
     pub fn delegate(&self, crd: kif::CapRngDesc,
                     args: &mut kif::syscalls::ExchangeArgs) -> Result<(), Error> {
-        self.delegate_for(vpe::VPE::cur(), crd, args)
+        self.delegate_for(vpe::VPE::cur().sel(), crd, args)
     }
 
-    pub fn delegate_for(&self, vpe: &vpe::VPE, crd: kif::CapRngDesc,
+    pub fn delegate_for(&self, vpe: Selector, crd: kif::CapRngDesc,
                         args: &mut kif::syscalls::ExchangeArgs) -> Result<(), Error> {
-        syscalls::delegate(vpe.sel(), self.sel(), crd, args)
+        syscalls::delegate(vpe, self.sel(), crd, args)
     }
 
     pub fn obtain_obj(&self) -> Result<Selector, Error> {
@@ -70,15 +70,15 @@ impl Session {
 
     pub fn obtain(&self, count: u32,
                   args: &mut kif::syscalls::ExchangeArgs) -> Result<kif::CapRngDesc, Error> {
-        self.obtain_for(vpe::VPE::cur(), count, args)
-    }
-
-    pub fn obtain_for(&self, vpe: &vpe::VPE, count: u32,
-                      args: &mut kif::syscalls::ExchangeArgs) -> Result<kif::CapRngDesc, Error> {
         let caps = vpe::VPE::cur().alloc_sels(count);
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, caps, count);
-        syscalls::obtain(vpe.sel(), self.sel(), crd, args)?;
+        self.obtain_for(vpe::VPE::cur().sel(), crd, args)?;
         Ok(crd)
+    }
+
+    pub fn obtain_for(&self, vpe: Selector, crd: kif::CapRngDesc,
+                      args: &mut kif::syscalls::ExchangeArgs) -> Result<(), Error> {
+        syscalls::obtain(vpe, self.sel(), crd, args)
     }
 }
 

@@ -19,7 +19,6 @@
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/FileRef.h>
-#include <m3/vfs/RegularFile.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -76,10 +75,10 @@ int main(int argc, char **argv) {
             if(Errors::last != Errors::NONE)
                 exitmsg("Unable to open /zeros.bin");
 
-            RegularFile *rfile = static_cast<RegularFile*>(&*f);
+            const GenericFile *rfile = static_cast<const GenericFile*>(&*f);
             goff_t virt = 0x31000000;
             Errors::Code res = VPE::self().pager()->map_ds(&virt, PAGES * PAGE_SIZE,
-                Pager::READ | Pager::WRITE, 0, *rfile->fs(), rfile->fd(), 0);
+                Pager::READ | Pager::WRITE, 0, rfile->sess(), 0);
             if(res != Errors::NONE)
                 exitmsg("Unable to map /test.txt");
 

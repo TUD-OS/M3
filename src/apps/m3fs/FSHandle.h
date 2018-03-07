@@ -23,7 +23,7 @@
 
 class FSHandle {
 public:
-    explicit FSHandle(capsel_t mem, bool clear);
+    explicit FSHandle(capsel_t mem, size_t extend, bool clear);
 
     m3::MemGate &mem() {
         return _mem;
@@ -42,6 +42,9 @@ public:
     }
     bool clear_blocks() const {
         return _clear;
+    }
+    size_t extend() const {
+        return _extend;
     }
 
     void read_from_block(void *buffer, size_t len, m3::blockno_t bno, size_t off) {
@@ -62,6 +65,7 @@ private:
 
     m3::MemGate _mem;
     bool _clear;
+    size_t _extend;
     m3::SuperBlock _sb;
     Cache _cache;
     Allocator _blocks;

@@ -201,10 +201,8 @@ fn append_read() {
         let mut buf = [0u8; 1024];
         assert_eq!(file.read(&mut buf), Ok(0));
 
-        // seek beyond the end
-        assert_eq!(file.seek(2 * 1024, SeekMode::CUR), Ok(4 * 1024));
         // seek back
-        assert_eq!(file.seek(2 * 1024, SeekMode::SET), Ok(2 * 1024));
+        assert_eq!(file.seek(1 * 1024, SeekMode::SET), Ok(1 * 1024));
 
         // now reading should work
         assert_eq!(file.read(&mut buf), Ok(1024));

@@ -16,26 +16,25 @@
 
 #pragma once
 
-#include <m3/session/Session.h>
-#include <m3/com/SendGate.h>
-#include <m3/vfs/GenericFile.h>
+#include <m3/server/RequestHandler.h>
 
-namespace m3 {
-
-class Pipe : public Session {
+class M3FSSession : public m3::RequestSessionData {
 public:
-    explicit Pipe(const String &service, MemGate &memory, size_t memsize)
-        : Session(service, memsize) {
-        delegate_obj(memory.sel());
+    static constexpr size_t MSG_SIZE = 128;
+
+    enum Type {
+        META,
+        FILE,
+    };
+
+    virtual ~M3FSSession() {
     }
 
-    GenericFile *create_channel(bool read) {
-        KIF::ExchangeArgs args;
-        args.count = 1;
-        args.vals[0] = read;
-        KIF::CapRngDesc desc = obtain(2, &args);
-        return new GenericFile(desc.start());
+    virtual Type type() const {
+        // TODO not pure virtual because of stupid Handler stuff
+        return META;
+    }
+
+    virtual void close() {
     }
 };
-
-}

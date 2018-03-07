@@ -4,7 +4,6 @@ use core::fmt;
 use dtu::EpId;
 use errors::Error;
 use kif;
-use session::FileId;
 use session::Session;
 use vpe::VPE;
 
@@ -120,11 +119,11 @@ impl Pager {
     }
 
     pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
-                  sess: &Session, fid: FileId) -> Result<usize, Error> {
+                  sess: &Session) -> Result<usize, Error> {
         let mut args = kif::syscalls::ExchangeArgs {
-            count: 5,
+            count: 4,
             vals: kif::syscalls::ExchangeUnion {
-                i: [addr as u64, len as u64, prot.bits() as u64, fid as u64, off as u64, 0, 0, 0]
+                i: [addr as u64, len as u64, prot.bits() as u64, off as u64, 0, 0, 0, 0]
             },
         };
 

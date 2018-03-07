@@ -16,7 +16,12 @@
 
 #include <base/log/Services.h>
 
+#include <m3/Syscalls.h>
+
 #include "Session.h"
+
+#define PRINT(pipe, expr)           SLOG(PIPE, fmt((word_t)(pipe), "#x") << ": " expr)
+#define PRINTCHAN(pipe, id, expr)   SLOG(PIPE, fmt((word_t)(pipe), "#x") << "[" << (id) << "]: " expr)
 
 using namespace m3;
 
@@ -27,125 +32,162 @@ static void reply_vmsg_late(RecvGate &rgate, const DTU::Message *msg, const Args
     rgate.reply(reply.bytes(), reply.total(), idx);
 }
 
-int PipeSessionData::_nextid = 0;
-
-void PipeSessionData::WorkItem::work() {
-    sess->writer->handle_pending_write(sess);
-    sess->reader->handle_pending_read(sess);
+void PipeData::WorkItem::work() {
+    pipe->handle_pending_write();
+    pipe->handle_pending_read();
 }
 
-void PipeSessionData::init() {
-    if(reader && writer && !workitem) {
-        workitem = new WorkItem();
-        workitem->sess = this;
-        m3::env()->workloop()->add(workitem, false);
+PipeData::PipeData(m3::RecvGate *rgate, size_t _memsize)
+    : PipeSession(), nextid(), flags(), memory(), rgate(rgate), rbuf(_memsize), workitem(),
+      reader(), writer(), last_reader(), last_writer(), pending_reads(), pending_writes() {
+    workitem.pipe = this;
+    m3::env()->workloop()->add(&workitem, false);
+}
+
+PipeData::~PipeData() {
+    for(auto it = reader.begin(); it != reader.end(); ) {
+        auto old = it++;
+        delete &*old;
     }
-}
-
-PipeSessionData::~PipeSessionData() {
-    if(workitem) {
-        m3::env()->workloop()->remove(workitem);
-        delete workitem;
+    for(auto it = writer.begin(); it != writer.end(); ) {
+        auto old = it++;
+        delete &*old;
     }
-    delete reader;
-    delete writer;
+
+    m3::env()->workloop()->remove(&workitem);
 }
 
-Errors::Code PipeReadHandler::attach(PipeSessionData *sess) {
-    refs++;
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: read-refs=" << refs);
+PipeChannel *PipeData::attach(capsel_t srv, bool read) {
+    PipeChannel *handler;
+    if(read) {
+        handler = &*reader.append(new PipeReadChannel(this, srv));
+        PRINT(this, "attach: read-refs=" << reader.length());
+    }
+    else {
+        handler = &*writer.append(new PipeWriteChannel(this, srv));
+        PRINT(this, "attach: write-refs=" << writer.length());
+    }
+
+    return handler;
+}
+
+PipeChannel *PipeChannel::clone(capsel_t srv) const {
+    return pipe->attach(srv, type() == RCHAN);
+}
+
+PipeChannel::PipeChannel(PipeData *_pipe, capsel_t srv)
+    : PipeSession(),
+      id(_pipe->nextid++), caps(VPE::self().alloc_caps(2)), epcap(ObjCap::INVALID), lastamount(),
+      sgate(m3::SendGate::create(_pipe->rgate, reinterpret_cast<label_t>(this), 64, nullptr, caps + 1)),
+      pipe(_pipe) {
+    Syscalls::get().createsessat(caps + 0, srv, reinterpret_cast<word_t>(this));
+}
+
+Errors::Code PipeChannel::activate() {
+    if(epcap != ObjCap::INVALID) {
+        if(pipe->memory == nullptr)
+            return Errors::INV_ARGS;
+        // TODO use only READ or only WRITE permission
+        if(Syscalls::get().activate(epcap, pipe->memory->sel(), 0) != Errors::NONE)
+            return Errors::last;
+        epcap = ObjCap::INVALID;
+    }
     return Errors::NONE;
 }
 
-Errors::Code PipeReadHandler::close(PipeSessionData *sess) {
-    if(sess->flags & READ_EOF)
+Errors::Code PipeReadChannel::close() {
+    if(pipe->flags & READ_EOF)
         return Errors::INV_ARGS;
 
-    if(lastreader && lastreader == sess) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read-pull: " << lastread);
-        sess->rbuf.pull(lastread);
-        lastreader = nullptr;
+    if(pipe->last_reader == this) {
+        PRINTCHAN(pipe, id, "read-pull: " << lastamount);
+        pipe->rbuf.pull(lastamount);
+        pipe->last_reader = nullptr;
     }
 
-    if(--refs > 0) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read-refs=" << refs);
+    pipe->reader.remove(this);
+    if(pipe->reader.length() > 0) {
+        PRINTCHAN(pipe, id, "close: read-refs=" << pipe->reader.length());
         return Errors::NONE;
     }
 
-    sess->flags |= READ_EOF;
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: read end");
+    pipe->flags |= READ_EOF;
+    PRINTCHAN(pipe, id, "close: read end");
 
     return Errors::NONE;
 }
 
-void PipeReadHandler::read(GateIStream &is) {
-    PipeSessionData *sess = is.label<PipeSessionData*>();
-    size_t amount;
-    is >> amount;
+void PipeReadChannel::read(GateIStream &is) {
+    Errors::Code res = activate();
+    if(res != Errors::NONE) {
+        reply_error(is, res);
+        return;
+    }
 
-    if(lastreader) {
-        if(lastreader != sess) {
-            append_request(sess, is, amount);
+    if(pipe->last_reader) {
+        if(pipe->last_reader != this) {
+            append_request(pipe, is);
             return;
         }
 
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read-pull: " << lastread);
-        sess->rbuf.pull(lastread);
-        lastreader = nullptr;
+        PRINTCHAN(pipe, id, "read-pull: " << lastamount);
+        pipe->rbuf.pull(lastamount);
+        pipe->last_reader = nullptr;
     }
 
-    if(_pending.length() > 0) {
-        if(!(sess->flags & WRITE_EOF)) {
-            append_request(sess, is, amount);
+    if(pipe->pending_reads.length() > 0) {
+        if(!(pipe->flags & WRITE_EOF)) {
+            append_request(pipe, is);
             return;
         }
     }
 
-    ssize_t pos = sess->rbuf.get_read_pos(&amount);
+    // TODO hand out less, if it is above a certain threshold
+    size_t amount = pipe->rbuf.size() / static_cast<size_t>(4 * pipe->reader.length());
+    ssize_t pos = pipe->rbuf.get_read_pos(&amount);
     if(pos == -1) {
-        if(sess->flags & WRITE_EOF) {
-            SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " EOF");
-            amount = 0;
-            reply_vmsg(is, Errors::NONE, pos, amount, 0);
+        if(pipe->flags & WRITE_EOF) {
+            PRINTCHAN(pipe, id, "read: EOF");
+            reply_vmsg(is, Errors::NONE, (size_t)0, (size_t)0);
         }
         else
-            append_request(sess, is, amount);
+            append_request(pipe, is);
     }
     else {
-        lastreader = sess;
-        lastread = amount;
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " @" << pos);
+        pipe->last_reader = this;
+        lastamount = amount;
+        PRINTCHAN(pipe, id, "read: " << amount << " @" << pos);
         reply_vmsg(is, Errors::NONE, pos, amount);
     }
 }
 
-void PipeReadHandler::append_request(PipeSessionData *sess, GateIStream &is, size_t amount) {
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": read: " << amount << " waiting");
-    _pending.append(new RdWrRequest(amount, &is.message()));
+void PipeReadChannel::append_request(PipeData *pipe, GateIStream &is) {
+    PRINTCHAN(pipe, id, "read: waiting");
+    pipe->pending_reads.append(new PipeData::RdWrRequest<PipeReadChannel>(this, &is.message()));
     is.claim();
 }
 
-void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
-    if(lastreader)
+void PipeData::handle_pending_read() {
+    if(last_reader)
         return;
 
-    while(_pending.length() > 0) {
-        RdWrRequest *req = &*_pending.begin();
-        size_t ramount = req->amount;
-        ssize_t rpos = sess->rbuf.get_read_pos(&ramount);
+    while(pending_reads.length() > 0) {
+        PipeData::RdWrRequest<PipeReadChannel> *req = &*pending_reads.begin();
+        size_t ramount = rbuf.size() / static_cast<size_t>(4 * reader.length());
+        ssize_t rpos = rbuf.get_read_pos(&ramount);
         if(rpos != -1) {
-            _pending.remove_first();
-            lastreader = sess;
-            lastread = ramount;
-            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: " << ramount << " @" << rpos);
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, rpos, ramount);
+            pending_reads.remove_first();
+            last_reader = req->chan;
+            req->chan->lastamount = ramount;
+            PRINTCHAN(this, req->chan->id, "late-read: " << ramount << " @" << rpos);
+            reply_vmsg_late(*rgate, req->lastmsg, Errors::NONE, rpos, ramount);
             delete req;
             break;
         }
-        else if(sess->flags & WRITE_EOF) {
-            _pending.remove_first();
-            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-read: EOF");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, (size_t)0, (size_t)0, 0);
+        else if(flags & PipeChannel::WRITE_EOF) {
+            pending_reads.remove_first();
+            PRINTCHAN(this, req->chan->id, "late-read: EOF");
+            reply_vmsg_late(*rgate, req->lastmsg, Errors::NONE, (size_t)0, (size_t)0);
             delete req;
         }
         else
@@ -153,97 +195,105 @@ void PipeReadHandler::handle_pending_read(PipeSessionData *sess) {
     }
 }
 
-Errors::Code PipeWriteHandler::attach(PipeSessionData *sess) {
-    refs++;
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": attach: write-refs=" << refs);
-    return Errors::NONE;
-}
-
-Errors::Code PipeWriteHandler::close(PipeSessionData *sess, size_t lastwrite) {
-    if(sess->flags & WRITE_EOF)
+Errors::Code PipeWriteChannel::close() {
+    if(pipe->flags & WRITE_EOF)
         return Errors::INV_ARGS;
 
-    if(lastwriter && lastwriter == sess && lastwrite != static_cast<size_t>(-1)) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastwrite);
-        sess->rbuf.push(lastwrite);
-        lastwriter = nullptr;
+    if(pipe->last_writer == this && lastamount != static_cast<size_t>(-1)) {
+        PRINTCHAN(pipe, id, "write-push: " << lastamount);
+        pipe->rbuf.push(lastamount);
+        pipe->last_writer = nullptr;
     }
 
-    if(--refs > 0) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write-refs=" << refs);
+    pipe->writer.remove(this);
+    if(pipe->writer.length() > 0) {
+        PRINTCHAN(pipe, id, "close: write-refs=" << pipe->writer.length());
         return Errors::NONE;
     }
 
-    sess->flags |= WRITE_EOF;
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": close: write end");
+    pipe->flags |= WRITE_EOF;
+    PRINTCHAN(pipe, id, "close: write end");
 
     return Errors::NONE;
 }
 
-void PipeWriteHandler::write(GateIStream &is) {
-    PipeSessionData *sess = is.label<PipeSessionData*>();
-    size_t amount, lastamount;
-    is >> amount >> lastamount;
+void PipeWriteChannel::write(GateIStream &is, size_t submit) {
+    Errors::Code res = activate();
+    if(res != Errors::NONE) {
+        reply_error(is, res);
+        return;
+    }
 
-    if(sess->flags & READ_EOF) {
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " EOF");
+    if(pipe->flags & READ_EOF) {
+        PRINTCHAN(pipe, id, "write: EOF");
         reply_error(is, Errors::END_OF_FILE);
         return;
     }
 
-    if(lastwriter) {
-        if(lastwriter != sess) {
-            append_request(sess, is, amount);
+    if(pipe->last_writer) {
+        if(pipe->last_writer != this) {
+            append_request(pipe, is);
             return;
         }
 
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write-push: " << lastamount);
-        sess->rbuf.push(lastamount);
-        lastwriter = nullptr;
+        size_t amount = submit == 0 ? lastamount : submit;
+        PRINTCHAN(pipe, id, "write-push: " << amount);
+        pipe->rbuf.push(amount);
+        pipe->last_writer = nullptr;
     }
 
-    if(_pending.length() > 0) {
-        append_request(sess, is, amount);
+    if(submit > 0) {
+        reply_vmsg(is, Errors::NONE, pipe->rbuf.size());
         return;
     }
 
-    ssize_t pos = sess->rbuf.get_write_pos(amount);
+    if(pipe->pending_writes.length() > 0) {
+        append_request(pipe, is);
+        return;
+    }
+
+    // TODO hand out less, if it is above a certain threshold
+    size_t amount = pipe->rbuf.size() / static_cast<size_t>(4 * pipe->writer.length());
+    ssize_t pos = pipe->rbuf.get_write_pos(amount);
     if(pos == -1)
-        append_request(sess, is, amount);
+        append_request(pipe, is);
     else {
-        lastwriter = sess;
-        SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " @" << pos);
-        reply_vmsg(is, Errors::NONE, pos);
+        pipe->last_writer = this;
+        lastamount = amount;
+        PRINTCHAN(pipe, id, "write: " << amount << " @" << pos);
+        reply_vmsg(is, Errors::NONE, pos, amount);
     }
 }
 
-void PipeWriteHandler::append_request(PipeSessionData *sess, GateIStream &is, size_t amount) {
-    SLOG(PIPE, fmt((word_t)sess, "#x") << ": write: " << amount << " waiting");
-    _pending.append(new RdWrRequest(amount, &is.message()));
+void PipeWriteChannel::append_request(PipeData *pipe, GateIStream &is) {
+    PRINTCHAN(pipe, id, "write: waiting");
+    pipe->pending_writes.append(new PipeData::RdWrRequest<PipeWriteChannel>(this, &is.message()));
     is.claim();
 }
 
-void PipeWriteHandler::handle_pending_write(PipeSessionData *sess) {
-    if(lastwriter)
+void PipeData::handle_pending_write() {
+    if(last_writer)
         return;
 
-    if(sess->flags & READ_EOF) {
-        while(_pending.length() > 0) {
-            RdWrRequest *req = _pending.remove_first();
-            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: EOF");
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::END_OF_FILE);
+    if(flags & PipeChannel::READ_EOF) {
+        while(pending_writes.length() > 0) {
+            PipeData::RdWrRequest<PipeWriteChannel> *req = pending_writes.remove_first();
+            PRINTCHAN(this, req->chan->id, "late-write: EOF");
+            reply_vmsg_late(*rgate, req->lastmsg, Errors::END_OF_FILE);
             delete req;
         }
     }
-    else if(_pending.length() > 0) {
-        RdWrRequest *req = &*_pending.begin();
-        ssize_t wpos = sess->rbuf.get_write_pos(req->amount);
+    else if(pending_writes.length() > 0) {
+        PipeData::RdWrRequest<PipeWriteChannel> *req = &*pending_writes.begin();
+        size_t amount = rbuf.size() / static_cast<size_t>(4 * writer.length());
+        ssize_t wpos = rbuf.get_write_pos(amount);
         if(wpos != -1) {
-            _pending.remove_first();
+            pending_writes.remove_first();
 
-            lastwriter = sess;
-            SLOG(PIPE, fmt((word_t)sess, "#x") << ": late-write: " << req->amount << " @" << wpos);
-            reply_vmsg_late(_rgate, req->lastmsg, Errors::NONE, wpos);
+            last_writer = req->chan;
+            req->chan->lastamount = amount;
+            PRINTCHAN(this, req->chan->id, "late-write: " << amount << " @" << wpos);
+            reply_vmsg_late(*rgate, req->lastmsg, Errors::NONE, wpos, amount);
             delete req;
         }
     }

@@ -224,20 +224,19 @@ public:
     }
 
     capsel_t map_ds(AddrSpace *sess, size_t argc, const xfer_t *args, goff_t *virt) {
-        if(argc != 6)
+        if(argc != 5)
             return Errors::INV_ARGS;
 
         *virt = args[1];
         size_t len = args[2];
         int flags = args[3];
-        int id = args[4];
-        size_t offset = args[5];
+        size_t offset = args[4];
 
         len = Math::round_up(len + (*virt & PAGE_MASK), static_cast<goff_t>(PAGE_SIZE));
         *virt = Math::round_dn(*virt, static_cast<goff_t>(PAGE_SIZE));
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::map_ds(virt=" << fmt(*virt, "p")
-            << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x") << ", id=" << id
+            << ", len=" << fmt(len, "#x") << ", flags=" << fmt(flags, "#x")
             << ", offset=" << fmt(offset, "#x") << ")");
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
@@ -246,7 +245,7 @@ public:
         }
 
         // TODO determine/validate virt+len
-        ExternalDataSpace *ds = new ExternalDataSpace(sess, maxExternPages, *virt, len, flags, id, offset);
+        ExternalDataSpace *ds = new ExternalDataSpace(sess, maxExternPages, *virt, len, flags, offset);
         sess->add(ds);
 
         return ds->sess.sel();

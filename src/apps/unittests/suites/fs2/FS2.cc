@@ -141,15 +141,13 @@ void FS2TestSuite::WriteFileTestCase::run() {
         // there is nothing to read now
         assert_ssize(file->read(largebuf, sizeof(largebuf)), 0);
 
-        // seek beyond the end
-        assert_ssize(file->seek(sizeof(largebuf) * 4, M3FS_SEEK_SET), sizeof(largebuf) * 4);
         // seek back
-        assert_ssize(file->seek(sizeof(largebuf) * 2, M3FS_SEEK_SET), sizeof(largebuf) * 2);
+        assert_ssize(file->seek(sizeof(largebuf) * 1, M3FS_SEEK_SET), sizeof(largebuf) * 1);
         // now reading should work
         assert_ssize(file->read(largebuf, sizeof(largebuf)), sizeof(largebuf));
     }
 
-    check_content(filename, sizeof(largebuf) * 4);
+    check_content(filename, sizeof(largebuf) * 2);
 }
 
 void FS2TestSuite::MetaFileTestCase::run() {

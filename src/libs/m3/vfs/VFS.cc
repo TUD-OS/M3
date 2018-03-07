@@ -65,6 +65,8 @@ fd_t VFS::open(const char *path, int perms) {
             delete file;
             Errors::last = Errors::NO_SPACE;
         }
+        if(perms & FILE_APPEND)
+            file->seek(0, M3FS_SEEK_END);
         return fd;
     }
     return FileTable::INVALID;

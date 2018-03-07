@@ -103,27 +103,26 @@ private:
 class ExternalDataSpace : public DataSpace {
 public:
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
-            int flags, int _id, size_t _fileoff, capsel_t sess)
+            int flags, size_t _fileoff, capsel_t sess)
         : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(sess),
-          id(_id), fileoff(_fileoff) {
+          fileoff(_fileoff) {
     }
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
-            int flags, int _id, size_t _fileoff)
+            int flags, size_t _fileoff)
         : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(m3::VPE::self().alloc_cap()),
-          id(_id), fileoff(_fileoff) {
+          fileoff(_fileoff) {
     }
 
     const char *type() const override {
         return "External";
     }
     DataSpace *clone(AddrSpace *as) override {
-        return new ExternalDataSpace(as, maxpages, addr(), size(), _flags, id, fileoff, sess.sel());
+        return new ExternalDataSpace(as, maxpages, addr(), size(), _flags, fileoff, sess.sel());
     }
 
     m3::Errors::Code handle_pf(goff_t vaddr) override;
 
     const size_t maxpages;
     m3::Session sess;
-    int id;
     size_t fileoff;
 };

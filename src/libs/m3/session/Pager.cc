@@ -37,15 +37,14 @@ Errors::Code Pager::map_anon(goff_t *virt, size_t len, int prot, int flags) {
 }
 
 Errors::Code Pager::map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
-                           int fd, size_t offset) {
+                           size_t offset) {
     KIF::ExchangeArgs args;
-    args.count = 6;
+    args.count = 5;
     args.vals[0] = DelOp::DATASPACE;
     args.vals[1] = *virt;
     args.vals[2] = len;
     args.vals[3] = static_cast<xfer_t>(prot | flags);
-    args.vals[4] = static_cast<xfer_t>(fd);
-    args.vals[5] = offset;
+    args.vals[4] = offset;
     delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess.sel()), &args);
     if(Errors::last != Errors::NONE)
         return Errors::last;

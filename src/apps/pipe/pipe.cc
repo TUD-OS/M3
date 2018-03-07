@@ -40,10 +40,8 @@ int main() {
         reader.obtain_fds();
 
         reader.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FD);
-            ssize_t res;
-            while((res = in->read(buffer, sizeof(buffer))) > 0)
-                cout << "[1] Read " << res << ": '" << buffer << "'\n";
+            while(cin.getline(buffer, sizeof(buffer)) > 0)
+                cout << "[1] Read '" << buffer << "'\n";
             return 0;
         });
 
@@ -53,10 +51,8 @@ int main() {
         reader2.obtain_fds();
 
         reader2.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FD);
-            ssize_t res;
-            while((res = in->read(buffer, sizeof(buffer))) > 0)
-                cout << "[2] Read " << res << ": '" << buffer << "'\n";
+            while(cin.getline(buffer, sizeof(buffer)) > 0)
+                cout << "[2] Read '" << buffer << "'\n";
             return 0;
         });
 
@@ -69,8 +65,8 @@ int main() {
             File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 5; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from sibling " << i << "!";
-                if(out->write(buffer, strlen(buffer) + 1) < 0)
+                os << "Hello World from sibling " << i << "!\n";
+                if(out->write(buffer, os.length()) < 0)
                     break;
             }
             return 0;
@@ -81,8 +77,8 @@ int main() {
         File *out = VPE::self().fds()->get(pipe.writer_fd());
         for(int i = 0; i < 10; ++i) {
             OStringStream os(buffer, sizeof(buffer));
-            os << "Hello World from child " << i << "!";
-            if(out->write(buffer, strlen(buffer) + 1) < 0)
+            os << "Hello World from child " << i << "!\n";
+            if(out->write(buffer, os.length()) < 0)
                 break;
         }
 
@@ -104,10 +100,9 @@ int main() {
         reader.obtain_fds();
 
         reader.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FD);
-            ssize_t res, i = 0;
-            while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
-                cout << "Read " << res << ": '" << buffer << "'\n";
+            size_t i = 0;
+            while(i++ < 3 && cin.getline(buffer, sizeof(buffer)) > 0)
+                cout << "Read '" << buffer << "'\n";
             return 0;
         });
 
@@ -116,8 +111,8 @@ int main() {
         File *out = VPE::self().fds()->get(pipe.writer_fd());
         for(int i = 0; i < 10; ++i) {
             OStringStream os(buffer, sizeof(buffer));
-            os << "Hello World from child " << i << "!";
-            if(out->write(buffer, strlen(buffer) + 1) < 0)
+            os << "Hello World from child " << i << "!\n";
+            if(out->write(buffer, os.length()) < 0)
                 break;
         }
 
@@ -127,8 +122,8 @@ int main() {
     }
 
     {
-        MemGate mem = MemGate::create_global(0x100000, MemGate::RW);
-        IndirectPipe pipe(mem, 0x100000);
+        MemGate mem = MemGate::create_global(0x1000, MemGate::RW);
+        IndirectPipe pipe(mem, 0x1000);
         VPE reader("reader");
 
         reader.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe.reader_fd()));

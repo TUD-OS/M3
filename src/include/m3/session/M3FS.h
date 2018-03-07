@@ -22,6 +22,7 @@
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/vfs/FileSystem.h>
+#include <m3/vfs/GenericFile.h>
 
 #include <fs/internal.h>
 
@@ -30,16 +31,15 @@ namespace m3 {
 class M3FS : public Session, public FileSystem {
 public:
     enum Operation {
-        OPEN,
+        FSTAT = GenericFile::STAT,
+        SEEK = GenericFile::SEEK,
+        READ = GenericFile::READ,
+        WRITE = GenericFile::WRITE,
         STAT,
-        FSTAT,
-        SEEK,
         MKDIR,
         RMDIR,
         LINK,
         UNLINK,
-        COMMIT,
-        CLOSE,
         COUNT
     };
 
@@ -64,29 +64,24 @@ public:
 
     virtual File *open(const char *path, int perms) override;
     virtual Errors::Code stat(const char *path, FileInfo &info) override;
-    Errors::Code fstat(int fd, FileInfo &info);
-    Errors::Code seek(int fd, size_t off, int whence, uint16_t &ext, size_t &extoff, size_t &pos);
     virtual Errors::Code mkdir(const char *path, mode_t mode) override;
     virtual Errors::Code rmdir(const char *path) override;
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;
     virtual Errors::Code unlink(const char *path) override;
-    Errors::Code commit(int fd, size_t extent, size_t off);
-    Errors::Code close(int fd, size_t extent, size_t off);
 
     template<size_t N>
-    bool get_locs(int fd, size_t off, size_t count, LocList<N> &locs, uint flags) {
-        return get_locs(*this, fd, &off, count, locs, flags);
+    bool get_locs(size_t off, size_t count, LocList<N> &locs, uint flags) {
+        return get_locs(*this, &off, count, locs, flags);
     }
 
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
-    static bool get_locs(Session &sess, int fd, size_t *off, size_t count, LocList<N> &locs, uint flags) {
+    static bool get_locs(Session &sess, size_t *off, size_t count, LocList<N> &locs, uint flags) {
         KIF::ExchangeArgs args;
-        args.count = 4;
-        args.vals[0] = static_cast<xfer_t>(fd);
-        args.vals[1] = *off;
-        args.vals[2] = count;
-        args.vals[3] = flags;
+        args.count = 3;
+        args.vals[0] = *off;
+        args.vals[1] = count;
+        args.vals[2] = flags;
         bool extended = false;
         KIF::CapRngDesc crd = sess.obtain(count, &args);
         if(Errors::last == Errors::NONE) {

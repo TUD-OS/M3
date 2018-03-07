@@ -16,21 +16,17 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/session/M3FS.h>
-#include <m3/vfs/RegularFile.h>
+#include <m3/vfs/GenericFile.h>
 
 namespace m3 {
 
 File *M3FS::open(const char *path, int perms) {
-    int fd;
-    // ensure that the message gets acked immediately.
-    {
-        GateIStream resp = send_receive_vmsg(_gate, OPEN, path, perms);
-        resp >> Errors::last;
-        if(Errors::last != Errors::NONE)
-            return nullptr;
-        resp >> fd;
-    }
-    return new RegularFile(fd, Reference<M3FS>(this), perms);
+    KIF::ExchangeArgs args;
+    args.count = 1;
+    args.svals[0] = static_cast<xfer_t>(perms);
+    strncpy(args.str, path, sizeof(args.str));
+    KIF::CapRngDesc crd = obtain(2, &args);
+    return new GenericFile(crd.start());
 }
 
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {
@@ -39,24 +35,6 @@ Errors::Code M3FS::stat(const char *path, FileInfo &info) {
     if(Errors::last != Errors::NONE)
         return Errors::last;
     reply >> info;
-    return Errors::NONE;
-}
-
-Errors::Code M3FS::fstat(int fd, FileInfo &info) {
-    GateIStream reply = send_receive_vmsg(_gate, FSTAT, fd);
-    reply >> Errors::last;
-    if(Errors::last != Errors::NONE)
-        return Errors::last;
-    reply >> info;
-    return Errors::NONE;
-}
-
-Errors::Code M3FS::seek(int fd, size_t off, int whence, uint16_t &ext, size_t &extoff, size_t &pos) {
-    GateIStream reply = send_receive_vmsg(_gate, SEEK, fd, off, whence, ext, extoff);
-    reply >> Errors::last;
-    if(Errors::last != Errors::NONE)
-        return Errors::last;
-    reply >> ext >> extoff >> pos;
     return Errors::NONE;
 }
 
@@ -80,18 +58,6 @@ Errors::Code M3FS::link(const char *oldpath, const char *newpath) {
 
 Errors::Code M3FS::unlink(const char *path) {
     GateIStream reply = send_receive_vmsg(_gate, UNLINK, path);
-    reply >> Errors::last;
-    return Errors::last;
-}
-
-Errors::Code M3FS::commit(int fd, size_t extent, size_t off) {
-    GateIStream reply = send_receive_vmsg(_gate, COMMIT, fd, extent, off);
-    reply >> Errors::last;
-    return Errors::last;
-}
-
-Errors::Code M3FS::close(int fd, size_t extent, size_t off) {
-    GateIStream reply = send_receive_vmsg(_gate, CLOSE, fd, extent, off);
     reply >> Errors::last;
     return Errors::last;
 }

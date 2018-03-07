@@ -3,16 +3,14 @@ use cell::RefCell;
 use col::Vec;
 use com::*;
 use core::any::Any;
-use core::fmt;
-use core::intrinsics;
+use core::{fmt, intrinsics};
 use errors::Error;
 use kif;
 use rc::{Rc, Weak};
 use serialize::Sink;
 use session::Session;
-use vfs::{FileHandle, FileInfo, FileMode, FileSystem, FSHandle, OpenFlags, RegularFile, SeekMode};
+use vfs::{FileHandle, FileInfo, FileMode, FileSystem, FSHandle, GenericFile, OpenFlags};
 
-pub type FileId = i32;
 pub type ExtId = u16;
 
 pub struct M3FS {
@@ -21,90 +19,13 @@ pub struct M3FS {
     sgate: SendGate,
 }
 
-const MAX_LOCS: usize = 4;
-
-pub struct LocList {
-    lens: [usize; MAX_LOCS],
-    count: usize,
-    sel: Selector,
-}
-
-impl LocList {
-    pub const MAX: usize = MAX_LOCS;
-
-    pub fn new() -> Self {
-        LocList {
-            lens: unsafe { intrinsics::uninit() },
-            count: 0,
-            sel: kif::INVALID_SEL,
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.count = 0;
-    }
-
-    pub fn count(&self) -> usize {
-        self.count
-    }
-
-    pub fn total_length(&self) -> usize {
-        let mut len = 0;
-        for i in 0..self.count {
-            len += self.lens[i];
-        }
-        len
-    }
-
-    pub fn get_len(&self, idx: ExtId) -> usize {
-        if (idx as usize) < self.count {
-            self.lens[idx as usize]
-        }
-        else {
-            0
-        }
-    }
-
-    pub fn get_sel(&self, idx: ExtId) -> Selector {
-        self.sel + idx as Selector
-    }
-
-    pub fn set_sel(&mut self, sel: Selector) {
-        self.sel = sel;
-    }
-
-    pub fn append(&mut self, len: usize) {
-        assert!(self.count < MAX_LOCS);
-        self.lens[self.count] = len;
-        self.count += 1;
-    }
-}
-
-impl fmt::Display for LocList {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "LocList[")?;
-        for i in 0..self.count {
-            write!(f, "{}", self.lens[i])?;
-            if i + 1 < self.count {
-                write!(f, ", ")?;
-            }
-        }
-        write!(f, "]")
-    }
-}
-
 int_enum! {
     struct Operation : u32 {
-        const OPEN      = 0x0;
-        const STAT      = 0x1;
-        const FSTAT     = 0x2;
-        const SEEK      = 0x3;
-        const MKDIR     = 0x4;
-        const RMDIR     = 0x5;
-        const LINK      = 0x6;
-        const UNLINK    = 0x7;
-        const COMMIT    = 0x8;
-        const CLOSE     = 0x9;
+        const STAT      = 0x4;
+        const MKDIR     = 0x5;
+        const RMDIR     = 0x6;
+        const LINK      = 0x7;
+        const UNLINK    = 0x8;
     }
 }
 
@@ -139,57 +60,6 @@ impl M3FS {
     pub fn sess(&self) -> &Session {
         &self.sess
     }
-
-    pub fn get_locs(&self, id: FileId, ext: ExtId, locs: &mut LocList,
-                    flags: LocFlags) -> Result<(usize, bool), Error> {
-        let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
-        let mut args = kif::syscalls::ExchangeArgs {
-            count: 4,
-            vals: kif::syscalls::ExchangeUnion {
-                i: [id as u64, ext as u64, loc_count as u64, flags.bits as u64, 0, 0, 0, 0]
-            },
-        };
-
-        let crd = self.sess.obtain(MAX_LOCS as u32, &mut args)?;
-        locs.set_sel(crd.start());
-        unsafe {
-            for i in 2..args.count as usize {
-                locs.append(args.vals.i[i] as usize);
-            }
-            Ok((args.vals.i[1] as usize, args.vals.i[0] == 1))
-        }
-    }
-
-    pub fn fstat(&self, id: FileId) -> Result<FileInfo, Error> {
-        let mut reply = send_recv_res!(
-            &self.sgate, RecvGate::def(),
-            Operation::FSTAT, id
-        )?;
-        Ok(reply.pop())
-    }
-
-    pub fn seek(&self, id: FileId, off: usize, mode: SeekMode, extent: ExtId, extoff: usize)
-                -> Result<(ExtId, usize, usize), Error> {
-        let mut reply = send_recv_res!(
-            &self.sgate, RecvGate::def(),
-            Operation::SEEK, id, off, mode, extent, extoff
-        )?;
-        Ok((reply.pop(), reply.pop(), reply.pop()))
-    }
-
-    pub fn commit(&self, id: FileId, extent: ExtId, off: usize) -> Result<(), Error> {
-        send_recv_res!(
-            &self.sgate, RecvGate::def(),
-            Operation::COMMIT, id, extent, off
-        ).map(|_| ())
-    }
-
-    pub fn close(&self, id: FileId, extent: ExtId, off: usize) -> Result<(), Error> {
-        send_recv_res!(
-            &self.sgate, RecvGate::def(),
-            Operation::CLOSE, id, extent, off
-        ).map(|_| ())
-    }
 }
 
 impl FileSystem for M3FS {
@@ -198,14 +68,26 @@ impl FileSystem for M3FS {
     }
 
     fn open(&self, path: &str, flags: OpenFlags) -> Result<FileHandle, Error> {
-        let mut reply = send_recv_res!(
-            &self.sgate, RecvGate::def(),
-            Operation::OPEN, path, flags.bits()
-        )?;
-        let id = reply.pop();
-        Ok(Rc::new(RefCell::new(
-            RegularFile::new(self.self_weak.upgrade().unwrap(), id, flags)
-        )))
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 1,
+            vals: kif::syscalls::ExchangeUnion {
+                s: kif::syscalls::ExchangeUnionStr {
+                    i: [flags.bits() as u64, 0],
+                    s: unsafe { intrinsics::uninit() },
+                },
+            },
+        };
+
+        // copy path
+        unsafe {
+            for (a, c) in args.vals.s.s.iter_mut().zip(path.bytes()) {
+                *a = c as u8;
+            }
+            args.vals.s.s[path.len()] = '\0' as u8;
+        }
+
+        let crd = self.sess.obtain(2, &mut args)?;
+        Ok(Rc::new(RefCell::new(GenericFile::new(crd.start()))))
     }
 
     fn stat(&self, path: &str) -> Result<FileInfo, Error> {

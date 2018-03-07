@@ -55,43 +55,4 @@ private:
     fd_t _wrfd;
 };
 
-class IndirectPipeFile : public File {
-    friend class IndirectPipe;
-
-protected:
-    explicit IndirectPipeFile(capsel_t mem, Pipe *pipe)
-        : _mem(MemGate::bind(mem)), _pipe(pipe), _destroy(false) {
-    }
-
-public:
-    explicit IndirectPipeFile(capsel_t mem, capsel_t sess,
-        capsel_t metagate, capsel_t rdgate, capsel_t wrgate)
-        : _mem(MemGate::bind(mem)), _pipe(new Pipe(sess, metagate, rdgate, wrgate)),
-          _destroy(true) {
-    }
-    ~IndirectPipeFile() {
-        if(_destroy)
-            delete _pipe;
-    }
-
-    virtual Errors::Code stat(FileInfo &) const override {
-        // not supported
-        return Errors::NOT_SUP;
-    }
-    virtual ssize_t seek(size_t, int) override {
-        // not supported
-        return Errors::NOT_SUP;
-    }
-
-    virtual size_t serialize_length() override;
-    virtual void delegate(VPE &vpe) override;
-    virtual void serialize(Marshaller &m) override;
-    static File *unserialize(Unmarshaller &um);
-
-protected:
-    MemGate _mem;
-    Pipe *_pipe;
-    bool _destroy;
-};
-
 }

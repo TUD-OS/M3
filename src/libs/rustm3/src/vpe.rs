@@ -354,9 +354,10 @@ impl VPE {
     }
 
     pub fn obtain_fds(&mut self) -> Result<(), Error> {
-        let mut caps = Vec::new();
-        self.files.collect_caps(&mut caps);
-        for c in caps {
+        // TODO that's really bad. but how to improve that? :/
+        let mut dels = Vec::new();
+        self.files.collect_caps(self.sel(), &mut dels, &mut self.next_sel);
+        for c in dels {
             self.delegate_obj(c)?;
         }
         Ok(())
@@ -499,7 +500,7 @@ impl VPE {
             // write file table
             {
                 let mut fds = VecSink::new();
-                self.files.serialize(&self.mounts, &mut fds);
+                self.files.serialize(&mut fds);
                 self.mem.write(fds.words(), off)?;
                 senv.set_files(off, fds.size());
                 off += fds.size();
@@ -561,7 +562,7 @@ impl VPE {
 
                 // write file table
                 let mut fds = VecSink::new();
-                self.files.serialize(&self.mounts, &mut fds);
+                self.files.serialize(&mut fds);
                 arch::loader::write_env_file(pid, "fds", fds.words(), fds.size());
 
                 // write mounts table

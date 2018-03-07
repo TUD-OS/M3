@@ -117,7 +117,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
 
             // TODO add a cache for that; currently, we request the same caps over and over again
             off = fileoff + pfoff;
-            m3::M3FS::get_locs(sess, id, &off, count, locs, m3::M3FS::BYTE_OFFSET);
+            m3::M3FS::get_locs(sess, &off, count, locs, m3::M3FS::BYTE_OFFSET);
         }
 
         // first, resize the region to not be too large

@@ -16,6 +16,7 @@
 
 #include <base/log/Services.h>
 
+#include <m3/com/MemGate.h>
 #include <m3/server/Server.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/session/Pipe.h>
@@ -26,71 +27,89 @@ using namespace m3;
 
 class PipeServiceHandler;
 using base_class_t = RequestHandler<
-    PipeServiceHandler, Pipe::MetaOp, Pipe::MetaOp::COUNT, PipeSessionData
+    PipeServiceHandler, GenericFile::Operation, GenericFile::Operation::COUNT, PipeSession
 >;
+
+static Server<PipeServiceHandler> *srv;
 
 class PipeServiceHandler : public base_class_t {
 public:
-    explicit PipeServiceHandler() : base_class_t() {
-        add_operation(Pipe::ATTACH, &PipeServiceHandler::attach);
-        add_operation(Pipe::CLOSE, &PipeServiceHandler::close);
+    explicit PipeServiceHandler() : base_class_t(nextlog2<2048>::val, nextlog2<64>::val) {
+        add_operation(GenericFile::SEEK, &PipeServiceHandler::invalid_op);
+        add_operation(GenericFile::STAT, &PipeServiceHandler::invalid_op);
+        add_operation(GenericFile::READ, &PipeServiceHandler::read);
+        add_operation(GenericFile::WRITE, &PipeServiceHandler::write);
     }
 
-    virtual Errors::Code handle_open(PipeSessionData **sess, word_t arg) override {
-        *sess = new PipeSessionData(arg);
+    virtual Errors::Code handle_open(PipeSession **sess, word_t arg) override {
+        *sess = new PipeData(&recvgate(), arg);
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_obtain(PipeSessionData *sess, KIF::Service::ExchangeData &data) override {
-        if(!sess->send_gate())
-            return base_class_t::handle_obtain(sess, data);
-
-        if((sess->reader && sess->writer) || data.args.count != 0 || data.caps != 1)
+    virtual Errors::Code handle_obtain(PipeSession *sess, KIF::Service::ExchangeData &data) override {
+        if(data.caps != 2)
             return Errors::INV_ARGS;
 
-        if(sess->reader == nullptr) {
-            sess->reader = new PipeReadHandler(sess);
-            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->reader->sendgate().sel());
-            data.caps = crd.value();
+        PipeChannel *nchan;
+        if(sess->type() == PipeSession::META) {
+            if(data.args.count != 1)
+                return Errors::INV_ARGS;
+            nchan = static_cast<PipeData*>(sess)->attach(srv->sel(), data.args.vals[0]);
         }
-        else {
-            sess->writer = new PipeWriteHandler(sess);
-            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->writer->sendgate().sel());
-            data.caps = crd.value();
-        }
-        sess->init();
+        else
+            nchan = static_cast<PipeChannel*>(sess)->clone(srv->sel());
+        data.caps = nchan->crd().value();
         return Errors::NONE;
     }
 
-    void attach(GateIStream &is) {
-        PipeSessionData *sess = is.label<PipeSessionData*>();
+    virtual Errors::Code handle_delegate(PipeSession *sess, KIF::Service::ExchangeData &data) override {
+        if(sess->type() == PipeSession::META) {
+            if(data.caps != 1 || data.args.count != 0 || static_cast<PipeData*>(sess)->memory)
+                return Errors::INV_ARGS;
 
-        bool reading;
-        is >> reading;
+            capsel_t sel = VPE::self().alloc_cap();
+            static_cast<PipeData*>(sess)->memory = new MemGate(MemGate::bind(sel));
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+        }
+        else {
+            if(data.caps != 1 || data.args.count != 0)
+                return Errors::INV_ARGS;
 
-        Errors::Code res = reading ? sess->reader->attach(sess) : sess->writer->attach(sess);
-        reply_error(is, res);
+            capsel_t sel = VPE::self().alloc_cap();
+            static_cast<PipeChannel*>(sess)->set_ep(sel);
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+        }
+        return Errors::NONE;
     }
 
-    void close(GateIStream &is) {
-        PipeSessionData *sess = is.label<PipeSessionData*>();
+    virtual Errors::Code handle_close(PipeSession *sess) override {
+        sess->close();
+        return base_class_t::handle_close(sess);
+    }
 
-        bool reading;
-        size_t lastwrite;
-        is >> reading >> lastwrite;
+    void invalid_op(GateIStream &is) {
+        reply_vmsg(is, m3::Errors::NOT_SUP);
+    }
 
-        Errors::Code res;
-        if(reading)
-            res = sess->reader->close(sess);
-        else
-            res = sess->writer->close(sess, lastwrite);
-        reply_error(is, res);
+    void read(m3::GateIStream &is) {
+        PipeSession *sess = is.label<PipeSession*>();
+
+        sess->read(is);
+    }
+
+    void write(m3::GateIStream &is) {
+        PipeSession *sess = is.label<PipeSession*>();
+        size_t submit;
+        is >> submit;
+
+        sess->write(is, submit);
     }
 };
 
 int main() {
-    Server<PipeServiceHandler> srv("pipe", new PipeServiceHandler());
+    srv = new Server<PipeServiceHandler>("pipe", new PipeServiceHandler());
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();
+    delete srv;
     return 0;
 }

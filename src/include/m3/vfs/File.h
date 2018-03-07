@@ -32,7 +32,7 @@ class File {
     friend class FStream;
 
 protected:
-    explicit File(int perms = FILE_RW) : _flags(perms) {
+    explicit File() {
     }
 
 public:
@@ -113,19 +113,12 @@ public:
     }
 
     /**
-     * @return the flags (permissions, ...)
-     */
-    int flags() const {
-        return _flags;
-    }
-
-    /**
      * Retrieves information about this file
      *
      * @param info the struct to fill
      * @return the error code if any
      */
-    virtual Errors::Code stat(FileInfo &info) const = 0;
+    virtual Errors::Code stat(FileInfo &info) = 0;
 
     /**
      * Changes the file-position to <offset>, using <whence>.
@@ -209,9 +202,6 @@ public:
      * @param m the marshaller
      */
     virtual void serialize(Marshaller &m) = 0;
-
-private:
-    int _flags;
 };
 
 }

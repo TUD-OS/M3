@@ -14,20 +14,16 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Util.h>
-
 #include <m3/pipe/IndirectPipe.h>
-#include <m3/pipe/IndirectPipeReader.h>
-#include <m3/pipe/IndirectPipeWriter.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/VPE.h>
 
 namespace m3 {
 
 IndirectPipe::IndirectPipe(MemGate &mem, size_t memsize)
-    : _pipe("pipe", memsize),
-      _rdfd(VPE::self().fds()->alloc(new IndirectPipeReader(mem.sel(), &_pipe))),
-      _wrfd(VPE::self().fds()->alloc(new IndirectPipeWriter(mem.sel(), &_pipe))) {
+    : _pipe("pipe", mem, memsize),
+      _rdfd(VPE::self().fds()->alloc(_pipe.create_channel(true))),
+      _wrfd(VPE::self().fds()->alloc(_pipe.create_channel(false))) {
 }
 
 IndirectPipe::~IndirectPipe() {
@@ -41,21 +37,6 @@ void IndirectPipe::close_reader() {
 
 void IndirectPipe::close_writer() {
     delete VPE::self().fds()->free(_wrfd);
-}
-
-size_t IndirectPipeFile::serialize_length() {
-    return ostreamsize<capsel_t, capsel_t, capsel_t, capsel_t, capsel_t>();
-}
-
-void IndirectPipeFile::serialize(Marshaller &m) {
-    m << _mem.sel() << _pipe->sel() << _pipe->meta_gate().sel();
-    m << _pipe->read_gate().sel() << _pipe->write_gate().sel();
-}
-
-void IndirectPipeFile::delegate(VPE &vpe) {
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _mem.sel(), 1));
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->sel(), 1));
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _pipe->meta_gate().sel(), 1));
 }
 
 }

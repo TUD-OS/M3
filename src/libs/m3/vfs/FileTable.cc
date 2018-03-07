@@ -19,11 +19,9 @@
 #include <m3/pipe/AccelPipeWriter.h>
 #include <m3/pipe/DirectPipeReader.h>
 #include <m3/pipe/DirectPipeWriter.h>
-#include <m3/pipe/IndirectPipeReader.h>
-#include <m3/pipe/IndirectPipeWriter.h>
 #include <m3/vfs/FileTable.h>
 #include <m3/vfs/File.h>
-#include <m3/vfs/RegularFile.h>
+#include <m3/vfs/GenericFile.h>
 #include <m3/vfs/SerialFile.h>
 
 namespace m3 {
@@ -74,8 +72,8 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
         char type;
         um >> fd >> type;
         switch(type) {
-            case 'M':
-                obj->_fds[fd] = RegularFile::unserialize(um);
+            case 'F':
+                obj->_fds[fd] = GenericFile::unserialize(um);
                 break;
             case 'S':
                 obj->_fds[fd] = SerialFile::unserialize(um);
@@ -94,12 +92,6 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
                 break;
             case 'B':
                 obj->_fds[fd] = AccelPipeWriter::unserialize(um);
-                break;
-            case 'I':
-                obj->_fds[fd] = IndirectPipeReader::unserialize(um);
-                break;
-            case 'J':
-                obj->_fds[fd] = IndirectPipeWriter::unserialize(um);
                 break;
         }
     }

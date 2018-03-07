@@ -5,14 +5,14 @@ extern crate m3;
 
 use m3::test::Tester;
 
+mod tboxlist;
 mod tbufio;
 mod tdir;
 mod tdlist;
-mod tboxlist;
+mod tgenfile;
 mod tm3fs;
 mod tmgate;
 mod tpipe;
-mod tregfile;
 mod trgate;
 mod tsgate;
 mod ttreap;
@@ -40,14 +40,14 @@ impl Tester for MyTester {
 #[no_mangle]
 pub fn main() -> i32 {
     let mut tester = MyTester {};
+    run_suite!(tester, tboxlist::run);
     run_suite!(tester, tbufio::run);
     run_suite!(tester, tdir::run);
     run_suite!(tester, tdlist::run);
-    run_suite!(tester, tboxlist::run);
+    run_suite!(tester, tgenfile::run);
     run_suite!(tester, tm3fs::run);
     run_suite!(tester, tmgate::run);
     run_suite!(tester, tpipe::run);
-    run_suite!(tester, tregfile::run);
     run_suite!(tester, trgate::run);
     run_suite!(tester, tsgate::run);
     run_suite!(tester, ttreap::run);

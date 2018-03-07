@@ -24,6 +24,10 @@
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
 
+#include <limits>
+
+#include "sess/FileSession.h"
+#include "sess/MetaSession.h"
 #include "FSHandle.h"
 #include "INodes.h"
 #include "Dirs.h"
@@ -32,274 +36,110 @@ using namespace m3;
 
 class M3FSRequestHandler;
 
-struct LimitedCapContainer {
-    static constexpr size_t MAX_CAPS    = 1024;
-
-    explicit LimitedCapContainer() : pos(), victim() {
-        for(size_t j = 0; j < MAX_CAPS; ++j)
-            caps[j] = ObjCap::INVALID;
-    }
-    ~LimitedCapContainer() {
-        // request all to revoke all caps
-        request(MAX_CAPS);
-    }
-
-    void add(const KIF::CapRngDesc &crd) {
-        for(size_t i = 0; i < crd.count(); ++i) {
-            assert(caps[pos] == ObjCap::INVALID);
-            caps[pos] = crd.start() + i;
-            pos = (pos + 1) % MAX_CAPS;
-        }
-    }
-
-    void request(size_t count) {
-        while(count > 0) {
-            capsel_t first = caps[victim];
-            caps[victim] = ObjCap::INVALID;
-            victim = (victim + 1) % MAX_CAPS;
-            count--;
-
-            if(first != ObjCap::INVALID) {
-                KIF::CapRngDesc caps = get_linear(first, count);
-                VPE::self().revoke(caps);
-            }
-        }
-    }
-
-    KIF::CapRngDesc get_linear(capsel_t first, size_t &rem) {
-        capsel_t last = first;
-        while(rem > 0 && caps[victim] == last + 1) {
-            caps[victim] = ObjCap::INVALID;
-            victim = (victim + 1) % MAX_CAPS;
-            rem--;
-            last++;
-        }
-        return KIF::CapRngDesc(KIF::CapRngDesc::OBJ, first, 1 + last - first);
-    }
-
-    size_t pos;
-    size_t victim;
-    capsel_t caps[MAX_CAPS];
-};
-
-enum class TransactionState {
-    NONE,
-    OPEN,
-    ABORTED
-};
-
-class M3FSSessionData : public RequestSessionData {
-public:
-    static constexpr size_t MAX_FILES   = 16;
-
-    // TODO reference counting
-    struct OpenFile {
-        explicit OpenFile() : ino(), flags(), xstate(TransactionState::NONE), inode(), caps() {
-        }
-        explicit OpenFile(inodeno_t _ino, int _flags, const INode &_inode)
-            : ino(_ino), flags(_flags), xstate(TransactionState::NONE), inode(_inode), caps() {
-        }
-
-        inodeno_t ino;
-        int flags;
-        TransactionState xstate;
-        INode inode;
-        LimitedCapContainer caps;
-    };
-
-    explicit M3FSSessionData() : RequestSessionData(), _files() {
-    }
-    virtual ~M3FSSessionData() {
-        for(size_t i = 0; i < MAX_FILES; ++i)
-            release_fd(static_cast<int>(i));
-    }
-
-    OpenFile *get(int fd) {
-        if(fd >= 0 && fd < static_cast<int>(MAX_FILES))
-            return _files[fd];
-        return nullptr;
-    }
-    int request_fd(inodeno_t ino, int flags, const INode &inode) {
-        assert(flags != 0);
-        for(size_t i = 0; i < MAX_FILES; ++i) {
-            if(_files[i] == NULL) {
-                _files[i] = new OpenFile(ino, flags, inode);
-                return static_cast<int>(i);
-            }
-        }
-        return -1;
-    }
-    void release_fd(int fd) {
-        if(fd >= 0 && fd < static_cast<int>(MAX_FILES)) {
-            delete _files[fd];
-            _files[fd] = NULL;
-        }
-    }
-
-private:
-    OpenFile *_files[MAX_FILES];
-};
-
 using m3fs_reqh_base_t = RequestHandler<
-    M3FSRequestHandler, M3FS::Operation, M3FS::COUNT, M3FSSessionData
+    M3FSRequestHandler, M3FS::Operation, M3FS::COUNT, M3FSSession
 >;
+
+static Server<M3FSRequestHandler> *srv;
 
 class M3FSRequestHandler : public m3fs_reqh_base_t {
 public:
     explicit M3FSRequestHandler(size_t fssize, size_t extend, bool clear)
-            : m3fs_reqh_base_t(),
+            : m3fs_reqh_base_t(nextlog2<M3FSSession::MSG_SIZE * 32>::val,
+                               nextlog2<M3FSSession::MSG_SIZE>::val),
               _mem(MemGate::create_global_for(FS_IMG_OFFSET,
-                Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
-              _extend(extend),
-              _handle(_mem.sel(), clear) {
-        add_operation(M3FS::OPEN, &M3FSRequestHandler::open);
-        add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
+                   Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
+              _handle(_mem.sel(), extend, clear) {
+        add_operation(M3FS::READ, &M3FSRequestHandler::read);
+        add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
         add_operation(M3FS::SEEK, &M3FSRequestHandler::seek);
+        add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
         add_operation(M3FS::MKDIR, &M3FSRequestHandler::mkdir);
         add_operation(M3FS::RMDIR, &M3FSRequestHandler::rmdir);
         add_operation(M3FS::LINK, &M3FSRequestHandler::link);
         add_operation(M3FS::UNLINK, &M3FSRequestHandler::unlink);
-        add_operation(M3FS::COMMIT, &M3FSRequestHandler::commit);
-        add_operation(M3FS::CLOSE, &M3FSRequestHandler::close);
     }
 
-    virtual Errors::Code handle_obtain(M3FSSessionData *sess, KIF::Service::ExchangeData &data) override {
-        if(!sess->send_gate())
-            return m3fs_reqh_base_t::handle_obtain(sess, data);
-
-        EVENT_TRACER_FS_getlocs();
-        if(data.args.count != 4)
-            return Errors::INV_ARGS;
-
-        int fd = data.args.vals[0];
-        size_t offset = data.args.vals[1];
-        size_t count = data.args.vals[2];
-        uint flags = data.args.vals[3];
-
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::get_locs(fd=" << fd << ", offset=" << offset
-            << ", count=" << count << ", flags=" << fmt(flags, "#x") << ")");
-
-        M3FSSessionData::OpenFile *of = sess->get(fd);
-        if(!of || count == 0) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": Invalid request (of=" << of << ")");
-            return Errors::INV_ARGS;
-        }
-
-        // acquire space for the new caps
-        of->caps.request(count);
-
-        // don't try to extend the file, if we're not writing
-        if(~of->flags & FILE_W)
-            flags &= ~static_cast<uint>(M3FS::EXTEND);
-
-        // determine extent from byte offset
-        size_t firstOff = 0;
-        if(flags & M3FS::BYTE_OFFSET) {
-            size_t extent, extoff;
-            size_t rem = offset;
-            INodes::seek(_handle, &of->inode, rem, M3FS_SEEK_SET, extent, extoff);
-            offset = extent;
-            firstOff = rem;
-        }
-
-        KIF::CapRngDesc crd;
-        bool extended = false;
-        Errors::last = Errors::NONE;
-        m3::loclist_type *locs = INodes::get_locs(_handle, &of->inode, offset, count,
-            (flags & M3FS::EXTEND) ? _extend : 0, of->flags & MemGate::RWX, crd, extended);
-        if(!locs) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": Determining locations failed: "
-                << Errors::to_string(Errors::last));
-            return Errors::last;
-        }
-
-        // start/continue transaction
-        if(extended && of->xstate != TransactionState::ABORTED)
-            of->xstate = TransactionState::OPEN;
-
-        data.caps = crd.value();
-        data.args.count = 2 + locs->count();
-        data.args.vals[0] = extended;
-        data.args.vals[1] = firstOff;
-        for(size_t i = 0; i < locs->count(); ++i)
-            data.args.vals[2 + i] = locs->get_len(i);
-
-        if(m3::ServiceLog::level & m3::ServiceLog::FS) {
-            SLOG(FS, "Received " << locs->count() << " capabilities:");
-            for(size_t i = 0; i < locs->count(); ++i)
-                SLOG(FS, "  " << fmt(locs->get_len(i), "#x"));
-        }
-
-        of->caps.add(crd);
+    virtual Errors::Code handle_open(M3FSSession **sess, word_t) override {
+        *sess = new M3FSMetaSession(srv->handler().recvgate(), _handle);
         return Errors::NONE;
     }
 
-    void open(GateIStream &is) {
-        EVENT_TRACER_FS_open();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
-        String path;
-        int fd, flags;
-        is >> path >> flags;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::open(path=" << path
-            << ", flags=" << fmt(flags, "#x") << ")");
+    virtual Errors::Code handle_obtain(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
+        if(sess->type() == M3FSSession::META) {
+            if(!sess->send_gate())
+                return m3fs_reqh_base_t::handle_obtain(sess, data);
 
-        m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), flags & FILE_CREATE);
-        if(ino == INVALID_INO) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": open failed: "
-                << Errors::to_string(Errors::last));
-            reply_error(is, Errors::last);
-            return;
+            return static_cast<M3FSMetaSession*>(sess)->open_file(srv->sel(), data);
         }
-        m3::INode *inode = INodes::get(_handle, ino);
-        if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
-            ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": open failed: "
-                << Errors::to_string(Errors::NO_PERM));
-            reply_error(is, Errors::NO_PERM);
-            return;
+        else {
+            if(data.args.count == 0)
+                return static_cast<M3FSFileSession*>(sess)->clone(srv->sel(), data);
+
+            return static_cast<M3FSFileSession*>(sess)->get_locs(data);
         }
-
-        // only determine the current size, if we're writing and the file isn't empty
-        if(flags & FILE_TRUNC) {
-            INodes::truncate(_handle, inode, 0, 0);
-            // TODO revoke access, if necessary
-        }
-
-        // for directories: ensure that we don't have a changed version in the cache
-        if(M3FS_ISDIR(inode->mode))
-            INodes::write_back(_handle, inode);
-
-        fd = sess->request_fd(inode->inode, flags, *inode);
-        SLOG(FS, fmt((word_t)sess, "#x") << ": -> fd=" << fd << ", inode=" << inode->inode);
-        reply_vmsg(is, Errors::NONE, fd);
     }
 
-    void seek(GateIStream &is) {
-        EVENT_TRACER_FS_seek();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
-        int fd, whence;
-        size_t off;
-        size_t extent, extoff;
-        is >> fd >> off >> whence >> extent >> extoff;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::seek(fd=" << fd
-            << ", off=" << off << ", whence=" << whence << ")");
+    virtual Errors::Code handle_delegate(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
+        if(sess->type() == M3FSSession::META || data.args.count != 0 || data.caps != 1)
+            return Errors::NOT_SUP;
 
-        M3FSSessionData::OpenFile *of = sess->get(fd);
-        if(!of) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": seek failed: "
-                << Errors::to_string(Errors::INV_ARGS));
+        capsel_t sel = VPE::self().alloc_cap();
+        static_cast<M3FSFileSession*>(sess)->set_ep(sel);
+        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+        return Errors::NONE;
+    }
+
+    virtual Errors::Code handle_close(M3FSSession *sess) override {
+        sess->close();
+        m3fs_reqh_base_t::handle_close(sess);
+        return Errors::NONE;
+    }
+
+    void read(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        if(sess->type() != M3FSSession::FILE) {
             reply_error(is, Errors::INV_ARGS);
             return;
         }
 
-        size_t pos = INodes::seek(_handle, &of->inode, off, whence, extent, extoff);
-        reply_vmsg(is, Errors::NONE, extent, extoff, pos + off);
+        static_cast<M3FSFileSession*>(sess)->read(is);
+    }
+
+    void write(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        if(sess->type() != M3FSSession::FILE) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        static_cast<M3FSFileSession*>(sess)->write(is);
+    }
+
+    void seek(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        if(sess->type() != M3FSSession::FILE) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        static_cast<M3FSFileSession*>(sess)->seek(is);
+    }
+
+    void fstat(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        if(sess->type() != M3FSSession::FILE) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        static_cast<M3FSFileSession*>(sess)->fstat(is);
     }
 
     void stat(GateIStream &is) {
         EVENT_TRACER_FS_stat();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
+        M3FSSession *sess = is.label<M3FSSession*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::stat(path=" << path << ")");
@@ -320,29 +160,9 @@ public:
         reply_vmsg(is, Errors::NONE, info);
     }
 
-    void fstat(GateIStream &is) {
-        EVENT_TRACER_FS_fstat();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
-        int fd;
-        is >> fd;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::fstat(fd=" << fd << ")");
-
-        const M3FSSessionData::OpenFile *of = sess->get(fd);
-        if(!of) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": fstat failed: "
-                << Errors::to_string(Errors::INV_ARGS));
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        m3::FileInfo info;
-        INodes::stat(_handle, &of->inode, info);
-        reply_vmsg(is, Errors::NONE, info);
-    }
-
     void mkdir(GateIStream &is) {
         EVENT_TRACER_FS_mkdir();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
+        M3FSSession *sess = is.label<M3FSSession*>();
         String path;
         mode_t mode;
         is >> path >> mode;
@@ -357,7 +177,7 @@ public:
 
     void rmdir(GateIStream &is) {
         EVENT_TRACER_FS_rmdir();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
+        M3FSSession *sess = is.label<M3FSSession*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::rmdir(path=" << path << ")");
@@ -370,7 +190,7 @@ public:
 
     void link(GateIStream &is) {
         EVENT_TRACER_FS_link();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
+        M3FSSession *sess = is.label<M3FSSession*>();
         String oldpath, newpath;
         is >> oldpath >> newpath;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::link(oldpath=" << oldpath
@@ -384,7 +204,7 @@ public:
 
     void unlink(GateIStream &is) {
         EVENT_TRACER_FS_unlink();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
+        M3FSSession *sess = is.label<M3FSSession*>();
         String path;
         is >> path;
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::unlink(path=" << path << ")");
@@ -395,104 +215,13 @@ public:
         reply_error(is, res);
     }
 
-    void commit(GateIStream &is) {
-        EVENT_TRACER_FS_commit();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
-        int fd;
-        size_t extent, extoff;
-        is >> fd >> extent >> extoff;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::commit(fd=" << fd
-            << ", extent=" << extent << ", extoff=" << extoff << ")");
-
-        Errors::Code res = do_commit(sess, fd, extent, extoff);
-
-        reply_error(is, res);
-    }
-
-    void close(GateIStream &is) {
-        EVENT_TRACER_FS_close();
-        M3FSSessionData *sess = is.label<M3FSSessionData*>();
-        int fd;
-        size_t extent, extoff;
-        is >> fd >> extent >> extoff;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::close(fd=" << fd
-            << ", extent=" << extent << ", extoff=" << extoff << ")");
-
-        Errors::Code res = do_commit(sess, fd, extent, extoff);
-
-        sess->release_fd(fd);
-
-        reply_error(is, res);
-    }
-
     virtual void handle_shutdown() override {
         m3fs_reqh_base_t::handle_shutdown();
         _handle.flush_cache();
     }
 
 private:
-    Errors::Code do_commit(M3FSSessionData *sess, int fd, size_t extent, size_t extoff) {
-        M3FSSessionData::OpenFile *of = sess->get(fd);
-        if(!of)
-            return Errors::INV_ARGS;
-
-        if(extent != 0 || extoff != 0) {
-            if(~of->flags & FILE_W)
-                return Errors::INV_ARGS;
-            if(of->xstate == TransactionState::ABORTED)
-                return Errors::COMMIT_FAILED;
-
-            // have we increased the filesize?
-            m3::INode *inode = INodes::get(_handle, of->ino);
-            if(of->inode.size > inode->size) {
-                // get the old offset within the last extent
-                size_t orgoff = 0;
-                if(inode->extents > 0) {
-                    Extent *indir = nullptr;
-                    Extent *ch = INodes::get_extent(_handle, inode, inode->extents - 1, &indir, false);
-                    assert(ch != nullptr);
-                    orgoff = ch->length * _handle.sb().blocksize;
-                    size_t mod;
-                    if(((mod = inode->size % _handle.sb().blocksize)) > 0)
-                        orgoff -= _handle.sb().blocksize - mod;
-                }
-
-                // then cut it to either the org size or the max. position we've written to,
-                // whatever is bigger
-                if(inode->extents == 0 || extent > inode->extents - 1 ||
-                   (extent == inode->extents - 1 && extoff > orgoff)) {
-                    INodes::truncate(_handle, &of->inode, extent, extoff);
-                }
-                else {
-                    INodes::truncate(_handle, &of->inode, inode->extents - 1, orgoff);
-                    of->inode.size = inode->size;
-                }
-                memcpy(inode, &of->inode, sizeof(*inode));
-
-                // update the inode in all open files
-                // and let all future commits for this file fail
-                for(auto s = begin(); s != end(); ++s) {
-                    if(&*s == sess)
-                        continue;
-                    for(size_t i = 0; i < M3FSSessionData::MAX_FILES; ++i) {
-                        M3FSSessionData::OpenFile *f = s->get(static_cast<int>(i));
-                        if(f && f->ino == of->ino && f->xstate == TransactionState::OPEN) {
-                            memcpy(&f->inode, inode, sizeof(*inode));
-                            f->xstate = TransactionState::ABORTED;
-                            // TODO revoke access, if necessary
-                        }
-                    }
-                }
-            }
-        }
-
-        of->xstate = TransactionState::NONE;
-
-        return Errors::NONE;
-    }
-
     MemGate _mem;
-    size_t _extend;
     FSHandle _handle;
 };
 
@@ -523,9 +252,11 @@ int main(int argc, char *argv[]) {
         usage(argv[0]);
 
     size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
-    Server<M3FSRequestHandler> srv(name, new M3FSRequestHandler(size, extend, clear));
+    srv = new Server<M3FSRequestHandler>(name, new M3FSRequestHandler(size, extend, clear));
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();
+
+    delete srv;
     return 0;
 }

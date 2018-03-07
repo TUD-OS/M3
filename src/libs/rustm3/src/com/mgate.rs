@@ -73,6 +73,9 @@ impl MemGate {
     pub fn ep(&self) -> Option<dtu::EpId> {
         self.gate.ep()
     }
+    pub fn set_ep(&mut self, ep: dtu::EpId) {
+        self.gate.set_ep(ep);
+    }
     pub fn sel(&self) -> Selector {
         self.gate.sel()
     }

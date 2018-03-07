@@ -31,8 +31,6 @@ namespace m3 {
  * filesystem operations like open, mkdir, ... to the corresponding filesystem.
  */
 class VFS {
-    friend class RegularFile;
-
     struct Cleanup {
         Cleanup() {
         }

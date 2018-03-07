@@ -33,6 +33,9 @@ public:
     bool empty() const {
         return _rdpos == _wrpos;
     }
+    size_t size() const {
+        return _size;
+    }
 
     ssize_t get_write_pos(size_t size) {
         if(SINGLE_ITEM_BUF || (_wrpos % DTU_PKG_SIZE)) {

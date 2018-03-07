@@ -278,6 +278,7 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
 }
 
 size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff) {
+    assert(whence != M3FS_SEEK_CUR);
     Extent *indir = nullptr;
 
     // seeking to the end is easy
@@ -292,22 +293,12 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &
         return inode->size;
     }
 
-    size_t i = 0;
-    size_t pos = 0;
-    // for M3FS_SEEK_CUR, we need to know the file position until <extent>+<extoff>
-    if(whence == M3FS_SEEK_CUR) {
-        for(; i < extent; ++i) {
-            Extent *ch = get_extent(h, inode, i, &indir, false);
-            if(!ch)
-                break;
-
-            pos += ch->length * h.sb().blocksize;
-        }
-        off += extoff;
-    }
+    if(off > inode->size)
+        off = inode->size;
 
     // now search until we've found the extent covering the desired file position
-    for(; i < inode->extents; ++i) {
+    size_t pos = 0;
+    for(size_t i = 0; i < inode->extents; ++i) {
         Extent *ch = get_extent(h, inode, i, &indir, false);
         if(!ch)
             break;

@@ -7,7 +7,7 @@ use errors::{Code, Error};
 use io::Serial;
 use rc::Rc;
 use serialize::Sink;
-use vfs::{File, FileRef, IndirectPipeReader, IndirectPipeWriter, MountTable, RegularFile};
+use vfs::{File, FileRef, GenericFile};
 use vpe::VPE;
 
 pub type Fd = usize;
@@ -54,15 +54,15 @@ impl FileTable {
         self.files[fd] = None;
     }
 
-    pub fn collect_caps(&self, caps: &mut Vec<Selector>) {
+    pub fn collect_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
         for fd in 0..MAX_FILES {
             if let Some(ref f) = self.files[fd] {
-                f.borrow().collect_caps(caps);
+                f.borrow().exchange_caps(vpe, dels, max_sel);
             }
         }
     }
 
-    pub fn serialize(&self, mounts: &MountTable, s: &mut VecSink) {
+    pub fn serialize(&self, s: &mut VecSink) {
         let count = self.files.iter().filter(|&f| f.is_some()).count();
         s.push(&count);
 
@@ -71,7 +71,7 @@ impl FileTable {
                 let file = f.borrow();
                 s.push(&fd);
                 s.push(&file.file_type());
-                file.serialize(mounts, s);
+                file.serialize(s);
             }
         }
     }
@@ -84,9 +84,7 @@ impl FileTable {
             let fd: Fd = s.pop();
             let file_type: u8 = s.pop();
             ft.set(fd, match file_type {
-                b'I' => IndirectPipeReader::unserialize(s),
-                b'J' => IndirectPipeWriter::unserialize(s),
-                b'M' => RegularFile::unserialize(s),
+                b'F' => GenericFile::unserialize(s),
                 b'S' => Serial::new(),
                 _    => panic!("Unexpected file type {}", file_type),
             });

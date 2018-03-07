@@ -55,7 +55,7 @@ public:
      */
     ~DirectPipeWriter();
 
-    virtual Errors::Code stat(FileInfo &) const override {
+    virtual Errors::Code stat(FileInfo &) override {
         // not supported
         return Errors::NOT_SUP;
     }

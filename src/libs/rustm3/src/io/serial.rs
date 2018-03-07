@@ -24,10 +24,6 @@ impl vfs::File for io::Serial {
     fn close(&mut self) {
     }
 
-    fn flags(&self) -> vfs::OpenFlags {
-        vfs::OpenFlags::RW
-    }
-
     fn stat(&self) -> Result<vfs::FileInfo, Error> {
         Err(Error::new(Code::NotSup))
     }
@@ -36,11 +32,11 @@ impl vfs::File for io::Serial {
         b'S'
     }
 
-    fn collect_caps(&self, _caps: &mut Vec<Selector>) {
+    fn exchange_caps(&self, _vpe: Selector, _dels: &mut Vec<Selector>, _max_sel: &mut Selector) {
         // nothing to do
     }
 
-    fn serialize(&self, _mounts: &vfs::MountTable, _s: &mut VecSink) {
+    fn serialize(&self, _s: &mut VecSink) {
         // nothing to do
     }
 }

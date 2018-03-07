@@ -19,7 +19,6 @@
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/FileRef.h>
-#include <m3/vfs/RegularFile.h>
 #include <m3/VPE.h>
 
 using namespace m3;
@@ -33,10 +32,10 @@ int main() {
         FileInfo info;
         file->stat(info);
         // TODO that is not nice
-        RegularFile *rfile = static_cast<RegularFile*>(&*file);
+        const GenericFile *rfile = static_cast<const GenericFile*>(&*file);
         goff_t virt = 0x104000;
         Errors::Code res = VPE::self().pager()->map_ds(&virt, Math::round_up(info.size, PAGE_SIZE),
-            Pager::READ, 0, *rfile->fs(), rfile->fd(), 0);
+            Pager::READ, 0, rfile->sess(), 0);
         if(res != Errors::NONE)
             exitmsg("Unable to map /test.txt");
 

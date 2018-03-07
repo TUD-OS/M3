@@ -102,7 +102,7 @@ public:
         while(size > 0) {
             ssize_t res = file->read(buf, size);
             if(res < 0)
-                return res;
+                return m3::Errors::last;
             if(res == 0)
                 break;
             size -= static_cast<size_t>(res);
@@ -118,7 +118,7 @@ public:
         while(size > 0) {
             ssize_t res = file->write(buf, size);
             if(res <= 0)
-                return res;
+                return m3::Errors::last;
             size -= static_cast<size_t>(res);
             buf += res;
         }
