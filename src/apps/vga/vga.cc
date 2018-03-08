@@ -29,7 +29,7 @@ public:
     }
 
     virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &data) override {
-        if(data.caps != 1 || data.argcount != 0)
+        if(data.caps != 1 || data.args.count != 0)
             return Errors::INV_ARGS;
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vgamem->sel());

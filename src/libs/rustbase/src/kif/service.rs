@@ -34,8 +34,7 @@ pub struct OpenReply {
 #[repr(C, packed)]
 pub struct ExchangeData {
     pub caps: u64,
-    pub argcount: u64,
-    pub args: [u64; syscalls::MAX_EXCHG_ARGS],
+    pub args: syscalls::ExchangeArgs,
 }
 
 /// The delegate/obtain request message
@@ -69,9 +68,12 @@ pub struct Shutdown {
 impl fmt::Debug for ExchangeData {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "ExchangeData[")?;
-        for i in 0..self.argcount {
-            write!(f, "{}", {self.args[i as usize]})?;
-            if i + 1 < self.argcount {
+        for i in 0..self.args.count {
+            let arg = unsafe {
+                self.args.vals.i[i as usize]
+            };
+            write!(f, "{}", arg)?;
+            if i + 1 < self.args.count {
                 write!(f, ", ")?;
             }
         }
@@ -83,11 +85,13 @@ impl Unmarshallable for ExchangeData {
     fn unmarshall(s: &mut Source) -> Self {
         let mut res = ExchangeData {
             caps: s.pop_word(),
-            argcount: s.pop_word(),
             args: unsafe { intrinsics::uninit() },
         };
-        for i in 0..res.argcount {
-            res.args[i as usize] = s.pop_word();
+        res.args.count = s.pop_word();
+        for i in 0..res.args.count {
+            unsafe {
+                res.args.vals.i[i as usize] = s.pop_word();
+            }
         }
         res
     }

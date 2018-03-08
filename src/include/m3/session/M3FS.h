@@ -81,20 +81,20 @@ public:
     // TODO wrong place. we should have a DataSpace session or something
     template<size_t N>
     static bool get_locs(Session &sess, int fd, size_t *off, size_t count, LocList<N> &locs, uint flags) {
-        xfer_t args[Math::max(2 + N, static_cast<size_t>(4))];
-        args[0] = static_cast<xfer_t>(fd);
-        args[1] = *off;
-        args[2] = count;
-        args[3] = flags;
+        KIF::ExchangeArgs args;
+        args.count = 4;
+        args.vals[0] = static_cast<xfer_t>(fd);
+        args.vals[1] = *off;
+        args.vals[2] = count;
+        args.vals[3] = flags;
         bool extended = false;
-        size_t argcount = 4;
-        KIF::CapRngDesc crd = sess.obtain(count, &argcount, args);
+        KIF::CapRngDesc crd = sess.obtain(count, &args);
         if(Errors::last == Errors::NONE) {
-            extended = args[0];
-            *off = args[1];
+            extended = args.vals[0];
+            *off = args.vals[1];
             locs.set_sel(crd.start());
-            for(size_t i = 2; i < argcount; ++i)
-                locs.append(args[i]);
+            for(size_t i = 2; i < args.count; ++i)
+                locs.append(args.vals[i]);
         }
         return extended;
     }

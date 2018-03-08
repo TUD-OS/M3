@@ -633,17 +633,19 @@ fn exchange(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 #[inline(never)]
 fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain: bool) -> Result<(), Error> {
     let req: &kif::syscalls::ExchangeSess = get_message(msg);
+    let vpe_sel = req.vpe_sel as CapSel;
     let sess_sel = req.sess_sel as CapSel;
     let crd = CapRngDesc::new_from(req.crd);
 
     sysc_log!(
-        vpe, "{}(sess={}, crd={})",
-        if obtain { "obtain" } else { "delegate" }, sess_sel, crd
+        vpe, "{}(vpe={}, sess={}, crd={})",
+        if obtain { "obtain" } else { "delegate" }, vpe_sel, sess_sel, crd
     );
 
+    let vpecap: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
     let sess: Rc<RefCell<SessObject>> = get_kobj!(vpe, sess_sel, Sess);
 
-    let mut smsg = kif::service::Exchange {
+    let smsg = kif::service::Exchange {
         opcode: if obtain {
             kif::service::Operation::OBTAIN.val as u64
         }
@@ -653,19 +655,15 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
         sess: sess.borrow().ident,
         data: kif::service::ExchangeData {
             caps: crd.count() as u64,
-            argcount: req.argcount,
-            args: unsafe { intrinsics::uninit() },
+            args: req.args.clone(),
         },
     };
-    for i in 0..req.argcount as usize {
-        smsg.data.args[i] = req.args[i];
-    }
 
     let serv: &Rc<RefCell<ServObject>> = &sess.borrow().srv;
     klog!(
         SERV, "Sending {}(sess={:#x}, {} caps, {} args) to service {}",
         if obtain { "OBTAIN" } else { "DELEGATE" }, sess.borrow().ident,
-        crd.count(), {req.argcount}, serv.borrow().name
+        crd.count(), {req.args.count}, serv.borrow().name
     );
     let res = ServObject::send_receive(serv, util::object_to_bytes(&smsg));
 
@@ -685,7 +683,7 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
             }
             else {
                 let err = do_exchange(
-                    vpe, &serv.borrow().vpe(),
+                    &vpecap, &serv.borrow().vpe(),
                     &crd, &CapRngDesc::new_from(reply.data.caps), obtain
                 );
                 // TODO improve that
@@ -696,12 +694,8 @@ fn exchange_over_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message, obtain
 
             let mut kreply = kif::syscalls::ExchangeSessReply {
                 error: 0,
-                argcount: reply.data.argcount,
-                args: unsafe { intrinsics::uninit() },
+                args: reply.data.args.clone(),
             };
-            for i in 0..reply.data.argcount as usize {
-                kreply.args[i] = reply.data.args[i];
-            }
             send_reply(msg, &kreply);
         }
     }

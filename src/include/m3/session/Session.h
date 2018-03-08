@@ -72,27 +72,67 @@ public:
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, 1);
         delegate(crd);
     }
+
     /**
      * Delegates the given capability range to the server with additional arguments and puts the
      * arguments from the server again into argcount and args.
      *
      * @param caps the capabilities
-     * @param argcount the number of arguments
      * @param args the arguments to pass to the server
      * @return the error code
      */
-    void delegate(const KIF::CapRngDesc &caps, size_t *argcount = nullptr, xfer_t *args = nullptr);
+    void delegate(const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr) {
+        delegate_for(VPE::self(), caps, args);
+    }
+
+    /**
+     * Delegates the given capability range of <vpe> to the server with additional arguments and
+     * puts the arguments from the server again into argcount and args.
+     *
+     * @param vpe the vpe to do the delegate for
+     * @param caps the capabilities
+     * @param args the arguments to pass to the server
+     * @return the error code
+     */
+    void delegate_for(VPE &vpe, const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr);
 
     /**
      * Obtains up to <count> capabilities from the server with additional arguments and puts the
      * arguments from the server again into argcount and args.
      *
      * @param count the number of capabilities
-     * @param argcount the number of arguments
      * @param args the arguments to pass to the server
      * @return the received capabilities
      */
-    KIF::CapRngDesc obtain(uint count, size_t *argcount = nullptr, xfer_t *args = nullptr);
+    KIF::CapRngDesc obtain(uint count, KIF::ExchangeArgs *args = nullptr) {
+        return obtain_for(VPE::self(), count, args);
+    }
+
+    /**
+     * Obtains up to <count> capabilities from the server for <vpe> with additional arguments and
+     * puts the arguments from the server again into argcount and args.
+     *
+     * @param vpe the vpe to do the obtain for
+     * @param count the number of capabilities
+     * @param args the arguments to pass to the server
+     * @return the received capabilities
+     */
+    KIF::CapRngDesc obtain_for(VPE &vpe, uint count, KIF::ExchangeArgs *args = nullptr) {
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, vpe.alloc_caps(count), count);
+        obtain_for(vpe, crd, args);
+        return crd;
+    }
+
+    /**
+     * Obtains up to <crd>.count() capabilities from the server for <vpe> with additional arguments and
+     * puts the arguments from the server again into argcount and args.
+     *
+     * @param vpe the vpe to do the obtain for
+     * @param crd the selectors to use
+     * @param argcount the number of arguments
+     * @param args the arguments to pass to the server
+     */
+    void obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args = nullptr);
 
 private:
     void connect(const String &name, xfer_t arg);

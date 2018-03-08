@@ -37,33 +37,33 @@ Errors::Code Pager::map_anon(goff_t *virt, size_t len, int prot, int flags) {
 }
 
 Errors::Code Pager::map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
-        int fd, size_t offset) {
-    xfer_t args[6];
-    args[0] = DelOp::DATASPACE;
-    args[1] = *virt;
-    args[2] = len;
-    args[3] = static_cast<xfer_t>(prot | flags);
-    args[4] = static_cast<xfer_t>(fd);
-    args[5] = offset;
-    size_t argcount = ARRAY_SIZE(args);
-    delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess.sel()), &argcount, args);
+                           int fd, size_t offset) {
+    KIF::ExchangeArgs args;
+    args.count = 6;
+    args.vals[0] = DelOp::DATASPACE;
+    args.vals[1] = *virt;
+    args.vals[2] = len;
+    args.vals[3] = static_cast<xfer_t>(prot | flags);
+    args.vals[4] = static_cast<xfer_t>(fd);
+    args.vals[5] = offset;
+    delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess.sel()), &args);
     if(Errors::last != Errors::NONE)
         return Errors::last;
-    *virt = args[0];
+    *virt = args.vals[0];
     return Errors::NONE;
 }
 
 Errors::Code Pager::map_mem(goff_t *virt, MemGate &mem, size_t len, int prot) {
-    xfer_t args[4];
-    args[0] = DelOp::MEMGATE;
-    args[1] = *virt;
-    args[2] = len;
-    args[3] = static_cast<xfer_t>(prot);
-    size_t argcount = ARRAY_SIZE(args);
-    delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, mem.sel()), &argcount, args);
+    KIF::ExchangeArgs args;
+    args.count = 4;
+    args.vals[0] = DelOp::MEMGATE;
+    args.vals[1] = *virt;
+    args.vals[2] = len;
+    args.vals[3] = static_cast<xfer_t>(prot);
+    delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, mem.sel()), &args);
     if(Errors::last != Errors::NONE)
         return Errors::last;
-    *virt = args[0];
+    *virt = args.vals[0];
     return Errors::NONE;
 }
 

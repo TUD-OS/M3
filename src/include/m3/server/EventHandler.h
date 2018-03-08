@@ -59,7 +59,7 @@ public:
 
 protected:
     virtual Errors::Code handle_delegate(SESS *sess, KIF::Service::ExchangeData &data) override {
-        if(sess->gate() || data.argcount != 0 || data.caps != 1)
+        if(sess->gate() || data.args.count != 0 || data.caps != 1)
             return Errors::INV_ARGS;
 
         sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));

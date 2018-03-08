@@ -169,13 +169,13 @@ public:
             return m3fs_reqh_base_t::handle_obtain(sess, data);
 
         EVENT_TRACER_FS_getlocs();
-        if(data.argcount != 4)
+        if(data.args.count != 4)
             return Errors::INV_ARGS;
 
-        int fd = data.args[0];
-        size_t offset = data.args[1];
-        size_t count = data.args[2];
-        uint flags = data.args[3];
+        int fd = data.args.vals[0];
+        size_t offset = data.args.vals[1];
+        size_t count = data.args.vals[2];
+        uint flags = data.args.vals[3];
 
         SLOG(FS, fmt((word_t)sess, "#x") << ": fs::get_locs(fd=" << fd << ", offset=" << offset
             << ", count=" << count << ", flags=" << fmt(flags, "#x") << ")");
@@ -219,11 +219,11 @@ public:
             of->xstate = TransactionState::OPEN;
 
         data.caps = crd.value();
-        data.argcount = 2 + locs->count();
-        data.args[0] = extended;
-        data.args[1] = firstOff;
+        data.args.count = 2 + locs->count();
+        data.args.vals[0] = extended;
+        data.args.vals[1] = firstOff;
         for(size_t i = 0; i < locs->count(); ++i)
-            data.args[2 + i] = locs->get_len(i);
+            data.args.vals[2 + i] = locs->get_len(i);
 
         if(m3::ServiceLog::level & m3::ServiceLog::FS) {
             SLOG(FS, "Received " << locs->count() << " capabilities:");

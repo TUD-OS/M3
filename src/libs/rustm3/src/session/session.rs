@@ -1,5 +1,5 @@
 use cap::{CapFlags, Capability, Selector};
-use core::fmt;
+use core::{intrinsics, fmt};
 use errors::Error;
 use kif;
 use syscalls;
@@ -35,24 +35,50 @@ impl Session {
 
     pub fn delegate_obj(&self, sel: Selector) -> Result<(), Error> {
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sel, 1);
-        let sargs = [];
-        let mut rargs = [];
-        self.delegate(crd, &sargs, &mut rargs).map(|_| ())
+        self.delegate_crd(crd)
     }
 
-    pub fn delegate(&self, crd: kif::CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
-        syscalls::delegate(self.sel(), crd, sargs, rargs)
+    pub fn delegate_crd(&self, crd: kif::CapRngDesc) -> Result<(), Error> {
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 0,
+            vals: unsafe { intrinsics::uninit() },
+        };
+        self.delegate(crd, &mut args)
+    }
+
+    pub fn delegate(&self, crd: kif::CapRngDesc,
+                    args: &mut kif::syscalls::ExchangeArgs) -> Result<(), Error> {
+        self.delegate_for(vpe::VPE::cur(), crd, args)
+    }
+
+    pub fn delegate_for(&self, vpe: &vpe::VPE, crd: kif::CapRngDesc,
+                        args: &mut kif::syscalls::ExchangeArgs) -> Result<(), Error> {
+        syscalls::delegate(vpe.sel(), self.sel(), crd, args)
     }
 
     pub fn obtain_obj(&self) -> Result<Selector, Error> {
-        self.obtain(1, &[], &mut []).map(|res| res.1.start())
+        self.obtain_crd(1).map(|res| res.start())
     }
 
-    pub fn obtain(&self, count: u32, sargs: &[u64], rargs: &mut [u64]) -> Result<(usize, kif::CapRngDesc), Error> {
+    pub fn obtain_crd(&self, count: u32) -> Result<kif::CapRngDesc, Error> {
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 0,
+            vals: unsafe { intrinsics::uninit() },
+        };
+        self.obtain(count, &mut args)
+    }
+
+    pub fn obtain(&self, count: u32,
+                  args: &mut kif::syscalls::ExchangeArgs) -> Result<kif::CapRngDesc, Error> {
+        self.obtain_for(vpe::VPE::cur(), count, args)
+    }
+
+    pub fn obtain_for(&self, vpe: &vpe::VPE, count: u32,
+                      args: &mut kif::syscalls::ExchangeArgs) -> Result<kif::CapRngDesc, Error> {
         let caps = vpe::VPE::cur().alloc_sels(count);
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, caps, count);
-        let num = syscalls::obtain(self.sel(), crd, sargs, rargs)?;
-        Ok((num, crd))
+        syscalls::obtain(vpe.sel(), self.sel(), crd, args)?;
+        Ok(crd)
     }
 }
 

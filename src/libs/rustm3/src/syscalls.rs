@@ -266,44 +266,37 @@ pub fn exchange(vpe: Selector, own: CapRngDesc, other: Selector, obtain: bool) -
     send_receive_result(&req)
 }
 
-pub fn delegate(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
-    log!(SYSC, "syscalls::delegate(sess={}, crd={})", sess, crd);
+pub fn delegate(vpe: Selector, sess: Selector, crd: CapRngDesc,
+                args: &mut syscalls::ExchangeArgs) -> Result<(), Error> {
+    log!(SYSC, "syscalls::delegate(vpe={}, sess={}, crd={})", vpe, sess, crd);
 
-    exchange_sess(syscalls::Operation::DELEGATE, sess, crd, sargs, rargs)
+    exchange_sess(vpe, syscalls::Operation::DELEGATE, sess, crd, args)
 }
 
-pub fn obtain(sess: Selector, crd: CapRngDesc, sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
-    log!(SYSC, "syscalls::obtain(sess={}, crd={})", sess, crd);
+pub fn obtain(vpe: Selector, sess: Selector, crd: CapRngDesc,
+              args: &mut syscalls::ExchangeArgs) -> Result<(), Error> {
+    log!(SYSC, "syscalls::obtain(vpe={}, sess={}, crd={})", vpe, sess, crd);
 
-    exchange_sess(syscalls::Operation::OBTAIN, sess, crd, sargs, rargs)
+    exchange_sess(vpe, syscalls::Operation::OBTAIN, sess, crd, args)
 }
 
-fn exchange_sess(op: syscalls::Operation, sess: Selector, crd: CapRngDesc,
-                 sargs: &[u64], rargs: &mut [u64]) -> Result<usize, Error> {
-    assert!(sargs.len() <= syscalls::MAX_EXCHG_ARGS);
-    assert!(rargs.len() <= syscalls::MAX_EXCHG_ARGS);
-
-    let mut req = syscalls::ExchangeSess {
+fn exchange_sess(vpe: Selector, op: syscalls::Operation, sess: Selector, crd: CapRngDesc,
+                 args: &mut syscalls::ExchangeArgs) -> Result<(), Error> {
+    let req = syscalls::ExchangeSess {
         opcode: op.val,
+        vpe_sel: vpe as u64,
         sess_sel: sess as u64,
         crd: crd.value(),
-        argcount: sargs.len() as u64,
-        args: unsafe { intrinsics::uninit() },
+        args: args.clone(),
     };
-
-    for i in 0..sargs.len() {
-        req.args[i] = sargs[i];
-    }
 
     let reply: Reply<syscalls::ExchangeSessReply> = send_receive(&req)?;
     if reply.data.error == 0 {
-        for i in 0..reply.data.argcount as usize {
-            rargs[i] = reply.data.args[i];
-        }
+        *args = reply.data.args;
     }
 
     match reply.data.error {
-        0 => Ok(reply.data.argcount as usize),
+        0 => Ok(()),
         e => Err(Error::from(e as u32))
     }
 }

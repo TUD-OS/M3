@@ -766,15 +766,20 @@ m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::Ca
 
 void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain) {
     auto req = get_message<m3::KIF::Syscall::ExchangeSess>(msg);
+    capsel_t vpe_sel = req->vpe_sel;
     capsel_t sess = req->sess_sel;
     m3::KIF::CapRngDesc crd(req->crd);
 
     LOG_SYS(vpe, (obtain ? ": syscall::obtain" : ": syscall::delegate"),
-            "(sess=" << sess << ", crd=" << crd << ")");
+            "(vpe=" << vpe_sel << ", sess=" << sess << ", crd=" << crd << ")");
+
+    auto vpecap = static_cast<VPECapability*>(vpe->objcaps().get(vpe_sel, Capability::VIRTPE));
+    if(vpecap == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE cap");
 
     auto sesscap = static_cast<SessCapability*>(vpe->objcaps().get(sess, Capability::SESS));
     if(sesscap == nullptr)
-        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid session-cap");
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid session cap");
 
     // we can't be sure that the session will still exist when we receive the reply
     m3::Reference<Service> rsrv(sesscap->obj->srv);
@@ -791,9 +796,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
     smsg.opcode = obtain ? m3::KIF::Service::OBTAIN : m3::KIF::Service::DELEGATE;
     smsg.sess = sesscap->obj->ident;
     smsg.data.caps = crd.count();
-    smsg.data.argcount = req->argcount;
-    for(size_t i = 0; i < req->argcount; ++i)
-        smsg.data.args[i] = req->args[i];
+    memcpy(&smsg.data.args, &req->args, sizeof(req->args));
 
     const m3::DTU::Message *srvreply = rsrv->send_receive(&smsg, sizeof(smsg), false);
     vpe->stop_wait();
@@ -811,18 +814,14 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
         LOG_ERROR(vpe, res, "Server denied cap-transfer");
     else {
         m3::KIF::CapRngDesc srvcaps(reply->data.caps);
-        res = do_exchange(vpe, &rsrv->vpe(), crd, srvcaps, obtain);
+        res = do_exchange(&*vpecap->obj, &rsrv->vpe(), crd, srvcaps, obtain);
     }
 
     m3::KIF::Syscall::ExchangeSessReply kreply;
     kreply.error = res;
-    kreply.argcount = 0;
-    if(res == m3::Errors::NONE) {
-        kreply.argcount = m3::Math::min(static_cast<size_t>(reply->data.argcount),
-            ARRAY_SIZE(kreply.args));
-        for(size_t i = 0; i < kreply.argcount; ++i)
-            kreply.args[i] = reply->data.args[i];
-    }
+    kreply.args.count = 0;
+    if(res == m3::Errors::NONE)
+        memcpy(&kreply.args, &reply->data.args, sizeof(reply->data.args));
     reply_msg(vpe, msg, &kreply, sizeof(kreply));
 }
 

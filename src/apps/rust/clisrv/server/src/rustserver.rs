@@ -40,7 +40,7 @@ impl Handler for MyHandler {
     }
 
     fn obtain(&mut self, sid: SessId, data: &mut kif::service::ExchangeData) -> Result<(), Error> {
-        if data.argcount != 0 || data.caps != 1 {
+        if data.args.count != 0 || data.caps != 1 {
             Err(Error::new(Code::InvArgs))
         }
         else {

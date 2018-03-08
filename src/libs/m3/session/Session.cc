@@ -27,14 +27,12 @@ void Session::connect(const String &service, xfer_t arg) {
         sel(cap);
 }
 
-void Session::delegate(const KIF::CapRngDesc &crd, size_t *argcount, xfer_t *args) {
-    Syscalls::get().delegate(sel(), crd, argcount, args);
+void Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+    Syscalls::get().delegate(vpe.sel(), sel(), crd, args);
 }
 
-KIF::CapRngDesc Session::obtain(uint count, size_t *argcount, xfer_t *args) {
-    KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, VPE::self().alloc_caps(count), count);
-    Syscalls::get().obtain(sel(), crd, argcount, args);
-    return crd;
+void Session::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+    Syscalls::get().obtain(vpe.sel(), sel(), crd, args);
 }
 
 }

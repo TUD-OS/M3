@@ -104,6 +104,17 @@ struct KIF {
         xfer_t opcode;
     } PACKED;
 
+    struct ExchangeArgs {
+        xfer_t count;
+        union {
+            xfer_t vals[8];
+            struct {
+                xfer_t svals[2];
+                char str[48];
+            } PACKED;
+        } PACKED;
+    } PACKED;
+
     /**
      * System calls
      */
@@ -253,15 +264,14 @@ struct KIF {
         } PACKED;
 
         struct ExchangeSess : public DefaultRequest {
+            xfer_t vpe_sel;
             xfer_t sess_sel;
             xfer_t crd;
-            xfer_t argcount;
-            xfer_t args[8];
+            ExchangeArgs args;
         } PACKED;
 
         struct ExchangeSessReply : public DefaultReply {
-            xfer_t argcount;
-            xfer_t args[8];
+            ExchangeArgs args;
         } PACKED;
 
         struct Revoke : public DefaultRequest {
@@ -331,8 +341,7 @@ struct KIF {
 
         struct ExchangeData {
             xfer_t caps;
-            xfer_t argcount;
-            xfer_t args[8];
+            ExchangeArgs args;
         } PACKED;
 
         struct Exchange : public DefaultRequest {

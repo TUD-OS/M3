@@ -52,6 +52,27 @@ pub struct DefaultReply {
     pub error: u64,
 }
 
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+pub struct ExchangeUnionStr {
+    pub i: [u64; 2],
+    pub s: [u8; 48],
+}
+
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+pub union ExchangeUnion {
+    pub i: [u64; MAX_EXCHG_ARGS],
+    pub s: ExchangeUnionStr,
+}
+
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+pub struct ExchangeArgs {
+    pub count: u64,
+    pub vals: ExchangeUnion,
+}
+
 /// The pagefault request message
 #[repr(C, packed)]
 pub struct Pagefault {
@@ -212,18 +233,17 @@ pub struct Exchange {
 #[repr(C, packed)]
 pub struct ExchangeSess {
     pub opcode: u64,
+    pub vpe_sel: u64,
     pub sess_sel: u64,
     pub crd: u64,
-    pub argcount: u64,
-    pub args: [u64; MAX_EXCHG_ARGS],
+    pub args: ExchangeArgs,
 }
 
 /// The delegate/obtain reply message
 #[repr(C, packed)]
 pub struct ExchangeSessReply {
     pub error: u64,
-    pub argcount: u64,
-    pub args: [u64; MAX_EXCHG_ARGS],
+    pub args: ExchangeArgs,
 }
 
 /// The revoke request message

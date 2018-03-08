@@ -79,7 +79,7 @@ impl Pager {
 
     pub fn delegate_caps(&mut self, vpe: &VPE) -> Result<(), Error> {
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, vpe.sel(), 2);
-        self.sess.delegate(crd, &[], &mut []).map(|_| ())
+        self.sess.delegate_crd(crd)
     }
 
     pub fn deactivate(&mut self) {
@@ -121,17 +121,18 @@ impl Pager {
 
     pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
                   sess: &Session, fid: FileId) -> Result<usize, Error> {
-        let mut rargs = [0u64; 1];
-        let sargs: [u64; 5] = [
-            addr as u64,
-            len as u64,
-            prot.bits() as u64,
-            fid as u64,
-            off as u64,
-        ];
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 5,
+            vals: kif::syscalls::ExchangeUnion {
+                i: [addr as u64, len as u64, prot.bits() as u64, fid as u64, off as u64, 0, 0, 0]
+            },
+        };
+
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sess.sel(), 1);
-        self.sess.delegate(crd, &sargs, &mut rargs)?;
-        Ok(rargs[0] as usize)
+        self.sess.delegate(crd, &mut args)?;
+        unsafe {
+            Ok(args.vals.i[0] as usize)
+        }
     }
 
     pub fn unmap(&self, addr: usize) -> Result<(), Error> {

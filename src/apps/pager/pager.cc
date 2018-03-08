@@ -57,12 +57,12 @@ public:
         if(sess->vpe.sel() == ObjCap::INVALID)
             sel = sess->init(VPE::self().alloc_caps(2));
         else {
-            if(data.args[0] == Pager::DelOp::DATASPACE)
-                sel = map_ds(sess, data.argcount, data.args, &virt);
+            if(data.args.vals[0] == Pager::DelOp::DATASPACE)
+                sel = map_ds(sess, data.args.count, data.args.vals, &virt);
             else
-                sel = map_mem(sess, data.argcount, data.args, &virt);
-            data.argcount = 1;
-            data.args[0] = virt;
+                sel = map_mem(sess, data.args.count, data.args.vals, &virt);
+            data.args.count = 1;
+            data.args.vals[0] = virt;
         }
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, data.caps);
@@ -73,7 +73,7 @@ public:
     virtual Errors::Code handle_obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
         if(!sess->send_gate())
             return base_class_t::handle_obtain(sess, data);
-        if(data.caps != 1 || data.argcount != 0)
+        if(data.caps != 1 || data.args.count != 0)
             return Errors::INV_ARGS;
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");

@@ -45,7 +45,7 @@ public:
         if(!sess->send_gate())
             return base_class_t::handle_obtain(sess, data);
 
-        if((sess->reader && sess->writer) || data.argcount != 0 || data.caps != 1)
+        if((sess->reader && sess->writer) || data.args.count != 0 || data.caps != 1)
             return Errors::INV_ARGS;
 
         if(sess->reader == nullptr) {

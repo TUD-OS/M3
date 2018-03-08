@@ -6,7 +6,7 @@ use core::any::Any;
 use core::fmt;
 use core::intrinsics;
 use errors::Error;
-use kif::INVALID_SEL;
+use kif;
 use rc::{Rc, Weak};
 use serialize::Sink;
 use session::Session;
@@ -36,7 +36,7 @@ impl LocList {
         LocList {
             lens: unsafe { intrinsics::uninit() },
             count: 0,
-            sel: INVALID_SEL,
+            sel: kif::INVALID_SEL,
         }
     }
 
@@ -128,7 +128,7 @@ impl M3FS {
 
     pub fn new(name: &str) -> Result<FSHandle, Error> {
         let sess = Session::new(name, 0)?;
-        let sgate = SendGate::new_bind(sess.obtain(1, &[], &mut [])?.1.start());
+        let sgate = SendGate::new_bind(sess.obtain_crd(1)?.start());
         Ok(Self::create(sess, sgate))
     }
 
@@ -143,14 +143,21 @@ impl M3FS {
     pub fn get_locs(&self, id: FileId, ext: ExtId, locs: &mut LocList,
                     flags: LocFlags) -> Result<(usize, bool), Error> {
         let loc_count = if flags.contains(LocFlags::EXTEND) { 2 } else { MAX_LOCS };
-        let sargs: [u64; 4] = [id as u64, ext as u64, loc_count as u64, flags.bits as u64];
-        let mut rargs = [0u64; 2 + MAX_LOCS];
-        let (num, crd) = self.sess.obtain(MAX_LOCS as u32, &sargs, &mut rargs)?;
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 4,
+            vals: kif::syscalls::ExchangeUnion {
+                i: [id as u64, ext as u64, loc_count as u64, flags.bits as u64, 0, 0, 0, 0]
+            },
+        };
+
+        let crd = self.sess.obtain(MAX_LOCS as u32, &mut args)?;
         locs.set_sel(crd.start());
-        for i in 2..num {
-            locs.append(rargs[i] as usize);
+        unsafe {
+            for i in 2..args.count as usize {
+                locs.append(args.vals.i[i] as usize);
+            }
+            Ok((args.vals.i[1] as usize, args.vals.i[0] == 1))
         }
-        Ok((rargs[1] as usize, rargs[0] == 1))
     }
 
     pub fn fstat(&self, id: FileId) -> Result<FileInfo, Error> {

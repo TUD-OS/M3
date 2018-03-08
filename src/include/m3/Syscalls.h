@@ -58,10 +58,10 @@ public:
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg);
     Errors::Code derivemem(capsel_t dst, capsel_t src, goff_t offset, size_t size, int perms);
 
-    Errors::Code delegate(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr,
-                          xfer_t *args = nullptr);
-    Errors::Code obtain(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount = nullptr,
-                        xfer_t *args = nullptr);
+    Errors::Code delegate(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+                          KIF::ExchangeArgs *args = nullptr);
+    Errors::Code obtain(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+                        KIF::ExchangeArgs *args = nullptr);
     Errors::Code exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain);
     Errors::Code revoke(capsel_t vpe, const KIF::CapRngDesc &crd, bool own = true);
 
@@ -79,8 +79,8 @@ public:
 private:
     DTU::Message *send_receive(const void *msg, size_t size);
     Errors::Code send_receive_result(const void *msg, size_t size);
-    Errors::Code exchangesess(capsel_t sess, const KIF::CapRngDesc &crd, size_t *argcount,
-                              xfer_t *args, bool obtain);
+    Errors::Code exchangesess(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
+                              KIF::ExchangeArgs *args, bool obtain);
 
     SendGate _gate;
     static Syscalls _inst;
