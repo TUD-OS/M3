@@ -77,7 +77,7 @@ void CapTable::revoke(Capability *c, bool revnext) {
         if(c->_prev)
             c->_prev->_next = c->_next;
         if(c->_parent && c->_parent->_child == c)
-            c->_parent->_child = c->_next;
+            c->_parent->_child = revnext ? nullptr : c->_next;
         revoke_rec(c, revnext);
     }
 }
