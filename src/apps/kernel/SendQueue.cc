@@ -99,15 +99,17 @@ void SendQueue::send_pending() {
 void SendQueue::received_reply(epid_t ep, const m3::DTU::Message *msg) {
     KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: received reply");
 
-    assert(_inflight > 0);
-    _inflight--;
-
     m3::ThreadManager::get().notify(_cur_event, msg, msg->length + sizeof(m3::DTU::Message::Header));
 
     // now that we've copied the message, we can mark it read
     m3::DTU::get().mark_read(ep, reinterpret_cast<size_t>(msg));
 
-    send_pending();
+    if(_inflight != -1) {
+        assert(_inflight > 0);
+        _inflight--;
+
+        send_pending();
+    }
 }
 
 event_t SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t size, bool onheap) {
@@ -123,6 +125,8 @@ event_t SendQueue::do_send(SendGate *sgate, uint64_t id, const void *msg, size_t
 }
 
 void SendQueue::abort() {
+    KLOG(SQUEUE, "SendQueue[" << _vpe.id() << "]: aborting");
+
     if(_inflight)
         m3::ThreadManager::get().notify(_cur_event);
     _inflight = -1;
