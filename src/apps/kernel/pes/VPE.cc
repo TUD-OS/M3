@@ -44,7 +44,6 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _mapcaps(id + 1),
       _lastsched(),
       _rbufs_size(),
-      _epcaps(),
       _dtustate(),
       _upcsgate(*this, m3::DTU::UPCALL_REP, 0),
       _upcqueue(*this),

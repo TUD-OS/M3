@@ -28,6 +28,22 @@ m3::OStream &operator<<(m3::OStream &os, const Capability &cc) {
     return os;
 }
 
+GateObject::~GateObject() {
+    for(auto user = epuser.begin(); user != epuser.end(); ) {
+        auto old = user++;
+        VPE &vpe = VPEManager::get().vpe(old->ep->vpe);
+        vpe.invalidate_ep(old->ep->ep);
+        old->ep->gate = nullptr;
+        // wakeup the pe to give him the chance to notice that the endpoint was invalidated
+        vpe.wakeup();
+        delete &*old;
+    }
+}
+
+RGateObject::~RGateObject() {
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(this));
+}
+
 MGateObject::~MGateObject() {
     // if it's not derived, it's always memory from mem-PEs
     if(!derived)
@@ -52,29 +68,9 @@ SessObject::~SessObject() {
         close();
 }
 
-static void invalidate_ep(vpeid_t vpeid, Capability *cap) {
-    VPE &vpe = VPEManager::get().vpe(vpeid);
-    epid_t ep = vpe.cap_ep(cap);
-    if(ep != 0) {
-        vpe.ep_cap(ep, nullptr);
-        vpe.invalidate_ep(ep);
-        // wakeup the pe to give him the chance to notice that the endpoint was invalidated
-        vpe.wakeup();
-    }
-}
-
-void RGateCapability::revoke() {
-    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&*obj));
-    invalidate_ep(table()->id() - 1, this);
-    obj->addr = 0;
-}
-
-void SGateCapability::revoke() {
-    invalidate_ep(table()->id() - 1, this);
-}
-
-void MGateCapability::revoke() {
-    invalidate_ep(table()->id() - 1, this);
+EPObject::~EPObject() {
+    if(gate != nullptr)
+        gate->remove_ep(this);
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, int _attr)
@@ -123,14 +119,20 @@ void RGateCapability::printInfo(m3::OStream &os) const {
        << ", ep=" << obj->ep
        << ", addr=#" << m3::fmt(obj->addr, "0x", sizeof(label_t) * 2)
        << ", order=" << obj->order
-       << ", msgorder=" << obj->msgorder << "]";
+       << ", msgorder=" << obj->msgorder
+       << ", eps=";
+    obj->print_eps(os);
+    os << "]";
 }
 
 void SGateCapability::printInfo(m3::OStream &os) const {
     os << ": sgate[refs=" << obj->refcount()
        << ", dst=" << obj->rgate->vpe << ":" << obj->rgate->ep
        << ", lbl=" << m3::fmt(obj->label, "#0x", sizeof(label_t) * 2)
-       << ", crd=#" << m3::fmt(obj->credits, "x") << "]";
+       << ", crd=#" << m3::fmt(obj->credits, "x")
+       << ", eps=";
+    obj->print_eps(os);
+    os << "]";
 }
 
 void MGateCapability::printInfo(m3::OStream &os) const {
@@ -138,7 +140,10 @@ void MGateCapability::printInfo(m3::OStream &os) const {
        << ", dst=" << obj->vpe << "@" << obj->pe
        << ", addr=" << m3::fmt(obj->addr, "#0x", sizeof(label_t) * 2)
        << ", size=" << m3::fmt(obj->size, "#0x", sizeof(label_t) * 2)
-       << ", perms=#" << m3::fmt(obj->perms, "x") << "]";
+       << ", perms=#" << m3::fmt(obj->perms, "x")
+       << ", eps=";
+    obj->print_eps(os);
+    os << "]";
 }
 
 void MapCapability::printInfo(m3::OStream &os) const {

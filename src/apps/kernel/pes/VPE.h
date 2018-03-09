@@ -129,20 +129,6 @@ public:
         init();
     }
 
-    Capability *ep_cap(epid_t ep) {
-        return _epcaps[ep - m3::DTU::FIRST_FREE_EP];
-    }
-    void ep_cap(epid_t ep, Capability *cap) {
-        _epcaps[ep - m3::DTU::FIRST_FREE_EP] = cap;
-    }
-    epid_t cap_ep(Capability *cap) {
-        for(size_t i = 0; i < ARRAY_SIZE(_epcaps); ++i) {
-            if(_epcaps[i] == cap)
-                return i + m3::DTU::FIRST_FREE_EP;
-        }
-        return 0;
-    }
-
     int exitcode() const {
         return _exitcode;
     }
@@ -243,7 +229,6 @@ private:
     CapTable _mapcaps;
     uint64_t _lastsched;
     size_t _rbufs_size;
-    Capability *_epcaps[EP_COUNT - m3::DTU::FIRST_FREE_EP];
     alignas(DTU_PKG_SIZE) DTUState _dtustate;
     SendGate _upcsgate;
     SendQueue _upcqueue;

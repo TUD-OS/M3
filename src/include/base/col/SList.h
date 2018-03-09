@@ -142,6 +142,31 @@ public:
         return res;
     }
     /**
+     * Removes the first item from the list for which <pred> returns true. This works in linear time.
+     * Does NOT expect that the item is in the list!
+     *
+     * @param pred the predicate
+     * @return the removed item or nullptr
+     */
+    template<typename P>
+    T *remove_if(P pred) {
+        T *t = _head, *p = nullptr;
+        while(t && !pred(t)) {
+            p = t;
+            t = static_cast<T*>(t->next());
+        }
+        if(!t)
+            return nullptr;
+        if(p)
+            p->next(t->next());
+        else
+            _head = static_cast<T*>(t->next());
+        if(!t->next())
+            _tail = p;
+        _len--;
+        return t;
+    }
+    /**
      * Removes the given item from the list. This works in linear time.
      * Does NOT expect that the item is in the list!
      *
@@ -149,21 +174,7 @@ public:
      * @return true if the item has been found and removed
      */
     bool remove(T *e) {
-        T *t = _head, *p = nullptr;
-        while(t && t != e) {
-            p = t;
-            t = static_cast<T*>(t->next());
-        }
-        if(!t)
-            return false;
-        if(p)
-            p->next(e->next());
-        else
-            _head = static_cast<T*>(e->next());
-        if(!e->next())
-            _tail = p;
-        _len--;
-        return true;
+        return remove_if([e](T *e2) { return e == e2; }) != nullptr;
     }
     /**
      * Removes all items from the list

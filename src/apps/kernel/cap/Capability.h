@@ -32,6 +32,8 @@ namespace kernel {
 
 class CapTable;
 class Capability;
+class EPObject;
+class GateObject;
 
 m3::OStream &operator<<(m3::OStream &os, const Capability &cc);
 
@@ -92,6 +94,10 @@ public:
     virtual void printInfo(m3::OStream &os) const = 0;
     void printChilds(m3::OStream &os, size_t layer = 0) const;
 
+    virtual GateObject *as_gate() {
+        return nullptr;
+    }
+
 private:
     virtual void revoke() {
     }
@@ -109,13 +115,40 @@ private:
     Capability *_prev;
 };
 
-class RGateObject : public SlabObject<RGateObject>, public m3::RefCounted {
+class GateObject {
+public:
+    struct EPUser : public SlabObject<EPUser>, public m3::SListItem {
+        explicit EPUser(EPObject *_ep) : m3::SListItem(), ep(_ep) {
+        }
+        EPObject *ep;
+    };
+
+    explicit GateObject(uint _type) : type(_type), epuser() {
+    }
+    ~GateObject();
+
+    EPObject *ep_of_vpe(vpeid_t vpe);
+
+    void add_ep(EPObject *ep) {
+        epuser.append(new EPUser(ep));
+    }
+    void remove_ep(EPObject *ep) {
+        delete epuser.remove_if([ep](EPUser *u) { return u->ep == ep; });
+    }
+
+    void print_eps(m3::OStream &os);
+
+    uint type;
+    m3::SList<EPUser> epuser;
+};
+
+class RGateObject : public SlabObject<RGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit RGateObject(int _order, int _msgorder)
-        : RefCounted(), vpe(), ep(), addr(), order(_order), msgorder(_msgorder), header() {
+        : GateObject(Capability::RGATE), RefCounted(), vpe(), ep(), addr(), order(_order),
+          msgorder(_msgorder), header() {
     }
-    virtual ~RGateObject() {
-    }
+    ~RGateObject();
 
     bool activated() const {
         return addr != 0;
@@ -132,12 +165,11 @@ public:
     uint header;
 };
 
-class SGateObject : public SlabObject<SGateObject>, public m3::RefCounted {
+class SGateObject : public SlabObject<SGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit SGateObject(RGateObject *_rgate, label_t _label, word_t _credits)
-        : RefCounted(), rgate(_rgate), label(_label), credits(_credits) {
-    }
-    virtual ~SGateObject() {
+        : GateObject(Capability::SGATE), RefCounted(), rgate(_rgate), label(_label),
+          credits(_credits) {
     }
 
     m3::Reference<RGateObject> rgate;
@@ -145,12 +177,13 @@ public:
     word_t credits;
 };
 
-class MGateObject : public SlabObject<MGateObject>, public m3::RefCounted {
+class MGateObject : public SlabObject<MGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit MGateObject(peid_t _pe, vpeid_t _vpe, goff_t _addr, size_t _size, int _perms)
-        : RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size), perms(_perms), derived(false) {
+        : GateObject(Capability::MGATE), RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size),
+          perms(_perms), derived(false) {
     }
-    virtual ~MGateObject();
+    ~MGateObject();
 
     peid_t pe;
     vpeid_t vpe;
@@ -177,11 +210,13 @@ public:
 class EPObject : public SlabObject<EPObject>, public m3::RefCounted {
 public:
     explicit EPObject(vpeid_t _vpe, epid_t _ep)
-        : RefCounted(), ep(_ep), vpe(_vpe) {
+        : RefCounted(), ep(_ep), vpe(_vpe), gate() {
     }
+    ~EPObject();
 
     epid_t ep;
     vpeid_t vpe;
+    GateObject *gate;
 };
 
 class RGateCapability : public SlabObject<RGateCapability>, public Capability {
@@ -190,10 +225,13 @@ public:
         : Capability(tbl, sel, RGATE), obj(new RGateObject(order, msgorder)) {
     }
 
+    virtual GateObject *as_gate() override {
+        return &*obj;
+    }
+
     void printInfo(m3::OStream &os) const override;
 
 protected:
-    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         RGateCapability *c = new RGateCapability(*this);
         c->put(tbl, sel);
@@ -210,10 +248,13 @@ public:
         : Capability(tbl, sel, SGATE), obj(new SGateObject(rgate, label, credits)) {
     }
 
+    virtual GateObject *as_gate() override {
+        return &*obj;
+    }
+
     void printInfo(m3::OStream &os) const override;
 
 protected:
-    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         SGateCapability *c = new SGateCapability(*this);
         c->put(tbl, sel);
@@ -231,10 +272,13 @@ public:
         : Capability(tbl, sel, MGATE), obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }
 
+    virtual GateObject *as_gate() override {
+        return &*obj;
+    }
+
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         MGateCapability *c = new MGateCapability(*this);
         c->put(tbl, sel);
@@ -341,5 +385,23 @@ private:
 public:
     m3::Reference<VPE> obj;
 };
+
+inline EPObject *GateObject::ep_of_vpe(vpeid_t vpe) {
+    for(auto u = epuser.begin(); u != epuser.end(); ++u) {
+        if(u->ep->vpe == vpe)
+            return u->ep;
+    }
+    return nullptr;
+}
+
+inline void GateObject::print_eps(m3::OStream &os) {
+    os << "[";
+    for(auto u = epuser.begin(); u != epuser.end(); ) {
+        os << "VPE" << u->ep->vpe << ":EP" << u->ep->ep;
+        if(++u != epuser.end())
+            os << ", ";
+    }
+    os << "]";
+}
 
 }
