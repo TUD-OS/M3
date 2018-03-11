@@ -15,17 +15,13 @@
  */
 
 #include <base/log/Services.h>
+#include <m3/session/M3FS.h>
 
 #include "MetaSession.h"
 #include "../Dirs.h"
 #include "../INodes.h"
 
 using namespace m3;
-
-void M3FSMetaSession::close() {
-    for(size_t i = 0; i < MAX_FILES; ++i)
-        delete _files[i];
-}
 
 Errors::Code M3FSMetaSession::get_sgate(KIF::Service::ExchangeData &data) {
     if(data.args.count != 0 || data.caps != 1)
@@ -81,6 +77,79 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
 
     SLOG(FS, fmt((word_t)this, "#x") << ": -> inode=" << inode->inode);
     return Errors::NONE;
+}
+
+void M3FSMetaSession::stat(GateIStream &is) {
+    EVENT_TRACER_FS_stat();
+    String path;
+    is >> path;
+    SLOG(FS, fmt((word_t)this, "#x") << ": fs::stat(path=" << path << ")");
+
+    m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
+    if(ino == INVALID_INO) {
+        SLOG(FS, fmt((word_t)this, "#x") << ": stat failed: "
+            << Errors::to_string(Errors::last));
+        reply_error(is, Errors::last);
+        return;
+    }
+
+    m3::INode *inode = INodes::get(_handle, ino);
+    assert(inode != nullptr);
+
+    m3::FileInfo info;
+    INodes::stat(_handle, inode, info);
+    reply_vmsg(is, Errors::NONE, info);
+}
+
+void M3FSMetaSession::mkdir(GateIStream &is) {
+    EVENT_TRACER_FS_mkdir();
+    String path;
+    mode_t mode;
+    is >> path >> mode;
+    SLOG(FS, fmt((word_t)this, "#x") << ": fs::mkdir(path=" << path
+        << ", mode=" << fmt(mode, "o") << ")");
+
+    Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
+    if(res != Errors::NONE)
+        SLOG(FS, fmt((word_t)this, "#x") << ": mkdir failed: " << Errors::to_string(res));
+    reply_error(is, res);
+}
+
+void M3FSMetaSession::rmdir(GateIStream &is) {
+    EVENT_TRACER_FS_rmdir();
+    String path;
+    is >> path;
+    SLOG(FS, fmt((word_t)this, "#x") << ": fs::rmdir(path=" << path << ")");
+
+    Errors::Code res = Dirs::remove(_handle, path.c_str());
+    if(res != Errors::NONE)
+        SLOG(FS, fmt((word_t)this, "#x") << ": rmdir failed: " << Errors::to_string(res));
+    reply_error(is, res);
+}
+
+void M3FSMetaSession::link(GateIStream &is) {
+    EVENT_TRACER_FS_link();
+    String oldpath, newpath;
+    is >> oldpath >> newpath;
+    SLOG(FS, fmt((word_t)this, "#x") << ": fs::link(oldpath=" << oldpath
+        << ", newpath=" << newpath << ")");
+
+    Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
+    if(res != Errors::NONE)
+        SLOG(FS, fmt((word_t)this, "#x") << ": link failed: " << Errors::to_string(res));
+    reply_error(is, res);
+}
+
+void M3FSMetaSession::unlink(GateIStream &is) {
+    EVENT_TRACER_FS_unlink();
+    String path;
+    is >> path;
+    SLOG(FS, fmt((word_t)this, "#x") << ": fs::unlink(path=" << path << ")");
+
+    Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
+    if(res != Errors::NONE)
+        SLOG(FS, fmt((word_t)this, "#x") << ": unlink failed: " << Errors::to_string(res));
+    reply_error(is, res);
 }
 
 void M3FSMetaSession::remove_file(M3FSFileSession *file) {

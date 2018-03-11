@@ -36,7 +36,11 @@ public:
         return META;
     }
 
-    virtual void close() override;
+    virtual void stat(m3::GateIStream &is) override;
+    virtual void mkdir(m3::GateIStream &is) override;
+    virtual void rmdir(m3::GateIStream &is) override;
+    virtual void link(m3::GateIStream &is) override;
+    virtual void unlink(m3::GateIStream &is) override;
 
     m3::SendGate *sgate() {
         return _sgate;

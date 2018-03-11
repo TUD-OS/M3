@@ -36,15 +36,13 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3:
 }
 
 M3FSFileSession::~M3FSFileSession() {
-    if(last != ObjCap::INVALID)
-        VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, last, 1));
-}
-
-void M3FSFileSession::close() {
     SLOG(FS, fmt((word_t)meta, "#x") << ": fs::close(path=" << filename << ")");
 
     do_commit(extent, extoff);
     meta->remove_file(this);
+
+    if(last != ObjCap::INVALID)
+        VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, last, 1));
 }
 
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {

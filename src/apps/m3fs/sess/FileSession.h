@@ -71,7 +71,10 @@ public:
         return FILE;
     }
 
-    virtual void close() override;
+    virtual void read(m3::GateIStream &is) override;
+    virtual void write(m3::GateIStream &is) override;
+    virtual void seek(m3::GateIStream &is) override;
+    virtual void fstat(m3::GateIStream &is) override;
 
     m3::KIF::CapRngDesc caps() const {
         return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sess, 2);
@@ -82,12 +85,6 @@ public:
 
     m3::Errors::Code clone(capsel_t srv, m3::KIF::Service::ExchangeData &data);
     m3::Errors::Code get_locs(m3::KIF::Service::ExchangeData &data);
-
-    void read(m3::GateIStream &is);
-    void write(m3::GateIStream &is);
-    void seek(m3::GateIStream &is);
-    void fstat(m3::GateIStream &is);
-    void close(m3::GateIStream &is);
 
 private:
     void read_write(m3::GateIStream &is, bool write);

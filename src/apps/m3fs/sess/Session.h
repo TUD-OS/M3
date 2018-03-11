@@ -18,6 +18,8 @@
 
 #include <base/Common.h>
 
+#include <m3/com/GateStream.h>
+
 class M3FSSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
@@ -32,5 +34,32 @@ public:
 
     virtual Type type() const = 0;
 
-    virtual void close() = 0;
+    virtual void read(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void write(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void seek(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void fstat(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+
+    virtual void stat(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void mkdir(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void rmdir(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void link(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void unlink(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
 };

@@ -95,7 +95,6 @@ public:
     }
 
     virtual Errors::Code close(M3FSSession *sess) override {
-        sess->close();
         delete sess;
         return Errors::NONE;
     }
@@ -107,120 +106,47 @@ public:
 
     void read(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        if(sess->type() != M3FSSession::FILE) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        static_cast<M3FSFileSession*>(sess)->read(is);
+        sess->read(is);
     }
 
     void write(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        if(sess->type() != M3FSSession::FILE) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        static_cast<M3FSFileSession*>(sess)->write(is);
+        sess->write(is);
     }
 
     void seek(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        if(sess->type() != M3FSSession::FILE) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        static_cast<M3FSFileSession*>(sess)->seek(is);
+        sess->seek(is);
     }
 
     void fstat(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        if(sess->type() != M3FSSession::FILE) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        static_cast<M3FSFileSession*>(sess)->fstat(is);
+        sess->fstat(is);
     }
 
     void stat(GateIStream &is) {
-        EVENT_TRACER_FS_stat();
         M3FSSession *sess = is.label<M3FSSession*>();
-        String path;
-        is >> path;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::stat(path=" << path << ")");
-
-        m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
-        if(ino == INVALID_INO) {
-            SLOG(FS, fmt((word_t)sess, "#x") << ": stat failed: "
-                << Errors::to_string(Errors::last));
-            reply_error(is, Errors::last);
-            return;
-        }
-
-        m3::INode *inode = INodes::get(_handle, ino);
-        assert(inode != nullptr);
-
-        m3::FileInfo info;
-        INodes::stat(_handle, inode, info);
-        reply_vmsg(is, Errors::NONE, info);
+        sess->stat(is);
     }
 
     void mkdir(GateIStream &is) {
-        EVENT_TRACER_FS_mkdir();
         M3FSSession *sess = is.label<M3FSSession*>();
-        String path;
-        mode_t mode;
-        is >> path >> mode;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::mkdir(path=" << path
-            << ", mode=" << fmt(mode, "o") << ")");
-
-        Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
-        if(res != Errors::NONE)
-            SLOG(FS, fmt((word_t)sess, "#x") << ": mkdir failed: " << Errors::to_string(res));
-        reply_error(is, res);
+        sess->mkdir(is);
     }
 
     void rmdir(GateIStream &is) {
-        EVENT_TRACER_FS_rmdir();
         M3FSSession *sess = is.label<M3FSSession*>();
-        String path;
-        is >> path;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::rmdir(path=" << path << ")");
-
-        Errors::Code res = Dirs::remove(_handle, path.c_str());
-        if(res != Errors::NONE)
-            SLOG(FS, fmt((word_t)sess, "#x") << ": rmdir failed: " << Errors::to_string(res));
-        reply_error(is, res);
+        sess->rmdir(is);
     }
 
     void link(GateIStream &is) {
-        EVENT_TRACER_FS_link();
         M3FSSession *sess = is.label<M3FSSession*>();
-        String oldpath, newpath;
-        is >> oldpath >> newpath;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::link(oldpath=" << oldpath
-            << ", newpath=" << newpath << ")");
-
-        Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
-        if(res != Errors::NONE)
-            SLOG(FS, fmt((word_t)sess, "#x") << ": link failed: " << Errors::to_string(res));
-        reply_error(is, res);
+        sess->link(is);
     }
 
     void unlink(GateIStream &is) {
-        EVENT_TRACER_FS_unlink();
         M3FSSession *sess = is.label<M3FSSession*>();
-        String path;
-        is >> path;
-        SLOG(FS, fmt((word_t)sess, "#x") << ": fs::unlink(path=" << path << ")");
-
-        Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
-        if(res != Errors::NONE)
-            SLOG(FS, fmt((word_t)sess, "#x") << ": unlink failed: " << Errors::to_string(res));
-        reply_error(is, res);
+        sess->unlink(is);
     }
 
 private:
