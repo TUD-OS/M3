@@ -17,9 +17,9 @@
 #include <base/log/Services.h>
 #include <m3/session/M3FS.h>
 
+#include "../data/Dirs.h"
+#include "../data/INodes.h"
 #include "MetaSession.h"
-#include "../Dirs.h"
-#include "../INodes.h"
 
 using namespace m3;
 

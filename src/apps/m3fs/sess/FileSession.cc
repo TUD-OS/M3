@@ -19,9 +19,9 @@
 #include <m3/session/M3FS.h>
 #include <m3/Syscalls.h>
 
+#include "../data/INodes.h"
 #include "FileSession.h"
 #include "MetaSession.h"
-#include "../INodes.h"
 
 using namespace m3;
 

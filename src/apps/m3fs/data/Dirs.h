@@ -18,7 +18,7 @@
 
 #include <fs/internal.h>
 
-#include "FSHandle.h"
+#include "../FSHandle.h"
 
 /**
  * Walks over all dir-entries in block <bno>, assigning it to <e>.

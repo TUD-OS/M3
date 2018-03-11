@@ -21,7 +21,7 @@
 #include <fs/internal.h>
 
 #include "Allocator.h"
-#include "FSHandle.h"
+#include "../FSHandle.h"
 
 /**
  * Walks over each block of the inode, assigning it to <bno>.

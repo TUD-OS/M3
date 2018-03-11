@@ -18,7 +18,7 @@
 
 #include <fs/internal.h>
 
-#include "Allocator.h"
+#include "data/Allocator.h"
 #include "Cache.h"
 
 class FSHandle {

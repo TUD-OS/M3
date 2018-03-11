@@ -18,7 +18,7 @@
 
 #include <fs/internal.h>
 
-#include "Cache.h"
+#include "../Cache.h"
 
 class FSHandle;
 

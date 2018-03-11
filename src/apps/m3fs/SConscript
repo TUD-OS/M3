@@ -1,2 +1,2 @@
 Import('env')
-env.M3Program(env, 'm3fs', [env.Glob('*.cc'), env.Glob('sess/*.cc')])
+env.M3Program(env, 'm3fs', [env.Glob('*.cc'), env.Glob('*/*.cc')])

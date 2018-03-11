@@ -28,9 +28,9 @@
 
 #include "sess/FileSession.h"
 #include "sess/MetaSession.h"
+#include "data/INodes.h"
+#include "data/Dirs.h"
 #include "FSHandle.h"
-#include "INodes.h"
-#include "Dirs.h"
 
 using namespace m3;
 
