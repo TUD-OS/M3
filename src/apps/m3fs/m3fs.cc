@@ -16,7 +16,6 @@
 
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
-#include <base/log/Services.h>
 #include <base/CmdArgs.h>
 #include <base/Errors.h>
 
