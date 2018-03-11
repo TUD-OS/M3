@@ -48,8 +48,7 @@ public:
         : base_class(),
           _rgate(RecvGate::create(nextlog2<32 * M3FSSession::MSG_SIZE>::val,
                                   nextlog2<M3FSSession::MSG_SIZE>::val)),
-          _mem(MemGate::create_global_for(FS_IMG_OFFSET,
-               Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
+          _mem(MemGate::create_global_for(FS_IMG_OFFSET, fssize, MemGate::RWX)),
           _handle(_mem.sel(), extend, clear) {
         add_operation(M3FS::READ, &M3FSRequestHandler::read);
         add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
