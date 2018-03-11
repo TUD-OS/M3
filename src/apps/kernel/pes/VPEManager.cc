@@ -55,8 +55,10 @@ void VPEManager::init(int argc, char **argv) {
                     PANIC("Unable to find a free PE for boot module " << argv[i]);
             }
 
-            // allow multiple applications with the same name
-            _vpes[id] = new VPE(m3::String(argv[i]), peid, id, VPE::F_BOOTMOD);
+            // strip the path from the name
+            const char *slash = strrchr(argv[i], '/');
+            const char *name = slash ? slash + 1 : argv[i];
+            _vpes[id] = new VPE(m3::String(name), peid, id, VPE::F_BOOTMOD);
         }
 
         // find end of arguments
