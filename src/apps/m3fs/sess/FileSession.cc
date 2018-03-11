@@ -155,6 +155,10 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         extoff = 0;
     }
 
+    // start/continue transaction
+    if(extended && xstate != TransactionState::ABORTED)
+        xstate = TransactionState::OPEN;
+
     // reply first
     reply_vmsg(is, Errors::NONE, off, bytes - off);
 
