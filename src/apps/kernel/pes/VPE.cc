@@ -213,7 +213,7 @@ void VPE::upcall_notify(m3::Errors::Code res, word_t event) {
 }
 
 bool VPE::invalidate_ep(epid_t ep, bool cmd) {
-    KLOG(EPS, "VPE" << id() << ": EP" << ep << " = invalid");
+    KLOG(EPS, "VPE" << id() << ":EP" << ep << " = invalid");
 
     bool res = true;
     if(cmd) {

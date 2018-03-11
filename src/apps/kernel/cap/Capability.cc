@@ -142,25 +142,25 @@ void MGateCapability::printInfo(m3::OStream &os) const {
 }
 
 void MapCapability::printInfo(m3::OStream &os) const {
-    os << ": map [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
+    os << ": map  [virt=#" << m3::fmt(sel() << PAGE_BITS, "x")
        << ", phys=#" << m3::fmt(phys, "x")
        << ", pages=" << length
        << ", attr=#" << m3::fmt(attr, "x") << "]";
 }
 
 void ServCapability::printInfo(m3::OStream &os) const {
-    os << ": serv[name=" << inst->name() << "]";
+    os << ": serv [name=" << inst->name() << "]";
 }
 
 void SessCapability::printInfo(m3::OStream &os) const {
-    os << ": sess[refs=" << obj->refcount()
+    os << ": sess [refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << m3::fmt(obj->ident, "x")
         << ", servowned=" << obj->servowned << "]";
 }
 
 void VPECapability::printInfo(m3::OStream &os) const {
-    os << ": vpe [refs=" << obj->refcount()
+    os << ": vpe  [refs=" << obj->refcount()
        << ", name=" << obj->name() << "]";
 }
 
