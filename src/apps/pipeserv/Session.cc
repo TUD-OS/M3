@@ -76,7 +76,7 @@ PipeChannel *PipeChannel::clone(capsel_t srv) const {
 }
 
 PipeChannel::PipeChannel(PipeData *_pipe, capsel_t srv)
-    : PipeSession(),
+    : PipeSession(), m3::SListItem(),
       id(_pipe->nextid++), caps(VPE::self().alloc_caps(2)), epcap(ObjCap::INVALID), lastamount(),
       sgate(m3::SendGate::create(_pipe->rgate, reinterpret_cast<label_t>(this), 64, nullptr, caps + 1)),
       pipe(_pipe) {

@@ -20,35 +20,11 @@
 #include <base/Errors.h>
 
 #include <m3/com/GateStream.h>
-#include <m3/com/SendGate.h>
-#include <m3/com/RecvGate.h>
 #include <m3/server/Handler.h>
 
 namespace m3 {
 
 template<typename CLS, typename OP, size_t OPCNT, class SESS>
-class RequestHandler;
-
-class RequestSessionData : public SessionData {
-    template<typename CLS, typename OP, size_t OPCNT, class SESS>
-    friend class RequestHandler;
-
-public:
-    explicit RequestSessionData() : _sgate() {
-    }
-    ~RequestSessionData() {
-        delete _sgate;
-    }
-
-    SendGate *send_gate() {
-        return _sgate;
-    }
-
-private:
-    SendGate *_sgate;
-};
-
-template<typename CLS, typename OP, size_t OPCNT, class SESS = RequestSessionData>
 class RequestHandler : public Handler<SESS> {
     template<class HDL>
     friend class Server;
@@ -56,45 +32,13 @@ class RequestHandler : public Handler<SESS> {
     using handler_func = void (CLS::*)(GateIStream &is);
 
 public:
-    static const int DEF_ORDER      = nextlog2<8192>::val;
-    static const int DEF_MSGORDER   = nextlog2<256>::val;
-
-    explicit RequestHandler(int order = DEF_ORDER, int msgorder = DEF_MSGORDER)
-        : Handler<SESS>(), _msgorder(msgorder), _rgate(RecvGate::create(order, msgorder)), _callbacks() {
-        using std::placeholders::_1;
-        _rgate.start(std::bind(&CLS::handle_message, this, _1));
+    explicit RequestHandler() : Handler<SESS>(), _callbacks() {
     }
 
     void add_operation(OP op, handler_func func) {
         _callbacks[op] = func;
     }
 
-    RecvGate &recvgate() {
-        return _rgate;
-    }
-
-protected:
-    virtual Errors::Code handle_obtain(SESS *sess, KIF::Service::ExchangeData &data) override {
-        if(sess->send_gate() || data.args.count > 0 || data.caps != 1)
-            return Errors::INV_ARGS;
-
-        label_t label = reinterpret_cast<label_t>(sess);
-        sess->_sgate = new SendGate(SendGate::create(&_rgate, label, credits()));
-
-        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->send_gate()->sel());
-        data.caps = crd.value();
-        return Errors::NONE;
-    }
-
-    virtual word_t credits() const {
-        return 1UL << _msgorder;
-    }
-
-    virtual void handle_shutdown() override {
-        _rgate.stop();
-    }
-
-public:
     void handle_message(GateIStream &msg) {
         EVENT_TRACER_Service_request();
         OP op;
@@ -108,8 +52,6 @@ public:
     }
 
 private:
-    int _msgorder;
-    RecvGate _rgate;
     handler_func _callbacks[OPCNT];
 };
 

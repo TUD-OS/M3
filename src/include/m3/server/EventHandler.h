@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <base/col/SList.h>
+
 #include <m3/server/Handler.h>
 #include <m3/com/GateStream.h>
 #include <m3/VPE.h>
@@ -25,12 +27,12 @@ namespace m3 {
 template<class SESS>
 class EventHandler;
 
-class EventSessionData : public SessionData {
+class EventSessionData : public SListItem {
     template<class SESS>
     friend class EventHandler;
 
 public:
-    explicit EventSessionData() : _sgate() {
+    explicit EventSessionData() : SListItem(), _sgate() {
     }
     ~EventSessionData() {
         delete _sgate;
@@ -50,15 +52,28 @@ class EventHandler : public Handler<SESS> {
     friend class Server;
 
 public:
+    explicit EventHandler() : Handler<SESS>(), _sessions() {
+    }
+
     template<typename... Args>
     void broadcast(const Args &... args) {
         auto msg = create_vmsg(args...);
-        for(auto &h : *this)
+        for(auto &h : _sessions)
             send_msg(*static_cast<SendGate*>(h.gate()), msg.bytes(), msg.total());
     }
 
+    SList<SESS> &sessions() {
+        return _sessions;
+    }
+
 protected:
-    virtual Errors::Code handle_delegate(SESS *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code open(SESS **sess, word_t) override {
+        *sess = new SESS();
+        _sessions.append(*sess);
+        return Errors::NONE;
+    }
+
+    virtual Errors::Code delegate(SESS *sess, KIF::Service::ExchangeData &data) override {
         if(sess->gate() || data.args.count != 0 || data.caps != 1)
             return Errors::INV_ARGS;
 
@@ -68,10 +83,14 @@ protected:
         return Errors::NONE;
     }
 
-private:
-    virtual size_t credits() {
-        return SendGate::UNLIMITED;
+    virtual Errors::Code close(SESS *sess) override {
+        _sessions.remove(sess);
+        delete sess;
+        return Errors::NONE;
     }
+
+private:
+    SList<SESS> _sessions;
 };
 
 }

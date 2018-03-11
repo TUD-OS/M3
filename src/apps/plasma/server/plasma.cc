@@ -20,7 +20,7 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
-#include <m3/server/RequestHandler.h>
+#include <m3/server/SimpleRequestHandler.h>
 #include <m3/session/arch/host/Plasma.h>
 #include <m3/session/arch/host/Interrupts.h>
 #include <m3/session/arch/host/VGA.h>
@@ -357,7 +357,7 @@ static QuoteAnimator<VGA::ROWS, VGA::COLS> qa(&pa);
 static unsigned irqs = 0;
 
 class PlasmaRequestHandler;
-using plasma_reqh_base_t = RequestHandler<PlasmaRequestHandler, Plasma::Operation, Plasma::COUNT>;
+using plasma_reqh_base_t = SimpleRequestHandler<PlasmaRequestHandler, Plasma::Operation, Plasma::COUNT>;
 
 class PlasmaRequestHandler : public plasma_reqh_base_t {
 public:

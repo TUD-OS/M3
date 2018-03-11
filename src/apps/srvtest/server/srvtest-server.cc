@@ -25,19 +25,23 @@ class MyHandler;
 
 static Server<MyHandler> *srv;
 
-class MyHandler : public Handler<> {
+class MyHandler : public Handler<void> {
 public:
-    MyHandler() : Handler<>(), _count() {
+    MyHandler() : Handler<void>(), _count() {
     }
 
-    virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &) override {
+    virtual Errors::Code open(void **sess, word_t) override {
+        *sess = nullptr;
+        return Errors::NONE;
+    }
+    virtual Errors::Code obtain(void *, KIF::Service::ExchangeData &) override {
         if(++_count == 5)
             srv->shutdown();
         return Errors::NOT_SUP;
     }
-    virtual Errors::Code handle_close(SessionData *sess) override {
+    virtual Errors::Code close(void *) override {
         cout << "Client closed connection.\n";
-        return Handler<>::handle_close(sess);
+        return Errors::NONE;
     }
 
 private:

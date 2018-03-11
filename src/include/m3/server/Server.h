@@ -49,7 +49,7 @@ public:
     }
 
     void shutdown() {
-        _handler->handle_shutdown();
+        _handler->shutdown();
         _rgate.stop();
     }
 
@@ -77,11 +77,9 @@ private:
         KIF::Service::OpenReply reply;
 
         typename HDL::session_type *sess = nullptr;
-        reply.error = _handler->handle_open(&sess, req->arg);
-        if(sess) {
-            _handler->add_session(sess);
+        reply.error = _handler->open(&sess, req->arg);
+        if(sess)
             LLOG(SERV, fmt((void*)sess, "#x") << ": open()");
-        }
 
         reply.sess = reinterpret_cast<word_t>(sess);
         is.reply(&reply, sizeof(reply));
@@ -98,7 +96,7 @@ private:
         memcpy(&reply.data, &req->data, sizeof(req->data));
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
-        reply.error = _handler->handle_obtain(sess, reply.data);
+        reply.error = _handler->obtain(sess, reply.data);
 
         is.reply(&reply, sizeof(reply));
     }
@@ -114,7 +112,7 @@ private:
         memcpy(&reply.data, &req->data, sizeof(req->data));
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
-        reply.error = _handler->handle_delegate(sess, reply.data);
+        reply.error = _handler->delegate(sess, reply.data);
 
         is.reply(&reply, sizeof(reply));
     }
@@ -127,7 +125,7 @@ private:
         LLOG(SERV, fmt((void*)req->sess, "#x") << ": close()");
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
-        Errors::Code res = _handler->handle_close(sess);
+        Errors::Code res = _handler->close(sess);
 
         reply_error(is, res);
     }

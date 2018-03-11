@@ -27,6 +27,17 @@ void M3FSMetaSession::close() {
         delete _files[i];
 }
 
+Errors::Code M3FSMetaSession::get_sgate(KIF::Service::ExchangeData &data) {
+    if(data.args.count != 0 || data.caps != 1)
+        return Errors::INV_ARGS;
+
+    label_t label = reinterpret_cast<label_t>(this);
+    _sgate = new SendGate(SendGate::create(&_rgate, label, MSG_SIZE));
+
+    data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _sgate->sel()).value();
+    return Errors::NONE;
+}
+
 Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData &data) {
     if(data.args.count != 1)
         return Errors::INV_ARGS;

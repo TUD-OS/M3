@@ -17,26 +17,24 @@
 #pragma once
 
 #include <m3/com/GateStream.h>
-#include <m3/server/RequestHandler.h>
-#include <m3/server/Server.h>
 #include <m3/session/Pager.h>
 #include <m3/stream/Standard.h>
 
 #include "DataSpace.h"
 
-class AddrSpace : public m3::RequestSessionData {
+class AddrSpace {
 public:
     explicit AddrSpace(AddrSpace *_parent = nullptr, capsel_t _sess = m3::ObjCap::INVALID)
-       : RequestSessionData(),
-         vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
+       : vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
          sess(m3::ObjCap::SESSION, _sess),
-         mem(), dstree(), parent(_parent) {
+         mem(), sgate(), dstree(), parent(_parent) {
     }
     ~AddrSpace() {
         for(auto ds = dslist.begin(); ds != dslist.end(); ) {
             auto old = ds++;
             delete &*old;
         }
+        delete sgate;
         delete mem;
     }
 
@@ -54,6 +52,7 @@ public:
     m3::ObjCap vpe;
     m3::ObjCap sess;
     m3::MemGate *mem;
+    m3::SendGate *sgate;
     m3::SList<DataSpace> dslist;
     m3::Treap<DataSpace> dstree;
     // TODO if the parent destroys his session first, we have a problem

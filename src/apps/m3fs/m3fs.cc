@@ -36,20 +36,21 @@ using namespace m3;
 
 class M3FSRequestHandler;
 
-using m3fs_reqh_base_t = RequestHandler<
+using base_class = RequestHandler<
     M3FSRequestHandler, M3FS::Operation, M3FS::COUNT, M3FSSession
 >;
 
 static Server<M3FSRequestHandler> *srv;
 
-class M3FSRequestHandler : public m3fs_reqh_base_t {
+class M3FSRequestHandler : public base_class {
 public:
     explicit M3FSRequestHandler(size_t fssize, size_t extend, bool clear)
-            : m3fs_reqh_base_t(nextlog2<M3FSSession::MSG_SIZE * 32>::val,
-                               nextlog2<M3FSSession::MSG_SIZE>::val),
-              _mem(MemGate::create_global_for(FS_IMG_OFFSET,
-                   Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
-              _handle(_mem.sel(), extend, clear) {
+        : base_class(),
+          _rgate(RecvGate::create(nextlog2<32 * M3FSSession::MSG_SIZE>::val,
+                                  nextlog2<M3FSSession::MSG_SIZE>::val)),
+          _mem(MemGate::create_global_for(FS_IMG_OFFSET,
+               Math::round_up(fssize, (size_t)1 << MemGate::PERM_BITS), MemGate::RWX)),
+          _handle(_mem.sel(), extend, clear) {
         add_operation(M3FS::READ, &M3FSRequestHandler::read);
         add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
@@ -59,29 +60,32 @@ public:
         add_operation(M3FS::RMDIR, &M3FSRequestHandler::rmdir);
         add_operation(M3FS::LINK, &M3FSRequestHandler::link);
         add_operation(M3FS::UNLINK, &M3FSRequestHandler::unlink);
+
+        using std::placeholders::_1;
+        _rgate.start(std::bind(&M3FSRequestHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code handle_open(M3FSSession **sess, word_t) override {
-        *sess = new M3FSMetaSession(srv->handler().recvgate(), _handle);
+    virtual Errors::Code open(M3FSSession **sess, word_t) override {
+        *sess = new M3FSMetaSession(_rgate, _handle);
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_obtain(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code obtain(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
         if(sess->type() == M3FSSession::META) {
-            if(!sess->send_gate())
-                return m3fs_reqh_base_t::handle_obtain(sess, data);
-
-            return static_cast<M3FSMetaSession*>(sess)->open_file(srv->sel(), data);
+            auto meta = static_cast<M3FSMetaSession*>(sess);
+            if(!meta->sgate())
+                return meta->get_sgate(data);
+            return meta->open_file(srv->sel(), data);
         }
         else {
+            auto file = static_cast<M3FSFileSession*>(sess);
             if(data.args.count == 0)
-                return static_cast<M3FSFileSession*>(sess)->clone(srv->sel(), data);
-
-            return static_cast<M3FSFileSession*>(sess)->get_locs(data);
+                return file->clone(srv->sel(), data);
+            return file->get_locs(data);
         }
     }
 
-    virtual Errors::Code handle_delegate(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code delegate(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
         if(sess->type() == M3FSSession::META || data.args.count != 0 || data.caps != 1)
             return Errors::NOT_SUP;
 
@@ -91,10 +95,15 @@ public:
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_close(M3FSSession *sess) override {
+    virtual Errors::Code close(M3FSSession *sess) override {
         sess->close();
-        m3fs_reqh_base_t::handle_close(sess);
+        delete sess;
         return Errors::NONE;
+    }
+
+    virtual void shutdown() override {
+        _rgate.stop();
+        _handle.flush_cache();
     }
 
     void read(GateIStream &is) {
@@ -215,12 +224,8 @@ public:
         reply_error(is, res);
     }
 
-    virtual void handle_shutdown() override {
-        m3fs_reqh_base_t::handle_shutdown();
-        _handle.flush_cache();
-    }
-
 private:
+    RecvGate _rgate;
     MemGate _mem;
     FSHandle _handle;
 };

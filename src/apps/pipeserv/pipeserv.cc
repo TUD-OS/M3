@@ -26,27 +26,34 @@
 using namespace m3;
 
 class PipeServiceHandler;
-using base_class_t = RequestHandler<
+using base_class = RequestHandler<
     PipeServiceHandler, GenericFile::Operation, GenericFile::Operation::COUNT, PipeSession
 >;
 
 static Server<PipeServiceHandler> *srv;
 
-class PipeServiceHandler : public base_class_t {
+class PipeServiceHandler : public base_class {
 public:
-    explicit PipeServiceHandler() : base_class_t(nextlog2<2048>::val, nextlog2<64>::val) {
+    static constexpr size_t MSG_SIZE = 64;
+
+    explicit PipeServiceHandler()
+        : base_class(),
+          _rgate(RecvGate::create(nextlog2<32 * MSG_SIZE>::val, nextlog2<MSG_SIZE>::val)) {
         add_operation(GenericFile::SEEK, &PipeServiceHandler::invalid_op);
         add_operation(GenericFile::STAT, &PipeServiceHandler::invalid_op);
         add_operation(GenericFile::READ, &PipeServiceHandler::read);
         add_operation(GenericFile::WRITE, &PipeServiceHandler::write);
+
+        using std::placeholders::_1;
+        _rgate.start(std::bind(&PipeServiceHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code handle_open(PipeSession **sess, word_t arg) override {
-        *sess = new PipeData(&recvgate(), arg);
+    virtual Errors::Code open(PipeSession **sess, word_t arg) override {
+        *sess = new PipeData(&_rgate, arg);
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_obtain(PipeSession *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code obtain(PipeSession *sess, KIF::Service::ExchangeData &data) override {
         if(data.caps != 2)
             return Errors::INV_ARGS;
 
@@ -62,7 +69,7 @@ public:
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_delegate(PipeSession *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code delegate(PipeSession *sess, KIF::Service::ExchangeData &data) override {
         if(sess->type() == PipeSession::META) {
             if(data.caps != 1 || data.args.count != 0 || static_cast<PipeData*>(sess)->memory)
                 return Errors::INV_ARGS;
@@ -82,9 +89,14 @@ public:
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_close(PipeSession *sess) override {
+    virtual Errors::Code close(PipeSession *sess) override {
         sess->close();
-        return base_class_t::handle_close(sess);
+        delete sess;
+        return Errors::NONE;
+    }
+
+    virtual void shutdown() override {
+        _rgate.stop();
     }
 
     void invalid_op(GateIStream &is) {
@@ -104,6 +116,9 @@ public:
 
         sess->write(is, submit);
     }
+
+private:
+    RecvGate _rgate;
 };
 
 int main() {

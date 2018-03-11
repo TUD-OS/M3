@@ -27,7 +27,7 @@
 
 class PipeData;
 
-class PipeSession : public m3::RequestSessionData {
+class PipeSession {
 public:
     enum Type {
         META,
@@ -38,10 +38,7 @@ public:
     virtual ~PipeSession() {
     }
 
-    virtual Type type() const {
-        // TODO only necessary because every session needs to be (default)-constructable
-        return META;
-    }
+    virtual Type type() const = 0;
 
     virtual void read(m3::GateIStream &is) {
         reply_error(is, m3::Errors::NOT_SUP);
@@ -54,7 +51,7 @@ public:
     }
 };
 
-class PipeChannel : public PipeSession {
+class PipeChannel : public PipeSession, public m3::SListItem {
 public:
     enum {
         READ_EOF    = 1,
@@ -134,10 +131,6 @@ public:
         const m3::DTU::Message *lastmsg;
     };
 
-    // unused
-    explicit PipeData() : memory(), rbuf(0) {
-    }
-
     explicit PipeData(m3::RecvGate *rgate, size_t _memsize);
     virtual ~PipeData();
 
@@ -155,7 +148,6 @@ public:
     m3::RecvGate *rgate;
     VarRingBuf rbuf;
     WorkItem workitem;
-    // XXX we are currently using the SListItem here and in Handler
     m3::SList<PipeReadChannel> reader;
     m3::SList<PipeWriteChannel> writer;
     PipeReadChannel *last_reader;

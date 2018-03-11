@@ -40,8 +40,9 @@ public:
 
 class IntEventHandler : public EventHandler<IntSessionData> {
 public:
-    virtual Errors::Code handle_open(IntSessionData **sess, word_t arg) override {
+    virtual Errors::Code open(IntSessionData **sess, word_t arg) override {
         *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(arg));
+        sessions().append(*sess);
         return Errors::NONE;
     }
 };
@@ -63,7 +64,7 @@ public:
             HWInterrupts::Guard noints;
             for(size_t i = 0; i < sizeof(_pending) / sizeof(_pending[0]); ++i) {
                 for(; _pending[i] > 0; _pending[i]--) {
-                    for(auto &s : *evhandler) {
+                    for(auto &s : evhandler->sessions()) {
                         IntSessionData *sess = static_cast<IntSessionData*>(&s);
                         if(sess->gate() && sess->irq == static_cast<HWInterrupts::IRQ>(i))
                             send_vmsg(*static_cast<SendGate*>(sess->gate()), sess->irq);

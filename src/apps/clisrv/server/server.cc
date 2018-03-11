@@ -15,7 +15,7 @@
  */
 
 #include <m3/com/GateStream.h>
-#include <m3/server/RequestHandler.h>
+#include <m3/server/SimpleRequestHandler.h>
 #include <m3/server/Server.h>
 
 using namespace m3;
@@ -25,12 +25,13 @@ enum TestOp {
 };
 
 class TestRequestHandler;
+using base_class = SimpleRequestHandler<TestRequestHandler, TestOp, 1>;
 
 static Server<TestRequestHandler> *srv;
 
-class TestRequestHandler : public RequestHandler<TestRequestHandler, TestOp, 1> {
+class TestRequestHandler : public base_class {
 public:
-    explicit TestRequestHandler() : RequestHandler<TestRequestHandler, TestOp, 1>() {
+    explicit TestRequestHandler() : base_class() {
         add_operation(TEST, &TestRequestHandler::test);
     }
 

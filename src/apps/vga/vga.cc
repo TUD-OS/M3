@@ -23,17 +23,24 @@
 
 using namespace m3;
 
-class VGAHandler : public Handler<> {
+class VGAHandler : public Handler<void> {
 public:
     explicit VGAHandler(MemGate *vgamem) : _vgamem(vgamem) {
     }
 
-    virtual Errors::Code handle_obtain(SessionData *, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code open(void **sess, word_t) override {
+        *sess = nullptr;
+        return Errors::NONE;
+    }
+    virtual Errors::Code obtain(void *, KIF::Service::ExchangeData &data) override {
         if(data.caps != 1 || data.args.count != 0)
             return Errors::INV_ARGS;
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _vgamem->sel());
         data.caps = crd.value();
+        return Errors::NONE;
+    }
+    virtual Errors::Code close(void *) override {
         return Errors::NONE;
     }
 

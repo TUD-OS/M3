@@ -16,7 +16,7 @@
 
 #include <base/stream/IStringStream.h>
 
-#include <m3/server/RequestHandler.h>
+#include <m3/server/SimpleRequestHandler.h>
 #include <m3/server/Server.h>
 #include <m3/stream/Standard.h>
 #include <m3/com/GateStream.h>
@@ -27,9 +27,12 @@ enum ArithOp {
     CALC
 };
 
-class ArithRequestHandler : public RequestHandler<ArithRequestHandler, ArithOp, 1> {
+class ArithRequestHandler;
+using base_class = SimpleRequestHandler<ArithRequestHandler, ArithOp, 1>;
+
+class ArithRequestHandler : public base_class {
 public:
-    explicit ArithRequestHandler() : RequestHandler<ArithRequestHandler, ArithOp, 1>() {
+    explicit ArithRequestHandler() : base_class() {
         add_operation(CALC, &ArithRequestHandler::calc);
     }
 

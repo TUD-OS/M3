@@ -16,74 +16,29 @@
 
 #pragma once
 
-#include <base/col/SList.h>
 #include <base/Errors.h>
 #include <base/KIF.h>
 
-#include <m3/com/GateStream.h>
-#include <m3/com/RecvGate.h>
-
 namespace m3 {
 
-template<class HDL>
-class Server;
-
-class SessionData : public SListItem {
-};
-
-template<class SESS = SessionData>
+template<class SESS>
 class Handler {
-    template<class HDL>
-    friend class Server;
-
 public:
-    using session_type  = SESS;
-    using iterator      = typename SList<SESS>::iterator;
+    typedef SESS session_type;
 
-    explicit Handler() : _sessions() {
-    }
     virtual ~Handler() {
     }
 
-    iterator begin() {
-        return _sessions.begin();
-    }
-    iterator end() {
-        return _sessions.end();
-    }
-    size_t count() {
-        return _sessions.length();
-    }
-
-    virtual SESS *add_session(SESS *s) {
-        _sessions.append(s);
-        return s;
-    }
-    virtual void remove_session(SESS *s) {
-        _sessions.remove(s);
-    }
-
-protected:
-    virtual Errors::Code handle_open(SESS **sess, word_t) {
-        *sess = new SESS();
-        return Errors::NONE;
-    }
-    virtual Errors::Code handle_obtain(SESS *, KIF::Service::ExchangeData &) {
+    virtual Errors::Code open(SESS **sess, word_t) = 0;
+    virtual Errors::Code obtain(SESS *, KIF::Service::ExchangeData &) {
         return Errors::NOT_SUP;
     }
-    virtual Errors::Code handle_delegate(SESS *, KIF::Service::ExchangeData &) {
+    virtual Errors::Code delegate(SESS *, KIF::Service::ExchangeData &) {
         return Errors::NOT_SUP;
     }
-    virtual Errors::Code handle_close(SESS *sess) {
-        remove_session(sess);
-        delete sess;
-        return Errors::NONE;
+    virtual Errors::Code close(SESS *sess) = 0;
+    virtual void shutdown() {
     }
-    virtual void handle_shutdown() {
-    }
-
-private:
-    SList<SESS> _sessions;
 };
 
 }

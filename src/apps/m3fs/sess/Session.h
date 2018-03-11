@@ -16,9 +16,9 @@
 
 #pragma once
 
-#include <m3/server/RequestHandler.h>
+#include <base/Common.h>
 
-class M3FSSession : public m3::RequestSessionData {
+class M3FSSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
 
@@ -30,11 +30,7 @@ public:
     virtual ~M3FSSession() {
     }
 
-    virtual Type type() const {
-        // TODO not pure virtual because of stupid Handler stuff
-        return META;
-    }
+    virtual Type type() const = 0;
 
-    virtual void close() {
-    }
+    virtual void close() = 0;
 };

@@ -63,11 +63,6 @@ struct CapContainer {
 
 class M3FSFileSession : public M3FSSession {
 public:
-    // TODO unused
-    explicit M3FSFileSession()
-        : M3FSSession(), extent(), extoff(), filename(), sgate(m3::SendGate::bind(0)),
-          oflags(), xstate(TransactionState::NONE), inode(), capscon() {
-    }
     explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                              int _flags, const m3::INode &_inode);
     virtual ~M3FSFileSession();

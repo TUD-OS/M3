@@ -41,14 +41,26 @@ static size_t maxExternPages = 8;
 
 class MemReqHandler : public base_class_t {
 public:
-    explicit MemReqHandler() : base_class_t() {
+    static constexpr size_t MSG_SIZE = 64;
+
+    explicit MemReqHandler()
+        : base_class_t(),
+          _rgate(RecvGate::create(nextlog2<32 * MSG_SIZE>::val, nextlog2<MSG_SIZE>::val)) {
         add_operation(Pager::PAGEFAULT, &MemReqHandler::pf);
         add_operation(Pager::CLONE, &MemReqHandler::clone);
         add_operation(Pager::MAP_ANON, &MemReqHandler::map_anon);
         add_operation(Pager::UNMAP, &MemReqHandler::unmap);
+
+        using std::placeholders::_1;
+        _rgate.start(std::bind(&MemReqHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code handle_delegate(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code open(AddrSpace **sess, word_t) override {
+        *sess = new AddrSpace();
+        return Errors::NONE;
+    }
+
+    virtual Errors::Code delegate(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
         if(data.caps != 1 && data.caps != 2)
             return Errors::INV_ARGS;
 
@@ -70,22 +82,36 @@ public:
         return Errors::NONE;
     }
 
-    virtual Errors::Code handle_obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
-        if(!sess->send_gate())
-            return base_class_t::handle_obtain(sess, data);
-        if(data.caps != 1 || data.args.count != 0)
+    virtual Errors::Code obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
+        if(data.args.count != 0 || data.caps != 1)
             return Errors::INV_ARGS;
+
+        if(!sess->sgate) {
+            label_t label = reinterpret_cast<label_t>(sess);
+            sess->sgate = new SendGate(SendGate::create(&_rgate, label, MSG_SIZE));
+
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess->sgate->sel()).value();
+            return Errors::NONE;
+        }
 
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
 
         // clone the current session and connect it to the current one
         AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_cap());
         Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
-        add_session(nsess);
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
         data.caps = crd.value();
         return Errors::NONE;
+    }
+
+    virtual Errors::Code close(AddrSpace *sess) override {
+        delete sess;
+        return Errors::NONE;
+    }
+
+    virtual void shutdown() override {
+        _rgate.stop();
     }
 
     void pf(GateIStream &is) {
@@ -270,6 +296,9 @@ public:
 
         reply_error(is, res);
     }
+
+private:
+    RecvGate _rgate;
 };
 
 static void usage(const char *name) {

@@ -25,7 +25,7 @@ public:
     static constexpr size_t MAX_FILES   = 16;
 
     explicit M3FSMetaSession(m3::RecvGate &rgate, FSHandle &handle)
-        : M3FSSession(), _rgate(rgate), _handle(handle), _files() {
+        : M3FSSession(), _sgate(), _rgate(rgate), _handle(handle), _files() {
     }
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)
@@ -38,6 +38,9 @@ public:
 
     virtual void close() override;
 
+    m3::SendGate *sgate() {
+        return _sgate;
+    }
     m3::RecvGate &rgate() {
         return _rgate;
     }
@@ -45,12 +48,14 @@ public:
         return _handle;
     }
 
+    m3::Errors::Code get_sgate(m3::KIF::Service::ExchangeData &data);
     m3::Errors::Code open_file(capsel_t srv, m3::KIF::Service::ExchangeData &data);
     void remove_file(M3FSFileSession *file);
 
 private:
     ssize_t alloc_file(capsel_t srv, const char *path, int flags, const m3::INode &inode);
 
+    m3::SendGate *_sgate;
     m3::RecvGate &_rgate;
     FSHandle &_handle;
     // TODO change that to a list?
