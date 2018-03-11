@@ -29,6 +29,14 @@ int_enum! {
         const ACCEL_FFT     = 0x5;
         /// Dummy ISA to represent the toupper fixed-function accelerator
         const ACCEL_TOUP    = 0x6;
+        /// Dummy ISA to represent the ALADDIN-based stencil accelerator
+        const ACCEL_STE     = 0x7;
+        /// Dummy ISA to represent the ALADDIN-based md accelerator
+        const ACCEL_MD      = 0x8;
+        /// Dummy ISA to represent the ALADDIN-based spmv accelerator
+        const ACCEL_SPMV    = 0x9;
+        /// Dummy ISA to represent the ALADDIN-based fft accelerator
+        const ACCEL_AFFT    = 0xA;
     }
 }
 
@@ -81,11 +89,11 @@ impl PEDesc {
     }
 
     pub fn isa(&self) -> PEISA {
-        PEISA::from((self.val >> 3) & 0x7)
+        PEISA::from((self.val >> 3) & 0xF)
     }
 
     pub fn flags(&self) -> PEFlags {
-        PEFlags::from_bits((self.val >> 6) & 0x3).unwrap()
+        PEFlags::from_bits((self.val >> 7) & 0x3).unwrap()
     }
 
     /// Returns the size of the internal memory (0 if none is present)
