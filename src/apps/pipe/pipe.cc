@@ -164,18 +164,20 @@ int main() {
             File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from child " << i << "!";
-                out->write(buffer, strlen(buffer) + 1);
+                os << "Hello World from child " << i << "!\n";
+                out->write(buffer, os.length());
             }
             return 0;
         });
 
         pipe.close_writer();
 
-        File *in = VPE::self().fds()->get(pipe.reader_fd());
-        ssize_t res, i = 0;
-        while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
-            cout << "Read " << res << ": '" << buffer << "'\n";
+        {
+            FStream in(pipe.reader_fd());
+            size_t i = 0;
+            while(i++ < 3 && in.getline(buffer, sizeof(buffer)) > 0)
+                cout << "Read '" << buffer << "'\n";
+        }
 
         pipe.close_reader();
         writer.wait();
@@ -192,10 +194,9 @@ int main() {
         reader.obtain_fds();
 
         reader.run([] {
-            File *in = VPE::self().fds()->get(STDIN_FD);
-            ssize_t res, i = 0;
-            while(i++ < 3 && (res = in->read(buffer, sizeof(buffer))) > 0)
-                cout << "Read " << res << ": '" << buffer << "'\n";
+            size_t i = 0;
+            while(i++ < 3 && cin.getline(buffer, sizeof(buffer)) > 0)
+                cout << "Read '" << buffer << "'\n";
             return 0;
         });
 
@@ -207,8 +208,8 @@ int main() {
             File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from sibling " << i << "!";
-                out->write(buffer, strlen(buffer) + 1);
+                os << "Hello World from sibling " << i << "!\n";
+                out->write(buffer, os.length());
             }
             return 0;
         });
@@ -236,8 +237,8 @@ int main() {
             File *out = VPE::self().fds()->get(STDOUT_FD);
             for(int i = 0; i < 10; ++i) {
                 OStringStream os(buffer, sizeof(buffer));
-                os << "Hello World from child " << i << "!";
-                out->write(buffer, strlen(buffer) + 1);
+                os << "Hello World from child " << i << "!\n";
+                out->write(buffer, os.length());
             }
             return 0;
         });
@@ -265,10 +266,11 @@ int main() {
 
         p2.close_writer();
 
-        File *in = VPE::self().fds()->get(p2.reader_fd());
-        ssize_t res;
-        while((res = in->read(buffer, sizeof(buffer))) > 0)
-            cout << "Received " << res << "b: '" << buffer << "'\n";
+        {
+            FStream in(p2.reader_fd());
+            while(in.getline(buffer, sizeof(buffer)) > 0)
+                cout << "Read '" << buffer << "'\n";
+        }
 
         p2.close_reader();
 

@@ -94,13 +94,11 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
     if(_state->_eof)
         return 0;
 
-    assert((reinterpret_cast<uintptr_t>(buffer) & (DTU_PKG_SIZE - 1)) == 0);
-
     size_t rem = count;
     const char *buf = reinterpret_cast<const char*>(buffer);
     do {
-        size_t aligned_amount = Math::round_up(rem, DTU_PKG_SIZE);
-        ssize_t off = _state->find_spot(&aligned_amount);
+        size_t amount = rem;
+        ssize_t off = _state->find_spot(&amount);
         if(_state->_capacity == 0 || off == -1) {
             size_t len;
             receive_vmsg(_state->_rgate, len);
@@ -114,26 +112,25 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
                 return 0;
             }
             if(_state->_capacity == 0 || off == -1) {
-                off = _state->find_spot(&aligned_amount);
+                off = _state->find_spot(&amount);
                 if(off == -1)
                     return 0;
             }
         }
 
-        size_t amount = Math::min(aligned_amount, rem);
         DBG_PIPE("[write] send pos=" << off << ", len=" << amount << "\n");
 
-        if(aligned_amount) {
+        if(amount) {
             Time::start(0xaaaa);
-            _state->_mgate.write(buf, aligned_amount, static_cast<size_t>(off));
+            _state->_mgate.write(buf, amount, static_cast<size_t>(off));
             Time::stop(0xaaaa);
-            _state->_wrpos = (static_cast<size_t>(off) + aligned_amount) % _size;
+            _state->_wrpos = (static_cast<size_t>(off) + amount) % _size;
         }
-        _state->_free -= aligned_amount;
+        _state->_free -= amount;
         _state->_capacity--;
         send_vmsg(_state->_sgate, off, amount);
-        rem -= aligned_amount;
-        buf += aligned_amount;
+        rem -= amount;
+        buf += amount;
     }
     while(rem > 0);
     return buf - reinterpret_cast<const char*>(buffer);

@@ -58,8 +58,6 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     if(_state->_eof)
         return 0;
 
-    assert((reinterpret_cast<uintptr_t>(buffer) & (DTU_PKG_SIZE - 1)) == 0);
-    assert((count & (DTU_PKG_SIZE - 1)) == 0);
     if(_state->_rem == 0) {
         if(_state->_pos > 0) {
             DBG_PIPE("[read] replying len=" << _state->_pkglen << "\n");
@@ -75,11 +73,10 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     if(amount == 0)
         _state->_eof |= DirectPipe::WRITE_EOF;
     else {
-        size_t aligned_amount = Math::round_up(amount, DTU_PKG_SIZE);
         Time::start(0xaaaa);
-        _state->_mgate.read(buffer, aligned_amount, _state->_pos);
+        _state->_mgate.read(buffer, amount, _state->_pos);
         Time::stop(0xaaaa);
-        _state->_pos += aligned_amount;
+        _state->_pos += amount;
         _state->_rem -= amount;
     }
     return static_cast<ssize_t>(amount);
