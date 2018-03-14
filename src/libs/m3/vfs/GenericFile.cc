@@ -123,7 +123,7 @@ ssize_t GenericFile::write(const void *buffer, size_t count) {
 
 Errors::Code GenericFile::submit() {
     if(_writing && _pos > 0) {
-        GateIStream reply = send_receive_vmsg(_sg, WRITE, _off + _pos);
+        GateIStream reply = send_receive_vmsg(_sg, WRITE, _pos);
         reply >> Errors::last;
         if(Errors::last != Errors::NONE)
             return Errors::last;

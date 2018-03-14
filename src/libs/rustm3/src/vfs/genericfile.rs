@@ -66,7 +66,7 @@ impl GenericFile {
         if self.writing && self.pos > 0 {
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::WRITE, self.off + self.pos
+                Operation::WRITE, self.pos
             )?;
             // if we append, the file was truncated
             let filesize = reply.pop();

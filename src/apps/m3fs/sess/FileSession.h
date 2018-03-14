@@ -93,6 +93,7 @@ private:
     // TODO reference counting
     size_t extent;
     size_t extoff;
+    size_t lastoff;
     m3::String filename;
     capsel_t epcap;
     capsel_t sess;

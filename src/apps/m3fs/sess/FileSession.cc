@@ -27,7 +27,7 @@ using namespace m3;
 
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                                  int _flags, const m3::INode &_inode)
-    : M3FSSession(), extent(), extoff(), filename(_filename),
+    : M3FSSession(), extent(), extoff(), lastoff(), filename(_filename),
       epcap(ObjCap::INVALID), sess(m3::VPE::self().alloc_caps(2)),
       sgate(m3::SendGate::create(&_meta->rgate(), reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, sess + 1)),
       oflags(_flags), xstate(TransactionState::NONE), inode(_inode),
@@ -81,10 +81,10 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     // determine extent from byte offset
     size_t firstOff = 0;
     if(flags & M3FS::BYTE_OFFSET) {
-        size_t extent, extoff;
+        size_t tmp_extent, tmp_extoff;
         size_t rem = offset;
-        INodes::seek(meta->handle(), &inode, rem, M3FS_SEEK_SET, extent, extoff);
-        offset = extent;
+        INodes::seek(meta->handle(), &inode, rem, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
+        offset = tmp_extent;
         firstOff = rem;
     }
 
@@ -139,7 +139,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         return;
     }
 
-    size_t off = extoff;
+    lastoff = extoff;
     size_t bytes = locs->get_len(0);
     if(bytes > 0) {
         // activate mem cap for client
@@ -160,7 +160,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         xstate = TransactionState::OPEN;
 
     // reply first
-    reply_vmsg(is, Errors::NONE, off, bytes - off);
+    reply_vmsg(is, Errors::NONE, lastoff, bytes - lastoff);
 
     // revoke last mem cap and remember new one
     if(last != ObjCap::INVALID)
@@ -183,7 +183,7 @@ void M3FSFileSession::write(GateIStream &is) {
         << filename << ", extent=" << extent << ", submit=" << submit << ")");
 
     if(submit > 0) {
-        Errors::Code res = extent > 0 ? do_commit(extent - 1, submit) : Errors::INV_ARGS;
+        Errors::Code res = extent > 0 ? do_commit(extent - 1, lastoff + submit) : Errors::INV_ARGS;
         reply_vmsg(is, res, inode.size);
     }
     else
