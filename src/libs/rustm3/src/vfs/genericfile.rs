@@ -123,7 +123,7 @@ impl vfs::File for GenericFile {
         // TODO error case?
         let crd = CapRngDesc::new(CapType::OBJECT, self.sess.sel(), 2);
         self.sess.obtain_for(vpe, crd, &mut args).ok();
-        *max_sel = util::max(*max_sel, self.sess.sel() + 1);
+        *max_sel = util::max(*max_sel, self.sess.sel() + 2);
     }
 
     fn serialize(&self, s: &mut VecSink) {
