@@ -50,7 +50,7 @@ static void stop_dtu() {
 
 static void init_syscall() {
     word_t arg = reinterpret_cast<word_t>(DTU::get().ep_regs());
-    Syscalls::get().vpectrl(VPE::self().sel(), KIF::Syscall::VCTRL_INIT, &arg);
+    Syscalls::get().vpectrl(VPE::self().sel(), KIF::Syscall::VCTRL_INIT, arg);
 }
 
 static void on_exit_func(int status, void *) {

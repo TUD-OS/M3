@@ -156,19 +156,19 @@ Errors::Code VPE::revoke(const KIF::CapRngDesc &crd, bool delonly) {
 }
 
 Errors::Code VPE::start() {
-    xfer_t arg = 0;
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, 0);
 }
 
 Errors::Code VPE::stop() {
-    xfer_t arg = 0;
-    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, &arg);
+    return Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_STOP, 0);
 }
 
 int VPE::wait() {
-    xfer_t exitcode;
-    Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_WAIT, &exitcode);
-    return static_cast<int>(exitcode);
+    capsel_t _sel;
+    int exitcode;
+    const capsel_t sels[] = {sel()};
+    Syscalls::get().vpewait(sels, 1, &_sel, &exitcode);
+    return exitcode;
 }
 
 }

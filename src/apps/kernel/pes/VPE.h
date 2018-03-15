@@ -132,7 +132,7 @@ public:
     int exitcode() const {
         return _exitcode;
     }
-    void wait_for_exit();
+    static void wait_for_exit();
 
     bool is_waiting() const {
         return _flags & F_WAITING;

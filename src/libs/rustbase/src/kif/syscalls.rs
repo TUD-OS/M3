@@ -28,21 +28,22 @@ int_enum! {
         // capability operations
         const ACTIVATE          = 9;
         const VPE_CTRL          = 10;
-        const DERIVE_MEM        = 11;
+        const VPE_WAIT          = 11;
+        const DERIVE_MEM        = 12;
 
         // capability exchange
-        const DELEGATE          = 12;
-        const OBTAIN            = 13;
-        const EXCHANGE          = 14;
-        const REVOKE            = 15;
+        const DELEGATE          = 13;
+        const OBTAIN            = 14;
+        const EXCHANGE          = 15;
+        const REVOKE            = 16;
 
         // forwarding
-        const FORWARD_MSG       = 16;
-        const FORWARD_MEM       = 17;
-        const FORWARD_REPLY     = 18;
+        const FORWARD_MSG       = 17;
+        const FORWARD_MEM       = 18;
+        const FORWARD_REPLY     = 19;
 
         // misc
-        const NOOP              = 19;
+        const NOOP              = 20;
     }
 }
 
@@ -188,7 +189,6 @@ int_enum! {
         const START = 0x1;
         const YIELD = 0x2;
         const STOP  = 0x3;
-        const WAIT  = 0x4;
     }
 }
 
@@ -201,10 +201,19 @@ pub struct VPECtrl {
     pub arg: u64,
 }
 
-/// The VPE control reply message
+/// The VPE wait request message
 #[repr(C, packed)]
-pub struct VPECtrlReply {
+pub struct VPEWait {
+    pub opcode: u64,
+    pub vpe_count: u64,
+    pub sels: [u64; 8],
+}
+
+/// The VPE wait reply message
+#[repr(C, packed)]
+pub struct VPEWaitReply {
     pub error: u64,
+    pub vpe_sel: u64,
     pub exitcode: u64,
 }
 

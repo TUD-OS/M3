@@ -55,7 +55,8 @@ public:
                            capsel_t pages, int perms);
 
     Errors::Code activate(capsel_t ep, capsel_t gate, goff_t addr);
-    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg);
+    Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t arg);
+    Errors::Code vpewait(const capsel_t *vpes, size_t count, capsel_t *vpe, int *exitcode);
     Errors::Code derivemem(capsel_t dst, capsel_t src, goff_t offset, size_t size, int perms);
 
     Errors::Code delegate(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,

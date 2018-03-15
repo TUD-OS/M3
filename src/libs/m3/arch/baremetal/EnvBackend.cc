@@ -71,8 +71,7 @@ public:
     }
 
     void yield() override {
-        xfer_t arg = 0;
-        Syscalls::get().vpectrl(0, KIF::Syscall::VCTRL_YIELD, &arg);
+        Syscalls::get().vpectrl(0, KIF::Syscall::VCTRL_YIELD, 0);
     }
 
     void exit(int code) override {

@@ -228,7 +228,7 @@ pub fn derive_mem(dst: Selector, src: Selector, offset: usize, size: usize, perm
     send_receive_result(&req)
 }
 
-pub fn vpe_ctrl(vpe: Selector, op: syscalls::VPEOp, arg: u64) -> Result<i32, Error> {
+pub fn vpe_ctrl(vpe: Selector, op: syscalls::VPEOp, arg: u64) -> Result<(), Error> {
     log!(
         SYSC,
         "syscalls::vpe_ctrl(vpe={}, op={:?}, arg={})",
@@ -241,10 +241,28 @@ pub fn vpe_ctrl(vpe: Selector, op: syscalls::VPEOp, arg: u64) -> Result<i32, Err
         op: op.val,
         arg: arg as u64,
     };
+    send_receive_result(&req)
+}
 
-    let reply: Reply<syscalls::VPECtrlReply> = send_receive(&req)?;
+pub fn vpe_wait(vpes: &[Selector]) -> Result<(Selector, i32), Error> {
+    log!(
+        SYSC,
+        "syscalls::vpe_wait(vpes={})",
+        vpes.len()
+    );
+
+    let mut req = syscalls::VPEWait {
+        opcode: syscalls::Operation::VPE_WAIT.val,
+        vpe_count: vpes.len() as u64,
+        sels: unsafe { intrinsics::uninit() },
+    };
+    for i in 0..vpes.len() {
+        req.sels[i] = vpes[i] as u64;
+    }
+
+    let reply: Reply<syscalls::VPEWaitReply> = send_receive(&req)?;
     match reply.data.error {
-        0 => Ok(reply.data.exitcode as i32),
+        0 => Ok((reply.data.vpe_sel as Selector, reply.data.exitcode as i32)),
         e => Err(Error::from(e as u32))
     }
 }

@@ -42,6 +42,8 @@ pub enum State {
 
 pub const INVALID_VPE: VPEId = 0xFFFF;
 
+static EXIT_EVENT: i32 = 0;
+
 pub struct VPEDesc<'v> {
     pe: PEId,
     vpe_id: VPEId,
@@ -305,10 +307,6 @@ impl VPE {
         self.pid = pid;
     }
 
-    fn exit_event(&self) -> thread::Event {
-        &self.exit_code as *const Option<i32> as thread::Event
-    }
-
     pub fn start(&mut self, pid: i32) -> Result<(), Error> {
         self.flags |= VPEFlags::HASAPP;
         self.set_pid(pid);
@@ -319,12 +317,13 @@ impl VPE {
         Ok(())
     }
 
-    pub fn wait(vpe: Rc<RefCell<VPE>>) -> Option<i32> {
-        if vpe.borrow().flags.contains(VPEFlags::HASAPP) {
-            let event = vpe.borrow().exit_event();
-            thread::ThreadManager::get().wait_for(event);
-        }
-        mem::replace(&mut vpe.borrow_mut().exit_code, None)
+    pub fn fetch_exit_code(&mut self) -> Option<i32> {
+        mem::replace(&mut self.exit_code, None)
+    }
+
+    pub fn wait() {
+        let event = &EXIT_EVENT as *const _ as thread::Event;
+        thread::ThreadManager::get().wait_for(event);
     }
 
     pub fn stop(vpe: Rc<RefCell<VPE>>, exit_code: i32) {
@@ -332,7 +331,8 @@ impl VPE {
             vpe.borrow_mut().flags.remove(VPEFlags::HASAPP);
             vpe.borrow_mut().exit_code = Some(exit_code);
 
-            thread::ThreadManager::get().notify(vpe.borrow().exit_event(), None);
+            let event = &EXIT_EVENT as *const _ as thread::Event;
+            thread::ThreadManager::get().notify(event, None);
 
             // if it's a boot module, there is nobody waiting for it; just remove it
             if vpe.borrow().is_bootmod() {

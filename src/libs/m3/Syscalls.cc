@@ -181,21 +181,34 @@ Errors::Code Syscalls::activate(capsel_t ep, capsel_t gate, goff_t addr) {
     return send_receive_result(&req, sizeof(req));
 }
 
-Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t *arg) {
-    LLOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", arg=" << *arg << ")");
+Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t arg) {
+    LLOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", arg=" << arg << ")");
 
     KIF::Syscall::VPECtrl req;
     req.opcode = KIF::Syscall::VPE_CTRL;
     req.vpe_sel = vpe;
     req.op = static_cast<xfer_t>(op);
-    req.arg = *arg;
+    req.arg = arg;
+    return send_receive_result(&req, sizeof(req));
+}
+
+Errors::Code Syscalls::vpewait(const capsel_t *vpes, size_t count, capsel_t *vpe, int *exitcode) {
+    LLOG(SYSC, "vpewait(vpes=" << vpes << ")");
+
+    KIF::Syscall::VPEWait req;
+    req.opcode = KIF::Syscall::VPE_WAIT;
+    req.vpe_count = count;
+    for(size_t i = 0; i < count; ++i)
+        req.sels[i] = vpes[i];
 
     DTU::Message *msg = send_receive(&req, sizeof(req));
-    auto *reply = reinterpret_cast<KIF::Syscall::VPECtrlReply*>(msg->data);
+    auto *reply = reinterpret_cast<KIF::Syscall::VPEWaitReply*>(msg->data);
 
     Errors::last = static_cast<Errors::Code>(reply->error);
-    if(op == KIF::Syscall::VCTRL_WAIT && Errors::last == Errors::NONE)
-        *arg = reply->exitcode;
+    if(Errors::last == Errors::NONE) {
+        *vpe = reply->vpe_sel;
+        *exitcode = reply->exitcode;
+    }
 
     DTU::get().mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
     return Errors::last;

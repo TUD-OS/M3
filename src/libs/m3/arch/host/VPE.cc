@@ -132,7 +132,7 @@ Errors::Code VPE::run(void *lambda) {
 
         // let the kernel create the config-file etc. for the given pid
         xfer_t arg = static_cast<xfer_t>(pid);
-        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
+        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, arg);
 
         size_t len = STATE_BUF_SIZE;
         unsigned char *buf = new unsigned char[len];
@@ -213,7 +213,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
         // let the kernel create the config-file etc. for the given pid
         xfer_t arg = static_cast<xfer_t>(pid);
-        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, &arg);
+        Syscalls::get().vpectrl(sel(), KIF::Syscall::VCTRL_START, arg);
 
         size_t len = STATE_BUF_SIZE;
         unsigned char *buf = new unsigned char[len];

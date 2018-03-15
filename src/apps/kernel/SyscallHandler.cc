@@ -90,6 +90,7 @@ void SyscallHandler::init() {
     add_operation(m3::KIF::Syscall::CREATE_MAP,     &SyscallHandler::createmap);
     add_operation(m3::KIF::Syscall::ACTIVATE,       &SyscallHandler::activate);
     add_operation(m3::KIF::Syscall::VPE_CTRL,       &SyscallHandler::vpectrl);
+    add_operation(m3::KIF::Syscall::VPE_WAIT,       &SyscallHandler::vpewait);
     add_operation(m3::KIF::Syscall::DERIVE_MEM,     &SyscallHandler::derivemem);
     add_operation(m3::KIF::Syscall::EXCHANGE,       &SyscallHandler::exchange);
     add_operation(m3::KIF::Syscall::DELEGATE,       &SyscallHandler::delegate);
@@ -575,7 +576,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
     word_t arg = req->arg;
 
     static const char *opnames[] = {
-        "INIT", "START", "YIELD", "STOP", "WAIT"
+        "INIT", "START", "YIELD", "STOP"
     };
 
     LOG_SYS(vpe, ": syscall::vpectrl", "(vpe=" << tvpe
@@ -616,28 +617,47 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
             }
             break;
         }
-
-        case m3::KIF::Syscall::VCTRL_WAIT:
-            if(vpe == &*vpecap->obj)
-                SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE can't wait for itself");
-
-            m3::KIF::Syscall::VPECtrlReply reply;
-            reply.error = m3::Errors::NONE;
-
-            if(vpecap->obj->has_app()) {
-                vpe->start_wait();
-                vpecap->obj->wait_for_exit();
-                vpe->stop_wait();
-
-                LOG_SYS(vpe, ": syscall::vpectrl-cont", "(exitcode=" << vpecap->obj->exitcode() << ")");
-            }
-
-            reply.exitcode = static_cast<xfer_t>(vpecap->obj->exitcode());
-            reply_msg(vpe, msg, &reply, sizeof(reply));
-            return;
     }
 
     reply_result(vpe, msg, m3::Errors::NONE);
+}
+
+void SyscallHandler::vpewait(VPE *vpe, const m3::DTU::Message *msg) {
+    auto req = get_message<m3::KIF::Syscall::VPEWait>(msg);
+    size_t count = req->vpe_count;
+    const xfer_t *sels = req->sels;
+
+    if(count == 0 || count > ARRAY_SIZE(req->sels))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE count is invalid");
+
+    m3::KIF::Syscall::VPEWaitReply reply;
+    reply.error = m3::Errors::NONE;
+
+    LOG_SYS(vpe, ": syscall::vpewait", "(vpes=" << count << ")");
+
+    while(true) {
+        for(size_t i = 0; i < count; ++i) {
+            auto vpecap = static_cast<VPECapability*>(vpe->objcaps().get(sels[i], Capability::VIRTPE));
+            if(&*vpecap->obj == vpe || vpecap == nullptr)
+                SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPE cap: " << sels[i]);
+
+            if(!vpecap->obj->has_app()) {
+                reply.vpe_sel = sels[i];
+                reply.exitcode = static_cast<xfer_t>(vpecap->obj->exitcode());
+                goto done;
+            }
+        }
+
+        vpe->start_wait();
+        VPE::wait_for_exit();
+        vpe->stop_wait();
+    }
+
+done:
+    LOG_SYS(vpe, ": syscall::vpewait-cont",
+        "(vpe=" << reply.vpe_sel << ", exitcode=" << reply.exitcode << ")");
+
+    reply_msg(vpe, msg, &reply, sizeof(reply));
 }
 
 void SyscallHandler::derivemem(VPE *vpe, const m3::DTU::Message *msg) {

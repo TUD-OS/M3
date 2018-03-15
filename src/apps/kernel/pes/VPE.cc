@@ -135,8 +135,10 @@ void VPE::stop_app(int exitcode, bool self) {
         delete this;
 }
 
+static int exit_event = 0;
+
 void VPE::wait_for_exit() {
-    m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(&_exitcode));
+    m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(&exit_event));
 }
 
 void VPE::exit_app(int exitcode) {
@@ -149,7 +151,7 @@ void VPE::exit_app(int exitcode) {
 
     PEManager::get().stop_vpe(this);
 
-    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&_exitcode));
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(&exit_event));
 }
 
 void VPE::yield() {

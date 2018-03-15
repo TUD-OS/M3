@@ -111,6 +111,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::DELEGATE          => exchange_over_sess(&vpe, msg, false),
         kif::syscalls::Operation::OBTAIN            => exchange_over_sess(&vpe, msg, true),
         kif::syscalls::Operation::VPE_CTRL          => vpe_ctrl(&vpe, msg),
+        kif::syscalls::Operation::VPE_WAIT          => vpe_wait(&vpe, msg),
         kif::syscalls::Operation::REVOKE            => revoke(&vpe, msg),
         kif::syscalls::Operation::NOOP              => noop(&vpe, msg),
         _                                           => panic!("Unexpected operation: {}", opcode),
@@ -803,23 +804,13 @@ fn vpe_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
 
     let vpe_ref: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
 
-    let exitcode = match op {
+    match op {
         kif::syscalls::VPEOp::INIT  => {
             vpe_ref.borrow_mut().set_eps_addr(arg as usize);
-            0
         },
 
         kif::syscalls::VPEOp::START => {
             vpe_ref.borrow_mut().start(arg as i32)?;
-            0
-        },
-
-        kif::syscalls::VPEOp::WAIT  => {
-            let exit_code = VPE::wait(vpe_ref);
-            if exit_code.is_none() {
-                sysc_err!(vpe, Code::InvArgs, "VPE was not running");
-            }
-            exit_code.unwrap()
         },
 
         kif::syscalls::VPEOp::STOP  => {
@@ -828,14 +819,50 @@ fn vpe_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
                 dtu::DTU::mark_read(kdtu::KSYS_EP, msg);
                 return Ok(());
             }
-            0
         },
 
         _                           => panic!("VPEOp unsupported: {:?}", op),
     };
 
-    let reply = kif::syscalls::VPECtrlReply {
+    reply_success(msg);
+    Ok(())
+}
+
+#[inline(never)]
+fn vpe_wait(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::VPEWait = get_message(msg);
+    let count = req.vpe_count as usize;
+    let sels = &{req.sels};
+
+    if count == 0 || count > sels.len() {
+        sysc_err!(vpe, Code::InvArgs, "VPE count is invalid");
+    }
+
+    sysc_log!(
+        vpe, "vpe_wait(vpes={})",
+        count
+    );
+
+    let (vpe_sel, exitcode) = 'outer: loop {
+        for i in 0..count {
+            let vpecap: Rc<RefCell<VPE>> = get_kobj!(vpe, sels[i] as CapSel, VPE);
+            let mut vpe_mut = vpecap.borrow_mut();
+            if let Some(exitcode) = vpe_mut.fetch_exit_code() {
+                break 'outer (sels[i], exitcode);
+            }
+        }
+
+        VPE::wait();
+    };
+
+    sysc_log!(
+        vpe, "vpe_wait-cont(vpe={}, exitcode={})",
+        vpe_sel, exitcode
+    );
+
+    let reply = kif::syscalls::VPEWaitReply {
         error: 0,
+        vpe_sel: vpe_sel,
         exitcode: exitcode as u64,
     };
     send_reply(msg, &reply);

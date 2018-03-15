@@ -136,6 +136,7 @@ struct KIF {
             // capability operations
             ACTIVATE,
             VPE_CTRL,
+            VPE_WAIT,
             DERIVE_MEM,
 
             // capability exchange
@@ -160,7 +161,6 @@ struct KIF {
             VCTRL_START,
             VCTRL_YIELD,
             VCTRL_STOP,
-            VCTRL_WAIT,
         };
 
         struct Pagefault : public DefaultRequest {
@@ -244,7 +244,13 @@ struct KIF {
             xfer_t arg;
         } PACKED;
 
-        struct VPECtrlReply : public DefaultReply {
+        struct VPEWait : public DefaultRequest {
+            xfer_t vpe_count;
+            xfer_t sels[8];
+        } PACKED;
+
+        struct VPEWaitReply : public DefaultReply {
+            xfer_t vpe_sel;
             xfer_t exitcode;
         } PACKED;
 
