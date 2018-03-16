@@ -100,9 +100,10 @@ public:
      *
      * @param data the data to send
      * @param len the length of the data
+     * @param reply_label the reply label to set
      * @return the error code or Errors::NONE
      */
-    Errors::Code send(const void *data, size_t len);
+    Errors::Code send(const void *data, size_t len, label_t reply_label = 0);
 
 private:
     RecvGate *_replygate;
