@@ -183,7 +183,14 @@ void M3FSFileSession::write(GateIStream &is) {
         << filename << ", extent=" << extent << ", submit=" << submit << ")");
 
     if(submit > 0) {
-        Errors::Code res = extent > 0 ? do_commit(extent - 1, lastoff + submit) : Errors::INV_ARGS;
+        if(extent == 0) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        extent--;
+        extoff = lastoff + submit;
+        Errors::Code res = do_commit(extent, extoff);
         reply_vmsg(is, res, inode.size);
     }
     else

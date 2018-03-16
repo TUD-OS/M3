@@ -49,17 +49,7 @@ impl GenericFile {
     }
 
     pub fn unserialize(s: &mut SliceSource) -> vfs::FileHandle {
-        let sess = s.pop();
-        Rc::new(RefCell::new(GenericFile {
-            sess: Session::new_bind(sess),
-            sgate: SendGate::new_bind(sess + 1),
-            mgate: MemGate::new_bind(INVALID_SEL),
-            goff: s.pop(),
-            off: s.pop(),
-            pos: s.pop(),
-            len: s.pop(),
-            writing: s.pop(),
-        }))
+        Rc::new(RefCell::new(GenericFile::new(s.pop())))
     }
 
     fn submit(&mut self) -> Result<(), Error> {
@@ -73,6 +63,9 @@ impl GenericFile {
             if self.goff + self.len > filesize {
                 self.len = filesize - self.goff;
             }
+            self.goff += self.pos;
+            self.pos = 0;
+            self.len = 0;
         }
         Ok(())
     }
@@ -128,11 +121,6 @@ impl vfs::File for GenericFile {
 
     fn serialize(&self, s: &mut VecSink) {
         s.push(&self.sess.sel());
-        s.push(&self.goff);
-        s.push(&self.off);
-        s.push(&self.pos);
-        s.push(&self.len);
-        s.push(&self.writing);
     }
 }
 

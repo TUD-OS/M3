@@ -27,12 +27,6 @@
 namespace m3 {
 
 class GenericFile : public File {
-    explicit GenericFile(capsel_t caps, size_t goff, size_t off, size_t pos, size_t len, bool writing)
-        : File(),
-          _sess(caps + 0, 0), _sg(SendGate::bind(caps + 1)), _mg(MemGate::bind(ObjCap::INVALID)),
-          _goff(goff), _off(off), _pos(pos), _len(len), _writing(writing) {
-    }
-
 public:
     enum Operation {
         STAT,
@@ -65,7 +59,7 @@ public:
     }
 
     virtual size_t serialize_length() override {
-        return ostreamsize<capsel_t, size_t, size_t>();
+        return ostreamsize<capsel_t>();
     }
 
     virtual void delegate(VPE &vpe) override {
@@ -75,15 +69,13 @@ public:
     }
 
     virtual void serialize(Marshaller &m) override {
-        m << _sess.sel() << _goff << _off << _pos << _len << _writing;
+        m << _sess.sel();
     }
 
     static File *unserialize(Unmarshaller &um) {
         capsel_t caps;
-        size_t goff, off, pos, len;
-        bool writing;
-        um >> caps >> goff >> off >> pos >> len >> writing;
-        return new GenericFile(caps, goff, off, pos, len, writing);
+        um >> caps;
+        return new GenericFile(caps);
     }
 
 private:

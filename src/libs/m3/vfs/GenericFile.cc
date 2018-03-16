@@ -132,6 +132,8 @@ Errors::Code GenericFile::submit() {
         reply >> filesize;
         if(_goff + _len > filesize)
             _len = filesize - _goff;
+        _goff += _pos;
+        _pos = _len = 0;
     }
     return Errors::NONE;
 }
