@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/util/BitField.h>
+#include <base/util/Math.h>
 #include <base/util/String.h>
 #include <base/ELF.h>
 #include <base/Errors.h>
@@ -37,6 +38,7 @@ class Pager;
 class FStream;
 class EnvUserBackend;
 class RecvGate;
+class Session;
 
 /**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
@@ -50,6 +52,7 @@ class VPE : public ObjCap {
     friend class EnvUserBackend;
     friend class CapRngDesc;
     friend class RecvGate;
+    friend class Session;
     friend class VFS;
 
     static const size_t BUF_SIZE;
@@ -286,6 +289,10 @@ public:
     }
 
 private:
+    void mark_caps_allocated(capsel_t sel, uint count) {
+        _next_sel = Math::max(_next_sel, sel + count);
+    }
+
     void init_state();
     void init_fs();
     Errors::Code run(void *lambda);

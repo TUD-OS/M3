@@ -32,6 +32,7 @@ void Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeAr
 }
 
 void Session::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+    vpe.mark_caps_allocated(crd.start(), crd.count());
     Syscalls::get().obtain(vpe.sel(), sel(), crd, args);
 }
 
