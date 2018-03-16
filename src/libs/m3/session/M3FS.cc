@@ -26,6 +26,8 @@ File *M3FS::open(const char *path, int perms) {
     args.svals[0] = static_cast<xfer_t>(perms);
     strncpy(args.str, path, sizeof(args.str));
     KIF::CapRngDesc crd = obtain(2, &args);
+    if(Errors::last != Errors::NONE)
+        return nullptr;
     return new GenericFile(crd.start());
 }
 
