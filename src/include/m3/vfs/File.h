@@ -118,7 +118,7 @@ public:
      * @param info the struct to fill
      * @return the error code if any
      */
-    virtual Errors::Code stat(FileInfo &info) = 0;
+    virtual Errors::Code stat(FileInfo &info) const = 0;
 
     /**
      * Changes the file-position to <offset>, using <whence>.

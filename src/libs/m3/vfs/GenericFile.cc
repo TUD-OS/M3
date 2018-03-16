@@ -32,7 +32,7 @@ GenericFile::~GenericFile() {
     }
 }
 
-Errors::Code GenericFile::stat(FileInfo &info) {
+Errors::Code GenericFile::stat(FileInfo &info) const {
     GateIStream reply = send_receive_vmsg(_sg, STAT);
     reply >> Errors::last;
     if(Errors::last == Errors::NONE)

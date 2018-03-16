@@ -33,7 +33,7 @@ public:
     explicit SerialFile() : File(), tmp(), tmp_write_pos() {
     }
 
-    virtual Errors::Code stat(FileInfo &) override {
+    virtual Errors::Code stat(FileInfo &) const override {
         // not supported
         return Errors::NOT_SUP;
     }

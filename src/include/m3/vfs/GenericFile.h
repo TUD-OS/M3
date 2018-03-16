@@ -53,7 +53,7 @@ public:
         return _sess;
     }
 
-    virtual Errors::Code stat(FileInfo &info) override;
+    virtual Errors::Code stat(FileInfo &info) const override;
 
     virtual ssize_t seek(size_t offset, int whence) override;
 
@@ -90,8 +90,8 @@ private:
     Errors::Code submit();
     Errors::Code delegate_ep();
 
-    Session _sess;
-    SendGate _sg;
+    mutable Session _sess;
+    mutable SendGate _sg;
     MemGate _mg;
     size_t _goff;
     size_t _off;
