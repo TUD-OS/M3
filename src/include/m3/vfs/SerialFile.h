@@ -27,10 +27,8 @@ namespace m3 {
  * The base-class for a file that reads/writes from/to a pipe. Can't be instantiated.
  */
 class SerialFile : public File {
-    static const size_t TMP_MEM_SIZE    = 1024;
-
 public:
-    explicit SerialFile() : File(), tmp(), tmp_write_pos() {
+    explicit SerialFile() : File() {
     }
 
     virtual Errors::Code stat(FileInfo &) const override {
@@ -50,38 +48,8 @@ public:
         return res < 0 ? res : static_cast<ssize_t>(count);
     }
 
-    virtual Errors::Code read_next(capsel_t *memgate, size_t *offset, size_t *length) override {
-        char buffer[256];
-        initTmpMem();
-
-        ssize_t res = read(buffer, sizeof(buffer));
-        if(res < 0)
-            return Errors::last;
-
-        tmp->write(buffer, static_cast<size_t>(res), 0);
-        *length = static_cast<size_t>(res);
-        *offset = 0;
-        *memgate = tmp->sel();
-        return Errors::NONE;
-    }
-
-    virtual Errors::Code begin_write(capsel_t *memgate, size_t *offset, size_t *length) override {
-        initTmpMem();
-        *length = TMP_MEM_SIZE;
-        *offset = 0;
-        *memgate = tmp->sel();
-        tmp_write_pos = 0;
-        return Errors::NONE;
-    }
-
-    virtual void commit_write(size_t length) override {
-        char buffer[256];
-        for(size_t amount, off = 0; off < length; off += amount) {
-            amount = std::min(sizeof(buffer), length - off);
-            tmp->read(buffer, amount, tmp_write_pos + off);
-            write(buffer, amount);
-        }
-        tmp_write_pos += length;
+    virtual File *clone() const override {
+        return new SerialFile();
     }
 
     virtual char type() const override {
@@ -99,19 +67,6 @@ public:
     static SerialFile *unserialize(Unmarshaller &) {
         return new SerialFile();
     }
-
-private:
-    void initTmpMem() {
-        // TODO this does not work yet with the non-autonomous API of the hash accelerator. because
-        // the caller will read have to read it back from the global memory, which requires him to
-        // create a new MemGate and activate it. this does not work, since each capability can only
-        // be activated on one EP.
-        if(!tmp)
-            tmp = new MemGate(MemGate::create_global(TMP_MEM_SIZE, MemGate::RW));
-    }
-
-    MemGate *tmp;
-    size_t tmp_write_pos;
 };
 
 }

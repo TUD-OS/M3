@@ -66,6 +66,10 @@ public:
         return 0;
     }
 
+    virtual File *clone() const override {
+        return nullptr;
+    }
+
     virtual char type() const override {
         return 'Q';
     }

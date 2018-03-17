@@ -100,8 +100,10 @@ size_t FStream::read(void *dst, size_t count) {
 }
 
 void FStream::flush() {
-    if(_wbuf)
+    if(_wbuf) {
         set_error(_wbuf->flush(file()));
+        file()->flush();
+    }
 }
 
 size_t FStream::seek(size_t offset, int whence) {
@@ -154,8 +156,10 @@ size_t FStream::write(const void *src, size_t count) {
         total += static_cast<size_t>(res);
         count -= static_cast<size_t>(res);
 
-        if(count || ((_flags & FL_LINE_BUF) && buf[total - 1] == '\n') || file()->needs_flush())
+        if(((_flags & FL_LINE_BUF) && buf[total - 1] == '\n'))
             flush();
+        else if(count)
+            set_error(_wbuf->flush(file()));
     }
 
     return total;

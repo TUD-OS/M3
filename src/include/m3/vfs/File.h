@@ -148,39 +148,17 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) = 0;
 
     /**
-     * Determines the next chunk of data to read/write.
-     *
-     * @param memgate will be set to the selector of the memory gate to access that chunk
-     * @param offset will be set to the offset in that memory gate
-     * @param length will be set to length of the chunk in bytes
-     * @return the error code, if any
+     * Performs a flush of the so far written data
      */
-    virtual Errors::Code read_next(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
-        return Errors::NOT_SUP;
-    }
-    virtual Errors::Code begin_write(capsel_t */*memgate*/, size_t */*offset*/, size_t */*length*/) {
-        return Errors::NOT_SUP;
-    }
-
-    /**
-     * Commits the write, that has been started with begin_write().
-     *
-     * @param length the number of bytes that have actually been written
-     */
-    virtual void commit_write(size_t /*length*/) {
-    }
-
-    /**
-     * @return true if the buffer needs to be flushed now
-     */
-    virtual bool needs_flush() {
-        return false;
+    virtual void flush() {
     }
 
     /**
      * @return the unique character for serialization
      */
     virtual char type() const = 0;
+
+    virtual File *clone() const = 0;
 
     /**
      * Determines the number of bytes to serialize this object.

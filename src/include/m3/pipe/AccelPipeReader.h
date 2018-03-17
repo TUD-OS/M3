@@ -16,6 +16,7 @@
 
 #pragma once
 
+#if 0
 #include <base/Common.h>
 #include <base/log/Lib.h>
 
@@ -174,3 +175,4 @@ private:
 };
 
 }
+#endif

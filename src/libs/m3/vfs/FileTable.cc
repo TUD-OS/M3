@@ -87,12 +87,14 @@ FileTable *FileTable::unserialize(const void *buffer, size_t size) {
                 obj->_fds[fd] = DirectPipeReader::unserialize(um);
                 break;
 #endif
-            case 'A':
-                obj->_fds[fd] = AccelPipeReader::unserialize(um);
-                break;
-            case 'B':
-                obj->_fds[fd] = AccelPipeWriter::unserialize(um);
-                break;
+
+            // TODO
+            // case 'A':
+            //     obj->_fds[fd] = AccelPipeReader::unserialize(um);
+            //     break;
+            // case 'B':
+            //     obj->_fds[fd] = AccelPipeWriter::unserialize(um);
+            //     break;
         }
     }
     return obj;

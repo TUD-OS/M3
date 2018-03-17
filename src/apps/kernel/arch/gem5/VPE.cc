@@ -54,7 +54,7 @@ static BootModule *get_mod(size_t argc, char **argv, bool *first) {
 
         static const char *types[] = {"imem", "emem", " mem"};
         static const char *isas[] = {
-            "none ", "x86  ", "arm  ", "xtens", "sha  ", "fft  ", "toupp",
+            "none ", "x86  ", "arm  ", "xtens", "indir", "fft  ", "toupp",
             "stenc", "md   ", "spmv ", "afft ",
         };
         for(size_t i = 0; i < Platform::pe_count(); ++i) {

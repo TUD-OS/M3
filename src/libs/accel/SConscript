@@ -1,7 +1,0 @@
-Import('env')
-if env['ARCH'] == 'gem5':
-    lib = env.StaticLibrary(
-        target = 'accel',
-        source = env.Glob('*/*.cc')
-    )
-    env.Install(env['LIBDIR'], lib)

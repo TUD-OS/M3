@@ -17,169 +17,13 @@
 #include <base/Common.h>
 #include <base/stream/IStringStream.h>
 #include <base/util/Time.h>
-#include <base/PEDesc.h>
 
 #include <m3/stream/Standard.h>
-#include <m3/session/Pager.h>
 #include <m3/vfs/VFS.h>
 
-#include <accel/stream/StreamAccel.h>
+#include "accelchain.h"
 
 using namespace m3;
-using namespace accel;
-
-static Errors::Code execute(RecvGate &rgate, StreamAccel::ChainMember **chain, size_t num,
-                            const char *ipath, const char *opath) {
-    fd_t infd = VFS::open(ipath, FILE_R);
-    if(infd == FileTable::INVALID)
-        return Errors::last;
-    fd_t outfd = VFS::open(opath, FILE_W | FILE_TRUNC | FILE_CREATE);
-    if(outfd == FileTable::INVALID)
-        return Errors::last;
-
-    File *in = VPE::self().fds()->get(infd);
-    File *out = VPE::self().fds()->get(outfd);
-
-    Errors::Code res = StreamAccel::executeChain(rgate, in, out, *chain[0], *chain[num - 1]);
-
-    VFS::close(outfd);
-    VFS::close(infd);
-    return res;
-}
-
-static Errors::Code execute_indirect(RecvGate &rgate, StreamAccel::ChainMember **chain, size_t num,
-                                     const char *ipath, const char *opath, size_t bufsize) {
-    uint8_t *buffer = new uint8_t[bufsize];
-
-    fd_t infd = VFS::open(ipath, FILE_R);
-    if(infd == FileTable::INVALID)
-        return Errors::last;
-    fd_t outfd = VFS::open(opath, FILE_W | FILE_TRUNC | FILE_CREATE);
-    if(outfd == FileTable::INVALID)
-        return Errors::last;
-
-    Errors::Code err = Errors::NONE;
-
-    File *in = VPE::self().fds()->get(infd);
-    File *out = VPE::self().fds()->get(outfd);
-
-    SendGate **sgates = new SendGate*[num];
-    for(size_t i = 0; i < num; ++i)
-        sgates[i] = new SendGate(SendGate::create(&chain[i]->rgate));
-
-    MemGate buf1 = chain[0]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
-    MemGate bufn = chain[num - 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE);
-
-    size_t total = 0, seen = 0;
-    ssize_t count = in->read(buffer, bufsize);
-    if(count < 0) {
-        err = Errors::last;
-        goto error;
-    }
-    buf1.write(buffer, static_cast<size_t>(count), 0);
-    StreamAccel::sendUpdate(*sgates[0], 0, static_cast<size_t>(count));
-    total += static_cast<size_t>(count);
-
-    count = in->read(buffer, bufsize);
-
-    while(seen < total) {
-        GateIStream is = receive_msg(rgate);
-        label_t label = is.label<label_t>();
-
-        // cout << "got msg from " << label << "\n";
-
-        if(label == num - 1) {
-            auto *upd = reinterpret_cast<const StreamAccel::UpdateCommand*>(is.message().data);
-            bufn.read(buffer, upd->len, 0);
-            // cout << "write " << upd->len << " bytes\n";
-            out->write(buffer, upd->len);
-            seen += upd->len;
-        }
-
-        if(label == 0) {
-            if(num > 1)
-                send_msg(*sgates[1], is.message().data, is.message().length);
-
-            total += static_cast<size_t>(count);
-            if(count > 0) {
-                buf1.write(buffer, static_cast<size_t>(count), 0);
-                StreamAccel::sendUpdate(*sgates[0], 0, static_cast<size_t>(count));
-
-                count = in->read(buffer, bufsize);
-                // cout << "read " << count << " bytes\n";
-                if(count < 0) {
-                    err = Errors::last;
-                    goto error;
-                }
-            }
-        }
-        else if(label != num - 1)
-            send_msg(*sgates[label + 1], is.message().data, is.message().length);
-
-        // cout << seen << " / " << total << "\n";
-    }
-
-error:
-    for(size_t i = 0; i < num; ++i)
-        delete sgates[i];
-    delete[] sgates;
-    delete[] buffer;
-    VFS::close(outfd);
-    VFS::close(infd);
-    return err;
-}
-
-static void execchain(const char *in, const char *out, size_t num,
-                      cycles_t comptime, bool direct) {
-    RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
-    rgate.activate();
-
-    StreamAccel::ChainMember *chain[num];
-
-    auto vpe = StreamAccel::create(PEISA::ACCEL_FFT, true);
-    chain[num - 1] = new StreamAccel::ChainMember(vpe, StreamAccel::getRBAddr(*vpe),
-        StreamAccel::RB_SIZE, rgate, num - 1);
-
-    for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
-        auto vpe = StreamAccel::create(PEISA::ACCEL_FFT, true);
-        chain[i] = new StreamAccel::ChainMember(vpe, StreamAccel::getRBAddr(*vpe),
-            StreamAccel::RB_SIZE, direct ? chain[i + 1]->rgate : rgate, static_cast<label_t>(i));
-    }
-
-    for(auto *m : chain) {
-        m->send_caps();
-        m->activate_recv();
-    }
-
-    for(auto *m : chain) {
-        m->vpe->start();
-        m->activate_send();
-    }
-
-    for(size_t i = 0; i < num - 1; ++i) {
-        MemGate *buf = new MemGate(
-            chain[i + 1]->vpe->mem().derive(StreamAccel::BUF_ADDR, StreamAccel::BUF_SIZE));
-        buf->activate_for(*chain[i]->vpe, StreamAccel::EP_OUTPUT);
-
-        chain[i]->init(StreamAccel::BUF_SIZE,
-            direct ? StreamAccel::BUF_SIZE / 2 : StreamAccel::BUF_SIZE, comptime);
-    }
-
-    Errors::Code res;
-    if(direct) {
-        chain[num - 1]->init(static_cast<size_t>(-1), static_cast<size_t>(-1), comptime);
-        res = execute(rgate, chain, num, in, out);
-    }
-    else {
-        chain[num - 1]->init(StreamAccel::BUF_SIZE, StreamAccel::BUF_SIZE, comptime);
-        res = execute_indirect(rgate, chain, num, in, out, StreamAccel::BUF_SIZE);
-    }
-    if(res != Errors::NONE)
-        errmsg("Operation failed: " << Errors::to_string(res));
-
-    for(auto *c : chain)
-        delete c;
-}
 
 int main(int argc, char **argv) {
     if(argc < 6)
@@ -192,13 +36,30 @@ int main(int argc, char **argv) {
 
     const char *in = argv[1];
     const char *out = argv[2];
-    bool direct = IStringStream::read_from<int>(argv[3]);
+    bool direct = IStringStream::read_from<int>(argv[3]) == 1;
     cycles_t comptime = IStringStream::read_from<cycles_t>(argv[4]);
     size_t num = IStringStream::read_from<size_t>(argv[5]);
 
+    // open files
+    fd_t infd = VFS::open(in, FILE_R);
+    if(infd == FileTable::INVALID)
+        exitmsg("Unable to open " << in);
+    fd_t outfd = VFS::open(out, FILE_W | FILE_TRUNC | FILE_CREATE);
+    if(outfd == FileTable::INVALID)
+        exitmsg("Unable to open " << out);
+
+    File *fin = VPE::self().fds()->get(infd);
+    File *fout = VPE::self().fds()->get(outfd);
+
     cycles_t start = Time::start(0);
-    execchain(in, out, num, comptime, direct);
+    if(direct)
+        chain_direct(fin, fout, num, comptime);
+    else
+        chain_indirect(fin, fout, num, comptime);
     cycles_t end = Time::stop(0);
+
+    VFS::close(infd);
+    VFS::close(outfd);
 
     cout << "Total time: " << (end - start) << " cycles\n";
     return 0;

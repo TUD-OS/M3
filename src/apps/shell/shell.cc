@@ -18,24 +18,23 @@
 #include <base/stream/IStringStream.h>
 #include <base/util/Time.h>
 
+#include <m3/accel/StreamAccel.h>
 #include <m3/stream/Standard.h>
 #include <m3/pipe/AccelPipeReader.h>
 #include <m3/pipe/AccelPipeWriter.h>
 #include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/Dir.h>
 #include <m3/vfs/VFS.h>
+#include <m3/Syscalls.h>
 #include <m3/VPE.h>
-
-#include <accel/stream/StreamAccel.h>
 
 #include "Args.h"
 #include "Parser.h"
 #include "Vars.h"
 
 using namespace m3;
-using namespace accel;
 
-static const size_t ACOMP_TIME = 32768;
+static const size_t ACOMP_TIME = 4096;
 
 static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 
@@ -52,7 +51,6 @@ static struct {
     const char *name;
     PEISA isa;
 } isas[] = {
-    {"SHA",     PEISA::ACCEL_SHA},
     {"FFT",     PEISA::ACCEL_FFT},
     {"TOUP",    PEISA::ACCEL_TOUP},
 };
@@ -72,84 +70,6 @@ static char **build_args(Command *cmd) {
     res[cmd->args->count] = nullptr;
     return res;
 }
-
-#if defined(__gem5__)
-static Errors::Code exec_accel_chain(CmdList *list, VPE **vpes, size_t start, size_t end) {
-    RecvGate rgate = RecvGate::create(nextlog2<8 * 64>::val, nextlog2<64>::val);
-    rgate.activate();
-
-    size_t num = end - start + 1;
-    StreamAccel::ChainMember *chain[num];
-
-    // create chain
-    auto vpe_n = vpes[end];
-    chain[num - 1] = new StreamAccel::ChainMember(vpe_n, StreamAccel::getRBAddr(*vpe_n),
-        StreamAccel::RB_SIZE, rgate, num - 1);
-
-    for(ssize_t i = static_cast<ssize_t>(num) - 2; i >= 0; --i) {
-        auto vpe_i = vpes[start + static_cast<size_t>(i)];
-        chain[i] = new StreamAccel::ChainMember(vpe_i, StreamAccel::getRBAddr(*vpe_i),
-            StreamAccel::RB_SIZE, chain[i + 1]->rgate, static_cast<label_t>(i));
-    }
-
-    // connect them
-    for(auto *m : chain) {
-        m->send_caps();
-        m->activate_recv();
-    }
-
-    // start VPEs
-    size_t i = start;
-    for(auto *m : chain) {
-        m->activate_send();
-        if(m->vpe->pe().is_programmable()) {
-            m->vpe->fds()->set(STDIN_FD, new AccelPipeReader());
-            m->vpe->fds()->set(STDOUT_FD, new AccelPipeWriter());
-            m->vpe->obtain_fds();
-
-            char **args = build_args(list->cmds[i]);
-            m->vpe->exec(static_cast<int>(list->cmds[i]->args->count), const_cast<const char**>(args));
-            delete[] args;
-
-            if(Errors::last != Errors::NONE) {
-                errmsg("Unable to execute '" << expr_value(list->cmds[i]->args->args[0]) << "'");
-                return Errors::last;
-            }
-        }
-        else
-            m->vpe->start();
-        i += 1;
-    }
-
-    // send init
-    uintptr_t bufaddr[num];
-    for(size_t i = 0; i < num - 1; ++i)
-        bufaddr[i] = chain[i]->init(StreamAccel::BUF_SIZE, StreamAccel::BUF_SIZE / 2, ACOMP_TIME);
-    bufaddr[num - 1] = chain[num - 1]->init(
-        static_cast<size_t>(-1), static_cast<size_t>(-1), ACOMP_TIME);
-
-    // connect memory EPs
-    for(size_t i = 0; i < num - 1; ++i) {
-        MemGate *buf = new MemGate(chain[i + 1]->vpe->mem().derive(bufaddr[i + 1], StreamAccel::BUF_SIZE));
-        buf->activate_for(*chain[i]->vpe, StreamAccel::EP_OUTPUT);
-    }
-
-    // handle beginning and end of chain
-    File *in = chain[0]->vpe->fds()->get(STDIN_FD);
-    File *out = chain[num - 1]->vpe->fds()->get(STDOUT_FD);
-
-    Errors::Code res = StreamAccel::executeChain(rgate, in, out, *chain[0], *chain[num - 1]);
-
-    // destroy chain
-    for(auto *c : chain) {
-        // don't destroy the VPE in ~ChainMember; we'll destroy the VPE later
-        c->vpe = nullptr;
-        delete c;
-    }
-
-    return res;
-}
-#endif
 
 static PEDesc get_pedesc(const VarList &vars, const char *path) {
     FStream f(path, FILE_R | FILE_X);
@@ -193,6 +113,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
     IndirectPipe *pipes[MAX_CMDS] = {nullptr};
     MemGate *mems[MAX_CMDS] = {nullptr};
     PEDesc descs[MAX_CMDS];
+    StreamAccel *accels[MAX_CMDS] = {nullptr};
 
     // find accelerator chain
     size_t chain_start = MAX_CMDS;
@@ -274,6 +195,8 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
                 break;
             }
         }
+        else
+            accels[i] = new StreamAccel(vpes[i], ACOMP_TIME);
 
         if(i > 0 && pipes[i - 1]) {
             if(vpes[i]->pe().is_programmable())
@@ -283,35 +206,71 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
         }
     }
 
-    // if there is an accelerator chain, we need to handle the beginning and end
-#if defined(__gem5__)
-    if(chain_start != MAX_CMDS && Errors::last == Errors::NONE) {
-        Errors::Code res = exec_accel_chain(list, vpes, chain_start, chain_end);
-        if(res != Errors::NONE)
-            errmsg("Unable to execute accelerator pipeline");
+    // connect input/output of accelerators
+    File *clones[list->count * 2];
+    size_t c = 0;
+    for(size_t i = 0; i < list->count; ++i) {
+        if(i >= chain_start && i <= chain_end) {
+            File *in = vpes[i]->fds()->get(STDIN_FD);
+            if(in) {
+                File *ain = in == VPE::self().fds()->get(STDIN_FD) ? in->clone() : in;
+                accels[i]->connect_input(static_cast<GenericFile*>(ain));
+                if(ain != in)
+                    clones[c++] = ain;
+            }
+            else
+                accels[i]->connect_input(accels[i - 1]);
 
-        for(size_t i = 1; i < list->count; ++i) {
-            if(pipes[i - 1]) {
-                if(!vpes[i]->pe().is_programmable())
-                    pipes[i - 1]->close_reader();
-                if(!vpes[i - 1]->pe().is_programmable())
-                    pipes[i - 1]->close_writer();
+            File *out = vpes[i]->fds()->get(STDOUT_FD);
+            if(out) {
+                File *aout = out == VPE::self().fds()->get(STDOUT_FD) ? out->clone() : out;
+                accels[i]->connect_output(static_cast<GenericFile*>(aout));
+                if(aout != out)
+                    clones[c++] = aout;
+            }
+            else
+                accels[i]->connect_output(accels[i + 1]);
+
+            vpes[i]->start();
+        }
+    }
+
+    capsel_t sels[list->count];
+    for(size_t rem = list->count; rem > 0; --rem) {
+        for(size_t x = 0, i = 0; i < list->count; ++i) {
+            if(vpes[i])
+                sels[x++] = vpes[i]->sel();
+        }
+
+        capsel_t vpe;
+        int exitcode;
+        if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
+            errmsg("Unable to wait for VPEs");
+        else {
+            for(size_t i = 0; i < list->count; ++i) {
+                if(vpes[i] && vpes[i]->sel() == vpe) {
+                    if(exitcode != 0) {
+                        cerr << expr_value(list->cmds[i]->args->args[0])
+                             << " terminated with exit code " << exitcode << "\n";
+                    }
+                    if(!vpes[i]->pe().is_programmable()) {
+                        if(pipes[i])
+                            pipes[i]->close_writer();
+                        if(i > 0 && pipes[i - 1])
+                            pipes[i - 1]->close_reader();
+                    }
+                    delete vpes[i];
+                    vpes[i] = nullptr;
+                    break;
+                }
             }
         }
     }
-#endif
 
+    for(size_t i = 0; i < c; ++i)
+        delete clones[i];
     for(size_t i = 0; i < list->count; ++i) {
-        if(vpes[i]) {
-            if(vpes[i]->pe().is_programmable()) {
-                int res = vpes[i]->wait();
-                if(res != 0)
-                    cerr << "Program terminated with exit code " << res << "\n";
-            }
-            delete vpes[i];
-        }
-    }
-    for(size_t i = 0; i < list->count; ++i) {
+        delete accels[i];
         delete mems[i];
         delete pipes[i];
     }

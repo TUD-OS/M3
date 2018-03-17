@@ -70,6 +70,10 @@ public:
     }
     virtual ssize_t write(const void *buffer, size_t count) override;
 
+    virtual File *clone() const override {
+        return nullptr;
+    }
+
     virtual char type() const override {
         return 'P';
     }

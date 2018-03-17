@@ -40,7 +40,7 @@ enum class PEISA {
     X86         = 1,
     ARM         = 2,
     XTENSA      = 3,
-    ACCEL_SHA   = 4,
+    ACCEL_INDIR = 4,
     ACCEL_FFT   = 5,
     ACCEL_TOUP  = 6,
     ACCEL_STE   = 7,
@@ -109,14 +109,14 @@ struct PEDesc {
      * @return if the PE has a core that is programmable
      */
     bool is_programmable() const {
-        return isa() != PEISA::NONE && isa() < PEISA::ACCEL_SHA;
+        return isa() != PEISA::NONE && isa() < PEISA::ACCEL_INDIR;
     }
 
     /**
      * @return if the PE supports multiple contexts
      */
     bool supports_multictx() const {
-        return isa() >= PEISA::ACCEL_SHA || has_cache();
+        return isa() >= PEISA::ACCEL_INDIR || has_cache();
     }
     /**
      * @return if the PE supports the context switching protocol

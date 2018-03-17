@@ -43,6 +43,12 @@ public:
     }
     virtual ~GenericFile();
 
+    SendGate &sgate() {
+        return _sg;
+    }
+    Session &sess() {
+        return _sess;
+    }
     const Session &sess() const {
         return _sess;
     }
@@ -54,8 +60,17 @@ public:
     virtual ssize_t read(void *buffer, size_t count) override;
     virtual ssize_t write(const void *buffer, size_t count) override;
 
+    virtual void flush() override {
+        submit();
+    }
+
     virtual char type() const override {
         return 'F';
+    }
+
+    virtual File *clone() const override {
+        KIF::CapRngDesc crd = _sess.obtain(2);
+        return new GenericFile(crd.start());
     }
 
     virtual size_t serialize_length() override {
