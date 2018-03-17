@@ -16,7 +16,7 @@ pub type Label  = u64;
 pub type PEId   = usize;
 
 /// The number of endpoints in each DTU
-pub const EP_COUNT: EpId        = 12;
+pub const EP_COUNT: EpId        = 16;
 
 /// The send EP for system calls
 pub const SYSC_SEP: EpId        = 0;
