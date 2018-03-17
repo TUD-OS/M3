@@ -100,7 +100,7 @@ size_t FStream::read(void *dst, size_t count) {
 }
 
 void FStream::flush() {
-    if(_wbuf) {
+    if(_wbuf && file()) {
         set_error(_wbuf->flush(file()));
         file()->flush();
     }
