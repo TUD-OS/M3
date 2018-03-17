@@ -16,27 +16,25 @@
 
 #pragma once
 
-#include <base/log/Log.h>
+#include <base/Errors.h>
+#include <base/KIF.h>
 
-#define SLOG(lvl, msg)  LOG(ServiceLog, lvl, msg)
+#include <m3/vfs/GenericFile.h>
+#include <m3/ObjCap.h>
+#include <m3/VPE.h>
 
 namespace m3 {
 
-class ServiceLog {
-    ServiceLog() = delete;
-
+class VTerm : public Session {
 public:
-    enum Level {
-        KEYB        = 1 << 0,
-        FS          = 1 << 1,
-        FS_DBG      = 1 << 2,
-        PAGER       = 1 << 3,
-        PIPE        = 1 << 4,
-        HASH        = 1 << 5,
-        VTERM       = 1 << 6,
-    };
+    explicit VTerm(const String &name) : Session(name) {
+    }
 
-    static const int level = 0;
+    GenericFile *create_chan() {
+        capsel_t caps = VPE::self().alloc_caps(2);
+        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, caps, 2));
+        return new GenericFile(caps);
+    }
 };
 
 }

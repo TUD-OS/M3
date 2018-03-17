@@ -15,6 +15,7 @@
  */
 
 #include <m3/session/M3FS.h>
+#include <m3/session/VTerm.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
@@ -34,6 +35,14 @@ int main(int argc, const char **argv) {
     VPE sh(argv[1], VPE::self().pe(), "pager");
     if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE");
+
+    VTerm vterm("vterm");
+    if(vterm.is_connected()) {
+        sh.fds()->set(STDIN_FD, vterm.create_chan());
+        sh.fds()->set(STDOUT_FD, vterm.create_chan());
+        sh.fds()->set(STDERR_FD, vterm.create_chan());
+        sh.obtain_fds();
+    }
 
     sh.mounts(*VPE::self().mounts());
     sh.obtain_mounts();
