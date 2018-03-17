@@ -120,13 +120,21 @@ impl<W : Write> BufWriter<W> {
     pub fn get_mut(&mut self) -> &mut W {
         &mut self.writer
     }
+
+    fn do_flush(&mut self) -> Result<(), Error> {
+        if self.pos > 0 {
+            self.writer.write(&self.buf[0..self.pos])?;
+            self.pos = 0;
+        }
+        Ok(())
+    }
 }
 
 impl<W : Write> Write for BufWriter<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         // write directly from user buffer, if it is larger
         if buf.len() > self.buf.len() {
-            self.flush()?;
+            self.do_flush()?;
 
             self.writer.write(buf)
         }
@@ -140,8 +148,11 @@ impl<W : Write> Write for BufWriter<W> {
             self.pos += res;
 
             // use line buffering
-            if buf.iter().find(|b| **b == b'\n').is_some() {
+            if self.buf.iter().find(|b| **b == b'\n').is_some() {
                 self.flush()?;
+            }
+            else if self.pos == self.buf.len() {
+                self.do_flush()?;
             }
 
             Ok(res)
@@ -149,12 +160,8 @@ impl<W : Write> Write for BufWriter<W> {
     }
 
     fn flush(&mut self) -> Result<(), Error> {
-        if self.pos > 0 {
-            self.writer.write(&self.buf[0..self.pos])?;
-            self.pos = 0;
-        }
-
-        Ok(())
+        self.do_flush()?;
+        self.writer.flush()
     }
 }
 

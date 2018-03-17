@@ -184,7 +184,7 @@ impl Read for GenericFile {
 
 impl Write for GenericFile {
     fn flush(&mut self) -> Result<(), Error> {
-        Ok(())
+        self.submit()
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
