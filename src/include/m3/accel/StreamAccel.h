@@ -26,7 +26,8 @@ namespace m3 {
 
 class StreamAccel {
     struct Context {
-        uint64_t flags;
+        uint32_t flags;
+        uint32_t used;
         uint64_t compTime;
         uint64_t msgAddr;
         uint64_t inReqAddr;
