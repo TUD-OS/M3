@@ -151,6 +151,10 @@ int main(int argc, char **argv) {
             memvpe = new VPE("mem");
             vpemem = new MemGate(memvpe->mem().derive(0x10000, PIPE_SHM_SIZE, MemGate::RW));
             pipe = new IndirectPipe(*vpemem, PIPE_SHM_SIZE);
+            // let the kernel schedule the VPE; this cannot be done by the reader/writer, because
+            // the pipe service just configures their EP, but doesn't delegate the memory capability
+            // to them
+            vpemem->write(&vpemem, sizeof(vpemem), 0);
         }
 
         if(VERBOSE) cout << "Starting reader and writer...\n";
