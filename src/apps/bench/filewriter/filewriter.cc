@@ -27,20 +27,20 @@ using namespace m3;
 
 alignas(64) static char buffer[8192];
 
-static const int REPEATS = 5;
-
 int main(int argc, char **argv) {
     if(argc < 3)
-        exitmsg("Usage: " << argv[0] << " <filename> <size>");
+        exitmsg("Usage: " << argv[0] << " <filename> <size> [<repeats>]");
 
     size_t size = IStringStream::read_from<size_t>(argv[2]);
     for(size_t i = 0; i < sizeof(buffer); ++i)
         buffer[i] = static_cast<char>(i & 0xFF);
 
+    int repeats = argc > 3 ? IStringStream::read_from<int>(argv[3]) : 1;
+
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
-    for(int i = 0; i < REPEATS; ++i) {
+    for(int i = 0; i < repeats; ++i) {
         FileRef file(argv[1], FILE_W | FILE_TRUNC | FILE_CREATE);
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");

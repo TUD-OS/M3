@@ -27,11 +27,9 @@ using namespace m3;
 
 alignas(64) static char buffer[8192];
 
-static const int REPEATS = 5;
-
 int main(int argc, char **argv) {
     if(argc < 3)
-        exitmsg("Usage: " << argv[0] << " <in> <out>");
+        exitmsg("Usage: " << argv[0] << " <in> <out> [<repeats>]");
 
     // TODO temporary fix to support different use-cases without complicating debugging.
     // Because if we require that the mountspace is configured by the parent (which is the goal),
@@ -41,7 +39,9 @@ int main(int argc, char **argv) {
             exitmsg("Mounting root-fs failed");
     }
 
-    for(int i = 0; i < REPEATS; ++i) {
+    int repeats = argc > 3 ? IStringStream::read_from<int>(argv[3]) : 1;
+
+    for(int i = 0; i < repeats; ++i) {
         FileRef input(argv[1], FILE_R);
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");

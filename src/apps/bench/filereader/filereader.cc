@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/stream/IStringStream.h>
 #include <base/util/Time.h>
 
 #include <m3/session/M3FS.h>
@@ -26,16 +27,16 @@ using namespace m3;
 
 alignas(64) static char buffer[8192];
 
-static const int REPEATS = 5;
-
 int main(int argc, char **argv) {
     if(argc < 2)
-        exitmsg("Usage: " << argv[0] << " <filename>");
+        exitmsg("Usage: " << argv[0] << " <filename> [<repeats>]");
+
+    int repeats = argc > 2 ? IStringStream::read_from<int>(argv[2]) : 1;
 
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         exitmsg("Mounting root-fs failed");
 
-    for(int i = 0; i < REPEATS; ++i) {
+    for(int i = 0; i < repeats; ++i) {
         FileRef file(argv[1], FILE_R);
         if(Errors::occurred())
             exitmsg("open of " << argv[1] << " failed");
