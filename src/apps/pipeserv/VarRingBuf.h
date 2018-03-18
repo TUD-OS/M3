@@ -26,7 +26,7 @@
 
 class VarRingBuf {
 public:
-    explicit VarRingBuf(size_t size) : _size(size), _rdpos(), _wrpos(), _last() {
+    explicit VarRingBuf(size_t size) : _size(size), _rdpos(), _wrpos(), _last(size) {
         assert((size & DTU_PKG_SIZE) == 0);
     }
 
@@ -66,7 +66,7 @@ public:
         if(_wrpos > rpos)
             *size = std::min(_wrpos - rpos,*size);
         else
-            *size = std::min(_size - rpos,*size);
+            *size = std::min(std::min(_size, _last) - rpos,*size);
         return static_cast<ssize_t>(rpos);
     }
 
@@ -89,7 +89,7 @@ public:
         assert(!empty());
         if(_rdpos == _last) {
             _rdpos = 0;
-            _last = 0;
+            _last = _size;
         }
         _rdpos += size;
     }
