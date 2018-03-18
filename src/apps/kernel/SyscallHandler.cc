@@ -497,10 +497,11 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
     if(epcap->obj->gate) {
         if(epcap->obj->gate->type == Capability::RGATE)
             static_cast<RGateObject*>(epcap->obj->gate)->addr = 0;
-
-        // TODO optimize that; the remote invalidation is only required for send gates
-        if(!dstvpe.invalidate_ep(epcap->obj->ep, true))
-            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Unable to invalidate EP");
+        // the remote invalidation is only required for send gates
+        else if(epcap->obj->gate->type == Capability::SGATE) {
+            if(!dstvpe.invalidate_ep(epcap->obj->ep, true))
+                SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Unable to invalidate EP");
+        }
 
         if(gateobj != epcap->obj->gate) {
             epcap->obj->gate->remove_ep(&*epcap->obj);
