@@ -18,6 +18,14 @@
 
 int AddrSpace::nextId = 1;
 
+bool AddrSpace::overlaps(goff_t virt, size_t size) const {
+    for(auto ds = dslist.begin(); ds != dslist.end(); ++ds) {
+        if(m3::Math::overlap(ds->addr(), ds->addr() + ds->size(), virt, virt + size))
+            return true;
+    }
+    return false;
+}
+
 void AddrSpace::add(DataSpace *ds) {
     dslist.append(ds);
     dstree.insert(ds);

@@ -204,6 +204,12 @@ public:
             reply_error(is, Errors::INV_ARGS);
             return;
         }
+        if(sess->overlaps(virt, len)) {
+            SLOG(PAGER, "Range " << fmt(virt, "p") << ".." << fmt(virt + len, "p")
+                << " is already in use");
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
         if(prot == 0 || (prot & ~DTU::PTE_RWX)) {
             SLOG(PAGER, "Invalid protection flags");
             reply_error(is, Errors::INV_ARGS);
@@ -233,6 +239,11 @@ public:
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
+            return Errors::INV_ARGS;
+        }
+        if(sess->overlaps(*virt, len)) {
+            SLOG(PAGER, "Range " << fmt(*virt, "p") << ".." << fmt(*virt + len, "p")
+                << " is already in use");
             return Errors::INV_ARGS;
         }
 
@@ -267,6 +278,11 @@ public:
 
         if((*virt & PAGE_BITS) || (len & PAGE_BITS)) {
             SLOG(PAGER, "Virtual address or size not properly aligned");
+            return Errors::INV_ARGS;
+        }
+        if(sess->overlaps(*virt, len)) {
+            SLOG(PAGER, "Range " << fmt(*virt, "p") << ".." << fmt(*virt + len, "p")
+                << " is already in use");
             return Errors::INV_ARGS;
         }
 

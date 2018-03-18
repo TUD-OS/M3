@@ -43,6 +43,7 @@ public:
     }
 
     capsel_t init(capsel_t caps);
+    bool overlaps(goff_t virt, size_t size) const;
     void add(DataSpace *ds);
     void remove(DataSpace *ds);
     m3::Errors::Code clone();
