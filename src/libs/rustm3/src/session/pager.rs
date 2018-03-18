@@ -16,6 +16,13 @@ pub struct Pager {
 }
 
 int_enum! {
+    struct DelOp : u32 {
+        const DATASPACE = 0x0;
+        const MEMGATE   = 0x1;
+    }
+}
+
+int_enum! {
     struct Operation : u32 {
         const PAGEFAULT = 0x0;
         const CLONE     = 0x1;
@@ -121,9 +128,16 @@ impl Pager {
     pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
                   sess: &Session) -> Result<usize, Error> {
         let mut args = kif::syscalls::ExchangeArgs {
-            count: 4,
+            count: 5,
             vals: kif::syscalls::ExchangeUnion {
-                i: [addr as u64, len as u64, prot.bits() as u64, off as u64, 0, 0, 0, 0]
+                i: [
+                    DelOp::DATASPACE.val as u64,
+                    addr as u64,
+                    len as u64,
+                    prot.bits() as u64,
+                    off as u64,
+                    0, 0, 0
+                ]
             },
         };
 
