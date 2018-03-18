@@ -64,6 +64,8 @@ public:
         return _size;
     }
 
+    bool addrspace_alive() const;
+
     virtual const char *type() const = 0;
     virtual m3::Errors::Code handle_pf(goff_t virt) = 0;
     virtual DataSpace *clone(AddrSpace *as) = 0;

@@ -24,6 +24,10 @@
 
 ulong DataSpace::_next_id = 0;
 
+bool DataSpace::addrspace_alive() const {
+    return _as->alive;
+}
+
 void DataSpace::inherit(DataSpace *ds) {
     _id = ds->_id;
 

@@ -25,11 +25,13 @@
 class AddrSpace {
 public:
     explicit AddrSpace(AddrSpace *_parent = nullptr, capsel_t _sess = m3::ObjCap::INVALID)
-       : vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
+       : alive(true), vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
          sess(m3::ObjCap::SESSION, _sess),
          mem(), sgate(), dstree(), parent(_parent) {
     }
     ~AddrSpace() {
+        // don't revoke mapping caps on session destruction; the kernel will revoke them
+        alive = false;
         for(auto ds = dslist.begin(); ds != dslist.end(); ) {
             auto old = ds++;
             delete &*old;
@@ -50,6 +52,7 @@ public:
 
     void print(m3::OStream &os) const;
 
+    bool alive;
     m3::ObjCap vpe;
     m3::ObjCap sess;
     m3::MemGate *mem;
