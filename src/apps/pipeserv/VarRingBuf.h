@@ -70,18 +70,18 @@ public:
         return static_cast<ssize_t>(rpos);
     }
 
-    void push(size_t size) {
+    void push(size_t req_size, size_t size) {
         assert((_wrpos % DTU_PKG_SIZE) == 0);
 
         if(_wrpos >= _rdpos) {
-            if(_size - _wrpos >= size)
+            if(_size - _wrpos >= req_size)
                 _wrpos += size;
-            else if(_rdpos > size) {
+            else if(_rdpos > req_size) {
                 _last = _wrpos;
                 _wrpos = size;
             }
         }
-        else if(_rdpos - _wrpos > size)
+        else if(_rdpos - _wrpos > req_size)
             _wrpos += size;
     }
 

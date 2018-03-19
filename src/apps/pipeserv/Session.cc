@@ -201,7 +201,7 @@ Errors::Code PipeWriteChannel::close() {
 
     if(pipe->last_writer == this && lastamount != static_cast<size_t>(-1)) {
         PRINTCHAN(pipe, id, "write-push: " << lastamount);
-        pipe->rbuf.push(lastamount);
+        pipe->rbuf.push(lastamount, lastamount);
         pipe->last_writer = nullptr;
     }
 
@@ -238,7 +238,7 @@ void PipeWriteChannel::write(GateIStream &is, size_t submit) {
 
         size_t amount = submit == 0 ? lastamount : submit;
         PRINTCHAN(pipe, id, "write-push: " << amount);
-        pipe->rbuf.push(amount);
+        pipe->rbuf.push(lastamount, amount);
         pipe->last_writer = nullptr;
     }
 
