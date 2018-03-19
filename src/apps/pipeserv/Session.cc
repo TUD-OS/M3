@@ -79,7 +79,7 @@ PipeChannel::PipeChannel(PipeData *_pipe, capsel_t srv)
     : PipeSession(), m3::SListItem(),
       id(_pipe->nextid++), caps(VPE::self().alloc_caps(2)), epcap(ObjCap::INVALID), lastamount(),
       sgate(m3::SendGate::create(_pipe->rgate, reinterpret_cast<label_t>(this), 64, nullptr, caps + 1)),
-      pipe(_pipe) {
+      memory(), pipe(_pipe) {
     Syscalls::get().createsessat(caps + 0, srv, reinterpret_cast<word_t>(this));
 }
 
@@ -87,8 +87,14 @@ Errors::Code PipeChannel::activate() {
     if(epcap != ObjCap::INVALID) {
         if(pipe->memory == nullptr)
             return Errors::INV_ARGS;
-        // TODO use only READ or only WRITE permission
-        if(Syscalls::get().activate(epcap, pipe->memory->sel(), 0) != Errors::NONE)
+
+        // derive a new memgate with read / write permission
+        if(memory == nullptr) {
+            auto perms = type() == RCHAN ? MemGate::R : MemGate::W;
+            memory = new MemGate(pipe->memory->derive(0, pipe->rbuf.size(), perms));
+        }
+
+        if(Syscalls::get().activate(epcap, memory->sel(), 0) != Errors::NONE)
             return Errors::last;
         epcap = ObjCap::INVALID;
     }

@@ -60,6 +60,7 @@ public:
 
     explicit PipeChannel(PipeData *pipe, capsel_t srv);
     virtual ~PipeChannel() {
+        delete memory;
     }
 
     PipeChannel *clone(capsel_t srv) const;
@@ -78,6 +79,7 @@ public:
     capsel_t epcap;
     size_t lastamount;
     m3::SendGate sgate;
+    m3::MemGate *memory;
     PipeData *pipe;
 };
 
