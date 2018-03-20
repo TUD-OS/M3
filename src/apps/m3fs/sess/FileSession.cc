@@ -36,7 +36,7 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3:
 }
 
 M3FSFileSession::~M3FSFileSession() {
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::close(path=" << filename << ")");
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::close(path=" << filename << ")");
 
     do_commit(extent, extoff);
     meta->remove_file(this);
@@ -46,7 +46,7 @@ M3FSFileSession::~M3FSFileSession() {
 }
 
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::clone(path=" << filename << ")");
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::clone(path=" << filename << ")");
 
     auto nfile =  new M3FSFileSession(srv, meta, filename, oflags, inode);
 
@@ -65,12 +65,12 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     size_t count = data.args.vals[1];
     uint flags = data.args.vals[2];
 
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::get_locs(path=" << filename
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::get_locs(path=" << filename
         << ", offset=" << offset << ", count=" << count
         << ", flags=" << fmt(flags, "#x") << ")");
 
     if(count == 0) {
-        SLOG(FS, fmt((word_t)meta, "#x") << ": Invalid request");
+        SLOG(FS, fmt((word_t)this, "#x") << ": Invalid request");
         return Errors::INV_ARGS;
     }
 
@@ -94,7 +94,7 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     loclist_type *locs = INodes::get_locs(meta->handle(), &inode, offset, count,
         (flags & M3FS::EXTEND) ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd, extended);
     if(!locs) {
-        SLOG(FS, fmt((word_t)meta, "#x") << ": Determining locations failed: "
+        SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
         return Errors::last;
     }
@@ -124,8 +124,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     size_t submit;
     is >> submit;
 
-    SLOG(FS, fmt((word_t)meta, "#x")
-        << ": fs::" << (write ? "write" : "read") << "(submit=" << submit << "); "
+    SLOG(FS, fmt((word_t)this, "#x")
+        << ": file::" << (write ? "write" : "read") << "(submit=" << submit << "); "
         << "file[path=" << filename << ", extent=" << extent << ", extoff=" << extoff << "]");
 
     if((write && !(oflags & FILE_W)) || (!write && !(oflags & FILE_R))) {
@@ -155,7 +155,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     loclist_type *locs = INodes::get_locs(meta->handle(), &inode, extent, 1,
         write ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd, extended);
     if(!locs) {
-        SLOG(FS, fmt((word_t)meta, "#x") << ": Determining locations failed: "
+        SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
         reply_error(is, Errors::last);
         return;
@@ -166,7 +166,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     if(extlen > 0) {
         // activate mem cap for client
         if(Syscalls::get().activate(epcap, crd.start(), 0) != Errors::NONE) {
-            SLOG(FS, fmt((word_t)meta, "#x") << ": activate failed: "
+            SLOG(FS, fmt((word_t)this, "#x") << ": activate failed: "
                 << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
             return;
@@ -202,7 +202,7 @@ void M3FSFileSession::seek(GateIStream &is) {
     int whence;
     size_t off;
     is >> off >> whence;
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::seek(path="
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::seek(path="
         << filename << ", off=" << off << ", whence=" << whence << ")");
 
     if(whence == SEEK_CUR) {
@@ -215,7 +215,7 @@ void M3FSFileSession::seek(GateIStream &is) {
 }
 
 void M3FSFileSession::fstat(GateIStream &is) {
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::fstat(path=" << filename << ")");
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::fstat(path=" << filename << ")");
 
     m3::FileInfo info;
     INodes::stat(meta->handle(), &inode, info);
