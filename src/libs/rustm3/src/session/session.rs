@@ -1,5 +1,5 @@
 use cap::{CapFlags, Capability, Selector};
-use core::{intrinsics, fmt};
+use core::fmt;
 use errors::Error;
 use kif;
 use syscalls;
@@ -41,10 +41,7 @@ impl Session {
     }
 
     pub fn delegate_crd(&self, crd: kif::CapRngDesc) -> Result<(), Error> {
-        let mut args = kif::syscalls::ExchangeArgs {
-            count: 0,
-            vals: unsafe { intrinsics::uninit() },
-        };
+        let mut args = kif::syscalls::ExchangeArgs::default();
         self.delegate(crd, &mut args)
     }
 
@@ -63,10 +60,7 @@ impl Session {
     }
 
     pub fn obtain_crd(&self, count: u32) -> Result<kif::CapRngDesc, Error> {
-        let mut args = kif::syscalls::ExchangeArgs {
-            count: 0,
-            vals: unsafe { intrinsics::uninit() },
-        };
+        let mut args = kif::syscalls::ExchangeArgs::default();
         self.obtain(count, &mut args)
     }
 

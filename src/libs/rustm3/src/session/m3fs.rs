@@ -53,12 +53,8 @@ impl M3FS {
         let sels = VPE::cur().alloc_sels(2);
         let sess = Session::new_with_sel(name, 0, sels + 1)?;
 
-        let mut args = kif::syscalls::ExchangeArgs {
-            count: 0,
-            vals: unsafe { intrinsics::uninit() },
-        };
-
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sels + 0, 1);
+        let mut args = kif::syscalls::ExchangeArgs::default();
         sess.obtain_for(VPE::cur().sel(), crd, &mut args)?;
         let sgate = SendGate::new_bind(sels + 0);
         Ok(Self::create(sess, sgate))
@@ -139,15 +135,11 @@ impl FileSystem for M3FS {
         b'M'
     }
     fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
-        let mut args = kif::syscalls::ExchangeArgs {
-            count: 0,
-            vals: unsafe { intrinsics::uninit() },
-        };
-
         dels.push(self.sess.sel());
 
         // TODO error case?
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, self.sess.sel() + 1, 1);
+        let mut args = kif::syscalls::ExchangeArgs::default();
         self.sess.obtain_for(vpe, crd, &mut args).ok();
         *max_sel = util::max(*max_sel, self.sess.sel() + 2);
     }

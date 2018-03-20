@@ -1,5 +1,7 @@
 //! The system call interface
 
+use core::intrinsics;
+
 /// The maximum message length that can be used
 pub const MAX_MSG_SIZE: usize = 440;
 
@@ -72,6 +74,15 @@ pub union ExchangeUnion {
 pub struct ExchangeArgs {
     pub count: u64,
     pub vals: ExchangeUnion,
+}
+
+impl Default for ExchangeArgs {
+    fn default() -> Self {
+        ExchangeArgs {
+            count: 0,
+            vals: unsafe { intrinsics::uninit() },
+        }
+    }
 }
 
 /// The pagefault request message
