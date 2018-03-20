@@ -1,7 +1,7 @@
 use cap::Selector;
 use cell::RefCell;
 use col::Vec;
-use core::{fmt, intrinsics};
+use core::fmt;
 use com::{MemGate, RecvGate, SendGate, SliceSource, VecSink};
 use serialize::Sink;
 use errors::Error;
@@ -128,16 +128,14 @@ impl vfs::File for GenericFile {
         b'F'
     }
 
-    fn exchange_caps(&self, vpe: Selector, _dels: &mut Vec<Selector>, max_sel: &mut Selector) {
-        let mut args = syscalls::ExchangeArgs {
-            count: 0,
-            vals: unsafe { intrinsics::uninit() },
-        };
-
-        // TODO error case?
+    fn exchange_caps(&self, vpe: Selector,
+                            _dels: &mut Vec<Selector>,
+                            max_sel: &mut Selector) -> Result<(), Error> {
         let crd = CapRngDesc::new(CapType::OBJECT, self.sess.sel(), 2);
-        self.sess.obtain_for(vpe, crd, &mut args).ok();
+        let mut args = syscalls::ExchangeArgs::default();
+        self.sess.obtain_for(vpe, crd, &mut args)?;
         *max_sel = util::max(*max_sel, self.sess.sel() + 2);
+        Ok(())
     }
 
     fn serialize(&self, s: &mut VecSink) {

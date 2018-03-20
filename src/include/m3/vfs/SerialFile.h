@@ -55,8 +55,9 @@ public:
     virtual char type() const override {
         return 'S';
     }
-    virtual void delegate(VPE &) override {
+    virtual Errors::Code delegate(VPE &) override {
         // nothing to do
+        return Errors::NONE;
     }
     virtual void serialize(Marshaller &) override {
         // nothing to do

@@ -134,14 +134,16 @@ impl FileSystem for M3FS {
     fn fs_type(&self) -> u8 {
         b'M'
     }
-    fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
+    fn exchange_caps(&self, vpe: Selector,
+                            dels: &mut Vec<Selector>,
+                            max_sel: &mut Selector) -> Result<(), Error> {
         dels.push(self.sess.sel());
 
-        // TODO error case?
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, self.sess.sel() + 1, 1);
         let mut args = kif::syscalls::ExchangeArgs::default();
-        self.sess.obtain_for(vpe, crd, &mut args).ok();
+        self.sess.obtain_for(vpe, crd, &mut args)?;
         *max_sel = util::max(*max_sel, self.sess.sel() + 2);
+        Ok(())
     }
     fn serialize(&self, s: &mut VecSink) {
         s.push(&self.sess.sel());

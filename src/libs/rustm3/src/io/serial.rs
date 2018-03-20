@@ -41,8 +41,11 @@ impl vfs::File for io::Serial {
         b'S'
     }
 
-    fn exchange_caps(&self, _vpe: Selector, _dels: &mut Vec<Selector>, _max_sel: &mut Selector) {
+    fn exchange_caps(&self, _vpe: Selector,
+                            _dels: &mut Vec<Selector>,
+                            _max_sel: &mut Selector) -> Result<(), Error> {
         // nothing to do
+        Ok(())
     }
 
     fn serialize(&self, _s: &mut VecSink) {

@@ -82,10 +82,13 @@ impl MountTable {
         }
     }
 
-    pub fn collect_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
+    pub fn collect_caps(&self, vpe: Selector,
+                               dels: &mut Vec<Selector>,
+                               max_sel: &mut Selector) -> Result<(), Error> {
         for m in &self.mounts {
-            m.fs.borrow().exchange_caps(vpe, dels, max_sel);
+            m.fs.borrow().exchange_caps(vpe, dels, max_sel)?;
         }
+        Ok(())
     }
 
     pub fn serialize(&self, s: &mut VecSink) {

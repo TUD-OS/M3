@@ -68,10 +68,11 @@ public:
      * Delegates the given object capability to the server.
      *
      * @param sel the capability
+     * @return the error, if any
      */
-    void delegate_obj(capsel_t sel) {
+    Errors::Code delegate_obj(capsel_t sel) {
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel, 1);
-        delegate(crd);
+        return delegate(crd);
     }
 
     /**
@@ -82,8 +83,8 @@ public:
      * @param args the arguments to pass to the server
      * @return the error code
      */
-    void delegate(const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr) {
-        delegate_for(VPE::self(), caps, args);
+    Errors::Code delegate(const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr) {
+        return delegate_for(VPE::self(), caps, args);
     }
 
     /**
@@ -95,7 +96,7 @@ public:
      * @param args the arguments to pass to the server
      * @return the error code
      */
-    void delegate_for(VPE &vpe, const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr);
+    Errors::Code delegate_for(VPE &vpe, const KIF::CapRngDesc &caps, KIF::ExchangeArgs *args = nullptr);
 
     /**
      * Obtains up to <count> capabilities from the server with additional arguments and puts the
@@ -132,8 +133,9 @@ public:
      * @param crd the selectors to use
      * @param argcount the number of arguments
      * @param args the arguments to pass to the server
+     * @return the error code
      */
-    void obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args = nullptr);
+    Errors::Code obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args = nullptr);
 
 private:
     void connect(const String &name, xfer_t arg, capsel_t sel);

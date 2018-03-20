@@ -356,7 +356,7 @@ impl VPE {
     pub fn obtain_fds(&mut self) -> Result<(), Error> {
         // TODO that's really bad. but how to improve that? :/
         let mut dels = Vec::new();
-        self.files.collect_caps(self.sel(), &mut dels, &mut self.next_sel);
+        self.files.collect_caps(self.sel(), &mut dels, &mut self.next_sel)?;
         for c in dels {
             self.delegate_obj(c)?;
         }
@@ -364,7 +364,7 @@ impl VPE {
     }
     pub fn obtain_mounts(&mut self) -> Result<(), Error> {
         let mut dels = Vec::new();
-        self.mounts.collect_caps(self.sel(), &mut dels, &mut self.next_sel);
+        self.mounts.collect_caps(self.sel(), &mut dels, &mut self.next_sel)?;
         for c in dels {
             self.delegate_obj(c)?;
         }

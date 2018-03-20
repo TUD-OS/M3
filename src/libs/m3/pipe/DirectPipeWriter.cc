@@ -136,8 +136,8 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
     return buf - reinterpret_cast<const char*>(buffer);
 }
 
-void DirectPipeWriter::delegate(VPE &vpe) {
-    vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
+Errors::Code DirectPipeWriter::delegate(VPE &vpe) {
+    return vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
 }
 
 void DirectPipeWriter::serialize(Marshaller &m) {

@@ -122,8 +122,8 @@ void VPE::mounts(const MountTable &ms) {
     _ms = new MountTable(ms);
 }
 
-void VPE::obtain_mounts() {
-    _ms->delegate(*this);
+Errors::Code VPE::obtain_mounts() {
+    return _ms->delegate(*this);
 }
 
 void VPE::fds(const FileTable &fds) {
@@ -131,8 +131,8 @@ void VPE::fds(const FileTable &fds) {
     _fds = new FileTable(fds);
 }
 
-void VPE::obtain_fds() {
-    _fds->delegate(*this);
+Errors::Code VPE::obtain_fds() {
+    return _fds->delegate(*this);
 }
 
 Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {

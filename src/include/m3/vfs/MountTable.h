@@ -106,11 +106,12 @@ public:
     void remove(const char *path);
 
     /**
-     * Delegates the capabilities necessary to <vpe>.
+     * Delegates the mount points to <vpe>.
      *
      * @param vpe the VPE to delegate the caps to
+     * @return the error, if any
      */
-    void delegate(VPE &vpe) const;
+    Errors::Code delegate(VPE &vpe) const;
 
     /**
      * Serializes the current mounts into the given buffer

@@ -117,9 +117,12 @@ public:
     void mounts(const MountTable &ms);
 
     /**
-     * Lets this VPE obtain all capabilities that are necessary for the current mount table.
+     * Lets this VPE obtain all mount points in its mount table, i.e., the required capability
+     * exchanges are performed.
+     *
+     * @return the error, if any
      */
-    void obtain_mounts();
+    Errors::Code obtain_mounts();
 
     /**
      * @return the file descriptors
@@ -137,9 +140,12 @@ public:
     void fds(const FileTable &fds);
 
     /**
-     * Lets this VPE obtain all capabilities that are necessary for the current file descriptors.
+     * Lets this VPE obtain all files in its file table, i.e., the required capability exchanges
+     * are performed.
+     *
+     * @return the error, if any
      */
-    void obtain_fds();
+    Errors::Code obtain_fds();
 
     /**
      * Allocates capability selectors.

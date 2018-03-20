@@ -28,13 +28,13 @@ void Session::connect(const String &service, xfer_t arg, capsel_t selector) {
         sel(selector);
 }
 
-void Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
-    Syscalls::get().delegate(vpe.sel(), sel(), crd, args);
+Errors::Code Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+    return Syscalls::get().delegate(vpe.sel(), sel(), crd, args);
 }
 
-void Session::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+Errors::Code Session::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
     vpe.mark_caps_allocated(crd.start(), crd.count());
-    Syscalls::get().obtain(vpe.sel(), sel(), crd, args);
+    return Syscalls::get().obtain(vpe.sel(), sel(), crd, args);
 }
 
 }

@@ -88,7 +88,9 @@ pub trait File : Read + Write + Seek + Map + Debug {
     fn stat(&self) -> Result<FileInfo, Error>;
 
     fn file_type(&self) -> u8;
-    fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector);
+    fn exchange_caps(&self, vpe: Selector,
+                            dels: &mut Vec<Selector>,
+                            max_sel: &mut Selector) -> Result<(), Error>;
     fn serialize(&self, s: &mut VecSink);
 }
 

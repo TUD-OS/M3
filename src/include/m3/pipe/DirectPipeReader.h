@@ -73,7 +73,7 @@ public:
     virtual char type() const override {
         return 'Q';
     }
-    virtual void delegate(VPE &vpe) override;
+    virtual Errors::Code delegate(VPE &vpe) override;
     virtual void serialize(Marshaller &m) override;
     static File *unserialize(Unmarshaller &um);
 

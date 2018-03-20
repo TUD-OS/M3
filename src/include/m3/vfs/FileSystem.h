@@ -94,11 +94,12 @@ public:
     virtual Errors::Code unlink(const char *path) = 0;
 
     /**
-     * Delegates all capabilities that are required for this filesystem to the given VPE.
+     * Delegates all this filesystem to the given VPE.
      *
      * @param vpe the VPE
+     * @return the error, if any
      */
-    virtual void delegate(VPE &vpe) = 0;
+    virtual Errors::Code delegate(VPE &vpe) = 0;
 
     /**
      * Serializes this object to the given marshaller.

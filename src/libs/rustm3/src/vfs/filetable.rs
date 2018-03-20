@@ -126,12 +126,15 @@ impl FileTable {
         Err(Error::new(Code::NoSpace))
     }
 
-    pub fn collect_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
+    pub fn collect_caps(&self, vpe: Selector,
+                               dels: &mut Vec<Selector>,
+                               max_sel: &mut Selector) -> Result<(), Error> {
         for fd in 0..MAX_FILES {
             if let Some(ref f) = self.files[fd] {
-                f.borrow().exchange_caps(vpe, dels, max_sel);
+                f.borrow().exchange_caps(vpe, dels, max_sel)?;
             }
         }
+        Ok(())
     }
 
     pub fn serialize(&self, s: &mut VecSink) {

@@ -64,10 +64,11 @@ Errors::Code M3FS::unlink(const char *path) {
     return Errors::last;
 }
 
-void M3FS::delegate(VPE &vpe) {
-    vpe.delegate_obj(sel());
+Errors::Code M3FS::delegate(VPE &vpe) {
+    if(vpe.delegate_obj(sel()) != Errors::NONE)
+        return Errors::last;
     // TODO what if it fails?
-    obtain_for(vpe, KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel() + 1, 1));
+    return obtain_for(vpe, KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel() + 1, 1));
 }
 
 void M3FS::serialize(Marshaller &m) {

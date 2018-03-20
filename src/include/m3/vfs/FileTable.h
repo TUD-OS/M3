@@ -17,6 +17,7 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/Errors.h>
 
 #include <assert.h>
 
@@ -110,11 +111,12 @@ public:
     }
 
     /**
-     * Delegates the capabilities necessary to <vpe>.
+     * Delegates all files to <vpe>.
      *
-     * @param vpe the VPE to delegate the caps to
+     * @param vpe the VPE to delegate the files to
+     * @return the error, if any
      */
-    void delegate(VPE &vpe) const;
+    Errors::Code delegate(VPE &vpe) const;
 
     /**
      * Serializes the current files into the given buffer

@@ -75,10 +75,9 @@ public:
         return new GenericFile(crd.start());
     }
 
-    virtual void delegate(VPE &vpe) override {
-        // TODO what if it fails?
+    virtual Errors::Code delegate(VPE &vpe) override {
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _sess.sel(), 2);
-        _sess.obtain_for(vpe, crd);
+        return _sess.obtain_for(vpe, crd);
     }
 
     virtual void serialize(Marshaller &m) override {

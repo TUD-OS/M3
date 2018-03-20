@@ -69,7 +69,7 @@ public:
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;
     virtual Errors::Code unlink(const char *path) override;
 
-    virtual void delegate(VPE &vpe) override;
+    virtual Errors::Code delegate(VPE &vpe) override;
     virtual void serialize(Marshaller &m) override;
     static FileSystem *unserialize(Unmarshaller &um);
 

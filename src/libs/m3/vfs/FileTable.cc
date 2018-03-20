@@ -98,11 +98,16 @@ epid_t FileTable::request_ep(GenericFile *file) {
     PANIC("Unable to find victim");
 }
 
-void FileTable::delegate(VPE &vpe) const {
+Errors::Code FileTable::delegate(VPE &vpe) const {
+    Errors::Code res = Errors::NONE;
     for(fd_t i = 0; i < MAX_FDS; ++i) {
-        if(_fds[i])
-            _fds[i]->delegate(vpe);
+        if(_fds[i]) {
+            res = _fds[i]->delegate(vpe);
+            if(res != Errors::NONE)
+                return res;
+        }
     }
+    return res;
 }
 
 size_t FileTable::serialize(void *buffer, size_t size) const {
