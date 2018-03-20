@@ -24,13 +24,14 @@
 using namespace m3;
 
 Errors::Code M3FSMetaSession::get_sgate(KIF::Service::ExchangeData &data) {
-    if(data.args.count != 0 || data.caps != 1)
+    if(data.caps != 1)
         return Errors::INV_ARGS;
 
     label_t label = reinterpret_cast<label_t>(this);
-    _sgate = new SendGate(SendGate::create(&_rgate, label, MSG_SIZE));
+    MetaSGate *sgate = new MetaSGate(SendGate::create(&_rgate, label, MSG_SIZE));
+    _sgates.append(sgate);
 
-    data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _sgate->sel()).value();
+    data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sgate->sgate.sel()).value();
     return Errors::NONE;
 }
 

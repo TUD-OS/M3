@@ -40,10 +40,11 @@ public:
      *
      * @param name the service name
      * @param arg the argument
+     * @param sel the desired selector
      */
-    explicit Session(const String &name, xfer_t arg = 0)
+    explicit Session(const String &name, xfer_t arg = 0, capsel_t sel = ObjCap::INVALID)
         : ObjCap(SESSION) {
-        connect(name, arg);
+        connect(name, arg, sel);
     }
 
     /**
@@ -135,7 +136,7 @@ public:
     void obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args = nullptr);
 
 private:
-    void connect(const String &name, xfer_t arg);
+    void connect(const String &name, xfer_t arg, capsel_t sel);
 };
 
 }

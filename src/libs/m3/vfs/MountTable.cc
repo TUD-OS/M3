@@ -148,11 +148,9 @@ size_t MountTable::serialize(void *buffer, size_t size) const {
         char type = _mounts[i]->fs()->type();
         m << _mounts[i]->path() << type;
         switch(type) {
-            case 'M': {
-                const M3FS *m3fs = static_cast<const M3FS*>(&*_mounts[i]->fs());
-                m << m3fs->sel() << m3fs->gate().sel();
-            }
-            break;
+            case 'M':
+                _mounts[i]->fs()->serialize(m);
+                break;
         }
     }
     return m.total();
@@ -162,13 +160,9 @@ void MountTable::delegate(VPE &vpe) const {
     for(size_t i = 0; i < _count; ++i) {
         char type = _mounts[i]->fs()->type();
         switch(type) {
-            case 'M': {
-                const M3FS *m3fs = static_cast<const M3FS*>(&*_mounts[i]->fs());
-                // might fail if we've already done that
-                vpe.delegate_obj(m3fs->sel());
-                vpe.delegate_obj(m3fs->gate().sel());
-            }
-            break;
+            case 'M':
+                _mounts[i]->fs()->delegate(vpe);
+                break;
         }
     }
 }
@@ -184,9 +178,7 @@ MountTable *MountTable::unserialize(const void *buffer, size_t size) {
         um >> path >> type;
         switch(type) {
             case 'M':
-                capsel_t sess, gate;
-                um >> sess >> gate;
-                ms->add(path.c_str(), new M3FS(sess, gate));
+                ms->add(path.c_str(), M3FS::unserialize(um));
                 break;
         }
     }

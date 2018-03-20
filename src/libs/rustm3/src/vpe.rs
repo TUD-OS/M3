@@ -363,9 +363,9 @@ impl VPE {
         Ok(())
     }
     pub fn obtain_mounts(&mut self) -> Result<(), Error> {
-        let mut caps = Vec::new();
-        self.mounts.collect_caps(&mut caps);
-        for c in caps {
+        let mut dels = Vec::new();
+        self.mounts.collect_caps(self.sel(), &mut dels, &mut self.next_sel);
+        for c in dels {
             self.delegate_obj(c)?;
         }
         Ok(())

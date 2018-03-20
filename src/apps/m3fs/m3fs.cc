@@ -71,7 +71,7 @@ public:
     virtual Errors::Code obtain(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
         if(sess->type() == M3FSSession::META) {
             auto meta = static_cast<M3FSMetaSession*>(sess);
-            if(!meta->sgate())
+            if(data.args.count == 0)
                 return meta->get_sgate(data);
             return meta->open_file(srv->sel(), data);
         }

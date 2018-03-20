@@ -20,8 +20,9 @@
 
 namespace m3 {
 
-void Session::connect(const String &service, xfer_t arg) {
-    capsel_t cap = VPE::self().alloc_cap();
+void Session::connect(const String &service, xfer_t arg, capsel_t cap) {
+    if(cap == ObjCap::INVALID)
+        cap = VPE::self().alloc_cap();
     Errors::Code res = Syscalls::get().createsess(cap, service, arg);
     if(res == Errors::NONE)
         sel(cap);

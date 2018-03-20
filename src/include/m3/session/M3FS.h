@@ -49,10 +49,10 @@ public:
     };
 
     explicit M3FS(const String &service)
-        : Session(service), FileSystem(), _gate(SendGate::bind(obtain(1).start())) {
+        : Session(service, 0, VPE::self().alloc_caps(2)), FileSystem(), _gate(obtain_sgate()) {
     }
-    explicit M3FS(capsel_t session, capsel_t gate)
-        : Session(session), FileSystem(), _gate(SendGate::bind(gate)) {
+    explicit M3FS(capsel_t caps)
+        : Session(caps + 0), FileSystem(), _gate(SendGate::bind(caps + 1)) {
     }
 
     const SendGate &gate() const {
@@ -68,6 +68,11 @@ public:
     virtual Errors::Code rmdir(const char *path) override;
     virtual Errors::Code link(const char *oldpath, const char *newpath) override;
     virtual Errors::Code unlink(const char *path) override;
+
+    virtual size_t serialize_length() override;
+    virtual void delegate(VPE &vpe) override;
+    virtual void serialize(Marshaller &m) override;
+    static FileSystem *unserialize(Unmarshaller &um);
 
     template<size_t N>
     bool get_locs(size_t off, size_t count, LocList<N> &locs, uint flags) {
@@ -95,6 +100,12 @@ public:
     }
 
 private:
+    SendGate obtain_sgate() {
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sel() + 1);
+        obtain_for(VPE::self(), crd);
+        return SendGate::bind(crd.start());
+    }
+
     SendGate _gate;
 };
 

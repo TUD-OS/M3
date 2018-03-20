@@ -64,4 +64,24 @@ Errors::Code M3FS::unlink(const char *path) {
     return Errors::last;
 }
 
+size_t M3FS::serialize_length() {
+    return OStreamSize<capsel_t>::value;
+}
+
+void M3FS::delegate(VPE &vpe) {
+    vpe.delegate_obj(sel());
+    // TODO what if it fails?
+    obtain_for(vpe, KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel() + 1, 1));
+}
+
+void M3FS::serialize(Marshaller &m) {
+    m << sel();
+}
+
+FileSystem *M3FS::unserialize(Unmarshaller &um) {
+    capsel_t sel;
+    um >> sel;
+    return new M3FS(sel);
+}
+
 }

@@ -20,6 +20,6 @@ pub trait FileSystem : fmt::Debug {
     fn unlink(&self, path: &str) -> Result<(), Error>;
 
     fn fs_type(&self) -> u8;
-    fn collect_caps(&self, caps: &mut Vec<Selector>);
+    fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector);
     fn serialize(&self, s: &mut VecSink);
 }

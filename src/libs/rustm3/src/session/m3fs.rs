@@ -9,7 +9,9 @@ use kif;
 use rc::{Rc, Weak};
 use serialize::Sink;
 use session::Session;
+use util;
 use vfs::{FileHandle, FileInfo, FileMode, FileSystem, FSHandle, GenericFile, OpenFlags};
+use vpe::VPE;
 
 pub type ExtId = u16;
 
@@ -48,13 +50,22 @@ impl M3FS {
     }
 
     pub fn new(name: &str) -> Result<FSHandle, Error> {
-        let sess = Session::new(name, 0)?;
-        let sgate = SendGate::new_bind(sess.obtain_crd(1)?.start());
+        let sels = VPE::cur().alloc_sels(2);
+        let sess = Session::new_with_sel(name, 0, sels + 1)?;
+
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 0,
+            vals: unsafe { intrinsics::uninit() },
+        };
+
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sels + 0, 1);
+        sess.obtain_for(VPE::cur().sel(), crd, &mut args)?;
+        let sgate = SendGate::new_bind(sels + 0);
         Ok(Self::create(sess, sgate))
     }
 
-    pub fn new_bind(sess: Selector, sgate: Selector) -> FSHandle {
-        Self::create(Session::new_bind(sess), SendGate::new_bind(sgate))
+    pub fn new_bind(sels: Selector) -> FSHandle {
+        Self::create(Session::new_bind(sels + 0), SendGate::new_bind(sels + 1))
     }
 
     pub fn sess(&self) -> &Session {
@@ -127,9 +138,18 @@ impl FileSystem for M3FS {
     fn fs_type(&self) -> u8 {
         b'M'
     }
-    fn collect_caps(&self, caps: &mut Vec<Selector>) {
-        caps.push(self.sess.sel());
-        caps.push(self.sgate.sel());
+    fn exchange_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
+        let mut args = kif::syscalls::ExchangeArgs {
+            count: 0,
+            vals: unsafe { intrinsics::uninit() },
+        };
+
+        dels.push(self.sess.sel());
+
+        // TODO error case?
+        let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, self.sess.sel() + 1, 1);
+        self.sess.obtain_for(vpe, crd, &mut args).ok();
+        *max_sel = util::max(*max_sel, self.sess.sel() + 2);
     }
     fn serialize(&self, s: &mut VecSink) {
         s.push(&self.sess.sel());
@@ -139,9 +159,8 @@ impl FileSystem for M3FS {
 
 impl M3FS {
     pub fn unserialize(s: &mut SliceSource) -> FSHandle {
-        let sess: Selector = s.pop();
-        let sgate: Selector = s.pop();
-        M3FS::new_bind(sess, sgate)
+        let sels: Selector = s.pop();
+        M3FS::new_bind(sels)
     }
 }
 

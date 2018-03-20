@@ -21,15 +21,25 @@
 #include "../FSHandle.h"
 
 class M3FSMetaSession : public M3FSSession {
+    struct MetaSGate : public m3::SListItem {
+        explicit MetaSGate(m3::SendGate &&_sgate) : sgate(m3::Util::move(_sgate)) {
+        }
+        m3::SendGate sgate;
+    };
+
 public:
     static constexpr size_t MAX_FILES   = 16;
 
     explicit M3FSMetaSession(m3::RecvGate &rgate, FSHandle &handle)
-        : M3FSSession(), _sgate(), _rgate(rgate), _handle(handle), _files() {
+        : M3FSSession(), _sgates(), _rgate(rgate), _handle(handle), _files() {
     }
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)
             delete _files[i];
+        for(auto it = _sgates.begin(); it != _sgates.end(); ) {
+            auto old = it++;
+            delete &*old;
+        }
     }
 
     virtual Type type() const override {
@@ -42,9 +52,6 @@ public:
     virtual void link(m3::GateIStream &is) override;
     virtual void unlink(m3::GateIStream &is) override;
 
-    m3::SendGate *sgate() {
-        return _sgate;
-    }
     m3::RecvGate &rgate() {
         return _rgate;
     }
@@ -59,7 +66,7 @@ public:
 private:
     ssize_t alloc_file(capsel_t srv, const char *path, int flags, const m3::INode &inode);
 
-    m3::SendGate *_sgate;
+    m3::SList<MetaSGate> _sgates;
     m3::RecvGate &_rgate;
     FSHandle &_handle;
     // TODO change that to a list?

@@ -82,9 +82,9 @@ impl MountTable {
         }
     }
 
-    pub fn collect_caps(&self, caps: &mut Vec<Selector>) {
+    pub fn collect_caps(&self, vpe: Selector, dels: &mut Vec<Selector>, max_sel: &mut Selector) {
         for m in &self.mounts {
-            m.fs.borrow().collect_caps(caps);
+            m.fs.borrow().exchange_caps(vpe, dels, max_sel);
         }
     }
 

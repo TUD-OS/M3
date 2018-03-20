@@ -11,7 +11,9 @@ pub struct Session {
 
 impl Session {
     pub fn new(name: &str, arg: u64) -> Result<Self, Error> {
-        let sel = vpe::VPE::cur().alloc_sel();
+        Self::new_with_sel(name, arg, vpe::VPE::cur().alloc_sel())
+    }
+    pub fn new_with_sel(name: &str, arg: u64, sel: Selector) -> Result<Self, Error> {
         syscalls::create_sess(sel, name, arg)?;
         Ok(Session {
             cap: Capability::new(sel, CapFlags::empty()),
