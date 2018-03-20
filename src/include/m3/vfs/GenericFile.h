@@ -27,6 +27,8 @@
 namespace m3 {
 
 class GenericFile : public File {
+    friend class FileTable;
+
 public:
     enum Operation {
         STAT,
@@ -61,7 +63,7 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) override;
 
     virtual void flush() override {
-        submit();
+        submit(false);
     }
 
     virtual char type() const override {
@@ -94,7 +96,8 @@ public:
     }
 
 private:
-    Errors::Code submit();
+    void evict();
+    Errors::Code submit(bool force);
     Errors::Code delegate_ep();
 
     mutable Session _sess;

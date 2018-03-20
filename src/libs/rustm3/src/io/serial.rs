@@ -21,6 +21,15 @@ impl vfs::Map for io::Serial {
 }
 
 impl vfs::File for io::Serial {
+    fn fd(&self) -> vfs::Fd {
+        0
+    }
+    fn set_fd(&mut self, _fd: vfs::Fd) {
+    }
+
+    fn evict(&mut self) {
+    }
+
     fn close(&mut self) {
     }
 

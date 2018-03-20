@@ -9,6 +9,7 @@ mod tboxlist;
 mod tbufio;
 mod tdir;
 mod tdlist;
+mod tfilemux;
 mod tgenfile;
 mod tm3fs;
 mod tmgate;
@@ -44,6 +45,7 @@ pub fn main() -> i32 {
     run_suite!(tester, tbufio::run);
     run_suite!(tester, tdir::run);
     run_suite!(tester, tdlist::run);
+    run_suite!(tester, tfilemux::run);
     run_suite!(tester, tgenfile::run);
     run_suite!(tester, tm3fs::run);
     run_suite!(tester, tmgate::run);

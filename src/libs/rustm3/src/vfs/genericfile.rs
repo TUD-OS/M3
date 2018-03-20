@@ -24,6 +24,7 @@ int_enum! {
 }
 
 pub struct GenericFile {
+    fd: vfs::Fd,
     sess: Session,
     sgate: SendGate,
     mgate: MemGate,
@@ -37,6 +38,7 @@ pub struct GenericFile {
 impl GenericFile {
     pub fn new(sel: Selector) -> Self {
         GenericFile {
+            fd: 0,
             sess: Session::new_bind(sel),
             sgate: SendGate::new_bind(sel + 1),
             mgate: MemGate::new_bind(INVALID_SEL),
@@ -52,11 +54,11 @@ impl GenericFile {
         Rc::new(RefCell::new(GenericFile::new(s.pop())))
     }
 
-    fn submit(&mut self) -> Result<(), Error> {
-        if self.writing && self.pos > 0 {
+    fn submit(&mut self, force: bool) -> Result<(), Error> {
+        if self.pos > 0 && (self.writing || force) {
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::WRITE, self.pos
+                if self.writing { Operation::WRITE } else { Operation::READ }, self.pos
             )?;
             // if we append, the file was truncated
             let filesize = reply.pop();
@@ -66,13 +68,14 @@ impl GenericFile {
             self.goff += self.pos;
             self.pos = 0;
             self.len = 0;
+            self.writing = false;
         }
         Ok(())
     }
 
     fn delegate_ep(&mut self) -> Result<(), Error> {
         if self.mgate.ep().is_none() {
-            let ep = VPE::cur().alloc_ep()?;
+            let ep = VPE::cur().files().request_ep(self.fd)?;
             self.sess.delegate_obj(VPE::cur().ep_sel(ep))?;
             self.mgate.set_ep(ep);
         }
@@ -81,8 +84,26 @@ impl GenericFile {
 }
 
 impl vfs::File for GenericFile {
+    fn fd(&self) -> vfs::Fd {
+        self.fd
+    }
+    fn set_fd(&mut self, fd: vfs::Fd) {
+        self.fd = fd;
+    }
+
+    fn evict(&mut self) {
+        // submit read/written data
+        self.submit(true).ok();
+
+        // revoke EP cap
+        let ep = self.mgate.ep().unwrap();
+        let sel = VPE::cur().ep_sel(ep);
+        VPE::cur().revoke(CapRngDesc::new(CapType::OBJECT, sel, 1), true).ok();
+        self.mgate.unset_ep();
+    }
+
     fn close(&mut self) {
-        self.submit().ok();
+        self.submit(false).ok();
 
         if let Some(ep) = self.mgate.ep() {
             let sel = VPE::cur().ep_sel(ep);
@@ -126,7 +147,7 @@ impl vfs::File for GenericFile {
 
 impl vfs::Seek for GenericFile {
     fn seek(&mut self, mut off: usize, mut whence: vfs::SeekMode) -> Result<usize, Error> {
-        self.submit()?;
+        self.submit(false)?;
 
         if whence == vfs::SeekMode::CUR {
             off = self.goff + self.pos + off;
@@ -155,13 +176,13 @@ impl vfs::Seek for GenericFile {
 impl Read for GenericFile {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         self.delegate_ep()?;
-        self.submit()?;
+        self.submit(false)?;
 
         if self.pos == self.len {
             time::start(0xbbbb);
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::READ
+                Operation::READ, 0usize
             )?;
             time::stop(0xbbbb);
             self.goff += self.len;
@@ -184,7 +205,7 @@ impl Read for GenericFile {
 
 impl Write for GenericFile {
     fn flush(&mut self) -> Result<(), Error> {
-        self.submit()
+        self.submit(false)
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {

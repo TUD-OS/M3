@@ -94,6 +94,7 @@ private:
     size_t extent;
     size_t extoff;
     size_t lastoff;
+    size_t extlen;
     m3::String filename;
     capsel_t epcap;
     capsel_t sess;

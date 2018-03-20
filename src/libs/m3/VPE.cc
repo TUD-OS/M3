@@ -114,7 +114,7 @@ epid_t VPE::alloc_ep() {
         }
     }
 
-    PANIC("No more free endpoints");
+    return 0;
 }
 
 void VPE::mounts(const MountTable &ms) {

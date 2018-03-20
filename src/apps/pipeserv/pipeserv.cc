@@ -105,8 +105,10 @@ public:
 
     void read(m3::GateIStream &is) {
         PipeSession *sess = is.label<PipeSession*>();
+        size_t submit;
+        is >> submit;
 
-        sess->read(is);
+        sess->read(is, submit);
     }
 
     void write(m3::GateIStream &is) {

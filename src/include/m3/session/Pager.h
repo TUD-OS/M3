@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <base/Panic.h>
+
 #include <m3/session/Session.h>
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
@@ -30,6 +32,8 @@ private:
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _gate(SendGate::bind(obtain(1).start())) {
+        if(_rep == 0)
+            PANIC("No free EPs");
     }
 
 public:
@@ -68,6 +72,8 @@ public:
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _gate(SendGate::bind(obtain(1).start())) {
+        if(_rep == 0)
+            PANIC("No free EPs");
     }
 
     void activate_rgate() {

@@ -23,6 +23,7 @@
 namespace m3 {
 
 class File;
+class GenericFile;
 class VPE;
 
 /**
@@ -36,14 +37,22 @@ class VPE;
  * to the child VPE.
  */
 class FileTable {
+    friend class GenericFile;
+
+    struct FileEp {
+        GenericFile *file;
+        epid_t epid;
+    };
+
 public:
+    static const fd_t MAX_EPS       = 4;
     static const fd_t MAX_FDS       = 16;
     static const fd_t INVALID       = MAX_FDS;
 
     /**
      * Constructor
      */
-    explicit FileTable() : _fds() {
+    explicit FileTable() : _file_ep_count(), _file_ep_victim(), _file_eps(), _fds() {
     }
 
     explicit FileTable(const FileTable &f) {
@@ -71,11 +80,7 @@ public:
      *
      * @param fd the file descriptor
      */
-    File *free(fd_t fd) {
-        File *file = _fds[fd];
-        _fds[fd] = nullptr;
-        return file;
-    }
+    File *free(fd_t fd);
 
     /**
      * @param fd the file descriptor
@@ -100,6 +105,7 @@ public:
      * @param file the file
      */
     void set(fd_t fd, File *file) {
+        assert(file != nullptr);
         _fds[fd] = file;
     }
 
@@ -129,6 +135,12 @@ public:
     static FileTable *unserialize(const void *buffer, size_t size);
 
 private:
+    fd_t file_to_fd(File *file);
+    epid_t request_ep(GenericFile *file);
+
+    size_t _file_ep_count;
+    size_t _file_ep_victim;
+    FileEp _file_eps[MAX_EPS];
     File *_fds[MAX_FDS];
 };
 

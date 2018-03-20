@@ -14,6 +14,9 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
+#include <base/Panic.h>
+
 #include <m3/com/Marshalling.h>
 #include <m3/pipe/AccelPipeReader.h>
 #include <m3/pipe/AccelPipeWriter.h>
@@ -34,6 +37,65 @@ fd_t FileTable::alloc(File *file) {
         }
     }
     return MAX_FDS;
+}
+
+File *FileTable::free(fd_t fd) {
+    File *file = _fds[fd];
+
+    // remove from multiplexing table
+    if(file) {
+        _fds[fd] = nullptr;
+        for(size_t i = 0; i < MAX_EPS; ++i) {
+            if(_file_eps[i].file == file) {
+                LLOG(FILES, "FileEPs[" << i << "] = --");
+                _file_eps[i].file = nullptr;
+                _file_ep_count--;
+                break;
+            }
+        }
+    }
+
+    return file;
+}
+
+fd_t FileTable::file_to_fd(File *file) {
+    for(fd_t i = 0; i < MAX_FDS; ++i) {
+        if(_fds[i] == file)
+            return i;
+    }
+    return MAX_FDS;
+}
+
+epid_t FileTable::request_ep(GenericFile *file) {
+    if(_file_ep_count < MAX_EPS) {
+        epid_t ep = VPE::self().alloc_ep();
+        if(ep != 0) {
+            for(size_t i = 0; i < MAX_EPS; ++i) {
+                if(_file_eps[i].file == nullptr) {
+                    LLOG(FILES, "FileEPs[" << i << "] = EP:" << ep << ",FD:" << file_to_fd(file));
+                    _file_eps[i].file = file;
+                    _file_eps[i].epid = ep;
+                    _file_ep_count++;
+                    return ep;
+                }
+            }
+            UNREACHED;
+        }
+    }
+
+    // TODO be smarter here
+    size_t count = 0;
+    for(size_t i = _file_ep_victim; count < MAX_EPS; i = (i + 1) % MAX_EPS, ++count) {
+        if(_file_eps[i].file != nullptr) {
+            LLOG(FILES, "FileEPs[" << i << "] = EP:" << _file_eps[i].epid << ", FD: switching from "
+                << file_to_fd(_file_eps[i].file) << " to " << file_to_fd(file));
+            _file_eps[i].file->evict();
+            _file_eps[i].file = file;
+            _file_ep_victim = (i + 1) % MAX_EPS;
+            return _file_eps[i].epid;
+        }
+    }
+    PANIC("Unable to find victim");
 }
 
 void FileTable::delegate(VPE &vpe) const {

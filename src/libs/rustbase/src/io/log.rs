@@ -21,6 +21,8 @@ pub const SERV: bool    = false;
 pub const DTU: bool     = false;
 /// Logs thread switching etc.
 pub const THREAD: bool  = false;
+/// Logs file multiplexing
+pub const FILES: bool   = false;
 
 const MAX_LINE_LEN: usize = 160;
 const SUFFIX: &[u8] = b"\x1B[0m";

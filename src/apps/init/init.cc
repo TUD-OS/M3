@@ -38,9 +38,9 @@ int main(int argc, const char **argv) {
 
     VTerm vterm("vterm");
     if(vterm.is_connected()) {
-        sh.fds()->set(STDIN_FD, vterm.create_chan());
-        sh.fds()->set(STDOUT_FD, vterm.create_chan());
-        sh.fds()->set(STDERR_FD, vterm.create_chan());
+        sh.fds()->set(STDIN_FD, vterm.create_channel(true));
+        sh.fds()->set(STDOUT_FD, vterm.create_channel(false));
+        sh.fds()->set(STDERR_FD, vterm.create_channel(false));
         sh.obtain_fds();
     }
 

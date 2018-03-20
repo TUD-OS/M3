@@ -18,13 +18,14 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/session/M3FS.h>
+#include <m3/vfs/FileTable.h>
 #include <m3/vfs/GenericFile.h>
 #include <m3/Syscalls.h>
 
 namespace m3 {
 
 GenericFile::~GenericFile() {
-    submit();
+    submit(false);
     if(_mg.ep() != MemGate::UNBOUND) {
         capsel_t sel = VPE::self().ep_sel(_mg.ep());
         VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel), true);
@@ -41,7 +42,7 @@ Errors::Code GenericFile::stat(FileInfo &info) const {
 }
 
 ssize_t GenericFile::seek(size_t offset, int whence) {
-    if(submit() != Errors::NONE)
+    if(submit(false) != Errors::NONE)
         return -1;
 
     if(whence == SEEK_CUR) {
@@ -67,12 +68,12 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
 }
 
 ssize_t GenericFile::read(void *buffer, size_t count) {
-    if(delegate_ep() != Errors::NONE || submit() != Errors::NONE)
+    if(delegate_ep() != Errors::NONE || submit(false) != Errors::NONE)
         return -1;
 
     if(_pos == _len) {
         Time::start(0xbbbb);
-        GateIStream reply = send_receive_vmsg(_sg, READ);
+        GateIStream reply = send_receive_vmsg(_sg, READ, static_cast<size_t>(0));
         reply >> Errors::last;
         Time::stop(0xbbbb);
         if(Errors::last != Errors::NONE)
@@ -122,12 +123,24 @@ ssize_t GenericFile::write(const void *buffer, size_t count) {
     return static_cast<ssize_t>(amount);
 }
 
-Errors::Code GenericFile::submit() {
-    if(_writing && _pos > 0) {
-        GateIStream reply = send_receive_vmsg(_sg, WRITE, _pos);
+void GenericFile::evict() {
+    assert(_mg.ep() != MemGate::UNBOUND);
+    // submit read/written data
+    submit(true);
+
+    // revoke EP cap
+    capsel_t ep_sel = VPE::self().ep_sel(_mg.ep());
+    VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, ep_sel), true);
+    _mg.ep(MemGate::UNBOUND);
+}
+
+Errors::Code GenericFile::submit(bool force) {
+    if(_pos > 0 && (_writing || force)) {
+        GateIStream reply = send_receive_vmsg(_sg, _writing ? WRITE : READ, _pos);
         reply >> Errors::last;
         if(Errors::last != Errors::NONE)
             return Errors::last;
+
         // if we append, the file was truncated
         size_t filesize;
         reply >> filesize;
@@ -136,12 +149,13 @@ Errors::Code GenericFile::submit() {
         _goff += _pos;
         _pos = _len = 0;
     }
+    _writing = false;
     return Errors::NONE;
 }
 
 Errors::Code GenericFile::delegate_ep() {
     if(_mg.ep() == MemGate::UNBOUND) {
-        epid_t ep = VPE::self().alloc_ep();
+        epid_t ep = VPE::self().fds()->request_ep(this);
         _sess.delegate_obj(VPE::self().ep_sel(ep));
         if(Errors::last != Errors::NONE)
             return Errors::last;

@@ -26,18 +26,138 @@ using namespace m3;
 static constexpr size_t MSG_SIZE = 64;
 static constexpr size_t BUF_SIZE = 256;
 
-class VTermSession {
-public:
-    explicit VTermSession(RecvGate &rgate)
-        : active(false), writing(false), ep(ObjCap::INVALID), sess(ObjCap::INVALID),
-          sgate(SendGate::create(&rgate, reinterpret_cast<label_t>(this), MSG_SIZE)),
-          mem(MemGate::create_global(BUF_SIZE, MemGate::RW)) {
+struct VTermSession;
+class ChannelSession;
+class VTermHandler;
+
+using base_class = RequestHandler<
+    VTermHandler, GenericFile::Operation, GenericFile::Operation::COUNT, VTermSession
+>;
+
+static Server<VTermHandler> *srv;
+
+struct VTermSession {
+    enum Type {
+        META,
+        CHAN,
+    };
+
+    virtual ~VTermSession() {
     }
-    explicit VTermSession(RecvGate &rgate, capsel_t srv, capsel_t caps)
-        : active(false), writing(false), ep(ObjCap::INVALID), sess(caps + 0, 0),
+
+    virtual Type type() const = 0;
+
+    virtual void read(m3::GateIStream &is, size_t) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void write(m3::GateIStream &is, size_t) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
+};
+
+class MetaSession : public VTermSession {
+public:
+    explicit MetaSession() {
+    }
+
+    ChannelSession *create_chan(RecvGate &rgate, bool write);
+
+    virtual Type type() const {
+        return META;
+    }
+};
+
+class ChannelSession : public VTermSession {
+public:
+    explicit ChannelSession(RecvGate &rgate, capsel_t srv, capsel_t caps, bool _writing)
+        : active(false), writing(_writing), ep(ObjCap::INVALID), sess(caps + 0, 0),
           sgate(SendGate::create(&rgate, reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, caps + 1)),
-          mem(MemGate::create_global(BUF_SIZE, MemGate::RW)) {
+          mem(MemGate::create_global(BUF_SIZE, MemGate::RW)), pos(), len() {
         Syscalls::get().createsessat(sess.sel(), srv, reinterpret_cast<word_t>(this));
+    }
+
+    ChannelSession *clone(RecvGate &rgate);
+
+    virtual Type type() const override {
+        return CHAN;
+    }
+
+    virtual void read(m3::GateIStream &is, size_t submit) override {
+        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::read(submit=" << submit << ")");
+
+        if(writing) {
+            reply_error(is, Errors::NO_PERM);
+            return;
+        }
+        if(submit > len - pos) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        pos += submit ? submit : (len - pos);
+        if(submit > 0) {
+            reply_vmsg(is, Errors::NONE, len);
+            return;
+        }
+
+        Errors::last = Errors::NONE;
+
+        if(pos == len) {
+            char buf[BUF_SIZE];
+            len = static_cast<size_t>(Machine::read(buf, sizeof(buf)));
+            mem.write(buf, len, 0);
+            pos = 0;
+        }
+
+        if(!active) {
+            Syscalls::get().activate(ep, mem.sel(), 0);
+            active = true;
+        }
+
+        if(Errors::last != Errors::NONE)
+            reply_error(is, Errors::last);
+        else
+            reply_vmsg(is, Errors::NONE, pos, len - pos);
+    }
+
+    virtual void write(m3::GateIStream &is, size_t submit) override {
+        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::write(submit=" << submit << ")");
+
+        if(!writing) {
+            reply_error(is, Errors::NO_PERM);
+            return;
+        }
+        if(submit > len) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        if(len > 0) {
+            char buf[BUF_SIZE];
+            size_t amount = submit ? submit : len;
+            mem.read(buf, amount, 0);
+            Machine::write(buf, amount);
+            len = 0;
+        }
+        if(submit > 0) {
+            reply_vmsg(is, Errors::NONE, BUF_SIZE);
+            return;
+        }
+
+        if(!active) {
+            Syscalls::get().activate(ep, mem.sel(), 0);
+            active = true;
+        }
+
+        if(Errors::last != Errors::NONE)
+            reply_error(is, Errors::last);
+        else {
+            len = BUF_SIZE;
+            if(submit > 0)
+                reply_vmsg(is, Errors::NONE, BUF_SIZE);
+            else
+                reply_vmsg(is, Errors::NONE, static_cast<size_t>(0), BUF_SIZE);
+        }
     }
 
     bool active;
@@ -46,14 +166,19 @@ public:
     Session sess;
     SendGate sgate;
     MemGate mem;
+    size_t pos;
+    size_t len;
 };
 
-class VTermHandler;
-using base_class = RequestHandler<
-    VTermHandler, GenericFile::Operation, GenericFile::Operation::COUNT, VTermSession
->;
+inline ChannelSession *MetaSession::create_chan(RecvGate &rgate, bool write) {
+    capsel_t caps = VPE::self().alloc_caps(2);
+    return new ChannelSession(rgate, srv->sel(), caps, write);
+}
 
-static Server<VTermHandler> *srv;
+inline ChannelSession *ChannelSession::clone(RecvGate &rgate) {
+    capsel_t caps = VPE::self().alloc_caps(2);
+    return new ChannelSession(rgate, srv->sel(), caps, writing);
+}
 
 class VTermHandler : public base_class {
 public:
@@ -71,30 +196,37 @@ public:
     }
 
     virtual Errors::Code open(VTermSession **sess, word_t) override {
-        *sess = new VTermSession(_rgate);
+        *sess = new MetaSession();
         return Errors::NONE;
     }
 
     virtual Errors::Code obtain(VTermSession *sess, KIF::Service::ExchangeData &data) override {
-        if(data.args.count != 0 || (data.caps != 1 && data.caps != 2))
+        if(data.caps != 1 && data.caps != 2)
             return Errors::INV_ARGS;
 
-        if(data.caps == 1)
-            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess->sgate.sel(), 1).value();
-        else {
-            capsel_t caps = VPE::self().alloc_caps(2);
-            auto nsess = new VTermSession(_rgate, srv->sel(), caps);
-            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nsess->sess.sel(), 2).value();
+        ChannelSession *nsess;
+        if(sess->type() == VTermSession::META) {
+            if(data.args.count != 1)
+                return Errors::INV_ARGS;
+            nsess = static_cast<MetaSession*>(sess)->create_chan(_rgate, data.args.vals[0] == 1);
         }
+        else {
+            if(data.args.count != 0)
+                return Errors::INV_ARGS;
+            nsess = static_cast<ChannelSession*>(sess)->clone(_rgate);
+        }
+
+        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nsess->sess.sel(), 2).value();
         return Errors::NONE;
     }
 
     virtual Errors::Code delegate(VTermSession *sess, KIF::Service::ExchangeData &data) override {
-        if(data.caps != 1 || data.args.count != 0)
+        if(data.caps != 1 || data.args.count != 0 || sess->type() != VTermSession::CHAN)
             return Errors::INV_ARGS;
 
-        sess->ep = VPE::self().alloc_cap();
-        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess->ep, 1).value();
+        ChannelSession *chan = static_cast<ChannelSession*>(sess);
+        chan->ep = VPE::self().alloc_cap();
+        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, chan->ep, 1).value();
         return Errors::NONE;
     }
 
@@ -113,26 +245,10 @@ public:
 
     void read(m3::GateIStream &is) {
         VTermSession *sess = is.label<VTermSession*>();
+        size_t submit;
+        is >> submit;
 
-        SLOG(VTERM, fmt((word_t)sess, "p") << " vterm::read()");
-
-        Errors::last = Errors::NONE;
-
-        char buf[BUF_SIZE];
-        ssize_t count = Machine::read(buf, sizeof(buf));
-        sess->mem.write(buf, static_cast<size_t>(count), 0);
-
-        if(!sess->active) {
-            Syscalls::get().activate(sess->ep, sess->mem.sel(), 0);
-            sess->active = true;
-        }
-
-        sess->writing = false;
-
-        if(Errors::last != Errors::NONE)
-            reply_error(is, Errors::last);
-        else
-            reply_vmsg(is, Errors::NONE, 0, count);
+        sess->read(is, submit);
     }
 
     void write(m3::GateIStream &is) {
@@ -140,34 +256,7 @@ public:
         size_t submit;
         is >> submit;
 
-        if(submit > BUF_SIZE) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        SLOG(VTERM, fmt((word_t)sess, "p") << " vterm::write(submit="
-            << submit << ", writing=" << sess->writing << ")");
-
-        if(sess->writing) {
-            char buf[BUF_SIZE];
-            size_t amount = submit ? submit : BUF_SIZE;
-            sess->mem.read(buf, amount, 0);
-            Machine::write(buf, amount);
-        }
-
-        if(!sess->active) {
-            Syscalls::get().activate(sess->ep, sess->mem.sel(), 0);
-            sess->active = true;
-        }
-
-        sess->writing = submit == 0;
-
-        if(Errors::last != Errors::NONE)
-            reply_error(is, Errors::last);
-        else if(submit > 0)
-            reply_vmsg(is, Errors::NONE, BUF_SIZE);
-        else
-            reply_vmsg(is, Errors::NONE, static_cast<size_t>(0), BUF_SIZE);
+        sess->write(is, submit);
     }
 
 private:

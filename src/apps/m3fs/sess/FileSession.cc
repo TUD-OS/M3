@@ -27,7 +27,7 @@ using namespace m3;
 
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                                  int _flags, const m3::INode &_inode)
-    : M3FSSession(), extent(), extoff(), lastoff(), filename(_filename),
+    : M3FSSession(), extent(), extoff(), lastoff(), extlen(), filename(_filename),
       epcap(ObjCap::INVALID), sess(m3::VPE::self().alloc_caps(2)),
       sgate(m3::SendGate::create(&_meta->rgate(), reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, sess + 1)),
       oflags(_flags), xstate(TransactionState::NONE), inode(_inode),
@@ -121,8 +121,30 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
 }
 
 void M3FSFileSession::read_write(GateIStream &is, bool write) {
+    size_t submit;
+    is >> submit;
+
+    SLOG(FS, fmt((word_t)meta, "#x")
+        << ": fs::" << (write ? "write" : "read") << "(submit=" << submit << "); "
+        << "file[path=" << filename << ", extent=" << extent << ", extoff=" << extoff << "]");
+
     if((write && !(oflags & FILE_W)) || (!write && !(oflags & FILE_R))) {
         reply_error(is, Errors::NO_PERM);
+        return;
+    }
+
+    if(submit > 0) {
+        if(extent == 0) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        if(lastoff + submit < extlen) {
+            extent--;
+            extoff = lastoff + submit;
+        }
+        Errors::Code res = write ? do_commit(extent, extoff) : Errors::NONE;
+        reply_vmsg(is, res, inode.size);
         return;
     }
 
@@ -140,8 +162,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     }
 
     lastoff = extoff;
-    size_t bytes = locs->get_len(0);
-    if(bytes > 0) {
+    extlen = locs->get_len(0);
+    if(extlen > 0) {
         // activate mem cap for client
         if(Syscalls::get().activate(epcap, crd.start(), 0) != Errors::NONE) {
             SLOG(FS, fmt((word_t)meta, "#x") << ": activate failed: "
@@ -160,7 +182,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         xstate = TransactionState::OPEN;
 
     // reply first
-    reply_vmsg(is, Errors::NONE, lastoff, bytes - lastoff);
+    reply_vmsg(is, Errors::NONE, lastoff, extlen - lastoff);
 
     // revoke last mem cap and remember new one
     if(last != ObjCap::INVALID)
@@ -169,32 +191,11 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
 }
 
 void M3FSFileSession::read(GateIStream &is) {
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::read(path="
-        << filename << ", extent=" << extent << ")");
-
     read_write(is, false);
 }
 
 void M3FSFileSession::write(GateIStream &is) {
-    size_t submit;
-    is >> submit;
-
-    SLOG(FS, fmt((word_t)meta, "#x") << ": fs::write(path="
-        << filename << ", extent=" << extent << ", submit=" << submit << ")");
-
-    if(submit > 0) {
-        if(extent == 0) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        extent--;
-        extoff = lastoff + submit;
-        Errors::Code res = do_commit(extent, extoff);
-        reply_vmsg(is, res, inode.size);
-    }
-    else
-        read_write(is, true);
+    read_write(is, true);
 }
 
 void M3FSFileSession::seek(GateIStream &is) {

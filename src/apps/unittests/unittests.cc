@@ -46,8 +46,9 @@ int main() {
     con.add(new CommandsTestSuite());
     con.add(new MemoryTestSuite());
 #endif
-    con.add(new FSTestSuite());
+    // FIXME: FSTestSuite changes pat.bin, which is why we need to run FS2TestSuite first
     con.add(new FS2TestSuite());
+    con.add(new FSTestSuite());
     con.add(new BitFieldTestSuite());
     con.add(new HeapTestSuite());
     con.add(new StreamTestSuite());

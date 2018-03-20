@@ -33,8 +33,18 @@ private:
         explicit MetaFileTestCase() : test::TestCase("Meta operations") {
         }
         virtual void run() override;
-    private:
-        void check_content(const char *filename, size_t size);
+    };
+    class FileMuxTestCase : public test::TestCase {
+    public:
+        explicit FileMuxTestCase() : test::TestCase("File multiplexing") {
+        }
+        virtual void run() override;
+    };
+    class PipeMuxTestCase : public test::TestCase {
+    public:
+        explicit PipeMuxTestCase() : test::TestCase("Pipe multiplexing") {
+        }
+        virtual void run() override;
     };
 
 public:
@@ -42,5 +52,7 @@ public:
         : TestSuite("FS2") {
         add(new WriteFileTestCase());
         add(new MetaFileTestCase());
+        add(new FileMuxTestCase());
+        add(new PipeMuxTestCase());
     }
 };

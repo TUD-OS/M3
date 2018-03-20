@@ -40,7 +40,7 @@ public:
 
     virtual Type type() const = 0;
 
-    virtual void read(m3::GateIStream &is) {
+    virtual void read(m3::GateIStream &is, size_t) {
         reply_error(is, m3::Errors::NOT_SUP);
     }
     virtual void write(m3::GateIStream &is, size_t) {
@@ -92,7 +92,7 @@ public:
         return RCHAN;
     }
 
-    virtual void read(m3::GateIStream &is) override;
+    virtual void read(m3::GateIStream &is, size_t submit) override;
     virtual m3::Errors::Code close() override;
 
 private:

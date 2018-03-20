@@ -115,6 +115,8 @@ RecvGate::~RecvGate() {
 void RecvGate::activate() {
     if(ep() == UNBOUND) {
         epid_t ep = _vpe.alloc_ep();
+        if(ep == 0)
+            PANIC("No free EPs");
         _free |= FREE_EP;
         activate(ep);
     }

@@ -123,7 +123,7 @@ Errors::Code PipeReadChannel::close() {
     return Errors::NONE;
 }
 
-void PipeReadChannel::read(GateIStream &is) {
+void PipeReadChannel::read(GateIStream &is, size_t submit) {
     Errors::Code res = activate();
     if(res != Errors::NONE) {
         reply_error(is, res);
@@ -136,9 +136,15 @@ void PipeReadChannel::read(GateIStream &is) {
             return;
         }
 
-        PRINTCHAN(pipe, id, "read-pull: " << lastamount);
-        pipe->rbuf.pull(lastamount);
+        size_t amount = submit == 0 ? lastamount : submit;
+        PRINTCHAN(pipe, id, "read-pull: " << amount);
+        pipe->rbuf.pull(amount);
         pipe->last_reader = nullptr;
+    }
+
+    if(submit > 0) {
+        reply_vmsg(is, Errors::NONE, pipe->rbuf.size());
+        return;
     }
 
     if(pipe->pending_reads.length() > 0) {

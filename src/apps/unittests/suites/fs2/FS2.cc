@@ -20,6 +20,7 @@
 
 #include <m3/stream/FStream.h>
 #include <m3/stream/Standard.h>
+#include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/VFS.h>
 #include <m3/vfs/FileRef.h>
 #include <m3/vfs/Dir.h>
@@ -180,4 +181,76 @@ void FS2TestSuite::MetaFileTestCase::run() {
     assert_int(VFS::rmdir("/example"), Errors::NONE);
 
     assert_int(VFS::unlink("/newpath"), Errors::NONE);
+}
+
+void FS2TestSuite::FileMuxTestCase::run() {
+    const size_t NUM = 6;
+    const size_t STEP_SIZE = 400;
+    const size_t FILE_SIZE = 12 * 1024;
+
+    FStream *files[NUM];
+    for(size_t i = 0; i < NUM; ++i) {
+        files[i] = new FStream("/pat.bin", FILE_R);
+        if(Errors::occurred())
+            exitmsg("Unable to open '/pat.bin' for reading");
+    }
+
+    for(size_t pos = 0; pos < FILE_SIZE; pos += STEP_SIZE) {
+        for(size_t i = 0; i < NUM; ++i) {
+            size_t tpos = pos;
+            size_t end = Math::min(FILE_SIZE, pos + STEP_SIZE);
+            while(tpos < end) {
+                uint8_t byte = static_cast<uint8_t>(files[i]->read());
+                assert_uint(byte, tpos & 0xFF);
+                tpos++;
+            }
+        }
+    }
+
+    for(size_t i = 0; i < NUM; ++i)
+        delete files[i];
+}
+
+void FS2TestSuite::PipeMuxTestCase::run() {
+    const size_t NUM = 6;
+    const size_t STEP_SIZE = 16;
+    const size_t DATA_SIZE = 1024;
+    const size_t PIPE_SIZE = 256;
+
+    MemGate *mems[NUM];
+    IndirectPipe *pipes[NUM];
+    File *reader[NUM];
+    File *writer[NUM];
+    for(size_t i = 0; i < NUM; ++i) {
+        mems[i] = new MemGate(MemGate::create_global(PIPE_SIZE, MemGate::RW));
+        pipes[i] = new IndirectPipe(*mems[i], PIPE_SIZE);
+        reader[i] = VPE::self().fds()->get(pipes[i]->reader_fd());
+        writer[i] = VPE::self().fds()->get(pipes[i]->writer_fd());
+    }
+
+    char src_buf[STEP_SIZE];
+    for(size_t i = 0; i < STEP_SIZE; ++i)
+        src_buf[i] = 'a' + i;
+
+    for(size_t pos = 0; pos < DATA_SIZE; pos += STEP_SIZE) {
+        for(size_t i = 0; i < NUM; ++i) {
+            writer[i]->write(src_buf, STEP_SIZE);
+            writer[i]->flush();
+        }
+
+        for(size_t i = 0; i < NUM; ++i) {
+            char dst_buf[STEP_SIZE];
+            memset(dst_buf, 0, STEP_SIZE);
+
+            reader[i]->read(dst_buf, STEP_SIZE);
+
+            assert_int(memcmp(src_buf, dst_buf, STEP_SIZE), 0);
+        }
+        pos += STEP_SIZE;
+    }
+
+    for(size_t i = 0; i < NUM; ++i) {
+        delete pipes[i];
+        delete mems[i];
+    }
 }

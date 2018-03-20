@@ -7,7 +7,7 @@ use io::{Read, Write};
 use kif;
 use serialize::{Marshallable, Unmarshallable, Sink, Source};
 use session::Pager;
-use vfs::{BlockId, DevId, INodeId, FileMode};
+use vfs::{BlockId, DevId, Fd, INodeId, FileMode};
 
 int_enum! {
     pub struct SeekMode : u32 {
@@ -78,6 +78,11 @@ impl Unmarshallable for FileInfo {
 }
 
 pub trait File : Read + Write + Seek + Map + Debug {
+    fn fd(&self) -> Fd;
+    fn set_fd(&mut self, fd: Fd);
+
+    fn evict(&mut self);
+
     fn close(&mut self);
 
     fn stat(&self) -> Result<FileInfo, Error>;

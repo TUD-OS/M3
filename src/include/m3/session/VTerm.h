@@ -30,9 +30,12 @@ public:
     explicit VTerm(const String &name) : Session(name) {
     }
 
-    GenericFile *create_chan() {
+    GenericFile *create_channel(bool read) {
         capsel_t caps = VPE::self().alloc_caps(2);
-        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, caps, 2));
+        KIF::ExchangeArgs args;
+        args.count = 1;
+        args.vals[0] = read ? 0 : 1;
+        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, caps, 2), &args);
         return new GenericFile(caps);
     }
 };

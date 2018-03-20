@@ -158,7 +158,7 @@ public:
     /**
      * Allocates an endpoint.
      *
-     * @return the endpoint id
+     * @return the endpoint id or 0 if there is no free EP
      */
     epid_t alloc_ep();
 
