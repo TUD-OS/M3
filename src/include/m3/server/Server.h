@@ -33,7 +33,7 @@ class Server : public ObjCap {
 
 public:
     explicit Server(const String &name, HDL *handler)
-        : ObjCap(SERVICE, VPE::self().alloc_cap()), _handler(handler), _ctrl_handler(),
+        : ObjCap(SERVICE, VPE::self().alloc_sel()), _handler(handler), _ctrl_handler(),
           _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)) {
         using std::placeholders::_1;
         _rgate.start(std::bind(&Server::handle_message, this, _1));

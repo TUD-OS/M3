@@ -95,7 +95,7 @@ RecvGate RecvGate::create(capsel_t cap, int order, int msgorder) {
 }
 
 RecvGate RecvGate::create_for(VPE &vpe, int order, int msgorder) {
-    return RecvGate(vpe, VPE::self().alloc_cap(), UNBOUND, nullptr, order, msgorder, 0);
+    return RecvGate(vpe, VPE::self().alloc_sel(), UNBOUND, nullptr, order, msgorder, 0);
 }
 
 RecvGate RecvGate::create_for(VPE &vpe, capsel_t cap, int order, int msgorder) {

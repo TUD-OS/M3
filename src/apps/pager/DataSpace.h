@@ -111,7 +111,7 @@ public:
     }
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
             int flags, size_t _fileoff)
-        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(m3::VPE::self().alloc_cap()),
+        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(m3::VPE::self().alloc_sel()),
           fileoff(_fileoff) {
     }
 

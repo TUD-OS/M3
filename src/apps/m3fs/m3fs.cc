@@ -87,7 +87,7 @@ public:
         if(sess->type() == M3FSSession::META || data.args.count != 0 || data.caps != 1)
             return Errors::NOT_SUP;
 
-        capsel_t sel = VPE::self().alloc_cap();
+        capsel_t sel = VPE::self().alloc_sel();
         static_cast<M3FSFileSession*>(sess)->set_ep(sel);
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
         return Errors::NONE;

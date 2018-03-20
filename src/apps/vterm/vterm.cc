@@ -171,12 +171,12 @@ public:
 };
 
 inline ChannelSession *MetaSession::create_chan(RecvGate &rgate, bool write) {
-    capsel_t caps = VPE::self().alloc_caps(2);
+    capsel_t caps = VPE::self().alloc_sels(2);
     return new ChannelSession(rgate, srv->sel(), caps, write);
 }
 
 inline ChannelSession *ChannelSession::clone(RecvGate &rgate) {
-    capsel_t caps = VPE::self().alloc_caps(2);
+    capsel_t caps = VPE::self().alloc_sels(2);
     return new ChannelSession(rgate, srv->sel(), caps, writing);
 }
 
@@ -225,7 +225,7 @@ public:
             return Errors::INV_ARGS;
 
         ChannelSession *chan = static_cast<ChannelSession*>(sess);
-        chan->ep = VPE::self().alloc_cap();
+        chan->ep = VPE::self().alloc_sel();
         data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, chan->ep, 1).value();
         return Errors::NONE;
     }

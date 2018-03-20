@@ -49,7 +49,7 @@ public:
     };
 
     explicit M3FS(const String &service)
-        : Session(service, 0, VPE::self().alloc_caps(2)), FileSystem(), _gate(obtain_sgate()) {
+        : Session(service, 0, VPE::self().alloc_sels(2)), FileSystem(), _gate(obtain_sgate()) {
     }
     explicit M3FS(capsel_t caps)
         : Session(caps + 0), FileSystem(), _gate(SendGate::bind(caps + 1)) {

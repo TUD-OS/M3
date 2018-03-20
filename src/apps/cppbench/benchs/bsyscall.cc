@@ -244,7 +244,7 @@ NOINLINE static void revoke() {
 }
 
 void bsyscall() {
-    selector = VPE::self().alloc_cap();
+    selector = VPE::self().alloc_sel();
 
     RUN_BENCH(noop);
     RUN_BENCH(activate);

@@ -28,7 +28,7 @@ using namespace m3;
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                                  int _flags, const m3::INode &_inode)
     : M3FSSession(), extent(), extoff(), lastoff(), extlen(), filename(_filename),
-      epcap(ObjCap::INVALID), sess(m3::VPE::self().alloc_caps(2)),
+      epcap(ObjCap::INVALID), sess(m3::VPE::self().alloc_sels(2)),
       sgate(m3::SendGate::create(&_meta->rgate(), reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, sess + 1)),
       oflags(_flags), xstate(TransactionState::NONE), inode(_inode),
       last(ObjCap::INVALID), capscon(), meta(_meta) {

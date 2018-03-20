@@ -56,7 +56,7 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
-        : ObjCap(VIRTPE, VPE::self().alloc_caps(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
+        : ObjCap(VIRTPE, VPE::self().alloc_sels(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
           _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
           _next_sel(SEL_START), _eps(),
           _pager(), _rbufcur(), _rbufend(),
@@ -143,7 +143,7 @@ Errors::Code VPE::delegate(const KIF::CapRngDesc &crd, capsel_t dest) {
 }
 
 Errors::Code VPE::obtain(const KIF::CapRngDesc &crd) {
-    return obtain(crd, VPE::self().alloc_caps(crd.count()));
+    return obtain(crd, VPE::self().alloc_sels(crd.count()));
 }
 
 Errors::Code VPE::obtain(const KIF::CapRngDesc &crd, capsel_t dest) {

@@ -31,12 +31,12 @@ public:
     }
 
     GenericFile *create_channel(bool read) {
-        capsel_t caps = VPE::self().alloc_caps(2);
+        capsel_t sels = VPE::self().alloc_sels(2);
         KIF::ExchangeArgs args;
         args.count = 1;
         args.vals[0] = read ? 0 : 1;
-        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, caps, 2), &args);
-        return new GenericFile(caps);
+        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, 2), &args);
+        return new GenericFile(sels);
     }
 };
 

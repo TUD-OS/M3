@@ -144,14 +144,14 @@ public:
     /**
      * Allocates capability selectors.
      *
-     * @param count the number of caps
+     * @param count the number of selectors
      * @return the first one
      */
-    capsel_t alloc_caps(uint count) {
+    capsel_t alloc_sels(uint count) {
         _next_sel += count;
         return _next_sel - count;
     }
-    capsel_t alloc_cap() {
+    capsel_t alloc_sel() {
         return _next_sel++;
     }
 

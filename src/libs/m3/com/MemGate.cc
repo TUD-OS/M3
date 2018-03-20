@@ -30,15 +30,15 @@ namespace m3 {
 MemGate MemGate::create_global_for(goff_t addr, size_t size, int perms, capsel_t sel) {
     uint flags = 0;
     if(sel == INVALID)
-        sel = VPE::self().alloc_cap();
+        sel = VPE::self().alloc_sel();
     Syscalls::get().createmgate(sel, addr, size, perms);
     return MemGate(flags, sel);
 }
 
 MemGate MemGate::derive(goff_t offset, size_t size, int perms) const {
-    capsel_t cap = VPE::self().alloc_cap();
-    Syscalls::get().derivemem(cap, sel(), offset, size, perms);
-    return MemGate(0, cap);
+    capsel_t nsel = VPE::self().alloc_sel();
+    Syscalls::get().derivemem(nsel, sel(), offset, size, perms);
+    return MemGate(0, nsel);
 }
 
 MemGate MemGate::derive(capsel_t cap, goff_t offset, size_t size, int perms) const {

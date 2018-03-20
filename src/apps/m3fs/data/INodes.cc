@@ -84,7 +84,7 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
     }
 
     size_t blocks_total = blocks * locs;
-    crd = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, VPE::self().alloc_caps(locs), locs);
+    crd = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, VPE::self().alloc_sels(locs), locs);
     Extent *indir = nullptr;
     // we're reusing the locations
     _locs.clear();

@@ -74,7 +74,7 @@ public:
             if(data.caps != 1 || data.args.count != 0 || static_cast<PipeData*>(sess)->memory)
                 return Errors::INV_ARGS;
 
-            capsel_t sel = VPE::self().alloc_cap();
+            capsel_t sel = VPE::self().alloc_sel();
             static_cast<PipeData*>(sess)->memory = new MemGate(MemGate::bind(sel));
             data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
         }
@@ -82,7 +82,7 @@ public:
             if(data.caps != 1 || data.args.count != 0)
                 return Errors::INV_ARGS;
 
-            capsel_t sel = VPE::self().alloc_cap();
+            capsel_t sel = VPE::self().alloc_sel();
             static_cast<PipeChannel*>(sess)->set_ep(sel);
             data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
         }

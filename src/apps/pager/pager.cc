@@ -67,7 +67,7 @@ public:
         capsel_t sel;
         goff_t virt = 0;
         if(sess->vpe.sel() == ObjCap::INVALID)
-            sel = sess->init(VPE::self().alloc_caps(2));
+            sel = sess->init(VPE::self().alloc_sels(2));
         else {
             if(data.args.vals[0] == Pager::DelOp::DATASPACE)
                 sel = map_ds(sess, data.args.count, data.args.vals, &virt);
@@ -97,7 +97,7 @@ public:
         SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
 
         // clone the current session and connect it to the current one
-        AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_cap());
+        AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_sel());
         Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
 
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
@@ -252,7 +252,7 @@ public:
 
         // immediately insert a region, so that we don't allocate new memory on PFs
         Region *r = new Region(ds, 0, len);
-        r->mem(new PhysMem(sess->mem, *virt, VPE::self().alloc_cap()));
+        r->mem(new PhysMem(sess->mem, *virt, VPE::self().alloc_sel()));
         ds->regions().append(r);
 
         sess->add(ds);

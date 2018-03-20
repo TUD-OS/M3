@@ -77,7 +77,7 @@ protected:
         if(sess->gate() || data.args.count != 0 || data.caps != 1)
             return Errors::INV_ARGS;
 
-        sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_cap(), 0));
+        sess->_sgate = new SendGate(SendGate::bind(VPE::self().alloc_sel(), 0));
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, sess->gate()->sel());
         data.caps = crd.value();
         return Errors::NONE;

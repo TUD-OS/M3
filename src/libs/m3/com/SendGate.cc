@@ -28,7 +28,7 @@ SendGate SendGate::create(RecvGate *rgate, label_t label, word_t credits, RecvGa
     uint flags = 0;
     replygate = replygate == nullptr ? &RecvGate::def() : replygate;
     if(sel == INVALID)
-        sel = VPE::self().alloc_cap();
+        sel = VPE::self().alloc_sel();
     SendGate gate(sel, flags, replygate);
     Syscalls::get().createsgate(gate.sel(), rgate->sel(), label, credits);
     return gate;

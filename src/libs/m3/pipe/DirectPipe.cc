@@ -23,7 +23,7 @@ namespace m3 {
 
 DirectPipe::DirectPipe(VPE &rd, VPE &wr, MemGate &mem, size_t size)
     : _rd(rd), _wr(wr), _size(size),
-      _rgate(RecvGate::create(VPE::self().alloc_caps(3), nextlog2<MSG_BUF_SIZE>::val, nextlog2<MSG_SIZE>::val)),
+      _rgate(RecvGate::create(VPE::self().alloc_sels(3), nextlog2<MSG_BUF_SIZE>::val, nextlog2<MSG_SIZE>::val)),
       _mem(mem.derive(_rgate.sel() + 1, 0, size)),
       _sgate(SendGate::create(&_rgate, 0, CREDITS, nullptr, _rgate.sel() + 2)),
       _rdfd(), _wrfd() {

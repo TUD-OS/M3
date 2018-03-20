@@ -20,12 +20,12 @@
 
 namespace m3 {
 
-void Session::connect(const String &service, xfer_t arg, capsel_t cap) {
-    if(cap == ObjCap::INVALID)
-        cap = VPE::self().alloc_cap();
-    Errors::Code res = Syscalls::get().createsess(cap, service, arg);
+void Session::connect(const String &service, xfer_t arg, capsel_t selector) {
+    if(selector == ObjCap::INVALID)
+        selector = VPE::self().alloc_sel();
+    Errors::Code res = Syscalls::get().createsess(selector, service, arg);
     if(res == Errors::NONE)
-        sel(cap);
+        sel(selector);
 }
 
 void Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {

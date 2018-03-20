@@ -119,7 +119,7 @@ public:
      * @return the received capabilities
      */
     KIF::CapRngDesc obtain_for(VPE &vpe, uint count, KIF::ExchangeArgs *args = nullptr) {
-        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, vpe.alloc_caps(count), count);
+        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, vpe.alloc_sels(count), count);
         obtain_for(vpe, crd, args);
         return crd;
     }
