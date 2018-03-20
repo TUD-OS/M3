@@ -153,10 +153,6 @@ size_t MountTable::serialize(void *buffer, size_t size) const {
                 m << m3fs->sel() << m3fs->gate().sel();
             }
             break;
-
-            case 'P':
-                // nothing to do
-                break;
         }
     }
     return m.total();
@@ -173,10 +169,6 @@ void MountTable::delegate(VPE &vpe) const {
                 vpe.delegate_obj(m3fs->gate().sel());
             }
             break;
-
-            case 'P':
-                // nothing to do
-                break;
         }
     }
 }
