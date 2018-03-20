@@ -14,7 +14,6 @@ pub struct EnvData {
 
     pub lambda: u64,
     pub pager_sess: u32,
-    pub pager_sgate: u32,
     pub pager_rgate: u32,
     pub mounts_len: u32,
     pub mounts: u64,

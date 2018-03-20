@@ -28,12 +28,12 @@ namespace m3 {
 class Pager : public Session {
 private:
     explicit Pager(VPE &vpe, capsel_t sess)
-        : Session(sess, 0), _rep(vpe.alloc_ep()),
+        : Session(sess, 0), _sep(vpe.alloc_ep()), _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _own_sgate(SendGate::bind(obtain(1).start())),
           _child_sgate(SendGate::bind(obtain(1).start())) {
-        if(_rep == 0)
+        if(_sep == 0 || _rep == 0)
             PANIC("No free EPs");
     }
 
@@ -64,21 +64,23 @@ public:
         RWX     = READ | WRITE | EXEC,
     };
 
-    explicit Pager(capsel_t sess, capsel_t sgate, capsel_t rgate)
-        : Session(sess), _rep(0), _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
-          _own_sgate(SendGate::bind(sgate)), _child_sgate(SendGate::bind(ObjCap::INVALID)) {
+    explicit Pager(capsel_t sess, capsel_t rgate)
+        : Session(sess), _sep(0), _rep(0), _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
+          _own_sgate(SendGate::bind(obtain(1).start())), _child_sgate(SendGate::bind(ObjCap::INVALID)) {
     }
     explicit Pager(VPE &vpe, const String &service)
-        : Session(service), _rep(vpe.alloc_ep()),
+        : Session(service), _sep(vpe.alloc_ep()), _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _own_sgate(SendGate::bind(obtain(1).start())),
           _child_sgate(SendGate::bind(obtain(1).start())) {
-        if(_rep == 0)
+        if(_sep == 0 || _rep == 0)
             PANIC("No free EPs");
     }
 
-    void activate_rgate() {
+    void activate_gates(VPE &vpe) {
+        _child_sgate.activate_for(vpe, _sep);
+
         if(_rgate.sel() != ObjCap::INVALID) {
             // force activation
             _rgate.deactivate();
@@ -93,6 +95,9 @@ public:
         return _child_sgate;
     }
 
+    epid_t sep() const {
+        return _sep;
+    }
     epid_t rep() const {
         return _rep;
     }
@@ -110,6 +115,7 @@ public:
     Errors::Code unmap(goff_t virt);
 
 private:
+    epid_t _sep;
     // the receive gate is only necessary for the PF handler in RCTMux. it needs a dedicated one
     // in order to prevent interference with the application
     epid_t _rep;

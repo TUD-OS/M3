@@ -85,6 +85,10 @@ impl SendGate {
         self.gate.rebind(sel)
     }
 
+    pub fn activate_for(&self, ep: Selector) -> Result<(), Error> {
+        syscalls::activate(ep, self.sel(), 0)
+    }
+
     #[inline(always)]
     pub fn send<T>(&self, msg: &[T], reply_gate: &RecvGate) -> Result<(), Error> {
         self.send_bytes(msg.as_ptr() as *const u8, msg.len() * util::size_of::<T>(), reply_gate)

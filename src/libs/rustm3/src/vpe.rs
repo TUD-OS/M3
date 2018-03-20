@@ -229,7 +229,7 @@ impl VPE {
             // now create VPE, which implicitly obtains the gate cap from us
             vpe.pe = syscalls::create_vpe(
                 crd, sgate_sel, args.name,
-                args.pe, vpe.alloc_ep()?, pg.rep(), args.muxable
+                args.pe, pg.sep(), pg.rep(), args.muxable
             )?;
 
             // after the VPE creation, we can activate the receive gate

@@ -75,7 +75,7 @@ impl EnvData {
     pub fn load_pager(&self) -> Option<Pager> {
         match self.base.pager_sess {
             0 => None,
-            s => Some(Pager::new_bind(s, self.base.pager_sgate, self.base.pager_rgate)),
+            s => Some(Pager::new_bind(s, self.base.pager_rgate).unwrap()),
         }
     }
 
@@ -151,7 +151,6 @@ impl EnvData {
 
     pub fn set_pager(&mut self, pager: &Pager) {
         self.base.pager_sess = pager.sel();
-        self.base.pager_sgate = pager.child_sgate().sel();
         self.base.pager_rgate = match pager.rgate() {
             Some(rg) => rg.sel(),
             None     => INVALID_SEL,

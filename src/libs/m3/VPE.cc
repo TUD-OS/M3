@@ -75,7 +75,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
         Syscalls::get().createvpe(dst, _pager->child_sgate().sel(), name, _pe,
-            alloc_ep(), _pager->rep(), tmuxable);
+            _pager->sep(), _pager->rep(), tmuxable);
         // mark the send gate cap allocated
         _next_sel = Math::max(_pager->child_sgate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager

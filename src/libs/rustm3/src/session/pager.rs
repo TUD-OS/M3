@@ -1,7 +1,7 @@
 use cap;
 use com::{SendGate, RecvGate, RGateArgs};
 use core::fmt;
-use dtu::EpId;
+use dtu::{EpId, FIRST_FREE_EP};
 use errors::Error;
 use kif;
 use session::Session;
@@ -9,6 +9,7 @@ use vpe::VPE;
 
 pub struct Pager {
     sess: Session,
+    sep: EpId,
     rep: EpId,
     rbuf: usize,
     rgate: Option<RecvGate>,
@@ -38,15 +39,18 @@ impl Pager {
         Self::create(vpe, rbuf, sess)
     }
 
-    pub fn new_bind(sess: cap::Selector, sgate: cap::Selector, rgate: cap::Selector) -> Self {
-        Pager {
-            sess: Session::new_bind(sess),
+    pub fn new_bind(sess_sel: cap::Selector, rgate: cap::Selector) -> Result<Self, Error> {
+        let sess = Session::new_bind(sess_sel);
+        let sgate = SendGate::new_bind(sess.obtain_obj()?);
+        Ok(Pager {
+            sess: sess,
+            sep: 0,
             rep: 0,
             rbuf: 0,
             rgate: Some(RecvGate::new_bind(rgate, 6)),
-            own_sgate: SendGate::new_bind(sgate),
+            own_sgate: sgate,
             child_sgate: SendGate::new_bind(kif::INVALID_SEL),
-        }
+        })
     }
 
     pub fn new_clone(&self, vpe: &mut VPE, rbuf: usize) -> Result<Self, Error> {
@@ -60,6 +64,7 @@ impl Pager {
     fn create(vpe: &mut VPE, rbuf: usize, sess: Session) -> Result<Self, Error> {
         let own_sgate = SendGate::new_bind(sess.obtain_obj()?);
         let child_sgate = SendGate::new_bind(sess.obtain_obj()?);
+        let sep = vpe.alloc_ep()?;
         let rep = vpe.alloc_ep()?;
         let rgate = match vpe.pe().has_mmu() {
             true    => Some(RecvGate::new_with(RGateArgs::new().order(6).msg_order(6))?),
@@ -68,6 +73,7 @@ impl Pager {
 
         Ok(Pager {
             sess: sess,
+            sep: sep,
             rep: rep,
             rbuf: rbuf,
             rgate: rgate,
@@ -80,9 +86,13 @@ impl Pager {
         self.sess.sel()
     }
 
+    pub fn sep(&self) -> EpId {
+        self.sep
+    }
     pub fn rep(&self) -> EpId {
         self.rep
     }
+
     pub fn own_sgate(&self) -> &SendGate {
         &self.own_sgate
     }
@@ -104,6 +114,8 @@ impl Pager {
         }
     }
     pub fn activate(&mut self, first_ep: cap::Selector) -> Result<(), Error> {
+        self.child_sgate.activate_for(first_ep + (self.sep - FIRST_FREE_EP) as cap::Selector)?;
+
         if let Some(ref mut rg) = self.rgate {
             assert!(self.rbuf != 0);
             rg.activate_for(first_ep, self.rep, self.rbuf)

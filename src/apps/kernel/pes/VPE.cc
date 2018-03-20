@@ -145,6 +145,22 @@ void VPE::exit_app(int exitcode) {
     // no update on the PE here, since we don't save the state anyway
     _dtustate.invalidate_eps(m3::DTU::FIRST_FREE_EP);
 
+    // "deactivate" send and receive gates
+    for(capsel_t sel = 2; sel < 2 + EP_COUNT - m3::DTU::FIRST_FREE_EP; ++sel) {
+        auto epcap = static_cast<EPCapability*>(_objcaps.get(sel, Capability::EP));
+        if(epcap == nullptr || epcap->obj->gate == nullptr)
+            continue;
+
+        if(epcap->obj->gate->type == Capability::SGATE)
+            static_cast<SGateObject*>(epcap->obj->gate)->activated = false;
+        else if(epcap->obj->gate->type == Capability::RGATE)
+            static_cast<RGateObject*>(epcap->obj->gate)->addr = 0;
+
+        // forget the connection
+        epcap->obj->gate->remove_ep(&*epcap->obj);
+        epcap->obj->gate = nullptr;
+    }
+
     _exitcode = exitcode;
 
     _flags ^= F_HASAPP;

@@ -141,19 +141,8 @@ void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
     if(!vpe->address_space())
         SYS_ERROR(vpe, msg, m3::Errors::NOT_SUP, "No address space / PF handler");
 
-    // if we don't have a pager, it was probably because of speculative execution. just return an
-    // error in this case and don't print anything
-    capsel_t sgcap = vpe->address_space()->sgate();
-    auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgcap, Capability::SGATE));
-    if(sgatecap == nullptr) {
-        reply_result(vpe, msg, m3::Errors::INV_ARGS);
-        return;
-    }
-
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-    auto res = vpe->config_snd_ep(vpe->address_space()->sep(), *sgatecap->obj);
-    if(res != m3::Errors::NONE)
-        SYS_ERROR(vpe, msg, res, "Unable to configure send EP");
+    SYS_ERROR(vpe, msg, m3::Errors::NOT_SUP, "Unexpected pagefault");
 #endif
 
     reply_result(vpe, msg, m3::Errors::NONE);

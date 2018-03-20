@@ -44,8 +44,8 @@ void VPE::init_fs() {
     if(Heap::is_on_heap(_ms))
         delete _ms;
 
-    if(env()->pager_sess && env()->pager_sgate)
-        _pager = new Pager(env()->pager_sess, env()->pager_sgate, env()->pager_rgate);
+    if(env()->pager_sess)
+        _pager = new Pager(env()->pager_sess, env()->pager_rgate);
 
     if(env()->mounts_len)
         _ms = MountTable::unserialize(reinterpret_cast<const void*>(env()->mounts), env()->mounts_len);
@@ -60,7 +60,7 @@ void VPE::init_fs() {
 
 Errors::Code VPE::run(void *lambda) {
     if(_pager)
-        _pager->activate_rgate();
+        _pager->activate_gates(*this);
 
     Errors::Code err = copy_sections();
     if(err != Errors::NONE)
@@ -83,7 +83,6 @@ Errors::Code VPE::run(void *lambda) {
     senv.rbufend = _rbufend;
     senv.caps = _next_sel;
     senv.eps = _eps;
-    senv.pager_sgate = 0;
     senv.pager_rgate = 0;
     senv.pager_sess = 0;
 
@@ -117,7 +116,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
         return Errors::last;
 
     if(_pager)
-        _pager->activate_rgate();
+        _pager->activate_gates(*this);
 
     uintptr_t entry;
     size_t size;
@@ -158,7 +157,6 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     /* set pager info */
     senv.pager_sess = _pager ? _pager->sel() : 0;
-    senv.pager_sgate = _pager ? _pager->child_sgate().sel() : 0;
     senv.pager_rgate = _pager ? _pager->rgate().sel() : 0;
 
     senv._backend = 0;
