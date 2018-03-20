@@ -1,0 +1,4 @@
+test foo bar
+foo bar test
+bar foo test
+foo test bar
