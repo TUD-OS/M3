@@ -189,7 +189,7 @@ public:
     void forward_mem(epid_t ep, peid_t pe);
 
     m3::Errors::Code config_rcv_ep(epid_t ep, RGateObject &obj);
-    void config_snd_ep(epid_t ep, const SGateObject &obj);
+    m3::Errors::Code config_snd_ep(epid_t ep, SGateObject &obj);
     m3::Errors::Code config_mem_ep(epid_t ep, const MGateObject &obj, goff_t off = 0);
 
     void make_daemon();

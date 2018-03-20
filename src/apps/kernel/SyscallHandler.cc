@@ -151,7 +151,9 @@ void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
     }
 
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-    vpe->config_snd_ep(vpe->address_space()->sep(), *sgatecap->obj);
+    auto res = vpe->config_snd_ep(vpe->address_space()->sep(), *sgatecap->obj);
+    if(res != m3::Errors::NONE)
+        SYS_ERROR(vpe, msg, res, "Unable to configure send EP");
 #endif
 
     reply_result(vpe, msg, m3::Errors::NONE);
@@ -501,6 +503,7 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         else if(epcap->obj->gate->type == Capability::SGATE) {
             if(!dstvpe.invalidate_ep(epcap->obj->ep, true))
                 SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Unable to invalidate EP");
+            static_cast<SGateObject*>(epcap->obj->gate)->activated = false;
         }
 
         if(gateobj != epcap->obj->gate) {
@@ -539,7 +542,9 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
                     SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "EP was revoked");
             }
 
-            dstvpe.config_snd_ep(epcap->obj->ep, *sgateobj);
+            m3::Errors::Code res = dstvpe.config_snd_ep(epcap->obj->ep, *sgateobj);
+            if(res != m3::Errors::NONE)
+                SYS_ERROR(vpe, msg, res, "Unable to configure send EP");
         }
         else {
             auto rgateobj = static_cast<RGateObject*>(gateobj);

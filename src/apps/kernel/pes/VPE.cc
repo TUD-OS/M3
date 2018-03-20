@@ -286,8 +286,11 @@ m3::Errors::Code VPE::config_rcv_ep(epid_t ep, RGateObject &obj) {
     return m3::Errors::NONE;
 }
 
-void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
+m3::Errors::Code VPE::config_snd_ep(epid_t ep, SGateObject &obj) {
     assert(obj.rgate->addr != 0);
+    if(obj.activated)
+        return m3::Errors::EXISTS;
+
     peid_t pe = VPEManager::get().peof(obj.rgate->vpe);
     KLOG(EPS, "VPE" << id() << ":EP" << ep << " = "
         "Send[vpe=" << obj.rgate->vpe
@@ -296,9 +299,11 @@ void VPE::config_snd_ep(epid_t ep, const SGateObject &obj) {
         << ", label=#" << m3::fmt(obj.label, "x")
         << ", msgsize=" << obj.rgate->msgorder << ", crd=" << obj.credits << "]");
 
+    obj.activated = true;
     _dtustate.config_send(ep, obj.label, pe, obj.rgate->vpe,
         obj.rgate->ep, 1UL << obj.rgate->msgorder, obj.credits);
     update_ep(ep);
+    return m3::Errors::NONE;
 }
 
 m3::Errors::Code VPE::config_mem_ep(epid_t ep, const MGateObject &obj, goff_t off) {

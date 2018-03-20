@@ -169,12 +169,13 @@ class SGateObject : public SlabObject<SGateObject>, public GateObject, public m3
 public:
     explicit SGateObject(RGateObject *_rgate, label_t _label, word_t _credits)
         : GateObject(Capability::SGATE), RefCounted(), rgate(_rgate), label(_label),
-          credits(_credits) {
+          credits(_credits), activated() {
     }
 
     m3::Reference<RGateObject> rgate;
     label_t label;
     word_t credits;
+    bool activated;
 };
 
 class MGateObject : public SlabObject<MGateObject>, public GateObject, public m3::RefCounted {
