@@ -94,13 +94,6 @@ public:
     virtual Errors::Code unlink(const char *path) = 0;
 
     /**
-     * Determines the number of bytes to serialize this object.
-     *
-     * @return the number of bytes
-     */
-    virtual size_t serialize_length() = 0;
-
-    /**
      * Delegates all capabilities that are required for this filesystem to the given VPE.
      *
      * @param vpe the VPE

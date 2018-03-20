@@ -64,10 +64,6 @@ Errors::Code M3FS::unlink(const char *path) {
     return Errors::last;
 }
 
-size_t M3FS::serialize_length() {
-    return OStreamSize<capsel_t>::value;
-}
-
 void M3FS::delegate(VPE &vpe) {
     vpe.delegate_obj(sel());
     // TODO what if it fails?

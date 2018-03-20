@@ -73,7 +73,6 @@ public:
     virtual char type() const override {
         return 'Q';
     }
-    virtual size_t serialize_length() override;
     virtual void delegate(VPE &vpe) override;
     virtual void serialize(Marshaller &m) override;
     static File *unserialize(Unmarshaller &um);

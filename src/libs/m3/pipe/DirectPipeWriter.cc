@@ -136,10 +136,6 @@ ssize_t DirectPipeWriter::write(const void *buffer, size_t count) {
     return buf - reinterpret_cast<const char*>(buffer);
 }
 
-size_t DirectPipeWriter::serialize_length() {
-    return ostreamsize<capsel_t, size_t>();
-}
-
 void DirectPipeWriter::delegate(VPE &vpe) {
     vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
 }

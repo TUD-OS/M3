@@ -82,10 +82,6 @@ ssize_t DirectPipeReader::read(void *buffer, size_t count) {
     return static_cast<ssize_t>(amount);
 }
 
-size_t DirectPipeReader::serialize_length() {
-    return ostreamsize<capsel_t, size_t>();
-}
-
 void DirectPipeReader::delegate(VPE &vpe) {
     vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _caps, 2));
 }

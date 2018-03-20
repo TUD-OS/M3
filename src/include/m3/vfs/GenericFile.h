@@ -75,10 +75,6 @@ public:
         return new GenericFile(crd.start());
     }
 
-    virtual size_t serialize_length() override {
-        return ostreamsize<capsel_t>();
-    }
-
     virtual void delegate(VPE &vpe) override {
         // TODO what if it fails?
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _sess.sel(), 2);

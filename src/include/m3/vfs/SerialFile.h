@@ -55,9 +55,6 @@ public:
     virtual char type() const override {
         return 'S';
     }
-    virtual size_t serialize_length() override {
-        return 0;
-    }
     virtual void delegate(VPE &) override {
         // nothing to do
     }

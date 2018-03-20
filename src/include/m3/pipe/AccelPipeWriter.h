@@ -97,9 +97,6 @@ public:
     virtual char type() const override {
         return 'B';
     }
-    virtual size_t serialize_length() override {
-        return 0;
-    }
     virtual void delegate(VPE &) override {
     }
     virtual void serialize(Marshaller &) override {

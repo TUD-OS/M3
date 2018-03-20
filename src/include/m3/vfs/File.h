@@ -158,14 +158,12 @@ public:
      */
     virtual char type() const = 0;
 
-    virtual File *clone() const = 0;
-
     /**
-     * Determines the number of bytes to serialize this object.
+     * Obtains a new file session from the server
      *
-     * @return the number of bytes
+     * @return the new file
      */
-    virtual size_t serialize_length() = 0;
+    virtual File *clone() const = 0;
 
     /**
      * Delegates all capabilities that are required for this file to the given VPE.
