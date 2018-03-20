@@ -79,7 +79,7 @@ private:
         typename HDL::session_type *sess = nullptr;
         reply.error = _handler->open(&sess, req->arg);
         if(sess)
-            LLOG(SERV, fmt((void*)sess, "#x") << ": open()");
+            LLOG(SERV, fmt((word_t)sess, "#x") << ": open()");
 
         reply.sess = reinterpret_cast<word_t>(sess);
         is.reply(&reply, sizeof(reply));
@@ -90,7 +90,8 @@ private:
 
         auto *req = reinterpret_cast<const KIF::Service::Exchange*>(is.message().data);
 
-        LLOG(SERV, fmt((void*)req->sess, "#x") << ": obtain(caps=" << req->data.caps << ")");
+        LLOG(SERV, fmt((word_t)req->sess, "#x") << ": obtain(caps="
+            << req->data.caps << ", args=" << req->data.args.count << ")");
 
         KIF::Service::ExchangeReply reply;
         memcpy(&reply.data, &req->data, sizeof(req->data));
@@ -106,7 +107,8 @@ private:
 
         auto *req = reinterpret_cast<const KIF::Service::Exchange*>(is.message().data);
 
-        LLOG(SERV, fmt((void*)req->sess, "#x") << ": delegate(caps=" << req->data.caps << ")");
+        LLOG(SERV, fmt((word_t)req->sess, "#x") << ": delegate(caps="
+            << req->data.caps << ", args=" << req->data.args.count << ")");
 
         KIF::Service::ExchangeReply reply;
         memcpy(&reply.data, &req->data, sizeof(req->data));
@@ -122,7 +124,7 @@ private:
 
         auto *req = reinterpret_cast<const KIF::Service::Close*>(is.message().data);
 
-        LLOG(SERV, fmt((void*)req->sess, "#x") << ": close()");
+        LLOG(SERV, fmt((word_t)req->sess, "#x") << ": close()");
 
         typename HDL::session_type *sess = reinterpret_cast<typename HDL::session_type*>(req->sess);
         Errors::Code res = _handler->close(sess);
