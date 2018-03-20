@@ -1,6 +1,5 @@
 Import('env')
 env.M3Program(env,
     target = 'unittests',
-    libs = ['test'],
-    source = ['unittests.cc', env.Glob('suites/*/*.cc')]
+    source = ['unittests.cc', env.Glob('tests/*.cc')]
 )

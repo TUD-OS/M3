@@ -23,7 +23,7 @@
 
 #include <sys/mman.h>
 
-#include "Commands.h"
+#include "../unittests.h"
 
 using namespace m3;
 
@@ -39,7 +39,21 @@ static void unmap_page(void *addr) {
     munmap(addr, 0x1000);
 }
 
-void CommandsTestSuite::ReadCmdTestCase::run() {
+static void dmacmd(const void *data, size_t len, epid_t ep, size_t offset, size_t length, int op) {
+    m3::DTU &dtu = m3::DTU::get();
+    dtu.set_cmd(m3::DTU::CMD_ADDR, reinterpret_cast<word_t>(data));
+    dtu.set_cmd(m3::DTU::CMD_SIZE, len);
+    dtu.set_cmd(m3::DTU::CMD_EPID, ep);
+    dtu.set_cmd(m3::DTU::CMD_OFFSET, offset);
+    dtu.set_cmd(m3::DTU::CMD_LENGTH, length);
+    dtu.set_cmd(m3::DTU::CMD_REPLYLBL, 0);
+    dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
+    dtu.set_cmd(m3::DTU::CMD_CTRL, (op << 3) | m3::DTU::CTRL_START |
+            m3::DTU::CTRL_DEL_REPLY_CAP);
+    dtu.wait_until_ready(ep);
+}
+
+static void cmds_read() {
     const epid_t rcvep = VPE::self().alloc_ep();
     const epid_t sndep = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
@@ -93,7 +107,7 @@ void CommandsTestSuite::ReadCmdTestCase::run() {
     VPE::self().free_ep(rcvep);
 }
 
-void CommandsTestSuite::WriteCmdTestCase::run() {
+static void cmds_write() {
     const epid_t rcvep = VPE::self().alloc_ep();
     const epid_t sndep = VPE::self().alloc_ep();
     DTU &dtu = DTU::get();
@@ -125,13 +139,76 @@ void CommandsTestSuite::WriteCmdTestCase::run() {
         while(words[0] == 0)
             ;
         for(size_t i = 0; i < sizeof(data) / sizeof(data[0]); ++i)
-            assert_word(words[i], data[i]);
+            assert_word(static_cast<word_t>(words[i]), data[i]);
     }
 
     unmap_page(addr);
     dtu.configure(sndep, 0, 0, 0, 0, 0);
     VPE::self().free_ep(sndep);
     VPE::self().free_ep(rcvep);
+}
+
+static void mem_sync() {
+    static ulong data[4];
+
+    MemGate mem = m3::MemGate::create_global(0x4000, m3::MemGate::RWX);
+    MemGate gate = MemGate::bind(mem.sel());
+
+    cout << "-- Test read sync --\n";
+    {
+        write_vmsg(gate, 0, 1, 2, 3, 4);
+        gate.read(data, sizeof(data), 0);
+        assert_int(data[0], 1);
+        assert_int(data[1], 2);
+        assert_int(data[2], 3);
+        assert_int(data[3], 4);
+    }
+}
+
+static void mem_derive() {
+    static ulong test[6] = {0};
+
+    MemGate mem = m3::MemGate::create_global(0x4000, m3::MemGate::RWX);
+    MemGate gate = MemGate::bind(mem.sel());
+    write_vmsg(gate, 0, 1, 2, 3, 4);
+
+    cout << "-- Test derive --\n";
+    {
+        gate.read(test, sizeof(ulong) * 4, 0);
+
+        assert_int(test[0], 1);
+        assert_int(test[1], 2);
+        assert_int(test[2], 3);
+        assert_int(test[3], 4);
+        assert_int(test[4], 0);
+
+        MemGate sub = gate.derive(4 * sizeof(ulong), sizeof(ulong), MemGate::RWX);
+        write_vmsg(sub, 0, 5);
+        gate.read(test, sizeof(ulong) * 5, 0);
+
+        assert_int(test[0], 1);
+        assert_int(test[1], 2);
+        assert_int(test[2], 3);
+        assert_int(test[3], 4);
+        assert_int(test[4], 5);
+    }
+
+    cout << "-- Test wrong derive --\n";
+    {
+        MemGate sub = gate.derive(4 * sizeof(ulong), sizeof(ulong), MemGate::R);
+        sub.read(test, sizeof(ulong), 0);
+        assert_int(test[0], 5);
+
+        write_vmsg(sub, 0, 8);
+        assert_true(DTU::get().get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
+    }
+}
+
+void tdtu() {
+    RUN_TEST(cmds_read);
+    RUN_TEST(cmds_write);
+    RUN_TEST(mem_sync);
+    RUN_TEST(mem_derive);
 }
 
 #endif

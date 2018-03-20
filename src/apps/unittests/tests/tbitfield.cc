@@ -17,11 +17,11 @@
 #include <base/Common.h>
 #include <base/util/BitField.h>
 
-#include "BitField.h"
+#include "../unittests.h"
 
 using namespace m3;
 
-void BitFieldTestSuite::FirstClearTestCase::run() {
+static void first_clear() {
     {
         BitField<16> bf;
         assert_uint(bf.first_clear(), 0);
@@ -79,4 +79,8 @@ void BitFieldTestSuite::FirstClearTestCase::run() {
         bf.set(7);
         assert_uint(bf.first_clear(), 10);
     }
+}
+
+void tbitfield() {
+    RUN_TEST(first_clear);
 }

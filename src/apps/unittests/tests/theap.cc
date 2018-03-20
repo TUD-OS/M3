@@ -21,7 +21,7 @@
 
 #include <cstdlib>
 
-#include "Heap.h"
+#include "../unittests.h"
 
 #define SINGLE_BYTE_COUNT 30
 
@@ -33,6 +33,8 @@ static size_t sizes[] = {1, 4, 10, 32, 67, 124, 56, 43};
 static uint *ptrs[ARRAY_SIZE(sizes)];
 static size_t rand_free1[] = {7, 5, 2, 0, 6, 3, 4, 1};
 static size_t rand_free2[] = {3, 4, 1, 5, 6, 0, 7, 2};
+
+static size_t heap_before;
 
 static bool test_check_content(uint *ptr, size_t count, uint value) {
     while(count-- > 0) {
@@ -55,7 +57,16 @@ static void test_t1alloc() {
     }
 }
 
-void HeapTestSuite::TestCase1::run() {
+static void check_heap_before() {
+    heap_before = m3::Heap::free_memory();
+}
+
+static void check_heap_after() {
+    size_t after = m3::Heap::free_memory();
+    assert_size(after, heap_before);
+}
+
+static void alloc_then_free_in_same_direction() {
     check_heap_before();
 
     test_t1alloc();
@@ -75,7 +86,7 @@ void HeapTestSuite::TestCase1::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase2::run() {
+static void allocate_then_free_in_opposite_direction() {
     check_heap_before();
 
     test_t1alloc();
@@ -95,7 +106,7 @@ void HeapTestSuite::TestCase2::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase3::run() {
+static void allocate_then_free_in_random_direction_1() {
     check_heap_before();
 
     test_t1alloc();
@@ -108,7 +119,7 @@ void HeapTestSuite::TestCase3::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase4::run() {
+static void allocate_then_free_in_random_direction_2() {
     check_heap_before();
 
     test_t1alloc();
@@ -121,7 +132,7 @@ void HeapTestSuite::TestCase4::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase5::run() {
+static void allocate_and_free_with_different_sizes() {
     for(size_t size = 0; size < ARRAY_SIZE(sizes); size++) {
         cout << "Allocate and free " << sizes[size] * sizeof(uint)<< " bytes\n";
         check_heap_before();
@@ -140,7 +151,7 @@ void HeapTestSuite::TestCase5::run() {
     }
 }
 
-void HeapTestSuite::TestCase6::run() {
+static void allocate_single_bytes() {
     check_heap_before();
 
     for(size_t i = 0; i < SINGLE_BYTE_COUNT; i++) {
@@ -153,7 +164,7 @@ void HeapTestSuite::TestCase6::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase7::run() {
+static void allocate_3_region() {
     uint *ptr1, *ptr2, *ptr3, *ptr4, *ptr5;
     check_heap_before();
 
@@ -187,7 +198,7 @@ void HeapTestSuite::TestCase7::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase8::run() {
+static void reallocate() {
     size_t i;
     uint *p, *ptr1, *ptr2, *ptr3;
 
@@ -246,7 +257,7 @@ void HeapTestSuite::TestCase8::run() {
     check_heap_after();
 }
 
-void HeapTestSuite::TestCase9::run() {
+static void allocate_all_and_free_it_again() {
     check_heap_before();
 
     if(VPE::self().pe().has_cache()) {
@@ -277,4 +288,16 @@ void HeapTestSuite::TestCase9::run() {
         Heap::free(ptrs[j]);
 
     check_heap_after();
+}
+
+void theap() {
+    RUN_TEST(alloc_then_free_in_same_direction);
+    RUN_TEST(allocate_then_free_in_opposite_direction);
+    RUN_TEST(allocate_then_free_in_random_direction_1);
+    RUN_TEST(allocate_then_free_in_random_direction_2);
+    RUN_TEST(allocate_and_free_with_different_sizes);
+    RUN_TEST(allocate_single_bytes);
+    RUN_TEST(allocate_3_region);
+    RUN_TEST(reallocate);
+    RUN_TEST(allocate_all_and_free_it_again);
 }

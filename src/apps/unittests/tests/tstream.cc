@@ -20,11 +20,11 @@
 
 #include <m3/stream/FStream.h>
 
-#include "Stream.h"
+#include "../unittests.h"
 
 using namespace m3;
 
-void StreamTestSuite::IStreamTestCase::run() {
+static void istream() {
     int a,b;
     uint d;
     float f;
@@ -112,7 +112,7 @@ void StreamTestSuite::IStreamTestCase::run() {
         assert_str(str, expstr);                                                             \
     } while(0)
 
-void StreamTestSuite::OStreamTestCase::run() {
+static void ostream() {
     char str[200];
 
     STREAM_CHECK(1 << 2 << 3,
@@ -151,7 +151,7 @@ void StreamTestSuite::OStreamTestCase::run() {
         "inf, -inf, nan");
 }
 
-void StreamTestSuite::FStreamTestCase::run() {
+static void fstream() {
     int totala = 0, totalb = 0;
     float totalc = 0;
     FStream f("/mat.txt", FILE_R);
@@ -169,4 +169,10 @@ void StreamTestSuite::FStreamTestCase::run() {
     // thus, we only require that the integer value is correct. this gives us at least some degree
     // of correctness here
     assert_int(static_cast<int>(totalc), 1107);
+}
+
+void tstream() {
+    RUN_TEST(istream);
+    RUN_TEST(ostream);
+    RUN_TEST(fstream);
 }

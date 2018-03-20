@@ -20,19 +20,12 @@
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
-#include <test/TestSuiteContainer.h>
-
-#if defined(__host__)
-#include "suites/dtu/Commands.h"
-#include "suites/dtu/Memory.h"
-#endif
-#include "suites/stream/Stream.h"
-#include "suites/misc/BitField.h"
-#include "suites/misc/Heap.h"
-#include "suites/fs/FS.h"
-#include "suites/fs2/FS2.h"
+#include "unittests.h"
 
 using namespace m3;
+
+int succeeded;
+int failed;
 
 int main() {
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
@@ -40,26 +33,18 @@ int main() {
             exitmsg("Unable to mount m3fs as root-fs");
     }
 
-    test::TestSuiteContainer con;
-
 #if defined(__host__)
-    con.add(new CommandsTestSuite());
-    con.add(new MemoryTestSuite());
+    RUN_SUITE(tdtu);
 #endif
-    // FIXME: FSTestSuite changes pat.bin, which is why we need to run FS2TestSuite first
-    con.add(new FS2TestSuite());
-    con.add(new FSTestSuite());
-    con.add(new BitFieldTestSuite());
-    con.add(new HeapTestSuite());
-    con.add(new StreamTestSuite());
-
-    uint32_t res = con.run();
-    uint16_t total = res >> 16;
-    uint16_t succ = res & 0xFFFF;
+    RUN_SUITE(tfsmeta);
+    RUN_SUITE(tfs);
+    RUN_SUITE(tbitfield);
+    RUN_SUITE(theap);
+    RUN_SUITE(tstream);
 
     cout << "---------------------------------------\n";
-    cout << "\033[1mIn total: " << (total == succ ? "\033[1;32m" : "\033[1;31m")
-            << succ << "\033[1m of " << total << " testsuites successfull\033[0;m\n";
+    cout << "\033[1mIn total: " << (failed == 0 ? "\033[1;32m" : "\033[1;31m")
+            << succeeded << "\033[1m of " << (failed + succeeded) << " tests successfull\033[0;m\n";
     cout << "---------------------------------------\n";
     return 0;
 }
