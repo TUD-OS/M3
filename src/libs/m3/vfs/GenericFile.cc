@@ -58,10 +58,11 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
 
     size_t off;
     GateIStream reply = send_receive_vmsg(_sg, SEEK, offset, whence);
-    reply >> Errors::last >> _goff >> off;
-    _pos = _len = 0;
+    reply >> Errors::last;
     if(Errors::last != Errors::NONE)
         return -1;
+    reply >> _goff >> off;
+    _pos = _len = 0;
     return static_cast<ssize_t>(_goff + off);
 }
 
