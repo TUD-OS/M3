@@ -12,7 +12,8 @@ pub struct Pager {
     rep: EpId,
     rbuf: usize,
     rgate: Option<RecvGate>,
-    sgate: SendGate,
+    own_sgate: SendGate,
+    child_sgate: SendGate,
 }
 
 int_enum! {
@@ -43,17 +44,22 @@ impl Pager {
             rep: 0,
             rbuf: 0,
             rgate: Some(RecvGate::new_bind(rgate, 6)),
-            sgate: SendGate::new_bind(sgate),
+            own_sgate: SendGate::new_bind(sgate),
+            child_sgate: SendGate::new_bind(kif::INVALID_SEL),
         }
     }
 
     pub fn new_clone(&self, vpe: &mut VPE, rbuf: usize) -> Result<Self, Error> {
-        let sess = self.sess.obtain_obj()?;
-        Self::create(vpe, rbuf, Session::new_owned_bind(sess))
+        let mut args = kif::syscalls::ExchangeArgs::default();
+        // dummy arg to distinguish from the get_sgate operation
+        args.count = 1;
+        let sess = self.sess.obtain(1, &mut args)?;
+        Self::create(vpe, rbuf, Session::new_owned_bind(sess.start()))
     }
 
     fn create(vpe: &mut VPE, rbuf: usize, sess: Session) -> Result<Self, Error> {
-        let sgate = SendGate::new_bind(sess.obtain_obj()?);
+        let own_sgate = SendGate::new_bind(sess.obtain_obj()?);
+        let child_sgate = SendGate::new_bind(sess.obtain_obj()?);
         let rep = vpe.alloc_ep()?;
         let rgate = match vpe.pe().has_mmu() {
             true    => Some(RecvGate::new_with(RGateArgs::new().order(6).msg_order(6))?),
@@ -65,7 +71,8 @@ impl Pager {
             rep: rep,
             rbuf: rbuf,
             rgate: rgate,
-            sgate: sgate,
+            own_sgate: own_sgate,
+            child_sgate: child_sgate,
         })
     }
 
@@ -76,8 +83,11 @@ impl Pager {
     pub fn rep(&self) -> EpId {
         self.rep
     }
-    pub fn sgate(&self) -> &SendGate {
-        &self.sgate
+    pub fn own_sgate(&self) -> &SendGate {
+        &self.own_sgate
+    }
+    pub fn child_sgate(&self) -> &SendGate {
+        &self.child_sgate
     }
     pub fn rgate(&self) -> Option<&RecvGate> {
         self.rgate.as_ref()
@@ -105,21 +115,21 @@ impl Pager {
 
     pub fn clone(&self) -> Result<(), Error> {
         send_recv_res!(
-            &self.sgate, RecvGate::def(),
+            &self.own_sgate, RecvGate::def(),
             Operation::CLONE
         ).map(|_| ())
     }
 
     pub fn pagefault(&self, addr: usize, access: u32) -> Result<(), Error> {
         send_recv_res!(
-            &self.sgate, RecvGate::def(),
+            &self.own_sgate, RecvGate::def(),
             Operation::PAGEFAULT, addr, access
         ).map(|_| ())
     }
 
     pub fn map_anon(&self, addr: usize, len: usize, prot: kif::Perm) -> Result<usize, Error> {
         let mut reply = send_recv_res!(
-            &self.sgate, RecvGate::def(),
+            &self.own_sgate, RecvGate::def(),
             Operation::MAP_ANON, addr, len, prot.bits(), 0
         )?;
         Ok(reply.pop())
@@ -150,7 +160,7 @@ impl Pager {
 
     pub fn unmap(&self, addr: usize) -> Result<(), Error> {
         send_recv_res!(
-            &self.sgate, RecvGate::def(),
+            &self.own_sgate, RecvGate::def(),
             Operation::UNMAP, addr
         ).map(|_| ())
     }
@@ -159,6 +169,6 @@ impl Pager {
 impl fmt::Debug for Pager {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "Pager[sel: {}, rep: {}, sep: {}]",
-            self.sel(), self.rep, self.sgate.ep().unwrap())
+            self.sel(), self.rep, self.own_sgate.ep().unwrap())
     }
 }

@@ -20,14 +20,14 @@
 namespace m3 {
 
 Errors::Code Pager::pagefault(goff_t addr, uint access) {
-    GateIStream reply = send_receive_vmsg(_gate, PAGEFAULT, addr, access);
+    GateIStream reply = send_receive_vmsg(_own_sgate, PAGEFAULT, addr, access);
     Errors::Code res;
     reply >> res;
     return res;
 }
 
 Errors::Code Pager::map_anon(goff_t *virt, size_t len, int prot, int flags) {
-    GateIStream reply = send_receive_vmsg(_gate, MAP_ANON, *virt, len, prot, flags);
+    GateIStream reply = send_receive_vmsg(_own_sgate, MAP_ANON, *virt, len, prot, flags);
     Errors::Code res;
     reply >> res;
     if(res != Errors::NONE)
@@ -67,7 +67,7 @@ Errors::Code Pager::map_mem(goff_t *virt, MemGate &mem, size_t len, int prot) {
 }
 
 Errors::Code Pager::unmap(goff_t virt) {
-    GateIStream reply = send_receive_vmsg(_gate, UNMAP, virt);
+    GateIStream reply = send_receive_vmsg(_own_sgate, UNMAP, virt);
     Errors::Code res;
     reply >> res;
     return res;
@@ -76,7 +76,11 @@ Errors::Code Pager::unmap(goff_t virt) {
 Pager *Pager::create_clone(VPE &vpe) {
     KIF::CapRngDesc caps;
     {
-        caps = obtain(1);
+        KIF::ExchangeArgs args;
+        // dummy arg to distinguish from the get_sgate operation
+        args.count = 1;
+        args.vals[0] = 0;
+        caps = obtain(1, &args);
         if(Errors::last != Errors::NONE)
             return nullptr;
     }
@@ -84,7 +88,7 @@ Pager *Pager::create_clone(VPE &vpe) {
 }
 
 Errors::Code Pager::clone() {
-    GateIStream reply = send_receive_vmsg(_gate, CLONE);
+    GateIStream reply = send_receive_vmsg(_own_sgate, CLONE);
     Errors::Code res;
     reply >> res;
     return res;

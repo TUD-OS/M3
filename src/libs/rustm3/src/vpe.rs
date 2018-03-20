@@ -224,7 +224,7 @@ impl VPE {
 
         let crd = CapRngDesc::new(CapType::OBJECT, vpe.sel(), cap_count);
         vpe.pager = if let Some(mut pg) = pager {
-            let sgate_sel = pg.sgate().sel();
+            let sgate_sel = pg.child_sgate().sel();
 
             // now create VPE, which implicitly obtains the gate cap from us
             vpe.pe = syscalls::create_vpe(

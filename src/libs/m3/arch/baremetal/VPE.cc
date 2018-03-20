@@ -158,7 +158,7 @@ Errors::Code VPE::exec(int argc, const char **argv) {
 
     /* set pager info */
     senv.pager_sess = _pager ? _pager->sel() : 0;
-    senv.pager_sgate = _pager ? _pager->gate().sel() : 0;
+    senv.pager_sgate = _pager ? _pager->child_sgate().sel() : 0;
     senv.pager_rgate = _pager ? _pager->rgate().sel() : 0;
 
     senv._backend = 0;

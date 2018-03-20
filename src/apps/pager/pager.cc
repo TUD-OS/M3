@@ -83,26 +83,30 @@ public:
     }
 
     virtual Errors::Code obtain(AddrSpace *sess, KIF::Service::ExchangeData &data) override {
-        if(data.args.count != 0 || data.caps != 1)
+        if(data.caps != 1)
             return Errors::INV_ARGS;
 
-        if(!sess->sgate) {
-            label_t label = reinterpret_cast<label_t>(sess);
-            sess->sgate = new SendGate(SendGate::create(&_rgate, label, MSG_SIZE));
+        if(data.args.count == 0) {
+            SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::get_sgate()");
 
-            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sess->sgate->sel()).value();
+            label_t label = reinterpret_cast<label_t>(sess);
+            auto sgate = new AddrSpace::SGateItem(SendGate::create(&_rgate, label, MSG_SIZE));
+            sess->sgates.append(sgate);
+
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sgate->sgate.sel()).value();
             return Errors::NONE;
         }
+        else {
+            SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
 
-        SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
+            // clone the current session and connect it to the current one
+            AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_sel());
+            Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
 
-        // clone the current session and connect it to the current one
-        AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_sel());
-        Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
-
-        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
-        data.caps = crd.value();
-        return Errors::NONE;
+            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
+            data.caps = crd.value();
+            return Errors::NONE;
+        }
     }
 
     virtual Errors::Code close(AddrSpace *sess) override {

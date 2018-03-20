@@ -31,7 +31,8 @@ private:
         : Session(sess, 0), _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
-          _gate(SendGate::bind(obtain(1).start())) {
+          _own_sgate(SendGate::bind(obtain(1).start())),
+          _child_sgate(SendGate::bind(obtain(1).start())) {
         if(_rep == 0)
             PANIC("No free EPs");
     }
@@ -65,13 +66,14 @@ public:
 
     explicit Pager(capsel_t sess, capsel_t sgate, capsel_t rgate)
         : Session(sess), _rep(0), _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
-          _gate(SendGate::bind(sgate)) {
+          _own_sgate(SendGate::bind(sgate)), _child_sgate(SendGate::bind(ObjCap::INVALID)) {
     }
     explicit Pager(VPE &vpe, const String &service)
         : Session(service), _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
-          _gate(SendGate::bind(obtain(1).start())) {
+          _own_sgate(SendGate::bind(obtain(1).start())),
+          _child_sgate(SendGate::bind(obtain(1).start())) {
         if(_rep == 0)
             PANIC("No free EPs");
     }
@@ -84,8 +86,11 @@ public:
         }
     }
 
-    const SendGate &gate() const {
-        return _gate;
+    const SendGate &own_sgate() const {
+        return _own_sgate;
+    }
+    const SendGate &child_sgate() const {
+        return _child_sgate;
     }
 
     epid_t rep() const {
@@ -109,7 +114,8 @@ private:
     // in order to prevent interference with the application
     epid_t _rep;
     RecvGate _rgate;
-    SendGate _gate;
+    SendGate _own_sgate;
+    SendGate _child_sgate;
 };
 
 }

@@ -24,10 +24,16 @@
 
 class AddrSpace {
 public:
+    struct SGateItem : public m3::SListItem {
+        explicit SGateItem(m3::SendGate &&_sgate) : sgate(m3::Util::move(_sgate)) {
+        }
+        m3::SendGate sgate;
+    };
+
     explicit AddrSpace(AddrSpace *_parent = nullptr, capsel_t _sess = m3::ObjCap::INVALID)
        : alive(true), vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
          sess(m3::ObjCap::SESSION, _sess),
-         mem(), sgate(), dstree(), parent(_parent) {
+         mem(), sgates(), dstree(), parent(_parent) {
     }
     ~AddrSpace() {
         // don't revoke mapping caps on session destruction; the kernel will revoke them
@@ -36,7 +42,10 @@ public:
             auto old = ds++;
             delete &*old;
         }
-        delete sgate;
+        for(auto it = sgates.begin(); it != sgates.end(); ) {
+            auto old = it++;
+            delete &*old;
+        }
         delete mem;
     }
 
@@ -56,7 +65,7 @@ public:
     m3::ObjCap vpe;
     m3::ObjCap sess;
     m3::MemGate *mem;
-    m3::SendGate *sgate;
+    m3::SList<SGateItem> sgates;
     m3::SList<DataSpace> dslist;
     m3::Treap<DataSpace> dstree;
     // TODO if the parent destroys his session first, we have a problem
