@@ -17,7 +17,7 @@
 #define RUN_SUITE(name)                                             \
     m3::cout << "Running benchmark suite " << #name << " ...\n";    \
     name();                                                         \
-    m3::cout << "Done\n";
+    m3::cout << "Done\n\n";
 
 #define RUN_BENCH(name)                                             \
     m3::cout << "-- Running benchmark " << #name << " ...\n";          \

@@ -66,7 +66,7 @@ void tstream();
 #define RUN_SUITE(name)                                             \
     m3::cout << "Running testsuite " << #name << " ...\n";    \
     name();                                                         \
-    m3::cout << "Done\n";
+    m3::cout << "Done\n\n";
 
 #define RUN_TEST(name)                                             \
     m3::cout << "-- Running testcase " << #name << " ...\n";          \
