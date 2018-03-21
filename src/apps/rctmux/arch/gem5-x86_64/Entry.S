@@ -32,6 +32,9 @@ BEGIN_FUNC(_start)
     nop
 .endr
 
+    // disable interrupts in case they are enabled
+    cli
+
     // use a small stack
     mov     $rctmux_stack, %rsp
     mov     $0, %rbp
