@@ -88,7 +88,7 @@ public:
     }
 
     m3::Errors::Code clone(capsel_t srv, m3::KIF::Service::ExchangeData &data);
-    m3::Errors::Code get_locs(m3::KIF::Service::ExchangeData &data);
+    m3::Errors::Code get_mem(m3::KIF::Service::ExchangeData &data);
 
 private:
     void read_write(m3::GateIStream &is, bool write);

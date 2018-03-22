@@ -43,11 +43,6 @@ public:
         COUNT
     };
 
-    enum Flags {
-        BYTE_OFFSET = 1,
-        EXTEND      = 2,
-    };
-
     explicit M3FS(const String &service)
         : Session(service, 0, VPE::self().alloc_sels(2)),
           FileSystem(),
@@ -77,29 +72,18 @@ public:
     virtual void serialize(Marshaller &m) override;
     static FileSystem *unserialize(Unmarshaller &um);
 
-    template<size_t N>
-    bool get_locs(size_t off, size_t count, LocList<N> &locs, uint flags) {
-        return get_locs(*this, &off, count, locs, flags);
-    }
-
     // TODO wrong place. we should have a DataSpace session or something
-    template<size_t N>
-    static bool get_locs(Session &sess, size_t *off, size_t count, LocList<N> &locs, uint flags) {
+    static size_t get_mem(Session &sess, size_t *off, capsel_t *sel) {
         KIF::ExchangeArgs args;
-        args.count = 3;
+        args.count = 1;
         args.vals[0] = *off;
-        args.vals[1] = count;
-        args.vals[2] = flags;
-        bool extended = false;
-        KIF::CapRngDesc crd = sess.obtain(count, &args);
+        KIF::CapRngDesc crd = sess.obtain(1, &args);
         if(Errors::last == Errors::NONE) {
-            extended = args.vals[0];
-            *off = args.vals[1];
-            locs.set_sel(crd.start());
-            for(size_t i = 2; i < args.count; ++i)
-                locs.append(args.vals[i]);
+            *off = args.vals[0];
+            *sel = crd.start();
+            return args.vals[1];
         }
-        return extended;
+        return 0;
     }
 
 private:

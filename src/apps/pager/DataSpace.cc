@@ -113,16 +113,11 @@ m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
 
     // if we don't have memory yet, request it
     if(!reg->has_mem()) {
-        size_t off;
-        m3::loclist_type locs;
-        // get memory caps for the region
-        {
-            size_t count = 1;
-
-            // TODO add a cache for that; currently, we request the same caps over and over again
-            off = fileoff + pfoff;
-            m3::M3FS::get_locs(sess, &off, count, locs, m3::M3FS::BYTE_OFFSET);
-        }
+        // get memory cap for the region
+        // TODO add a cache for that; currently, we request the same caps over and over again
+        size_t off = fileoff + pfoff;
+        capsel_t sel;
+        size_t len = m3::M3FS::get_mem(sess, &off, &sel);
 
         // first, resize the region to not be too large
         reg->limit_to(pfoff, maxpages);
@@ -140,18 +135,18 @@ m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
         }
 
         // ensure that we don't exceed the memcap size
-        if(reg->mem_offset() + reg->size() > locs.get_len(0))
-            reg->size(m3::Math::round_up(locs.get_len(0) - reg->mem_offset(), PAGE_SIZE));
+        if(reg->mem_offset() + reg->size() > len)
+            reg->size(m3::Math::round_up(len - reg->mem_offset(), PAGE_SIZE));
 
         // if it's writable and should not be shared, create a copy
         if(!(_flags & m3::Pager::MAP_SHARED) && (_flags & m3::DTU::PTE_W)) {
-            m3::MemGate src(m3::MemGate::bind(locs.get_sel(0), 0));
+            m3::MemGate src(m3::MemGate::bind(sel, 0));
             reg->mem(new PhysMem(_as->mem, addr(), reg->size(), m3::MemGate::RWX));
             copy_block(&src, reg->mem()->gate, reg->mem_offset(), reg->size());
             reg->mem_offset(0);
         }
         else
-            reg->mem(new PhysMem(_as->mem, addr(), locs.get_sel(0)));
+            reg->mem(new PhysMem(_as->mem, addr(), sel));
 
         SLOG(PAGER, "Obtained memory for "
             << m3::fmt(reg->virt(), "p") << ".."

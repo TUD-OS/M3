@@ -70,66 +70,40 @@ Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &da
     return Errors::NONE;
 }
 
-Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
+Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
     EVENT_TRACER_FS_getlocs();
-    if(data.args.count != 3)
+    if(data.args.count != 1)
         return Errors::INV_ARGS;
 
     size_t offset = data.args.vals[0];
-    size_t count = data.args.vals[1];
-    uint flags = data.args.vals[2];
 
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::get_locs(path=" << _filename
-        << ", offset=" << offset << ", count=" << count
-        << ", flags=" << fmt(flags, "#x") << ")");
-
-    if(count == 0) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": Invalid request");
-        return Errors::INV_ARGS;
-    }
-
-    // don't try to extend the file, if we're not writing
-    if(~_oflags & FILE_W)
-        flags &= ~static_cast<uint>(M3FS::EXTEND);
+    SLOG(FS, fmt((word_t)this, "#x") << ": file::get_mem(path=" << _filename
+        << ", offset=" << offset << ")");
 
     // determine extent from byte offset
-    size_t firstOff = 0;
-    if(flags & M3FS::BYTE_OFFSET) {
+    size_t firstOff = offset;
+    {
         size_t tmp_extent, tmp_extoff;
-        size_t rem = offset;
-        INodes::seek(_meta->handle(), &_inode, rem, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
+        INodes::seek(_meta->handle(), &_inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
         offset = tmp_extent;
-        firstOff = rem;
     }
 
     KIF::CapRngDesc crd;
-    size_t old_ino_size = _inode.size;
     Errors::last = Errors::NONE;
-    loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, offset, count,
-                                          (flags & M3FS::EXTEND) ? _meta->handle().extend() : 0,
-                                          _oflags & MemGate::RWX, crd);
+    loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, offset, 1,
+                                          0, _oflags & MemGate::RWX, crd);
     if(!locs) {
         SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
         return Errors::last;
     }
 
-    // start/continue transaction
-    if(_inode.size > old_ino_size && _xstate != TransactionState::ABORTED)
-        _xstate = TransactionState::OPEN;
-
     data.caps = crd.value();
-    data.args.count = 2 + locs->count();
-    data.args.vals[0] = _inode.size > old_ino_size;
-    data.args.vals[1] = firstOff;
-    for(size_t i = 0; i < locs->count(); ++i)
-        data.args.vals[2 + i] = locs->get_len(i);
+    data.args.count = 2;
+    data.args.vals[0] = firstOff;
+    data.args.vals[1] = locs->get_len(0);
 
-    if(ServiceLog::level & ServiceLog::FS) {
-        SLOG(FS, "Received " << locs->count() << " capabilities:");
-        for(size_t i = 0; i < locs->count(); ++i)
-            SLOG(FS, "  " << fmt(locs->get_len(i), "#x"));
-    }
+    SLOG(FS, "Received cap: " << locs->get_len(0));
 
     _capscon.add(crd);
     return Errors::NONE;

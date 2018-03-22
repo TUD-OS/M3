@@ -79,7 +79,7 @@ public:
             auto file = static_cast<M3FSFileSession*>(sess);
             if(data.args.count == 0)
                 return file->clone(srv->sel(), data);
-            return file->get_locs(data);
+            return file->get_mem(data);
         }
     }
 
