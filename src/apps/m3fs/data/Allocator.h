@@ -24,7 +24,8 @@ class FSHandle;
 
 class Allocator {
 public:
-    explicit Allocator(uint32_t first, uint32_t *first_free, uint32_t *free, uint32_t total, uint32_t blocks);
+    explicit Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
+                       uint32_t total, uint32_t blocks);
 
     uint32_t alloc(FSHandle &h) {
         size_t count = 1;

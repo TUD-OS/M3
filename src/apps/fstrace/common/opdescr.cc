@@ -157,7 +157,7 @@ void OpDescr::validateString(const string &str, size_t numArgs) const {
 
 
 void OpDescr::buildCodeLine(string const &opcode, string const &argsName,
-                              string const &args) {
+                            string const &args) {
 
     codeStr  = "{ .opcode = " + opcode;
     codeStr += ", .args." + argsName + " = { " + args + " } },";
@@ -598,7 +598,7 @@ SendfileOpDescr::SendfileOpDescr(const string &in) {
 
     extractValues(in, 4, args, retVal);
     buildCodeLine("SENDFILE_OP", "sendfile",
-        retVal + ", " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3]);
+                  retVal + ", " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3]);
 }
 
 /*
@@ -612,7 +612,7 @@ GetDEntsOpDescr::GetDEntsOpDescr(const string &in) {
 
     extractValues(in, 3, args, retVal);
     buildCodeLine("GETDENTS_OP", "getdents",
-        retVal + ", " + args[0] + ", " + args[1] + ", " + args[2]);
+                  retVal + ", " + args[0] + ", " + args[1] + ", " + args[2]);
 }
 
 /*

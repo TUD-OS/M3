@@ -135,7 +135,7 @@ static void print_as_dir(m3::blockno_t block) {
     // actually next is not allowed to be 0. but to prevent endless looping here...
     while(e->next > 0 && e < end) {
         printf("  ino=%u len=%u next=%u name=%.*s\n",
-            e->nodeno, e->namelen, e->next, e->namelen, e->name);
+               e->nodeno, e->namelen, e->next, e->namelen, e->name);
         e = reinterpret_cast<m3::DirEntry*>(reinterpret_cast<char*>(e) + e->next);
     }
     delete[] buffer;
@@ -146,10 +146,11 @@ static void print_as_extents(m3::blockno_t block) {
     read_from_block(extents, sb.blocksize, block);
 
     printf("Showing block %u as extents:\n", block);
-    for(uint i = 0; i < sb.extents_per_block(); ++i)
+    for(uint i = 0; i < sb.extents_per_block(); ++i) {
         printf("  %3u: %4u .. %4u (%u)\n", i, extents[i].start,
-            extents[i].length ? extents[i].start + extents[i].length - 1 : 0,
-            extents[i].length);
+               extents[i].length ? extents[i].start + extents[i].length - 1 : 0,
+               extents[i].length);
+    }
 
     delete[] extents;
 }

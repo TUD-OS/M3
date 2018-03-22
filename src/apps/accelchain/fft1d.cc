@@ -112,20 +112,21 @@ static void execchain(size_t arrsize, size_t bufsize, bool direct) {
 
     // IFFT
     auto ifft = StreamAccel::create(PEISA::ACCEL_FFT, true);
-    chain[IFFT] = new StreamAccel::ChainMember(ifft, StreamAccel::getRBAddr(*ifft), StreamAccel::RB_SIZE,
-        rgate, IFFT);
+    chain[IFFT] = new StreamAccel::ChainMember(ifft, StreamAccel::getRBAddr(*ifft),
+                                               StreamAccel::RB_SIZE, rgate, IFFT);
 
     // multiplier
     auto mul = new VPE("mul", PEDesc(PEType::COMP_IMEM, VPE::self().pe().isa()));
     mul->fds(*VPE::self().fds());
     mul->obtain_fds();
     chain[MUL] = new StreamAccel::ChainMember(mul, 0, StreamAccel::MSG_SIZE * 16,
-        direct ? chain[IFFT]->rgate : rgate, MUL);
+                                              direct ? chain[IFFT]->rgate : rgate, MUL);
 
     // SFFT
     auto sfft = StreamAccel::create(PEISA::ACCEL_FFT, true);
-    chain[SFFT] = new StreamAccel::ChainMember(sfft, StreamAccel::getRBAddr(*sfft), StreamAccel::RB_SIZE,
-        direct ? chain[MUL]->rgate : rgate, SFFT);
+    chain[SFFT] = new StreamAccel::ChainMember(sfft, StreamAccel::getRBAddr(*sfft),
+                                               StreamAccel::RB_SIZE,
+                                               direct ? chain[MUL]->rgate : rgate, SFFT);
 
     for(auto *m : chain) {
         m->send_caps();

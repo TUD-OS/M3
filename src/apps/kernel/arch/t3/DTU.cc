@@ -116,12 +116,12 @@ void DTU::config_send(void *e, label_t label, int dstcore, int, epid_t dstep, si
 }
 
 void DTU::config_send_local(epid_t ep, label_t label, int dstcore, int dstvpe, epid_t dstep,
-        size_t msgsize, word_t credits) {
+                            size_t msgsize, word_t credits) {
     config_send(m3::DTU::get().get_cmd_addr(ep, 0), label, dstcore, dstvpe, dstep, msgsize, credits);
 }
 
 void DTU::config_send_remote(const VPEDesc &vpe, epid_t ep, label_t label, int dstcore,
-        int dstvpe, epid_t dstep, size_t msgsize, word_t credits) {
+                             int dstvpe, epid_t dstep, size_t msgsize, word_t credits) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_send(regs, label, dstcore, dstvpe, dstep, msgsize, credits);
 
@@ -146,7 +146,7 @@ void DTU::config_mem_local(epid_t ep, int dstcore, int dstvpe, uintptr_t addr, s
 }
 
 void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstvpe, uintptr_t addr,
-        size_t size, int perms) {
+                            size_t size, int perms) {
     alignas(DTU_PKG_SIZE) uint64_t regs[EXTERN_CFG_SIZE_CREDITS_CMD + 1];
     config_mem(regs, dstcore, dstvpe, addr, size, perms);
 
@@ -156,17 +156,17 @@ void DTU::config_mem_remote(const VPEDesc &vpe, epid_t ep, int dstcore, int dstv
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep) {
+                  label_t replylbl, epid_t replyep) {
     // TODO for some reason, we need to use a different EP here.
     epid_t tmpep = m3::DTU::FIRST_FREE_EP;
     config_send_local(tmpep, label, vpe.core, vpe.id, ep, size + m3::DTU::HEADER_SIZE,
-        size + m3::DTU::HEADER_SIZE);
+                      size + m3::DTU::HEADER_SIZE);
     m3::DTU::get().send(tmpep, msg, size, replylbl, replyep);
     m3::DTU::get().wait_until_ready(tmpep);
 }
 
 void DTU::reply_to(const VPEDesc &vpe, epid_t ep, int, word_t, label_t label,
-        const void *msg, size_t size) {
+                   const void *msg, size_t size) {
     send_to(vpe, ep, label, msg, size, 0, 0);
 }
 

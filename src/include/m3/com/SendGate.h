@@ -55,7 +55,7 @@ public:
      * @param sel the selector to use (if != INVALID, the selector is NOT freed on destruction)
      */
     static SendGate create(RecvGate *rgate, label_t label = 0, word_t credits = UNLIMITED,
-        RecvGate *replygate = nullptr, capsel_t sel = INVALID);
+                           RecvGate *replygate = nullptr, capsel_t sel = INVALID);
 
     /**
      * Binds this send gate to the given capability. Typically, received from somebody else.

@@ -184,7 +184,7 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep, uint64_t sender) {
+                  label_t replylbl, epid_t replyep, uint64_t sender) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
@@ -232,7 +232,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
 }
 
 void DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg, size_t size,
-        uint64_t sender) {
+                   uint64_t sender) {
     send_to(vpe, rep, label, msg, size, 0, 0, sender);
 }
 

@@ -317,7 +317,7 @@ m3::Errors::Code VPE::config_snd_ep(epid_t ep, SGateObject &obj) {
 
     obj.activated = true;
     _dtustate.config_send(ep, obj.label, pe, obj.rgate->vpe,
-        obj.rgate->ep, 1UL << obj.rgate->msgorder, obj.credits);
+                          obj.rgate->ep, 1UL << obj.rgate->msgorder, obj.credits);
     update_ep(ep);
     return m3::Errors::NONE;
 }

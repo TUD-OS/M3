@@ -80,7 +80,7 @@ void INodes::write_back(FSHandle &h, INode *inode) {
 }
 
 loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
-        size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd) {
+                               size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd) {
     if(locs > MAX_LOCS) {
         Errors::last = Errors::INV_ARGS;
         return nullptr;
@@ -279,7 +279,8 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks)
     mark_dirty(h, inode->inode);
 }
 
-size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff) {
+size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence,
+                    size_t &extent, size_t &extoff) {
     assert(whence != M3FS_SEEK_CUR);
     Extent *indir = nullptr;
 

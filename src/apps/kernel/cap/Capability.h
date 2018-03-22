@@ -304,7 +304,7 @@ public:
 class MGateCapability : public SlabObject<MGateCapability>, public Capability {
 public:
     explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, goff_t addr,
-        size_t size, int perms)
+                             size_t size, int perms)
         : Capability(tbl, sel, MGATE),
           obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }

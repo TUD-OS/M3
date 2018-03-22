@@ -54,8 +54,8 @@ public:
         __time_t current_time = tv_iter.tv_sec * 1000000 + tv_iter.tv_usec;
         if (current_time - print_progress_time > 30000000) {
             Platform::logf("Replayed %u of %u operations in %llu seconds so far ...\n",
-                   numReplayed, numTraceOps,
-                   (current_time - (tv_start.tv_sec * 1000000 + tv_start.tv_usec))/1000000);
+                           numReplayed, numTraceOps,
+                           (current_time - (tv_start.tv_sec * 1000000 + tv_start.tv_usec)) / 1000000);
             print_progress_time = current_time;
             if (make_chkpt)
                 Platform::checkpoint_fs();

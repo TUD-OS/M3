@@ -152,7 +152,7 @@ void DTUState::config_recv(epid_t ep, goff_t buf, int order, int msgorder, uint 
 }
 
 void DTUState::config_send(epid_t ep, label_t lbl, peid_t pe, vpeid_t vpe, epid_t dstep,
-        size_t msgsize, word_t credits) {
+                           size_t msgsize, word_t credits) {
     m3::DTU::reg_t *r = reinterpret_cast<m3::DTU::reg_t*>(get_ep(ep));
     r[0] = (static_cast<m3::DTU::reg_t>(m3::DTU::EpType::SEND) << 61) |
             ((vpe & 0xFFFF) << 16) | (msgsize & 0xFFFF);

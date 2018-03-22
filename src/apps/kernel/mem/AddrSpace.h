@@ -67,9 +67,9 @@ private:
 #if defined(__gem5__)
     void clear_pt(gaddr_t pt);
     bool create_pt(const VPEDesc &vpe, goff_t virt, goff_t pteAddr, m3::DTU::pte_t pte,
-        gaddr_t &phys, uint &pages, int perm, int level);
+                   gaddr_t &phys, uint &pages, int perm, int level);
     bool create_ptes(const VPEDesc &vpe, goff_t &virt, goff_t pteAddr, m3::DTU::pte_t pte,
-        gaddr_t &phys, uint &pages, int perm);
+                     gaddr_t &phys, uint &pages, int perm);
 
     void remove_pts_rec(const VPEDesc &vpe, gaddr_t pt, goff_t virt, int level);
 

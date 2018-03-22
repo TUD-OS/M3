@@ -52,7 +52,7 @@ namespace m3 {
 
 void Heap::init_arch() {
     heap_begin = reinterpret_cast<HeapArea*>(mmap(0, HEAP_SIZE, PROT_READ | PROT_WRITE,
-        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+                                                  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
     if(heap_begin == MAP_FAILED)
         PANIC("Unable to map heap");
 

@@ -48,7 +48,7 @@ Errors::Code VPE::copy_sections() {
         start_addr = Math::round_dn(reinterpret_cast<uintptr_t>(&_text_start), DTU_PKG_SIZE);
         end_addr = Math::round_up(reinterpret_cast<uintptr_t>(&_text_end), DTU_PKG_SIZE);
         err = _pager->map_anon(&start_addr, end_addr - start_addr,
-            Pager::READ | Pager::WRITE | Pager::EXEC, 0);
+                               Pager::READ | Pager::WRITE | Pager::EXEC, 0);
         if(err != Errors::NONE)
             return err;
 

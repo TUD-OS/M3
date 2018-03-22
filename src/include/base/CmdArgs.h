@@ -76,7 +76,7 @@ public:
      * @return the option or -1 if no option has been found
      */
     static int get_long(int argc, char *const argv[], const char *optstring,
-        const Option *longopts, int *longindex);
+                        const Option *longopts, int *longindex);
     static int get(int argc, char *const argv[], const char *optstring) {
         return get_long(argc, argv, optstring, nullptr, nullptr);
     }

@@ -64,7 +64,7 @@ retry:
         if(msg->length != 0) {
             LLOG(IPC, "Fetched msg @ " << (void*)msg << " over ep " << ep);
             EVENT_TRACE_MSG_RECV(msg->core, msg->length,
-                (reinterpret_cast<uintptr_t>(msg) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+                                 (reinterpret_cast<uintptr_t>(msg) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
             assert(_last[ep] == nullptr);
             _last[ep] = const_cast<Message*>(msg);
             _pos[ep] = i + 1;
@@ -87,7 +87,7 @@ Errors::Code DTU::send(epid_t ep, const void *msg, size_t size, label_t replylbl
         << " from " << msg << " with lbl=" << fmt(cfg->label, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(cfg->dstcore, size,
-        (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+                         (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
     // first send data to ensure that everything has already arrived if the receiver notices
     // an arrival
@@ -117,7 +117,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
         << " from " << msg << " with lbl=" << fmt(orgmsg->replylabel, "#0x", sizeof(label_t) * 2));
 
     EVENT_TRACE_MSG_SEND(orgmsg->core, size,
-        (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
+                         (reinterpret_cast<uintptr_t>(destaddr) - RECV_BUF_GLOBAL) >> TRACE_ADDR2TAG_SHIFT);
 
     // as soon as we've replied to the other PE, he might send us another message, which we might
     // miss if we ACK this message after we've got another one. so, ACK it now since the reply marks
@@ -144,7 +144,7 @@ Errors::Code DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) 
 }
 
 Errors::Code DTU::check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
-        int perms, int type) const {
+                                  int perms, int type) const {
     uintptr_t srcaddr = base + off;
     if(!(perms & type) || srcaddr < base || srcaddr + size < srcaddr ||  srcaddr + size > base + len) {
         // PANIC("No permission to " << (type == KIF::Perm::R ? "read from" : "write to")

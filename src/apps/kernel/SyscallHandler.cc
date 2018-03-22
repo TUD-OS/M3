@@ -746,7 +746,7 @@ void SyscallHandler::revoke(VPE *vpe, const m3::DTU::Message *msg) {
 }
 
 m3::Errors::Code SyscallHandler::do_exchange(VPE *v1, VPE *v2, const m3::KIF::CapRngDesc &c1,
-        const m3::KIF::CapRngDesc &c2, bool obtain) {
+                                             const m3::KIF::CapRngDesc &c2, bool obtain) {
     VPE &src = obtain ? *v2 : *v1;
     VPE &dst = obtain ? *v1 : *v2;
     const m3::KIF::CapRngDesc &srcrng = obtain ? c2 : c1;

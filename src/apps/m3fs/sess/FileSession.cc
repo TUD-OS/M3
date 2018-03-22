@@ -36,7 +36,8 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::
       _filename(filename),
       _epcap(ObjCap::INVALID),
       _sess(m3::VPE::self().alloc_sels(2)),
-      _sgate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, _sess + 1)),
+      _sgate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this),
+                                  MSG_SIZE, nullptr, _sess + 1)),
       _oflags(flags),
       _xstate(TransactionState::NONE),
       _inode(inode),
@@ -105,7 +106,8 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     size_t old_ino_size = _inode.size;
     Errors::last = Errors::NONE;
     loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, offset, count,
-        (flags & M3FS::EXTEND) ? _meta->handle().extend() : 0, _oflags & MemGate::RWX, crd);
+                                          (flags & M3FS::EXTEND) ? _meta->handle().extend() : 0,
+                                          _oflags & MemGate::RWX, crd);
     if(!locs) {
         SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
@@ -166,7 +168,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     size_t old_ino_size = _inode.size;
     Errors::last = Errors::NONE;
     loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, _extent, 1,
-        write ? _meta->handle().extend() : 0, _oflags & MemGate::RWX, crd);
+                                          write ? _meta->handle().extend() : 0,
+                                          _oflags & MemGate::RWX, crd);
     if(!locs) {
         SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));

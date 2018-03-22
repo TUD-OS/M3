@@ -133,16 +133,18 @@ static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno
         if(i < m3::INODE_DIR_COUNT)
             res = append_to_extent(ino, ino->direct + i, bno, new_ext);
         else if(i < m3::INODE_DIR_COUNT + sb.extents_per_block()) {
-            res = create_indir_block(ino, &ino->indirect,
-                i - m3::INODE_DIR_COUNT, bno, 0, 1, new_ext);
+            res = create_indir_block(ino, &ino->indirect, i - m3::INODE_DIR_COUNT, bno, 0, 1, new_ext);
         }
-        else if(i < m3::INODE_DIR_COUNT + sb.extents_per_block() + sb.extents_per_block() * sb.extents_per_block()) {
+        else if(i < m3::INODE_DIR_COUNT + sb.extents_per_block()
+                                        + sb.extents_per_block() * sb.extents_per_block()) {
             res = create_indir_block(ino, &ino->dindirect,
-                i - (m3::INODE_DIR_COUNT + sb.extents_per_block()), bno, 1, sb.extents_per_block(), new_ext);
+                                     i - (m3::INODE_DIR_COUNT + sb.extents_per_block()),
+                                     bno, 1, sb.extents_per_block(), new_ext);
         }
         else {
             errx(1, "File '%s' is too large. Max no. of extents is %u",
-                 path, m3::INODE_DIR_COUNT + sb.extents_per_block() + sb.extents_per_block() * sb.extents_per_block());
+                 path, m3::INODE_DIR_COUNT + sb.extents_per_block()
+                                           + sb.extents_per_block() * sb.extents_per_block());
         }
     }
     ino->size += sb.blocksize;
@@ -150,7 +152,7 @@ static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno
 }
 
 static m3::DirEntry *write_dirent(m3::INode *dir, m3::DirEntry *prev, const char *path, const char *name,
-        m3::inodeno_t inode, size_t &off, m3::blockno_t &block) {
+                                  m3::inodeno_t inode, size_t &off, m3::blockno_t &block) {
     size_t len = strlen(name);
     size_t total = sizeof(m3::DirEntry) + len;
     if(off + total > sb.blocksize) {
@@ -333,11 +335,11 @@ int main(int argc,char **argv) {
     write_to_block(&sb, sizeof(sb), 0);
 
     PRINT("Writing inode bitmap in blocks %u..%u\n",
-        sb.first_inodebm_block(), sb.first_inodebm_block() + sb.inodebm_blocks());
+          sb.first_inodebm_block(), sb.first_inodebm_block() + sb.inodebm_blocks());
     write_to_block(inode_bitmap->bytes(), (sb.total_inodes + 7) / 8, sb.first_inodebm_block());
 
     PRINT("Writing block bitmap in blocks %u..%u\n",
-        sb.first_blockbm_block(), sb.first_blockbm_block() + sb.blockbm_blocks());
+          sb.first_blockbm_block(), sb.first_blockbm_block() + sb.blockbm_blocks());
     write_to_block(block_bitmap->bytes(), (sb.total_blocks + 7) / 8, sb.first_blockbm_block());
 
     fclose(file);

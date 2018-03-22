@@ -27,8 +27,9 @@ namespace m3 {
 
 class Interrupts : public Session {
 public:
-    explicit Interrupts(const String &service, HWInterrupts::IRQ irq, int buford = nextlog2<256>::val,
-            int msgord = nextlog2<64>::val)
+    explicit Interrupts(const String &service, HWInterrupts::IRQ irq,
+                        int buford = nextlog2<256>::val,
+                        int msgord = nextlog2<64>::val)
         : Session(service, irq),
           _rgate(RecvGate::create(buford, msgord)),
           _sgate(SendGate::create(&_rgate, 0, SendGate::UNLIMITED)) {

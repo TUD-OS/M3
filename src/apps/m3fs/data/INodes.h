@@ -44,13 +44,16 @@ public:
 
     static void stat(FSHandle &h, const m3::INode *inode, m3::FileInfo &info);
 
-    static size_t seek(FSHandle &h, m3::INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff);
+    static size_t seek(FSHandle &h, m3::INode *inode, size_t &off, int whence,
+                       size_t &extent, size_t &extoff);
 
     static m3::loclist_type *get_locs(FSHandle &h, m3::INode *inode, size_t offset, size_t locs,
-        size_t blocks, int perms, m3::KIF::CapRngDesc &crd);
+                                      size_t blocks, int perms, m3::KIF::CapRngDesc &crd);
 
-    static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i, m3::Extent **indir, bool create);
-    static m3::Extent *change_extent(FSHandle &h, m3::INode *inode, size_t i, m3::Extent **indir, bool remove);
+    static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i,
+                                  m3::Extent **indir, bool create);
+    static m3::Extent *change_extent(FSHandle &h, m3::INode *inode, size_t i,
+                                     m3::Extent **indir, bool remove);
     static void fill_extent(FSHandle &h, m3::INode *inode, m3::Extent *ch, uint32_t blocks);
 
     static void truncate(FSHandle &h, m3::INode *inode, size_t extent, size_t extoff);

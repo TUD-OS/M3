@@ -224,7 +224,7 @@ private:
     }
 
     Errors::Code check_rw_access(uintptr_t base, size_t len, size_t off, size_t size,
-        int perms, int type) const;
+                                 int perms, int type) const;
 
     EPConf *conf(epid_t ep) const {
         return eps() + ep;

@@ -100,16 +100,16 @@ public:
     // TODO alloca() uses movsp which causes an exception to be handled appropriately. since this
     // isn't that trivial to implement, we're using malloc instead.
     explicit AutoGateOStream(size_t size)
-        : GateOStream(static_cast<unsigned char*>(
-            Heap::alloc(Math::round_up(size, DTU_PKG_SIZE))), Math::round_up(size, DTU_PKG_SIZE)) {
+        : GateOStream(static_cast<unsigned char*>(Heap::alloc(Math::round_up(size, DTU_PKG_SIZE))),
+                      Math::round_up(size, DTU_PKG_SIZE)) {
     }
     ~AutoGateOStream() {
         Heap::free(this->_bytes);
     }
 #else
     ALWAYS_INLINE explicit AutoGateOStream(size_t size)
-        : GateOStream(static_cast<unsigned char*>(
-            alloca(Math::round_up(size, DTU_PKG_SIZE))), Math::round_up(size, DTU_PKG_SIZE)) {
+        : GateOStream(static_cast<unsigned char*>(alloca(Math::round_up(size, DTU_PKG_SIZE))),
+                      Math::round_up(size, DTU_PKG_SIZE)) {
     }
 #endif
 

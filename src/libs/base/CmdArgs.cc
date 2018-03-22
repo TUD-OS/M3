@@ -78,7 +78,7 @@ size_t CmdArgs::to_size(const char *str) {
 }
 
 int CmdArgs::get_long(int argc, char *const argv[], const char *optstring,
-        const Option *longopts, int *longindex) {
+                      const Option *longopts, int *longindex) {
     static size_t nextchar = 0;
     arg = nullptr;
 

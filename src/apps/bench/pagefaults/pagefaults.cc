@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
         for(size_t i = 0; i < COUNT; ++i) {
             goff_t virt = 0x30000000;
             Errors::Code res = VPE::self().pager()->map_anon(&virt, PAGES * PAGE_SIZE,
-                Pager::READ | Pager::WRITE, 0);
+                                                             Pager::READ | Pager::WRITE, 0);
             if(res != Errors::NONE)
                 exitmsg("Unable to map anonymous memory");
 
@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
             const GenericFile *rfile = static_cast<const GenericFile*>(&*f);
             goff_t virt = 0x31000000;
             Errors::Code res = VPE::self().pager()->map_ds(&virt, PAGES * PAGE_SIZE,
-                Pager::READ | Pager::WRITE, 0, rfile->sess(), 0);
+                                                           Pager::READ | Pager::WRITE, 0,
+                                                           rfile->sess(), 0);
             if(res != Errors::NONE)
                 exitmsg("Unable to map /test.txt");
 

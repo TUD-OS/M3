@@ -111,14 +111,14 @@ private:
 class ExternalDataSpace : public DataSpace {
 public:
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
-            int flags, size_t _fileoff, capsel_t sess)
+                               int flags, size_t _fileoff, capsel_t sess)
         : DataSpace(as, addr, size, flags),
           maxpages(_maxpages),
           sess(sess),
           fileoff(_fileoff) {
     }
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
-            int flags, size_t _fileoff)
+                               int flags, size_t _fileoff)
         : DataSpace(as, addr, size, flags),
           maxpages(_maxpages),
           sess(m3::VPE::self().alloc_sel()),

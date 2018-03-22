@@ -53,7 +53,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
             m3::blockno_t block = get_block_no(inode, i);
             if(block == 0) {
                 errx(1, "Inode %u has %u blocks, but %u can't be found in extents",
-                    ino, block_count, i);
+                        ino, block_count, i);
                 break;
             }
 
@@ -77,7 +77,7 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
             m3::blockno_t block = get_block_no(inode, i);
             if(block == 0) {
                 errx(1, "Inode %u has %u blocks, but %u can't be found in extents",
-                    ino, block_count, i);
+                        ino, block_count, i);
                 break;
             }
             set_block(blocks, block);
@@ -107,17 +107,17 @@ static void collect_blocks_and_inodes(m3::inodeno_t ino, m3::Bitmap &blocks, m3:
             for(uint i = 0; i < sb.extents_per_block(); ++i) {
                 if(i < count && (extents[i].length == 0 || extents[i].start == 0)) {
                     errx(1, "Inode %u has %u extents, but extent %u is empty", ino, inode.extents,
-                        i + m3::INODE_DIR_COUNT + sb.extents_per_block());
+                            i + m3::INODE_DIR_COUNT + sb.extents_per_block());
                 }
                 if(i >= count && (extents[i].length != 0 || extents[i].start != 0)) {
                     errx(1, "Inode %u has %u extents, but extent %u is NOT empty", ino, inode.extents,
-                        i + m3::INODE_DIR_COUNT + sb.extents_per_block());
+                            i + m3::INODE_DIR_COUNT + sb.extents_per_block());
                 }
 
                 if(extents[i].start && extents[i].length) {
                     if(extents[i].length != 1) {
                         errx(1, "Double-indirect entry %u of inode %u has a length of %u instead of 1",
-                            i, ino, extents[i].length);
+                                i, ino, extents[i].length);
                     }
                     set_block(blocks, extents[i].start);
                 }
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 
     if(sb.checksum != sb.get_checksum()) {
         errx(1, "Superblock checksum is invalid (is %#010x, should be %#010x)",
-            sb.checksum, sb.get_checksum());
+                sb.checksum, sb.get_checksum());
     }
     if(sb.total_blocks == 0 || sb.total_inodes == 0)
         errx(1, "Superblock is invalid (no blocks or inodes)");
@@ -205,11 +205,11 @@ int main(int argc, char **argv) {
     uint32_t first;
     if(sb.first_free_inode > (first = first_free(inodes, sb.total_inodes))) {
         errx(1, "First free inode number in superblock is wrong (is %u, should be at most %u)",
-            sb.first_free_inode, first);
+                sb.first_free_inode, first);
     }
     if(sb.first_free_block > (first = first_free(blocks, sb.total_blocks))) {
         errx(1, "First free block number in superblock is wrong (is %u, should be at most %u)",
-            sb.first_free_block, first);
+                sb.first_free_block, first);
     }
 
     fclose(file);

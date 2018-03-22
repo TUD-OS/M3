@@ -131,7 +131,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
 }
 
 void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-        label_t replylbl, epid_t replyep, uint64_t) {
+                  label_t replylbl, epid_t replyep, uint64_t) {
     const size_t msg_ord = static_cast<uint>(m3::getnextlog2(size + m3::DTU::HEADER_SIZE));
     m3::DTU::get().configure(_ep, label, vpe.pe, ep, 1UL << msg_ord, msg_ord);
     m3::DTU::get().send(_ep, msg, size, replylbl, replyep);

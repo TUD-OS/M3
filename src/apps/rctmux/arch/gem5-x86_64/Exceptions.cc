@@ -116,7 +116,7 @@ void Exceptions::init() {
 }
 
 void Exceptions::setDesc(Desc *d, uintptr_t address, size_t limit, uint8_t granu,
-        uint8_t type, uint8_t dpl) {
+                         uint8_t type, uint8_t dpl) {
     d->addrLow = address & 0xFFFF;
     d->addrMiddle = (address >> 16) & 0xFF;
     d->limitLow = limit & 0xFFFF;
@@ -128,7 +128,7 @@ void Exceptions::setDesc(Desc *d, uintptr_t address, size_t limit, uint8_t granu
 }
 
 void Exceptions::setDesc64(Desc *d, uintptr_t address, size_t limit, uint8_t granu,
-        uint8_t type, uint8_t dpl) {
+                           uint8_t type, uint8_t dpl) {
     Desc64 *d64 = reinterpret_cast<Desc64*>(d);
     setDesc(d64,address,limit,granu,type,dpl);
     d64->addrUpper = address >> 32;

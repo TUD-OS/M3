@@ -156,7 +156,7 @@ void AddrSpace::clear_pt(gaddr_t pt) {
 }
 
 bool AddrSpace::create_pt(const VPEDesc &vpe, goff_t virt, goff_t pteAddr, m3::DTU::pte_t pte,
-        gaddr_t &phys, uint &pages, int perm, int level) {
+                          gaddr_t &phys, uint &pages, int perm, int level) {
     // use a large page, if possible
     if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
                      pages * PAGE_SIZE >= m3::DTU::LPAGE_SIZE) {
@@ -195,7 +195,7 @@ bool AddrSpace::create_pt(const VPEDesc &vpe, goff_t virt, goff_t pteAddr, m3::D
 }
 
 bool AddrSpace::create_ptes(const VPEDesc &vpe, goff_t &virt, goff_t pteAddr, m3::DTU::pte_t pte,
-        gaddr_t &phys, uint &pages, int perm) {
+                            gaddr_t &phys, uint &pages, int perm) {
     // note that we can assume here that map_pages is always called for the same set of
     // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
     // only page 1. this is because we call map_pages with MapCapability, which can't

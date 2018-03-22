@@ -113,8 +113,9 @@ SocketBackend::~SocketBackend() {
 }
 
 void SocketBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
-    if(sendto(_sock, buf, buf->length + DTU::HEADER_SIZE, 0,
-        (struct sockaddr*)(_endpoints + pe * EP_COUNT + ep), sizeof(sockaddr_un)) == -1)
+    int res = sendto(_sock, buf, buf->length + DTU::HEADER_SIZE, 0,
+                     (struct sockaddr*)(_endpoints + pe * EP_COUNT + ep), sizeof(sockaddr_un));
+    if(res == -1)
         LLOG(DTUERR, "Sending message to EP " << pe << ":" << ep << " failed: " << strerror(errno));
 }
 
