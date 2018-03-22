@@ -28,7 +28,7 @@
  */
 #define foreach_block(h, inode, bno)                                                    \
     blockno_t bno;                                                                      \
-    Extent *__ch, *__indir = nullptr;                                                      \
+    Extent *__ch, *__indir = nullptr;                                                   \
     for(uint32_t __j, __i = 0; __i < (inode)->extents; ++__i)                           \
         for(__ch = INodes::get_extent((h), (inode), __i, &__indir, false), __j = 0;     \
             (bno = __ch->start + __j) && __j < __ch->length; ++__j)
