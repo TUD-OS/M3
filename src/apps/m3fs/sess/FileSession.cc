@@ -181,6 +181,10 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     if(extended && xstate != TransactionState::ABORTED)
         xstate = TransactionState::OPEN;
 
+    SLOG(FS, fmt((word_t)this, "#x")
+        << ": file::" << (write ? "write" : "read")
+        << " -> (" << lastoff << ", " << (extlen - lastoff) << ")");
+
     // reply first
     reply_vmsg(is, Errors::NONE, lastoff, extlen - lastoff);
 
