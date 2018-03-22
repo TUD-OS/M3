@@ -67,8 +67,6 @@ using time_t    = uint32_t;
 
 enum {
     INODE_DIR_COUNT     = 3,
-    // should be a power of 2
-    MAX_LOCS            = 4,
     MAX_BLOCK_SIZE      = 4096,
 };
 
