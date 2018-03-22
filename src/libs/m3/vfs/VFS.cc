@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/log/Lib.h>
 #include <base/stream/Serial.h>
 #include <base/Init.h>
 
@@ -65,6 +66,7 @@ fd_t VFS::open(const char *path, int perms) {
             delete file;
             Errors::last = Errors::NO_SPACE;
         }
+        LLOG(FS, "GenFile[" << fd << "]::open(" << path << ", " << perms << ")");
         if(perms & FILE_APPEND)
             file->seek(0, M3FS_SEEK_END);
         return fd;
