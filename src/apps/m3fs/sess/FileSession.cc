@@ -27,18 +27,20 @@ using namespace m3;
 
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                                  int _flags, const m3::INode &_inode)
-    : M3FSSession(), extent(), extoff(), lastoff(), extlen(), filename(_filename),
+    : M3FSSession(), m3::SListItem(), extent(), extoff(), lastoff(), extlen(), filename(_filename),
       epcap(ObjCap::INVALID), sess(m3::VPE::self().alloc_sels(2)),
       sgate(m3::SendGate::create(&_meta->rgate(), reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, sess + 1)),
       oflags(_flags), xstate(TransactionState::NONE), inode(_inode),
       last(ObjCap::INVALID), capscon(), meta(_meta) {
     Syscalls::get().createsessat(sess, srv, reinterpret_cast<word_t>(this));
+
+    meta->handle().files().add_sess(this);
 }
 
 M3FSFileSession::~M3FSFileSession() {
     SLOG(FS, fmt((word_t)this, "#x") << ": file::close(path=" << filename << ")");
 
-    do_commit(extent, extoff);
+    meta->handle().files().rem_sess(this);
     meta->remove_file(this);
 
     if(last != ObjCap::INVALID)
@@ -89,10 +91,10 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     }
 
     KIF::CapRngDesc crd;
-    bool extended = false;
+    size_t old_ino_size = inode.size;
     Errors::last = Errors::NONE;
     loclist_type *locs = INodes::get_locs(meta->handle(), &inode, offset, count,
-        (flags & M3FS::EXTEND) ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd, extended);
+        (flags & M3FS::EXTEND) ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd);
     if(!locs) {
         SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
@@ -100,12 +102,12 @@ Errors::Code M3FSFileSession::get_locs(KIF::Service::ExchangeData &data) {
     }
 
     // start/continue transaction
-    if(extended && xstate != TransactionState::ABORTED)
+    if(inode.size > old_ino_size && xstate != TransactionState::ABORTED)
         xstate = TransactionState::OPEN;
 
     data.caps = crd.value();
     data.args.count = 2 + locs->count();
-    data.args.vals[0] = extended;
+    data.args.vals[0] = inode.size > old_ino_size;
     data.args.vals[1] = firstOff;
     for(size_t i = 0; i < locs->count(); ++i)
         data.args.vals[2 + i] = locs->get_len(i);
@@ -143,17 +145,17 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
             extent--;
             extoff = lastoff + submit;
         }
-        Errors::Code res = write ? do_commit(extent, extoff) : Errors::NONE;
+        Errors::Code res = write ? commit(extent, extoff) : Errors::NONE;
         reply_vmsg(is, res, inode.size);
         return;
     }
 
     // get next mem cap
     KIF::CapRngDesc crd;
-    bool extended = false;
+    size_t old_ino_size = inode.size;
     Errors::last = Errors::NONE;
     loclist_type *locs = INodes::get_locs(meta->handle(), &inode, extent, 1,
-        write ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd, extended);
+        write ? meta->handle().extend() : 0, oflags & MemGate::RWX, crd);
     if(!locs) {
         SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
             << Errors::to_string(Errors::last));
@@ -178,7 +180,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     }
 
     // start/continue transaction
-    if(extended && xstate != TransactionState::ABORTED)
+    if(inode.size > old_ino_size && xstate != TransactionState::ABORTED)
         xstate = TransactionState::OPEN;
 
     SLOG(FS, fmt((word_t)this, "#x")
@@ -226,55 +228,47 @@ void M3FSFileSession::fstat(GateIStream &is) {
     reply_vmsg(is, Errors::NONE, info);
 }
 
-Errors::Code M3FSFileSession::do_commit(size_t extent, size_t extoff) {
-    if(extent != 0 || extoff != 0) {
-        if(~oflags & FILE_W)
-            return Errors::INV_ARGS;
-        if(xstate == TransactionState::ABORTED)
-            return Errors::COMMIT_FAILED;
+Errors::Code M3FSFileSession::commit(size_t extent, size_t extoff) {
+    if(xstate == TransactionState::ABORTED)
+        return Errors::COMMIT_FAILED;
 
-        // have we increased the filesize?
-        m3::INode *ninode = INodes::get(meta->handle(), inode.inode);
-        if(inode.size > ninode->size) {
-            // get the old offset within the last extent
-            size_t orgoff = 0;
-            if(ninode->extents > 0) {
-                Extent *indir = nullptr;
-                Extent *ch = INodes::get_extent(meta->handle(), ninode, ninode->extents - 1, &indir, false);
-                assert(ch != nullptr);
-                orgoff = ch->length * meta->handle().sb().blocksize;
-                size_t mod;
-                if(((mod = ninode->size % meta->handle().sb().blocksize)) > 0)
-                    orgoff -= meta->handle().sb().blocksize - mod;
-            }
+    // have we increased the filesize?
+    m3::INode *ninode = INodes::get(meta->handle(), inode.inode);
+    if(inode.size > ninode->size) {
+        // get the old offset within the last extent
+        size_t orgoff = 0;
+        if(ninode->extents > 0) {
+            Extent *indir = nullptr;
+            Extent *ch = INodes::get_extent(meta->handle(), ninode, ninode->extents - 1, &indir, false);
+            assert(ch != nullptr);
+            orgoff = ch->length * meta->handle().sb().blocksize;
+            size_t mod;
+            if(((mod = ninode->size % meta->handle().sb().blocksize)) > 0)
+                orgoff -= meta->handle().sb().blocksize - mod;
+        }
 
-            // then cut it to either the org size or the max. position we've written to,
-            // whatever is bigger
-            if(ninode->extents == 0 || extent > ninode->extents - 1 ||
-               (extent == ninode->extents - 1 && extoff > orgoff)) {
-                INodes::truncate(meta->handle(), &inode, extent, extoff);
-            }
-            else {
-                INodes::truncate(meta->handle(), &inode, ninode->extents - 1, orgoff);
-                inode.size = ninode->size;
-            }
-            memcpy(ninode, &inode, sizeof(*ninode));
+        // then cut it to either the org size or the max. position we've written to,
+        // whatever is bigger
+        if(ninode->extents == 0 || extent > ninode->extents - 1 ||
+           (extent == ninode->extents - 1 && extoff > orgoff)) {
+            INodes::truncate(meta->handle(), &inode, extent, extoff);
+        }
+        else {
+            INodes::truncate(meta->handle(), &inode, ninode->extents - 1, orgoff);
+            inode.size = ninode->size;
+        }
+        memcpy(ninode, &inode, sizeof(*ninode));
 
-            // update the inode in all open files
-            // and let all future commits for this file fail
-            // TODO
-            // for(auto s = begin(); s != end(); ++s) {
-            //     if(&*s == sess)
-            //         continue;
-            //     for(size_t i = 0; i < M3FSSession::MAX_FILES; ++i) {
-            //         M3FSSession::OpenFile *f = s->get(static_cast<int>(i));
-            //         if(f && f->ino == of->ino && f->xstate == TransactionState::OPEN) {
-            //             memcpy(&f->inode, ninode, sizeof(*ninode));
-            //             f->xstate = TransactionState::ABORTED;
-            //             // TODO revoke access, if necessary
-            //         }
-            //     }
-            // }
+        // update the inode in all open files
+        // and let all future commits for this file fail
+        OpenFiles::OpenFile *ofile = meta->handle().files().get_file(inode.inode);
+        assert(ofile != nullptr);
+        for(auto s = ofile->sessions.begin(); s != ofile->sessions.end(); ++s) {
+            if(&*s != this && s->xstate == TransactionState::OPEN) {
+                memcpy(&s->inode, ninode, sizeof(*ninode));
+                s->xstate = TransactionState::ABORTED;
+                // TODO revoke access, if necessary
+            }
         }
     }
 

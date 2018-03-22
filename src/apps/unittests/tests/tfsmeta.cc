@@ -18,6 +18,7 @@
 
 #include <m3/stream/FStream.h>
 #include <m3/vfs/Dir.h>
+#include <m3/vfs/FileRef.h>
 #include <m3/vfs/VFS.h>
 
 #include <algorithm>
@@ -96,7 +97,35 @@ static void meta_operations() {
     assert_int(VFS::unlink("/newpath"), Errors::NONE);
 }
 
+static void delete_file() {
+    const char *tmp_file = "/tmp_file.txt";
+
+    {
+        FStream f(tmp_file, FILE_W | FILE_CREATE);
+        f << "test\n";
+    }
+
+    {
+        char buffer[32];
+
+        FileRef file(tmp_file, FILE_R);
+        if(Errors::occurred())
+            exitmsg("open of " << tmp_file << "failed");
+
+        assert_int(VFS::unlink(tmp_file), Errors::NONE);
+
+        assert_true(VFS::open(tmp_file, FILE_R) == FileTable::INVALID);
+        assert_int(Errors::last, Errors::NO_SUCH_FILE);
+
+        assert_ssize(file->read(buffer, sizeof(buffer)), 5);
+    }
+
+    assert_true(VFS::open(tmp_file, FILE_R) == FileTable::INVALID);
+    assert_int(Errors::last, Errors::NO_SUCH_FILE);
+}
+
 void tfsmeta() {
     RUN_TEST(dir_listing);
     RUN_TEST(meta_operations);
+    RUN_TEST(delete_file);
 }

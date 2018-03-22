@@ -86,7 +86,7 @@ Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t nam
 
                 // reduce links and free, if necessary
                 if(--inode->links == 0)
-                    INodes::free(h, inode);
+                    h.files().delete_file(inode->inode);
                 return Errors::NONE;
             }
 

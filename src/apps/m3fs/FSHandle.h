@@ -19,6 +19,7 @@
 #include <fs/internal.h>
 
 #include "data/Allocator.h"
+#include "sess/OpenFiles.h"
 #include "Cache.h"
 
 class FSHandle {
@@ -39,6 +40,9 @@ public:
     }
     Allocator &blocks() {
         return _blocks;
+    }
+    OpenFiles &files() {
+        return _files;
     }
     bool clear_blocks() const {
         return _clear;
@@ -70,4 +74,5 @@ private:
     Cache _cache;
     Allocator _blocks;
     Allocator _inodes;
+    OpenFiles _files;
 };

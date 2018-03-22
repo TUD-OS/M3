@@ -42,9 +42,12 @@ INode *INodes::create(FSHandle &h, mode_t mode) {
     return inode;
 }
 
-void INodes::free(FSHandle &h, m3::INode *inode) {
-    truncate(h, inode, 0, 0);
-    h.inodes().free(h, inode->inode, 1);
+void INodes::free(FSHandle &h, inodeno_t ino) {
+    INode *inode = get(h, ino);
+    if(inode) {
+        truncate(h, inode, 0, 0);
+        h.inodes().free(h, inode->inode, 1);
+    }
 }
 
 INode *INodes::get(FSHandle &h, inodeno_t ino) {
@@ -77,7 +80,7 @@ void INodes::write_back(FSHandle &h, INode *inode) {
 }
 
 loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
-        size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd, bool &extended) {
+        size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd) {
     if(locs > MAX_LOCS) {
         Errors::last = Errors::INV_ARGS;
         return nullptr;
@@ -106,7 +109,6 @@ loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
                     return nullptr;
                 break;
             }
-            extended = true;
         }
 
         size_t left = 0;

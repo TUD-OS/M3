@@ -158,8 +158,11 @@ public:
 
     /**
      * Performs a flush of the so far written data
+     *
+     * @return the error, if any
      */
-    virtual void flush() {
+    virtual Errors::Code flush() {
+        return Errors::NONE;
     }
 
     /**

@@ -62,8 +62,8 @@ public:
     virtual ssize_t read(void *buffer, size_t count) override;
     virtual ssize_t write(const void *buffer, size_t count) override;
 
-    virtual void flush() override {
-        submit(false);
+    virtual Errors::Code flush() override {
+        return submit(false);
     }
 
     virtual char type() const override {

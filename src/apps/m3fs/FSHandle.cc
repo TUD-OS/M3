@@ -43,5 +43,6 @@ FSHandle::FSHandle(capsel_t mem, size_t extend, bool clear)
           _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,
                 _sb.total_blocks, _sb.blockbm_blocks()),
           _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes,
-                _sb.total_inodes, _sb.inodebm_blocks()) {
+                _sb.total_inodes, _sb.inodebm_blocks()),
+          _files(*this) {
 }

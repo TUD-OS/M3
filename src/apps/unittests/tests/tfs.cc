@@ -317,6 +317,40 @@ static void write_file_and_read_again() {
     file->write(content, contentsz);
 }
 
+static void transactions() {
+    char content1[64] = "This will not be written!";
+    char content2[64] = "Foobar, a test and more and more and more!";
+    const char *tmp_file = "/tmp_file.txt";
+
+    {
+        FileRef file1(tmp_file, FILE_W | FILE_CREATE);
+        if(Errors::occurred())
+            exitmsg("open of " << tmp_file << " failed");
+
+        assert_ssize(file1->write(content1, strlen(content1)), static_cast<ssize_t>(strlen(content1)));
+
+        {
+            FileRef file2(tmp_file, FILE_W | FILE_CREATE);
+            if(Errors::occurred())
+                exitmsg("open of " << tmp_file << " failed");
+
+            assert_ssize(file2->write(content2, strlen(content2)), static_cast<ssize_t>(strlen(content2)));
+        }
+
+        assert_ssize(file1->flush(), Errors::COMMIT_FAILED);
+    }
+
+    {
+        FileRef file(tmp_file, FILE_R);
+        if(Errors::occurred())
+            exitmsg("open of " << tmp_file << " failed");
+
+        char buf[64] = {0};
+        assert_ssize(file->read(buf, sizeof(buf)), static_cast<ssize_t>(strlen(content2)));
+        assert_str(buf, content2);
+    }
+}
+
 static void buffered_read_until_end() {
     FStream file(pat_file, FILE_R, 256);
     if(Errors::occurred())
@@ -461,6 +495,7 @@ void tfs() {
     RUN_TEST(read_file_in_64b_steps);
     RUN_TEST(read_file_in_large_steps);
     RUN_TEST(write_file_and_read_again);
+    RUN_TEST(transactions);
     RUN_TEST(buffered_read_until_end);
     RUN_TEST(buffered_read_with_seek);
     RUN_TEST(buffered_read_with_large_buf);

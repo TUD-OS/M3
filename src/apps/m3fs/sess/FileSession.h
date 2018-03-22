@@ -61,7 +61,7 @@ struct CapContainer {
     m3::SList<Entry> caps;
 };
 
-class M3FSFileSession : public M3FSSession {
+class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
     explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
                              int _flags, const m3::INode &_inode);
@@ -76,6 +76,10 @@ public:
     virtual void seek(m3::GateIStream &is) override;
     virtual void fstat(m3::GateIStream &is) override;
 
+    m3::inodeno_t ino() const {
+        return inode.inode;
+    }
+
     m3::KIF::CapRngDesc caps() const {
         return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sess, 2);
     }
@@ -88,7 +92,7 @@ public:
 
 private:
     void read_write(m3::GateIStream &is, bool write);
-    m3::Errors::Code do_commit(size_t extent, size_t extoff);
+    m3::Errors::Code commit(size_t extent, size_t extoff);
 
     // TODO reference counting
     size_t extent;

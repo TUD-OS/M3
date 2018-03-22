@@ -82,7 +82,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create) {
             return INVALID_INO;
         Errors::Code res = Links::create(h, inode, path, namelen, ninode);
         if(res != Errors::NONE) {
-            INodes::free(h, ninode);
+            h.files().delete_file(ninode->inode);
             return INVALID_INO;
         }
         return ninode->inode;
@@ -138,7 +138,7 @@ errLink2:
 errLink1:
     Links::remove(h, parinode, base, baselen, true);
 errINode:
-    INodes::free(h, parinode);
+    h.files().delete_file(dirinode->inode);
     return res;
 }
 
