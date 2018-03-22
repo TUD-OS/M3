@@ -18,6 +18,8 @@
 
 #include <base/Common.h>
 
+#include <m3/com/Marshalling.h>
+
 #include <fs/internal.h>
 
 namespace m3 {

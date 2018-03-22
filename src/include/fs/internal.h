@@ -19,7 +19,7 @@
 #include <base/Common.h>
 #include <base/DTU.h>
 
-#include <m3/vfs/LocList.h>
+#include <m3/com/MemGate.h>
 
 #include <string.h>
 
@@ -92,8 +92,6 @@ enum {
 static_assert(FILE_R == MemGate::R, "FILE_R is out of sync");
 static_assert(FILE_W == MemGate::W, "FILE_W is out of sync");
 static_assert(FILE_X == MemGate::X, "FILE_X is out of sync");
-
-using loclist_type = LocList<MAX_LOCS>;
 
 struct Extent {
     uint32_t start;

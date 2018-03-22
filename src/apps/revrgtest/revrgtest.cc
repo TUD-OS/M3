@@ -17,6 +17,7 @@
 #include <m3/stream/Standard.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
 #include <m3/VPE.h>
 
 using namespace m3;

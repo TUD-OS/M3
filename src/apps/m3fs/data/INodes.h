@@ -47,8 +47,8 @@ public:
     static size_t seek(FSHandle &h, m3::INode *inode, size_t &off, int whence,
                        size_t &extent, size_t &extoff);
 
-    static m3::loclist_type *get_locs(FSHandle &h, m3::INode *inode, size_t offset, size_t locs,
-                                      size_t blocks, int perms, m3::KIF::CapRngDesc &crd);
+    static size_t get_extent_mem(FSHandle &h, m3::INode *inode, size_t extent, size_t blocks,
+                                 int perms, capsel_t sel);
 
     static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i,
                                   m3::Extent **indir, bool create);
@@ -60,7 +60,4 @@ public:
 
     static void mark_dirty(FSHandle &h, m3::inodeno_t ino);
     static void write_back(FSHandle &h, m3::INode *inode);
-
-private:
-    static m3::loclist_type _locs;
 };

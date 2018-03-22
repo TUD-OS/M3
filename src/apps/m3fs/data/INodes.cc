@@ -23,8 +23,6 @@
 
 using namespace m3;
 
-loclist_type INodes::_locs;
-
 alignas(64) static char zeros[MAX_BLOCK_SIZE];
 
 INode *INodes::create(FSHandle &h, mode_t mode) {
@@ -79,65 +77,43 @@ void INodes::write_back(FSHandle &h, INode *inode) {
         h.cache().write_back(bno);
 }
 
-loclist_type *INodes::get_locs(FSHandle &h, INode *inode, size_t extent,
-                               size_t locs, size_t blocks, int perms, KIF::CapRngDesc &crd) {
-    if(locs > MAX_LOCS) {
-        Errors::last = Errors::INV_ARGS;
-        return nullptr;
-    }
-
-    size_t blocks_total = blocks * locs;
-    crd = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, VPE::self().alloc_sels(locs), locs);
+size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t blocks,
+                              int perms, capsel_t sel) {
     Extent *indir = nullptr;
-    // we're reusing the locations
-    _locs.clear();
-    for(size_t i = extent; i < extent + locs; ++i) {
-        Extent *ch = get_extent(h, inode, i, &indir, blocks_total > 0);
-        if(ch == nullptr)
-            break;
+    Extent *ch = get_extent(h, inode, extent, &indir, blocks > 0);
+    if(ch == nullptr)
+        return 0;
 
-        // extent empty?
-        if(ch->length == 0) {
-            // if the user did not request an allocation, stop here
-            if(blocks_total == 0)
-                break;
-
+    // extent empty?
+    if(ch->length == 0) {
+        if(blocks > 0) {
             // fill extent with blocks
             fill_extent(h, inode, ch, blocks);
-            if(ch->length == 0) {
-                if(_locs.count() == 0)
-                    return nullptr;
-                break;
-            }
         }
-
-        size_t left = 0;
-        // extend inode size, if we're appending
-        if(i == inode->extents - 1) {
-            left = inode->size % h.sb().blocksize;
-            if(blocks_total > 0 && left)
-                inode->size += h.sb().blocksize - left;
-        }
-
-        // create memory capability for extent
-        size_t bytes = ch->length * h.sb().blocksize;
-        Errors::Code res = Syscalls::get().derivemem(
-            crd.start() + _locs.count(), h.mem().sel(), ch->start * h.sb().blocksize, bytes, perms);
-        if(res != Errors::NONE) {
-            VPE::self().revoke(crd);
-            return nullptr;
-        }
-
-        // stop at file-end
-        if(blocks_total == 0 && left)
-            bytes -= h.sb().blocksize - left;
-
-        // append extent to location list
-        _locs.append(bytes);
-        if(ch->length <= blocks_total)
-            blocks_total -= ch->length;
+        if(ch->length == 0)
+            return 0;
     }
-    return &_locs;
+
+    size_t left = 0;
+    // extend inode size, if we're appending
+    if(extent == inode->extents - 1) {
+        left = inode->size % h.sb().blocksize;
+        if(blocks > 0 && left)
+            inode->size += h.sb().blocksize - left;
+    }
+
+    // create memory capability for extent
+    size_t bytes = ch->length * h.sb().blocksize;
+    Errors::Code res = Syscalls::get().derivemem(sel, h.mem().sel(),
+                                                 ch->start * h.sb().blocksize, bytes, perms);
+    if(res != Errors::NONE)
+        return 0;
+
+    // stop at file-end
+    if(blocks == 0 && left)
+        bytes -= h.sb().blocksize - left;
+
+    return bytes;
 }
 
 Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool create) {

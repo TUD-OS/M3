@@ -36,13 +36,13 @@ enum class TransactionState {
 
 struct CapContainer {
     struct Entry : public m3::SListItem {
-        explicit Entry(const m3::KIF::CapRngDesc &_crd) : crd(_crd) {
+        explicit Entry(capsel_t _sel) : sel(_sel) {
         }
         ~Entry() {
-            m3::VPE::self().revoke(crd);
+            m3::VPE::self().revoke(m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sel));
         }
 
-        m3::KIF::CapRngDesc crd;
+        capsel_t sel;
     };
 
     explicit CapContainer() : caps() {
@@ -54,8 +54,8 @@ struct CapContainer {
         }
     }
 
-    void add(const m3::KIF::CapRngDesc &crd) {
-        caps.append(new Entry(crd));
+    void add(capsel_t sel) {
+        caps.append(new Entry(sel));
     }
 
     m3::SList<Entry> caps;

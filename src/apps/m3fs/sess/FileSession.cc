@@ -25,6 +25,8 @@
 
 using namespace m3;
 
+#define PRINT(sess, expr) SLOG(FS, fmt((word_t)sess, "#x") << ": " << expr)
+
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
                                  int flags, const m3::INode &inode)
     : M3FSSession(),
@@ -50,7 +52,7 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::
 }
 
 M3FSFileSession::~M3FSFileSession() {
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::close(path=" << _filename << ")");
+    PRINT(this, "file::close(path=" << _filename << ")");
 
     _meta->handle().files().rem_sess(this);
     _meta->remove_file(this);
@@ -60,7 +62,7 @@ M3FSFileSession::~M3FSFileSession() {
 }
 
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::clone(path=" << _filename << ")");
+    PRINT(this, "file::clone(path=" << _filename << ")");
 
     auto nfile =  new M3FSFileSession(srv, _meta, _filename, _oflags, _inode);
 
@@ -77,8 +79,7 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     size_t offset = data.args.vals[0];
 
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::get_mem(path=" << _filename
-        << ", offset=" << offset << ")");
+    PRINT(this, "file::get_mem(path=" << _filename << ", offset=" << offset << ")");
 
     // determine extent from byte offset
     size_t firstOff = offset;
@@ -88,24 +89,23 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
         offset = tmp_extent;
     }
 
-    KIF::CapRngDesc crd;
+    capsel_t sel = VPE::self().alloc_sel();
     Errors::last = Errors::NONE;
-    loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, offset, 1,
-                                          0, _oflags & MemGate::RWX, crd);
-    if(!locs) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
-            << Errors::to_string(Errors::last));
+    size_t len = INodes::get_extent_mem(_meta->handle(), &_inode, offset, 0,
+                                        _oflags & MemGate::RWX, sel);
+    if(Errors::occurred()) {
+        PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
         return Errors::last;
     }
 
-    data.caps = crd.value();
+    data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, 1).value();
     data.args.count = 2;
     data.args.vals[0] = firstOff;
-    data.args.vals[1] = locs->get_len(0);
+    data.args.vals[1] = len;
 
-    SLOG(FS, "Received cap: " << locs->get_len(0));
+    PRINT(this, "file::get_mem -> " << len);
 
-    _capscon.add(crd);
+    _capscon.add(sel);
     return Errors::NONE;
 }
 
@@ -113,8 +113,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     size_t submit;
     is >> submit;
 
-    SLOG(FS, fmt((word_t)this, "#x")
-        << ": file::" << (write ? "write" : "read") << "(submit=" << submit << "); "
+    PRINT(this, "file::" << (write ? "write" : "read") << "(submit=" << submit << "); "
         << "file[path=" << _filename << ", extent=" << _extent << ", extoff=" << _extoff << "]");
 
     if((write && !(_oflags & FILE_W)) || (!write && !(_oflags & FILE_R))) {
@@ -138,25 +137,24 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     }
 
     // get next mem cap
-    KIF::CapRngDesc crd;
+    capsel_t sel = VPE::self().alloc_sel();
     size_t old_ino_size = _inode.size;
     Errors::last = Errors::NONE;
-    loclist_type *locs = INodes::get_locs(_meta->handle(), &_inode, _extent, 1,
-                                          write ? _meta->handle().extend() : 0,
-                                          _oflags & MemGate::RWX, crd);
-    if(!locs) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": Determining locations failed: "
-            << Errors::to_string(Errors::last));
+    size_t len = INodes::get_extent_mem(_meta->handle(), &_inode, _extent,
+                                        write ? _meta->handle().extend() : 0,
+                                        _oflags & MemGate::RWX, sel);
+    if(Errors::occurred()) {
+        PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
         reply_error(is, Errors::last);
         return;
     }
 
     _lastoff = _extoff;
-    _extlen = locs->get_len(0);
+    _extlen = len;
     if(_extlen > 0) {
         // activate mem cap for client
-        if(Syscalls::get().activate(_epcap, crd.start(), 0) != Errors::NONE) {
-            SLOG(FS, fmt((word_t)this, "#x") << ": activate failed: "
+        if(Syscalls::get().activate(_epcap, sel, 0) != Errors::NONE) {
+            PRINT(this, "activate failed: "
                 << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
             return;
@@ -171,8 +169,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     if(_inode.size > old_ino_size && _xstate != TransactionState::ABORTED)
         _xstate = TransactionState::OPEN;
 
-    SLOG(FS, fmt((word_t)this, "#x")
-        << ": file::" << (write ? "write" : "read")
+    PRINT(this, "file::" << (write ? "write" : "read")
         << " -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
 
     // reply first
@@ -181,7 +178,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     // revoke last mem cap and remember new one
     if(_last != ObjCap::INVALID)
         VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
-    _last = crd.start();
+    _last = sel;
 }
 
 void M3FSFileSession::read(GateIStream &is) {
@@ -196,7 +193,7 @@ void M3FSFileSession::seek(GateIStream &is) {
     int whence;
     size_t off;
     is >> off >> whence;
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::seek(path="
+    PRINT(this, "file::seek(path="
         << _filename << ", off=" << off << ", whence=" << whence << ")");
 
     if(whence == SEEK_CUR) {
@@ -209,7 +206,7 @@ void M3FSFileSession::seek(GateIStream &is) {
 }
 
 void M3FSFileSession::fstat(GateIStream &is) {
-    SLOG(FS, fmt((word_t)this, "#x") << ": file::fstat(path=" << _filename << ")");
+    PRINT(this, "file::fstat(path=" << _filename << ")");
 
     m3::FileInfo info;
     INodes::stat(_meta->handle(), &_inode, info);
