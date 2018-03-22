@@ -39,7 +39,7 @@ class SendGate : public Gate {
 
     explicit SendGate(capsel_t cap, uint capflags, RecvGate *replygate, epid_t ep = UNBOUND)
         : Gate(SEND_GATE, cap, capflags, ep),
-            _replygate(replygate == nullptr ? &RecvGate::def() : replygate) {
+          _replygate(replygate == nullptr ? &RecvGate::def() : replygate) {
     }
 
 public:
@@ -68,7 +68,9 @@ public:
         return SendGate(sel, flags, replygate);
     }
 
-    SendGate(SendGate &&g) : Gate(Util::move(g)), _replygate(g._replygate) {
+    SendGate(SendGate &&g)
+        : Gate(Util::move(g)),
+          _replygate(g._replygate) {
     }
 
     /**

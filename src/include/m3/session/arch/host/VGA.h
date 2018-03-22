@@ -26,7 +26,9 @@ public:
     static constexpr int ROWS = 30;
     static constexpr size_t SIZE = ROWS * COLS * 2;
 
-    explicit VGA(const String &service) : Session(service), _gate(MemGate::bind(obtain(1).start())) {
+    explicit VGA(const String &service)
+        : Session(service),
+          _gate(MemGate::bind(obtain(1).start())) {
     }
 
     MemGate &gate() {

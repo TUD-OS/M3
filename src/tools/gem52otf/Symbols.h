@@ -27,7 +27,9 @@
 class Symbols {
     struct Symbol {
         explicit Symbol(uint32_t bin, unsigned long addr, const char *name)
-            : bin(bin), addr(addr), name(name) {
+            : bin(bin),
+              addr(addr),
+              name(name) {
         }
 
         uint32_t bin;

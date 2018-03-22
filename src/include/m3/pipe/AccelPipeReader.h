@@ -38,7 +38,8 @@ public:
                                 getnextlog2(accel::StreamAccel::RB_SIZE))),
           _mgate(MemGate::bind(ObjCap::INVALID)),
           _mgate_valid(true),
-          _msg(), _buf() {
+          _msg(),
+          _buf() {
         // gates are already activated
         _rgate.ep(accel::StreamAccel::EP_RECV);
         _mgate.ep(accel::StreamAccel::EP_INPUT);

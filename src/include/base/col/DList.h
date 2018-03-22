@@ -35,7 +35,10 @@ public:
     /**
      * Constructor. Creates an empty list
      */
-    explicit DList() : _head(nullptr), _tail(nullptr), _len(0) {
+    explicit DList()
+        : _head(nullptr),
+          _tail(nullptr),
+          _len(0) {
     }
 
     /**

@@ -47,7 +47,11 @@ public:
 
 private:
     explicit Thread()
-        : _id(_next_id++), _regs(), _stack(), _event(0), _content(false) {
+        : _id(_next_id++),
+          _regs(),
+          _stack(),
+          _event(0),
+          _content(false) {
     }
 
     bool save() {

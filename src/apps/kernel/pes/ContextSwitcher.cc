@@ -69,8 +69,16 @@ static const char *stateNames[] = {
 size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
-    : _muxable(Platform::pe(pe).supports_multictx()), _pe(pe), _state(S_IDLE), _count(), _ready(),
-      _timeout(), _wait_time(), _idle(), _cur(), _set_yield() {
+    : _muxable(Platform::pe(pe).supports_multictx()),
+      _pe(pe),
+      _state(S_IDLE),
+      _count(),
+      _ready(),
+      _timeout(),
+      _wait_time(),
+      _idle(),
+      _cur(),
+      _set_yield() {
     assert(pe > 0);
 }
 

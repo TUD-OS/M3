@@ -29,7 +29,8 @@ using namespace m3;
 
 struct App {
     explicit App(int argc, const char *argv[], bool tmux)
-        : argc(argc), argv(argv),
+        : argc(argc),
+          argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", tmux) {
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");

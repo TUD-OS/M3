@@ -28,7 +28,10 @@
 
 #include "Symbols.h"
 
-Symbols::Symbols() : files(), last(), syms() {
+Symbols::Symbols()
+    : files(),
+      last(),
+      syms() {
 }
 
 void Symbols::addFile(const char *file) {

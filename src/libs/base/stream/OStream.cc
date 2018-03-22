@@ -26,7 +26,10 @@ USED char OStream::_hexchars_big[]     = "0123456789ABCDEF";
 USED char OStream::_hexchars_small[]   = "0123456789abcdef";
 
 OStream::FormatParams::FormatParams(const char *fmt)
-        : _base(10), _flags(0), _pad(0), _prec(~0UL) {
+    : _base(10),
+      _flags(0),
+      _pad(0),
+      _prec(~0UL) {
     // read flags
     bool read_flags = true;
     while(read_flags) {

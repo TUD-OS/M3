@@ -26,8 +26,12 @@ DirectPipeWriter::State::State(capsel_t caps, size_t size)
     : _mgate(MemGate::bind(caps + 0)),
       _rgate(RecvGate::create(nextlog2<DirectPipe::MSG_BUF_SIZE>::val, nextlog2<DirectPipe::MSG_SIZE>::val)),
       _sgate(SendGate::bind(caps + 1, &_rgate)),
-      _size(size), _free(_size), _rdpos(), _wrpos(),
-      _capacity(DirectPipe::MSG_BUF_SIZE / DirectPipe::MSG_SIZE), _eof() {
+      _size(size),
+      _free(_size),
+      _rdpos(),
+      _wrpos(),
+      _capacity(DirectPipe::MSG_BUF_SIZE / DirectPipe::MSG_SIZE),
+      _eof() {
     _rgate.activate();
 }
 

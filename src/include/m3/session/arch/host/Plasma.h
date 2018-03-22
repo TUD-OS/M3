@@ -35,7 +35,8 @@ public:
     };
 
     explicit Plasma(const String &service)
-        : Session(service), _gate(SendGate::bind(obtain(1).start())) {
+        : Session(service),
+          _gate(SendGate::bind(obtain(1).start())) {
     }
 
     int left() {

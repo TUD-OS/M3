@@ -35,13 +35,19 @@ public:
     /**
      * Constructor. Creates an empty list
      */
-    explicit SList() : _head(nullptr), _tail(nullptr), _len(0) {
+    explicit SList()
+        : _head(nullptr),
+          _tail(nullptr),
+          _len(0) {
     }
 
     /**
      * Move-constructor
      */
-    SList(SList<T> &&l) : _head(l._head), _tail(l._tail), _len(l._len) {
+    SList(SList<T> &&l)
+        : _head(l._head),
+          _tail(l._tail),
+          _len(l._len) {
         l._head = nullptr;
         l._tail = nullptr;
         l._len = 0;

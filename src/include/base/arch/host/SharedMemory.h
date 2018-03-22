@@ -28,7 +28,11 @@ public:
     };
 
     explicit SharedMemory(const String &name, size_t size, Op op);
-    SharedMemory(SharedMemory &&o) : _fd(o._fd), _name(o._name), _addr(o._addr), _size(o._size) {
+    SharedMemory(SharedMemory &&o)
+        : _fd(o._fd),
+          _name(o._name),
+          _addr(o._addr),
+          _size(o._size) {
         o._addr = 0;
     }
     SharedMemory(const SharedMemory&) = delete;

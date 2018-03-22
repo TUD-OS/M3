@@ -30,7 +30,9 @@ class VPE;
  * by requesting PE-external memory from the kernel or bind a MemGate to an existing capability.
  */
 class MemGate : public Gate {
-    explicit MemGate(uint flags, capsel_t cap) : Gate(MEM_GATE, cap, flags), _cmdflags() {
+    explicit MemGate(uint flags, capsel_t cap)
+        : Gate(MEM_GATE, cap, flags),
+          _cmdflags() {
     }
 
 public:

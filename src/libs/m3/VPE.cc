@@ -33,10 +33,18 @@ INIT_PRIO_VPE VPE VPE::_self;
 
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
-    : ObjCap(VIRTPE, 0, KEEP_CAP), _pe(env()->pedesc),
+    : ObjCap(VIRTPE, 0, KEEP_CAP),
+      _pe(env()->pedesc),
       _mem(MemGate::bind(1)),
-      _next_sel(SEL_START), _eps(), _pager(), _rbufcur(), _rbufend(),
-      _ms(), _fds(), _exec() {
+      _next_sel(SEL_START),
+      _eps(),
+      _pager(),
+      _rbufcur(),
+      _rbufend(),
+      _ms(),
+      _fds(),
+      _exec(),
+      _tmuxable(false) {
     static_assert(EP_COUNT < 64, "64 endpoints are the maximum due to the 64-bit bitmask");
     init_state();
     init_fs();
@@ -56,11 +64,18 @@ VPE::VPE()
 }
 
 VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
-        : ObjCap(VIRTPE, VPE::self().alloc_sels(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
-          _pe(pe), _mem(MemGate::bind(sel() + 1, 0)),
-          _next_sel(SEL_START), _eps(),
-          _pager(), _rbufcur(), _rbufend(),
-          _ms(new MountTable()), _fds(new FileTable()), _exec(), _tmuxable(tmuxable) {
+    : ObjCap(VIRTPE, VPE::self().alloc_sels(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
+      _pe(pe),
+      _mem(MemGate::bind(sel() + 1, 0)),
+      _next_sel(SEL_START),
+      _eps(),
+      _pager(),
+      _rbufcur(),
+      _rbufend(),
+      _ms(new MountTable()),
+      _fds(new FileTable()),
+      _exec(),
+      _tmuxable(tmuxable) {
     // create pager first, to create session and obtain gate cap
     if(_pe.has_virtmem()) {
         if(pager)

@@ -141,8 +141,13 @@ public:
     RecvGate(const RecvGate&) = delete;
     RecvGate &operator=(const RecvGate&) = delete;
     RecvGate(RecvGate &&r)
-            : Gate(Util::move(r)), _vpe(r._vpe), _buf(r._buf), _order(r._order),
-              _free(r._free), _handler(r._handler), _workitem(r._workitem) {
+            : Gate(Util::move(r)),
+              _vpe(r._vpe),
+              _buf(r._buf),
+              _order(r._order),
+              _free(r._free),
+              _handler(r._handler),
+              _workitem(r._workitem) {
         r._free = 0;
         r._workitem = nullptr;
     }

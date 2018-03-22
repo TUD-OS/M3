@@ -42,7 +42,9 @@ public:
 
     static Slab *get(size_t objsize);
 
-    explicit Slab(size_t objsize) : _freelist(), _objsize(objsize) {
+    explicit Slab(size_t objsize)
+        : _freelist(),
+          _objsize(objsize) {
     }
 
     void *alloc();

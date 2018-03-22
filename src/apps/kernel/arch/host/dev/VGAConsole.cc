@@ -693,8 +693,9 @@ static void keyboardInit(void) {
 namespace kernel {
 
 VGAConsoleDevice::VGAConsoleDevice()
-        : Device(), _vgamem("vga", TEXT_SIZE_X * TEXT_SIZE_Y * 2, m3::SharedMemory::CREATE),
-          _kbdmem("kbd", sizeof(unsigned) * 2, m3::SharedMemory::CREATE) {
+    : Device(),
+      _vgamem("vga", TEXT_SIZE_X * TEXT_SIZE_Y * 2, m3::SharedMemory::CREATE),
+      _kbdmem("kbd", sizeof(unsigned) * 2, m3::SharedMemory::CREATE) {
     kbdmem = reinterpret_cast<unsigned*>(_kbdmem.addr());
     text = reinterpret_cast<unsigned short*>(_vgamem.addr());
     displayInit();

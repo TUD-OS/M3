@@ -31,8 +31,12 @@ public:
 
     // for the kernel
     explicit AddrSpace(vpeid_t vpeid)
-        : _pe(Platform::pe(Platform::kernel_pe())), _vpeid(vpeid),
-          _sep(), _rep(), _sgate(), _root() {
+        : _pe(Platform::pe(Platform::kernel_pe())),
+          _vpeid(vpeid),
+          _sep(),
+          _rep(),
+          _sgate(),
+          _root() {
     }
 
     explicit AddrSpace(peid_t pe, vpeid_t vpeid, epid_t sep, epid_t rep, capsel_t sgate);

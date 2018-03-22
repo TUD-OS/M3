@@ -32,7 +32,9 @@ class Results {
     friend class Profile;
 
 public:
-    explicit Results(size_t runs) : _runs(0), _times(new cycles_t[runs]) {
+    explicit Results(size_t runs)
+        : _runs(0),
+          _times(new cycles_t[runs]) {
     }
 
     size_t runs() const {
@@ -86,7 +88,9 @@ struct Runner {
 
 class Profile {
 public:
-    explicit Profile(ulong repeats = 100, ulong warmup = 10) : _repeats(repeats), _warmup(warmup) {
+    explicit Profile(ulong repeats = 100, ulong warmup = 10)
+        : _repeats(repeats),
+          _warmup(warmup) {
     }
 
     template<typename F>

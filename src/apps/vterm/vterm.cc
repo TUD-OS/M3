@@ -70,9 +70,14 @@ public:
 class ChannelSession : public VTermSession {
 public:
     explicit ChannelSession(RecvGate &rgate, capsel_t srv, capsel_t caps, bool _writing)
-        : active(false), writing(_writing), ep(ObjCap::INVALID), sess(caps + 0, 0),
+        : active(false),
+          writing(_writing),
+          ep(ObjCap::INVALID),
+          sess(caps + 0, 0),
           sgate(SendGate::create(&rgate, reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, caps + 1)),
-          mem(MemGate::create_global(BUF_SIZE, MemGate::RW)), pos(), len() {
+          mem(MemGate::create_global(BUF_SIZE, MemGate::RW)),
+          pos(),
+          len() {
         Syscalls::get().createsessat(sess.sel(), srv, reinterpret_cast<word_t>(this));
     }
 

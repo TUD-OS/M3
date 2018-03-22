@@ -21,7 +21,9 @@
 namespace m3 {
 
 FStream::FStream(int fd, int perms, size_t bufsize, uint flags)
-    : IStream(), OStream(), _fd(fd),
+    : IStream(),
+      OStream(),
+      _fd(fd),
       _rbuf(new File::Buffer((perms & FILE_R) ? bufsize : 0)),
       _wbuf(new File::Buffer((perms & FILE_W) ? bufsize : 0)),
       _flags(FL_DEL_BUF | flags) {
@@ -34,7 +36,9 @@ FStream::FStream(const char *filename, int perms, size_t bufsize)
 }
 
 FStream::FStream(const char *filename, size_t rsize, size_t wsize, int perms)
-    : IStream(), OStream(), _fd(VFS::open(filename, get_perms(perms))),
+    : IStream(),
+      OStream(),
+      _fd(VFS::open(filename, get_perms(perms))),
       _rbuf(_fd != FileTable::INVALID ? new File::Buffer((perms & FILE_R) ? rsize : 0) : nullptr),
       _wbuf(_fd != FileTable::INVALID ? new File::Buffer((perms & FILE_W) ? wsize : 0) : nullptr),
       _flags(FL_DEL_BUF | FL_DEL_FILE) {

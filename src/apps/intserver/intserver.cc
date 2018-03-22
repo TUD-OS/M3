@@ -32,7 +32,9 @@ public:
     explicit IntSessionData() {
         // UNUSED
     }
-    explicit IntSessionData(HWInterrupts::IRQ irq) : EventSessionData(), irq(irq) {
+    explicit IntSessionData(HWInterrupts::IRQ irq)
+        : EventSessionData(),
+          irq(irq) {
     }
 
     HWInterrupts::IRQ irq;
@@ -51,7 +53,9 @@ static IntEventHandler *evhandler;
 
 class HWIrqs : public WorkItem {
 public:
-    explicit HWIrqs() : _total_pending(), _pending() {
+    explicit HWIrqs()
+        : _total_pending(),
+          _pending() {
     }
 
     void add_irq(HWInterrupts::IRQ irq) {

@@ -45,7 +45,9 @@ public:
     /**
      * Constructor
      */
-    explicit BitField() : _first_clear(0), _words() {
+    explicit BitField()
+        : _first_clear(0),
+          _words() {
     }
 
     /**

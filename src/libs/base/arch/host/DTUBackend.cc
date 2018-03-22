@@ -70,7 +70,10 @@ ssize_t MsgBackend::recv(epid_t ep, DTU::Buffer *buf) {
     return res;
 }
 
-SocketBackend::SocketBackend() : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)), _localsocks(), _endpoints() {
+SocketBackend::SocketBackend()
+    : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)),
+      _localsocks(),
+      _endpoints() {
     if(_sock == -1)
         PANIC("Unable to open socket: " << strerror(errno));
 

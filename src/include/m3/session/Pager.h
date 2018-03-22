@@ -28,7 +28,9 @@ namespace m3 {
 class Pager : public Session {
 private:
     explicit Pager(VPE &vpe, capsel_t sess)
-        : Session(sess, 0), _sep(vpe.alloc_ep()), _rep(vpe.alloc_ep()),
+        : Session(sess, 0),
+          _sep(vpe.alloc_ep()),
+          _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _own_sgate(SendGate::bind(obtain(1).start())),
@@ -65,11 +67,17 @@ public:
     };
 
     explicit Pager(capsel_t sess, capsel_t rgate)
-        : Session(sess), _sep(0), _rep(0), _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
-          _own_sgate(SendGate::bind(obtain(1).start())), _child_sgate(SendGate::bind(ObjCap::INVALID)) {
+        : Session(sess),
+          _sep(0),
+          _rep(0),
+          _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
+          _own_sgate(SendGate::bind(obtain(1).start())),
+          _child_sgate(SendGate::bind(ObjCap::INVALID)) {
     }
     explicit Pager(VPE &vpe, const String &service)
-        : Session(service), _sep(vpe.alloc_ep()), _rep(vpe.alloc_ep()),
+        : Session(service),
+          _sep(vpe.alloc_ep()),
+          _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
                                     : RecvGate::bind(ObjCap::INVALID, 0)),
           _own_sgate(SendGate::bind(obtain(1).start())),

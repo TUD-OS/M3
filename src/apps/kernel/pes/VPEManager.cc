@@ -28,7 +28,11 @@ bool VPEManager::_shutdown = false;
 VPEManager *VPEManager::_inst;
 
 VPEManager::VPEManager()
-    : _next_id(0), _vpes(new VPE*[MAX_VPES]()), _count(), _daemons(), _pending() {
+    : _next_id(0),
+      _vpes(new VPE*[MAX_VPES]()),
+      _count(),
+      _daemons(),
+      _pending() {
 }
 
 void VPEManager::init(int argc, char **argv) {

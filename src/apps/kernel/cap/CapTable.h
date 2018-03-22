@@ -32,7 +32,9 @@ class CapTable {
     friend m3::OStream &operator<<(m3::OStream &os, const CapTable &ct);
 
 public:
-    explicit CapTable(uint id) : _id(id), _caps() {
+    explicit CapTable(uint id)
+        : _id(id),
+          _caps() {
     }
     CapTable(const CapTable &ct, uint id) = delete;
     ~CapTable() {

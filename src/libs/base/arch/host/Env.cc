@@ -137,9 +137,14 @@ void Env::reset() {
 }
 
 Env::Env(EnvBackend *backend, int logfd)
-        : pe(set_inst(this)), _backend(backend), _logfd(logfd), _shm_prefix(),
-          _sysc_label(), _sysc_epid(), _sysc_credits(),
-          _log_mutex(PTHREAD_MUTEX_INITIALIZER) {
+    : pe(set_inst(this)),
+      _backend(backend),
+      _logfd(logfd),
+      _shm_prefix(),
+      _sysc_label(),
+      _sysc_epid(),
+      _sysc_credits(),
+      _log_mutex(PTHREAD_MUTEX_INITIALIZER) {
 }
 
 void Env::init_executable() {

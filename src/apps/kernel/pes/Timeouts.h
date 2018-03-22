@@ -24,7 +24,9 @@ namespace kernel {
 
 struct Timeout : public m3::SListItem {
     explicit Timeout(cycles_t when, std::function<void()> &&callback)
-        : m3::SListItem(), when(when), callback(callback) {
+        : m3::SListItem(),
+          when(when),
+          callback(callback) {
     }
 
     cycles_t when;

@@ -99,7 +99,12 @@ public:
     }
 
 private:
-    explicit ThreadManager() : _current(), _ready(), _blocked(), _sleep(), _next_id(1) {
+    explicit ThreadManager()
+        : _current(),
+          _ready(),
+          _blocked(),
+          _sleep(),
+          _next_id(1) {
         _current = new Thread();
     }
 

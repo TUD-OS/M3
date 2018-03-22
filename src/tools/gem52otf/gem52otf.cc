@@ -80,13 +80,35 @@ static const char *event_names[] = {
 };
 
 struct Event {
-    explicit Event() : pe(), timestamp(), type(), size(), remote(), tag(), bin(static_cast<uint32_t>(-1)), name() {
+    explicit Event()
+        : pe(),
+          timestamp(),
+          type(),
+          size(),
+          remote(),
+          tag(),
+          bin(static_cast<uint32_t>(-1)),
+          name() {
     }
     explicit Event(uint32_t pe, uint64_t ts, int type, size_t size, uint32_t remote, uint64_t tag)
-        : pe(pe), timestamp(ts / 1000), type(type), size(size), remote(remote), tag(tag), bin(static_cast<uint32_t>(-1)), name() {
+        : pe(pe),
+          timestamp(ts / 1000),
+          type(type),
+          size(size),
+          remote(remote),
+          tag(tag),
+          bin(static_cast<uint32_t>(-1)),
+          name() {
     }
     explicit Event(uint32_t pe, uint64_t ts, int type, uint32_t bin, const char *name)
-        : pe(pe), timestamp(ts / 1000), type(type), size(), remote(), tag(), bin(bin), name(name) {
+        : pe(pe),
+          timestamp(ts / 1000),
+          type(type),
+          size(),
+          remote(),
+          tag(),
+          bin(bin),
+          name(name) {
     }
 
     const char *tag_to_string() const {
@@ -140,7 +162,13 @@ struct Event {
 struct State {
     static const size_t INVALID_IDX = static_cast<size_t>(-1);
 
-    explicit State() : tag(), addr(), sym(), in_cmd(), have_start(), start_idx(INVALID_IDX) {
+    explicit State()
+        : tag(),
+          addr(),
+          sym(),
+          in_cmd(),
+          have_start(),
+          start_idx(INVALID_IDX) {
     }
 
     uint64_t tag;

@@ -189,7 +189,11 @@ public:
     static const size_t NO_QUOTE = static_cast<size_t>(-1);
 
     QuoteAnimator(TextAnimator<ROW, COL> *background)
-        : _background(background), _start_init(false), _start(), _quote(NO_QUOTE), _next_quote(0) {
+        : _background(background),
+          _start_init(false),
+          _start(),
+          _quote(NO_QUOTE),
+          _next_quote(0) {
     }
 
     size_t get_quote() const {
@@ -343,7 +347,10 @@ public:
         }
     }
 
-    IntroAnimator() : _start_init(false), _start(), _done(false) {
+    IntroAnimator()
+        : _start_init(false),
+          _start(),
+          _done(false) {
     }
 };
 

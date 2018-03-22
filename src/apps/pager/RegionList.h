@@ -24,7 +24,9 @@ class RegionList {
 public:
     typedef m3::SList<Region>::iterator iterator;
 
-    explicit RegionList(DataSpace *ds) : _ds(ds), _regs() {
+    explicit RegionList(DataSpace *ds)
+        : _ds(ds),
+          _regs() {
     }
     RegionList(const RegionList &) = delete;
     RegionList &operator=(const RegionList &) = delete;

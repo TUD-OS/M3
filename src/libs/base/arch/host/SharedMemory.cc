@@ -28,7 +28,10 @@
 namespace m3 {
 
 SharedMemory::SharedMemory(const String &name, size_t size, Op op)
-        : _fd(-1), _name(name), _addr(), _size(size) {
+    : _fd(-1),
+      _name(name),
+      _addr(),
+      _size(size) {
     OStringStream os;
     os << env()->shm_prefix() << name;
     _fd = shm_open(os.str(), O_RDWR | (op == CREATE ? O_CREAT : 0) | O_EXCL, S_IRUSR | S_IWUSR);

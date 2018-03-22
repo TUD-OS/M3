@@ -34,7 +34,11 @@ namespace m3 {
 INIT_PRIO_DTU DTU DTU::inst;
 INIT_PRIO_DTU DTU::Buffer DTU::_buf;
 
-DTU::DTU() : _run(true), _cmdregs(), _epregs(), _tid() {
+DTU::DTU()
+    : _run(true),
+      _cmdregs(),
+      _epregs(),
+      _tid() {
 }
 
 void DTU::start() {

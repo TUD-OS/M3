@@ -57,7 +57,9 @@ public:
      *  during destruction
      */
     explicit ObjCap(uint type, capsel_t sel = INVALID, uint flags = 0)
-        : _sel(sel), _type(type), _flags(flags) {
+        : _sel(sel),
+          _type(type),
+          _flags(flags) {
     }
 
     // object-caps are non-copyable, because I think there are very few usecases
@@ -65,7 +67,10 @@ public:
     ObjCap& operator=(const ObjCap&) = delete;
 
     // but moving is allowed
-    ObjCap(ObjCap &&c) : _sel(c._sel), _type(c._type), _flags(c._flags) {
+    ObjCap(ObjCap &&c)
+        : _sel(c._sel),
+          _type(c._type),
+          _flags(c._flags) {
         // don't destroy anything with the old cap
         c._flags = KEEP_CAP;
     }

@@ -126,7 +126,9 @@ public:
     template<class T>
     struct RdWrRequest : public m3::SListItem {
         explicit RdWrRequest(T *_chan, const m3::DTU::Message* _lastmsg)
-            : m3::SListItem(), chan(_chan), lastmsg(_lastmsg) {
+            : m3::SListItem(),
+              chan(_chan),
+              lastmsg(_lastmsg) {
         }
 
         T *chan;

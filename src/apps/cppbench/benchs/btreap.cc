@@ -26,7 +26,9 @@
 using namespace m3;
 
 struct MyTItem : public TreapNode<MyTItem, uint32_t> {
-    explicit MyTItem(uint32_t _val) : TreapNode(_val), val(_val) {
+    explicit MyTItem(uint32_t _val)
+        : TreapNode(_val),
+          val(_val) {
     }
 
     uint32_t val;

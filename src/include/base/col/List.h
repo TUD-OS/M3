@@ -78,7 +78,9 @@ public:
     /**
      * Constructor
      */
-    explicit DListItem() : SListItem(), _prev() {
+    explicit DListItem()
+        : SListItem(),
+          _prev() {
     }
 
     void init() {

@@ -74,7 +74,9 @@ EPObject::~EPObject() {
 }
 
 MapCapability::MapCapability(CapTable *tbl, capsel_t sel, gaddr_t _phys, uint _pages, int _attr)
-    : Capability(tbl, sel, MAP, _pages), phys(_phys), attr(_attr) {
+    : Capability(tbl, sel, MAP, _pages),
+      phys(_phys),
+      attr(_attr) {
     VPE &vpe = VPEManager::get().vpe(tbl->id() - 1);
     vpe.address_space()->map_pages(vpe.desc(), sel << PAGE_BITS, phys, length, attr);
 }

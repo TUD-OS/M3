@@ -30,7 +30,10 @@ namespace kernel {
 
 class Device : public m3::SListItem {
 public:
-    explicit Device() : m3::SListItem(), _tid(), _run(true) {
+    explicit Device()
+        : m3::SListItem(),
+          _tid(),
+          _run(true) {
     }
     virtual ~Device() {
     }

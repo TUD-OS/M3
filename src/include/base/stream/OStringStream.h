@@ -33,8 +33,11 @@ public:
      * writing to the stream
      */
     explicit OStringStream()
-        : OStream(), _dynamic(true), _dst(static_cast<char*>(Heap::alloc(DEFAULT_SIZE))),
-          _max(_dst ? DEFAULT_SIZE : 0), _pos() {
+        : OStream(),
+          _dynamic(true),
+          _dst(static_cast<char*>(Heap::alloc(DEFAULT_SIZE))),
+          _max(_dst ? DEFAULT_SIZE : 0),
+          _pos() {
     }
 
     /**
@@ -44,7 +47,11 @@ public:
      * @param max the size of <dst>
      */
     explicit OStringStream(char *dst, size_t max)
-        : OStream(), _dynamic(false), _dst(dst), _max(max), _pos() {
+        : OStream(),
+          _dynamic(false),
+          _dst(dst),
+          _max(max),
+          _pos() {
     }
 
     /**

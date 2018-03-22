@@ -46,11 +46,14 @@ public:
 
 protected:
     explicit Gate(uint type, capsel_t cap, unsigned capflags, epid_t ep = UNBOUND)
-        : ObjCap(type, cap, capflags), _ep(ep) {
+        : ObjCap(type, cap, capflags),
+          _ep(ep) {
     }
 
 public:
-    Gate(Gate &&g) : ObjCap(Util::move(g)), _ep(g._ep) {
+    Gate(Gate &&g)
+        : ObjCap(Util::move(g)),
+          _ep(g._ep) {
         g._ep = NODESTROY;
     }
     ~Gate() {

@@ -43,7 +43,8 @@ class MountTable {
     class MountPoint {
     public:
         explicit MountPoint(const char *path, FileSystem *fs)
-            : _path(path), _fs(fs) {
+            : _path(path),
+              _fs(fs) {
         }
 
         const String &path() const {
@@ -62,7 +63,9 @@ public:
     /**
      * Constructor
      */
-    explicit MountTable() : _count(), _mounts() {
+    explicit MountTable()
+        : _count(),
+          _mounts() {
     }
 
     explicit MountTable(const MountTable &ms);

@@ -29,7 +29,11 @@ struct Timeout;
 class SendQueue {
     struct Entry : public m3::SListItem {
         explicit Entry(uint64_t _id, SendGate *_sgate, const void *_msg, size_t _size)
-            : SListItem(), id(_id), sgate(_sgate), msg(_msg), size(_size) {
+            : SListItem(),
+              id(_id),
+              sgate(_sgate),
+              msg(_msg),
+              size(_size) {
         }
 
         uint64_t id;
@@ -40,7 +44,11 @@ class SendQueue {
 
 public:
     explicit SendQueue(VPE &vpe)
-        : _vpe(vpe), _queue(), _cur_event(), _inflight(0), _timeout() {
+        : _vpe(vpe),
+          _queue(),
+          _cur_event(),
+          _inflight(0),
+          _timeout() {
     }
     ~SendQueue();
 

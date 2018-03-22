@@ -48,7 +48,9 @@ public:
      *  accidently passes in a temporary)
      */
     explicit IStringStream(String &str)
-        : IStream(), _str(str), _pos() {
+        : IStream(),
+          _str(str),
+          _pos() {
     }
 
     virtual char read() override {

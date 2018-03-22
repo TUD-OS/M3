@@ -29,7 +29,9 @@ using base_class = SimpleRequestHandler<TestRequestHandler, TestOp, 1>;
 
 class TestRequestHandler : public base_class {
 public:
-    explicit TestRequestHandler() : base_class(), _cnt() {
+    explicit TestRequestHandler()
+        : base_class(),
+          _cnt() {
         add_operation(TEST, &TestRequestHandler::test);
     }
 

@@ -33,10 +33,15 @@ class MainMemory {
 
 public:
     struct Allocation {
-        explicit Allocation() : mod(), addr(), size() {
+        explicit Allocation()
+            : mod(),
+              addr(),
+              size() {
         }
         explicit Allocation(size_t _mod, goff_t _addr, size_t _size)
-            : mod(_mod), addr(_addr), size(_size) {
+            : mod(_mod),
+              addr(_addr),
+              size(_size) {
         }
 
         operator bool() const {

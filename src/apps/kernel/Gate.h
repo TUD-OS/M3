@@ -27,7 +27,9 @@ class SendGate;
 class SendGate {
 public:
     explicit SendGate(VPE &vpe, epid_t ep, label_t label)
-        : _vpe(vpe), _ep(ep), _label(label) {
+        : _vpe(vpe),
+          _ep(ep),
+          _label(label) {
     }
 
     m3::Errors::Code send(const void *data, size_t len, epid_t rep, label_t label);

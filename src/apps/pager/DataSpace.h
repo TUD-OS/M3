@@ -32,8 +32,13 @@ class AddrSpace;
 class DataSpace : public m3::TreapNode<DataSpace, goff_t>, public m3::SListItem {
 public:
     explicit DataSpace(AddrSpace *as, goff_t addr, size_t size, int flags)
-        : TreapNode(addr), SListItem(), _as(as), _id(_next_id++), _flags(flags),
-          _regs(this), _size(size) {
+        : TreapNode(addr),
+          SListItem(),
+          _as(as),
+          _id(_next_id++),
+          _flags(flags),
+          _regs(this),
+          _size(size) {
     }
     virtual ~DataSpace() {
     }
@@ -86,7 +91,8 @@ protected:
 class AnonDataSpace : public DataSpace {
 public:
     explicit AnonDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size, int flags)
-        : DataSpace(as, addr, size, flags), maxpages(_maxpages) {
+        : DataSpace(as, addr, size, flags),
+          maxpages(_maxpages) {
     }
 
     const char *type() const override {
@@ -106,12 +112,16 @@ class ExternalDataSpace : public DataSpace {
 public:
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
             int flags, size_t _fileoff, capsel_t sess)
-        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(sess),
+        : DataSpace(as, addr, size, flags),
+          maxpages(_maxpages),
+          sess(sess),
           fileoff(_fileoff) {
     }
     explicit ExternalDataSpace(AddrSpace *as, size_t _maxpages, goff_t addr, size_t size,
             int flags, size_t _fileoff)
-        : DataSpace(as, addr, size, flags), maxpages(_maxpages), sess(m3::VPE::self().alloc_sel()),
+        : DataSpace(as, addr, size, flags),
+          maxpages(_maxpages),
+          sess(m3::VPE::self().alloc_sel()),
           fileoff(_fileoff) {
     }
 

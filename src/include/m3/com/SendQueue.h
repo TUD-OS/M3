@@ -32,7 +32,11 @@ public:
 private:
     struct SendItem : public SListItem {
         explicit SendItem(SendGate &gate, void *data, size_t len, del_func deleter)
-            : SListItem(), gate(gate), data(data), len(len), deleter(deleter) {
+            : SListItem(),
+              gate(gate),
+              data(data),
+              len(len),
+              deleter(deleter) {
         }
         ~SendItem() {
             deleter(data);

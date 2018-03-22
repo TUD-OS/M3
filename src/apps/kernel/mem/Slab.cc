@@ -24,7 +24,9 @@ namespace kernel {
 m3::SList<Slab> Slab::_slabs;
 
 Slab::Pool::Pool(size_t objsize, size_t count)
-    : total(count), free(count), mem(m3::Heap::alloc(objsize * count)) {
+    : total(count),
+      free(count),
+      mem(m3::Heap::alloc(objsize * count)) {
 }
 
 Slab::Pool::~Pool() {

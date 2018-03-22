@@ -25,7 +25,10 @@ namespace m3 {
 template<size_t N>
 class LocList {
 public:
-    explicit LocList() : _sel(ObjCap::INVALID), _count(), _lengths() {
+    explicit LocList()
+        : _sel(ObjCap::INVALID),
+          _count(),
+          _lengths() {
     }
 
     void append(size_t length) {

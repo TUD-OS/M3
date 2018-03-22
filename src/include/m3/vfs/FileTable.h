@@ -53,7 +53,11 @@ public:
     /**
      * Constructor
      */
-    explicit FileTable() : _file_ep_count(), _file_ep_victim(), _file_eps(), _fds() {
+    explicit FileTable()
+        : _file_ep_count(),
+          _file_ep_victim(),
+          _file_eps(),
+          _fds() {
     }
 
     explicit FileTable(const FileTable &f) {

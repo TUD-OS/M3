@@ -48,7 +48,10 @@ public:
          * @param _size the number of bytes (0 = no buffer)
          */
         explicit Buffer(size_t _size)
-            : buffer(_size ? new char[_size] : nullptr), size(_size), cur(), pos() {
+            : buffer(_size ? new char[_size] : nullptr),
+              size(_size),
+              cur(),
+              pos() {
         }
         ~Buffer() {
             delete[] buffer;

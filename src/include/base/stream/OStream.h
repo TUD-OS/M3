@@ -197,7 +197,10 @@ public:
     class Format {
     public:
         explicit Format(const char *fmt, const T &value, uint pad, uint prec)
-            : _fmt(fmt), _value(value), _pad(pad), _prec(prec) {
+            : _fmt(fmt),
+              _value(value),
+              _pad(pad),
+              _prec(prec) {
         }
 
         const char *fmt() const {

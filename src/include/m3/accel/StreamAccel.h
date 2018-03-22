@@ -67,7 +67,8 @@ public:
     static const size_t BUF_SIZE    = 8192;
 
     explicit StreamAccel(VPE *vpe, cycles_t compTime)
-        : _sgate(), _mgate(),
+        : _sgate(),
+          _mgate(),
           _rgate(RecvGate::create_for(*vpe, getnextlog2(RB_SIZE), getnextlog2(MSG_SIZE))),
           _spm(MemGate::create_global(BUF_SIZE + sizeof(Context), MemGate::RW)),
           _vpe(vpe) {

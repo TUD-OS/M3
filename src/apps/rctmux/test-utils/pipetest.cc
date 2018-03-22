@@ -34,7 +34,8 @@ static const int REPEATS            = 8;
 
 struct App {
     explicit App(int argc, const char *argv[], bool muxed)
-        : argc(argc), argv(argv),
+        : argc(argc),
+          argv(argv),
           vpe(argv[0], VPE::self().pe(), "pager", muxed) {
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");

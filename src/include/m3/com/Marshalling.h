@@ -31,7 +31,9 @@ class Unmarshaller;
 class Marshaller {
 public:
     explicit Marshaller(unsigned char *bytes, size_t total)
-        : _bytecount(0), _bytes(bytes), _total(total) {
+        : _bytecount(0),
+          _bytes(bytes),
+          _total(total) {
     }
 
     Marshaller(const Marshaller &) = default;

@@ -37,7 +37,11 @@ public:
      *
      * @param key the key of the node
      */
-    explicit TreapNode(key_t key) : _key(key), _prio(), _left(), _right() {
+    explicit TreapNode(key_t key)
+        : _key(key),
+          _prio(),
+          _left(),
+          _right() {
     }
 
     /**
@@ -95,7 +99,9 @@ public:
     /**
      * Creates an empty treap
      */
-    explicit Treap() : _prio(314159265), _root(nullptr) {
+    explicit Treap()
+        : _prio(314159265),
+          _root(nullptr) {
     }
 
     /**

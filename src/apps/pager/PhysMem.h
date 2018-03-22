@@ -32,17 +32,24 @@ class PhysMem : public m3::RefCounted {
     friend class Region;
 
     explicit PhysMem(m3::MemGate *mem, m3::MemGate *gate, goff_t virt)
-        : RefCounted(), gate(gate), owner_mem(mem), owner_virt(virt) {
+        : RefCounted(),
+          gate(gate),
+          owner_mem(mem),
+          owner_virt(virt) {
     }
 
 public:
     explicit PhysMem(m3::MemGate *mem, goff_t virt, size_t size, int perm)
-        : RefCounted(), gate(new m3::MemGate(m3::MemGate::create_global(size, perm))),
-          owner_mem(mem), owner_virt(virt) {
+        : RefCounted(),
+          gate(new m3::MemGate(m3::MemGate::create_global(size, perm))),
+          owner_mem(mem),
+          owner_virt(virt) {
     }
     explicit PhysMem(m3::MemGate *mem, goff_t virt, capsel_t sel)
-        : RefCounted(), gate(new m3::MemGate(m3::MemGate::bind(sel))),
-          owner_mem(mem), owner_virt(virt) {
+        : RefCounted(),
+          gate(new m3::MemGate(m3::MemGate::bind(sel))),
+          owner_mem(mem),
+          owner_virt(virt) {
     }
     ~PhysMem() {
         delete gate;

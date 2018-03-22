@@ -31,7 +31,10 @@ class FSAPI_POSIX : public FSAPI {
 
 public:
     explicit FSAPI_POSIX(std::string const &rootDir)
-        : fdMap(new int[MaxOpenFds]), pathPrefix(rootDir), tv_start(), print_progress_time() {
+        : fdMap(new int[MaxOpenFds]),
+          pathPrefix(rootDir),
+          tv_start(),
+          print_progress_time() {
         gettimeofday(&tv_start, nullptr);
         print_progress_time = tv_start.tv_sec * 1000000 + tv_start.tv_usec;
     }

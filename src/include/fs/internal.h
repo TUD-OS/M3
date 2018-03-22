@@ -187,10 +187,12 @@ public:
     static const int WORD_BITS = sizeof(word_t) * 8;
 
     explicit Bitmap(size_t bits)
-        : _allocated(true), _words(new word_t[(bits + WORD_BITS - 1) / WORD_BITS]()) {
+        : _allocated(true),
+          _words(new word_t[(bits + WORD_BITS - 1) / WORD_BITS]()) {
     }
     explicit Bitmap(word_t *bytes)
-        : _allocated(false), _words(bytes) {
+        : _allocated(false),
+          _words(bytes) {
     }
     ~Bitmap() {
         if(_allocated)

@@ -31,7 +31,8 @@ namespace m3 {
 INIT_PRIO_EPMUX EPMux EPMux::_inst;
 
 EPMux::EPMux()
-    : _next_victim(1), _gates() {
+    : _next_victim(1),
+      _gates() {
 }
 
 void EPMux::reserve(epid_t ep) {

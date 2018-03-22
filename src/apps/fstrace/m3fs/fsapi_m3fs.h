@@ -32,13 +32,17 @@ class FSAPI_M3FS : public FSAPI {
     enum { MaxOpenFds = 8 };
 
     void checkFd(int fd) {
-        if(fdMap[fd] == 0)
+        if(_fdMap[fd] == 0)
             exitmsg("Using uninitialized file @ " << fd);
     }
 
 public:
     explicit FSAPI_M3FS(bool wait, m3::String const &prefix)
-        : _wait(wait), _start(), _prefix(prefix), fdMap(), dirMap() {
+        : _wait(wait),
+          _start(),
+          _prefix(prefix),
+          _fdMap(),
+          _dirMap() {
     }
 
     virtual void start() override {
@@ -63,29 +67,29 @@ public:
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
-        if(fdMap[args->fd] != 0 || dirMap[args->fd] != nullptr)
+        if(_fdMap[args->fd] != 0 || _dirMap[args->fd] != nullptr)
             exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
-            dirMap[args->fd] = new m3::Dir(add_prefix(args->name));
-            if (dirMap[args->fd] == nullptr && args->fd >= 0)
+            _dirMap[args->fd] = new m3::Dir(add_prefix(args->name));
+            if (_dirMap[args->fd] == nullptr && args->fd >= 0)
                 THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
         }
         else {
-            fdMap[args->fd] = m3::VFS::open(add_prefix(args->name), args->flags);
-            if(fdMap[args->fd] == m3::FileTable::INVALID)
+            _fdMap[args->fd] = m3::VFS::open(add_prefix(args->name), args->flags);
+            if(_fdMap[args->fd] == m3::FileTable::INVALID)
                 THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
         }
     }
 
     virtual void close(const close_args_t *args, int ) override {
-        if(fdMap[args->fd]) {
-            m3::VFS::close(fdMap[args->fd]);
-            fdMap[args->fd] = 0;
+        if(_fdMap[args->fd]) {
+            m3::VFS::close(_fdMap[args->fd]);
+            _fdMap[args->fd] = 0;
         }
-        else if(dirMap[args->fd]) {
-            delete dirMap[args->fd];
-            dirMap[args->fd] = nullptr;
+        else if(_dirMap[args->fd]) {
+            delete _dirMap[args->fd];
+            _dirMap[args->fd] = nullptr;
         }
         else
             exitmsg("Using uninitialized file @ " << args->fd);
@@ -97,7 +101,7 @@ public:
 
     virtual ssize_t read(int fd, void *buffer, size_t size) override {
         checkFd(fd);
-        m3::File *file = m3::VPE::self().fds()->get(fdMap[fd]);
+        m3::File *file = m3::VPE::self().fds()->get(_fdMap[fd]);
         char *buf = reinterpret_cast<char*>(buffer);
         while(size > 0) {
             ssize_t res = file->read(buf, size);
@@ -113,7 +117,7 @@ public:
 
     virtual ssize_t write(int fd, const void *buffer, size_t size) override {
         checkFd(fd);
-        m3::File *file = m3::VPE::self().fds()->get(fdMap[fd]);
+        m3::File *file = m3::VPE::self().fds()->get(_fdMap[fd]);
         return write_file(file, buffer, size);
     }
 
@@ -131,19 +135,19 @@ public:
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
+        m3::VPE::self().fds()->get(_fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
         return read(fd, buffer, size);
     }
 
     virtual ssize_t pwrite(int fd, const void *buffer, size_t size, off_t offset) override {
         checkFd(fd);
-        m3::VPE::self().fds()->get(fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
+        m3::VPE::self().fds()->get(_fdMap[fd])->seek(static_cast<size_t>(offset), M3FS_SEEK_SET);
         return write(fd, buffer, size);
     }
 
     virtual void lseek(const lseek_args_t *args, UNUSED int lineNo) override {
         checkFd(args->fd);
-        m3::VPE::self().fds()->get(fdMap[args->fd])->seek(static_cast<size_t>(args->offset), args->whence);
+        m3::VPE::self().fds()->get(_fdMap[args->fd])->seek(static_cast<size_t>(args->offset), args->whence);
         // if (res != args->err)
         //     THROW1(ReturnValueException, res, args->offset, lineNo);
     }
@@ -155,10 +159,10 @@ public:
     virtual void fstat(const fstat_args_t *args, UNUSED int lineNo) override {
         int res;
         m3::FileInfo info;
-        if(fdMap[args->fd])
-            res = m3::VPE::self().fds()->get(fdMap[args->fd])->stat(info);
-        else if(dirMap[args->fd])
-            res = dirMap[args->fd]->stat(info);
+        if(_fdMap[args->fd])
+            res = m3::VPE::self().fds()->get(_fdMap[args->fd])->stat(info);
+        else if(_dirMap[args->fd])
+            res = _dirMap[args->fd]->stat(info);
         else
             exitmsg("Using uninitialized file/dir @ " << args->fd);
 
@@ -206,8 +210,8 @@ public:
         assert(args->offset == nullptr);
         checkFd(args->in_fd);
         checkFd(args->out_fd);
-        m3::File *in = m3::VPE::self().fds()->get(fdMap[args->in_fd]);
-        m3::File *out = m3::VPE::self().fds()->get(fdMap[args->out_fd]);
+        m3::File *in = m3::VPE::self().fds()->get(_fdMap[args->in_fd]);
+        m3::File *out = m3::VPE::self().fds()->get(_fdMap[args->out_fd]);
         char *rbuf = buf.readBuffer(Buffer::MaxBufferSize);
         size_t rem = args->count;
         while(rem > 0) {
@@ -226,16 +230,16 @@ public:
     }
 
     virtual void getdents(const getdents_args_t *args, UNUSED int lineNo) override {
-        if(dirMap[args->fd] == nullptr)
+        if(_dirMap[args->fd] == nullptr)
             exitmsg("Using uninitialized dir @ " << args->fd);
         m3::Dir::Entry e;
         int i;
         // we don't check the result here because strace is often unable to determine the number of
         // fetched entries.
-        if(args->count == 0 && dirMap[args->fd]->readdir(e))
+        if(args->count == 0 && _dirMap[args->fd]->readdir(e))
             ; //THROW1(ReturnValueException, 1, args->count, lineNo);
         else {
-            for(i = 0; i < args->count && dirMap[args->fd]->readdir(e); ++i)
+            for(i = 0; i < args->count && _dirMap[args->fd]->readdir(e); ++i)
                 ;
             //if(i != args->count)
             //    THROW1(ReturnValueException, i, args->count, lineNo);
@@ -260,6 +264,6 @@ private:
     bool _wait;
     cycles_t _start;
     const m3::String _prefix;
-    fd_t fdMap[MaxOpenFds];
-    m3::Dir *dirMap[MaxOpenFds];
+    fd_t _fdMap[MaxOpenFds];
+    m3::Dir *_dirMap[MaxOpenFds];
 };

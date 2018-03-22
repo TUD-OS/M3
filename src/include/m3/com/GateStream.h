@@ -149,12 +149,20 @@ public:
      * @param err the error code
      */
     explicit GateIStream(RecvGate &rgate, const DTU::Message *msg, Errors::Code err = Errors::NONE)
-        : _err(err), _ack(true), _pos(0), _rgate(&rgate), _msg(msg) {
+        : _err(err),
+          _ack(true),
+          _pos(0),
+          _rgate(&rgate),
+          _msg(msg) {
     }
 
     // don't do the ack twice. thus, copies never ack.
     GateIStream(const GateIStream &is)
-        : _err(is._err), _ack(), _pos(is._pos), _rgate(is._rgate), _msg(is._msg) {
+        : _err(is._err),
+          _ack(),
+          _pos(is._pos),
+          _rgate(is._rgate),
+          _msg(is._msg) {
     }
     GateIStream &operator=(const GateIStream &is) {
         if(this != &is) {
@@ -178,7 +186,11 @@ public:
         return *this;
     }
     GateIStream(GateIStream &&is)
-        : _err(is._err), _ack(is._ack), _pos(is._pos), _rgate(is._rgate), _msg(is._msg) {
+        : _err(is._err),
+          _ack(is._ack),
+          _pos(is._pos),
+          _rgate(is._rgate),
+          _msg(is._msg) {
         is._ack = 0;
     }
     ~GateIStream() {

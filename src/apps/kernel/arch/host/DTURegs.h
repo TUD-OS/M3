@@ -23,7 +23,9 @@ namespace kernel {
 
 class DTURegs {
 public:
-    explicit DTURegs() : _cmd(), _eps() {
+    explicit DTURegs()
+        : _cmd(),
+          _eps() {
     }
 
     word_t _cmd[m3::DTU::CMDS_RCNT];

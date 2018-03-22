@@ -32,7 +32,9 @@ class RequestHandler : public Handler<SESS> {
     using handler_func = void (CLS::*)(GateIStream &is);
 
 public:
-    explicit RequestHandler() : Handler<SESS>(), _callbacks() {
+    explicit RequestHandler()
+        : Handler<SESS>(),
+        _callbacks() {
     }
 
     void add_operation(OP op, handler_func func) {

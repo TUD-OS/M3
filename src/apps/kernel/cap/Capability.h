@@ -55,7 +55,14 @@ public:
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
-        : TreapNode(sel), type(type), length(len), _tbl(tbl), _child(), _parent(), _next(), _prev() {
+        : TreapNode(sel),
+          type(type),
+          length(len),
+          _tbl(tbl),
+          _child(),
+          _parent(),
+          _next(),
+          _prev() {
     }
     virtual ~Capability() {
     }
@@ -118,12 +125,16 @@ private:
 class GateObject {
 public:
     struct EPUser : public SlabObject<EPUser>, public m3::SListItem {
-        explicit EPUser(EPObject *_ep) : m3::SListItem(), ep(_ep) {
+        explicit EPUser(EPObject *_ep)
+            : m3::SListItem(),
+              ep(_ep) {
         }
         EPObject *ep;
     };
 
-    explicit GateObject(uint _type) : type(_type), epuser() {
+    explicit GateObject(uint _type)
+        : type(_type),
+          epuser() {
     }
     ~GateObject();
 
@@ -145,8 +156,14 @@ public:
 class RGateObject : public SlabObject<RGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit RGateObject(int _order, int _msgorder)
-        : GateObject(Capability::RGATE), RefCounted(), vpe(), ep(), addr(), order(_order),
-          msgorder(_msgorder), header() {
+        : GateObject(Capability::RGATE),
+          RefCounted(),
+          vpe(),
+          ep(),
+          addr(),
+          order(_order),
+          msgorder(_msgorder),
+          header() {
     }
     ~RGateObject();
 
@@ -168,8 +185,12 @@ public:
 class SGateObject : public SlabObject<SGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit SGateObject(RGateObject *_rgate, label_t _label, word_t _credits)
-        : GateObject(Capability::SGATE), RefCounted(), rgate(_rgate), label(_label),
-          credits(_credits), activated() {
+        : GateObject(Capability::SGATE),
+          RefCounted(),
+          rgate(_rgate),
+          label(_label),
+          credits(_credits),
+          activated() {
     }
 
     m3::Reference<RGateObject> rgate;
@@ -181,8 +202,14 @@ public:
 class MGateObject : public SlabObject<MGateObject>, public GateObject, public m3::RefCounted {
 public:
     explicit MGateObject(peid_t _pe, vpeid_t _vpe, goff_t _addr, size_t _size, int _perms)
-        : GateObject(Capability::MGATE), RefCounted(), pe(_pe), vpe(_vpe), addr(_addr), size(_size),
-          perms(_perms), derived(false) {
+        : GateObject(Capability::MGATE),
+          RefCounted(),
+          pe(_pe),
+          vpe(_vpe),
+          addr(_addr),
+          size(_size),
+          perms(_perms),
+          derived(false) {
     }
     ~MGateObject();
 
@@ -197,7 +224,10 @@ public:
 class SessObject : public SlabObject<SessObject>, public m3::RefCounted {
 public:
     explicit SessObject(Service *_srv, word_t _ident)
-        : RefCounted(), servowned(), ident(_ident), srv(_srv) {
+        : RefCounted(),
+          servowned(),
+          ident(_ident),
+          srv(_srv) {
     }
     ~SessObject();
 
@@ -211,7 +241,10 @@ public:
 class EPObject : public SlabObject<EPObject>, public m3::RefCounted {
 public:
     explicit EPObject(vpeid_t _vpe, epid_t _ep)
-        : RefCounted(), ep(_ep), vpe(_vpe), gate() {
+        : RefCounted(),
+          ep(_ep),
+          vpe(_vpe),
+          gate() {
     }
     ~EPObject();
 
@@ -223,7 +256,8 @@ public:
 class RGateCapability : public SlabObject<RGateCapability>, public Capability {
 public:
     explicit RGateCapability(CapTable *tbl, capsel_t sel, int order, int msgorder)
-        : Capability(tbl, sel, RGATE), obj(new RGateObject(order, msgorder)) {
+        : Capability(tbl, sel, RGATE),
+          obj(new RGateObject(order, msgorder)) {
     }
 
     virtual GateObject *as_gate() override {
@@ -246,7 +280,8 @@ public:
 class SGateCapability : public SlabObject<SGateCapability>, public Capability {
 public:
     explicit SGateCapability(CapTable *tbl, capsel_t sel, RGateObject *rgate, label_t label, word_t credits)
-        : Capability(tbl, sel, SGATE), obj(new SGateObject(rgate, label, credits)) {
+        : Capability(tbl, sel, SGATE),
+          obj(new SGateObject(rgate, label, credits)) {
     }
 
     virtual GateObject *as_gate() override {
@@ -270,7 +305,8 @@ class MGateCapability : public SlabObject<MGateCapability>, public Capability {
 public:
     explicit MGateCapability(CapTable *tbl, capsel_t sel, peid_t pe, vpeid_t vpe, goff_t addr,
         size_t size, int perms)
-        : Capability(tbl, sel, MGATE), obj(new MGateObject(pe, vpe, addr, size, perms)) {
+        : Capability(tbl, sel, MGATE),
+          obj(new MGateObject(pe, vpe, addr, size, perms)) {
     }
 
     virtual GateObject *as_gate() override {
@@ -312,7 +348,8 @@ public:
 class ServCapability : public SlabObject<ServCapability>, public Capability {
 public:
     explicit ServCapability(CapTable *tbl, capsel_t sel, Service *_inst)
-        : Capability(tbl, sel, SERV), inst(_inst) {
+        : Capability(tbl, sel, SERV),
+          inst(_inst) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -331,7 +368,8 @@ public:
 class SessCapability : public SlabObject<SessCapability>, public Capability {
 public:
     explicit SessCapability(CapTable *tbl, capsel_t sel, Service *srv, word_t ident)
-        : Capability(tbl, sel, SESS), obj(new SessObject(srv, ident)) {
+        : Capability(tbl, sel, SESS),
+          obj(new SessObject(srv, ident)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -351,7 +389,8 @@ public:
 class EPCapability : public SlabObject<EPCapability>, public Capability {
 public:
     explicit EPCapability(CapTable *tbl, capsel_t sel, vpeid_t vpe, epid_t ep)
-        : Capability(tbl, sel, EP), obj(new EPObject(vpe, ep)) {
+        : Capability(tbl, sel, EP),
+          obj(new EPObject(vpe, ep)) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -370,7 +409,8 @@ public:
 class VPECapability : public SlabObject<VPECapability>, public Capability {
 public:
     explicit VPECapability(CapTable *tbl, capsel_t sel, VPE *p)
-        : Capability(tbl, sel, VIRTPE), obj(p) {
+        : Capability(tbl, sel, VIRTPE),
+          obj(p) {
     }
 
     void printInfo(m3::OStream &os) const override;

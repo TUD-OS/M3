@@ -24,11 +24,17 @@ namespace m3 {
 DirectPipeReader::State::State(capsel_t caps)
     : _mgate(MemGate::bind(caps + 1)),
       _rgate(RecvGate::bind(caps + 0, nextlog2<DirectPipe::MSG_BUF_SIZE>::val)),
-      _pos(), _rem(), _pkglen(static_cast<size_t>(-1)), _eof(0), _is(_rgate, nullptr) {
+      _pos(),
+      _rem(),
+      _pkglen(static_cast<size_t>(-1)),
+      _eof(0),
+      _is(_rgate, nullptr) {
 }
 
 DirectPipeReader::DirectPipeReader(capsel_t caps, State *state)
-    : _noeof(), _caps(caps), _state(state) {
+    : _noeof(),
+      _caps(caps),
+      _state(state) {
 }
 
 DirectPipeReader::~DirectPipeReader() {

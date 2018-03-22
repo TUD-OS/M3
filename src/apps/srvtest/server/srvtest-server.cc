@@ -27,7 +27,9 @@ static Server<MyHandler> *srv;
 
 class MyHandler : public Handler<void> {
 public:
-    MyHandler() : Handler<void>(), _count() {
+    MyHandler()
+        : Handler<void>(),
+          _count() {
     }
 
     virtual Errors::Code open(void **sess, word_t) override {

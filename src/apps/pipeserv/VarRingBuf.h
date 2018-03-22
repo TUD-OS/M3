@@ -26,7 +26,11 @@
 
 class VarRingBuf {
 public:
-    explicit VarRingBuf(size_t size) : _size(size), _rdpos(), _wrpos(), _last(size) {
+    explicit VarRingBuf(size_t size)
+        : _size(size),
+          _rdpos(),
+          _wrpos(),
+          _last(size) {
         assert((size & DTU_PKG_SIZE) == 0);
     }
 

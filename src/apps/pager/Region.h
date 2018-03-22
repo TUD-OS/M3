@@ -41,12 +41,24 @@ public:
     };
 
     explicit Region(DataSpace *ds, size_t offset, size_t size)
-        : SListItem(), _mem(), _ds(ds), _offset(offset), _memoff(), _size(size),
-          _flags(), _mapped(false) {
+        : SListItem(),
+          _mem(),
+          _ds(ds),
+          _offset(offset),
+          _memoff(),
+          _size(size),
+          _flags(),
+          _mapped(false) {
     }
     Region(const Region &r)
-        : SListItem(r), _mem(r._mem), _ds(r._ds), _offset(r._offset), _memoff(r._memoff),
-          _size(r._size), _flags(r._flags), _mapped(false) {
+        : SListItem(r),
+          _mem(r._mem),
+          _ds(r._ds),
+          _offset(r._offset),
+          _memoff(r._memoff),
+          _size(r._size),
+          _flags(r._flags),
+          _mapped(false) {
     }
     Region &operator=(const Region &r) = delete;
     ~Region();

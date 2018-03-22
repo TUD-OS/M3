@@ -40,8 +40,14 @@ public:
 
     explicit GenericFile(capsel_t caps)
         : File(),
-          _sess(caps + 0, 0), _sg(SendGate::bind(caps + 1)), _mg(MemGate::bind(ObjCap::INVALID)),
-          _goff(), _off(), _pos(), _len(), _writing() {
+          _sess(caps + 0, 0),
+          _sg(SendGate::bind(caps + 1)),
+          _mg(MemGate::bind(ObjCap::INVALID)),
+          _goff(),
+          _off(),
+          _pos(),
+          _len(),
+          _writing() {
     }
     virtual ~GenericFile();
 

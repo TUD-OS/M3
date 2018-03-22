@@ -30,7 +30,9 @@ public:
     /**
      * Constructor. Creates an empty string (without allocation on the heap)
      */
-    explicit String() : _str(0), _len() {
+    explicit String()
+        : _str(0),
+          _len() {
     }
     /**
      * Constructor. Copies the given string onto the heap.
@@ -39,16 +41,20 @@ public:
      * @param len the length of the string (-1 by default, which means: use strlen())
      */
     String(const char *str, size_t len = static_cast<size_t>(-1))
-        : _str(), _len() {
+        : _str(),
+          _len() {
         if(str)
             init(str, len);
     }
 
     explicit String(const String& s)
-        : _str(), _len() {
+        : _str(),
+          _len() {
         init(s._str, s._len);
     }
-    String(String &&s) : _str(s._str), _len(s._len) {
+    String(String &&s)
+        : _str(s._str),
+          _len(s._len) {
         s._str = nullptr;
     }
     String & operator=(const String& s) {

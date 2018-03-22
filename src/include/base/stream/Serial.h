@@ -63,7 +63,12 @@ public:
     void flush();
 
 private:
-    explicit Serial() : IStream(), OStream(), _outpos(0), _inpos(0), _inlen(0) {
+    explicit Serial()
+        : IStream(),
+          OStream(),
+          _outpos(0),
+          _inpos(0),
+          _inlen(0) {
     }
 
     virtual char read() override;
