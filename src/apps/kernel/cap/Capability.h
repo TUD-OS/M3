@@ -347,9 +347,9 @@ public:
 
 class ServCapability : public SlabObject<ServCapability>, public Capability {
 public:
-    explicit ServCapability(CapTable *tbl, capsel_t sel, Service *_inst)
+    explicit ServCapability(CapTable *tbl, capsel_t sel, Service *_obj)
         : Capability(tbl, sel, SERV),
-          inst(_inst) {
+          obj(_obj) {
     }
 
     void printInfo(m3::OStream &os) const override;
@@ -362,7 +362,7 @@ private:
     }
 
 public:
-    m3::Reference<Service> inst;
+    m3::Reference<Service> obj;
 };
 
 class SessCapability : public SlabObject<SessCapability>, public Capability {

@@ -256,7 +256,7 @@ void SyscallHandler::createsessat(VPE *vpe, const m3::DTU::Message *msg) {
     if(srvcap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Service capability is invalid");
 
-    auto sesscap = new SessCapability(&vpe->objcaps(), dst, const_cast<Service*>(&*srvcap->inst), ident);
+    auto sesscap = new SessCapability(&vpe->objcaps(), dst, const_cast<Service*>(&*srvcap->obj), ident);
     sesscap->obj->servowned = true;
     vpe->objcaps().inherit(srvcap, sesscap);
     vpe->objcaps().set(dst, sesscap);

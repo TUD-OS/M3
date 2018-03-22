@@ -101,10 +101,10 @@ void SessCapability::revoke() {
 
 void ServCapability::revoke() {
     // first, reset the receive buffer: make all slots not-occupied
-    if(inst->rgate()->activated())
-        inst->vpe().config_rcv_ep(inst->rgate()->ep, *inst->rgate());
+    if(obj->rgate()->activated())
+        obj->vpe().config_rcv_ep(obj->rgate()->ep, *obj->rgate());
     // now, abort everything in the sendqueue
-    inst->abort();
+    obj->abort();
 }
 
 void VPECapability::revoke() {
@@ -156,7 +156,7 @@ void MapCapability::printInfo(m3::OStream &os) const {
 }
 
 void ServCapability::printInfo(m3::OStream &os) const {
-    os << ": serv [name=" << inst->name() << "]";
+    os << ": serv [name=" << obj->name() << "]";
 }
 
 void SessCapability::printInfo(m3::OStream &os) const {
