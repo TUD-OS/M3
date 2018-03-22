@@ -36,11 +36,13 @@ public:
         m3::SList<M3FSFileSession> sessions;
     };
 
-    explicit OpenFiles(FSHandle &hdl) : _hdl(hdl), files() {
+    explicit OpenFiles(FSHandle &hdl)
+        : _hdl(hdl),
+          _files() {
     }
 
     OpenFile *get_file(m3::inodeno_t ino) {
-        return files.find(ino);
+        return _files.find(ino);
     }
 
     void delete_file(m3::inodeno_t ino);
@@ -50,5 +52,5 @@ public:
 
 private:
     FSHandle &_hdl;
-    m3::Treap<OpenFile> files;
+    m3::Treap<OpenFile> _files;
 };

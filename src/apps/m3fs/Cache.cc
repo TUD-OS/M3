@@ -21,8 +21,11 @@
 #include "Cache.h"
 
 Cache::Cache(m3::MemGate &mem, size_t blocksize)
-    : _mem(mem), _blocksize(blocksize), _data(new char[BLOCK_COUNT * _blocksize]),
-      _timestamp(), _blocks() {
+    : _mem(mem),
+      _blocksize(blocksize),
+      _data(new char[BLOCK_COUNT * _blocksize]),
+      _timestamp(),
+      _blocks() {
 }
 
 void *Cache::get_block(m3::blockno_t bno, bool write) {

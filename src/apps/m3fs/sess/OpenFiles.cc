@@ -29,7 +29,7 @@ void OpenFiles::add_sess(M3FSFileSession *sess) {
     OpenFile *file = get_file(sess->ino());
     if(!file) {
         file = new OpenFile(sess->ino());
-        files.insert(file);
+        _files.insert(file);
     }
 
     file->sessions.append(sess);
@@ -42,7 +42,7 @@ void OpenFiles::rem_sess(M3FSFileSession *sess) {
     file->sessions.remove(sess);
 
     if(file->sessions.length() == 0) {
-        files.remove(file);
+        _files.remove(file);
         if(file->deleted)
             INodes::free(_hdl, sess->ino());
         delete file;

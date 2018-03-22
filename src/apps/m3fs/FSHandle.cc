@@ -38,11 +38,13 @@ bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb, bool clear) {
 }
 
 FSHandle::FSHandle(capsel_t mem, size_t extend, bool clear)
-        : _mem(MemGate::bind(mem)), _clear(load_superblock(_mem, &_sb, clear)), _extend(extend),
-          _cache(_mem, _sb.blocksize),
-          _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,
-                _sb.total_blocks, _sb.blockbm_blocks()),
-          _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes,
-                _sb.total_inodes, _sb.inodebm_blocks()),
-          _files(*this) {
+    : _mem(MemGate::bind(mem)),
+      _clear(load_superblock(_mem, &_sb, clear)),
+      _extend(extend),
+      _cache(_mem, _sb.blocksize),
+      _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,
+            _sb.total_blocks, _sb.blockbm_blocks()),
+      _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes,
+            _sb.total_inodes, _sb.inodebm_blocks()),
+      _files(*this) {
 }

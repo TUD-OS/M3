@@ -20,7 +20,11 @@
 using namespace m3;
 
 Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free, uint32_t total, uint32_t blocks)
-    : _first(first), _first_free(first_free), _free(free), _total(total), _blocks(blocks) {
+    : _first(first),
+      _first_free(first_free),
+      _free(free),
+      _total(total),
+      _blocks(blocks) {
     static_assert(sizeof(blockno_t) == sizeof(uint32_t), "Wrong type");
     static_assert(sizeof(inodeno_t) == sizeof(uint32_t), "Wrong type");
 }

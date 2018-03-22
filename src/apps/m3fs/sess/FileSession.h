@@ -63,8 +63,8 @@ struct CapContainer {
 
 class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
-    explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *_meta, const m3::String &_filename,
-                             int _flags, const m3::INode &_inode);
+    explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
+                             int flags, const m3::INode &inode);
     virtual ~M3FSFileSession();
 
     virtual Type type() const override {
@@ -77,14 +77,14 @@ public:
     virtual void fstat(m3::GateIStream &is) override;
 
     m3::inodeno_t ino() const {
-        return inode.inode;
+        return _inode.inode;
     }
 
     m3::KIF::CapRngDesc caps() const {
-        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sess, 2);
+        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, _sess, 2);
     }
     void set_ep(capsel_t ep) {
-        epcap = ep;
+        _epcap = ep;
     }
 
     m3::Errors::Code clone(capsel_t srv, m3::KIF::Service::ExchangeData &data);
@@ -94,19 +94,18 @@ private:
     void read_write(m3::GateIStream &is, bool write);
     m3::Errors::Code commit(size_t extent, size_t extoff);
 
-    // TODO reference counting
-    size_t extent;
-    size_t extoff;
-    size_t lastoff;
-    size_t extlen;
-    m3::String filename;
-    capsel_t epcap;
-    capsel_t sess;
-    m3::SendGate sgate;
-    int oflags;
-    TransactionState xstate;
-    m3::INode inode;
-    capsel_t last;
-    CapContainer capscon;
-    M3FSMetaSession *meta;
+    size_t _extent;
+    size_t _extoff;
+    size_t _lastoff;
+    size_t _extlen;
+    m3::String _filename;
+    capsel_t _epcap;
+    capsel_t _sess;
+    m3::SendGate _sgate;
+    int _oflags;
+    TransactionState _xstate;
+    m3::INode _inode;
+    capsel_t _last;
+    CapContainer _capscon;
+    M3FSMetaSession *_meta;
 };
