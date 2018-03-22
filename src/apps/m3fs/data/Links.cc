@@ -40,7 +40,8 @@ Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t nam
 
     // no suitable space found; extend directory
     {
-        Extent *ext = INodes::get_extent(h, dir, dir->extents, nullptr, true);
+        Extent *indir = nullptr;
+        Extent *ext = INodes::get_extent(h, dir, dir->extents, &indir, true);
         if(!ext)
             return Errors::NO_SPACE;
 
