@@ -114,6 +114,10 @@ public:
     virtual ssize_t write(int fd, const void *buffer, size_t size) override {
         checkFd(fd);
         m3::File *file = m3::VPE::self().fds()->get(fdMap[fd]);
+        return write_file(file, buffer, size);
+    }
+
+    ssize_t write_file(m3::File *file, const void *buffer, size_t size) {
         const char *buf = reinterpret_cast<const char*>(buffer);
         while(size > 0) {
             ssize_t res = file->write(buf, size);
@@ -198,7 +202,7 @@ public:
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
-    virtual void sendfile(Buffer &buf, const sendfile_args_t *args, int) override {
+    virtual void sendfile(Buffer &buf, const sendfile_args_t *args, int lineNo) override {
         assert(args->offset == nullptr);
         checkFd(args->in_fd);
         checkFd(args->out_fd);
@@ -208,9 +212,16 @@ public:
         size_t rem = args->count;
         while(rem > 0) {
             size_t amount = m3::Math::min(static_cast<size_t>(Buffer::MaxBufferSize), rem);
-            size_t res = static_cast<size_t>(in->read(rbuf, amount));
-            out->write(rbuf, res);
-            rem -= amount;
+
+            ssize_t res = in->read(rbuf, amount);
+            if(res < 0)
+                THROW1(ReturnValueException, res, amount, lineNo);
+
+            ssize_t wres = write_file(out, rbuf, static_cast<size_t>(res));
+            if(wres != res)
+                THROW1(ReturnValueException, wres, res, lineNo);
+
+            rem -= static_cast<size_t>(res);
         }
     }
 
