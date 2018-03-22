@@ -24,12 +24,14 @@ namespace m3 {
 
 class VFS;
 class FStream;
+class FileTable;
 
 /**
  * The base-class of all files. Can't be instantiated.
  */
 class File {
     friend class FStream;
+    friend class FileTable;
 
 protected:
     explicit File() {
@@ -113,6 +115,13 @@ public:
     }
 
     /**
+     * @return the file descriptor
+     */
+    fd_t fd() const {
+        return _fd;
+    }
+
+    /**
      * Retrieves information about this file
      *
      * @param info the struct to fill
@@ -179,6 +188,13 @@ public:
      * @param m the marshaller
      */
     virtual void serialize(Marshaller &m) = 0;
+
+private:
+    void set_fd(fd_t fd) {
+        _fd = fd;
+    }
+
+    fd_t _fd;
 };
 
 }

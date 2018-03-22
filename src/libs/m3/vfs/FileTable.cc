@@ -32,6 +32,7 @@ namespace m3 {
 fd_t FileTable::alloc(File *file) {
     for(fd_t i = 0; i < MAX_FDS; ++i) {
         if(_fds[i] == nullptr) {
+            file->set_fd(i);
             _fds[i] = file;
             return i;
         }
@@ -58,21 +59,13 @@ File *FileTable::free(fd_t fd) {
     return file;
 }
 
-fd_t FileTable::file_to_fd(File *file) {
-    for(fd_t i = 0; i < MAX_FDS; ++i) {
-        if(_fds[i] == file)
-            return i;
-    }
-    return MAX_FDS;
-}
-
 epid_t FileTable::request_ep(GenericFile *file) {
     if(_file_ep_count < MAX_EPS) {
         epid_t ep = VPE::self().alloc_ep();
         if(ep != 0) {
             for(size_t i = 0; i < MAX_EPS; ++i) {
                 if(_file_eps[i].file == nullptr) {
-                    LLOG(FILES, "FileEPs[" << i << "] = EP:" << ep << ",FD:" << file_to_fd(file));
+                    LLOG(FILES, "FileEPs[" << i << "] = EP:" << ep << ",FD:" << file->fd());
                     _file_eps[i].file = file;
                     _file_eps[i].epid = ep;
                     _file_ep_count++;
@@ -88,7 +81,7 @@ epid_t FileTable::request_ep(GenericFile *file) {
     for(size_t i = _file_ep_victim; count < MAX_EPS; i = (i + 1) % MAX_EPS, ++count) {
         if(_file_eps[i].file != nullptr) {
             LLOG(FILES, "FileEPs[" << i << "] = EP:" << _file_eps[i].epid << ", FD: switching from "
-                << file_to_fd(_file_eps[i].file) << " to " << file_to_fd(file));
+                << _file_eps[i].file->fd() << " to " << file->fd());
             _file_eps[i].file->evict();
             _file_eps[i].file = file;
             _file_ep_victim = (i + 1) % MAX_EPS;

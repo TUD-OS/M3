@@ -137,7 +137,6 @@ public:
     static FileTable *unserialize(const void *buffer, size_t size);
 
 private:
-    fd_t file_to_fd(File *file);
     epid_t request_ep(GenericFile *file);
 
     size_t _file_ep_count;
