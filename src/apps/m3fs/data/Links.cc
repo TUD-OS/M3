@@ -78,11 +78,18 @@ Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t nam
                 if(!isdir && M3FS_ISDIR(inode->mode))
                     return Errors::IS_DIR;
 
-                // remove entry by skipping over it or making it invalid
+                // remove entry by skipping over it
                 if(prev)
                     prev->next += e->next;
-                else
-                    e->namelen = 0;
+                // copy the next entry back, if there is any
+                else {
+                    DirEntry *next = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next);
+                    if(next < __eend) {
+                        size_t dist = e->next;
+                        memcpy(e, next, sizeof(DirEntry) + next->namelen);
+                        e->next = dist + next->next;
+                    }
+                }
                 h.cache().mark_dirty(bno);
 
                 // reduce links and free, if necessary
