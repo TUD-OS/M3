@@ -80,17 +80,17 @@ void INodes::write_back(FSHandle &h, INode *inode) {
 size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t blocks,
                               int perms, capsel_t sel) {
     Extent *indir = nullptr;
-    Extent *ch = get_extent(h, inode, extent, &indir, blocks > 0);
-    if(ch == nullptr)
+    Extent *ext = get_extent(h, inode, extent, &indir, blocks > 0);
+    if(ext == nullptr)
         return 0;
 
     // extent empty?
-    if(ch->length == 0) {
+    if(ext->length == 0) {
         if(blocks > 0) {
             // fill extent with blocks
-            fill_extent(h, inode, ch, blocks);
+            fill_extent(h, inode, ext, blocks);
         }
-        if(ch->length == 0)
+        if(ext->length == 0)
             return 0;
     }
 
@@ -103,9 +103,9 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t b
     }
 
     // create memory capability for extent
-    size_t bytes = ch->length * h.sb().blocksize;
+    size_t bytes = ext->length * h.sb().blocksize;
     Errors::Code res = Syscalls::get().derivemem(sel, h.mem().sel(),
-                                                 ch->start * h.sb().blocksize, bytes, perms);
+                                                 ext->start * h.sb().blocksize, bytes, perms);
     if(res != Errors::NONE)
         return 0;
 
@@ -174,10 +174,10 @@ Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, 
             memset(dindir, 0, h.sb().blocksize);
 
         // get extent
-        Extent *ch = dindir + i % h.sb().extents_per_block();
-        if(create && ch->length == 0)
+        Extent *ext = dindir + i % h.sb().extents_per_block();
+        if(create && ext->length == 0)
             h.cache().mark_dirty(ptr->start);
-        return ch;
+        return ext;
     }
     return nullptr;
 }
@@ -210,12 +210,12 @@ Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indi
         Extent *ptr = dindir + i / h.sb().extents_per_block();
         dindir = reinterpret_cast<Extent*>(h.cache().get_block(ptr->start, false));
 
-        Extent *ch = dindir + i % h.sb().extents_per_block();
+        Extent *ext = dindir + i % h.sb().extents_per_block();
         h.cache().mark_dirty(ptr->start);
 
         // same here; if its the first, remove the indirect-block
         if(remove) {
-            if(ch == dindir) {
+            if(ext == dindir) {
                 h.blocks().free(h, ptr->start, 1);
                 ptr->length = 0;
                 ptr->start = 0;
@@ -228,25 +228,25 @@ Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indi
                 inode->dindirect = 0;
             }
         }
-        return ch;
+        return ext;
     }
     return nullptr;
 }
 
-void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ch, uint32_t blocks) {
+void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks) {
     size_t count = blocks;
-    ch->start = h.blocks().alloc(h, &count);
+    ext->start = h.blocks().alloc(h, &count);
     if(count == 0) {
         Errors::last = Errors::NO_SPACE;
-        ch->length = 0;
+        ext->length = 0;
         return;
     }
-    ch->length = count;
+    ext->length = count;
     if(h.clear_blocks()) {
         uint32_t blocksize = h.sb().blocksize;
         Time::start(0xaaaa);
         for(uint32_t i = 0; i < count; ++i)
-            h.mem().write(zeros, blocksize, (ch->start + i) * blocksize);
+            h.mem().write(zeros, blocksize, (ext->start + i) * blocksize);
         Time::stop(0xaaaa);
     }
     inode->extents++;
@@ -278,17 +278,17 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence,
     // now search until we've found the extent covering the desired file position
     size_t pos = 0;
     for(size_t i = 0; i < inode->extents; ++i) {
-        Extent *ch = get_extent(h, inode, i, &indir, false);
-        if(!ch)
+        Extent *ext = get_extent(h, inode, i, &indir, false);
+        if(!ext)
             break;
 
-        if(off < ch->length * h.sb().blocksize) {
+        if(off < ext->length * h.sb().blocksize) {
             extent = i;
             extoff = off;
             return pos;
         }
-        pos += ch->length * h.sb().blocksize;
-        off -= ch->length * h.sb().blocksize;
+        pos += ext->length * h.sb().blocksize;
+        off -= ext->length * h.sb().blocksize;
     }
 
     extent = inode->extents;
@@ -301,19 +301,19 @@ void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff) {
     if(inode->extents > 0) {
         // erase everything up to <extent>
         for(size_t i = inode->extents - 1; i > extent; --i) {
-            Extent *ch = change_extent(h, inode, i, &indir, true);
-            assert(ch && ch->length > 0);
-            h.blocks().free(h, ch->start, ch->length);
+            Extent *ext = change_extent(h, inode, i, &indir, true);
+            assert(ext && ext->length > 0);
+            h.blocks().free(h, ext->start, ext->length);
             inode->extents--;
-            inode->size -= ch->length * h.sb().blocksize;
-            ch->start = 0;
-            ch->length = 0;
+            inode->size -= ext->length * h.sb().blocksize;
+            ext->start = 0;
+            ext->length = 0;
         }
 
         // get <extent> and determine length
-        Extent *ch = change_extent(h, inode, extent, &indir, extoff == 0);
-        if(ch && ch->length > 0) {
-            size_t curlen = ch->length * h.sb().blocksize;
+        Extent *ext = change_extent(h, inode, extent, &indir, extoff == 0);
+        if(ext && ext->length > 0) {
+            size_t curlen = ext->length * h.sb().blocksize;
             size_t mod;
             if((mod = (inode->size % h.sb().blocksize)) != 0)
                 curlen -= h.sb().blocksize - mod;
@@ -324,11 +324,11 @@ void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff) {
                 size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, h.sb().blocksize) : diff;
                 size_t blocks = bdiff / h.sb().blocksize;
                 if(blocks > 0)
-                    h.blocks().free(h, ch->start + ch->length - blocks, blocks);
+                    h.blocks().free(h, ext->start + ext->length - blocks, blocks);
                 inode->size -= diff;
-                ch->length -= blocks;
-                if(ch->length == 0) {
-                    ch->start = 0;
+                ext->length -= blocks;
+                if(ext->length == 0) {
+                    ext->start = 0;
                     inode->extents--;
                 }
             }

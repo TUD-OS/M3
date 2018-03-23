@@ -54,7 +54,7 @@ public:
                                   m3::Extent **indir, bool create);
     static m3::Extent *change_extent(FSHandle &h, m3::INode *inode, size_t i,
                                      m3::Extent **indir, bool remove);
-    static void fill_extent(FSHandle &h, m3::INode *inode, m3::Extent *ch, uint32_t blocks);
+    static void fill_extent(FSHandle &h, m3::INode *inode, m3::Extent *ext, uint32_t blocks);
 
     static void truncate(FSHandle &h, m3::INode *inode, size_t extent, size_t extoff);
 

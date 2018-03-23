@@ -224,9 +224,9 @@ Errors::Code M3FSFileSession::commit(size_t extent, size_t extoff) {
         size_t orgoff = 0;
         if(ninode->extents > 0) {
             Extent *indir = nullptr;
-            Extent *ch = INodes::get_extent(_meta->handle(), ninode, ninode->extents - 1, &indir, false);
-            assert(ch != nullptr);
-            orgoff = ch->length * _meta->handle().sb().blocksize;
+            Extent *ext = INodes::get_extent(_meta->handle(), ninode, ninode->extents - 1, &indir, false);
+            assert(ext != nullptr);
+            orgoff = ext->length * _meta->handle().sb().blocksize;
             size_t mod;
             if(((mod = ninode->size % _meta->handle().sb().blocksize)) > 0)
                 orgoff -= _meta->handle().sb().blocksize - mod;
