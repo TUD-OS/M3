@@ -67,18 +67,34 @@ public:
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
-        if(_fdMap[args->fd] != 0 || _dirMap[args->fd] != nullptr)
+        if(args->fd != -1 && (_fdMap[args->fd] != 0 || _dirMap[args->fd] != nullptr))
             exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
-            _dirMap[args->fd] = new m3::Dir(add_prefix(args->name));
-            if (_dirMap[args->fd] == nullptr && args->fd >= 0)
-                THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            auto dir = new m3::Dir(add_prefix(args->name));
+            if(m3::Errors::occurred()) {
+               delete dir;
+                if(args->fd != -1)
+                   THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            }
+            else {
+                _dirMap[args->fd] = dir;
+                if (_dirMap[args->fd] == nullptr && args->fd >= 0)
+                    THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            }
         }
         else {
-            _fdMap[args->fd] = m3::VFS::open(add_prefix(args->name), args->flags);
-            if(_fdMap[args->fd] == m3::FileTable::INVALID)
-                THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            auto nfile = m3::VFS::open(add_prefix(args->name), args->flags);
+            if(m3::Errors::occurred()) {
+                m3::VFS::close(nfile);
+                if(args->fd != -1)
+                   THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            }
+            else {
+                _fdMap[args->fd] = nfile;
+                if(_fdMap[args->fd] == m3::FileTable::INVALID)
+                    THROW1(ReturnValueException, m3::Errors::last, args->fd, lineNo);
+            }
         }
     }
 
