@@ -179,8 +179,13 @@ public:
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
-    virtual void rename(const rename_args_t *, int ) override {
-        // TODO not implemented
+    virtual void rename(const rename_args_t *args, int lineNo) override {
+        int res = m3::VFS::link(args->from, args->to);
+        if ((res == m3::Errors::NONE) != (args->err == 0))
+            THROW1(ReturnValueException, res, args->err, lineNo);
+        res = m3::VFS::unlink(args->from);
+        if ((res == m3::Errors::NONE) != (args->err == 0))
+            THROW1(ReturnValueException, res, args->err, lineNo);
     }
 
     virtual void unlink(const unlink_args_t *args, UNUSED int lineNo) override {
