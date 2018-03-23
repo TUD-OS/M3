@@ -139,12 +139,11 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
             return;
         }
 
-        if(_lastoff + submit < _extlen) {
+        Errors::Code res = write ? commit(inode, submit) : Errors::NONE;
+        if(res == Errors::NONE && _lastoff + submit < _extlen) {
             _extent--;
             _extoff = _lastoff + submit;
-            _fileoff -= (_extlen - _lastoff) - submit;
         }
-        Errors::Code res = write ? commit(inode, submit) : Errors::NONE;
         reply_vmsg(is, res, inode->size);
         return;
     }
@@ -177,7 +176,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         }
 
         Extent e = {0 ,0};
-        len = INodes::append(h, inode, _extent, sel, _oflags & MemGate::RWX, &e);
+        len = INodes::req_append(h, inode, _extent, sel, _oflags & MemGate::RWX, &e);
         if(Errors::occurred()) {
             PRINT(this, "append failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
@@ -277,20 +276,23 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit) {
 
     // add new extent?
     if(_append_ext) {
-        Extent *indir = nullptr;
-        Extent *ext = INodes::get_extent(h, inode, inode->extents, &indir, true);
-        if(!ext)
-            return Errors::NO_SPACE;
-
         size_t blocks = (submit + h.sb().blocksize - 1) / h.sb().blocksize;
-        ext->start = _append_ext->start;
-        ext->length = blocks;
+        size_t old_len = _append_ext->length;
+
+        // append extent to file
+        _append_ext->length = blocks;
+        Errors::Code res = INodes::append_extent(h, inode, _append_ext);
+        if(res != Errors::NONE)
+            return res;
 
         // free superfluous blocks
-        if(_append_ext->length > blocks)
-            h.blocks().free(h, ext->start + blocks, _append_ext->length - blocks);
+        if(old_len > blocks)
+            h.blocks().free(h, _append_ext->start + blocks, old_len - blocks);
 
-        inode->extents++;
+        // for the position adjustment after the commit() call in read_write().
+        _fileoff -= (_extlen - _lastoff) - submit;
+        _extlen = blocks * h.sb().blocksize;
+        _lastoff = 0;
         delete _append_ext;
     }
 

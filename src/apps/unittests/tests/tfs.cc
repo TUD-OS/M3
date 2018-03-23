@@ -73,6 +73,25 @@ static void extending_small_file() {
     check_content(small_file, sizeof(largebuf) * 129);
 }
 
+static void creating_in_steps() {
+    {
+        FileRef file("/steps.txt", FILE_W | FILE_CREATE);
+        if(Errors::occurred())
+            exitmsg("open of " << "/steps.txt" << " failed");
+
+        for(size_t i = 0; i < sizeof(largebuf); ++i)
+            largebuf[i] = i & 0xFF;
+
+        for(int j = 0; j < 8; ++j) {
+            for(int i = 0; i < 4; ++i)
+                assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
+            assert_int(file->flush(), Errors::NONE);
+        }
+    }
+
+    check_content("/steps.txt", sizeof(largebuf) * 8 * 4);
+}
+
 static void small_write_at_begin() {
     {
         FileRef file(small_file, FILE_W);
@@ -489,6 +508,7 @@ static void buffered_write_with_seek() {
 
 void tfs() {
     RUN_TEST(extending_small_file);
+    RUN_TEST(creating_in_steps);
     RUN_TEST(small_write_at_begin);
     RUN_TEST(truncate);
     RUN_TEST(append);

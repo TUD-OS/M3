@@ -99,7 +99,7 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, int perm
     return bytes;
 }
 
-size_t INodes::append(FSHandle &h, INode *inode, size_t i, capsel_t sel, int perm, Extent *ext) {
+size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, capsel_t sel, int perm, Extent *ext) {
     if(i < inode->extents) {
         Extent *indir = nullptr;
         ext = get_extent(h, inode, i, &indir, false);
@@ -118,6 +118,28 @@ size_t INodes::append(FSHandle &h, INode *inode, size_t i, capsel_t sel, int per
     }
 
     return bytes;
+}
+
+Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next) {
+    Extent *indir = nullptr;
+
+    Extent *ext = nullptr;
+    if(inode->extents > 0) {
+        ext = INodes::get_extent(h, inode, inode->extents - 1, &indir, false);
+        assert(ext != nullptr);
+        if(ext->start + ext->length != next->start)
+            ext = nullptr;
+    }
+    if(ext == nullptr) {
+        ext = INodes::get_extent(h, inode, inode->extents, &indir, true);
+        if(!ext)
+            return Errors::NO_SPACE;
+        ext->start = next->start;
+        inode->extents++;
+    }
+
+    ext->length += next->length;
+    return Errors::NONE;
 }
 
 Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool create) {
