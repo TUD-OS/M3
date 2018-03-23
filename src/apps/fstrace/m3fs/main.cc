@@ -30,6 +30,24 @@ using namespace m3;
 static const size_t MAX_TMP_FILES   = 16;
 static const bool VERBOSE           = 0;
 
+static void remove_rec(const char *path) {
+    if(VERBOSE) cout << "Unlinking " << path << "\n";
+    if(VFS::unlink(path) == Errors::IS_DIR) {
+        Dir::Entry e;
+        char tmp[128];
+        Dir dir(path);
+        while(dir.readdir(e)) {
+            if(strcmp(e.name, ".") == 0 || strcmp(e.name, "..") == 0)
+                continue;
+
+            OStringStream file(tmp, sizeof(tmp));
+            file << path << "/" << e.name;
+            remove_rec(file.str());
+        }
+        VFS::rmdir(path);
+    }
+}
+
 static void cleanup() {
     Dir dir("/tmp");
     if(Errors::occurred())
@@ -55,8 +73,7 @@ static void cleanup() {
     }
 
     for(; x > 0; --x) {
-        if(VERBOSE) cout << "Unlinking " << *(entries[x - 1]) << "\n";
-        VFS::unlink(entries[x - 1]->c_str());
+        remove_rec(entries[x - 1]->c_str());
         delete entries[x - 1];
     }
 }
