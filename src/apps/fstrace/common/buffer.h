@@ -24,7 +24,7 @@ class Buffer {
 #if defined(__t2__)
     enum { MaxBufferSize = 4*1024 };
 #else
-    enum { MaxBufferSize = 4*1024 };
+    enum { MaxBufferSize = 32*1024 };
 #endif
 
     Buffer(size_t maxReadSize = MaxBufferSize,
