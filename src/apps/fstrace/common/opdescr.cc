@@ -48,9 +48,10 @@ void OpDescr::extractValues(const string &str, size_t numArgs,
 
     // extract arguments
     pos = str.find('(') + 1;
-    for (unsigned int i = 0; i < numArgs; i++) {
+    bool foundEnd = false;
+    for (unsigned int i = 0; !foundEnd && i < numArgs; i++) {
 
-        len = argLen(str, pos, newPos);
+        len = argLen(str, pos, newPos, foundEnd);
         if (len == string::npos)
             break;
 
@@ -66,7 +67,7 @@ void OpDescr::extractValues(const string &str, size_t numArgs,
 }
 
 
-size_t OpDescr::argLen(string const &str, size_t pos, size_t &newPos) const {
+size_t OpDescr::argLen(string const &str, size_t pos, size_t &newPos, bool &foundEnd) const {
 
     size_t len = str.size();
     size_t i;
@@ -104,6 +105,7 @@ size_t OpDescr::argLen(string const &str, size_t pos, size_t &newPos) const {
 
     // found a comma or bracket?
     if (i != string::npos) {
+       foundEnd = str[i] == ')';
        newPos = i + 2;
        return i - pos;
     }

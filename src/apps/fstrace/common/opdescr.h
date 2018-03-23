@@ -48,12 +48,12 @@ protected:
     virtual void extractValues(const std::string &str, size_t numArgs,
                                ArgsVector &args, std::string &retVal) const;
 
-    virtual size_t argLen(std::string const &str, size_t pos, size_t &newPos) const;
+    virtual size_t argLen(std::string const &str, size_t pos, size_t &newPos, bool &foundEnd) const;
     virtual void validateString(const std::string &str, size_t numArgs) const;
     virtual void buildCodeLine(std::string const &opcode, std::string const &argsName,
                                std::string const &args);
     virtual std::string codeLine();
-    
+
     /* internal state is kept as a string of C code */
     std::string codeStr;
 };
