@@ -17,8 +17,11 @@
 #pragma once
 
 #include <base/Common.h>
+#include <base/log/Services.h>
 
 #include <m3/com/GateStream.h>
+
+#define PRINT(sess, expr) SLOG(FS, fmt((word_t)sess, "#x") << ": " << expr)
 
 class M3FSSession {
 public:

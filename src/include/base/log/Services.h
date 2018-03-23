@@ -29,11 +29,10 @@ public:
     enum Level {
         KEYB        = 1 << 0,
         FS          = 1 << 1,
-        FS_DBG      = 1 << 2,
-        PAGER       = 1 << 3,
-        PIPE        = 1 << 4,
-        HASH        = 1 << 5,
-        VTERM       = 1 << 6,
+        PAGER       = 1 << 2,
+        PIPE        = 1 << 3,
+        HASH        = 1 << 4,
+        VTERM       = 1 << 5,
     };
 
     static const int level = 0;

@@ -14,7 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/log/Services.h>
 #include <m3/session/M3FS.h>
 
 #include "../data/Dirs.h"
@@ -43,19 +42,18 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     data.args.str[sizeof(data.args.str) - 1] = '\0';
     const char *path = data.args.str;
 
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::open(path=" << path
-        << ", flags=" << fmt(flags, "#x") << ")");
+    PRINT(this, "fs::open(path=" << path << ", flags=" << fmt(flags, "#x") << ")");
 
     inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE);
     if(ino == INVALID_INO) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": open failed: " << Errors::to_string(Errors::last));
+        PRINT(this, "open failed: " << Errors::to_string(Errors::last));
         return Errors::last;
     }
 
     INode *inode = INodes::get(handle(), ino);
     if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
         ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": open failed: " << Errors::to_string(Errors::NO_PERM));
+        PRINT(this, "open failed: " << Errors::to_string(Errors::NO_PERM));
         return Errors::NO_PERM;
     }
 
@@ -76,7 +74,7 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     data.args.count = 0;
     data.caps = _files[res]->caps().value();
 
-    SLOG(FS, fmt((word_t)this, "#x") << ": -> inode=" << inode->inode);
+    PRINT(this, "-> inode=" << inode->inode);
     return Errors::NONE;
 }
 
@@ -84,12 +82,11 @@ void M3FSMetaSession::stat(GateIStream &is) {
     EVENT_TRACER_FS_stat();
     String path;
     is >> path;
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::stat(path=" << path << ")");
+    PRINT(this, "fs::stat(path=" << path << ")");
 
     m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
     if(ino == INVALID_INO) {
-        SLOG(FS, fmt((word_t)this, "#x") << ": stat failed: "
-            << Errors::to_string(Errors::last));
+        PRINT(this, "stat failed: " << Errors::to_string(Errors::last));
         reply_error(is, Errors::last);
         return;
     }
@@ -107,12 +104,11 @@ void M3FSMetaSession::mkdir(GateIStream &is) {
     String path;
     mode_t mode;
     is >> path >> mode;
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::mkdir(path=" << path
-        << ", mode=" << fmt(mode, "o") << ")");
+    PRINT(this, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
 
     Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
     if(res != Errors::NONE)
-        SLOG(FS, fmt((word_t)this, "#x") << ": mkdir failed: " << Errors::to_string(res));
+        PRINT(this, "mkdir failed: " << Errors::to_string(res));
     reply_error(is, res);
 }
 
@@ -120,11 +116,11 @@ void M3FSMetaSession::rmdir(GateIStream &is) {
     EVENT_TRACER_FS_rmdir();
     String path;
     is >> path;
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::rmdir(path=" << path << ")");
+    PRINT(this, "fs::rmdir(path=" << path << ")");
 
     Errors::Code res = Dirs::remove(_handle, path.c_str());
     if(res != Errors::NONE)
-        SLOG(FS, fmt((word_t)this, "#x") << ": rmdir failed: " << Errors::to_string(res));
+        PRINT(this, "rmdir failed: " << Errors::to_string(res));
     reply_error(is, res);
 }
 
@@ -132,12 +128,11 @@ void M3FSMetaSession::link(GateIStream &is) {
     EVENT_TRACER_FS_link();
     String oldpath, newpath;
     is >> oldpath >> newpath;
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::link(oldpath=" << oldpath
-        << ", newpath=" << newpath << ")");
+    PRINT(this, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
 
     Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
     if(res != Errors::NONE)
-        SLOG(FS, fmt((word_t)this, "#x") << ": link failed: " << Errors::to_string(res));
+        PRINT(this, "link failed: " << Errors::to_string(res));
     reply_error(is, res);
 }
 
@@ -145,11 +140,11 @@ void M3FSMetaSession::unlink(GateIStream &is) {
     EVENT_TRACER_FS_unlink();
     String path;
     is >> path;
-    SLOG(FS, fmt((word_t)this, "#x") << ": fs::unlink(path=" << path << ")");
+    PRINT(this, "fs::unlink(path=" << path << ")");
 
     Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
     if(res != Errors::NONE)
-        SLOG(FS, fmt((word_t)this, "#x") << ": unlink failed: " << Errors::to_string(res));
+        PRINT(this, "unlink failed: " << Errors::to_string(res));
     reply_error(is, res);
 }
 

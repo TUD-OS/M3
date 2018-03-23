@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/log/Services.h>
-
 #include <m3/session/M3FS.h>
 #include <m3/Syscalls.h>
 
@@ -24,8 +22,6 @@
 #include "MetaSession.h"
 
 using namespace m3;
-
-#define PRINT(sess, expr) SLOG(FS, fmt((word_t)sess, "#x") << ": " << expr)
 
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
                                  int flags, const m3::INode &inode)
@@ -154,8 +150,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     if(_extlen > 0) {
         // activate mem cap for client
         if(Syscalls::get().activate(_epcap, sel, 0) != Errors::NONE) {
-            PRINT(this, "activate failed: "
-                << Errors::to_string(Errors::last));
+            PRINT(this, "activate failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
             return;
         }
@@ -193,8 +188,7 @@ void M3FSFileSession::seek(GateIStream &is) {
     int whence;
     size_t off;
     is >> off >> whence;
-    PRINT(this, "file::seek(path="
-        << _filename << ", off=" << off << ", whence=" << whence << ")");
+    PRINT(this, "file::seek(path=" << _filename << ", off=" << off << ", whence=" << whence << ")");
 
     if(whence == SEEK_CUR) {
         reply_error(is, Errors::INV_ARGS);
