@@ -212,6 +212,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         _extoff = 0;
         _fileoff += len - _lastoff;
     }
+    else
+        _lastoff = 0;
 
     PRINT(this, "file::" << (write ? "write" : "read")
         << " -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
