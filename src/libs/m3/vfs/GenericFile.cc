@@ -46,28 +46,42 @@ Errors::Code GenericFile::stat(FileInfo &info) const {
 }
 
 ssize_t GenericFile::seek(size_t offset, int whence) {
-    if(submit(false) != Errors::NONE)
-        return -1;
-
     LLOG(FS, "GenFile[" << fd() << "]::seek(" << offset << ", " << whence << ")");
 
+    // handle SEEK_CUR as SEEK_SET
     if(whence == M3FS_SEEK_CUR) {
         offset = _goff + _pos + offset;
         whence = M3FS_SEEK_SET;
     }
 
-    if(whence != M3FS_SEEK_END && _pos < _len) {
-        if(offset > _goff && offset < _goff + _len) {
+    // try to seek locally first
+    if(whence == M3FS_SEEK_SET) {
+        // no change?
+        if(offset == _goff + _pos)
+            return static_cast<ssize_t>(offset);
+
+        // first submit the written data
+        if(submit(false) != Errors::NONE)
+            return -1;
+
+        if(offset >= _goff && offset <= _goff + _len) {
             _pos = offset - _goff;
             return static_cast<ssize_t>(offset);
         }
     }
+    else {
+        // first submit the written data
+        if(submit(false) != Errors::NONE)
+            return -1;
+    }
 
+    // now seek on the server side
     size_t off;
     GateIStream reply = send_receive_vmsg(_sg, SEEK, offset, whence);
     reply >> Errors::last;
     if(Errors::last != Errors::NONE)
         return -1;
+
     reply >> _goff >> off;
     _pos = _len = 0;
     return static_cast<ssize_t>(_goff + off);
