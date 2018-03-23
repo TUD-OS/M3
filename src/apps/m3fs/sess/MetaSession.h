@@ -64,7 +64,7 @@ public:
     void remove_file(M3FSFileSession *file);
 
 private:
-    ssize_t alloc_file(capsel_t srv, const char *path, int flags, const m3::INode &inode);
+    ssize_t alloc_file(capsel_t srv, const char *path, int flags, m3::inodeno_t ino);
 
     m3::SList<MetaSGate> _sgates;
     m3::RecvGate &_rgate;

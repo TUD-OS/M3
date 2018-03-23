@@ -29,9 +29,12 @@ class OpenFiles {
 public:
     struct OpenFile : public m3::TreapNode<OpenFile, m3::inodeno_t> {
         explicit OpenFile(m3::inodeno_t ino)
-            : m3::TreapNode<OpenFile, m3::inodeno_t>(ino), deleted(false) {
+            : m3::TreapNode<OpenFile, m3::inodeno_t>(ino),
+              appending(false),
+              deleted(false) {
         }
 
+        bool appending;
         bool deleted;
         m3::SList<M3FSFileSession> sessions;
     };

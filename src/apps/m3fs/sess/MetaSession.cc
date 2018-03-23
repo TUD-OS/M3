@@ -67,7 +67,7 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     if(M3FS_ISDIR(inode->mode))
         INodes::write_back(_handle, inode);
 
-    ssize_t res = alloc_file(srv, path, flags, *inode);
+    ssize_t res = alloc_file(srv, path, flags, inode->inode);
     if(res < 0)
         return static_cast<Errors::Code>(-res);
 
@@ -157,11 +157,11 @@ void M3FSMetaSession::remove_file(M3FSFileSession *file) {
     }
 }
 
-ssize_t M3FSMetaSession::alloc_file(capsel_t srv, const char *path, int flags, const INode &inode) {
+ssize_t M3FSMetaSession::alloc_file(capsel_t srv, const char *path, int flags, inodeno_t ino) {
     assert(flags != 0);
     for(size_t i = 0; i < MAX_FILES; ++i) {
         if(_files[i] == NULL) {
-            _files[i] = new M3FSFileSession(srv, this, path, flags, inode);
+            _files[i] = new M3FSFileSession(srv, this, path, flags, ino);
             return static_cast<ssize_t>(i);
         }
     }

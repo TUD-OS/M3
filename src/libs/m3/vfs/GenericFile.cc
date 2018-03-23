@@ -51,12 +51,12 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
 
     LLOG(FS, "GenFile[" << fd() << "]::seek(" << offset << ", " << whence << ")");
 
-    if(whence == SEEK_CUR) {
+    if(whence == M3FS_SEEK_CUR) {
         offset = _goff + _pos + offset;
-        whence = SEEK_SET;
+        whence = M3FS_SEEK_SET;
     }
 
-    if(whence != SEEK_END && _pos < _len) {
+    if(whence != M3FS_SEEK_END && _pos < _len) {
         if(offset > _goff && offset < _goff + _len) {
             _pos = offset - _goff;
             return static_cast<ssize_t>(offset);

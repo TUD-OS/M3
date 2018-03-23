@@ -122,15 +122,10 @@ public:
     }
 
     ssize_t write_file(m3::File *file, const void *buffer, size_t size) {
-        const char *buf = reinterpret_cast<const char*>(buffer);
-        while(size > 0) {
-            ssize_t res = file->write(buf, size);
-            if(res <= 0)
-                return m3::Errors::last;
-            size -= static_cast<size_t>(res);
-            buf += res;
-        }
-        return buf - reinterpret_cast<const char*>(buffer);
+        m3::Errors::Code res = file->write_all(buffer, size);
+        if(res != m3::Errors::NONE)
+            return -static_cast<ssize_t>(res);
+        return static_cast<ssize_t>(size);
     }
 
     virtual ssize_t pread(int fd, void *buffer, size_t size, off_t offset) override {

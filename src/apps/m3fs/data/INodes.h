@@ -47,8 +47,10 @@ public:
     static size_t seek(FSHandle &h, m3::INode *inode, size_t &off, int whence,
                        size_t &extent, size_t &extoff);
 
-    static size_t get_extent_mem(FSHandle &h, m3::INode *inode, size_t extent, size_t blocks,
+    static size_t get_extent_mem(FSHandle &h, m3::INode *inode, size_t extent,
                                  int perms, capsel_t sel);
+    static size_t append(FSHandle &h, m3::INode *inode, size_t i, capsel_t sel,
+                         int perm, m3::Extent *ext);
 
     static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i,
                                   m3::Extent **indir, bool create);

@@ -105,7 +105,8 @@ size_t FStream::read(void *dst, size_t count) {
 
 void FStream::flush() {
     if(_wbuf && file()) {
-        set_error(_wbuf->flush(file()));
+        if(_wbuf->flush(file()) != Errors::NONE)
+            _state |= FL_ERROR;
         file()->flush();
     }
 }
@@ -162,8 +163,10 @@ size_t FStream::write(const void *src, size_t count) {
 
         if(((_flags & FL_LINE_BUF) && buf[total - 1] == '\n'))
             flush();
-        else if(count)
-            set_error(_wbuf->flush(file()));
+        else if(count) {
+            if(_wbuf->flush(file()) != Errors::NONE)
+                _state |= FL_ERROR;
+        }
     }
 
     return total;

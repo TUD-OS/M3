@@ -77,30 +77,11 @@ void INodes::write_back(FSHandle &h, INode *inode) {
         h.cache().write_back(bno);
 }
 
-size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t blocks,
-                              int perms, capsel_t sel) {
+size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, int perms, capsel_t sel) {
     Extent *indir = nullptr;
-    Extent *ext = get_extent(h, inode, extent, &indir, blocks > 0);
-    if(ext == nullptr)
+    Extent *ext = get_extent(h, inode, extent, &indir, false);
+    if(ext == nullptr || ext->length == 0)
         return 0;
-
-    // extent empty?
-    if(ext->length == 0) {
-        if(blocks > 0) {
-            // fill extent with blocks
-            fill_extent(h, inode, ext, blocks);
-        }
-        if(ext->length == 0)
-            return 0;
-    }
-
-    size_t left = 0;
-    // extend inode size, if we're appending
-    if(extent == inode->extents - 1) {
-        left = inode->size % h.sb().blocksize;
-        if(blocks > 0 && left)
-            inode->size += h.sb().blocksize - left;
-    }
 
     // create memory capability for extent
     size_t bytes = ext->length * h.sb().blocksize;
@@ -110,8 +91,31 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t b
         return 0;
 
     // stop at file-end
-    if(blocks == 0 && left)
-        bytes -= h.sb().blocksize - left;
+    if(extent == inode->extents - 1) {
+        size_t rem = inode->size % h.sb().blocksize;
+        if(rem > 0)
+            bytes -= h.sb().blocksize - rem;
+    }
+    return bytes;
+}
+
+size_t INodes::append(FSHandle &h, INode *inode, size_t i, capsel_t sel, int perm, Extent *ext) {
+    if(i < inode->extents) {
+        Extent *indir = nullptr;
+        ext = get_extent(h, inode, i, &indir, false);
+        assert(ext != nullptr);
+    }
+    else {
+        fill_extent(h, nullptr, ext, h.extend());
+        if(Errors::occurred())
+            return 0;
+    }
+
+    size_t bytes = ext->length * h.sb().blocksize;
+    if(Syscalls::get().derivemem(sel, h.mem().sel(),
+                                 ext->start * h.sb().blocksize, bytes, perm) != Errors::NONE) {
+        return 0;
+    }
 
     return bytes;
 }
@@ -249,10 +253,13 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks
             h.mem().write(zeros, blocksize, (ext->start + i) * blocksize);
         Time::stop(0xaaaa);
     }
-    inode->extents++;
-    inode->size = (inode->size + h.sb().blocksize - 1) & ~(h.sb().blocksize - 1);
-    inode->size += count * h.sb().blocksize;
-    mark_dirty(h, inode->inode);
+
+    if(inode) {
+        inode->extents++;
+        inode->size = (inode->size + h.sb().blocksize - 1) & ~(h.sb().blocksize - 1);
+        inode->size += count * h.sb().blocksize;
+        mark_dirty(h, inode->inode);
+    }
 }
 
 size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence,

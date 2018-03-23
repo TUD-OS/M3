@@ -99,7 +99,7 @@ public:
      * Seeks to the given position.
      *
      * @param offset the offset to seek to (meaning depends on <whence>)
-     * @param whence the seek type (SEEK_*)
+     * @param whence the seek type (M3FS_SEEK_*)
      * @return the new position
      */
     size_t seek(size_t offset, int whence);

@@ -104,9 +104,9 @@ public:
          * Flushes the buffer.
          *
          * @param file the file backend
-         * @return the number of bytes on success (0 = EOF, <0 =  error)
+         * @return the error code, if any
          */
-        ssize_t flush(File *file);
+        Errors::Code flush(File *file);
 
         char *buffer;
         size_t size;
@@ -138,7 +138,7 @@ public:
      * Changes the file-position to <offset>, using <whence>.
      *
      * @param offset the offset to use
-     * @param whence the seek-type (SEEK_{SET,CUR,END}).
+     * @param whence the seek-type (M3FS_SEEK_{SET,CUR,END}).
      * @return the new file-position
      */
     virtual ssize_t seek(size_t offset, int whence) = 0;
@@ -153,13 +153,32 @@ public:
     virtual ssize_t read(void *buffer, size_t count) = 0;
 
     /**
-     * Writes <count> bytes from <buffer> into the file.
+     * Writes at most <count> bytes from <buffer> into the file.
      *
      * @param buffer the data to write
      * @param count the number of bytes to write
      * @return the number of written bytes
      */
     virtual ssize_t write(const void *buffer, size_t count) = 0;
+
+    /**
+     * Writes <count> bytes from <buffer> into the file, if possible.
+     *
+     * @param buffer the data to write
+     * @param count the number of bytes to write
+     * @return the error code, if any
+     */
+    Errors::Code write_all(const void *buffer, size_t count) {
+        const char *buf = reinterpret_cast<const char*>(buffer);
+        while(count > 0) {
+            ssize_t res = write(buf, count);
+            if(res < 0)
+                return Errors::last;
+            count -= static_cast<size_t>(res);
+            buf += static_cast<size_t>(res);
+        }
+        return Errors::NONE;
+    }
 
     /**
      * Performs a flush of the so far written data

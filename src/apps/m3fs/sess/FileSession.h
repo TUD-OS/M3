@@ -28,12 +28,6 @@
 
 class M3FSMetaSession;
 
-enum class TransactionState {
-    NONE,
-    OPEN,
-    ABORTED
-};
-
 struct CapContainer {
     struct Entry : public m3::SListItem {
         explicit Entry(capsel_t _sel) : sel(_sel) {
@@ -64,7 +58,7 @@ struct CapContainer {
 class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
     explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
-                             int flags, const m3::INode &inode);
+                             int flags, m3::inodeno_t ino);
     virtual ~M3FSFileSession();
 
     virtual Type type() const override {
@@ -77,7 +71,7 @@ public:
     virtual void fstat(m3::GateIStream &is) override;
 
     m3::inodeno_t ino() const {
-        return _inode.inode;
+        return _ino;
     }
 
     m3::KIF::CapRngDesc caps() const {
@@ -92,20 +86,26 @@ public:
 
 private:
     void read_write(m3::GateIStream &is, bool write);
-    m3::Errors::Code commit(size_t extent, size_t extoff);
+    m3::Errors::Code commit(m3::INode *inode, size_t submit);
 
     size_t _extent;
     size_t _extoff;
     size_t _lastoff;
     size_t _extlen;
-    m3::String _filename;
+    size_t _fileoff;
+
+    bool _appending;
+    m3::Extent *_append_ext;
+
+    capsel_t _last;
     capsel_t _epcap;
     capsel_t _sess;
     m3::SendGate _sgate;
+
     int _oflags;
-    TransactionState _xstate;
-    m3::INode _inode;
-    capsel_t _last;
+    m3::String _filename;
+    m3::inodeno_t _ino;
+
     CapContainer _capscon;
     M3FSMetaSession *_meta;
 };

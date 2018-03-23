@@ -136,7 +136,7 @@ fn extend_small_file() {
 
         let buf = _get_pat_vector(1024);
         for _ in 0..33 {
-            assert_eq!(file.write(&buf[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&buf[0..1024]), Ok(()));
         }
     }
 
@@ -149,7 +149,7 @@ fn overwrite_beginning() {
 
         let buf = _get_pat_vector(1024);
         for _ in 0..3 {
-            assert_eq!(file.write(&buf[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&buf[0..1024]), Ok(()));
         }
     }
 
@@ -163,7 +163,7 @@ fn truncate() {
 
         let buf = _get_pat_vector(1024);
         for _ in 0..2 {
-            assert_eq!(file.write(&buf[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&buf[0..1024]), Ok(()));
         }
     }
 
@@ -180,7 +180,7 @@ fn append() {
 
         let buf = _get_pat_vector(1024);
         for _ in 0..2 {
-            assert_eq!(file.write(&buf[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&buf[0..1024]), Ok(()));
         }
     }
 
@@ -194,7 +194,7 @@ fn append_read() {
 
         let pat = _get_pat_vector(1024);
         for _ in 0..2 {
-            assert_eq!(file.write(&pat[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&pat[0..1024]), Ok(()));
         }
 
         // there is nothing to read now
@@ -211,7 +211,7 @@ fn append_read() {
         assert_eq!(file.seek(2 * 1024, SeekMode::SET), Ok(2 * 1024));
 
         for _ in 0..2 {
-            assert_eq!(file.write(&pat[0..1024]), Ok(1024));
+            assert_eq!(file.write_all(&pat[0..1024]), Ok(()));
         }
     }
 

@@ -24,22 +24,24 @@
 using namespace m3;
 
 M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
-                                 int flags, const m3::INode &inode)
+                                 int flags, m3::inodeno_t ino)
     : M3FSSession(),
       m3::SListItem(),
       _extent(),
       _extoff(),
       _lastoff(),
       _extlen(),
-      _filename(filename),
+      _fileoff(),
+      _appending(),
+      _append_ext(),
+      _last(ObjCap::INVALID),
       _epcap(ObjCap::INVALID),
       _sess(m3::VPE::self().alloc_sels(2)),
       _sgate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this),
                                   MSG_SIZE, nullptr, _sess + 1)),
       _oflags(flags),
-      _xstate(TransactionState::NONE),
-      _inode(inode),
-      _last(ObjCap::INVALID),
+      _filename(filename),
+      _ino(ino),
       _capscon(),
       _meta(meta) {
     Syscalls::get().createsessat(_sess, srv, reinterpret_cast<word_t>(this));
@@ -49,6 +51,12 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::
 
 M3FSFileSession::~M3FSFileSession() {
     PRINT(this, "file::close(path=" << _filename << ")");
+
+    if(_append_ext) {
+        FSHandle &h = _meta->handle();
+        h.blocks().free(h, _append_ext->start, _append_ext->length);
+        delete _append_ext;
+    }
 
     _meta->handle().files().rem_sess(this);
     _meta->remove_file(this);
@@ -60,7 +68,7 @@ M3FSFileSession::~M3FSFileSession() {
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {
     PRINT(this, "file::clone(path=" << _filename << ")");
 
-    auto nfile =  new M3FSFileSession(srv, _meta, _filename, _oflags, _inode);
+    auto nfile =  new M3FSFileSession(srv, _meta, _filename, _oflags, _ino);
 
     data.args.count = 0;
     data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nfile->_sess, 2).value();
@@ -77,17 +85,20 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     PRINT(this, "file::get_mem(path=" << _filename << ", offset=" << offset << ")");
 
+    INode *inode = INodes::get(_meta->handle(), _ino);
+    assert(inode != nullptr);
+
     // determine extent from byte offset
     size_t firstOff = offset;
     {
         size_t tmp_extent, tmp_extoff;
-        INodes::seek(_meta->handle(), &_inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
+        INodes::seek(_meta->handle(), inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
         offset = tmp_extent;
     }
 
     capsel_t sel = VPE::self().alloc_sel();
     Errors::last = Errors::NONE;
-    size_t len = INodes::get_extent_mem(_meta->handle(), &_inode, offset, 0,
+    size_t len = INodes::get_extent_mem(_meta->handle(), inode, offset,
                                         _oflags & MemGate::RWX, sel);
     if(Errors::occurred()) {
         PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
@@ -110,12 +121,17 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     is >> submit;
 
     PRINT(this, "file::" << (write ? "write" : "read") << "(submit=" << submit << "); "
-        << "file[path=" << _filename << ", extent=" << _extent << ", extoff=" << _extoff << "]");
+        << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
+        << ", extoff=" << _extoff << "]");
 
     if((write && !(_oflags & FILE_W)) || (!write && !(_oflags & FILE_R))) {
         reply_error(is, Errors::NO_PERM);
         return;
     }
+
+    FSHandle &h = _meta->handle();
+    INode *inode = INodes::get(h, _ino);
+    assert(inode != nullptr);
 
     if(submit > 0) {
         if(_extent == 0) {
@@ -126,23 +142,60 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         if(_lastoff + submit < _extlen) {
             _extent--;
             _extoff = _lastoff + submit;
+            _fileoff -= (_extlen - _lastoff) - submit;
         }
-        Errors::Code res = write ? commit(_extent, _extoff) : Errors::NONE;
-        reply_vmsg(is, res, _inode.size);
+        Errors::Code res = write ? commit(inode, submit) : Errors::NONE;
+        reply_vmsg(is, res, inode->size);
         return;
     }
+    else if(write && _appending) {
+        Errors::Code res = commit(inode, _extlen - _lastoff);
+        if(res != Errors::NONE) {
+            reply_error(is, res);
+            return;
+        }
+    }
 
-    // get next mem cap
-    capsel_t sel = VPE::self().alloc_sel();
-    size_t old_ino_size = _inode.size;
     Errors::last = Errors::NONE;
-    size_t len = INodes::get_extent_mem(_meta->handle(), &_inode, _extent,
-                                        write ? _meta->handle().extend() : 0,
-                                        _oflags & MemGate::RWX, sel);
-    if(Errors::occurred()) {
-        PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
-        reply_error(is, Errors::last);
-        return;
+    capsel_t sel = VPE::self().alloc_sel();
+    size_t len;
+
+    // do we need to append to the file?
+    if(write && _fileoff == inode->size) {
+        OpenFiles::OpenFile *of = h.files().get_file(_ino);
+        assert(of != nullptr);
+        if(of->appending) {
+            PRINT(this, "append already in progress");
+            reply_error(is, Errors::EXISTS);
+            return;
+        }
+
+        // continue in last extent, if there is space
+        if(_extent > 0 && _fileoff == inode->size && (inode->size % h.sb().blocksize) != 0) {
+            _extoff = inode->size % h.sb().blocksize;
+            _extent--;
+        }
+
+        Extent e = {0 ,0};
+        len = INodes::append(h, inode, _extent, sel, _oflags & MemGate::RWX, &e);
+        if(Errors::occurred()) {
+            PRINT(this, "append failed: " << Errors::to_string(Errors::last));
+            reply_error(is, Errors::last);
+            return;
+        }
+
+        _appending = true;
+        _append_ext = e.length > 0 ? new Extent(e) : nullptr;
+        of->appending = true;
+    }
+    else {
+        // get next mem cap
+        len = INodes::get_extent_mem(h, inode, _extent, _oflags & MemGate::RWX, sel);
+        if(Errors::occurred()) {
+            PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
+            reply_error(is, Errors::last);
+            return;
+        }
     }
 
     _lastoff = _extoff;
@@ -158,11 +211,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
         // move forward
         _extent += 1;
         _extoff = 0;
+        _fileoff += len - _lastoff;
     }
-
-    // start/continue transaction
-    if(_inode.size > old_ino_size && _xstate != TransactionState::ABORTED)
-        _xstate = TransactionState::OPEN;
 
     PRINT(this, "file::" << (write ? "write" : "read")
         << " -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
@@ -190,68 +240,71 @@ void M3FSFileSession::seek(GateIStream &is) {
     is >> off >> whence;
     PRINT(this, "file::seek(path=" << _filename << ", off=" << off << ", whence=" << whence << ")");
 
-    if(whence == SEEK_CUR) {
+    if(whence == M3FS_SEEK_CUR) {
         reply_error(is, Errors::INV_ARGS);
         return;
     }
 
-    size_t pos = INodes::seek(_meta->handle(), &_inode, off, whence, _extent, _extoff);
+    INode *inode = INodes::get(_meta->handle(), _ino);
+    assert(inode != nullptr);
+
+    size_t pos = INodes::seek(_meta->handle(), inode, off, whence, _extent, _extoff);
+    _fileoff = pos + off;
+
     reply_vmsg(is, Errors::NONE, pos, off);
 }
 
 void M3FSFileSession::fstat(GateIStream &is) {
     PRINT(this, "file::fstat(path=" << _filename << ")");
 
+    INode *inode = INodes::get(_meta->handle(), _ino);
+    assert(inode != nullptr);
+
     m3::FileInfo info;
-    INodes::stat(_meta->handle(), &_inode, info);
+    INodes::stat(_meta->handle(), inode, info);
+
     reply_vmsg(is, Errors::NONE, info);
 }
 
-Errors::Code M3FSFileSession::commit(size_t extent, size_t extoff) {
-    if(_xstate == TransactionState::ABORTED)
-        return Errors::COMMIT_FAILED;
+Errors::Code M3FSFileSession::commit(INode *inode, size_t submit) {
+    assert(submit > 0);
 
-    // have we increased the filesize?
-    m3::INode *ninode = INodes::get(_meta->handle(), _inode.inode);
-    if(_inode.size > ninode->size) {
-        // get the old offset within the last extent
-        size_t orgoff = 0;
-        if(ninode->extents > 0) {
-            Extent *indir = nullptr;
-            Extent *ext = INodes::get_extent(_meta->handle(), ninode, ninode->extents - 1, &indir, false);
-            assert(ext != nullptr);
-            orgoff = ext->length * _meta->handle().sb().blocksize;
-            size_t mod;
-            if(((mod = ninode->size % _meta->handle().sb().blocksize)) > 0)
-                orgoff -= _meta->handle().sb().blocksize - mod;
-        }
+    // were we actually appending?
+    if(!_appending)
+        return Errors::NONE;
 
-        // then cut it to either the org size or the max. position we've written to,
-        // whatever is bigger
-        if(ninode->extents == 0 || extent > ninode->extents - 1 ||
-           (extent == ninode->extents - 1 && extoff > orgoff)) {
-            INodes::truncate(_meta->handle(), &_inode, _extent, _extoff);
-        }
-        else {
-            INodes::truncate(_meta->handle(), &_inode, ninode->extents - 1, orgoff);
-            _inode.size = ninode->size;
-        }
-        memcpy(ninode, &_inode, sizeof(*ninode));
+    FSHandle &h = _meta->handle();
 
-        // update the inode in all open files
-        // and let all future commits for this file fail
-        OpenFiles::OpenFile *ofile = _meta->handle().files().get_file(_inode.inode);
-        assert(ofile != nullptr);
-        for(auto s = ofile->sessions.begin(); s != ofile->sessions.end(); ++s) {
-            if(&*s != this && s->_xstate == TransactionState::OPEN) {
-                memcpy(&s->_inode, ninode, sizeof(*ninode));
-                s->_xstate = TransactionState::ABORTED;
-                // TODO revoke access, if necessary
-            }
-        }
+    // add new extent?
+    if(_append_ext) {
+        Extent *indir = nullptr;
+        Extent *ext = INodes::get_extent(h, inode, inode->extents, &indir, true);
+        if(!ext)
+            return Errors::NO_SPACE;
+
+        size_t blocks = (submit + h.sb().blocksize - 1) / h.sb().blocksize;
+        ext->start = _append_ext->start;
+        ext->length = blocks;
+
+        // free superfluous blocks
+        if(_append_ext->length > blocks)
+            h.blocks().free(h, ext->start + blocks, _append_ext->length - blocks);
+
+        inode->extents++;
+        delete _append_ext;
     }
 
-    _xstate = TransactionState::NONE;
+    // change size
+    inode->size += submit;
+    INodes::mark_dirty(h, inode->inode);
 
+    // stop appending
+    OpenFiles::OpenFile *ofile = h.files().get_file(_ino);
+    assert(ofile != nullptr);
+    assert(ofile->appending);
+    ofile->appending = false;
+
+    _append_ext = nullptr;
+    _appending = false;
     return Errors::NONE;
 }
