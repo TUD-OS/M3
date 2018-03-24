@@ -87,7 +87,7 @@ class ATAPartitionDevice {
 };
 
 int main(int argc,char **argv) {
-	bool useDma = true;
+	bool useDma = false; // TODO current unsupported
 	bool useIRQ = true;
 
 	for(size_t i = 2; (int)i < argc; i++) {

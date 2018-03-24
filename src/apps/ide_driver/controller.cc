@@ -278,7 +278,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 	for(i = 0; i < 2; i++) {
 		SLOG(IDE_ALL, "Initializing controller " << ctrls[i].id);
 		ctrls[i].useIrq = useIRQ;
-		ctrls[i].useDma = false;
+		ctrls[i].useDma = useDma;
 
 		SLOG(IDE_ALL, "Portbase for controller " << i << "is 0x"
 			<< m3::fmt(ctrls[i].portBase, "x"));
