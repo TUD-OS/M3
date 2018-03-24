@@ -69,7 +69,7 @@ static const char *stateNames[] = {
 size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
-    : _muxable(Platform::pe(pe).supports_multictx()),
+    : _muxable(Platform::pe(pe).supports_ctxsw()),
       _pe(pe),
       _state(S_IDLE),
       _count(),
@@ -139,7 +139,7 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
     stop_vpe(vpe, true);
 
     if(--_count == 0)
-        _muxable = Platform::pe(_pe).supports_multictx();
+        _muxable = Platform::pe(_pe).supports_ctxsw();
 
     if(_count == 1) {
         // cancel timeout; the remaining VPE can run as long as it likes

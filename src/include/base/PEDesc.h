@@ -116,13 +116,19 @@ struct PEDesc {
     /**
      * @return if the PE supports multiple contexts
      */
-    bool supports_multictx() const {
-        return isa() >= PEISA::ACCEL_INDIR || has_cache();
+    bool supports_ctxsw() const {
+        return supports_ctx() && (isa() >= PEISA::ACCEL_INDIR || has_cache());
     }
     /**
      * @return if the PE supports the context switching protocol
      */
-    bool supports_ctxsw() const {
+    bool supports_ctx() const {
+        return supports_vpes() && isa() != PEISA::IDE_DEV;
+    }
+    /**
+     * @return if the PE supports VPEs
+     */
+    bool supports_vpes() const {
         return type() != PEType::MEM;
     }
 

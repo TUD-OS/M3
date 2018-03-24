@@ -28,7 +28,7 @@ PEManager *PEManager::_inst;
 PEManager::PEManager()
     : _ctxswitcher(new ContextSwitcher*[Platform::pe_count()]) {
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-        if(Platform::pe(i).supports_ctxsw())
+        if(Platform::pe(i).supports_vpes())
             _ctxswitcher[i] = new ContextSwitcher(i);
         else
             _ctxswitcher[i] = nullptr;

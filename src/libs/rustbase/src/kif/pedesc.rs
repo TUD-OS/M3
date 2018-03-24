@@ -118,12 +118,16 @@ impl PEDesc {
         }
     }
 
-    /// Returns true if the PE supports multiple contexts
-    pub fn supports_multictx(&self) -> bool {
-        self.has_cache() || self.is_ffaccel()
-    }
-    /// Returns true if the PE supports the context switching protocol
+    /// Return if the PE supports multiple contexts
     pub fn supports_ctxsw(&self) -> bool {
+        self.supports_ctx() && (self.isa() >= PEISA::ACCEL_INDIR || self.has_cache())
+    }
+    /// Return if the PE supports the context switching protocol
+    pub fn supports_ctx(&self) -> bool {
+        self.supports_vpes() && self.isa() != PEISA::IDE_DEV
+    }
+    /// Return if the PE supports VPEs
+    pub fn supports_vpes(&self) -> bool {
         self.pe_type() != PEType::MEM
     }
 
