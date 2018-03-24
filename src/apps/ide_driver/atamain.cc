@@ -99,7 +99,6 @@ int main(int argc,char **argv) {
 
 	/* detect and init all devices */
 	ctrl_init(useDma, useIRQ);
-	ATA_LOG(INFO, "Initializing Drives...");
 	initDrives();
 	/* flush prints */
 
@@ -136,11 +135,12 @@ int main(int argc,char **argv) {
 		part_print(ataDev->partTable);
 	}
 
+	cout << "Writing 0x" << fmt(arg[0],"X") << fmt(arg[1],"X") << " and reading it again...\n";
+
 	handleWrite(ataDev, ataDev->partTable, arg, 0, sizeof(arg));
 	handleRead(ataDev, ataDev->partTable, res, 0, sizeof(res));
 
-	ATA_LOG(INFO, "Returned result: 0x" << fmt(res[0],"X") << fmt(res[1],"X"));
-	/* Desired result for now: 0xCOFFEEEE */
+	cout << "Returned result: 0x" << fmt(res[0],"X") << fmt(res[1],"X") << "\n";
 
 	ctrl_deinit();
 	return 0;
@@ -149,51 +149,51 @@ int main(int argc,char **argv) {
 static ulong handleRead(sATADevice *ataDev,sPartition *part,uint16_t *buf,uint offset,uint count) {
 	/* we have to check whether it is at least one sector. otherwise ATA can't
 	 * handle the request */
-	ATA_PR2(INFO, "" << offset << " + " << count << " <= " << part->size << " * " << ataDev->secSize);
+	SLOG(IDE_ALL, "" << offset << " + " << count << " <= " << part->size << " * " << ataDev->secSize);
 	if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
 		uint rcount = m3::Math::round_up((size_t)count,ataDev->secSize);
 		if(buf != buffer || rcount <= MAX_RW_SIZE) {
 			int i;
-			ATA_PR2(INFO, "Reading " << rcount << " bytes @ " << offset << " from device " << ataDev->id);
+			SLOG(IDE_ALL, "Reading " << rcount << " bytes @ " << offset << " from device " << ataDev->id);
 			for(i = 0; i < RETRY_COUNT; i++) {
 				if(i > 0)
-					ATA_LOG(ERR, "Read failed; retry " << i);
+					SLOG(IDE, "Read failed; retry " << i);
 				if(ataDev->rwHandler(ataDev,OP_READ,buf,
 						offset / ataDev->secSize + part->start,
 						ataDev->secSize,rcount / ataDev->secSize)) {
 					return count;
 				}
 			}
-		ATA_LOG(ERR, "Giving up after " << i << " retries");
+		SLOG(IDE, "Giving up after " << i << " retries");
 			return 0;
 		}
 	}
-	ATA_LOG(ERR, "Invalid read-request: offset=" << offset <<", count=" << count
+	SLOG(IDE, "Invalid read-request: offset=" << offset <<", count=" << count
 		<< ", partSize=" << part->size * ataDev->secSize << " (device " << ataDev->id << ")");
 	return 0;
 }
 
 static ulong handleWrite(sATADevice *ataDev,sPartition *part,uint16_t *buf,uint offset,uint count) {
-	ATA_PR2(INFO, "ataDev->secSize: " << ataDev->secSize << ", count: " << count);
+	SLOG(IDE_ALL, "ataDev->secSize: " << ataDev->secSize << ", count: " << count);
 	if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
 		if(buf != buffer || count <= MAX_RW_SIZE) {
 			int i;
-			ATA_PR2(INFO, "Writing " << count << " bytes @ 0x" << m3::fmt(offset,"x")
+			SLOG(IDE_ALL, "Writing " << count << " bytes @ 0x" << m3::fmt(offset,"x")
 				<< " to device " << ataDev->id);
 			for(i = 0; i < RETRY_COUNT; i++) {
 				if(i > 0)
-					ATA_LOG(ERR, "Write failed; retry " << i);
+					SLOG(IDE, "Write failed; retry " << i);
 				if(ataDev->rwHandler(ataDev,OP_WRITE,buf,
 						offset / ataDev->secSize + part->start,
 						ataDev->secSize,count / ataDev->secSize)) {
 					return count;
 				}
 			}
-			ATA_LOG(ERR, "Giving up after " << i << " retries");
+			SLOG(IDE, "Giving up after " << i << " retries");
 			return 0;
 		}
 	}
-	ATA_LOG(ERR, "Invalid write-request: offset=0x" << m3::fmt(offset,"x") << ", count=" \
+	SLOG(IDE, "Invalid write-request: offset=0x" << m3::fmt(offset,"x") << ", count=" \
 		<< count << ", partSize=" << part->size * ataDev->secSize
 		<< " (device " << ataDev->id << ")");
 	return 0;
@@ -214,7 +214,7 @@ static void initDrives(void) {
 				strcpy(path + SSTRLEN("/dev/"),name);
 
 				devs[drvCount] = new ATAPartitionDevice(ataDev->id,p,path,0770);
-				ATA_LOG(INFO, "Registered device '"<< name << "' (device "
+				SLOG(IDE, "Registered device '"<< name << "' (device "
 					<< ataDev->id << ", partition " << p + 1 << ")");
 
 				drvCount++;

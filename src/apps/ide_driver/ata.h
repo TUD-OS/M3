@@ -24,30 +24,12 @@
 
 #pragma once
 
+#include <base/log/Services.h>
+
 #include <base/Common.h>
 #include <base/log/Log.h>
 
 #include "device.h"
-
-/* for printing debug-info */
-#define ATA_PR1(lvl,con)	LOG(AtaLog, lvl, con);
-#define ATA_PR2(lvl,con)	LOG(AtaLog, lvl, con);
-#define ATA_LOG(lvl,con)	LOG(AtaLog, lvl, con);
-
-namespace m3 {
-
-class AtaLog {
-    AtaLog() = delete;
-
-public:
-    enum Level {
-        INFO            = 1 << 0,
-        ERR             = 1 << 2,
-    };
-
-    static const int level = INFO | ERR;
-};
-}
 
 /**
  * Reads or writes from/to an ATA-device

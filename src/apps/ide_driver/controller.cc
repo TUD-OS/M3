@@ -159,11 +159,11 @@ void IdeController::waitForInterrupt()
 	uint32_t irq = 0; // Variable for catching the interrupt "message"
 	uint32_t content = 0xFFFF; // Just send some recognizable message
 
-	ATA_PR2(INFO, "Trying to receive msg");
+	SLOG(IDE_ALL, "Trying to receive msg");
 	GateIStream is = receive_msg(srGate);
 
 	is >> irq;
-	ATA_PR2(INFO, "Content irq: 0x" << fmt(irq, "x"));
+	SLOG(IDE_ALL, "Content irq: 0x" << fmt(irq, "x"));
 
 	//use reply here, credits sent back
 	reply_msg(is, &content, sizeof(content));
@@ -173,7 +173,7 @@ void IdeController::fillBar(Bar * bar, uint i)
 {
 	uint32_t val = readRegs<uint32_t>((uintptr_t) PCI0_BASE_ADDR0+i*4);
 
-	ATA_PR2(INFO, "Value of barValue is " << val);
+	SLOG(IDE_ALL, "Value of barValue is " << val);
 	bar->type = val & 0x1;
 	bar->addr = val & (uintptr_t) ~0xF;
 	bar->flags = 0;
@@ -251,7 +251,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 		ideController = IdeController::create();
     ideCtrl = ideController->getConfig();
 
-	ATA_LOG(INFO,"Found IDE-controller ("
+	SLOG(IDE,"Found IDE-controller ("
 		<< ideCtrl.bus << "." << ideCtrl.dev << "." << ideCtrl.func << "): vendorId 0x"
 		<< fmt(ideCtrl.vendorId,"x") << ", deviceId 0x" << fmt(ideCtrl.deviceId,"x") <<
 		", rev " << ideCtrl.revId );
@@ -271,41 +271,41 @@ void ctrl_init(bool useDma,bool useIRQ)
 
 	/* request io-ports for bus-mastering */
 	if(useDma && ideCtrl.bars[IDE_CTRL_BAR].addr) {
-		ATA_PR2(INFO, "DMA is active! BAR4 address: 0x"
+		SLOG(IDE_ALL, "DMA is active! BAR4 address: 0x"
 			<< m3::fmt(ideCtrl.bars[IDE_CTRL_BAR].addr, "x"));
 	}
 
 	for(i = 0; i < 2; i++) {
-		ATA_PR2(INFO, "Initializing controller " << ctrls[i].id);
+		SLOG(IDE_ALL, "Initializing controller " << ctrls[i].id);
 		ctrls[i].useIrq = useIRQ;
 		ctrls[i].useDma = false;
 
-		ATA_PR2(INFO, "Portbase for controller " << i << "is 0x"
+		SLOG(IDE_ALL, "Portbase for controller " << i << "is 0x"
 			<< m3::fmt(ctrls[i].portBase, "x"));
-		ATA_PR2(INFO, "ATA_REG_CONTROL: " << ATA_REG_CONTROL);
+		SLOG(IDE_ALL, "ATA_REG_CONTROL: " << ATA_REG_CONTROL);
 
 		/* check if the bus is empty */
-		ATA_PR1(INFO, "Checking if bus "
+		SLOG(IDE_ALL, "Checking if bus "
 			<< ctrls[i].id << " is floating");
 		if(!ctrl_isBusResponding(ctrls + i)) {
-			ATA_LOG(INFO, "Bus "<< ctrls[i].id << " is floating" );
+			SLOG(IDE, "Bus "<< ctrls[i].id << " is floating" );
 			continue;
 		}
-		ATA_PR1(INFO, "Bus not floating");
+		SLOG(IDE_ALL, "Bus not floating");
 
 		if(useIRQ) {
 			// set interrupt-handler
-			ATA_PR2(INFO, "Interrupts active!");
+			SLOG(IDE_ALL, "Interrupts active!");
 			ctrls[i].irqsem = 1; //TODO: set IRQ semaphore here, safely
 			if(ctrls[i].irqsem < 0) {
-				ATA_PR2(ERR, "Unable to create irq-semaphore for IRQ " << ctrls[i].irq);
+				SLOG(IDE, "Unable to create irq-semaphore for IRQ " << ctrls[i].irq);
 				PANIC("Unable to create irq-semaphore for IRQ " << ctrls[i].irq);
 			}
 		}
 
 		/* init DMA */
 		ctrls[i].bmrBase = ideCtrl.bars[IDE_CTRL_BAR].addr;
-		ATA_PR2(INFO, "ctrls[" << i << "].bmrBase is 0x"
+		SLOG(IDE_ALL, "ctrls[" << i << "].bmrBase is 0x"
 			<< fmt(ctrls[i].bmrBase, "x"));
 
 		if(useDma && ctrls[i].bmrBase) {
@@ -331,10 +331,10 @@ void ctrl_init(bool useDma,bool useIRQ)
 			if(!ctrls[i].dma_buf_virt)
 				PANIC("Unable to allocate dma-buffer for controller " << ctrls[i].id);
 			ctrls[i].useDma = true;
-			ATA_PR2(INFO, "useDma is true for device " << i);
+			SLOG(IDE_ALL, "useDma is true for device " << i);
 		}
 		else {
-			ATA_PR2(INFO, "useDma is false for device " << i);
+			SLOG(IDE_ALL, "useDma is false for device " << i);
 		}
 
 		/* init attached devices; begin with slave */
@@ -345,7 +345,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 			device_init(ctrls[i].devices + j);
 		}
 	}
-	ATA_PR2(INFO, "All controllers initialized");
+	SLOG(IDE_ALL, "All controllers initialized");
 }
 
 void ctrl_deinit() {
@@ -363,7 +363,7 @@ sATAController *ctrl_getCtrl(uchar id)
 
 void ctrl_outbmrb(sATAController *ctrl,uint16_t reg,uint8_t value)
 {
-	ATA_PR2(INFO, "Address is 0x" << m3::fmt(ctrl->bmrBase + reg, "x")
+	SLOG(IDE_ALL, "Address is 0x" << m3::fmt(ctrl->bmrBase + reg, "x")
 		<< " with value 0x" << m3::fmt(value,"x"));
 	ideController->writePIO<uint8_t>((uintptr_t) ctrl->bmrBase + reg,value);
 }
@@ -434,7 +434,7 @@ int ctrl_waitUntil(sATAController *ctrl,time_t timeout,time_t sleepTime, uint8_t
 			return ctrl_inb(ctrl,ATA_REG_ERROR);
 		if((status & set) == set && !(status & unset))
 			return 0;
-		ATA_PR1(INFO, "Status %#x" << status);
+		SLOG(IDE_ALL, "Status %#x" << status);
 		if(sleepTime) {
 			m3::DTU::get().sleep(1000 * sleepTime);
 			elapsed += sleepTime;

@@ -96,16 +96,16 @@ static bool atapi_request(sATADevice *device,uint8_t *cmd,void *buffer,size_t bu
 	res = ctrl_waitUntil(ctrl,ATAPI_TRANSFER_TIMEOUT,ATAPI_TRANSFER_SLEEPTIME,
 			CMD_ST_DRQ,CMD_ST_BUSY);
 	if(res == -1) {
-		ATA_LOG(ERR, "Device " << device->id << ": Timeout before ATAPI-PIO-transfer");
+		SLOG(IDE, "Device " << device->id << ": Timeout before ATAPI-PIO-transfer");
 		return false;
 	}
 	if(res != 0) {
-		ATA_LOG(ERR, "Device " << device->id << ": ATAPI-PIO-transfer failed: " << res);
+		SLOG(IDE, "Device " << device->id << ": ATAPI-PIO-transfer failed: " << res);
 		return false;
 	}
 
 	/* read the actual size per transfer */
-	ATA_PR2(INFO, "Reading response-size");
+	SLOG(IDE_ALL, "Reading response-size");
 	size = ((size_t)ctrl_inb(ctrl,ATA_REG_ADDRESS3) << 8) | (size_t)ctrl_inb(ctrl,ATA_REG_ADDRESS2);
 	/* do the PIO-transfer (no check at the beginning; seems to cause trouble on some machines) */
 	return ata_transferPIO(device,OP_READ,buffer,size,bufSize / size,false);

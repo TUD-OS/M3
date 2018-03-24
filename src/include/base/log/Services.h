@@ -33,6 +33,8 @@ public:
         PIPE        = 1 << 3,
         HASH        = 1 << 4,
         VTERM       = 1 << 5,
+        IDE         = 1 << 6,
+        IDE_ALL     = 1 << 7,
     };
 
     static const int level = 0;

@@ -31,11 +31,11 @@ static uint ata_getCommand(sATADevice *device,uint op);
 
 bool ata_readWrite(sATADevice *device,uint op,void *buffer,uint64_t lba,size_t secSize,
 		size_t secCount) {
-	ATA_PR2(INFO, "Looking up cmd for operation " << op);
+	SLOG(IDE_ALL, "Looking up cmd for operation " << op);
 	uint cmd = ata_getCommand(device,op);
-	ATA_PR2(INFO, "Performing ata_readWrite with command " << cmd);
+	SLOG(IDE_ALL, "Performing ata_readWrite with command " << cmd);
 	if(!ata_setupCommand(device,lba,secCount,cmd)) {
-		ATA_PR2(INFO, "ata_setupCommand returned false");
+		SLOG(IDE_ALL, "ata_setupCommand returned false");
 		return false;
 	}
 
@@ -45,17 +45,17 @@ bool ata_readWrite(sATADevice *device,uint op,void *buffer,uint64_t lba,size_t s
 		case COMMAND_READ_SEC_EXT:
 		case COMMAND_WRITE_SEC:
 		case COMMAND_WRITE_SEC_EXT:
-			ATA_PR2(INFO, "Executing transfer PIO");
+			SLOG(IDE_ALL, "Executing transfer PIO");
 			return ata_transferPIO(device,op,buffer,secSize,secCount,true);
 		case COMMAND_READ_DMA:
 		case COMMAND_READ_DMA_EXT:
 		case COMMAND_WRITE_DMA:
 		case COMMAND_WRITE_DMA_EXT:
-			ATA_PR2(INFO, "Executing transfer DMA");
+			SLOG(IDE_ALL, "Executing transfer DMA");
 			return ata_transferDMA(device,op,buffer,secSize,secCount);
 	}
 
-	ATA_PR2(INFO, "ata_readWrite executed neither PIO nor DMA");
+	SLOG(IDE_ALL, "ata_readWrite executed neither PIO nor DMA");
 	return false;
 }
 
@@ -68,32 +68,32 @@ bool ata_transferPIO(sATADevice *device,uint op,void *buffer,size_t secSize,
 	for(i = 0; i < secCount; i++) {
 		if(i > 0 || waitFirst) {
 			if(op == OP_READ) {
-				ATA_PR2(INFO, "Waiting for interrupt in transfer PIO");
+				SLOG(IDE_ALL, "Waiting for interrupt in transfer PIO");
 				ctrl_waitIntrpt(ctrl);
 			}
 			res = ctrl_waitUntil(ctrl,PIO_TRANSFER_TIMEOUT,PIO_TRANSFER_SLEEPTIME,
 					CMD_ST_READY,CMD_ST_BUSY);
 			if(res == -1) {
-				ATA_LOG(ERR,"Device " << device->id << ": Timeout before PIO-transfer");
+				SLOG(IDE,"Device " << device->id << ": Timeout before PIO-transfer");
 				return false;
 			}
 			if(res != 0) {
 				/* TODO ctrl_softReset(ctrl);*/
-				ATA_LOG(ERR,"Device " << device->id << ": PIO-transfer failed: " << res);
+				SLOG(IDE,"Device " << device->id << ": PIO-transfer failed: " << res);
 				return false;
 			}
 		}
 
 		/* now read / write the data */
-		ATA_PR2(INFO,"Ready, starting read/write");
+		SLOG(IDE_ALL,"Ready, starting read/write");
 		if(op == OP_READ)
 			ctrl_inwords(ctrl,ATA_REG_DATA,buf,secSize / sizeof(uint16_t));
 		else
 			ctrl_outwords(ctrl,ATA_REG_DATA,buf,secSize / sizeof(uint16_t));
 		buf += secSize / sizeof(uint16_t);
-		ATA_PR2(INFO,"Transfer done");
+		SLOG(IDE_ALL,"Transfer done");
 	}
-	ATA_PR2(INFO,"All sectors done");
+	SLOG(IDE_ALL,"All sectors done");
 	return true;
 }
 
@@ -109,14 +109,14 @@ bool ata_transferDMA(sATADevice *device,uint op,void *buffer,size_t secSize,size
 	ctrl->dma_prdt_virt->last = 1;
 
 	/* stop running transfers */
-	ATA_PR2(INFO,"Stopping running transfers");
+	SLOG(IDE_ALL,"Stopping running transfers");
 	ctrl_outbmrb(ctrl,BMR_REG_COMMAND,0);
-	ATA_PR2(INFO, "Message out");
+	SLOG(IDE_ALL, "Message out");
 	status = ctrl_inbmrb(ctrl,BMR_REG_STATUS) | BMR_STATUS_ERROR | BMR_STATUS_IRQ;
 	ctrl_outbmrb(ctrl,BMR_REG_STATUS,status);
 
 	/* set PRDT */
-	ATA_PR2(INFO, "Setting PRDT");
+	SLOG(IDE_ALL, "Setting PRDT");
 	ctrl_outbmrl(ctrl,BMR_REG_PRDT,reinterpret_cast<uintptr_t>(ctrl->dma_prdt_phys));
 
 	/* write data to buffer, if we should write */
@@ -125,7 +125,7 @@ bool ata_transferDMA(sATADevice *device,uint op,void *buffer,size_t secSize,size
 		memcpy(ctrl->dma_buf_virt,buffer,size);
 
 	/* it seems to be necessary to read those ports here */
-	ATA_PR2(INFO,"Starting DMA-transfer");
+	SLOG(IDE_ALL,"Starting DMA-transfer");
 	ctrl_inbmrb(ctrl,BMR_REG_COMMAND);
 	ctrl_inbmrb(ctrl,BMR_REG_STATUS);
 	/* start bus-mastering */
@@ -137,17 +137,17 @@ bool ata_transferDMA(sATADevice *device,uint op,void *buffer,size_t secSize,size
 	ctrl_inbmrb(ctrl,BMR_REG_STATUS);
 
 	/* now wait for an interrupt */
-	ATA_PR2(INFO, "Waiting for an interrupt");
+	SLOG(IDE_ALL, "Waiting for an interrupt");
 	ctrl_waitIntrpt(ctrl);
 
 	res = ctrl_waitUntil(ctrl,DMA_TRANSFER_TIMEOUT,DMA_TRANSFER_SLEEPTIME,
 		0,CMD_ST_BUSY | CMD_ST_DRQ);
 	if(res == -1) {
-		ATA_LOG(INFO, "Device " << device->id << ": Timeout after DMA-transfer");
+		SLOG(IDE, "Device " << device->id << ": Timeout after DMA-transfer");
 		return false;
 	}
 	if(res != 0) {
-		ATA_LOG(INFO, "Device " << device->id << ": DMA-Transfer failed: " << res);
+		SLOG(IDE, "Device " << device->id << ": DMA-Transfer failed: " << res);
 		return false;
 	}
 
@@ -168,11 +168,11 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 
 	if(!device->info.features.lba48) {
 		if(lba & 0xFFFFFFFFF0000000LL) {
-			ATA_LOG(INFO, "Trying to read from " << lba << " with LBA28");
+			SLOG(IDE, "Trying to read from " << lba << " with LBA28");
 			return false;
 		}
 		if(secCount & 0xFF00) {
-			ATA_LOG(INFO, "Trying to read "  << secCount << " sectors with LBA28");
+			SLOG(IDE, "Trying to read "  << secCount << " sectors with LBA28");
 			return false;
 		}
 
@@ -185,11 +185,11 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 		ctrl_outb(ctrl,ATA_REG_DRIVE_SELECT,devValue);
 	}
 
-	ATA_PR2(INFO, "Selecting device " << device->id<< " (" 
+	SLOG(IDE_ALL, "Selecting device " << device->id<< " (" 
 		<< (device->info.general.isATAPI ? "ATAPI" : "ATA") << ")");
 	ctrl_wait(ctrl);
 
-	ATA_PR2(INFO, "Resetting control-register");
+	SLOG(IDE_ALL, "Resetting control-register");
 	/* reset control-register */
 	ctrl_outb(ctrl,ATA_REG_CONTROL,device->ctrl->useIrq ? 0 : CTRL_NIEN);
 
@@ -198,7 +198,7 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 		ctrl_outb(ctrl,ATA_REG_FEATURES,device->ctrl->useDma && device->info.capabilities.DMA);
 
 	if(device->info.features.lba48) {
-		ATA_PR2(INFO, "LBA48: setting sector-count " << secCount <<
+		SLOG(IDE_ALL, "LBA48: setting sector-count " << secCount <<
 			" and LBA 0x" << m3::fmt((uint)(lba & 0xFFFFFFFF),"x"));
 		/* LBA: | LBA6 | LBA5 | LBA4 | LBA3 | LBA2 | LBA1 | */
 		/*     48             32            16            0 */
@@ -216,7 +216,7 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 		ctrl_outb(ctrl,ATA_REG_ADDRESS3,(uint8_t)(lba >> 16));
 	}
 	else {
-		ATA_PR2(INFO, "LBA28: setting sector-count "  << secCount
+		SLOG(IDE_ALL, "LBA28: setting sector-count "  << secCount
 			<< " and LBA 0x" << m3::fmt((uint)(lba & 0xFFFFFFFF),"x"));
 		/* send sector-count */
 		ctrl_outb(ctrl,ATA_REG_SECTOR_COUNT,(uint8_t)secCount);
@@ -227,10 +227,10 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 	}
 
 	/* send command */
-	ATA_PR2(INFO, "Sending command " << cmd);
+	SLOG(IDE_ALL, "Sending command " << cmd);
 	ctrl_outb(ctrl,ATA_REG_COMMAND,cmd);
 
-	ATA_PR2(INFO, "ata_setupCommand succeeded");
+	SLOG(IDE_ALL, "ata_setupCommand succeeded");
 	return true;
 }
 
@@ -243,16 +243,16 @@ static uint ata_getCommand(sATADevice *device,uint op) {
 	};
 	uint offset;
 	if(op == OP_PACKET) {
-		ATA_PR2(INFO, "Returning COMMAND_PACKET as command");
+		SLOG(IDE_ALL, "Returning COMMAND_PACKET as command");
 		return COMMAND_PACKET;
 	}
-	ATA_PR2(INFO, "useDma is " << device->ctrl->useDma 
+	SLOG(IDE_ALL, "useDma is " << device->ctrl->useDma 
 		<< ", cap is " << device->info.capabilities.DMA);
 	offset = (device->ctrl->useDma && device->info.capabilities.DMA) ? 2 : 0;
 	if(op == OP_WRITE) {
 		offset++;
 	}
-	ATA_PR2(INFO, "Offset is " << (offset));
+	SLOG(IDE_ALL, "Offset is " << (offset));
 	if(device->info.features.lba48)
 		return commands[offset][1];
 	return commands[offset][0];
