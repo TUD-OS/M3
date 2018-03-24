@@ -19,7 +19,7 @@
 
 /**
  * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com
- * This file is copied from Escape OS and modified for M3. 
+ * This file is copied from Escape OS and modified for M3.
  */
 
 #include "ata.h"
@@ -166,7 +166,7 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 	if(secCount == 0)
 		return false;
 
-	if(!device->info.features.lba48) {
+	if(!device->info.feats.flags.lba48) {
 		if(lba & 0xFFFFFFFFF0000000LL) {
 			SLOG(IDE, "Trying to read from " << lba << " with LBA28");
 			return false;
@@ -185,7 +185,7 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 		ctrl_outb(ctrl,ATA_REG_DRIVE_SELECT,devValue);
 	}
 
-	SLOG(IDE_ALL, "Selecting device " << device->id<< " (" 
+	SLOG(IDE_ALL, "Selecting device " << device->id<< " ("
 		<< (device->info.general.isATAPI ? "ATAPI" : "ATA") << ")");
 	ctrl_wait(ctrl);
 
@@ -195,9 +195,9 @@ static bool ata_setupCommand(sATADevice *device,uint64_t lba,size_t secCount,uin
 
 	/* needed for ATAPI */
 	if(device->info.general.isATAPI)
-		ctrl_outb(ctrl,ATA_REG_FEATURES,device->ctrl->useDma && device->info.capabilities.DMA);
+		ctrl_outb(ctrl,ATA_REG_FEATURES,device->ctrl->useDma && device->info.caps.flags.DMA);
 
-	if(device->info.features.lba48) {
+	if(device->info.feats.flags.lba48) {
 		SLOG(IDE_ALL, "LBA48: setting sector-count " << secCount <<
 			" and LBA 0x" << m3::fmt((uint)(lba & 0xFFFFFFFF),"x"));
 		/* LBA: | LBA6 | LBA5 | LBA4 | LBA3 | LBA2 | LBA1 | */
@@ -246,14 +246,14 @@ static uint ata_getCommand(sATADevice *device,uint op) {
 		SLOG(IDE_ALL, "Returning COMMAND_PACKET as command");
 		return COMMAND_PACKET;
 	}
-	SLOG(IDE_ALL, "useDma is " << device->ctrl->useDma 
-		<< ", cap is " << device->info.capabilities.DMA);
-	offset = (device->ctrl->useDma && device->info.capabilities.DMA) ? 2 : 0;
+	SLOG(IDE_ALL, "useDma is " << device->ctrl->useDma
+		<< ", cap is " << device->info.caps.flags.DMA);
+	offset = (device->ctrl->useDma && device->info.caps.flags.DMA) ? 2 : 0;
 	if(op == OP_WRITE) {
 		offset++;
 	}
 	SLOG(IDE_ALL, "Offset is " << (offset));
-	if(device->info.features.lba48)
+	if(device->info.feats.flags.lba48)
 		return commands[offset][1];
 	return commands[offset][0];
 }

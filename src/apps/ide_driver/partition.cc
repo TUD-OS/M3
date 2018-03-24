@@ -19,7 +19,7 @@
 
 /**
  * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com
- * This file is copied from Escape OS and modified for M3. 
+ * This file is copied from Escape OS and modified for M3.
  */
 
 #include <stdio.h>
@@ -68,7 +68,7 @@ void part_fillPartitions(sPartition *table,void *mbr) {
 void part_print(sPartition *table) {
 	size_t i;
 	for(i = 0; i < PARTITION_COUNT; i++) {
-		cout << m3::fmt(i,"zu") << ": present=" << table->present << " start=" 
+		cout << m3::fmt(i,"zu") << ": present=" << table->present << " start="
 		    << table->start << " size=" << table->size << "\n";
 		table++;
 	}

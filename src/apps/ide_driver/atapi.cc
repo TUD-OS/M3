@@ -46,7 +46,7 @@ void atapi_softReset(sATADevice *device) {
 bool atapi_read(sATADevice *device,uint op,void *buffer,uint64_t lba, UNUSED size_t secSize,
 		size_t secCount) {
 	uint8_t cmd[] = {SCSI_CMD_READ_SECTORS_EXT,0,0,0,0,0,0,0,0,0,0,0};
-	if(!device->info.features.lba48)
+	if(!device->info.feats.flags.lba48)
 		cmd[0] = SCSI_CMD_READ_SECTORS;
 	/* no writing here ;) */
 	if(op != OP_READ)
@@ -89,7 +89,7 @@ static bool atapi_request(sATADevice *device,uint8_t *cmd,void *buffer,size_t bu
 		return false;
 
 	/* now transfer the data */
-	if(ctrl->useDma && device->info.capabilities.DMA)
+	if(ctrl->useDma && device->info.caps.flags.DMA)
 		return ata_transferDMA(device,OP_READ,buffer,device->secSize,bufSize / device->secSize);
 
 	/* ok, no DMA, so wait first until the drive is ready */

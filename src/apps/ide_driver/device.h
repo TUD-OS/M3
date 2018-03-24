@@ -19,12 +19,13 @@
 
 /**
  * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com
- * This file is copied from Escape OS and modified for M3. 
+ * This file is copied from Escape OS and modified for M3.
  */
 
 #pragma once
 
 #include <base/Common.h>
+#include <base/stream/OStream.h>
 
 #include "partition.h"
 
@@ -168,18 +169,21 @@ typedef struct {
 	uint8_t : 8;
 	/* reserved */
 	uint16_t : 16;
-	struct {
-		/* retired */
-		uint16_t : 8,
-		DMA : 1,
-		LBA : 1,
-		/* IORDY may be disabled */
-		IORDYDisabled : 1,
-		/* 0 = IORDY may be supported */
-		IORDYSupported : 1,
-		/* reserved / uninteresting */
-		: 4;
-	} PACKED capabilities;
+	union {
+		struct {
+			/* retired */
+			uint16_t : 8,
+			DMA : 1,
+			LBA : 1,
+			/* IORDY may be disabled */
+			IORDYDisabled : 1,
+			/* 0 = IORDY may be supported */
+			IORDYSupported : 1,
+			/* reserved / uninteresting */
+			: 4;
+		} PACKED flags;
+		uint16_t bits;
+	} PACKED caps;
 	/* further capabilities */
 	uint16_t : 16;
 	/* obsolete */
@@ -249,41 +253,44 @@ typedef struct {
 		uint16_t raw;
 	} majorVersion;
 	uint16_t minorVersion;
-	struct {
-		uint16_t smart : 1,
-		securityMode : 1,
-		removableMedia : 1,
-		powerManagement : 1,
-		packet : 1,
-		writeCache : 1,
-		lookAhead : 1,
-		releaseInt : 1,
-		serviceInt : 1,
-		deviceReset : 1,
-		hostProtArea : 1,
-		: 1,
-		writeBuffer : 1,
-		readBuffer : 1,
-		nop : 1,
-		: 1;
+	union {
+		struct {
+			uint16_t smart : 1,
+			securityMode : 1,
+			removableMedia : 1,
+			powerManagement : 1,
+			packet : 1,
+			writeCache : 1,
+			lookAhead : 1,
+			releaseInt : 1,
+			serviceInt : 1,
+			deviceReset : 1,
+			hostProtArea : 1,
+			: 1,
+			writeBuffer : 1,
+			readBuffer : 1,
+			nop : 1,
+			: 1;
 
-		uint16_t downloadMicrocode : 1,
-		rwDMAQueued : 1,
-		cfa : 1,
-		apm : 1,
-		/* removable media status notification */
-		removableMediaSN : 1,
-		powerupStandby : 1,
-		setFeaturesSpinup : 1,
-		: 1,
-		setMaxSecurity : 1,
-		autoAcousticMngmnt: 1,
-		lba48 : 1,
-		devConfigOverlay : 1,
-		flushCache : 1,
-		flushCacheExt : 1,
-		: 2;
-	} PACKED features;
+			uint16_t downloadMicrocode : 1,
+			rwDMAQueued : 1,
+			cfa : 1,
+			apm : 1,
+			/* removable media status notification */
+			removableMediaSN : 1,
+			powerupStandby : 1,
+			setFeaturesSpinup : 1,
+			: 1,
+			setMaxSecurity : 1,
+			autoAcousticMngmnt: 1,
+			lba48 : 1,
+			devConfigOverlay : 1,
+			flushCache : 1,
+			flushCacheExt : 1,
+			: 2;
+		} PACKED flags;
+		uint32_t bits;
+	} PACKED feats;
 	uint16_t reserved[172];
 } PACKED sATAIdentify;
 
@@ -345,11 +352,7 @@ struct sATAController {
  */
 void device_init(sATADevice *device);
 
-#if DEBUG
-
 /**
  * Prints information about the given device
  */
-void device_dbg_printInfo(sATADevice *device);
-
-#endif
+void device_print(sATADevice *device, m3::OStream &os);

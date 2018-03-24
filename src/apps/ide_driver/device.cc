@@ -18,7 +18,7 @@
  */
 
 /**
- * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com 
+ * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com
  * This file is copied and modified from Escape OS. I fitted the logging to M3 style output and
  * inserted DTU sleep commands, therefore with limited modifications.
  */
@@ -29,12 +29,6 @@
 #include "atapi.h"
 #include "controller.h"
 #include "device.h"
-
-#define DEBUGGING 0
-
-#if DEBUGGING
-void device_dbg_printInfo(sATADevice * device);
-#endif
 
 static bool device_identify(sATADevice *device,uint cmd);
 
@@ -58,7 +52,7 @@ void device_init(sATADevice *device)
 	/* note that in each word the bytes are in little endian order */
 	if(strstr(device->info.modelNo,"STTSocpr")) {
 		SLOG(IDE, "Device " << device->id << ": Detected TSSTcorp-device. Disabling DMA");
-		device->info.capabilities.DMA = 0;
+		device->info.caps.flags.DMA = 0;
 	}
 
 	device->present = 1;
@@ -68,18 +62,18 @@ void device_init(sATADevice *device)
 		SLOG(IDE, "Device " << device->id <<" is an ATA-device" );
 		/* read the partition-table */
 		if(!ata_readWrite(device,OP_READ,buffer,0,device->secSize,1)) {
-			if(device->ctrl->useDma && device->info.capabilities.DMA) {
-				SLOG(IDE, "Device " << device->id 
+			if(device->ctrl->useDma && device->info.caps.flags.DMA) {
+				SLOG(IDE, "Device " << device->id
 					<< ": Reading the partition table with DMA failed. Disabling DMA." );
-				device->info.capabilities.DMA = 0;
+				device->info.caps.flags.DMA = 0;
 			}
 			else {
-				SLOG(IDE, "Device " << device->id 
+				SLOG(IDE, "Device " << device->id
 					<< ": Reading the partition table with PIO failed. Retrying.");
 			}
 			if(!ata_readWrite(device,OP_READ,buffer,0,device->secSize,1)) {
 				device->present = 0;
-				SLOG(IDE, "Device " << device->id 
+				SLOG(IDE, "Device " << device->id
 					<< ": Unable to read partition-table! Disabling device");
 				return;
 			}
@@ -93,30 +87,30 @@ void device_init(sATADevice *device)
 		size_t cap;
 		/* disable DMA for reading the capacity; this seems to be necessary for vbox and some
 		 * of my real machines */
-		bool dma = device->info.capabilities.DMA;
-		device->info.capabilities.DMA = 0;
+		bool dma = device->info.caps.flags.DMA;
+		device->info.caps.flags.DMA = 0;
 		device->secSize = ATAPI_SEC_SIZE;
 		device->rwHandler = atapi_read;
 		/* pretend that the cd has 1 partition */
 		device->partTable[0].present = 1;
 		device->partTable[0].start = 0;
 		cap = atapi_getCapacity(device);
-		device->info.capabilities.DMA = dma;
+		device->info.caps.flags.DMA = dma;
 		if(cap == 0) {
 			cap = atapi_getCapacity(device);
 			if(cap == 0) {
-				SLOG(IDE, "Device " << device->id 
+				SLOG(IDE, "Device " << device->id
 					<< ": Reading the capacity failed again. Disabling device.");
 				device->present = 0;
 				return;
 			}
 		}
 		device->partTable[0].size = cap;
-		SLOG(IDE, "Device "  << device->id << " is an ATAPI-device with " 
+		SLOG(IDE, "Device "  << device->id << " is an ATAPI-device with "
 			<< device->partTable[0].size << " sectors");
 	}
 
-	if(device->ctrl->useDma && device->info.capabilities.DMA) {
+	if(device->ctrl->useDma && device->info.caps.flags.DMA) {
 		SLOG(IDE, "Device " << device->id << " uses DMA");
 	}
 	else {
@@ -145,7 +139,7 @@ static bool device_identify(sATADevice *device, uint cmd)
 	status = ctrl_inb(ctrl,ATA_REG_STATUS);
 	SLOG(IDE_ALL, "Got 0x" << m3::fmt(status, "X") << " from status-port");
 	if(status == 0) {
-		SLOG(IDE, "Device "  << device->id 
+		SLOG(IDE, "Device "  << device->id
 			<< ": Got 0x00 from status-port, device seems not to be present");
 		return false;
 	}
@@ -190,13 +184,13 @@ static bool device_identify(sATADevice *device, uint cmd)
 			return false;
 		}
 		if(res != 0) {
-			SLOG(IDE, "Device " << device->id << ": Error " << res 
+			SLOG(IDE, "Device " << device->id << ": Error " << res
 				<< ". Assuming its not present");
 			return false;
 		}
 
 		/* we don't support CHS atm */
-		if(device->info.capabilities.LBA == 0) {
+		if(device->info.caps.flags.LBA == 0) {
 			SLOG(IDE, "Device doesn't support LBA");
 			return false;
 		}
@@ -205,88 +199,54 @@ static bool device_identify(sATADevice *device, uint cmd)
 	}
 }
 
-#if DEBUGGING
-
-void device_dbg_printInfo(sATADevice *device)
+void device_print(sATADevice *device, m3::OStream &os)
 {
 	size_t i;
-	SLOG(IDE_ALL, "oldCurCylinderCount = " <<device->info.oldCurCylinderCount);
-	SLOG(IDE_ALL, "oldCurHeadCount = " <<device->info.oldCurHeadCount);
-	SLOG(IDE_ALL, "oldCurSecsPerTrack = " <<device->info.oldCurSecsPerTrack);
-	SLOG(IDE_ALL, "oldCylinderCount = " <<device->info.oldCylinderCount);
-	SLOG(IDE_ALL, "oldHeadCount = " <<device->info.oldHeadCount);
-	SLOG(IDE_ALL, "oldSecsPerTrack = " <<device->info.oldSecsPerTrack);
-	SLOG(IDE_ALL, "oldswDMAActive = " <<device->info.oldswDMAActive);
-	SLOG(IDE_ALL, "oldswDMASupported = " <<device->info.oldswDMASupported);
-	SLOG(IDE_ALL, "oldUnformBytesPerSec = " <<device->info.oldUnformBytesPerSec);
-	SLOG(IDE_ALL, "oldUnformBytesPerTrack = " <<device->info.oldUnformBytesPerTrack);
-	SLOG(IDE_ALL, "curmaxSecsPerIntrpt = " <<device->info.curmaxSecsPerIntrpt);
-	SLOG(IDE_ALL, "maxSecsPerIntrpt = " <<device->info.maxSecsPerIntrpt);
-	SLOG(IDE_ALL, "firmwareRev = '");
+	os << "device[" << device->id << "]:\n";
+	os << "  cylinderCount = " << device->info.oldCylinderCount << "\n";
+	os << "  headCount = " << device->info.oldHeadCount << "\n";
+	os << "  secsPerTrack = " << device->info.oldSecsPerTrack << "\n";
+	os << "  maxSecsPerIntrpt = " << device->info.maxSecsPerIntrpt << "\n";
+	os << "  firmwareRev = '";
 	for(i = 0; i < 8; i += 2)
-		SLOG(IDE_ALL, "%c%c" << device->info.firmwareRev[i + 1] << device->info.firmwareRev[i]);
-	SLOG(IDE_ALL, "'\n");
-	SLOG(IDE_ALL, "modelNo = '");
+		os << device->info.firmwareRev[i + 1] << device->info.firmwareRev[i];
+	os << "'\n";
+	os << "  modelNo = '";
 	for(i = 0; i < 40; i += 2)
-		SLOG(IDE_ALL, "%c%c" << device->info.modelNo[i + 1] << device->info.modelNo[i]);
-	SLOG(IDE_ALL, "'\n");
-	SLOG(IDE_ALL, "serialNumber = '");
+		os << device->info.modelNo[i + 1] << device->info.modelNo[i];
+	os << "'\n";
+	os << "  serialNumber = '";
 	for(i = 0; i < 20; i += 2)
-		SLOG(IDE_ALL, "%c%c" << device->info.serialNumber[i + 1] << device->info.serialNumber[i]);
-	SLOG(IDE_ALL, "'\n");
-	SLOG(IDE_ALL, "majorVer = 0x" << m3::fmt(device->info.majorVersion.raw, "x"));
-	SLOG(IDE_ALL, "minorVer = 0x" << m3::fmt(device->info.minorVersion, "x"));
-	SLOG(IDE_ALL, "general.isATAPI = " <<device->info.general.isATAPI);
-	SLOG(IDE_ALL, "general.remMediaDevice = " <<device->info.general.remMediaDevice);
-	SLOG(IDE_ALL, "mwDMAMode0Supp = " <<device->info.mwDMAMode0Supp);
-	SLOG(IDE_ALL, "mwDMAMode0Sel = " <<device->info.mwDMAMode0Sel);
-	SLOG(IDE_ALL, "mwDMAMode1Supp = " <<device->info.mwDMAMode1Supp);
-	SLOG(IDE_ALL, "mwDMAMode1Sel = " <<device->info.mwDMAMode1Sel);
-	SLOG(IDE_ALL, "mwDMAMode2Supp = " <<device->info.mwDMAMode2Supp);
-	SLOG(IDE_ALL, "mwDMAMode2Sel = " <<device->info.mwDMAMode2Sel);
-	SLOG(IDE_ALL, "minMwDMATransTimePerWord = " <<device->info.minMwDMATransTimePerWord);
-	SLOG(IDE_ALL, "recMwDMATransTime = " <<device->info.recMwDMATransTime);
-	SLOG(IDE_ALL, "minPIOTransTime = " <<device->info.minPIOTransTime);
-	SLOG(IDE_ALL, "minPIOTransTimeIncCtrlFlow = " <<device->info.minPIOTransTimeIncCtrlFlow);
-	SLOG(IDE_ALL, "multipleSecsValid = " <<device->info.multipleSecsValid);
-	SLOG(IDE_ALL, "word88Valid = " <<device->info.word88Valid);
-	SLOG(IDE_ALL, "words5458Valid = " <<device->info.words5458Valid);
-	SLOG(IDE_ALL, "words6470Valid = " <<device->info.words6470Valid);
-	SLOG(IDE_ALL, "userSectorCount = " <<device->info.userSectorCount);
-	SLOG(IDE_ALL, "Capabilities:\n");
-	SLOG(IDE_ALL, "	DMA = " <<device->info.capabilities.DMA);
-	SLOG(IDE_ALL, "	LBA = " <<device->info.capabilities.LBA);
-	SLOG(IDE_ALL, "	IORDYDis = " <<device->info.capabilities.IORDYDisabled);
-	SLOG(IDE_ALL, "	IORDYSup = " <<device->info.capabilities.IORDYSupported);
-	SLOG(IDE_ALL, "Features:\n");
-	SLOG(IDE_ALL, "	APM = " <<device->info.features.apm);
-	SLOG(IDE_ALL, "	autoAcousticMngmnt = " <<device->info.features.autoAcousticMngmnt);
-	SLOG(IDE_ALL, "	CFA = " <<device->info.features.cfa);
-	SLOG(IDE_ALL, "	devConfigOverlay = " <<device->info.features.devConfigOverlay);
-	SLOG(IDE_ALL, "	deviceReset = " <<device->info.features.deviceReset);
-	SLOG(IDE_ALL, "	downloadMicrocode = " <<device->info.features.downloadMicrocode);
-	SLOG(IDE_ALL, "	flushCache = " <<device->info.features.flushCache);
-	SLOG(IDE_ALL, "	flushCacheExt = " <<device->info.features.flushCacheExt);
-	SLOG(IDE_ALL, "	hostProtArea = " <<device->info.features.hostProtArea);
-	SLOG(IDE_ALL, "	lba48 = " <<device->info.features.lba48);
-	SLOG(IDE_ALL, "	lookAhead = " <<device->info.features.lookAhead);
-	SLOG(IDE_ALL, "	nop = " <<device->info.features.nop);
-	SLOG(IDE_ALL, "	packet = " <<device->info.features.packet);
-	SLOG(IDE_ALL, "	powerManagement = " <<device->info.features.powerManagement);
-	SLOG(IDE_ALL, "	powerupStandby = " <<device->info.features.powerupStandby);
-	SLOG(IDE_ALL, "	readBuffer = " <<device->info.features.readBuffer);
-	SLOG(IDE_ALL, "	releaseInt = " <<device->info.features.releaseInt);
-	SLOG(IDE_ALL, "	removableMedia = " <<device->info.features.removableMedia);
-	SLOG(IDE_ALL, "	removableMediaSN = " <<device->info.features.removableMediaSN);
-	SLOG(IDE_ALL, "	rwDMAQueued = " <<device->info.features.rwDMAQueued);
-	SLOG(IDE_ALL, "	securityMode = " <<device->info.features.securityMode);
-	SLOG(IDE_ALL, "	serviceInt = " <<device->info.features.serviceInt);
-	SLOG(IDE_ALL, "	setFeaturesSpinup = " <<device->info.features.setFeaturesSpinup);
-	SLOG(IDE_ALL, "	setMaxSecurity = " <<device->info.features.setMaxSecurity);
-	SLOG(IDE_ALL, "	smart = " <<device->info.features.smart);
-	SLOG(IDE_ALL, "	writeBuffer = " <<device->info.features.writeBuffer);
-	SLOG(IDE_ALL, "	writeCache = " <<device->info.features.writeCache);
-	SLOG(IDE_ALL, "\n");
-}
+		os << device->info.serialNumber[i + 1] << device->info.serialNumber[i];
+	os << "'\n";
+	os << "  majorVer = 0x" << m3::fmt(device->info.majorVersion.raw, "x") << "\n";
+	os << "  minorVer = 0x" << m3::fmt(device->info.minorVersion, "x") << "\n";
+	os << "  ATAPI = " << device->info.general.isATAPI << "\n";
+	os << "  remMediaDevice = " << device->info.general.remMediaDevice << "\n";
+	os << "  userSectorCount = " << device->info.userSectorCount << "\n";
 
-#endif
+	const char *caps[] = {
+		"DMA", "LBA", "IORDYDis", "IORDYSup",
+	};
+	os << "  Capabilities = ";
+	for(size_t i = 0; i < ARRAY_SIZE(caps); ++i) {
+		if(device->info.caps.bits & (1UL << (i + 8)))
+			os << caps[i] << " ";
+	}
+	os << "\n";
+
+	const char *feat[] = {
+		"SMART", "securityMode", "removableMedia", "powerManagement", "packet", "writeCache",
+		"lookAhead", "releaseInt", "serviceInt", "deviceReset", "hostProtArea", "?",
+		"writeBuffer", "readBuffer", "nop", "?",
+		"downloadMicrocode", "rwDMAQueued", "CFA", "APM", "removableMedia", "powerupStandby",
+		"setFeaturesSpinup", "?", "setMaxSecurity", "autoAcousticMngmnt", "LBA48",
+		"devConfigOverlay", "flushCache", "flushCacheExt",
+	};
+	os << "  Features = ";
+	for(size_t i = 0; i < ARRAY_SIZE(feat); ++i) {
+		if(device->info.feats.bits & (1UL << i))
+			os << feat[i] << " ";
+	}
+	os << "\n";
+}
