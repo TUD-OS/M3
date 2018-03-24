@@ -23,8 +23,8 @@ int_enum! {
         const ARM           = 0x2;
         /// Xtensa as on Tomahawk 2/4
         const XTENSA        = 0x3;
-        /// Dummy ISA to represent the SHA fixed-function accelerator
-        const ACCEL_SHA     = 0x4;
+        /// Dummy ISA to represent the indirect-chaining fixed-function accelerator
+        const ACCEL_INDIR   = 0x4;
         /// Dummy ISA to represent the FFT fixed-function accelerator
         const ACCEL_FFT     = 0x5;
         /// Dummy ISA to represent the toupper fixed-function accelerator
@@ -111,8 +111,8 @@ impl PEDesc {
     /// Returns whether the PE contains a fixed-function accelerator
     pub fn is_ffaccel(&self) -> bool {
         match self.isa() {
-            PEISA::ACCEL_SHA | PEISA::ACCEL_FFT | PEISA::ACCEL_TOUP => true,
-            _                                                       => false
+            PEISA::ACCEL_INDIR | PEISA::ACCEL_FFT | PEISA::ACCEL_TOUP => true,
+            _                                                         => false
         }
     }
 
