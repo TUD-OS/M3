@@ -26,7 +26,8 @@
 namespace m3 {
 
 GenericFile::~GenericFile() {
-    submit(false);
+    if(_writing)
+        submit();
     if(_mg.ep() != MemGate::UNBOUND) {
         LLOG(FS, "GenFile[" << fd() << "]::revoke_ep(" << _mg.ep() << ")");
         capsel_t sel = VPE::self().ep_sel(_mg.ep());
@@ -61,7 +62,7 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
             return static_cast<ssize_t>(offset);
 
         // first submit the written data
-        if(submit(false) != Errors::NONE)
+        if(_writing && submit() != Errors::NONE)
             return -1;
 
         if(offset >= _goff && offset <= _goff + _len) {
@@ -71,7 +72,7 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
     }
     else {
         // first submit the written data
-        if(submit(false) != Errors::NONE)
+        if(_writing && submit() != Errors::NONE)
             return -1;
     }
 
@@ -88,7 +89,9 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
 }
 
 ssize_t GenericFile::read(void *buffer, size_t count) {
-    if(delegate_ep() != Errors::NONE || submit(false) != Errors::NONE)
+    if(delegate_ep() != Errors::NONE)
+        return -1;
+    if(_writing && submit() != Errors::NONE)
         return -1;
 
     LLOG(FS, "GenFile[" << fd() << "]::read(" << count << ", pos=" << (_goff + _pos) << ")");
@@ -113,7 +116,6 @@ ssize_t GenericFile::read(void *buffer, size_t count) {
         Time::stop(0xaaaa);
         _pos += amount;
     }
-    _writing = false;
     return static_cast<ssize_t>(amount);
 }
 
@@ -152,7 +154,7 @@ void GenericFile::evict() {
     LLOG(FS, "GenFile[" << fd() << "]::evict()");
 
     // submit read/written data
-    submit(true);
+    submit();
 
     // revoke EP cap
     capsel_t ep_sel = VPE::self().ep_sel(_mg.ep());
@@ -160,8 +162,8 @@ void GenericFile::evict() {
     _mg.ep(MemGate::UNBOUND);
 }
 
-Errors::Code GenericFile::submit(bool force) {
-    if(_pos > 0 && (_writing || force)) {
+Errors::Code GenericFile::submit() {
+    if(_pos > 0) {
         LLOG(FS, "GenFile[" << fd() << "]::submit("
             << (_writing ? "write" : "read") << ", " << _pos << ")");
 

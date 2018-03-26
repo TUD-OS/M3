@@ -69,7 +69,7 @@ public:
     virtual ssize_t write(const void *buffer, size_t count) override;
 
     virtual Errors::Code flush() override {
-        return submit(false);
+        return _writing ? submit() : Errors::NONE;
     }
 
     virtual char type() const override {
@@ -98,7 +98,7 @@ public:
 
 private:
     void evict();
-    Errors::Code submit(bool force);
+    Errors::Code submit();
     Errors::Code delegate_ep();
 
     mutable Session _sess;
