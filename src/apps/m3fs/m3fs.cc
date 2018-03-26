@@ -43,12 +43,12 @@ static Server<M3FSRequestHandler> *srv;
 
 class M3FSRequestHandler : public base_class {
 public:
-    explicit M3FSRequestHandler(size_t fssize, size_t extend, bool clear)
+    explicit M3FSRequestHandler(size_t fssize, size_t extend, bool clear, bool revoke_first)
         : base_class(),
           _rgate(RecvGate::create(nextlog2<32 * M3FSSession::MSG_SIZE>::val,
                                   nextlog2<M3FSSession::MSG_SIZE>::val)),
           _mem(MemGate::create_global_for(FS_IMG_OFFSET, fssize, MemGate::RWX)),
-          _handle(_mem.sel(), extend, clear) {
+          _handle(_mem.sel(), extend, clear, revoke_first) {
         add_operation(M3FS::READ, &M3FSRequestHandler::read);
         add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
@@ -155,10 +155,11 @@ private:
 };
 
 static void usage(const char *name) {
-    Serial::get() << "Usage: " << name << " [-n <name>] [-e <blocks>] [-c] <size>\n";
+    Serial::get() << "Usage: " << name << " [-n <name>] [-e <blocks>] [-c] [-r] <size>\n";
     Serial::get() << "  -n: the name of the service (m3fs by default)\n";
     Serial::get() << "  -e: the number of blocks to extend files when appending\n";
     Serial::get() << "  -c: clear allocated blocks\n";
+    Serial::get() << "  -r: revoke first, reply afterwards\n";
     exit(1);
 }
 
@@ -166,13 +167,15 @@ int main(int argc, char *argv[]) {
     const char *name = "m3fs";
     size_t extend = 128;
     bool clear = false;
+    bool revoke_first = false;
 
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "n:e:c")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "n:e:cr")) != -1) {
         switch(opt) {
             case 'n': name = CmdArgs::arg; break;
             case 'e': extend = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'c': clear = true; break;
+            case 'r': revoke_first = true; break;
             default:
                 usage(argv[0]);
         }
@@ -181,7 +184,7 @@ int main(int argc, char *argv[]) {
         usage(argv[0]);
 
     size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
-    srv = new Server<M3FSRequestHandler>(name, new M3FSRequestHandler(size, extend, clear));
+    srv = new Server<M3FSRequestHandler>(name, new M3FSRequestHandler(size, extend, clear, revoke_first));
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();

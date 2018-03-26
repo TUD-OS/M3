@@ -37,9 +37,10 @@ bool FSHandle::load_superblock(MemGate &mem, SuperBlock *sb, bool clear) {
     return clear;
 }
 
-FSHandle::FSHandle(capsel_t mem, size_t extend, bool clear)
+FSHandle::FSHandle(capsel_t mem, size_t extend, bool clear, bool revoke_first)
     : _mem(MemGate::bind(mem)),
       _clear(load_superblock(_mem, &_sb, clear)),
+      _revoke_first(revoke_first),
       _extend(extend),
       _cache(_mem, _sb.blocksize),
       _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,

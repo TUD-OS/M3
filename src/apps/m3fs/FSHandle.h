@@ -24,7 +24,7 @@
 
 class FSHandle {
 public:
-    explicit FSHandle(capsel_t mem, size_t extend, bool clear);
+    explicit FSHandle(capsel_t mem, size_t extend, bool clear, bool revoke_first);
 
     m3::MemGate &mem() {
         return _mem;
@@ -43,6 +43,9 @@ public:
     }
     OpenFiles &files() {
         return _files;
+    }
+    bool revoke_first() const {
+        return _revoke_first;
     }
     bool clear_blocks() const {
         return _clear;
@@ -69,6 +72,7 @@ private:
 
     m3::MemGate _mem;
     bool _clear;
+    bool _revoke_first;
     size_t _extend;
     m3::SuperBlock _sb;
     Cache _cache;

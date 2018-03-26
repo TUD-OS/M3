@@ -218,13 +218,21 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     PRINT(this, "file::" << (write ? "write" : "read")
         << " -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
 
-    // reply first
-    reply_vmsg(is, Errors::NONE, _lastoff, _extlen - _lastoff);
+    if(h.revoke_first()) {
+        // revoke last mem cap and remember new one
+        if(_last != ObjCap::INVALID)
+            VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
+        _last = sel;
 
-    // revoke last mem cap and remember new one
-    if(_last != ObjCap::INVALID)
-        VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
-    _last = sel;
+        reply_vmsg(is, Errors::NONE, _lastoff, _extlen - _lastoff);
+    }
+    else {
+        reply_vmsg(is, Errors::NONE, _lastoff, _extlen - _lastoff);
+
+        if(_last != ObjCap::INVALID)
+            VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
+        _last = sel;
+    }
 }
 
 void M3FSFileSession::read(GateIStream &is) {
