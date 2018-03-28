@@ -3,6 +3,7 @@ use base;
 use cap::Selector;
 use com::SliceSource;
 use core::intrinsics;
+use dtu::{EP_COUNT, FIRST_FREE_EP};
 use env;
 use kif::{INVALID_SEL, PEDesc};
 use session::Pager;
@@ -82,7 +83,7 @@ impl EnvData {
     pub fn load_caps_eps(&self) -> (Selector, u64) {
         (
             // it's initially 0. make sure it's at least the first usable selector
-            util::max(2, self.base.caps as Selector),
+            util::max(2 + (EP_COUNT - FIRST_FREE_EP) as Selector, self.base.caps as Selector),
             self.base.eps
         )
     }

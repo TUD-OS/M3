@@ -5,7 +5,7 @@ use cell::StaticCell;
 use col::{String, Vec};
 use com::SliceSource;
 use core::intrinsics;
-use dtu::{EpId, Label};
+use dtu::{EpId, EP_COUNT, FIRST_FREE_EP, Label};
 use kif::{PEDesc, PEType, PEISA};
 use libc;
 use session::Pager;
@@ -67,7 +67,7 @@ impl EnvData {
                 let mut ss = SliceSource::new(&other);
                 (ss.pop(), ss.pop())
             },
-            None        => (2, 0),
+            None        => (2 + (EP_COUNT - FIRST_FREE_EP) as Selector, 0),
         }
     }
 
