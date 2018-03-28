@@ -19,7 +19,7 @@ pub fn run(t: &mut test::Tester) {
     run_test!(t, create_mgate);
     run_test!(t, create_map);
     run_test!(t, create_srv);
-    run_test!(t, create_sess);
+    run_test!(t, open_sess);
     run_test!(t, derive_mem);
     run_test!(t, exchange);
     run_test!(t, revoke);
@@ -153,7 +153,7 @@ fn create_srv() {
     println!("{}", prof.runner_with_id(&mut Tester::default(), 0x15));
 }
 
-fn create_sess() {
+fn open_sess() {
     let mut prof = profile::Profiler::new().repeats(100).warmup(10);
 
     #[derive(Default)]
@@ -161,7 +161,7 @@ fn create_sess() {
 
     impl profile::Runner for Tester {
         fn run(&mut self) {
-            assert_ok!(syscalls::create_sess(*SEL, "m3fs", 0));
+            assert_ok!(syscalls::open_sess(*SEL, "m3fs", 0));
         }
         fn post(&mut self) {
             assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));

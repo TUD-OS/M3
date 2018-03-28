@@ -19,6 +19,7 @@
 #include <m3/com/MemGate.h>
 #include <m3/server/Server.h>
 #include <m3/server/RequestHandler.h>
+#include <m3/session/ServerSession.h>
 #include <m3/vfs/GenericFile.h>
 
 using namespace m3;
@@ -36,12 +37,15 @@ using base_class = RequestHandler<
 
 static Server<VTermHandler> *srv;
 
-struct VTermSession {
+struct VTermSession : public ServerSession {
     enum Type {
         META,
         CHAN,
     };
 
+    explicit VTermSession(capsel_t srv_sel, capsel_t caps)
+        : ServerSession(srv_sel, caps) {
+    }
     virtual ~VTermSession() {
     }
 
@@ -57,7 +61,8 @@ struct VTermSession {
 
 class MetaSession : public VTermSession {
 public:
-    explicit MetaSession() {
+    explicit MetaSession(capsel_t srv_sel, capsel_t caps = ObjCap::INVALID)
+        : VTermSession(srv_sel, caps) {
     }
 
     ChannelSession *create_chan(RecvGate &rgate, bool write);
@@ -69,16 +74,15 @@ public:
 
 class ChannelSession : public VTermSession {
 public:
-    explicit ChannelSession(RecvGate &rgate, capsel_t srv, capsel_t caps, bool _writing)
-        : active(false),
+    explicit ChannelSession(RecvGate &rgate, capsel_t srv_sel, capsel_t caps, bool _writing)
+        : VTermSession(srv_sel, caps),
+          active(false),
           writing(_writing),
           ep(ObjCap::INVALID),
-          sess(caps + 0, 0),
           sgate(SendGate::create(&rgate, reinterpret_cast<label_t>(this), MSG_SIZE, nullptr, caps + 1)),
           mem(MemGate::create_global(BUF_SIZE, MemGate::RW)),
           pos(),
           len() {
-        Syscalls::get().createsessat(sess.sel(), srv, reinterpret_cast<word_t>(this));
     }
 
     ChannelSession *clone(RecvGate &rgate);
@@ -168,7 +172,6 @@ public:
     bool active;
     bool writing;
     capsel_t ep;
-    Session sess;
     SendGate sgate;
     MemGate mem;
     size_t pos;
@@ -200,8 +203,8 @@ public:
         _rgate.start(std::bind(&VTermHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code open(VTermSession **sess, word_t) override {
-        *sess = new MetaSession();
+    virtual Errors::Code open(VTermSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new MetaSession(srv_sel);
         return Errors::NONE;
     }
 
@@ -221,7 +224,7 @@ public:
             nsess = static_cast<ChannelSession*>(sess)->clone(_rgate);
         }
 
-        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nsess->sess.sel(), 2).value();
+        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nsess->sel(), 2).value();
         return Errors::NONE;
     }
 

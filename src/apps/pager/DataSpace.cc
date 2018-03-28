@@ -15,7 +15,7 @@
  */
 
 #include <m3/com/MemGate.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/session/M3FS.h>
 #include <m3/Syscalls.h>
 

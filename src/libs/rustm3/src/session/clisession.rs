@@ -5,28 +5,28 @@ use kif;
 use syscalls;
 use vpe;
 
-pub struct Session {
+pub struct ClientSession {
     cap: Capability,
 }
 
-impl Session {
+impl ClientSession {
     pub fn new(name: &str, arg: u64) -> Result<Self, Error> {
         Self::new_with_sel(name, arg, vpe::VPE::cur().alloc_sel())
     }
     pub fn new_with_sel(name: &str, arg: u64, sel: Selector) -> Result<Self, Error> {
-        syscalls::create_sess(sel, name, arg)?;
-        Ok(Session {
+        syscalls::open_sess(sel, name, arg)?;
+        Ok(ClientSession {
             cap: Capability::new(sel, CapFlags::empty()),
         })
     }
 
     pub fn new_bind(sel: Selector) -> Self {
-        Session {
+        ClientSession {
             cap: Capability::new(sel, CapFlags::KEEP_CAP),
         }
     }
     pub fn new_owned_bind(sel: Selector) -> Self {
-        Session {
+        ClientSession {
             cap: Capability::new(sel, CapFlags::empty()),
         }
     }
@@ -78,8 +78,8 @@ impl Session {
     }
 }
 
-impl fmt::Debug for Session {
+impl fmt::Debug for ClientSession {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "Session[sel: {}]", self.sel())
+        write!(f, "ClientSession[sel: {}]", self.sel())
     }
 }

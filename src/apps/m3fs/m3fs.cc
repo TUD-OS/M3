@@ -20,6 +20,7 @@
 #include <base/Errors.h>
 
 #include <m3/session/M3FS.h>
+#include <m3/session/ServerSession.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
 
@@ -63,8 +64,8 @@ public:
         _rgate.start(std::bind(&M3FSRequestHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code open(M3FSSession **sess, word_t) override {
-        *sess = new M3FSMetaSession(_rgate, _handle);
+    virtual Errors::Code open(M3FSSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new M3FSMetaSession(srv_sel, _rgate, _handle);
         return Errors::NONE;
     }
 

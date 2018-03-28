@@ -30,8 +30,8 @@ class M3FSMetaSession : public M3FSSession {
 public:
     static constexpr size_t MAX_FILES   = 16;
 
-    explicit M3FSMetaSession(m3::RecvGate &rgate, FSHandle &handle)
-        : M3FSSession(), _sgates(), _rgate(rgate), _handle(handle), _files() {
+    explicit M3FSMetaSession(capsel_t srv_sel, m3::RecvGate &rgate, FSHandle &handle)
+        : M3FSSession(srv_sel), _sgates(), _rgate(rgate), _handle(handle), _files() {
     }
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)

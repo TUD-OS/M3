@@ -103,10 +103,10 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::CREATE_SGATE      => create_sgate(&vpe, msg),
         kif::syscalls::Operation::CREATE_SRV        => create_srv(&vpe, msg),
         kif::syscalls::Operation::CREATE_SESS       => create_sess(&vpe, msg),
-        kif::syscalls::Operation::CREATE_SESS_AT    => create_sess_at(&vpe, msg),
         kif::syscalls::Operation::CREATE_VPE        => create_vpe(&vpe, msg),
         kif::syscalls::Operation::CREATE_MAP        => create_map(&vpe, msg),
         kif::syscalls::Operation::DERIVE_MEM        => derive_mem(&vpe, msg),
+        kif::syscalls::Operation::OPEN_SESS         => open_sess(&vpe, msg),
         kif::syscalls::Operation::EXCHANGE          => exchange(&vpe, msg),
         kif::syscalls::Operation::DELEGATE          => exchange_over_sess(&vpe, msg, false),
         kif::syscalls::Operation::OBTAIN            => exchange_over_sess(&vpe, msg, true),
@@ -301,72 +301,11 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
 fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSess = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
-    let arg = req.arg;
-    let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
-
-    sysc_log!(
-        vpe, "create_sess(dst={}, arg={:#x}, name={})",
-        dst_sel, arg, name
-    );
-
-    if !vpe.borrow().obj_caps().unused(dst_sel) {
-        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
-    }
-
-    let sentry: Option<&Service> = ServiceList::get().find(name);
-    if sentry.is_none() {
-        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
-    }
-
-    let smsg = kif::service::Open {
-        opcode: kif::service::Operation::OPEN.val as u64,
-        arg: arg,
-    };
-
-    let serv: Rc<RefCell<ServObject>> = sentry.unwrap().get_kobj();
-    klog!(SERV, "Sending OPEN(arg={}) to service {}", arg, serv.borrow().name);
-    let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
-
-    match res {
-        Err(e)      => sysc_err!(vpe, e.code(), "Service {} unreachable", name),
-
-        Ok(rmsg)    => {
-            let reply: &kif::service::OpenReply = get_message(rmsg);
-
-            sysc_log!(vpe, "create_sess continue with res={}", {reply.res});
-
-            if reply.res != 0 {
-                sysc_err!(vpe, Code::from(reply.res as u32), "Server denied session creation");
-            }
-            else {
-                let cap = Capability::new(dst_sel, KObject::Sess(SessObject::new(
-                    &serv, reply.sess, false
-                )));
-
-                // inherit the session-cap from the service-cap. this way, it will be automatically
-                // revoked if the service-cap is revoked
-                sentry.map(|se| {
-                    vpe.borrow_mut().obj_caps_mut().insert_as_child_from(
-                        cap, se.vpe().borrow_mut().obj_caps_mut(), se.sel()
-                    );
-                });
-            }
-        }
-    }
-
-    reply_success(msg);
-    Ok(())
-}
-
-#[inline(never)]
-fn create_sess_at(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
-    let req: &kif::syscalls::CreateSessAt = get_message(msg);
-    let dst_sel = req.dst_sel as CapSel;
     let srv_sel = req.srv_sel as CapSel;
     let ident = req.ident;
 
     sysc_log!(
-        vpe, "create_sess_at(dst={}, srv={}, ident={:#x})",
+        vpe, "create_sess(dst={}, srv={}, ident={:#x})",
         dst_sel, srv_sel, ident
     );
 
@@ -572,6 +511,72 @@ fn derive_mem(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     {
         let mut vpe_mut = vpe.borrow_mut();
         vpe_mut.obj_caps_mut().insert_as_child(cap, src_sel);
+    }
+
+    reply_success(msg);
+    Ok(())
+}
+
+#[inline(never)]
+fn open_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
+    let req: &kif::syscalls::OpenSess = get_message(msg);
+    let dst_sel = req.dst_sel as CapSel;
+    let arg = req.arg;
+    let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
+
+    sysc_log!(
+        vpe, "open_sess(dst={}, arg={:#x}, name={})",
+        dst_sel, arg, name
+    );
+
+    if !vpe.borrow().obj_caps().unused(dst_sel) {
+        sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
+    }
+
+    let sentry: Option<&Service> = ServiceList::get().find(name);
+    if sentry.is_none() {
+        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
+    }
+
+    let smsg = kif::service::Open {
+        opcode: kif::service::Operation::OPEN.val as u64,
+        arg: arg,
+    };
+
+    let serv: Rc<RefCell<ServObject>> = sentry.unwrap().get_kobj();
+    klog!(SERV, "Sending OPEN(arg={}) to service {}", arg, serv.borrow().name);
+    let res = ServObject::send_receive(&serv, util::object_to_bytes(&smsg));
+
+    match res {
+        Err(e)      => sysc_err!(vpe, e.code(), "Service {} unreachable", name),
+
+        Ok(rmsg)    => {
+            let reply: &kif::service::OpenReply = get_message(rmsg);
+
+            sysc_log!(vpe, "create_sess continue with res={}", {reply.res});
+
+            if reply.res != 0 {
+                sysc_err!(vpe, Code::from(reply.res as u32), "Server denied session creation");
+            }
+            else {
+                sentry.map(|se| {
+                    let mut serv_vpe = se.vpe().borrow_mut();
+                    let src_opt = serv_vpe.obj_caps_mut().get_mut(reply.sess as CapSel);
+                    if let Some(src_cap) = src_opt {
+                        if let &KObject::Sess(_) = src_cap.get() {
+                            vpe.borrow_mut().obj_caps_mut().obtain(dst_sel, src_cap, true);
+                            Ok(())
+                        }
+                        else {
+                            Err(Error::new(Code::InvArgs))
+                        }
+                    }
+                    else {
+                        Err(Error::new(Code::InvArgs))
+                    }
+                });
+            }
+        }
     }
 
     reply_success(msg);

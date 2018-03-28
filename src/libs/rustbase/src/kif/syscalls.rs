@@ -20,18 +20,18 @@ int_enum! {
         // capability creations
         const CREATE_SRV        = 1;
         const CREATE_SESS       = 2;
-        const CREATE_SESS_AT    = 3;
-        const CREATE_RGATE      = 4;
-        const CREATE_SGATE      = 5;
-        const CREATE_MGATE      = 6;
-        const CREATE_MAP        = 7;
-        const CREATE_VPE        = 8;
+        const CREATE_RGATE      = 3;
+        const CREATE_SGATE      = 4;
+        const CREATE_MGATE      = 5;
+        const CREATE_MAP        = 6;
+        const CREATE_VPE        = 7;
 
         // capability operations
-        const ACTIVATE          = 9;
-        const VPE_CTRL          = 10;
-        const VPE_WAIT          = 11;
-        const DERIVE_MEM        = 12;
+        const ACTIVATE          = 8;
+        const VPE_CTRL          = 9;
+        const VPE_WAIT          = 10;
+        const DERIVE_MEM        = 11;
+        const OPEN_SESS         = 12;
 
         // capability exchange
         const DELEGATE          = 13;
@@ -106,16 +106,6 @@ pub struct CreateSrv {
 /// The create session request message
 #[repr(C, packed)]
 pub struct CreateSess {
-    pub opcode: u64,
-    pub dst_sel: u64,
-    pub arg: u64,
-    pub namelen: u64,
-    pub name: [u8; MAX_STR_SIZE],
-}
-
-/// The create session at request message
-#[repr(C, packed)]
-pub struct CreateSessAt {
     pub opcode: u64,
     pub dst_sel: u64,
     pub srv_sel: u64,
@@ -237,6 +227,16 @@ pub struct DeriveMem {
     pub offset: u64,
     pub size: u64,
     pub perms: u64,
+}
+
+/// The open session request message
+#[repr(C, packed)]
+pub struct OpenSess {
+    pub opcode: u64,
+    pub dst_sel: u64,
+    pub arg: u64,
+    pub namelen: u64,
+    pub name: [u8; MAX_STR_SIZE],
 }
 
 /// The exchange request message

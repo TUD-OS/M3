@@ -37,8 +37,8 @@ void PipeData::WorkItem::work() {
     pipe->handle_pending_read();
 }
 
-PipeData::PipeData(m3::RecvGate *rgate, size_t _memsize)
-    : PipeSession(),
+PipeData::PipeData(capsel_t srv_sel, m3::RecvGate *rgate, size_t _memsize)
+    : PipeSession(srv_sel),
       nextid(),
       flags(),
       memory(),
@@ -68,35 +68,33 @@ PipeData::~PipeData() {
     m3::env()->workloop()->remove(&workitem);
 }
 
-PipeChannel *PipeData::attach(capsel_t srv, bool read) {
+PipeChannel *PipeData::attach(capsel_t _sel, bool read) {
     PipeChannel *handler;
     if(read) {
-        handler = &*reader.append(new PipeReadChannel(this, srv));
+        handler = &*reader.append(new PipeReadChannel(this, _sel));
         PRINT(this, "attach: read-refs=" << reader.length());
     }
     else {
-        handler = &*writer.append(new PipeWriteChannel(this, srv));
+        handler = &*writer.append(new PipeWriteChannel(this, _sel));
         PRINT(this, "attach: write-refs=" << writer.length());
     }
 
     return handler;
 }
 
-PipeChannel *PipeChannel::clone(capsel_t srv) const {
-    return pipe->attach(srv, type() == RCHAN);
+PipeChannel *PipeChannel::clone(capsel_t _sel) const {
+    return pipe->attach(_sel, type() == RCHAN);
 }
 
-PipeChannel::PipeChannel(PipeData *_pipe, capsel_t srv)
-    : PipeSession(),
+PipeChannel::PipeChannel(PipeData *_pipe, capsel_t _sel)
+    : PipeSession(_sel, VPE::self().alloc_sels(2)),
       m3::SListItem(),
       id(_pipe->nextid++),
-      caps(VPE::self().alloc_sels(2)),
       epcap(ObjCap::INVALID),
       lastamount(),
-      sgate(m3::SendGate::create(_pipe->rgate, reinterpret_cast<label_t>(this), 64, nullptr, caps + 1)),
+      sgate(m3::SendGate::create(_pipe->rgate, reinterpret_cast<label_t>(this), 64, nullptr, sel() + 1)),
       memory(),
       pipe(_pipe) {
-    Syscalls::get().createsessat(caps + 0, srv, reinterpret_cast<word_t>(this));
 }
 
 Errors::Code PipeChannel::activate() {

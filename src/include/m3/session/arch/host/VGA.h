@@ -16,18 +16,18 @@
 
 #pragma once
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 
 namespace m3 {
 
-class VGA : public Session {
+class VGA : public ClientSession {
 public:
     static constexpr int COLS = 80;
     static constexpr int ROWS = 30;
     static constexpr size_t SIZE = ROWS * COLS * 2;
 
     explicit VGA(const String &service)
-        : Session(service),
+        : ClientSession(service),
           _gate(MemGate::bind(obtain(1).start())) {
     }
 

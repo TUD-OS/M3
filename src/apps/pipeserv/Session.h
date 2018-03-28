@@ -21,13 +21,14 @@
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
 #include <m3/session/Pipe.h>
+#include <m3/session/ServerSession.h>
 #include <m3/vfs/GenericFile.h>
 
 #include "VarRingBuf.h"
 
 class PipeData;
 
-class PipeSession {
+class PipeSession : public m3::ServerSession {
 public:
     enum Type {
         META,
@@ -35,6 +36,9 @@ public:
         WCHAN,
     };
 
+    explicit PipeSession(capsel_t srv_sel, capsel_t sel = m3::ObjCap::INVALID)
+        : m3::ServerSession(srv_sel, sel) {
+    }
     virtual ~PipeSession() {
     }
 
@@ -58,24 +62,23 @@ public:
         WRITE_EOF   = 2,
     };
 
-    explicit PipeChannel(PipeData *pipe, capsel_t srv);
+    explicit PipeChannel(PipeData *pipe, capsel_t srv_sel);
     virtual ~PipeChannel() {
         delete memory;
     }
 
-    PipeChannel *clone(capsel_t srv) const;
+    PipeChannel *clone(capsel_t srv_sel) const;
 
     void set_ep(capsel_t ep) {
         epcap = ep;
     }
     m3::KIF::CapRngDesc crd() const {
-        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, caps, 2);
+        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sel(), 2);
     }
 
     m3::Errors::Code activate();
 
     int id;
-    capsel_t caps;
     capsel_t epcap;
     size_t lastamount;
     m3::SendGate sgate;
@@ -85,7 +88,7 @@ public:
 
 class PipeReadChannel : public PipeChannel {
 public:
-    explicit PipeReadChannel(PipeData *pipe, capsel_t srv) : PipeChannel(pipe, srv) {
+    explicit PipeReadChannel(PipeData *pipe, capsel_t srv_sel) : PipeChannel(pipe, srv_sel) {
     }
 
     virtual Type type() const override {
@@ -101,7 +104,7 @@ private:
 
 class PipeWriteChannel : public PipeChannel {
 public:
-    explicit PipeWriteChannel(PipeData *pipe, capsel_t srv) : PipeChannel(pipe, srv) {
+    explicit PipeWriteChannel(PipeData *pipe, capsel_t srv_sel) : PipeChannel(pipe, srv_sel) {
     }
 
     virtual Type type() const override {
@@ -135,14 +138,14 @@ public:
         const m3::DTU::Message *lastmsg;
     };
 
-    explicit PipeData(m3::RecvGate *rgate, size_t _memsize);
+    explicit PipeData(capsel_t srv_sel, m3::RecvGate *rgate, size_t _memsize);
     virtual ~PipeData();
 
     virtual Type type() const override {
         return META;
     }
 
-    PipeChannel *attach(capsel_t srv, bool read);
+    PipeChannel *attach(capsel_t srv_sel, bool read);
     void handle_pending_read();
     void handle_pending_write();
 

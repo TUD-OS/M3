@@ -18,12 +18,15 @@
 
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
+#include <m3/session/ServerSession.h>
 #include <m3/server/RequestHandler.h>
 
 namespace m3 {
 
-struct SimpleSession {
-    explicit SimpleSession() : sgate() {
+struct SimpleSession : public ServerSession {
+    explicit SimpleSession(capsel_t srv_sel)
+        : ServerSession(srv_sel),
+          sgate() {
     }
     ~SimpleSession() {
         delete sgate;
@@ -42,8 +45,8 @@ public:
         _rgate.start(std::bind(&SimpleRequestHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code open(SimpleSession **sess, word_t) override {
-        *sess = new SimpleSession();
+    virtual Errors::Code open(SimpleSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new SimpleSession(srv_sel);
         return Errors::NONE;
     }
 

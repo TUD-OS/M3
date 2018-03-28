@@ -23,9 +23,9 @@
 
 using namespace m3;
 
-M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
-                                 int flags, m3::inodeno_t ino)
-    : M3FSSession(),
+M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta,
+                                 const m3::String &filename, int flags, m3::inodeno_t ino)
+    : M3FSSession(srv_sel, m3::VPE::self().alloc_sels(2)),
       m3::SListItem(),
       _extent(),
       _extoff(),
@@ -36,16 +36,13 @@ M3FSFileSession::M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::
       _append_ext(),
       _last(ObjCap::INVALID),
       _epcap(ObjCap::INVALID),
-      _sess(m3::VPE::self().alloc_sels(2)),
       _sgate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this),
-                                  MSG_SIZE, nullptr, _sess + 1)),
+                                  MSG_SIZE, nullptr, sel() + 1)),
       _oflags(flags),
       _filename(filename),
       _ino(ino),
       _capscon(),
       _meta(meta) {
-    Syscalls::get().createsessat(_sess, srv, reinterpret_cast<word_t>(this));
-
     _meta->handle().files().add_sess(this);
 }
 
@@ -71,7 +68,7 @@ Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &da
     auto nfile =  new M3FSFileSession(srv, _meta, _filename, _oflags, _ino);
 
     data.args.count = 0;
-    data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, nfile->_sess, 2).value();
+    data.caps = nfile->caps().value();
 
     return Errors::NONE;
 }

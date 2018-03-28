@@ -18,13 +18,13 @@
 
 #include <base/Errors.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/GateStream.h>
 
 namespace m3 {
 
-class Plasma : public Session {
+class Plasma : public ClientSession {
 public:
     enum Operation {
         LEFT,
@@ -35,7 +35,7 @@ public:
     };
 
     explicit Plasma(const String &service)
-        : Session(service),
+        : ClientSession(service),
           _gate(SendGate::bind(obtain(1).start())) {
     }
 

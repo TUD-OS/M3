@@ -16,7 +16,7 @@
 
 #include <base/Env.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/session/arch/host/Interrupts.h>
 #include <m3/stream/Standard.h>
 

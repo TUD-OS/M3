@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Starting session creation...\n";
 
-    Session *sess[2] = {nullptr, nullptr};
+    ClientSession *sess[2] = {nullptr, nullptr};
     SendGate *sgate[2] = {nullptr, nullptr};
     const char *name[2] = {nullptr, nullptr};
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
         // the kernel does not block us atm until the service is available
         // so try to connect until it's available
         while(sess[i] == nullptr) {
-            sess[i] = new Session(name[i]);
+            sess[i] = new ClientSession(name[i]);
             if(sess[i]->is_connected())
                 break;
 

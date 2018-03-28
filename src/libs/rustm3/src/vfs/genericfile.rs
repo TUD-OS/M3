@@ -8,7 +8,7 @@ use errors::Error;
 use io::{Read, Write};
 use kif::{CapRngDesc, CapType, INVALID_SEL, Perm, syscalls};
 use rc::Rc;
-use session::{Pager, Session};
+use session::{Pager, ClientSession};
 use time;
 use util;
 use vfs;
@@ -25,7 +25,7 @@ int_enum! {
 
 pub struct GenericFile {
     fd: vfs::Fd,
-    sess: Session,
+    sess: ClientSession,
     sgate: SendGate,
     mgate: MemGate,
     goff: usize,
@@ -39,7 +39,7 @@ impl GenericFile {
     pub fn new(sel: Selector) -> Self {
         GenericFile {
             fd: 0,
-            sess: Session::new_bind(sel),
+            sess: ClientSession::new_bind(sel),
             sgate: SendGate::new_bind(sel + 1),
             mgate: MemGate::new_bind(INVALID_SEL),
             goff: 0,

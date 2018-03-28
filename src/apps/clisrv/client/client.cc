@@ -17,7 +17,7 @@
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/GateStream.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/stream/Standard.h>
 
 using namespace m3;
@@ -29,7 +29,7 @@ int main() {
         //ser.flush();
         //ser >> serv;
 
-        Session test(serv);
+        ClientSession test(serv);
         if(Errors::last != Errors::NONE) {
             errmsg("Unable to connect to '" << serv << "'");
             continue;

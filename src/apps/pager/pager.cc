@@ -55,8 +55,8 @@ public:
         _rgate.start(std::bind(&MemReqHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code open(AddrSpace **sess, word_t) override {
-        *sess = new AddrSpace();
+    virtual Errors::Code open(AddrSpace **sess, capsel_t srv_sel, word_t) override {
+        *sess = new AddrSpace(srv_sel, nullptr);
         return Errors::NONE;
     }
 
@@ -100,10 +100,9 @@ public:
             SLOG(PAGER, fmt((word_t)sess, "#x") << ": mem::create_clone()");
 
             // clone the current session and connect it to the current one
-            AddrSpace *nsess = new AddrSpace(sess, VPE::self().alloc_sel());
-            Syscalls::get().createsessat(nsess->sess.sel(), srv->sel(), reinterpret_cast<word_t>(nsess));
+            AddrSpace *nsess = new AddrSpace(srv->sel(), sess);
 
-            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sess.sel());
+            KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, nsess->sel());
             data.caps = crd.value();
             return Errors::NONE;
         }

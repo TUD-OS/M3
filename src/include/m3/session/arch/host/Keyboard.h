@@ -18,13 +18,13 @@
 
 #include <base/Errors.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/com/GateStream.h>
 #include <m3/VPE.h>
 
 namespace m3 {
 
-class Keyboard : public Session {
+class Keyboard : public ClientSession {
 public:
     struct Event {
         unsigned char scancode;
@@ -142,7 +142,7 @@ public:
     };
 
     explicit Keyboard(const String &service, int buford = nextlog2<256>::val, int msgord = nextlog2<64>::val)
-        : Session(service),
+        : ClientSession(service),
           _rgate(RecvGate::create(buford, msgord)),
           _sgate(SendGate::create(&_rgate, 0, SendGate::UNLIMITED)) {
         if(!Errors::occurred())

@@ -4,16 +4,16 @@ use com::MemGate;
 use errors::Error;
 use kif;
 use rc::Rc;
-use session::Session;
+use session::ClientSession;
 use vfs::{FileHandle, GenericFile};
 
 pub struct Pipe {
-    sess: Session,
+    sess: ClientSession,
 }
 
 impl Pipe {
     pub fn new(name: &str, mem: &MemGate, mem_size: usize) -> Result<Self, Error> {
-        let sess = Session::new(name, mem_size as u64)?;
+        let sess = ClientSession::new(name, mem_size as u64)?;
         sess.delegate_obj(mem.sel())?;
         Ok(Pipe {
             sess: sess,

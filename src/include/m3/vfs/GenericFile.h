@@ -20,7 +20,7 @@
 
 #include <m3/com/SendGate.h>
 #include <m3/com/MemGate.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/vfs/File.h>
 #include <m3/VPE.h>
 
@@ -54,10 +54,10 @@ public:
     SendGate &sgate() {
         return _sg;
     }
-    Session &sess() {
+    ClientSession &sess() {
         return _sess;
     }
-    const Session &sess() const {
+    const ClientSession &sess() const {
         return _sess;
     }
 
@@ -101,7 +101,7 @@ private:
     Errors::Code submit();
     Errors::Code delegate_ep();
 
-    mutable Session _sess;
+    mutable ClientSession _sess;
     mutable SendGate _sg;
     MemGate _mg;
     size_t _goff;

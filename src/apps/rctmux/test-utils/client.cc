@@ -17,7 +17,7 @@
 #include <base/Common.h>
 
 #include <m3/com/SendGate.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/stream/Standard.h>
 
 using namespace m3;
@@ -29,9 +29,9 @@ enum TestOp {
 int main(int, char *argv[]) {
     // the kernel does not block us atm until the service is available
     // so try to connect until it's available
-    Session *sess = nullptr;
+    ClientSession *sess = nullptr;
     while(sess == nullptr) {
-        sess = new Session(argv[2]);
+        sess = new ClientSession(argv[2]);
         if(sess->is_connected())
             break;
 

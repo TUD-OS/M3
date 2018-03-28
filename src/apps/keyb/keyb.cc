@@ -21,10 +21,9 @@
 #include <m3/com/GateStream.h>
 #include <m3/session/arch/host/Keyboard.h>
 #include <m3/session/arch/host/Interrupts.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/Syscalls.h>
 
 #include <unistd.h>
 #include <fcntl.h>

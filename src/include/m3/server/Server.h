@@ -79,11 +79,11 @@ private:
         KIF::Service::OpenReply reply;
 
         typename HDL::session_type *sess = nullptr;
-        reply.error = _handler->open(&sess, req->arg);
+        reply.error = _handler->open(&sess, sel(), req->arg);
         if(sess)
             LLOG(SERV, fmt((word_t)sess, "#x") << ": open()");
 
-        reply.sess = reinterpret_cast<word_t>(sess);
+        reply.sess = sess->sel();
         is.reply(&reply, sizeof(reply));
     }
 

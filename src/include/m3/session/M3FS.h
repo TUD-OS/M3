@@ -18,7 +18,7 @@
 
 #include <base/util/Reference.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/vfs/FileSystem.h>
@@ -28,7 +28,7 @@
 
 namespace m3 {
 
-class M3FS : public Session, public FileSystem {
+class M3FS : public ClientSession, public FileSystem {
 public:
     enum Operation {
         FSTAT = GenericFile::STAT,
@@ -44,12 +44,12 @@ public:
     };
 
     explicit M3FS(const String &service)
-        : Session(service, 0, VPE::self().alloc_sels(2)),
+        : ClientSession(service, 0, VPE::self().alloc_sels(2)),
           FileSystem(),
           _gate(obtain_sgate()) {
     }
     explicit M3FS(capsel_t caps)
-        : Session(caps + 0),
+        : ClientSession(caps + 0),
           FileSystem(),
           _gate(SendGate::bind(caps + 1)) {
     }
@@ -73,7 +73,7 @@ public:
     static FileSystem *unserialize(Unmarshaller &um);
 
     // TODO wrong place. we should have a DataSpace session or something
-    static size_t get_mem(Session &sess, size_t *off, capsel_t *sel) {
+    static size_t get_mem(ClientSession &sess, size_t *off, capsel_t *sel) {
         KIF::ExchangeArgs args;
         args.count = 1;
         args.vals[0] = *off;

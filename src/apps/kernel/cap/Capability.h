@@ -86,6 +86,9 @@ public:
     const Capability *next() const {
         return _next;
     }
+    const Capability *parent() const {
+        return _parent;
+    }
     Capability *child() {
         return _child;
     }
@@ -225,7 +228,7 @@ class SessObject : public SlabObject<SessObject>, public m3::RefCounted {
 public:
     explicit SessObject(Service *_srv, word_t _ident)
         : RefCounted(),
-          servowned(),
+          invalid(),
           ident(_ident),
           srv(_srv) {
     }
@@ -233,7 +236,7 @@ public:
 
     void close();
 
-    bool servowned;
+    bool invalid;
     word_t ident;
     m3::Reference<Service> srv;
 };

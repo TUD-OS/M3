@@ -26,23 +26,23 @@
 namespace m3 {
 
 /**
- * A session represents a connection between client and the server, that provides the used service.
- * Over the session, capabilities can be exchanged, e.g. to delegate a SendGate from server to
- * client in order to let the client send messages to the server.
+ * A client session represents a connection between client and the server for the client. Over the
+ * session, capabilities can be exchanged, e.g. to delegate a SendGate from server to client in
+ * order to let the client send messages to the server.
  *
  * At construction, the server receives an OPEN event, that allows him to associate information with
  * this session. At destruction, the server receives a CLOSE event to perform cleanup.
  */
-class Session : public ObjCap {
+class ClientSession : public ObjCap {
 public:
     /**
-     * Creates a session at service <name>, sending him <arg> as argument to the OPEN event.
+     * Opens a session at service <name>, sending him <arg> as argument to the OPEN event.
      *
      * @param name the service name
      * @param arg the argument
      * @param sel the desired selector
      */
-    explicit Session(const String &name, xfer_t arg = 0, capsel_t sel = ObjCap::INVALID)
+    explicit ClientSession(const String &name, xfer_t arg = 0, capsel_t sel = ObjCap::INVALID)
         : ObjCap(SESSION) {
         connect(name, arg, sel);
     }
@@ -53,7 +53,7 @@ public:
      * @param sel the capability selector of the session
      * @param flags whether capabilitly/selector should be kept on destruction or not
      */
-    explicit Session(capsel_t sel, uint flags = ObjCap::KEEP_CAP)
+    explicit ClientSession(capsel_t sel, uint flags = ObjCap::KEEP_CAP)
         : ObjCap(SESSION, sel, flags) {
     }
 

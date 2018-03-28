@@ -18,21 +18,22 @@
 
 #include <m3/server/Server.h>
 #include <m3/session/arch/host/VGA.h>
+#include <m3/session/ServerSession.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
 using namespace m3;
 
-class VGAHandler : public Handler<void> {
+class VGAHandler : public Handler<ServerSession> {
 public:
     explicit VGAHandler(MemGate *vgamem) : _vgamem(vgamem) {
     }
 
-    virtual Errors::Code open(void **sess, word_t) override {
-        *sess = nullptr;
+    virtual Errors::Code open(ServerSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new ServerSession(srv_sel);
         return Errors::NONE;
     }
-    virtual Errors::Code obtain(void *, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code obtain(ServerSession *, KIF::Service::ExchangeData &data) override {
         if(data.caps != 1 || data.args.count != 0)
             return Errors::INV_ARGS;
 
@@ -40,7 +41,8 @@ public:
         data.caps = crd.value();
         return Errors::NONE;
     }
-    virtual Errors::Code close(void *) override {
+    virtual Errors::Code close(ServerSession *sess) override {
+        delete sess;
         return Errors::NONE;
     }
 

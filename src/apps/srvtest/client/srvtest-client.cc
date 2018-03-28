@@ -16,7 +16,7 @@
 
 #include <base/Common.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
@@ -24,9 +24,9 @@ using namespace m3;
 
 int main() {
     for(int j = 0; j < 10; ++j) {
-        Session *sess;
+        ClientSession *sess;
         while(true) {
-            sess = new Session("srvtest-server");
+            sess = new ClientSession("srvtest-server");
             if(!Errors::occurred())
                 break;
             delete sess;

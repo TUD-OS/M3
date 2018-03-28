@@ -48,8 +48,8 @@ public:
         _rgate.start(std::bind(&PipeServiceHandler::handle_message, this, _1));
     }
 
-    virtual Errors::Code open(PipeSession **sess, word_t arg) override {
-        *sess = new PipeData(&_rgate, arg);
+    virtual Errors::Code open(PipeSession **sess, capsel_t srv_sel, word_t arg) override {
+        *sess = new PipeData(srv_sel, &_rgate, arg);
         return Errors::NONE;
     }
 

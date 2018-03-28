@@ -57,7 +57,7 @@ struct CapContainer {
 
 class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
-    explicit M3FSFileSession(capsel_t srv, M3FSMetaSession *meta, const m3::String &filename,
+    explicit M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
                              int flags, m3::inodeno_t ino);
     virtual ~M3FSFileSession();
 
@@ -75,7 +75,7 @@ public:
     }
 
     m3::KIF::CapRngDesc caps() const {
-        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, _sess, 2);
+        return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sel(), 2);
     }
     void set_ep(capsel_t ep) {
         _epcap = ep;
@@ -99,7 +99,6 @@ private:
 
     capsel_t _last;
     capsel_t _epcap;
-    capsel_t _sess;
     m3::SendGate _sgate;
 
     int _oflags;

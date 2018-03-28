@@ -16,7 +16,7 @@
 
 #include <base/Env.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/stream/Standard.h>
 #include <m3/VPE.h>
 
@@ -34,7 +34,7 @@ static void received_data(GateIStream &is) {
 }
 
 int main() {
-    Session qtest("queuetest");
+    ClientSession qtest("queuetest");
 
     RecvGate rgate = RecvGate::create(nextlog2<4096>::val, nextlog2<512>::val);
     SendGate sgate = SendGate::create(&rgate, 0, SendGate::UNLIMITED);

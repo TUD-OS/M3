@@ -18,11 +18,12 @@
 
 #include <m3/com/GateStream.h>
 #include <m3/session/Pager.h>
+#include <m3/session/ServerSession.h>
 #include <m3/stream/Standard.h>
 
 #include "DataSpace.h"
 
-class AddrSpace {
+class AddrSpace : public m3::ServerSession {
 public:
     struct SGateItem : public m3::SListItem {
         explicit SGateItem(m3::SendGate &&_sgate) : sgate(m3::Util::move(_sgate)) {
@@ -30,10 +31,10 @@ public:
         m3::SendGate sgate;
     };
 
-    explicit AddrSpace(AddrSpace *_parent = nullptr, capsel_t _sess = m3::ObjCap::INVALID)
-       : alive(true),
+    explicit AddrSpace(capsel_t srv_sel, AddrSpace *_parent)
+       : m3::ServerSession(srv_sel),
+         alive(true),
          vpe(m3::ObjCap::VIRTPE, m3::ObjCap::INVALID),
-         sess(m3::ObjCap::SESSION, _sess),
          mem(),
          sgates(),
          dstree(),
@@ -67,7 +68,6 @@ public:
 
     bool alive;
     m3::ObjCap vpe;
-    m3::ObjCap sess;
     m3::MemGate *mem;
     m3::SList<SGateItem> sgates;
     m3::SList<DataSpace> dslist;

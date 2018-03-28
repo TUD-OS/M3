@@ -69,45 +69,6 @@ pub fn create_srv(dst: Selector, rgate: Selector, name: &str) -> Result<(), Erro
     send_receive_result(&req)
 }
 
-pub fn activate(ep: Selector, gate: Selector, addr: usize) -> Result<(), Error> {
-    log!(
-        SYSC,
-        "syscalls::activate(ep={}, gate={}, addr={})",
-        ep, gate, addr
-    );
-
-    let req = syscalls::Activate {
-        opcode: syscalls::Operation::ACTIVATE.val,
-        ep_sel: ep as u64,
-        gate_sel: gate as u64,
-        addr: addr as u64,
-    };
-    send_receive_result(&req)
-}
-
-pub fn create_sess(dst: Selector, name: &str, arg: u64) -> Result<(), Error> {
-    log!(
-        SYSC,
-        "syscalls::create_sess(dst={}, name={}, arg={:#x})",
-        dst, name, arg
-    );
-
-    let mut req = syscalls::CreateSess {
-        opcode: syscalls::Operation::CREATE_SESS.val,
-        dst_sel: dst as u64,
-        namelen: name.len() as u64,
-        name: unsafe { intrinsics::uninit() },
-        arg: arg,
-    };
-
-    // copy name
-    for (a, c) in req.name.iter_mut().zip(name.bytes()) {
-        *a = c as u8;
-    }
-
-    send_receive_result(&req)
-}
-
 pub fn create_sgate(dst: Selector, rgate: Selector, label: dtu::Label, credits: u64) -> Result<(), Error> {
     log!(
         SYSC,
@@ -154,6 +115,22 @@ pub fn create_rgate(dst: Selector, order: i32, msgorder: i32) -> Result<(), Erro
         dst_sel: dst as u64,
         order: order as u64,
         msgorder: msgorder as u64,
+    };
+    send_receive_result(&req)
+}
+
+pub fn create_sess(dst: Selector, srv: Selector, ident: u64) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::create_sess(dst={}, srv={}, ident={:#x})",
+        dst, srv, ident
+    );
+
+    let req = syscalls::CreateSess {
+        opcode: syscalls::Operation::CREATE_SESS.val,
+        dst_sel: dst as u64,
+        srv_sel: srv as u64,
+        ident: ident,
     };
     send_receive_result(&req)
 }
@@ -267,6 +244,29 @@ pub fn vpe_wait(vpes: &[Selector]) -> Result<(Selector, i32), Error> {
     }
 }
 
+pub fn open_sess(dst: Selector, name: &str, arg: u64) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::open_sess(dst={}, name={}, arg={:#x})",
+        dst, name, arg
+    );
+
+    let mut req = syscalls::OpenSess {
+        opcode: syscalls::Operation::OPEN_SESS.val,
+        dst_sel: dst as u64,
+        namelen: name.len() as u64,
+        name: unsafe { intrinsics::uninit() },
+        arg: arg,
+    };
+
+    // copy name
+    for (a, c) in req.name.iter_mut().zip(name.bytes()) {
+        *a = c as u8;
+    }
+
+    send_receive_result(&req)
+}
+
 pub fn exchange(vpe: Selector, own: CapRngDesc, other: Selector, obtain: bool) -> Result<(), Error> {
     log!(
         SYSC,
@@ -317,6 +317,22 @@ fn exchange_sess(vpe: Selector, op: syscalls::Operation, sess: Selector, crd: Ca
         0 => Ok(()),
         e => Err(Error::from(e as u32))
     }
+}
+
+pub fn activate(ep: Selector, gate: Selector, addr: usize) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::activate(ep={}, gate={}, addr={})",
+        ep, gate, addr
+    );
+
+    let req = syscalls::Activate {
+        opcode: syscalls::Operation::ACTIVATE.val,
+        ep_sel: ep as u64,
+        gate_sel: gate as u64,
+        addr: addr as u64,
+    };
+    send_receive_result(&req)
 }
 
 pub fn revoke(vpe: Selector, crd: CapRngDesc, own: bool) -> Result<(), Error> {

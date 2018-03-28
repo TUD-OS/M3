@@ -20,7 +20,6 @@
 #include <m3/com/GateStream.h>
 #include <m3/server/Server.h>
 #include <m3/server/EventHandler.h>
-#include <m3/Syscalls.h>
 
 #include <sys/time.h>
 #include <cstdlib>
@@ -29,11 +28,8 @@ using namespace m3;
 
 class IntSessionData : public EventSessionData {
 public:
-    explicit IntSessionData() {
-        // UNUSED
-    }
-    explicit IntSessionData(HWInterrupts::IRQ irq)
-        : EventSessionData(),
+    explicit IntSessionData(capsel_t srv_sel, HWInterrupts::IRQ irq = HWInterrupts::IRQ::KEYB)
+        : EventSessionData(srv_sel),
           irq(irq) {
     }
 
@@ -42,8 +38,8 @@ public:
 
 class IntEventHandler : public EventHandler<IntSessionData> {
 public:
-    virtual Errors::Code open(IntSessionData **sess, word_t arg) override {
-        *sess = new IntSessionData(static_cast<HWInterrupts::IRQ>(arg));
+    virtual Errors::Code open(IntSessionData **sess, capsel_t srv_sel, word_t arg) override {
+        *sess = new IntSessionData(srv_sel, static_cast<HWInterrupts::IRQ>(arg));
         sessions().append(*sess);
         return Errors::NONE;
     }

@@ -8,7 +8,7 @@ use errors::Error;
 use kif;
 use rc::{Rc, Weak};
 use serialize::Sink;
-use session::Session;
+use session::ClientSession;
 use util;
 use vfs::{FileHandle, FileInfo, FileMode, FileSystem, FSHandle, GenericFile, OpenFlags};
 use vpe::VPE;
@@ -17,7 +17,7 @@ pub type ExtId = u16;
 
 pub struct M3FS {
     self_weak: Weak<RefCell<M3FS>>,
-    sess: Session,
+    sess: ClientSession,
     sgate: SendGate,
 }
 
@@ -39,7 +39,7 @@ bitflags! {
 }
 
 impl M3FS {
-    fn create(sess: Session, sgate: SendGate) -> FSHandle {
+    fn create(sess: ClientSession, sgate: SendGate) -> FSHandle {
         let inst = Rc::new(RefCell::new(M3FS {
             self_weak: Weak::new(),
             sess: sess,
@@ -51,7 +51,7 @@ impl M3FS {
 
     pub fn new(name: &str) -> Result<FSHandle, Error> {
         let sels = VPE::cur().alloc_sels(2);
-        let sess = Session::new_with_sel(name, 0, sels + 1)?;
+        let sess = ClientSession::new_with_sel(name, 0, sels + 1)?;
 
         let crd = kif::CapRngDesc::new(kif::CapType::OBJECT, sels + 0, 1);
         let mut args = kif::syscalls::ExchangeArgs::default();
@@ -61,10 +61,10 @@ impl M3FS {
     }
 
     pub fn new_bind(sels: Selector) -> FSHandle {
-        Self::create(Session::new_bind(sels + 0), SendGate::new_bind(sels + 1))
+        Self::create(ClientSession::new_bind(sels + 0), SendGate::new_bind(sels + 1))
     }
 
-    pub fn sess(&self) -> &Session {
+    pub fn sess(&self) -> &ClientSession {
         &self.sess
     }
 }

@@ -20,10 +20,11 @@
 #include <base/log/Services.h>
 
 #include <m3/com/GateStream.h>
+#include <m3/session/ServerSession.h>
 
 #define PRINT(sess, expr) SLOG(FS, fmt((word_t)sess, "#x") << ": " << expr)
 
-class M3FSSession {
+class M3FSSession : public m3::ServerSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
 
@@ -32,6 +33,9 @@ public:
         FILE,
     };
 
+    explicit M3FSSession(capsel_t srv_sel, capsel_t sel = m3::ObjCap::INVALID)
+        : m3::ServerSession(srv_sel, sel) {
+    }
     virtual ~M3FSSession() {
     }
 

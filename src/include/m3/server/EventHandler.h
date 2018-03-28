@@ -19,6 +19,7 @@
 #include <base/col/SList.h>
 
 #include <m3/server/Handler.h>
+#include <m3/session/ServerSession.h>
 #include <m3/com/GateStream.h>
 #include <m3/VPE.h>
 
@@ -27,12 +28,15 @@ namespace m3 {
 template<class SESS>
 class EventHandler;
 
-class EventSessionData : public SListItem {
+class EventSessionData : public ServerSession, public SListItem {
     template<class SESS>
     friend class EventHandler;
 
 public:
-    explicit EventSessionData() : SListItem(), _sgate() {
+    explicit EventSessionData(capsel_t srv_sel)
+        : ServerSession(srv_sel),
+          SListItem(),
+          _sgate() {
     }
     ~EventSessionData() {
         delete _sgate;
@@ -67,8 +71,8 @@ public:
     }
 
 protected:
-    virtual Errors::Code open(SESS **sess, word_t) override {
-        *sess = new SESS();
+    virtual Errors::Code open(SESS **sess, capsel_t srv_sel, word_t) override {
+        *sess = new SESS(srv_sel);
         _sessions.append(*sess);
         return Errors::NONE;
     }

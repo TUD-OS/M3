@@ -4,16 +4,19 @@
 extern crate m3;
 
 use m3::errors::{Code, Error};
+use m3::cap::Selector;
 use m3::cell::StaticCell;
 use m3::col::String;
 use m3::com::*;
 use m3::kif;
+use m3::session::ServerSession;
 use m3::server::{Handler, Server, SessId, SessionContainer, server_loop};
 use m3::util;
 
 #[derive(Debug)]
 struct MySession {
     arg: u64,
+    sess: ServerSession,
     sgate: SendGate,
 }
 
@@ -29,14 +32,20 @@ int_enum! {
 }
 
 impl Handler for MyHandler {
-    fn open(&mut self, arg: u64) -> Result<SessId, Error> {
+    fn open(&mut self, srv_sel: Selector, arg: u64) -> Result<Selector, Error> {
+        let sid = self.sessions.next_id();
+        let sess = ServerSession::new(srv_sel, sid)?;
         let sgate = SendGate::new_with(
             SGateArgs::new(&self.rgate).label(self.sessions.next_id()).credits(256)
         )?;
-        Ok(self.sessions.add(MySession {
+
+        let sel = sess.sel();
+        self.sessions.add(MySession {
             arg: arg,
+            sess: sess,
             sgate: sgate,
-        }))
+        });
+        Ok(sel)
     }
 
     fn obtain(&mut self, sid: SessId, data: &mut kif::service::ExchangeData) -> Result<(), Error> {

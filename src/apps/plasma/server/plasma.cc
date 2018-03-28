@@ -24,7 +24,7 @@
 #include <m3/session/arch/host/Plasma.h>
 #include <m3/session/arch/host/Interrupts.h>
 #include <m3/session/arch/host/VGA.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/Syscalls.h>
 
 #include <math.h>

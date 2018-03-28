@@ -23,7 +23,7 @@
 #include <base/Errors.h>
 
 #include <m3/com/MemGate.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 
 #include "RegionList.h"
 
@@ -135,6 +135,6 @@ public:
     m3::Errors::Code handle_pf(goff_t vaddr) override;
 
     const size_t maxpages;
-    m3::Session sess;
+    m3::ClientSession sess;
     size_t fileoff;
 };

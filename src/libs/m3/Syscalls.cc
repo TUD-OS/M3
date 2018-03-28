@@ -63,24 +63,11 @@ Errors::Code Syscalls::createsrv(capsel_t dst, capsel_t rgate, const String &nam
     return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
-Errors::Code Syscalls::createsess(capsel_t dst, const String &name, xfer_t arg) {
-    LLOG(SYSC, "createsess(dst=" << dst << ", name=" << name << ", arg=" << arg << ")");
+Errors::Code Syscalls::createsess(capsel_t dst, capsel_t srv, word_t ident) {
+    LLOG(SYSC, "createsessat(dst=" << dst << ", srv=" << srv << ", ident=" << fmt(ident, "0x") << ")");
 
     KIF::Syscall::CreateSess req;
     req.opcode = KIF::Syscall::CREATE_SESS;
-    req.dst_sel = dst;
-    req.arg = arg;
-    req.namelen = Math::min(name.length(), sizeof(req.name));
-    memcpy(req.name, name.c_str(), req.namelen);
-    size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
-    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
-}
-
-Errors::Code Syscalls::createsessat(capsel_t dst, capsel_t srv, word_t ident) {
-    LLOG(SYSC, "createsessat(dst=" << dst << ", srv=" << srv << ", ident=" << fmt(ident, "0x") << ")");
-
-    KIF::Syscall::CreateSessAt req;
-    req.opcode = KIF::Syscall::CREATE_SESS_AT;
     req.dst_sel = dst;
     req.srv_sel = srv;
     req.ident = ident;
@@ -226,6 +213,19 @@ Errors::Code Syscalls::derivemem(capsel_t dst, capsel_t src, goff_t offset, size
     req.size = size;
     req.perms = static_cast<xfer_t>(perms);
     return send_receive_result(&req, sizeof(req));
+}
+
+Errors::Code Syscalls::opensess(capsel_t dst, const String &name, xfer_t arg) {
+    LLOG(SYSC, "opensess(dst=" << dst << ", name=" << name << ", arg=" << arg << ")");
+
+    KIF::Syscall::OpenSess req;
+    req.opcode = KIF::Syscall::OPEN_SESS;
+    req.dst_sel = dst;
+    req.arg = arg;
+    req.namelen = Math::min(name.length(), sizeof(req.name));
+    memcpy(req.name, name.c_str(), req.namelen);
+    size_t msgsize = sizeof(req) - sizeof(req.name) + req.namelen;
+    return send_receive_result(&req, Math::round_up(msgsize, DTU_PKG_SIZE));
 }
 
 Errors::Code Syscalls::exchange(capsel_t vpe, const KIF::CapRngDesc &own, capsel_t other, bool obtain) {

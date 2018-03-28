@@ -44,8 +44,7 @@ private:
 
 public:
     Errors::Code createsrv(capsel_t dst, capsel_t rgate, const String &name);
-    Errors::Code createsess(capsel_t dst, const String &name, xfer_t arg);
-    Errors::Code createsessat(capsel_t dst, capsel_t srv, word_t ident);
+    Errors::Code createsess(capsel_t dst, capsel_t srv, word_t ident);
     Errors::Code creatergate(capsel_t dst, int order, int msgorder);
     Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);
     Errors::Code createmgate(capsel_t dst, goff_t addr, size_t size, int perms);
@@ -58,6 +57,7 @@ public:
     Errors::Code vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t arg);
     Errors::Code vpewait(const capsel_t *vpes, size_t count, capsel_t *vpe, int *exitcode);
     Errors::Code derivemem(capsel_t dst, capsel_t src, goff_t offset, size_t size, int perms);
+    Errors::Code opensess(capsel_t dst, const String &name, xfer_t arg);
 
     Errors::Code delegate(capsel_t vpe, capsel_t sess, const KIF::CapRngDesc &crd,
                           KIF::ExchangeArgs *args = nullptr);

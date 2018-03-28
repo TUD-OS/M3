@@ -4,11 +4,11 @@ use core::fmt;
 use dtu::{EpId, FIRST_FREE_EP};
 use errors::Error;
 use kif;
-use session::Session;
+use session::ClientSession;
 use vpe::VPE;
 
 pub struct Pager {
-    sess: Session,
+    sess: ClientSession,
     sep: EpId,
     rep: EpId,
     rbuf: usize,
@@ -35,12 +35,12 @@ int_enum! {
 
 impl Pager {
     pub fn new(vpe: &mut VPE, rbuf: usize, pager: &str) -> Result<Self, Error> {
-        let sess = Session::new(pager, 0)?;
+        let sess = ClientSession::new(pager, 0)?;
         Self::create(vpe, rbuf, sess)
     }
 
     pub fn new_bind(sess_sel: cap::Selector, rgate: cap::Selector) -> Result<Self, Error> {
-        let sess = Session::new_bind(sess_sel);
+        let sess = ClientSession::new_bind(sess_sel);
         let sgate = SendGate::new_bind(sess.obtain_obj()?);
         Ok(Pager {
             sess: sess,
@@ -58,10 +58,10 @@ impl Pager {
         // dummy arg to distinguish from the get_sgate operation
         args.count = 1;
         let sess = self.sess.obtain(1, &mut args)?;
-        Self::create(vpe, rbuf, Session::new_owned_bind(sess.start()))
+        Self::create(vpe, rbuf, ClientSession::new_owned_bind(sess.start()))
     }
 
-    fn create(vpe: &mut VPE, rbuf: usize, sess: Session) -> Result<Self, Error> {
+    fn create(vpe: &mut VPE, rbuf: usize, sess: ClientSession) -> Result<Self, Error> {
         let own_sgate = SendGate::new_bind(sess.obtain_obj()?);
         let child_sgate = SendGate::new_bind(sess.obtain_obj()?);
         let sep = vpe.alloc_ep()?;
@@ -148,7 +148,7 @@ impl Pager {
     }
 
     pub fn map_ds(&self, addr: usize, len: usize, off: usize, prot: kif::Perm,
-                  sess: &Session) -> Result<usize, Error> {
+                  sess: &ClientSession) -> Result<usize, Error> {
         let mut args = kif::syscalls::ExchangeArgs {
             count: 5,
             vals: kif::syscalls::ExchangeUnion {

@@ -38,7 +38,7 @@ class Pager;
 class FStream;
 class EnvUserBackend;
 class RecvGate;
-class Session;
+class ClientSession;
 
 /**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
@@ -52,7 +52,7 @@ class VPE : public ObjCap {
     friend class EnvUserBackend;
     friend class CapRngDesc;
     friend class RecvGate;
-    friend class Session;
+    friend class ClientSession;
     friend class VFS;
 
     static const size_t BUF_SIZE;

@@ -20,17 +20,17 @@
 
 #include <m3/com/Gate.h>
 #include <m3/com/RecvGate.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/VPE.h>
 
 namespace m3 {
 
-class Interrupts : public Session {
+class Interrupts : public ClientSession {
 public:
     explicit Interrupts(const String &service, HWInterrupts::IRQ irq,
                         int buford = nextlog2<256>::val,
                         int msgord = nextlog2<64>::val)
-        : Session(service, irq),
+        : ClientSession(service, irq),
           _rgate(RecvGate::create(buford, msgord)),
           _sgate(SendGate::create(&_rgate, 0, SendGate::UNLIMITED)) {
         if(!Errors::occurred())

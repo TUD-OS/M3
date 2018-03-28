@@ -20,7 +20,7 @@
 #include <m3/server/EventHandler.h>
 #include <m3/session/arch/host/Keyboard.h>
 #include <m3/session/arch/host/Interrupts.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 
 using namespace m3;
 

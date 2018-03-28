@@ -158,10 +158,10 @@ NOINLINE static void create_srv() {
     cout << pr.runner_with_id(runner, 0x56) << "\n";
 }
 
-NOINLINE static void create_sess() {
+NOINLINE static void open_sess() {
     struct SyscallSessRunner : public Runner {
         void run() override {
-            Syscalls::get().createsess(selector, "m3fs", 0);
+            Syscalls::get().opensess(selector, "m3fs", 0);
             if(Errors::occurred())
                 PANIC("syscall failed");
         }
@@ -253,7 +253,7 @@ void bsyscall() {
     RUN_BENCH(create_mgate);
     RUN_BENCH(create_map);
     RUN_BENCH(create_srv);
-    RUN_BENCH(create_sess);
+    RUN_BENCH(open_sess);
     RUN_BENCH(derive_mem);
     RUN_BENCH(exchange);
     RUN_BENCH(revoke);

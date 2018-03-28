@@ -16,16 +16,16 @@
 
 #pragma once
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/com/SendGate.h>
 #include <m3/vfs/GenericFile.h>
 
 namespace m3 {
 
-class Pipe : public Session {
+class Pipe : public ClientSession {
 public:
     explicit Pipe(const String &service, MemGate &memory, size_t memsize)
-        : Session(service, memsize) {
+        : ClientSession(service, memsize) {
         delegate_obj(memory.sel());
     }
 

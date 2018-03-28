@@ -17,7 +17,7 @@
 #include <base/Env.h>
 
 #include <m3/com/GateStream.h>
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/session/arch/host/Plasma.h>
 #include <m3/session/arch/host/Keyboard.h>
 

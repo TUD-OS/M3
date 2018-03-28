@@ -36,7 +36,7 @@ Errors::Code Pager::map_anon(goff_t *virt, size_t len, int prot, int flags) {
     return Errors::NONE;
 }
 
-Errors::Code Pager::map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
+Errors::Code Pager::map_ds(goff_t *virt, size_t len, int prot, int flags, const ClientSession &sess,
                            size_t offset) {
     KIF::ExchangeArgs args;
     args.count = 5;

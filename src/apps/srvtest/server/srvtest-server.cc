@@ -17,6 +17,7 @@
 #include <base/Common.h>
 
 #include <m3/server/Server.h>
+#include <m3/session/ServerSession.h>
 #include <m3/stream/Standard.h>
 
 using namespace m3;
@@ -25,24 +26,25 @@ class MyHandler;
 
 static Server<MyHandler> *srv;
 
-class MyHandler : public Handler<void> {
+class MyHandler : public Handler<ServerSession> {
 public:
     MyHandler()
-        : Handler<void>(),
+        : Handler<ServerSession>(),
           _count() {
     }
 
-    virtual Errors::Code open(void **sess, word_t) override {
-        *sess = nullptr;
+    virtual Errors::Code open(ServerSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new ServerSession(srv_sel);
         return Errors::NONE;
     }
-    virtual Errors::Code obtain(void *, KIF::Service::ExchangeData &) override {
+    virtual Errors::Code obtain(ServerSession *, KIF::Service::ExchangeData &) override {
         if(++_count == 5)
             srv->shutdown();
         return Errors::NOT_SUP;
     }
-    virtual Errors::Code close(void *) override {
+    virtual Errors::Code close(ServerSession *sess) override {
         cout << "Client closed connection.\n";
+        delete sess;
         return Errors::NONE;
     }
 

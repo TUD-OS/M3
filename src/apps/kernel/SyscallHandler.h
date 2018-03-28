@@ -45,7 +45,6 @@ private:
     static void pagefault(VPE *vpe, const m3::DTU::Message *msg);
     static void createsrv(VPE *vpe, const m3::DTU::Message *msg);
     static void createsess(VPE *vpe, const m3::DTU::Message *msg);
-    static void createsessat(VPE *vpe, const m3::DTU::Message *msg);
     static void creatergate(VPE *vpe, const m3::DTU::Message *msg);
     static void createsgate(VPE *vpe, const m3::DTU::Message *msg);
     static void createmgate(VPE *vpe, const m3::DTU::Message *msg);
@@ -55,6 +54,7 @@ private:
     static void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
     static void vpewait(VPE *vpe, const m3::DTU::Message *msg);
     static void derivemem(VPE *vpe, const m3::DTU::Message *msg);
+    static void opensess(VPE *vpe, const m3::DTU::Message *msg);
     static void exchange(VPE *vpe, const m3::DTU::Message *msg);
     static void delegate(VPE *vpe, const m3::DTU::Message *msg);
     static void obtain(VPE *vpe, const m3::DTU::Message *msg);

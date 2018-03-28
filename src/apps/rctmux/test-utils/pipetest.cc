@@ -62,7 +62,7 @@ static void wait_for(const char *service) {
         for(volatile int x = 0; x < 10000; ++x)
             ;
 
-        Session *sess = new Session(service);
+        ClientSession *sess = new ClientSession(service);
         if(sess->is_connected()) {
             delete sess;
             break;

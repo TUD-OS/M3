@@ -18,17 +18,17 @@
 
 #include <base/Panic.h>
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/com/MemGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
 
 namespace m3 {
 
-class Pager : public Session {
+class Pager : public ClientSession {
 private:
     explicit Pager(VPE &vpe, capsel_t sess)
-        : Session(sess, 0),
+        : ClientSession(sess, 0),
           _sep(vpe.alloc_ep()),
           _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
@@ -67,7 +67,7 @@ public:
     };
 
     explicit Pager(capsel_t sess, capsel_t rgate)
-        : Session(sess),
+        : ClientSession(sess),
           _sep(0),
           _rep(0),
           _rgate(RecvGate::bind(rgate, nextlog2<64>::val)),
@@ -75,7 +75,7 @@ public:
           _child_sgate(SendGate::bind(ObjCap::INVALID)) {
     }
     explicit Pager(VPE &vpe, const String &service)
-        : Session(service),
+        : ClientSession(service),
           _sep(vpe.alloc_ep()),
           _rep(vpe.alloc_ep()),
           _rgate(vpe.pe().has_mmu() ? RecvGate::create_for(vpe, nextlog2<64>::val, nextlog2<64>::val)
@@ -117,7 +117,7 @@ public:
     Errors::Code clone();
     Errors::Code pagefault(goff_t addr, uint access);
     Errors::Code map_anon(goff_t *virt, size_t len, int prot, int flags);
-    Errors::Code map_ds(goff_t *virt, size_t len, int prot, int flags, const Session &sess,
+    Errors::Code map_ds(goff_t *virt, size_t len, int prot, int flags, const ClientSession &sess,
                         size_t offset);
     Errors::Code map_mem(goff_t *virt, MemGate &mem, size_t len, int prot);
     Errors::Code unmap(goff_t virt);

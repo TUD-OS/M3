@@ -19,24 +19,34 @@
 #include <base/Errors.h>
 #include <base/KIF.h>
 
-#include <m3/vfs/GenericFile.h>
+#include <m3/server/Server.h>
 #include <m3/ObjCap.h>
+#include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
 namespace m3 {
 
-class VTerm : public ClientSession {
+/**
+ * A server session is used to represent sessions at the server side.
+ */
+class ServerSession : public ObjCap {
 public:
-    explicit VTerm(const String &name) : ClientSession(name) {
+    /**
+     * Creates a session for the given server.
+     *
+     * @param srv_sel the server selector
+     * @param sel the desired selector
+     */
+    explicit ServerSession(capsel_t srv_sel, capsel_t _sel = ObjCap::INVALID)
+        : ObjCap(SESSION) {
+        if(_sel == ObjCap::INVALID)
+            _sel = VPE::self().alloc_sel();
+        Syscalls::get().createsess(_sel, srv_sel, reinterpret_cast<word_t>(this));
+        sel(_sel);
     }
 
-    GenericFile *create_channel(bool read) {
-        capsel_t sels = VPE::self().alloc_sels(2);
-        KIF::ExchangeArgs args;
-        args.count = 1;
-        args.vals[0] = read ? 0 : 1;
-        obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, 2), &args);
-        return new GenericFile(sels);
+    // has to be virtual, because we pass <this> as the ident to the kernel
+    virtual ~ServerSession() {
     }
 };
 

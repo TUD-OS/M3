@@ -13,7 +13,7 @@ pub struct Server {
 }
 
 pub trait Handler {
-    fn open(&mut self, arg: u64) -> Result<SessId, Error>;
+    fn open(&mut self, srv_sel: Selector, arg: u64) -> Result<Selector, Error>;
 
     fn obtain(&mut self, _sid: SessId, _data: &mut service::ExchangeData) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
@@ -50,7 +50,7 @@ impl Server {
         if let Some(mut is) = is {
             let op: service::Operation = is.pop();
             match op {
-                service::Operation::OPEN        => Self::handle_open(hdl, is),
+                service::Operation::OPEN        => Self::handle_open(hdl, self.sel(), is),
                 service::Operation::OBTAIN      => Self::handle_obtain(hdl, is),
                 service::Operation::DELEGATE    => Self::handle_delegate(hdl, is),
                 service::Operation::CLOSE       => Self::handle_close(hdl, is),
@@ -63,15 +63,15 @@ impl Server {
         }
     }
 
-    fn handle_open(hdl: &mut Handler, mut is: GateIStream) -> Result<(), Error> {
+    fn handle_open(hdl: &mut Handler, sel: Selector, mut is: GateIStream) -> Result<(), Error> {
         let arg: u64 = is.pop();
-        let res = hdl.open(arg);
+        let res = hdl.open(sel, arg);
 
         log!(SERV, "server::open({}) -> {:?}", arg, res);
 
         match res {
-            Ok(sid) => {
-                let reply = service::OpenReply { res: 0, sess: sid, };
+            Ok(sel) => {
+                let reply = service::OpenReply { res: 0, sess: sel as u64, };
                 is.reply(&[reply])?
             },
             Err(e) => {

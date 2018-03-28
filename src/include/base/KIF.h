@@ -126,7 +126,6 @@ struct KIF {
             // capability creations
             CREATE_SRV,
             CREATE_SESS,
-            CREATE_SESS_AT,
             CREATE_RGATE,
             CREATE_SGATE,
             CREATE_MGATE,
@@ -138,6 +137,7 @@ struct KIF {
             VPE_CTRL,
             VPE_WAIT,
             DERIVE_MEM,
+            OPEN_SESS,
 
             // capability exchange
             DELEGATE,
@@ -176,13 +176,6 @@ struct KIF {
         } PACKED;
 
         struct CreateSess : public DefaultRequest {
-            xfer_t dst_sel;
-            xfer_t arg;
-            xfer_t namelen;
-            char name[32];
-        } PACKED;
-
-        struct CreateSessAt : public DefaultRequest {
             xfer_t dst_sel;
             xfer_t srv_sel;
             xfer_t ident;
@@ -260,6 +253,13 @@ struct KIF {
             xfer_t offset;
             xfer_t size;
             xfer_t perms;
+        } PACKED;
+
+        struct OpenSess : public DefaultRequest {
+            xfer_t dst_sel;
+            xfer_t arg;
+            xfer_t namelen;
+            char name[32];
         } PACKED;
 
         struct Exchange : public DefaultRequest {

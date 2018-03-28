@@ -14,25 +14,25 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/session/Session.h>
+#include <m3/session/ClientSession.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
 namespace m3 {
 
-void Session::connect(const String &service, xfer_t arg, capsel_t selector) {
+void ClientSession::connect(const String &service, xfer_t arg, capsel_t selector) {
     if(selector == ObjCap::INVALID)
         selector = VPE::self().alloc_sel();
-    Errors::Code res = Syscalls::get().createsess(selector, service, arg);
+    Errors::Code res = Syscalls::get().opensess(selector, service, arg);
     if(res == Errors::NONE)
         sel(selector);
 }
 
-Errors::Code Session::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+Errors::Code ClientSession::delegate_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
     return Syscalls::get().delegate(vpe.sel(), sel(), crd, args);
 }
 
-Errors::Code Session::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
+Errors::Code ClientSession::obtain_for(VPE &vpe, const KIF::CapRngDesc &crd, KIF::ExchangeArgs *args) {
     vpe.mark_caps_allocated(crd.start(), crd.count());
     return Syscalls::get().obtain(vpe.sel(), sel(), crd, args);
 }

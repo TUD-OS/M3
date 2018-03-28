@@ -64,7 +64,7 @@ void SessObject::close() {
 }
 
 SessObject::~SessObject() {
-    if(!servowned)
+    if(!invalid)
         close();
 }
 
@@ -94,8 +94,11 @@ void MapCapability::revoke() {
 }
 
 void SessCapability::revoke() {
-    // if the server created that, we want to close it as soon as there are no clients using it anymore
-    if(obj->servowned && obj->refcount() == 2)
+    // the server's session cap is directly derived from the service. if the server revokes it,
+    // disable further close-messages to the server
+    if(parent()->type == SERV)
+        obj->invalid = true;
+    else if(obj->refcount() == 2)
         obj->close();
 }
 
@@ -163,7 +166,7 @@ void SessCapability::printInfo(m3::OStream &os) const {
     os << ": sess [refs=" << obj->refcount()
         << ", serv=" << obj->srv->name()
         << ", ident=#" << m3::fmt(obj->ident, "x")
-        << ", servowned=" << obj->servowned << "]";
+        << ", invalid=" << obj->invalid << "]";
 }
 
 void EPCapability::printInfo(m3::OStream &os) const {

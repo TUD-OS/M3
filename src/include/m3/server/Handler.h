@@ -29,7 +29,7 @@ public:
     virtual ~Handler() {
     }
 
-    virtual Errors::Code open(SESS **sess, word_t) = 0;
+    virtual Errors::Code open(SESS **sess, capsel_t, word_t) = 0;
     virtual Errors::Code obtain(SESS *, KIF::Service::ExchangeData &) {
         return Errors::NOT_SUP;
     }
