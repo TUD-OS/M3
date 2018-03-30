@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     VFS::mount("/", "m3fs");
 
     // defaults
-    int num_iterations  = 4;
+    int num_iterations  = 8;
     bool keep_time      = true;
     bool make_ckpt      = false;
     bool wait           = false;
