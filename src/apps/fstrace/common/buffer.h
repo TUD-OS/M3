@@ -22,9 +22,9 @@
 class Buffer {
   public:
 #if defined(__t2__)
-    enum { MaxBufferSize = 4*1024 };
+    static constexpr size_t MaxBufferSize = 4*1024;
 #else
-    enum { MaxBufferSize = 32*1024 };
+    static constexpr size_t MaxBufferSize = 8*1024;
 #endif
 
     Buffer(size_t maxReadSize = MaxBufferSize,

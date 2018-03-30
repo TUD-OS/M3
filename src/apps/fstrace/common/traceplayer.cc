@@ -33,17 +33,35 @@
 int TracePlayer::play(bool wait, bool keep_time, bool) {
     trace_op_t *op = trace_ops;
 
+    size_t rdBufSize = 0;
+    size_t wrBufSize = 0;
+
     // touch all operations to make sure we don't get pagefaults in trace_ops arrary
     unsigned int numTraceOps = 0;
     while (op && op->opcode != INVALID_OP) {
         op++;
         if (op->opcode != WAITUNTIL_OP)
             numTraceOps++;
+
+        // determine max read and write buf size
+        switch(op->opcode) {
+            case READ_OP:
+            case PREAD_OP:
+                rdBufSize = rdBufSize < op->args.read.size ? op->args.read.size : rdBufSize;
+                break;
+            case WRITE_OP:
+            case PWRITE_OP:
+                wrBufSize = wrBufSize < op->args.write.size ? op->args.write.size : wrBufSize;
+                break;
+            case SENDFILE_OP:
+                rdBufSize = rdBufSize < Buffer::MaxBufferSize ? Buffer::MaxBufferSize : rdBufSize;
+                break;
+        }
     }
 
     Platform::logf("Replaying %u operations ...\n", numTraceOps);
 
-    Buffer buf;
+    Buffer buf(rdBufSize, wrBufSize);
     int lineNo = 1;
     unsigned int numReplayed = 0;
     FSAPI *fs = Platform::fsapi(wait, pathPrefix);
