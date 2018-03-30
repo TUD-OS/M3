@@ -10,7 +10,7 @@ def CheckRust(context):
 rustenv = env.Clone()
 conf = Configure(rustenv, custom_tests={'CheckRust': CheckRust})
 
-if conf.CheckRust():
+if env['ISA'] == 'x86_64' and conf.CheckRust():
     env.SConscript(env.Glob('*/SConscript'), 'env')
 
 conf.Finish()
