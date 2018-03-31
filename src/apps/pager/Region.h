@@ -102,8 +102,6 @@ public:
     void offset(size_t offset) {
         // the offset can only be increased, but not decreased
         assert(offset >= _offset);
-        assert(_size > offset - _offset);
-        _size -= offset - _offset;
         _offset = offset;
     }
 

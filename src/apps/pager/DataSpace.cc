@@ -131,7 +131,7 @@ m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
         else {
             size_t old = reg->offset();
             reg->offset(capbegin - fileoff);
-            reg->size(reg->size() - (old - reg->offset()));
+            reg->size(reg->size() - (reg->offset() - old));
         }
 
         // ensure that we don't exceed the memcap size
