@@ -21,9 +21,6 @@ impl Service {
         }
     }
 
-    pub fn sel(&self) -> CapSel {
-        self.sel
-    }
     pub fn vpe(&self) -> &Rc<RefCell<VPE>> {
         &self.vpe
     }

@@ -4,7 +4,7 @@ use base::col::{KeyOrd, Treap};
 use base::kif::{CapRngDesc, CapSel};
 use core::cmp;
 use core::fmt;
-use core::ptr::{Shared, Unique};
+use core::ptr::{NonNull, Unique};
 
 use cap::KObject;
 use com::ServiceList;
@@ -55,11 +55,11 @@ impl KeyOrd for SelRange {
 
 pub struct CapTable {
     caps: Treap<SelRange, Capability>,
-    vpe: Option<Shared<VPE>>,
+    vpe: Option<NonNull<VPE>>,
 }
 
-unsafe fn as_shared<T>(obj: &mut T) -> Shared<T> {
-    Shared::from(Unique::new_unchecked(obj as *mut T))
+unsafe fn as_shared<T>(obj: &mut T) -> NonNull<T> {
+    NonNull::from(Unique::new_unchecked(obj as *mut T))
 }
 
 impl CapTable {
@@ -71,7 +71,7 @@ impl CapTable {
     }
 
     pub unsafe fn set_vpe(&mut self, vpe: *mut VPE) {
-        self.vpe = Some(Shared::from(Unique::new_unchecked(vpe)));
+        self.vpe = Some(NonNull::from(Unique::new_unchecked(vpe)));
     }
 
     pub fn unused(&self, sel: CapSel) -> bool {
@@ -101,21 +101,21 @@ impl CapTable {
     }
     pub fn insert_as_child(&mut self, cap: Capability, parent_sel: CapSel) {
         unsafe {
-            let parent: Option<Shared<Capability>> = self.get_shared(parent_sel);
+            let parent: Option<NonNull<Capability>> = self.get_shared(parent_sel);
             self.do_insert(cap, parent);
         }
     }
     pub fn insert_as_child_from(&mut self, cap: Capability, par_tbl: &mut CapTable, par_sel: CapSel) {
         unsafe {
-            let parent: Option<Shared<Capability>> = par_tbl.get_shared(par_sel);
+            let parent: Option<NonNull<Capability>> = par_tbl.get_shared(par_sel);
             self.do_insert(cap, parent);
         }
     }
 
-    unsafe fn get_shared(&mut self, sel: CapSel) -> Option<Shared<Capability>> {
-        self.caps.get_mut(&SelRange::new(sel)).map(|cap| Shared::new_unchecked(cap))
+    unsafe fn get_shared(&mut self, sel: CapSel) -> Option<NonNull<Capability>> {
+        self.caps.get_mut(&SelRange::new(sel)).map(|cap| NonNull::new_unchecked(cap))
     }
-    unsafe fn do_insert(&mut self, child: Capability, parent: Option<Shared<Capability>>) {
+    unsafe fn do_insert(&mut self, child: Capability, parent: Option<NonNull<Capability>>) {
         let mut child_cap = self.insert(child);
         if let Some(parent_cap) = parent {
             (*parent_cap.as_ptr()).inherit(&mut child_cap);
@@ -165,11 +165,11 @@ impl fmt::Debug for CapTable {
 pub struct Capability {
     sels: SelRange,
     obj: KObject,
-    table: Option<Shared<CapTable>>,
-    child: Option<Shared<Capability>>,
-    parent: Option<Shared<Capability>>,
-    next: Option<Shared<Capability>>,
-    prev: Option<Shared<Capability>>,
+    table: Option<NonNull<CapTable>>,
+    child: Option<NonNull<Capability>>,
+    parent: Option<NonNull<Capability>>,
+    next: Option<NonNull<Capability>>,
+    prev: Option<NonNull<Capability>>,
 }
 
 impl Capability {
@@ -311,7 +311,7 @@ impl Capability {
     }
 }
 
-fn print_childs(cap: Shared<Capability>, f: &mut fmt::Formatter) -> fmt::Result {
+fn print_childs(cap: NonNull<Capability>, f: &mut fmt::Formatter) -> fmt::Result {
     static LAYER: StaticCell<u32> = StaticCell::new(5);
     use core::fmt::Write;
     let mut next = Some(cap);

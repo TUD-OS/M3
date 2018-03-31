@@ -1,11 +1,11 @@
 use boxed::Box;
 use core::marker::PhantomData;
-use core::ptr::Shared;
+use core::ptr::NonNull;
 use core::fmt;
 
 struct Node<T> {
-    next: Option<Shared<Node<T>>>,
-    prev: Option<Shared<Node<T>>>,
+    next: Option<NonNull<Node<T>>>,
+    prev: Option<NonNull<Node<T>>>,
     data: T,
 }
 
@@ -25,7 +25,7 @@ impl<T> Node<T> {
 
 /// The iterator for `DList`
 pub struct DListIter<'a, T: 'a> {
-    head: Option<Shared<Node<T>>>,
+    head: Option<NonNull<Node<T>>>,
     marker: PhantomData<&'a Node<T>>,
 }
 
@@ -44,7 +44,7 @@ impl<'a, T> Iterator for DListIter<'a, T> {
 /// The mutable iterator for `DList`
 pub struct DListIterMut<'a, T: 'a> {
     list: &'a mut DList<T>,
-    head: Option<Shared<Node<T>>>,
+    head: Option<NonNull<Node<T>>>,
 }
 
 impl<'a, T> Iterator for DListIterMut<'a, T> {
@@ -121,14 +121,14 @@ impl<'a, T> DListIterMut<'a, T> {
         }
     }
 
-    fn insert_before_node(&mut self, mut node: Shared<Node<T>>, data: T) {
+    fn insert_before_node(&mut self, mut node: NonNull<Node<T>>, data: T) {
         unsafe {
             let mut prev = match node.as_ref().prev {
                 None => return self.list.push_front(data),
                 Some(prev) => prev,
             };
 
-            let new = Some(Shared::from(Box::into_unique(Box::new(Node {
+            let new = Some(NonNull::from(Box::into_raw_non_null(Box::new(Node {
                 next: Some(node),
                 prev: Some(prev),
                 data,
@@ -189,8 +189,8 @@ pub struct DListIntoIter<T> {
 /// In contrast to `col::LinkedList`, it supports the insertion (before and after the current
 /// element) and removal of elements during iteration.
 pub struct DList<T> {
-    head: Option<Shared<Node<T>>>,
-    tail: Option<Shared<Node<T>>>,
+    head: Option<NonNull<Node<T>>>,
+    tail: Option<NonNull<Node<T>>>,
     len: usize,
     marker: PhantomData<Box<Node<T>>>,
 }
@@ -268,7 +268,7 @@ impl<T> DList<T> {
             let mut node = Box::new(Node::new(data));
             node.next = self.head;
             node.prev = None;
-            let node = Some(Shared::from(Box::into_unique(node)));
+            let node = Some(NonNull::from(Box::into_raw_non_null(node)));
 
             match self.head {
                 None => self.tail = node,
@@ -302,7 +302,7 @@ impl<T> DList<T> {
             let mut node = Box::new(Node::new(data));
             node.next = None;
             node.prev = self.tail;
-            let node = Some(Shared::from(Box::into_unique(node)));
+            let node = Some(NonNull::from(Box::into_raw_non_null(node)));
 
             match self.tail {
                 None            => self.head = node,

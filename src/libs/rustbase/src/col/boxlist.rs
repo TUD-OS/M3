@@ -1,12 +1,12 @@
 use core::fmt;
 use core::intrinsics;
 use core::marker::PhantomData;
-use core::ptr::Shared;
+use core::ptr::NonNull;
 
 use boxed::Box;
 
 /// A reference to an element in the list
-pub type BoxRef<T> = Shared<T>;
+pub type BoxRef<T> = NonNull<T>;
 
 /// The trait for the list elements
 pub trait BoxItem {
@@ -31,8 +31,8 @@ pub trait BoxItem {
 /// ```
 /// struct $t {
 ///     ...
-///     next: Option<Shared<$t>>,
-///     prev: Option<Shared<$t>>,
+///     next: Option<NonNull<$t>>,
+///     prev: Option<NonNull<$t>>,
 ///     ...
 /// }
 /// ```
@@ -214,7 +214,7 @@ impl<T : BoxItem> BoxList<T> {
             item.set_next(intrinsics::transmute(self.head));
             item.set_prev(None);
 
-            let item_ptr = Some(Shared::new_unchecked(Box::into_raw(item)));
+            let item_ptr = Some(NonNull::new_unchecked(Box::into_raw(item)));
 
             match self.head {
                 None => self.tail = item_ptr,
@@ -232,7 +232,7 @@ impl<T : BoxItem> BoxList<T> {
             item.set_next(None);
             item.set_prev(intrinsics::transmute(self.tail));
 
-            let item_ptr = Some(Shared::new_unchecked(Box::into_raw(item)));
+            let item_ptr = Some(NonNull::new_unchecked(Box::into_raw(item)));
 
             match self.tail {
                 None            => self.head = item_ptr,

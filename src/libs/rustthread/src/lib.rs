@@ -1,6 +1,4 @@
 #![feature(core_intrinsics)]
-#![feature(shared, unique)]
-#![feature(i128_type)]
 
 #![no_std]
 
@@ -16,7 +14,7 @@ use base::libc;
 use base::util;
 use core::intrinsics;
 use core::mem;
-use core::ptr::Shared;
+use core::ptr::NonNull;
 
 pub type Event = u64;
 
@@ -43,8 +41,8 @@ fn alloc_id() -> u32 {
 }
 
 pub struct Thread {
-    prev: Option<Shared<Thread>>,
-    next: Option<Shared<Thread>>,
+    prev: Option<NonNull<Thread>>,
+    next: Option<NonNull<Thread>>,
     id: u32,
     regs: Regs,
     stack: Vec<u64>,

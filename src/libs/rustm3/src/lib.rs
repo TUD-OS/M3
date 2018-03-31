@@ -2,7 +2,6 @@
 #![feature(const_fn, const_cell_new)]
 #![feature(core_intrinsics)]
 #![feature(fnbox)]
-#![feature(i128_type)]
 #![feature(offset_to)]
 #![feature(rustc_private)]
 #![feature(trace_macros)]

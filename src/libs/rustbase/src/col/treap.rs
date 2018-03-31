@@ -3,7 +3,7 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::mem;
 use core::num::Wrapping;
-use core::ptr::{read_volatile, Shared};
+use core::ptr::{read_volatile, NonNull};
 
 /// A trait for the comparison of keys
 pub trait KeyOrd {
@@ -23,8 +23,8 @@ impl KeyOrd for u32 {
 }
 
 struct Node<K, V> {
-    left: Option<Shared<Node<K, V>>>,
-    right: Option<Shared<Node<K, V>>>,
+    left: Option<NonNull<Node<K, V>>>,
+    right: Option<NonNull<Node<K, V>>>,
     prio: Wrapping<u32>,
     key: K,
     value: V,
@@ -59,7 +59,7 @@ impl<K : Copy + KeyOrd, V> Node<K, V> {
 /// simulator, written by Donald Knuth
 #[derive(Default)]
 pub struct Treap<K : Copy + KeyOrd, V> {
-    root: Option<Shared<Node<K, V>>>,
+    root: Option<NonNull<Node<K, V>>>,
     prio: Wrapping<u32>,
 }
 
@@ -88,7 +88,7 @@ impl<K : Copy + KeyOrd, V> Treap<K, V> {
         self.prio = Wrapping(314159265);
     }
 
-    fn remove_rec(node: Shared<Node<K, V>>) {
+    fn remove_rec(node: NonNull<Node<K, V>>) {
         unsafe {
             (*node.as_ptr()).left.map(|l| {
                 Self::remove_rec(l);
@@ -127,7 +127,7 @@ impl<K : Copy + KeyOrd, V> Treap<K, V> {
         }
     }
 
-    fn get_node(&self, key: &K) -> Option<Shared<Node<K, V>>> {
+    fn get_node(&self, key: &K) -> Option<NonNull<Node<K, V>>> {
         let mut node = self.root;
         loop {
             match node {
@@ -190,7 +190,7 @@ impl<K : Copy + KeyOrd, V> Treap<K, V> {
                 *r = None;
             }
 
-            *q = Some(Shared::from(Box::into_unique(Box::new(node))));
+            *q = Some(NonNull::from(Box::into_raw_non_null(Box::new(node))));
 
             // fibonacci hashing to spread the priorities very even in the 32-bit room
             self.prio += Wrapping(0x9e3779b9);    // floor(2^32 / phi), with phi = golden ratio
@@ -232,7 +232,7 @@ impl<K : Copy + KeyOrd, V> Treap<K, V> {
         }
     }
 
-    fn remove_from(p: &mut Option<Shared<Node<K, V>>>, node: Shared<Node<K, V>>) {
+    fn remove_from(p: &mut Option<NonNull<Node<K, V>>>, node: NonNull<Node<K, V>>) {
         unsafe {
             match ((*node.as_ptr()).left, (*node.as_ptr()).right) {
                 // two childs
@@ -274,7 +274,7 @@ impl<K : Copy + KeyOrd, V> Drop for Treap<K, V> {
     }
 }
 
-fn print_rec<K, V>(node: Shared<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Result
+fn print_rec<K, V>(node: NonNull<Node<K, V>>, f: &mut fmt::Formatter) -> fmt::Result
                    where K : Copy + KeyOrd + fmt::Debug, V: fmt::Debug {
     let node_ptr = node.as_ptr();
     unsafe {
