@@ -210,6 +210,7 @@ size_t OStream::printfloat(float d, size_t precision) {
     else if(Math::is_inf(d))
         c += puts("inf");
     else {
+        // TODO this simple approach does not work in general
         llong val = static_cast<llong>(d);
         c += printn(val);
         d -= val;
