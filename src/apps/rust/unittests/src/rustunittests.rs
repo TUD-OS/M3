@@ -55,5 +55,6 @@ pub fn main() -> i32 {
     run_suite!(tester, ttreap::run);
     run_suite!(tester, tvpe::run);
 
+    println!("\x1B[1;32mAll tests successful!\x1B[0;m");
     0
 }

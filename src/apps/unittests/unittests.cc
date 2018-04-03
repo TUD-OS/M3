@@ -42,9 +42,9 @@ int main() {
     RUN_SUITE(theap);
     RUN_SUITE(tstream);
 
-    cout << "---------------------------------------\n";
-    cout << "\033[1mIn total: " << (failed == 0 ? "\033[1;32m" : "\033[1;31m")
-            << succeeded << "\033[1m of " << (failed + succeeded) << " tests successfull\033[0;m\n";
-    cout << "---------------------------------------\n";
+    if(failed > 0)
+        cout << "\033[1;31m" << failed << " tests failed\033[0;m\n";
+    else
+        cout << "\033[1;32mAll tests successful!\033[0;m\n";
     return 0;
 }
