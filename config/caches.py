@@ -15,6 +15,14 @@ dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
 mmu = int(os.environ.get('M3_GEM5_MMU', 0))
 mem_pe = num_pes
 
+# Memory watch example:
+# options.mem_watches = {
+#     5 : [
+#         AddrRange(0x0, 0x100000),
+#         AddrRange(0xf0000000, 0xf0001000),
+#     ],
+# }
+
 pes = []
 
 # create the core PEs
