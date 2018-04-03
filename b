@@ -14,6 +14,9 @@ fi
 if [ -z $M3_TARGET ]; then
     M3_TARGET='host'
 fi
+if [ -z $M3_GEM5_OUT ]; then
+    M3_GEM5_OUT="run"
+fi
 
 if [ "$M3_TARGET" = "t3" ]; then
     M3_ISA='xtensa'
@@ -210,7 +213,7 @@ case "$cmd" in
             if [ "$DBG_GEM5" = "1" ]; then
                 ./src/tools/execute.sh $script
             else
-                ./src/tools/execute.sh $script 2>&1 | tee run/log.txt
+                ./src/tools/execute.sh $script 2>&1 | tee $M3_GEM5_OUT/log.txt
             fi
         fi
         ;;
@@ -287,11 +290,11 @@ case "$cmd" in
             kill_m3_procs
             rm $tmp
         elif [ "$M3_TARGET" = "gem5" ]; then
-            truncate --size 0 run/log.txt
-            ./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>run/log.txt 2>&1 &
+            truncate --size 0 $M3_GEM5_OUT/log.txt
+            ./src/tools/execute.sh $script --debug=${cmd#dbg=} 1>$M3_GEM5_OUT/log.txt 2>&1 &
 
             # wait until it has started
-            while [ "`grep --text "Global frequency set at" run/log.txt`" = "" ]; do
+            while [ "`grep --text "Global frequency set at" $M3_GEM5_OUT/log.txt`" = "" ]; do
                 sleep 1
             done
 
@@ -299,7 +302,7 @@ case "$cmd" in
                 port=$(($M3_PAUSE_PE + 7000))
             else
                 echo "Warning: M3_PAUSE_PE not specified; gem5 won't wait for GDB."
-                pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" run/log.txt | cut -d : -f 1`
+                pe=`grep --text "^PE.*$build/bin/${cmd#dbg=}" $M3_GEM5_OUT/log.txt | cut -d : -f 1`
                 port=$((${pe#PE} + 7000))
             fi
 
