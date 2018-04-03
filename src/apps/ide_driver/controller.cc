@@ -23,7 +23,9 @@
  */
 
 #include <base/DTU.h>
+#include <base/Heap.h>
 #include <base/Panic.h>
+
 #include <m3/VPE.h>
 #include <m3/com/GateStream.h>
 #include <m3/com/SendGate.h>
@@ -313,7 +315,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 
 			// allocate memory for PRDT and buffer
 			ctrls[i].dma_prdt_virt =
-			    (sPRD *) malloc(sizeof(4096*PRDT_PAGE_COUNT));
+			    (sPRD *) Heap::alloc(sizeof(4096*PRDT_PAGE_COUNT));
 			/*original statement in Escape OS:
 			    dma_prdt_virt = static_cast<sPRD*>(
 				    mmapphys((uintptr_t*)&ctrls[i].dma_prdt_phys,8,
@@ -323,7 +325,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 				PANIC("Unable to allocate PRDT for controller " << ctrls[i].id);
 
 			ctrls[i].dma_buf_virt =
-			    (void *) malloc(sizeof(DMA_BUF_SIZE));
+			    (void *) Heap::alloc(sizeof(DMA_BUF_SIZE));
 			/*original statement in Escape OS:
 			    dma_buf_virt = mmapphys((uintptr_t*)&ctrls[i].dma_buf_phys,
 					DMA_BUF_SIZE,DMA_BUF_SIZE,MAP_PHYS_ALLOC);*/
