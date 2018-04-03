@@ -2,15 +2,31 @@
 
 use arch::cfg;
 use core::intrinsics;
-use libc;
 use io;
+use libc;
 use util;
+
+const HEAP_USED_BITS: u64 = 0x5 << (8 * 8 - 3);
 
 #[repr(C, packed)]
 pub struct HeapArea {
     pub next: u64,    /* HEAP_USED_BITS set = used */
     pub prev: u64,
     _pad: [u8; 64 - 16],
+}
+
+impl HeapArea {
+    fn is_used(&self) -> bool {
+        (self.next & HEAP_USED_BITS) != 0
+    }
+    unsafe fn forward(&mut self, size: usize) -> *mut HeapArea {
+        let next = (self as *mut _ as usize) + size;
+        next as *mut HeapArea
+    }
+    unsafe fn backwards(&mut self, size: usize) -> *mut HeapArea {
+        let prev = (self as *mut _ as usize) - size;
+        prev as *mut HeapArea
+    }
 }
 
 extern {
@@ -127,6 +143,25 @@ pub fn free_memory() -> usize {
 pub fn used_end() -> usize {
     unsafe {
         heap_used_end()
+    }
+}
+
+pub fn print() {
+    unsafe {
+        let print_area = |a: *mut HeapArea| {
+            log!(DEF, "  Area[addr={:#x}, prev={:#x}, size={:#x}, used={}]",
+                 a as usize + util::size_of::<HeapArea>(),
+                 (*a).backwards((*a).prev as usize) as usize + util::size_of::<HeapArea>(),
+                 (*a).next & !HEAP_USED_BITS,
+                 (*a).is_used());
+        };
+
+        let mut a = heap_begin;
+        while a < heap_end {
+            print_area(a);
+            a = (*a).forward(((*a).next & !HEAP_USED_BITS) as usize);
+        }
+        print_area(heap_end);
     }
 }
 
