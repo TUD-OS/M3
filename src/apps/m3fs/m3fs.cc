@@ -25,6 +25,7 @@
 #include <m3/server/Server.h>
 
 #include <limits>
+#include <stdlib.h>
 
 #include "sess/FileSession.h"
 #include "sess/MetaSession.h"
