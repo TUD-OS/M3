@@ -201,7 +201,7 @@ impl VPE {
         };
 
         let rbuf = if args.pe.has_mmu() {
-            vpe.alloc_rbuf(util::next_log2(VMA_RBUF_SIZE) as usize)?
+            vpe.alloc_rbuf(VMA_RBUF_SIZE)?
         }
         else {
             0
