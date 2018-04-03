@@ -243,7 +243,7 @@ bool AddrSpace::create_ptes(const VPEDesc &vpe, goff_t &virt, goff_t pteAddr, m3
         if(downgrade) {
             for(goff_t vaddr = virt - i * PAGE_SIZE; vaddr < virt; vaddr += PAGE_SIZE) {
                 if(_pe.has_mmu())
-                    mmu_cmd_remote(vpe, virt | m3::DTU::ExtReqOpCode::INV_PAGE);
+                    mmu_cmd_remote(vpe, vaddr | m3::DTU::ExtReqOpCode::INV_PAGE);
                 DTU::get().invlpg_remote(vpe, vaddr);
             }
         }
