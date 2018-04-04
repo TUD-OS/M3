@@ -59,12 +59,11 @@ for i in range(0, num_mem):
 
 # create the persistent storage PEs
 for i in range(0, num_sto):
-    pe = createPersistIdePE(noc=root.noc,
-                            options=options,
-                            no=num_pes + num_mem + i,
-                            memPE=mem_pe,
-                            cache_size=None,
-                            img0=hard_disk0)
+    pe = createStoragePE(noc=root.noc,
+                         options=options,
+                         no=num_pes + num_mem + i,
+                         memPE=mem_pe,
+                         img0=hard_disk0)
     pes.append(pe)
 
 runSimulation(root, options, pes)
