@@ -419,7 +419,6 @@ public:
     void printInfo(m3::OStream &os) const override;
 
 private:
-    virtual void revoke() override;
     virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
         VPECapability *v = new VPECapability(*this);
         v->put(tbl, sel);

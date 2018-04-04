@@ -110,9 +110,6 @@ void ServCapability::revoke() {
     obj->abort();
 }
 
-void VPECapability::revoke() {
-}
-
 void Capability::print(m3::OStream &os) const {
     os << m3::fmt(table()->id(), 2) << " @ " << m3::fmt(sel(), 6);
     printInfo(os);
