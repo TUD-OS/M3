@@ -281,7 +281,7 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::InvArgs, "Selector {} already in use", dst_sel);
     }
     if ServiceList::get().find(&name).is_some() {
-        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
+        sysc_err!(vpe, Code::Exists, "Service {} does already exist", name);
     }
 
     let rgate: Rc<RefCell<RGateObject>> = get_kobj!(vpe, rgate_sel, RGate);
@@ -532,7 +532,7 @@ fn open_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), E
 
     let sentry: Option<&Service> = ServiceList::get().find(name);
     if sentry.is_none() {
-        sysc_err!(vpe, Code::Exists, "Selector {} does already exist", name);
+        sysc_err!(vpe, Code::InvArgs, "Service {} does not exist", name);
     }
 
     let smsg = kif::service::Open {
