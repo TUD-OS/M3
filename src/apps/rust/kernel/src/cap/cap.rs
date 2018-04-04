@@ -215,6 +215,10 @@ impl Capability {
                 (*n.as_ptr()).prev = Some(as_shared(child));
             }
             self.child = Some(as_shared(child));
+
+            if let KObject::Sess(ref mut k) = self.obj {
+                k.borrow_mut().users += 1;
+            }
         }
     }
 
@@ -292,6 +296,19 @@ impl Capability {
             KObject::SGate(_) | KObject::RGate(_) | KObject::MGate(_) => {
                 let sel = self.sel();
                 self.invalidate_ep(sel)
+            },
+
+            KObject::Sess(ref s) => unsafe {
+                let mut sess = s.borrow_mut();
+                if let KObject::Serv(_) = (*self.parent.unwrap().as_ptr()).obj {
+                    sess.invalid = true;
+                }
+                else {
+                    sess.users -= 1;
+                    if !sess.invalid && sess.users == 0 {
+                        sess.close();
+                    }
+                }
             },
 
             KObject::Serv(_) => {

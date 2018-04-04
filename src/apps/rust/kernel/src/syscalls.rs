@@ -315,10 +315,7 @@ fn create_sess(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(),
 
     let cap = {
         let serv: Rc<RefCell<ServObject>> = get_kobj!(vpe, srv_sel, Serv);
-
-        Capability::new(dst_sel, KObject::Sess(SessObject::new(
-            &serv, ident, true
-        )))
+        Capability::new(dst_sel, KObject::Sess(SessObject::new(&serv, ident)))
     };
 
     vpe.borrow_mut().obj_caps_mut().insert_as_child(cap, srv_sel);

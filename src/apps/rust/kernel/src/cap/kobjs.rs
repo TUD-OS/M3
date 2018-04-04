@@ -212,23 +212,23 @@ impl fmt::Debug for ServObject {
 pub struct SessObject {
     pub srv: Rc<RefCell<ServObject>>,
     pub ident: u64,
-    pub srv_owned: bool,
+    pub invalid: bool,
+    pub users: u64,
 }
 
 impl SessObject {
-    pub fn new(srv: &Rc<RefCell<ServObject>>, ident: u64, srv_owned: bool) -> Rc<RefCell<Self>> {
+    pub fn new(srv: &Rc<RefCell<ServObject>>, ident: u64) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(SessObject {
             srv: srv.clone(),
             ident: ident,
-            srv_owned: srv_owned,
+            invalid: false,
+            users: 0,
         }))
     }
-}
 
-impl Drop for SessObject {
-    fn drop(&mut self) {
+    pub fn close(&self) {
         let mut srv = self.srv.borrow_mut();
-        if !self.srv_owned && srv.vpe().borrow().has_app() {
+        if srv.vpe().borrow().has_app() {
             let smsg = kif::service::Close {
                 opcode: kif::service::Operation::CLOSE.val as u64,
                 sess: self.ident,
@@ -242,8 +242,8 @@ impl Drop for SessObject {
 
 impl fmt::Debug for SessObject {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Sess[service={}, ident={:#x}, srv_owned={}]",
-            self.srv.borrow().name, self.ident, self.srv_owned)
+        write!(f, "Sess[service={}, ident={:#x}, users={}]",
+            self.srv.borrow().name, self.ident, self.users)
     }
 }
 
