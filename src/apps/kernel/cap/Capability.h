@@ -232,7 +232,6 @@ public:
           ident(_ident),
           srv(_srv) {
     }
-    ~SessObject();
 
     void close();
 

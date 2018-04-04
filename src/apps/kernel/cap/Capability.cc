@@ -63,11 +63,6 @@ void SessObject::close() {
     }
 }
 
-SessObject::~SessObject() {
-    if(!invalid)
-        close();
-}
-
 EPObject::~EPObject() {
     if(gate != nullptr)
         gate->remove_ep(this);
@@ -98,7 +93,7 @@ void SessCapability::revoke() {
     // disable further close-messages to the server
     if(parent()->type == SERV)
         obj->invalid = true;
-    else if(obj->refcount() == 2)
+    else if(!obj->invalid && obj->refcount() == 2)
         obj->close();
 }
 
