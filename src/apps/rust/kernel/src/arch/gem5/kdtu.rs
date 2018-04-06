@@ -62,8 +62,8 @@ impl State {
         let buf_size = 1 << (ord - msg_ord);
         let msg_size = 1 << msg_ord;
         regs[0] = (EpType::RECEIVE.val << 61) |
-                  ((msg_size & 0xFFFF) << 32) |
-                  ((buf_size & 0xFFFF) << 16) |
+                  ((msg_size as Reg & 0xFFFF) << 32) |
+                  ((buf_size as Reg & 0xFFFF) << 16) |
                   ((header as Reg) << 5);
         regs[1] = buf as Reg;
         regs[2] = 0;
@@ -72,11 +72,11 @@ impl State {
     pub fn config_mem(&mut self, ep: EpId, pe: PEId, vpe: VPEId, addr: goff, size: usize, perm: Perm) {
         let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[0] = (EpType::MEMORY.val << 61) |
-                  ((size as Reg) & 0x1FFF_FFFF_FFFF_FFFF);
+                  (size as Reg & 0x1FFF_FFFF_FFFF_FFFF);
         regs[1] = addr as Reg;
-        regs[2] = ((vpe & 0xFFFF) << 12) as Reg |
-                  ((pe & 0xFF) << 4) as Reg |
-                  (perm.bits() & 0x7) as Reg;
+        regs[2] = ((vpe as Reg & 0xFFFF) << 12) |
+                  ((pe as Reg & 0xFF) << 4) |
+                  (perm.bits() as Reg & 0x7);
     }
 
     pub fn invalidate(&mut self, ep: EpId, check: bool) -> Result<(), Error> {
