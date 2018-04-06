@@ -59,9 +59,10 @@ static LOADER: StaticCell<Option<Loader>> = StaticCell::new(None);
 pub fn init() {
     let mut mods = Vec::new();
     for m in platform::mods() {
-        let mut bmod: BootModule = KDTU::get().read_obj(&VPEDesc::new_mem(m.pe()), m.offset());
+        let bmod: BootModule = KDTU::get().read_obj(&VPEDesc::new_mem(m.pe()), m.offset());
 
-        klog!(KENV, "Module '{}':", bmod.name());
+        // TODO removing all prints breaks it!?
+        klog!(DEF, "Module '{}':", bmod.name());
         klog!(KENV, "  addr: {:#x}", bmod.addr.raw());
         klog!(KENV, "  size: {:#x}", {bmod.size});
 
