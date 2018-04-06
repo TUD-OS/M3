@@ -1,4 +1,5 @@
 use base::env;
+use base::goff;
 use base::heap;
 use base::io;
 use thread;
@@ -46,15 +47,15 @@ pub extern "C" fn env_run() {
     thread::init();
 
     for _ in 0..8 {
-        thread::ThreadManager::get().add_thread(workloop as *const () as u64, 0);
+        thread::ThreadManager::get().add_thread(workloop as *const () as usize, 0);
     }
 
     let sysc_rbuf = vec![0u8; 512 * 32];
-    kdtu::KDTU::get().recv_msgs(kdtu::KSYS_EP, sysc_rbuf.as_ptr() as usize, 14, 9)
+    kdtu::KDTU::get().recv_msgs(kdtu::KSYS_EP, sysc_rbuf.as_ptr() as goff, 14, 9)
         .expect("Unable to config syscall REP");
 
     let serv_rbuf = vec![0u8; 1024];
-    kdtu::KDTU::get().recv_msgs(kdtu::KSRV_EP, serv_rbuf.as_ptr() as usize, 10, 10)
+    kdtu::KDTU::get().recv_msgs(kdtu::KSRV_EP, serv_rbuf.as_ptr() as goff, 10, 10)
         .expect("Unable to config service REP");
 
     let vpemng = pes::vpemng::get();

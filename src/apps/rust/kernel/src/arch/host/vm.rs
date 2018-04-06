@@ -1,5 +1,6 @@
 use base::dtu::EpId;
 use base::errors::{Code, Error};
+use base::goff;
 use base::kif::{CapSel, PEDesc};
 use base::GlobAddr;
 
@@ -28,12 +29,12 @@ impl AddrSpace {
     pub fn setup(&self) {
     }
 
-    pub fn map_pages(&self, _vpe: &VPEDesc, _virt: usize, _phys: GlobAddr,
+    pub fn map_pages(&self, _vpe: &VPEDesc, _virt: goff, _phys: GlobAddr,
                      _pages: usize, _attr: MapFlags) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 
-    pub fn unmap_pages(&self, _vpe: &VPEDesc, _virt: usize, _pages: usize) -> Result<(), Error> {
+    pub fn unmap_pages(&self, _vpe: &VPEDesc, _virt: goff, _pages: usize) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 }

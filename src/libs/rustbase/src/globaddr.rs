@@ -1,6 +1,7 @@
 use arch::dtu::PEId;
 use core::fmt;
 use core::ops;
+use goff;
 
 /// Represents a global address, which is a combination of a PE id and an offset within the PE.
 ///
@@ -25,8 +26,8 @@ impl GlobAddr {
         }
     }
     /// Creates a new global address from the given PE id and offset
-    pub fn new_with(pe: PEId, off: usize) -> GlobAddr {
-        Self::new(((0x80 + pe as u64) << PE_SHIFT) | off as u64)
+    pub fn new_with(pe: PEId, off: goff) -> GlobAddr {
+        Self::new(((0x80 + pe as u64) << PE_SHIFT) | off)
     }
 
     /// Returns the raw value
@@ -38,8 +39,8 @@ impl GlobAddr {
         ((self.val >> PE_SHIFT) - 0x80) as PEId
     }
     /// Returns the offset
-    pub fn offset(&self) -> usize {
-        (self.val & ((1 << PE_SHIFT) - 1)) as usize
+    pub fn offset(&self) -> goff {
+        (self.val & ((1 << PE_SHIFT) - 1)) as goff
     }
 }
 
@@ -49,10 +50,10 @@ impl fmt::Debug for GlobAddr {
     }
 }
 
-impl ops::Add<usize> for GlobAddr {
+impl ops::Add<goff> for GlobAddr {
     type Output = GlobAddr;
 
-    fn add(self, rhs: usize) -> Self::Output {
-        GlobAddr::new(self.val + rhs as u64)
+    fn add(self, rhs: goff) -> Self::Output {
+        GlobAddr::new(self.val + rhs)
     }
 }

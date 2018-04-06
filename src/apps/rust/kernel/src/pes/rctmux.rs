@@ -1,6 +1,8 @@
-pub const ENTRY_ADDR: usize = 0x1000;
-pub const YIELD_ADDR: usize = 0x5FF0;
-pub const FLAGS_ADDR: usize = 0x5FF8;
+use base::goff;
+
+pub const ENTRY_ADDR: goff = 0x1000;
+pub const YIELD_ADDR: goff = 0x5FF0;
+pub const FLAGS_ADDR: goff = 0x5FF8;
 
 bitflags! {
     pub struct Flags : u64 {

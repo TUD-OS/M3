@@ -2,6 +2,7 @@ use base::cell::StaticCell;
 use base::col::Vec;
 use base::errors::{Code, Error};
 use base::GlobAddr;
+use base::goff;
 use core::fmt;
 use mem::MemMod;
 
@@ -68,7 +69,7 @@ impl MainMemory {
         }
         Err(Error::new(Code::NoSpace))
     }
-    pub fn allocate_at(&mut self, offset: usize, size: usize) -> Result<Allocation, Error> {
+    pub fn allocate_at(&mut self, offset: goff, size: usize) -> Result<Allocation, Error> {
         // TODO check if that's actually ok
         Ok(Allocation::new(self.mods[0].addr() + offset, size))
     }

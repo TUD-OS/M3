@@ -125,7 +125,7 @@ pub fn main() -> i32 {
     let fs_size = if let Some(path) = fs_image { copy_from_fs(path) } else { 0 };
 
     for _ in 0..8 {
-        thread::ThreadManager::get().add_thread(workloop as *const () as u64, 0);
+        thread::ThreadManager::get().add_thread(workloop as *const () as usize, 0);
     }
 
     let rbuf = vec![0u8; 512 * 32];

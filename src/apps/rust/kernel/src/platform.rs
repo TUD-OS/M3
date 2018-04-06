@@ -2,6 +2,7 @@ use arch;
 use base::cell::StaticCell;
 use base::dtu::PEId;
 use base::GlobAddr;
+use base::goff;
 use base::kif::PEDesc;
 use core::iter;
 
@@ -84,7 +85,7 @@ pub fn pe_desc(pe: PEId) -> PEDesc {
     PEDesc::new_from(get().pes[pe])
 }
 
-pub fn default_rcvbuf(pe: PEId) -> usize {
+pub fn default_rcvbuf(pe: PEId) -> goff {
     arch::platform::default_rcvbuf(pe)
 }
 pub fn rcvbufs_size(pe: PEId) -> usize {

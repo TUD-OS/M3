@@ -20,6 +20,7 @@ pub type Event = u64;
 
 const MAX_MSG_SIZE: usize = 1024;
 
+#[cfg(target_arch = "x86_64")]
 #[derive(Default)]
 #[repr(C, packed)]
 pub struct Regs {
@@ -34,6 +35,45 @@ pub struct Regs {
     rdi: u64,
 }
 
+#[cfg(target_arch = "arm")]
+#[derive(Default)]
+#[repr(C, packed)]
+pub struct Regs {
+    r0: u32,
+    r4: u32,
+    r5: u32,
+    r6: u32,
+    r7: u32,
+    r8: u32,
+    r9: u32,
+    r10: u32,
+    r11: u32,
+    r13: u32,
+    r14: u32,
+    cpsr: u32,
+}
+
+#[cfg(target_arch = "x86_64")]
+fn thread_init(thread: &mut Thread, func_addr: usize, arg: usize) {
+    // put argument in rdi and function to return to on the stack
+    thread.regs.rdi = arg as u64;
+    let top_idx = thread.stack.len() - 2;
+    thread.regs.rsp = &thread.stack[top_idx] as *const usize as u64;
+    thread.stack[top_idx] = func_addr;
+    thread.regs.rbp = thread.regs.rsp;
+    thread.regs.rflags = 0x200;    // enable interrupts
+}
+
+#[cfg(target_arch = "arm")]
+fn thread_init(thread: &mut Thread, func_addr: usize, arg: usize) {
+    thread.regs.r0      = arg as u32;                                       // arg
+    let top_idx = thread.stack.len() - 2;
+    thread.regs.r13     = &thread.stack[top_idx] as *const usize as u32;    // sp
+    thread.regs.r11     = 0;                                                // fp
+    thread.regs.r14     = func_addr as u32;                                 // lr
+    thread.regs.cpsr    = 0x13;                                             // supervisor mode
+}
+
 fn alloc_id() -> u32 {
     static NEXT_ID: StaticCell<u32> = StaticCell::new(0);
     NEXT_ID.set(*NEXT_ID + 1);
@@ -45,7 +85,7 @@ pub struct Thread {
     next: Option<NonNull<Thread>>,
     id: u32,
     regs: Regs,
-    stack: Vec<u64>,
+    stack: Vec<usize>,
     event: Event,
     has_msg: bool,
     msg: [u8; MAX_MSG_SIZE],
@@ -72,13 +112,13 @@ impl Thread {
         })
     }
 
-    pub fn new(func_addr: u64, arg: u64) -> Box<Self> {
+    pub fn new(func_addr: usize, arg: usize) -> Box<Self> {
         let mut thread = Box::new(Thread {
             prev: None,
             next: None,
             id: alloc_id(),
             regs: Regs::default(),
-            stack: vec![0u64; cfg::STACK_SIZE / 8],
+            stack: vec![0usize; cfg::STACK_SIZE / 8],
             event: 0,
             has_msg: false,
             msg: unsafe { intrinsics::uninit() },
@@ -86,13 +126,7 @@ impl Thread {
 
         log!(THREAD, "Created thread {}", thread.id);
 
-        // put argument in rdi and function to return to on the stack
-        thread.regs.rdi = arg;
-        let top_idx = thread.stack.len() - 2;
-        thread.regs.rsp = &thread.stack[top_idx] as *const u64 as u64;
-        thread.stack[top_idx] = func_addr;
-        thread.regs.rbp = thread.regs.rsp;
-        thread.regs.rflags = 0x200;    // enable interrupts
+        thread_init(&mut thread, func_addr, arg);
 
         thread
     }
@@ -201,7 +235,7 @@ impl ThreadManager {
         }
     }
 
-    pub fn add_thread(&mut self, func_addr: u64, arg: u64) {
+    pub fn add_thread(&mut self, func_addr: usize, arg: usize) {
         self.sleep.push_back(Thread::new(func_addr, arg));
     }
 

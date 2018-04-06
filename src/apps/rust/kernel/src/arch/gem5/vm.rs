@@ -2,6 +2,7 @@ use base::cfg;
 use base::dtu::{self, EpId};
 use base::errors::Error;
 use base::GlobAddr;
+use base::goff;
 use base::heap;
 use base::kif::{CapSel, PEDesc};
 use base::util;
@@ -13,6 +14,7 @@ use mem;
 use pes::{self, State, VPEId, VPEDesc};
 use platform;
 
+#[cfg(target_arch = "x86_64")]
 bitflags! {
     pub struct X86PTE : u64 {
         const PRESENT  = 0x1;
@@ -75,7 +77,7 @@ impl AddrSpace {
         let off = self.root.offset();
         let pte = self.to_mmu_pte(self.root.raw() | dtu::PTEFlags::RWX.bits());
         KDTU::get().write_slice(
-            &VPEDesc::new_mem(self.root.pe()), off + dtu::PTE_REC_IDX * 8, &[pte]
+            &VPEDesc::new_mem(self.root.pe()), off + (dtu::PTE_REC_IDX * 8) as goff, &[pte]
         );
 
         let (status, pf_ep) = match (self.sep, self.rep) {
@@ -91,12 +93,14 @@ impl AddrSpace {
 
             // init DTU registers
             let regs = [status, self.root.raw(), pf_ep as dtu::Reg];
-            KDTU::get().try_write_slice(vpe, dtu::DTU::dtu_reg_addr(dtu::DtuReg::STATUS), &regs).unwrap();
+            KDTU::get().try_write_slice(vpe,
+                dtu::DTU::dtu_reg_addr(dtu::DtuReg::STATUS) as goff, &regs).unwrap();
         }
         else {
             // set PF_EP register
             let reg: dtu::Reg = pf_ep as dtu::Reg;
-            KDTU::get().try_write_slice(vpe, dtu::DTU::dtu_reg_addr(dtu::DtuReg::PF_EP), &[reg]).unwrap();
+            KDTU::get().try_write_slice(vpe,
+                dtu::DTU::dtu_reg_addr(dtu::DtuReg::PF_EP) as goff, &[reg]).unwrap();
 
             // set root PT
             let rootpt = self.to_mmu_pte(self.root.raw());
@@ -107,7 +111,7 @@ impl AddrSpace {
         KDTU::get().invalidate_tlb(vpe).unwrap();
     }
 
-    pub fn map_pages(&self, vpe: &VPEDesc, mut virt: usize, mut phys: GlobAddr,
+    pub fn map_pages(&self, vpe: &VPEDesc, mut virt: goff, mut phys: GlobAddr,
                      mut pages: usize, flags: MapFlags) -> Result<(), Error> {
         let running = vpe.pe_id() == platform::kernel_pe() ||
             vpe.vpe().unwrap().state() == State::RUNNING;
@@ -140,7 +144,7 @@ impl AddrSpace {
         Ok(())
     }
 
-    pub fn unmap_pages(&self, vpe: &VPEDesc, virt: usize, pages: usize) -> Result<(), Error> {
+    pub fn unmap_pages(&self, vpe: &VPEDesc, virt: goff, pages: usize) -> Result<(), Error> {
         // don't do anything if the VPE is already dead (or if it's the kernel)
         if vpe.vpe().map_or(true, |v| v.state() == State::DEAD) {
             return Ok(());
@@ -149,12 +153,12 @@ impl AddrSpace {
         self.map_pages(vpe, virt, GlobAddr::new(0), pages, MapFlags::empty())
     }
 
-    fn get_pte_addr(mut virt: usize, lvl: usize) -> usize {
-        const REC_MASK: usize =
-            dtu::PTE_REC_IDX << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 3) |
-            dtu::PTE_REC_IDX << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 2) |
-            dtu::PTE_REC_IDX << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 1) |
-            dtu::PTE_REC_IDX << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 0);
+    fn get_pte_addr(mut virt: goff, lvl: usize) -> goff {
+        const REC_MASK: goff =
+            (dtu::PTE_REC_IDX as goff) << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 3) |
+            (dtu::PTE_REC_IDX as goff) << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 2) |
+            (dtu::PTE_REC_IDX as goff) << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 1) |
+            (dtu::PTE_REC_IDX as goff) << (cfg::PAGE_BITS + dtu::LEVEL_BITS * 0);
 
         // at first, just shift it accordingly.
         virt >>= cfg::PAGE_BITS + lvl * dtu::LEVEL_BITS;
@@ -171,12 +175,12 @@ impl AddrSpace {
         virt
     }
 
-    fn get_pte_addr_mem(&self, vpe: &VPEDesc, root: GlobAddr, virt: usize, lvl: usize) -> usize {
+    fn get_pte_addr_mem(&self, vpe: &VPEDesc, root: GlobAddr, virt: goff, lvl: usize) -> goff {
         let mut pt = root.offset();
 
         for l in (0..dtu::LEVEL_CNT).rev() {
-            let idx = (virt >> (cfg::PAGE_BITS + dtu::LEVEL_BITS * l)) & dtu::LEVEL_MASK;
-            pt += idx * dtu::PTE_SIZE;
+            let idx = (virt >> (cfg::PAGE_BITS + dtu::LEVEL_BITS * l)) & (dtu::LEVEL_MASK as goff);
+            pt += idx * dtu::PTE_SIZE as goff;
 
             if lvl == l {
                 return pt;
@@ -184,7 +188,7 @@ impl AddrSpace {
 
             let pte: dtu::PTE = self.to_dtu_pte(KDTU::get().read_obj(vpe, pt));
 
-            pt = GlobAddr::new(pte).offset() & !cfg::PAGE_MASK;
+            pt = GlobAddr::new(pte).offset() & !(cfg::PAGE_MASK as goff);
         }
 
         unsafe {
@@ -192,7 +196,7 @@ impl AddrSpace {
         }
     }
 
-    fn create_pt(&self, vpe: &VPEDesc, vpe_id: VPEId, virt: usize, pte_addr: usize, pte: dtu::PTE,
+    fn create_pt(&self, vpe: &VPEDesc, vpe_id: VPEId, virt: goff, pte_addr: goff, pte: dtu::PTE,
                  flags: MapFlags, lvl: usize) -> Result<bool, Error> {
         // create the pagetable on demand
         if pte == 0 {
@@ -214,7 +218,7 @@ impl AddrSpace {
             // insert PTE
             npte |= dtu::PTEFlags::IRWX.bits();
             npte = self.to_mmu_pte(npte);
-            let pt_size = (1 << (dtu::LEVEL_BITS * lvl)) * cfg::PAGE_SIZE;
+            let pt_size = ((1 as goff) << (dtu::LEVEL_BITS * lvl)) * cfg::PAGE_SIZE as goff;
             klog!(PTES, "VPE{}: lvl {} PTE for {:#x}: {:#x}",
                 vpe_id, lvl, virt & !(pt_size - 1), npte);
             KDTU::get().try_write_slice(vpe, pte_addr, &[npte]).unwrap();
@@ -223,7 +227,7 @@ impl AddrSpace {
         Ok(false)
     }
 
-    fn create_ptes(&self, vpe: &VPEDesc, vpe_id: VPEId, virt: &mut usize, mut pte_addr: usize,
+    fn create_ptes(&self, vpe: &VPEDesc, vpe_id: VPEId, virt: &mut goff, mut pte_addr: goff,
                    pte: dtu::PTE, phys: &mut GlobAddr, pages: &mut usize, flags: MapFlags) -> bool {
         // note that we can assume here that map_pages is always called for the same set of
         // pages. i.e., it is not possible that we map page 1 and 2 and afterwards remap
@@ -235,11 +239,12 @@ impl AddrSpace {
         // TODO don't automatically set the I bit
         let npte = phys.raw() | flags.bits() | dtu::PTEFlags::I.bits();
 
-        let end_pte = util::min(pte_addr + *pages * 8, util::round_up(pte_addr + 8, cfg::PAGE_SIZE));
-        let count = (end_pte - pte_addr) / 8;
+        let end_pte = util::min(pte_addr + *pages as goff * 8,
+                                util::round_up64(pte_addr + 8, cfg::PAGE_SIZE as goff));
+        let count = (end_pte - pte_addr) as usize / 8;
         assert!(count > 0);
         *pages -= count;
-        *phys = *phys + (count << cfg::PAGE_BITS);
+        *phys = *phys + (count << cfg::PAGE_BITS) as goff;
 
         if npte == pte_dtu {
             return true;
@@ -265,7 +270,7 @@ impl AddrSpace {
                 buf[i] = npte;
 
                 pte_addr += 8;
-                *virt += cfg::PAGE_SIZE;
+                *virt += cfg::PAGE_SIZE as goff;
                 npte += cfg::PAGE_SIZE as dtu::PTE;
                 i += 1;
             }
@@ -273,10 +278,10 @@ impl AddrSpace {
             KDTU::get().try_write_slice(vpe, start_addr, &buf[0..i]).unwrap();
 
             if downgrade {
-                let mut vaddr = *virt - i * cfg::PAGE_SIZE;
+                let mut vaddr = *virt - (i * cfg::PAGE_SIZE) as goff;
                 while vaddr < *virt {
                     self.invalidate_page(vpe, vaddr).unwrap();
-                    vaddr += cfg::PAGE_SIZE;
+                    vaddr += cfg::PAGE_SIZE as goff;
                 }
             }
         }
@@ -285,41 +290,49 @@ impl AddrSpace {
     }
 
     fn to_mmu_pte(&self, pte: dtu::PTE) -> dtu::PTE {
-        // the current implementation is based on some equal properties of MMU and DTU paging
-        const_assert!(dtu::LEVEL_CNT == 4);
-        const_assert!(cfg::PAGE_SIZE == 4096);
-        const_assert!(dtu::LEVEL_BITS == 9);
-
         if self.pe.has_dtuvm() {
             return pte;
         }
 
-        let dtu_pte = dtu::PTEFlags::from_bits_truncate(pte);
-        let addr = pte & !cfg::PAGE_MASK as dtu::PTE;
+        #[cfg(target_arch = "x86_64")]
+        {
+            // the current implementation is based on some equal properties of MMU and DTU paging
+            const_assert!(dtu::LEVEL_CNT == 4);
+            const_assert!(cfg::PAGE_SIZE == 4096);
+            const_assert!(dtu::LEVEL_BITS == 9);
 
-        let mut flags = X86PTE::empty();
-        if dtu_pte.intersects(dtu::PTEFlags::RWX) {
-            flags.insert(X86PTE::PRESENT);
-        }
-        if dtu_pte.contains(dtu::PTEFlags::W) {
-            flags.insert(X86PTE::WRITE);
-        }
-        if dtu_pte.contains(dtu::PTEFlags::I) {
-            flags.insert(X86PTE::USER);
-        }
-        if dtu_pte.contains(dtu::PTEFlags::UNCACHED) {
-            flags.insert(X86PTE::UNCACHED);
-        }
-        if dtu_pte.contains(dtu::PTEFlags::LARGE) {
-            flags.insert(X86PTE::LARGE);
-        }
-        if !dtu_pte.contains(dtu::PTEFlags::X) {
-            flags.insert(X86PTE::NOEXEC);
+            let dtu_pte = dtu::PTEFlags::from_bits_truncate(pte);
+            let addr = pte & !cfg::PAGE_MASK as dtu::PTE;
+
+            let mut flags = X86PTE::empty();
+            if dtu_pte.intersects(dtu::PTEFlags::RWX) {
+                flags.insert(X86PTE::PRESENT);
+            }
+            if dtu_pte.contains(dtu::PTEFlags::W) {
+                flags.insert(X86PTE::WRITE);
+            }
+            if dtu_pte.contains(dtu::PTEFlags::I) {
+                flags.insert(X86PTE::USER);
+            }
+            if dtu_pte.contains(dtu::PTEFlags::UNCACHED) {
+                flags.insert(X86PTE::UNCACHED);
+            }
+            if dtu_pte.contains(dtu::PTEFlags::LARGE) {
+                flags.insert(X86PTE::LARGE);
+            }
+            if !dtu_pte.contains(dtu::PTEFlags::X) {
+                flags.insert(X86PTE::NOEXEC);
+            }
+
+            // translate NoC address to physical address
+            let addr = (addr & !0xFF00_0000_0000_0000) | ((addr & 0xFF00_0000_0000_0000) >> 16);
+            return addr | flags.bits()
         }
 
-        // translate NoC address to physical address
-        let addr = (addr & !0xFF00_0000_0000_0000) | ((addr & 0xFF00_0000_0000_0000) >> 16);
-        return addr | flags.bits()
+        #[cfg(target_arch = "arm")]
+        {
+            return 0
+        }
     }
 
     fn to_dtu_pte(&self, pte: dtu::PTE) -> dtu::PTE {
@@ -327,32 +340,40 @@ impl AddrSpace {
             return pte;
         }
 
-        let mut res = pte & !cfg::PAGE_MASK as dtu::PTE;
+        #[cfg(target_arch = "x86_64")]
+        {
+            let mut res = pte & !cfg::PAGE_MASK as dtu::PTE;
 
-        let x86_pte = X86PTE::from_bits_truncate(pte);
-        if x86_pte.contains(X86PTE::PRESENT) {
-            res |= dtu::PTEFlags::R.bits();
-        }
-        if x86_pte.contains(X86PTE::WRITE) {
-            res |= dtu::PTEFlags::W.bits();
-        }
-        if x86_pte.contains(X86PTE::USER) {
-            res |= dtu::PTEFlags::I.bits();
-        }
-        if x86_pte.contains(X86PTE::LARGE) {
-            res |= dtu::PTEFlags::LARGE.bits();
-        }
-        if !x86_pte.contains(X86PTE::NOEXEC) {
-            res |= dtu::PTEFlags::X.bits();
+            let x86_pte = X86PTE::from_bits_truncate(pte);
+            if x86_pte.contains(X86PTE::PRESENT) {
+                res |= dtu::PTEFlags::R.bits();
+            }
+            if x86_pte.contains(X86PTE::WRITE) {
+                res |= dtu::PTEFlags::W.bits();
+            }
+            if x86_pte.contains(X86PTE::USER) {
+                res |= dtu::PTEFlags::I.bits();
+            }
+            if x86_pte.contains(X86PTE::LARGE) {
+                res |= dtu::PTEFlags::LARGE.bits();
+            }
+            if !x86_pte.contains(X86PTE::NOEXEC) {
+                res |= dtu::PTEFlags::X.bits();
+            }
+
+            // translate physical address to NoC address
+            res = (res & !0x0000_FF00_0000_0000) | ((res & 0x0000_FF00_0000_0000) << 16);
+            return res;
         }
 
-        // translate physical address to NoC address
-        res = (res & !0x0000_FF00_0000_0000) | ((res & 0x0000_FF00_0000_0000) << 16);
-        return res;
+        #[cfg(target_arch = "arm")]
+        {
+            return 0
+        }
     }
 
-    fn invalidate_page(&self, vpe: &VPEDesc, mut virt: usize) -> Result<(), Error> {
-        virt &= !cfg::PAGE_MASK;
+    fn invalidate_page(&self, vpe: &VPEDesc, mut virt: goff) -> Result<(), Error> {
+        virt &= !cfg::PAGE_MASK as goff;
         if self.pe.has_mmu() {
             Self::mmu_cmd_remote(vpe, virt as dtu::Reg | dtu::ExtReqOpCode::INV_PAGE.val);
         }
@@ -366,7 +387,7 @@ impl AddrSpace {
         let mut mstreq: dtu::Reg = 1;
         let extarg_addr = dtu::DTU::dtu_req_addr(dtu::ReqReg::EXT_REQ);
         while mstreq != 0 {
-            mstreq = KDTU::get().read_obj(vpe, extarg_addr);
+            mstreq = KDTU::get().read_obj(vpe, extarg_addr as goff);
         }
     }
 
@@ -399,7 +420,7 @@ extern fn kernel_oom_callback(size: usize) -> bool {
     let virt = unsafe { util::round_up(heap_end as usize, cfg::PAGE_SIZE) };
     let space = AddrSpace::new_kernel();
     let vpe = &pes::VPEDesc::new_kernel(pes::vpemng::KERNEL_VPE);
-    space.map_pages(vpe, virt, alloc.global(), pages, MapFlags::RW).unwrap();
+    space.map_pages(vpe, virt as goff, alloc.global(), pages, MapFlags::RW).unwrap();
     alloc.claim();
 
     // append to heap

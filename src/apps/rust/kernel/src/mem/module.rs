@@ -1,6 +1,7 @@
 use base::dtu::PEId;
 use base::errors::Error;
 use base::GlobAddr;
+use base::goff;
 use core::fmt;
 use mem::map::MemMap;
 
@@ -11,7 +12,7 @@ pub struct MemMod {
 }
 
 impl MemMod {
-    pub fn new(pe: PEId, offset: usize, size: usize) -> Self {
+    pub fn new(pe: PEId, offset: goff, size: usize) -> Self {
         MemMod {
             gaddr: GlobAddr::new_with(pe, offset),
             size: size,

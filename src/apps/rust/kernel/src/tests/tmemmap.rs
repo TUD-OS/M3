@@ -1,5 +1,6 @@
 use base::col::Vec;
 use base::errors::Code;
+use base::goff;
 use base::profile;
 use base::test;
 
@@ -60,7 +61,7 @@ fn perf_free() {
 
     struct MemMapTester {
         map: MemMap,
-        addrs: Vec<usize>,
+        addrs: Vec<goff>,
         forward: bool,
     }
 

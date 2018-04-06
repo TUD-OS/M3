@@ -1,5 +1,6 @@
 use base::cfg;
 use base::dtu::PEId;
+use base::goff;
 use base::kif::{PEDesc, PEISA, PEType};
 use base::libc;
 use core::intrinsics;
@@ -33,7 +34,7 @@ pub fn init() -> platform::KEnv {
     };
     assert!(base != libc::MAP_FAILED);
 
-    let mut m = mem::MemMod::new(kernel_pe(), base as usize, cfg::MEM_SIZE);
+    let mut m = mem::MemMod::new(kernel_pe(), base as goff, cfg::MEM_SIZE);
     // allocate FS image
     m.allocate(cfg::FS_MAX_SIZE, 1).expect("Not enough space for FS image");
     mem::get().add(m);
@@ -51,7 +52,7 @@ pub fn last_user_pe() -> PEId {
     platform::pe_count() - 1
 }
 
-pub fn default_rcvbuf(_pe: PEId) -> usize {
+pub fn default_rcvbuf(_pe: PEId) -> goff {
     0
 }
 pub fn rcvbufs_size(_pe: PEId) -> usize {

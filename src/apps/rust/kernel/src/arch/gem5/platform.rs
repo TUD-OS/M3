@@ -2,6 +2,7 @@ use base::cell::StaticCell;
 use base::cfg;
 use base::envdata;
 use base::GlobAddr;
+use base::goff;
 use base::kif::{PEDesc, PEType};
 use base::dtu::PEId;
 
@@ -52,12 +53,12 @@ pub fn last_user_pe() -> PEId {
     *LAST_PE
 }
 
-pub fn default_rcvbuf(pe: PEId) -> usize {
+pub fn default_rcvbuf(pe: PEId) -> goff {
     if platform::pe_desc(pe).has_virtmem() {
-        return cfg::RECVBUF_SPACE
+        return cfg::RECVBUF_SPACE as goff
     }
     else {
-        platform::pe_desc(pe).mem_size() - cfg::RECVBUF_SIZE_SPM
+        (platform::pe_desc(pe).mem_size() - cfg::RECVBUF_SIZE_SPM) as goff
     }
 }
 pub fn rcvbufs_size(pe: PEId) -> usize {

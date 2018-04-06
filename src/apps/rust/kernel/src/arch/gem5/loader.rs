@@ -7,6 +7,7 @@ use base::elf;
 use base::envdata;
 use base::errors::{Code, Error};
 use base::GlobAddr;
+use base::goff;
 use base::kif;
 use base::util;
 use core::intrinsics;
@@ -109,15 +110,15 @@ impl Loader {
         None
     }
 
-    fn read_from_mod<T>(bm: &BootModule, off: usize) -> Result<T, Error> {
-        if off + util::size_of::<T>() > bm.size as usize {
+    fn read_from_mod<T>(bm: &BootModule, off: goff) -> Result<T, Error> {
+        if off + util::size_of::<T>() as goff > bm.size {
             return Err(Error::new(Code::InvalidElf))
         }
 
         Ok(KDTU::get().read_obj(&VPEDesc::new_mem(bm.addr.pe()), bm.addr.offset() + off))
     }
 
-    fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: usize, size: usize,
+    fn map_segment(vpe: &mut VPE, phys: GlobAddr, virt: goff, size: usize,
                    flags: MapFlags) -> Result<(), Error> {
         if vpe.pe_desc().has_virtmem() {
             let dst_sel = virt >> PAGE_BITS;
@@ -138,7 +139,7 @@ impl Loader {
             KDTU::get().copy(
                 // destination
                 &vpe.desc(),
-                virt,
+                virt as goff,
                 // source
                 &VPEDesc::new_mem(phys.pe()),
                 phys.offset(),
@@ -163,7 +164,8 @@ impl Loader {
         let mut off = hdr.phoff;
         for _ in 0..hdr.phnum {
             // load program header
-            let phdr: elf::Phdr = Self::read_from_mod(bm, off)?;
+            let phdr: elf::Phdr = Self::read_from_mod(bm, off as goff)?;
+            off += hdr.phentsize as usize;
 
             // we're only interested in non-empty load segments
             if phdr.ty != elf::PT::LOAD.val || phdr.memsz == 0 {
@@ -180,18 +182,18 @@ impl Loader {
 
                 let (dst_vpe, dst_virt) = if vpe.pe_desc().has_virtmem() {
                     let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
-                    Self::map_segment(vpe, phys.global(), virt, size, flags)?;
+                    Self::map_segment(vpe, phys.global(), virt as goff, size, flags)?;
                     phys.claim();
 
                     if to_mem {
                         (VPEDesc::new_mem(phys.global().pe()), phys.global().offset())
                     }
                     else {
-                        (vpe.desc(), virt)
+                        (vpe.desc(), virt as goff)
                     }
                 }
                 else {
-                    (vpe.desc(), virt)
+                    (vpe.desc(), virt as goff)
                 };
 
                 if phdr.filesz == 0 {
@@ -204,7 +206,7 @@ impl Loader {
                         dst_virt,
                         // source
                         &VPEDesc::new_mem(bm.addr.pe()),
-                        bm.addr.offset() + offset,
+                        bm.addr.offset() + offset as goff,
                         size
                     )?;
                 }
@@ -214,18 +216,16 @@ impl Loader {
             else {
                 assert!(phdr.memsz == phdr.filesz);
                 let size = (phdr.offset as usize & PAGE_MASK) + phdr.filesz as usize;
-                Self::map_segment(vpe, bm.addr + offset, virt, size, flags)?;
+                Self::map_segment(vpe, bm.addr + offset as goff, virt as goff, size, flags)?;
                 end = virt + size;
             }
-
-            off += hdr.phentsize as usize;
         }
 
         // create initial heap
         if needs_heap && vpe.pe_desc().has_virtmem() {
             let end = util::round_up(end, PAGE_SIZE);
             let mut phys = mem::get().allocate(MOD_HEAP_SIZE, PAGE_SIZE)?;
-            Self::map_segment(vpe, phys.global(), end, MOD_HEAP_SIZE, MapFlags::RW)?;
+            Self::map_segment(vpe, phys.global(), end as goff, MOD_HEAP_SIZE, MapFlags::RW)?;
             phys.claim();
         }
 
@@ -273,12 +273,12 @@ impl Loader {
 
             // map DTU
             Self::map_segment(
-                vpe, GlobAddr::new(dtu::BASE_ADDR as u64), dtu::BASE_ADDR, PAGE_SIZE,
+                vpe, GlobAddr::new(dtu::BASE_ADDR as u64), dtu::BASE_ADDR as goff, PAGE_SIZE,
                 MapFlags::RW | MapFlags::I | MapFlags::UNCACHED
             )?;
             // map the privileged registers only for ring 0
             Self::map_segment(
-                vpe, GlobAddr::new(dtu::BASE_REQ_ADDR as u64), dtu::BASE_REQ_ADDR, PAGE_SIZE,
+                vpe, GlobAddr::new(dtu::BASE_REQ_ADDR as u64), dtu::BASE_REQ_ADDR as goff, PAGE_SIZE,
                 MapFlags::RW | MapFlags::UNCACHED
             )?;
         }
@@ -287,14 +287,14 @@ impl Loader {
     }
 
     fn write_arguments(vpe: &VPEDesc, args: &Vec<String>) -> Result<usize, Error> {
-        let mut argptr: Vec<usize> = Vec::new();
+        let mut argptr: Vec<u64> = Vec::new();
         let mut argbuf: Vec<u8> = Vec::new();
 
         let off = RT_START + util::size_of::<envdata::EnvData>();
         let mut argoff = off;
         for s in args {
             // push argv entry
-            argptr.push(argoff);
+            argptr.push(argoff as u64);
 
             // push string
             let arg = s.as_bytes();
@@ -306,9 +306,10 @@ impl Loader {
             argoff += arg.len() + 1;
         }
 
-        KDTU::get().try_write_mem(vpe, off, argbuf.as_ptr() as *const u8, argbuf.len())?;
-        let argv_size = argptr.len() * util::size_of::<usize>();
-        KDTU::get().try_write_mem(vpe, argoff, argptr.as_ptr() as *const u8, argv_size)?;
+        KDTU::get().try_write_mem(vpe, off as goff, argbuf.as_ptr() as *const u8, argbuf.len())?;
+        let argv_size = argptr.len() * util::size_of::<u64>();
+        argoff = util::round_up(argoff, util::size_of::<u64>());
+        KDTU::get().try_write_mem(vpe, argoff as goff, argptr.as_ptr() as *const u8, argv_size)?;
 
         Ok(argoff)
     }
@@ -354,7 +355,7 @@ impl Loader {
                 let virt = RT_START;
                 let size = STACK_TOP - virt;
                 let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
-                Self::map_segment(vpe, phys.global(), virt, size, MapFlags::RW)?;
+                Self::map_segment(vpe, phys.global(), virt as goff, size, MapFlags::RW)?;
                 phys.claim();
             }
 
@@ -370,13 +371,13 @@ impl Loader {
             senv.heap_size = MOD_HEAP_SIZE as u64;
 
             // write env to target PE
-            KDTU::get().try_write_slice(&vpe.desc(), RT_START, &[senv])?;
+            KDTU::get().try_write_slice(&vpe.desc(), RT_START as goff, &[senv])?;
         }
 
         if vpe.pe_desc().has_virtmem() {
             // map receive buffer
             let mut phys = mem::get().allocate(RECVBUF_SIZE, PAGE_SIZE)?;
-            Self::map_segment(vpe, phys.global(), RECVBUF_SPACE, RECVBUF_SIZE, MapFlags::RW)?;
+            Self::map_segment(vpe, phys.global(), RECVBUF_SPACE as goff, RECVBUF_SIZE, MapFlags::RW)?;
             phys.claim();
         }
 
@@ -399,7 +400,7 @@ impl Loader {
 
             KDTU::get().write_swstate(&vpe.desc(), flags, report)?;
             if !vpe.pe_desc().has_mmu() && vpe.pe_desc().is_programmable() {
-                KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR)?;
+                KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR as goff)?;
             }
             else {
                 KDTU::get().inject_irq(&vpe.desc(), dtu::ExtReqOpCode::RCTMUX.val)?;

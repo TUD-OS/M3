@@ -99,8 +99,9 @@ impl VPEMng {
 
     pub fn start(&mut self, args: env::Args) -> Result<(), Error> {
         // TODO temporary
-        let pe_imem = kif::PEDesc::new(kif::PEType::COMP_IMEM, kif::PEISA::X86, 0);
-        let pe_emem = kif::PEDesc::new(kif::PEType::COMP_EMEM, kif::PEISA::X86, 0);
+        let isa = platform::pe_desc(platform::kernel_pe()).isa();
+        let pe_imem = kif::PEDesc::new(kif::PEType::COMP_IMEM, isa, 0);
+        let pe_emem = kif::PEDesc::new(kif::PEType::COMP_EMEM, isa, 0);
         let find_pe = || {
             if let Some(pe_id) = pemng::get().alloc_pe(&pe_emem, None, false) {
                 return Ok(pe_id)

@@ -101,6 +101,9 @@ pub fn next_log2(size: usize) -> i32 {
 pub fn round_up(value: usize, align: usize) -> usize {
     (value + align - 1) & !(align - 1)
 }
+pub fn round_up64(value: u64, align: u64) -> u64 {
+    (value + align - 1) & !(align - 1)
+}
 
 /// Rounds the given value down to the given alignment
 ///
@@ -110,6 +113,9 @@ pub fn round_up(value: usize, align: usize) -> usize {
 /// assert_eq!(util::round_dn(0x123, 0x1000), 0x0);
 /// ```
 pub fn round_dn(value: usize, align: usize) -> usize {
+    value & !(align - 1)
+}
+pub fn round_dn64(value: u64, align: u64) -> u64 {
     value & !(align - 1)
 }
 

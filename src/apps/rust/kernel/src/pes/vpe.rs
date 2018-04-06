@@ -4,6 +4,7 @@ use base::cfg;
 use base::dtu::{EpId, PEId, HEADER_COUNT, EP_COUNT, FIRST_FREE_EP};
 use base::errors::{Code, Error};
 use base::GlobAddr;
+use base::goff;
 use base::kif::{CapRngDesc, CapSel, CapType, PEDesc, Perm};
 use base::rc::Rc;
 use core::fmt;
@@ -201,7 +202,7 @@ impl VPE {
             let mut rgate = rgate.borrow_mut();
             rgate.order = cfg::UPCALL_RBUF_ORD;
             rgate.msg_order = cfg::UPCALL_RBUF_ORD;
-            rgate.addr += cfg::SYSC_RBUF_SIZE;
+            rgate.addr += cfg::SYSC_RBUF_SIZE as goff;
             self.config_rcv_ep(dtu::UPCALL_REP, &mut rgate).unwrap();
         }
 
@@ -210,12 +211,12 @@ impl VPE {
             let mut rgate = rgate.borrow_mut();
             rgate.order = cfg::DEF_RBUF_ORD;
             rgate.msg_order = cfg::DEF_RBUF_ORD;
-            rgate.addr += cfg::DEF_RBUF_SIZE;
+            rgate.addr += cfg::DEF_RBUF_SIZE as goff;
             self.config_rcv_ep(dtu::DEF_REP, &mut rgate).unwrap();
         }
 
-        self.rbufs_size = rgate.borrow().addr + (1 << rgate.borrow().order);
-        self.rbufs_size -= platform::default_rcvbuf(self.pe_id());
+        self.rbufs_size = rgate.borrow().addr as usize + (1 << rgate.borrow().order);
+        self.rbufs_size -= platform::default_rcvbuf(self.pe_id()) as usize;
 
         if !self.is_bootmod() {
             let loader = Loader::get();
@@ -389,9 +390,9 @@ impl VPE {
 
         // default_rcvbuf() == 0 means that we do not validate it
         if addr != 0 && (obj.addr < addr ||
-                         obj.addr > addr + size ||
-                         obj.addr + obj.size() > addr + size ||
-                         obj.addr < addr + self.rbufs_size) {
+                         obj.addr > addr + size as goff ||
+                         obj.addr + obj.size() as goff > addr + size as goff ||
+                         obj.addr < addr + self.rbufs_size as goff) {
             return Err(Error::new(Code::InvArgs));
         }
 
@@ -416,15 +417,16 @@ impl VPE {
     }
 
     pub fn config_mem_ep(&mut self, ep: EpId, obj: &Ref<MGateObject>,
-                         pe_id: PEId, off: usize) -> Result<(), Error> {
-        if off >= obj.size() || obj.addr() + off < off {
+                         pe_id: PEId, off: goff) -> Result<(), Error> {
+        if off >= obj.size() as goff || obj.addr() + off < off {
             return Err(Error::new(Code::InvArgs));
         }
 
         klog!(EPS, "VPE{}:EP{} = {:?}", self.id(), ep, obj);
 
         // TODO
-        self.dtu_state.config_mem(ep, pe_id, obj.vpe, obj.addr() + off, obj.size() - off, obj.perms);
+        self.dtu_state.config_mem(ep, pe_id, obj.vpe, obj.addr() + off,
+            obj.size() - off as usize, obj.perms);
         self.update_ep(ep)
     }
 

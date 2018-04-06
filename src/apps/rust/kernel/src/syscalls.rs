@@ -4,6 +4,7 @@ use base::col::ToString;
 use base::dtu;
 use base::errors::{Error, Code};
 use base::GlobAddr;
+use base::goff;
 use base::kif::{self, CapRngDesc, CapSel, CapType};
 use base::rc::Rc;
 use base::util;
@@ -174,7 +175,7 @@ fn pagefault(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), E
 fn create_mgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateMGate = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
-    let addr = req.addr as usize;
+    let addr = req.addr as goff;
     let size = req.size as usize;
     let perms = kif::Perm::from_bits_truncate(req.perms as u8);
 
@@ -407,7 +408,8 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     let dst_vpe: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
     let mgate: Rc<RefCell<MGateObject>> = get_kobj!(vpe, mgate_sel, MGate);
 
-    if (mgate.borrow().addr() & cfg::PAGE_MASK) != 0 || (mgate.borrow().size() & cfg::PAGE_MASK) != 0 {
+    if (mgate.borrow().addr() & cfg::PAGE_MASK as goff) != 0 ||
+        (mgate.borrow().size() & cfg::PAGE_MASK) != 0 {
         sysc_err!(
             vpe, Code::InvArgs,
             "Memory capability is not page aligned (addr={:#x}, size={:#x})",
@@ -426,7 +428,7 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::InvArgs, "Region of memory cap is invalid");
     }
 
-    let virt = (dst_sel as usize) << cfg::PAGE_BITS;
+    let virt = (dst_sel as goff) << cfg::PAGE_BITS;
     let phys = GlobAddr::new(
         mgate.borrow().mem.global().raw() + (cfg::PAGE_SIZE * first as usize) as u64
     );
@@ -711,7 +713,7 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Er
     let req: &kif::syscalls::Activate = get_message(msg);
     let ep_sel = req.ep_sel as CapSel;
     let gate_sel = req.gate_sel as CapSel;
-    let addr = req.addr as usize;
+    let addr = req.addr as goff;
 
     sysc_log!(
         vpe, "activate(ep={}, gate={}, addr={:#x})",

@@ -1,6 +1,7 @@
 use base::cell::StaticCell;
 use base::dtu::*;
 use base::errors::{Code, Error};
+use base::goff;
 use base::kif::Perm;
 use base::util;
 
@@ -36,7 +37,7 @@ impl State {
         regs[EpReg::MSGORDER.val as usize] = util::next_log2(msg_size) as Reg;
     }
 
-    pub fn config_recv(&mut self, ep: EpId, buf: usize, ord: i32, msg_ord: i32, _header: usize) {
+    pub fn config_recv(&mut self, ep: EpId, buf: goff, ord: i32, msg_ord: i32, _header: usize) {
         let regs: &mut [Reg] = self.get_ep_mut(ep);
         regs[EpReg::BUF_ADDR.val as usize]       = buf as Reg;
         regs[EpReg::BUF_ORDER.val as usize]      = ord as Reg;
@@ -48,10 +49,10 @@ impl State {
         regs[EpReg::BUF_OCCUPIED.val as usize]   = 0;
     }
 
-    pub fn config_mem(&mut self, ep: EpId, pe: PEId, _vpe: VPEId, addr: usize, size: usize, perm: Perm) {
+    pub fn config_mem(&mut self, ep: EpId, pe: PEId, _vpe: VPEId, addr: goff, size: usize, perm: Perm) {
         let regs: &mut [Reg] = self.get_ep_mut(ep);
-        assert!((addr & perm.bits() as usize) == 0);
-        regs[EpReg::LABEL.val as usize]         = (addr | perm.bits() as usize) as Reg;
+        assert!((addr & perm.bits() as goff) == 0);
+        regs[EpReg::LABEL.val as usize]         = (addr | perm.bits() as goff) as Reg;
         regs[EpReg::PE_ID.val as usize]         = pe as Reg;
         regs[EpReg::EP_ID.val as usize]         = 0;
         regs[EpReg::CREDITS.val as usize]       = size as Reg;
@@ -103,24 +104,24 @@ impl KDTU {
         self.write_ep_remote(vpe, ep, &regs)
     }
 
-    pub fn read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) {
+    pub fn read_mem(&mut self, vpe: &VPEDesc, addr: goff, data: *mut u8, size: usize) {
         assert!(vpe.vpe().is_none());
         self.try_read_mem(vpe, addr, data, size).unwrap();
     }
 
-    pub fn try_read_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *mut u8, size: usize) -> Result<(), Error> {
+    pub fn try_read_mem(&mut self, vpe: &VPEDesc, addr: goff, data: *mut u8, size: usize) -> Result<(), Error> {
         self.state.config_mem(KTMP_EP, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::R);
         self.write_ep_local(KTMP_EP);
 
         DTU::read(KTMP_EP, data, size, 0, CmdFlags::NOPF)
     }
 
-    pub fn write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) {
+    pub fn write_mem(&mut self, vpe: &VPEDesc, addr: goff, data: *const u8, size: usize) {
         assert!(vpe.vpe().is_none());
         self.try_write_mem(vpe, addr, data, size).unwrap();
     }
 
-    pub fn try_write_mem(&mut self, vpe: &VPEDesc, addr: usize, data: *const u8, size: usize) -> Result<(), Error> {
+    pub fn try_write_mem(&mut self, vpe: &VPEDesc, addr: goff, data: *const u8, size: usize) -> Result<(), Error> {
         self.state.config_mem(KTMP_EP, vpe.pe_id(), vpe.vpe_id(), addr, size, Perm::W);
         self.write_ep_local(KTMP_EP);
 
@@ -136,17 +137,17 @@ impl KDTU {
         DTU::send(KTMP_EP, msg, size, rpl_lbl, rpl_ep)
     }
 
-    pub fn clear(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize, _size: usize) -> Result<(), Error> {
+    pub fn clear(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: goff, _size: usize) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 
-    pub fn copy(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: usize,
-                           _src_vpe: &VPEDesc, mut _src_addr: usize,
+    pub fn copy(&mut self, _dst_vpe: &VPEDesc, mut _dst_addr: goff,
+                           _src_vpe: &VPEDesc, mut _src_addr: goff,
                            _size: usize) -> Result<(), Error> {
         Err(Error::new(Code::NotSup))
     }
 
-    pub fn recv_msgs(&mut self, ep: EpId, buf: usize, ord: i32, msg_ord: i32) -> Result<(), Error> {
+    pub fn recv_msgs(&mut self, ep: EpId, buf: goff, ord: i32, msg_ord: i32) -> Result<(), Error> {
         self.state.config_recv(ep, buf, ord, msg_ord, 0);
         self.write_ep_local(ep);
 
@@ -156,7 +157,8 @@ impl KDTU {
     pub fn write_ep_remote(&mut self, vpe: &VPEDesc, ep: EpId, regs: &[Reg]) -> Result<(), Error> {
         let eps = vpe.vpe().unwrap().eps_addr();
         let addr = eps + ep * EPS_RCNT * util::size_of::<Reg>();
-        self.try_write_mem(vpe, addr, regs.as_ptr() as *const u8, EPS_RCNT * util::size_of::<Reg>())
+        let bytes = EPS_RCNT * util::size_of::<Reg>();
+        self.try_write_mem(vpe, addr as goff, regs.as_ptr() as *const u8, bytes)
     }
 
     pub fn reset(&mut self, _vpe: &VPEDesc) -> Result<(), Error> {

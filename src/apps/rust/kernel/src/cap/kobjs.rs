@@ -3,6 +3,7 @@ use base::col::String;
 use base::dtu::{self, EpId, PEId, Label};
 use base::errors::{Code, Error};
 use base::GlobAddr;
+use base::goff;
 use base::kif;
 use base::rc::Rc;
 use base::util;
@@ -43,7 +44,7 @@ impl fmt::Debug for KObject {
 pub struct RGateObject {
     pub vpe: VPEId,
     pub ep: Option<EpId>,
-    pub addr: usize,
+    pub addr: goff,
     pub order: i32,
     pub msg_order: i32,
     pub header: usize,
@@ -143,7 +144,7 @@ impl MGateObject {
         }
     }
 
-    pub fn addr(&self) -> usize {
+    pub fn addr(&self) -> goff {
         self.mem.global().offset()
     }
     pub fn size(&self) -> usize {
@@ -299,21 +300,21 @@ impl MapObject {
         }))
     }
 
-    pub fn remap(&mut self, vpe: &VPE, virt: usize, pages: usize,
+    pub fn remap(&mut self, vpe: &VPE, virt: goff, pages: usize,
                  phys: GlobAddr, flags: MapFlags) -> Result<(), Error> {
         self.phys = phys;
         self.flags = flags;
         self.map(vpe, virt, pages)
     }
 
-    pub fn map(&self, vpe: &VPE, virt: usize, pages: usize) -> Result<(), Error> {
+    pub fn map(&self, vpe: &VPE, virt: goff, pages: usize) -> Result<(), Error> {
         match vpe.addr_space() {
             Some(space) => space.map_pages(&vpe.desc(), virt, self.phys, pages, self.flags),
             None        => Err(Error::new(Code::NotSup)),
         }
     }
 
-    pub fn unmap(&self, vpe: &VPE, virt: usize, pages: usize) {
+    pub fn unmap(&self, vpe: &VPE, virt: goff, pages: usize) {
         vpe.addr_space().map(|space| space.unmap_pages(&vpe.desc(), virt, pages));
     }
 }
