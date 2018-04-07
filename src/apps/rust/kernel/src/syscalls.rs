@@ -137,38 +137,7 @@ fn pagefault(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), E
 
     // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
 
-    // retrieve ep and selector
-    let (sep, sgate_sel) = {
-        if let Some(space) = vpe.borrow().addr_space() {
-            if let Some(sgate_sel) = space.sgate_sel() {
-                (space.sep().unwrap(), sgate_sel)
-            }
-            else {
-                // if we don't have a pager, it was probably because of speculative execution. just return an
-                // error in this case and don't print anything
-                return Err(Error::new(Code::InvArgs));
-            }
-        }
-        else {
-            sysc_err!(vpe, Code::NotSup, "No address space / PF handler");
-        }
-    };
-
-    // activate send gate
-    {
-        let sgate: Rc<RefCell<SGateObject>> = get_kobj!(vpe, sgate_sel, SGate);
-        let rgate: Rc<RefCell<RGateObject>> = sgate.borrow().rgate.clone();
-        assert!(rgate.borrow().activated());
-
-        let pe_id = vpemng::get().pe_of(rgate.borrow().vpe);
-        let sgate_ref = sgate.borrow();
-        if let Err(e) = vpe.borrow_mut().config_snd_ep(sep, &sgate_ref, pe_id.unwrap()) {
-            sysc_err!(vpe, e.code(), "Unable to configure send EP");
-        }
-    }
-
-    reply_success(msg);
-    Ok(())
+    sysc_err!(vpe, Code::InvArgs, "Unexpected pagefault");
 }
 
 #[inline(never)]
