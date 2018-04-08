@@ -132,7 +132,7 @@ pub fn main() -> i32 {
     dtu::DTU::configure_recv(kdtu::KSYS_EP, rbuf.as_ptr() as usize, 14, 9);
 
     let serv_rbuf = vec![0u8; 1024];
-    dtu::DTU::configure_recv(kdtu::KSRV_EP, serv_rbuf.as_ptr() as usize, 10, 10);
+    dtu::DTU::configure_recv(kdtu::KSRV_EP, serv_rbuf.as_ptr() as usize, 10, 8);
 
     let vpemng = pes::vpemng::get();
     let mut args = env::args();

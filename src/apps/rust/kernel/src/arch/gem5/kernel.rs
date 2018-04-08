@@ -55,7 +55,7 @@ pub extern "C" fn env_run() {
         .expect("Unable to config syscall REP");
 
     let serv_rbuf = vec![0u8; 1024];
-    kdtu::KDTU::get().recv_msgs(kdtu::KSRV_EP, serv_rbuf.as_ptr() as goff, 10, 10)
+    kdtu::KDTU::get().recv_msgs(kdtu::KSRV_EP, serv_rbuf.as_ptr() as goff, 10, 8)
         .expect("Unable to config service REP");
 
     let vpemng = pes::vpemng::get();
