@@ -27,8 +27,6 @@ elif env['ARCH'] == 'gem5':
     # -O0 makes the code too large. Better use -Og here.
     myenv['CXXFLAGS'] = str(myenv['CXXFLAGS']).replace('-O0', '-Og')
 
-    myenv.M3CPP('ld-final.conf', '#src/apps/rctmux/arch/gem5/ld.conf')
-
     myenv.M3Program(
         myenv,
         target = 'rctmux',
@@ -41,7 +39,7 @@ elif env['ARCH'] == 'gem5':
         ],
         NoSup = True,
         varAddr = False,
-        ldscript = myenv.File('ld-final.conf'),
+        ldscript = myenv.File('#src/apps/rctmux/arch/gem5/ld-${ISA}.conf'),
         libs = ['gcc', 'c']
     )
 
