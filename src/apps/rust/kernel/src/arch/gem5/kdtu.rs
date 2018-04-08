@@ -254,7 +254,7 @@ impl KDTU {
     }
 
     pub fn recv_msgs(&mut self, ep: EpId, buf: goff, ord: i32, msg_ord: i32) -> Result<(), Error> {
-        if self.state.header_off + 1 << (ord - msg_ord) > HEADER_COUNT {
+        if self.state.header_off + (1 << (ord - msg_ord)) > HEADER_COUNT {
             return Err(Error::new(Code::NoSpace));
         }
 
