@@ -170,7 +170,10 @@ impl Loader {
                     Self::map_segment(vpe, phys.global(), virt as goff, size, flags)?;
                     phys.claim();
 
-                    if to_mem {
+                    // workaround for ARM: if we push remotely into the cache, it gets loaded to the
+                    // L1d cache. however, we push instructions which need to end up in L1i. Thus,
+                    // write to mem.
+                    if to_mem || virt == 0x0 {
                         (VPEDesc::new_mem(phys.global().pe()), phys.global().offset())
                     }
                     else {

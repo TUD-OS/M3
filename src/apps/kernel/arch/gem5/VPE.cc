@@ -154,7 +154,9 @@ static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bo
             map_segment(vpe, phys, virt, size, perms);
             end = virt + size;
 
-            if(to_mem) {
+            // workaround for ARM: if we push remotely into the cache, it gets loaded to the L1d
+            // cache. however, we push instructions which need to end up in L1i. Thus, write to mem.
+            if(to_mem || virt == 0x0) {
                 VPEDesc memvpe(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID);
                 DTU::get().copy_clear(memvpe, m3::DTU::gaddr_to_virt(phys),
                     VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
