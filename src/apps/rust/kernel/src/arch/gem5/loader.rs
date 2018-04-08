@@ -10,7 +10,6 @@ use base::GlobAddr;
 use base::goff;
 use base::kif;
 use base::util;
-use core::intrinsics;
 
 use arch::kdtu::KDTU;
 use cap::{Capability, KObject, MapFlags, MapObject, SelRange};
@@ -28,19 +27,6 @@ struct BootModule {
 }
 
 impl BootModule {
-    fn new(name: &str, addr: GlobAddr, size: usize) -> Self {
-        let mut bm = BootModule {
-            name: unsafe { intrinsics::uninit() },
-            addr: addr,
-            size: size as u64,
-        };
-        for (a, c) in bm.name.iter_mut().zip(name.bytes()) {
-            *a = c as i8;
-        }
-        bm.name[name.len()] = '\0' as i8;
-        bm
-    }
-
     fn name(&self) -> &'static str {
         unsafe {
             util::cstr_to_str(self.name.as_ptr())
@@ -51,7 +37,6 @@ impl BootModule {
 pub struct Loader {
     mods: Vec<BootModule>,
     loaded: Cell<u64>,
-    idles: Vec<Option<BootModule>>,
 }
 
 static LOADER: StaticCell<Option<Loader>> = StaticCell::new(None);
@@ -80,7 +65,6 @@ pub fn init() {
     LOADER.set(Some(Loader {
         mods: mods,
         loaded: Cell::new(0),
-        idles: vec![None; platform::MAX_PES],
     }));
 }
 
@@ -234,42 +218,15 @@ impl Loader {
     }
 
     fn map_idle(&mut self, vpe: &mut VPE) -> Result<usize, Error> {
-        let pe = vpe.pe_id();
-
-        if self.idles[pe].is_none() {
-            let (mut phys, size) = {
-                let rctmux: &BootModule = self.get_mod(&["rctmux".to_string()]).unwrap().0;
-
-                // copy the ELF file
-                let size = util::round_up(rctmux.size as usize, PAGE_SIZE);
-                let mut phys = mem::get().allocate(size, PAGE_SIZE)?;
-                let bootvpe = VPEDesc::new_mem(phys.global().pe());
-                KDTU::get().copy(
-                    // destination
-                    &bootvpe,
-                    phys.global().offset(),
-                    // source
-                    &VPEDesc::new_mem(rctmux.addr.pe()),
-                    rctmux.addr.offset(),
-                    rctmux.size as usize
-                )?;
-
-                (phys, size)
-            };
-
-            self.idles[pe] = Some(BootModule::new("rctmux", phys.global(), size));
-            phys.claim();
-        }
-
-        // load idle
-        let idle: &BootModule = self.idles[pe].as_ref().unwrap();
+        // load rctmux
+        let rctmux: &BootModule = self.get_mod(&["rctmux".to_string()]).unwrap().0;
         let to_mem = vpe.pe_desc().has_mmu();
-        let entry = self.load_mod(vpe, idle, false, false, to_mem)?;
+        let entry = self.load_mod(vpe, rctmux, true, false, to_mem)?;
 
         if vpe.pe_desc().has_mmu() {
             // clear rctmux variables
             KDTU::get().clear(
-                &VPEDesc::new_mem(idle.addr.pe()), idle.addr.offset() + rctmux::YIELD_ADDR, 16
+                &VPEDesc::new_mem(rctmux.addr.pe()), rctmux.addr.offset() + rctmux::YIELD_ADDR, 16
             )?;
 
             // map DTU

@@ -34,7 +34,6 @@ struct BootModule {
 static size_t count = 0;
 static BootModule mods[Platform::MAX_MODS];
 static uint64_t loaded = 0;
-static BootModule *idles[Platform::MAX_PES];
 
 static BootModule *get_mod(size_t argc, char **argv, bool *first) {
     static_assert(sizeof(loaded) * 8 >= Platform::MAX_MODS, "Too few bits for modules");
@@ -161,7 +160,6 @@ static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bo
                     VPEDesc(m3::DTU::gaddr_to_pe(mod->addr), VPE::INVALID_ID),
                     m3::DTU::gaddr_to_virt(mod->addr + offset),
                     size, pheader.p_filesz == 0);
-
             }
             else {
                 DTU::get().copy_clear(vpe.desc(), virt,
@@ -189,33 +187,14 @@ static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bo
 }
 
 static goff_t map_idle(VPE &vpe) {
-    BootModule *idle = idles[vpe.pe()];
-    if(!idle) {
-        bool first;
-        char *args[] = {const_cast<char*>("rctmux")};
-        BootModule *tmp = get_mod(1, args, &first);
-        idle = new BootModule;
-
-        // copy the ELF file
-        size_t size = m3::Math::round_up(static_cast<size_t>(tmp->size), PAGE_SIZE);
-        gaddr_t phys = alloc_mem(size);
-        VPEDesc bootvpe(m3::DTU::gaddr_to_pe(phys), VPE::INVALID_ID);
-        DTU::get().copy_clear(bootvpe, m3::DTU::gaddr_to_virt(phys),
-            VPEDesc(m3::DTU::gaddr_to_pe(tmp->addr), VPE::INVALID_ID),
-            m3::DTU::gaddr_to_virt(tmp->addr),
-            tmp->size, false);
-
-        // remember the copy
-        strcpy(idle->name, "rctmux");
-        idle->addr = phys;
-        idle->size = tmp->size;
-        idles[vpe.pe()] = idle;
-    }
+    bool first;
+    char *args[] = {const_cast<char*>("rctmux")};
+    BootModule *idle = get_mod(1, args, &first);
     if(!idle)
-        PANIC("Unable to find boot module 'idle'");
+        PANIC("Unable to find boot module 'rctmux'");
 
     // load idle
-    goff_t res = load_mod(vpe, idle, false, false, Platform::pe(vpe.pe()).has_mmu());
+    goff_t res = load_mod(vpe, idle, true, false, Platform::pe(vpe.pe()).has_mmu());
 
     // clear RCTMUX_*
     if(Platform::pe(vpe.pe()).has_mmu()) {
