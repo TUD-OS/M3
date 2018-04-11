@@ -27,7 +27,7 @@ using namespace m3;
 
 int main(int argc, char **argv) {
     if(argc < 6)
-        exitmsg("Usage: " << argv[0] << " <in> <out> <direct> <comptime> <num>");
+        exitmsg("Usage: " << argv[0] << " <in> <out> <mode> <comptime> <num>");
 
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
     const char *in = argv[1];
     const char *out = argv[2];
-    bool direct = IStringStream::read_from<int>(argv[3]) == 1;
+    Mode mode = static_cast<Mode>(IStringStream::read_from<int>(argv[3]));
     cycles_t comptime = IStringStream::read_from<cycles_t>(argv[4]);
     size_t num = IStringStream::read_from<size_t>(argv[5]);
 
@@ -52,10 +52,10 @@ int main(int argc, char **argv) {
     File *fout = VPE::self().fds()->get(outfd);
 
     cycles_t start = Time::start(0);
-    if(direct)
-        chain_direct(fin, fout, num, comptime);
-    else
+    if(mode == Mode::INDIR)
         chain_indirect(fin, fout, num, comptime);
+    else
+        chain_direct(fin, fout, num, comptime, mode);
     cycles_t end = Time::stop(0);
 
     VFS::close(infd);
