@@ -73,8 +73,8 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
         move_rbufs(VPEDesc(vpe.pe, vpeid), vpe.id, false);
 
     // re-enable pagefaults, if we have a valid pagefault EP (the abort operation disables it)
-    // and unset COM_DISABLED and IRQ_WAKEUP
-    m3::DTU::reg_t features = 0;
+    // and unset IRQ_WAKEUP
+    m3::DTU::reg_t features = m3::DTU::StatusFlags::COM_DISABLED;
     if(_regs.get(m3::DTU::DtuRegs::PF_EP) != static_cast<epid_t>(-1))
         features |= m3::DTU::StatusFlags::PAGEFAULTS;
     _regs.set(m3::DTU::DtuRegs::FEATURES, features);
@@ -93,6 +93,17 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     DTU::get().write_mem(VPEDesc(vpe.pe, vpeid),
                          m3::DTU::BASE_ADDR + regsSize, _regs._header,
                          sizeof(_regs._header));
+}
+
+void DTUState::enable_communication(const VPEDesc &vpe) {
+    static_assert(m3::DTU::DtuRegs::FEATURES == static_cast<m3::DTU::DtuRegs>(0),
+                  "Features register changed");
+
+    m3::DTU::reg_t features = _regs.get(m3::DTU::DtuRegs::FEATURES);
+    features &= ~m3::DTU::StatusFlags::COM_DISABLED;
+    _regs.set(m3::DTU::DtuRegs::FEATURES, features);
+
+    DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(m3::DTU::reg_t));
 }
 
 bool DTUState::invalidate(epid_t ep, bool check) {

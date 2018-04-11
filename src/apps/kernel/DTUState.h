@@ -41,6 +41,7 @@ public:
     void *get_ep(epid_t ep);
     void save(const VPEDesc &vpe);
     void restore(const VPEDesc &vpe, vpeid_t vpeid);
+    void enable_communication(const VPEDesc &vpe);
 
     bool invalidate(epid_t ep, bool check);
     void invalidate_eps(epid_t first);

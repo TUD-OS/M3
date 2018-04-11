@@ -60,6 +60,7 @@ public:
     enum State {
         RUNNING,
         SUSPENDED,
+        RESUMING,
         DEAD
     };
 
@@ -109,6 +110,9 @@ public:
     }
     bool has_app() const {
         return _flags & F_HASAPP;
+    }
+    bool is_on_pe() const {
+        return state() == RUNNING || state() == RESUMING;
     }
     State state() const {
         return _state;

@@ -347,8 +347,9 @@ retry:
                 return true;
             }
 
-            // make it running here, so that the PTEs are sent to the PE, if F_INIT is set
-            _cur->_state = VPE::RUNNING;
+            // make it resuming here, so that the PTEs are sent to the PE, if F_INIT is set
+            // but we do not yet allow other VPEs to access this VPE
+            _cur->_state = VPE::RESUMING;
             _cur->_lastsched = DTU::get().get_time();
 
             _cur->_dtustate.reset();
@@ -393,13 +394,11 @@ retry:
 #if !defined(__host__)
             _cur->_flags &= ~static_cast<uint>(VPE::F_INIT);
 #endif
-            _cur->notify_resume();
+            // now that everything is complete, enable the communication
+            _cur->_dtustate.enable_communication(_cur->desc());
+            _cur->_state = VPE::RUNNING;
 
-            // TODO actually, we have to disable the communication between restoring the EPs and
-            // this point, i.e., the ack of rctmux. because if rctmux needs to restore something
-            // before being able to continue, communication should still be blocked. we have that
-            // case with the hash accelerator, that needs to restore the buffer and clients should
-            // not be able to overwrite it until that is finished
+            _cur->notify_resume();
 
             DTU::get().write_swflags(_cur->desc(), 0);
             _state = S_IDLE;

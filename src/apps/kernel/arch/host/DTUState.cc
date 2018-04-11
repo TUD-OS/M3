@@ -45,6 +45,10 @@ void DTUState::restore(const VPEDesc &, vpeid_t) {
     // not supported
 }
 
+void DTUState::enable_communication(const VPEDesc &) {
+    // not supported
+}
+
 bool DTUState::invalidate(epid_t ep, bool) {
     memset(get_ep(ep), 0, sizeof(word_t) * m3::DTU::EPS_RCNT);
     return true;

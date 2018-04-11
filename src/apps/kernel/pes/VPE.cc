@@ -238,7 +238,7 @@ bool VPE::invalidate_ep(epid_t ep, bool cmd) {
 
     bool res = true;
     if(cmd) {
-        if(state() == VPE::RUNNING)
+        if(is_on_pe())
             res = DTU::get().inval_ep_remote(desc(), ep) == m3::Errors::NONE;
         else
             res = _dtustate.invalidate(ep, true);
@@ -251,7 +251,7 @@ bool VPE::invalidate_ep(epid_t ep, bool cmd) {
 }
 
 bool VPE::can_forward_msg(epid_t ep) {
-    if(state() == VPE::RUNNING)
+    if(is_on_pe())
         _dtustate.read_ep(desc(), ep);
     return _dtustate.can_forward_msg(ep);
 }
@@ -340,7 +340,7 @@ m3::Errors::Code VPE::config_mem_ep(epid_t ep, const MGateObject &obj, goff_t of
 }
 
 void VPE::update_ep(epid_t ep) {
-    if(state() == VPE::RUNNING)
+    if(is_on_pe())
         DTU::get().write_ep_remote(desc(), ep, _dtustate.get_ep(ep));
 }
 
