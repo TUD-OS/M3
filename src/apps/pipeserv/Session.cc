@@ -120,8 +120,8 @@ Errors::Code PipeReadChannel::close() {
         return Errors::INV_ARGS;
 
     if(pipe->last_reader == this) {
-        PRINTCHAN(pipe, id, "read-pull: " << lastamount);
-        pipe->rbuf.pull(lastamount);
+        PRINTCHAN(pipe, id, "read-pull: 0");
+        pipe->rbuf.pull(0);
         pipe->last_reader = nullptr;
     }
 
@@ -226,8 +226,8 @@ Errors::Code PipeWriteChannel::close() {
         return Errors::INV_ARGS;
 
     if(pipe->last_writer == this && lastamount != static_cast<size_t>(-1)) {
-        PRINTCHAN(pipe, id, "write-push: " << lastamount);
-        pipe->rbuf.push(lastamount, lastamount);
+        PRINTCHAN(pipe, id, "write-push: 0");
+        pipe->rbuf.push(lastamount, 0);
         pipe->last_writer = nullptr;
     }
 

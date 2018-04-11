@@ -80,7 +80,7 @@ public:
         if(_wrpos >= _rdpos) {
             if(_size - _wrpos >= req_size)
                 _wrpos += size;
-            else if(_rdpos > req_size) {
+            else if(_rdpos > req_size && size > 0) {
                 _last = _wrpos;
                 _wrpos = size;
             }
