@@ -15,6 +15,7 @@
  */
 
 #include <base/Common.h>
+#include <base/stream/OStream.h>
 #include <base/util/Math.h>
 #include <base/DTU.h>
 
@@ -96,6 +97,11 @@ public:
             _last = _size;
         }
         _rdpos += size;
+    }
+
+    friend m3::OStream &operator<<(m3::OStream &os, const VarRingBuf &r) {
+        os << "RingBuf[rd=" << r._rdpos << ",wr=" << r._wrpos << ",last=" << r._last << "]";
+        return os;
     }
 
 private:
