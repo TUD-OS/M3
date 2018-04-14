@@ -39,7 +39,7 @@ static bool map_eager = false;
 
 class Aladdin {
 public:
-    static const uint RBUF          = 2;
+    static const uint RBUF_SEL      = 64;
     static const uint RECV_EP       = 7;
     static const uint MEM_EP        = 8;
     static const uint DATA_EP       = 9;
@@ -76,7 +76,7 @@ public:
             _accel->pager()->map_anon(&virt, STATE_SIZE + BUF_SIZE, Pager::Prot::RW, 0);
         }
 
-        _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srgate.sel(), 1), RBUF);
+        _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srgate.sel(), 1), RBUF_SEL);
         _srgate.activate(RECV_EP, RBUF_ADDR);
         _accel->start();
     }
