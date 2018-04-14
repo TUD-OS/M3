@@ -72,6 +72,7 @@ public:
         _rgate.activate();
 
         if(_accel->pager()) {
+            _accel->pager()->activate_gates(*_accel);
             goff_t virt = STATE_ADDR;
             _accel->pager()->map_anon(&virt, STATE_SIZE + BUF_SIZE, Pager::Prot::RW, 0);
         }
