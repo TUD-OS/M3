@@ -117,11 +117,16 @@ public:
 static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
 static size_t offs[ARRAY_SIZE(sizes)] = {0};
 static goff_t virt = 0x1000000;
+static fd_t fds[8] = {0};
+static size_t next_fd = 0;
 
 static void reset() {
     virt = 0x1000000;
     for(size_t i = 0; i < ARRAY_SIZE(sizes); ++i)
         offs[i] = 0;
+    for(size_t i = 0; i < next_fd; ++i)
+        VFS::close(fds[i]);
+    next_fd = 0;
 }
 
 static String get_file(size_t size, size_t *off) {
@@ -145,6 +150,8 @@ static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
     size_t psize = Math::round_up(size, PAGE_SIZE);
 
     if(use_files) {
+        if(next_fd >= ARRAY_SIZE(fds))
+            exitmsg("Not enough file slots");
         int perms = (prot & MemGate::W) ? FILE_RW : FILE_R;
         size_t off = 0;
         String filename = get_file(size, &off);
@@ -154,6 +161,7 @@ static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
         const GenericFile *file = static_cast<const GenericFile*>(VPE::self().fds()->get(fd));
         int flags = (prot & MemGate::W) ? Pager::MAP_SHARED : Pager::MAP_PRIVATE;
         alad._accel->pager()->map_ds(&virt, psize, prot, flags, file->sess(), off);
+        fds[next_fd++] = fd;
     }
     else {
         MemGate *mem = new MemGate(MemGate::create_global(psize, prot));
