@@ -64,14 +64,18 @@ void sleep() {
 void *ctxsw_protocol(void *s) {
     uint64_t flags = flags_get();
 
-    if(flags & m3::RESTORE)
-        return restore();
+    if(flags & m3::RESTORE) {
+        s = restore();
+        Arch::reset_sp();
+        return s;
+    }
 
     if(flags & m3::STORE) {
         if(s)
             save(s);
 
         // stay here until reset
+        Arch::save_sp();
         Arch::enable_ints();
         while(1)
             sleep();
@@ -88,6 +92,7 @@ void *ctxsw_protocol(void *s) {
         state = nullptr;
     }
 
+    Arch::reset_sp();
     return s;
 }
 

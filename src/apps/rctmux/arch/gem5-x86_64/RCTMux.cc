@@ -24,6 +24,8 @@
 #include "Exceptions.h"
 #include "VMA.h"
 
+EXTERN_C void *rctmux_stack;
+
 namespace RCTMux {
 namespace Arch {
 
@@ -35,6 +37,14 @@ void init() {
 
 void enable_ints() {
     asm volatile ("sti");
+}
+
+void reset_sp() {
+    Exceptions::set_sp(reinterpret_cast<uintptr_t>(&rctmux_stack));
+}
+
+void save_sp() {
+    Exceptions::set_sp(m3::CPU::get_sp());
 }
 
 void *init_state() {

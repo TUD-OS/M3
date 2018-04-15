@@ -29,6 +29,8 @@ void *init_state();
 void abort();
 void resume();
 void enable_ints();
+void reset_sp();
+void save_sp();
 void sleep();
 
 }

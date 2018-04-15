@@ -44,10 +44,10 @@ BEGIN_FUNC(_start)
     jne     2f
 
     // return to idle code
-    pushq   $(2 << 3) | 3   // ss
-    pushq   $rctmux_stack   // rsp
+    pushq   $(4 << 3) | 3   // ss
+    pushq   $idle_stack     // rsp
     pushq   $0x200          // rflags: interrupts enabled
-    pushq   $(1 << 3) | 3   // cs
+    pushq   $(3 << 3) | 3   // cs
     pushq   $idle           // rip
     iretq
 END_FUNC(_start)
@@ -158,3 +158,5 @@ END_FUNC(gem5_writefile)
     .align 16
     .space 1024, 0
 rctmux_stack:
+    .space 128, 0
+idle_stack:
