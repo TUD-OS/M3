@@ -873,6 +873,8 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     size_t len = req->len;
     label_t rlabel = req->rlabel;
     word_t event = req->event;
+    char msg_cpy[m3::KIF::MAX_MSG_SIZE];
+    const char *msg_ptr = req->msg;
 
     LOG_SYS(vpe, ": syscall::forwardmsg", "(sgate=" << sgate << ", rgate=" << rgate
         << ", len=" << len << ", rlabel=" << m3::fmt(rlabel, "0x")
@@ -901,8 +903,11 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
     // the memory beforehand and the kernel will simply use it afterwards.
     VPE &tvpe = VPEManager::get().vpe(sgatecap->obj->rgate->vpe);
     bool async = tvpe.state() != VPE::RUNNING && event;
-    if(async)
+    if(async) {
+        memcpy(msg_cpy, msg_ptr, len);
+        msg_ptr = msg_cpy;
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
+    }
 
     m3::Errors::Code res = wait_for(": syscall::forwardmsg", tvpe, vpe, true);
 
@@ -912,8 +917,8 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
         vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
 
         uint64_t sender = vpe->pe() | (vpe->id() << 8) | (ep << 24) | (static_cast<uint64_t>(rep) << 32);
-        DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, req->msg,
-            req->len, req->rlabel, rep, sender);
+        DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, msg_ptr,
+            len, rlabel, rep, sender);
     }
     else
         LOG_ERROR(vpe, res, "forwardmsg failed");
@@ -937,6 +942,8 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
     goff_t offset = req->offset;
     uint flags = req->flags;
     word_t event = req->event;
+    char msg_cpy[m3::KIF::MAX_MSG_SIZE];
+    const char *msg_ptr = req->data;
 
     LOG_SYS(vpe, ": syscall::forwardmem", "(mgate=" << mgate << ", len=" << len
         << ", offset=" << offset << ", flags=" << m3::fmt(flags, "0x")
@@ -961,8 +968,11 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
 
     VPE &tvpe = VPEManager::get().vpe(mgatecap->obj->vpe);
     bool async = tvpe.state() != VPE::RUNNING && event;
-    if(async)
+    if(async) {
+        memcpy(msg_cpy, msg_ptr, len);
+        msg_ptr = msg_cpy;
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
+    }
 
     m3::Errors::Code res = wait_for(": syscall::forwardmem", tvpe, vpe, false);
 
@@ -971,7 +981,7 @@ void SyscallHandler::forwardmem(VPE *vpe, const m3::DTU::Message *msg) {
 
     if(res == m3::Errors::NONE) {
         if(flags & m3::KIF::Syscall::ForwardMem::WRITE)
-            res = DTU::get().try_write_mem(tvpe.desc(), mgatecap->obj->addr + offset, req->data, len);
+            res = DTU::get().try_write_mem(tvpe.desc(), mgatecap->obj->addr + offset, msg_ptr, len);
         else
             res = DTU::get().try_read_mem(tvpe.desc(), mgatecap->obj->addr + offset, reply.data, len);
 
@@ -1006,6 +1016,8 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     goff_t msgaddr = req->msgaddr;
     size_t len = m3::Math::min(sizeof(req->msg), static_cast<size_t>(req->len));
     word_t event = req->event;
+    char msg_cpy[m3::KIF::MAX_MSG_SIZE];
+    const char *msg_ptr = req->msg;
 
     LOG_SYS(vpe, ": syscall::forwardreply", "(rgate=" << rgate << ", len=" << len
         << ", msgaddr=" << (void*)msgaddr << ", event=" << m3::fmt(event, "0x") << ")");
@@ -1040,8 +1052,11 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
 
     VPE &tvpe = VPEManager::get().vpe(head.senderVpeId);
     bool async = tvpe.state() != VPE::RUNNING && event;
-    if(async)
+    if(async) {
+        memcpy(msg_cpy, msg_ptr, len);
+        msg_ptr = msg_cpy;
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
+    }
 
     res = wait_for(": syscall::forwardreply", tvpe, vpe, true);
 
@@ -1049,7 +1064,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         uint64_t sender = vpe->pe() | (vpe->id() << 8) |
                         (static_cast<uint64_t>(head.senderEp) << 32) |
                         (static_cast<uint64_t>(1) << 40);
-        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, req->msg, len, sender);
+        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
 
         while(vpe->state() != VPE::RUNNING) {
             if(!vpe->resume())
