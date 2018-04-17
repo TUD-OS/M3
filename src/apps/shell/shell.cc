@@ -132,6 +132,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
         }
     }
 
+    size_t vpe_count = 0;
     fd_t infd = STDIN_FD;
     fd_t outfd = STDOUT_FD;
     for(size_t i = 0; i < list->count; ++i) {
@@ -139,6 +140,8 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
 
         vpes[i] = new VPE(expr_value(cmd->args->args[0]), descs[i], nullptr, muxed);
         if(Errors::last != Errors::NONE) {
+            delete vpes[i];
+            vpes[i] = nullptr;
             errmsg("Unable to create VPE for " << expr_value(cmd->args->args[0]));
             break;
         }
@@ -204,13 +207,14 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
             if(vpes[i - 1]->pe().is_programmable())
                 pipes[i - 1]->close_writer();
         }
+        vpe_count++;
     }
 
     // connect input/output of accelerators
-    File *clones[list->count * 2];
+    File *clones[vpe_count * 2];
     size_t c = 0;
-    for(size_t i = 0; i < list->count; ++i) {
-        if(i >= chain_start && i <= chain_end) {
+    for(size_t i = 0; i < vpe_count; ++i) {
+        if(vpes[i] && i >= chain_start && i <= chain_end) {
             File *in = vpes[i]->fds()->get(STDIN_FD);
             if(in) {
                 File *ain = in == VPE::self().fds()->get(STDIN_FD) ? in->clone() : in;
@@ -218,7 +222,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
                 if(ain != in)
                     clones[c++] = ain;
             }
-            else
+            else if(accels[i - 1])
                 accels[i]->connect_input(accels[i - 1]);
 
             File *out = vpes[i]->fds()->get(STDOUT_FD);
@@ -228,16 +232,16 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
                 if(aout != out)
                     clones[c++] = aout;
             }
-            else
+            else if(accels[i + 1])
                 accels[i]->connect_output(accels[i + 1]);
 
             vpes[i]->start();
         }
     }
 
-    capsel_t sels[list->count];
-    for(size_t rem = list->count; rem > 0; --rem) {
-        for(size_t x = 0, i = 0; i < list->count; ++i) {
+    capsel_t sels[vpe_count];
+    for(size_t rem = vpe_count; rem > 0; --rem) {
+        for(size_t x = 0, i = 0; i < vpe_count; ++i) {
             if(vpes[i])
                 sels[x++] = vpes[i]->sel();
         }
@@ -247,7 +251,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
         if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
             errmsg("Unable to wait for VPEs");
         else {
-            for(size_t i = 0; i < list->count; ++i) {
+            for(size_t i = 0; i < vpe_count; ++i) {
                 if(vpes[i] && vpes[i]->sel() == vpe) {
                     if(exitcode != 0) {
                         cerr << expr_value(list->cmds[i]->args->args[0])
@@ -269,7 +273,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
 
     for(size_t i = 0; i < c; ++i)
         delete clones[i];
-    for(size_t i = 0; i < list->count; ++i) {
+    for(size_t i = 0; i < vpe_count; ++i) {
         delete accels[i];
         delete mems[i];
         delete pipes[i];
