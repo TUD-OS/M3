@@ -35,7 +35,13 @@ public:
     static const size_t BUF_ADDR    = 0x6000;
     static const size_t BUF_SIZE    = 8192;
 
+    enum Operation {
+        COMPUTE,
+        FORWARD,
+    };
+
     struct InvokeMsg {
+        uint64_t op;
         uint64_t dataSize;
         uint64_t compTime;
     } PACKED;
@@ -69,8 +75,9 @@ public:
         _vpe->mem().write(data, size, BUF_ADDR);
     }
 
-    void start(size_t dataSize, cycles_t compTime, label_t reply_label) {
+    void start(Operation op, size_t dataSize, cycles_t compTime, label_t reply_label) {
         InvokeMsg msg;
+        msg.op = op;
         msg.dataSize = dataSize;
         msg.compTime = compTime;
         _sgate.send(&msg, sizeof(msg), reply_label);

@@ -37,6 +37,7 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
 
     VPE *vpes[num];
     InDirAccel *accels[num];
+    InDirAccel::Operation ops[num];
 
     RecvGate reply_gate = RecvGate::create(getnextlog2(REPLY_SIZE * num), nextlog2<REPLY_SIZE>::val);
     reply_gate.activate();
@@ -70,7 +71,8 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
 
     // label 0 is special; use 1..n
     accels[0]->write(buffer, static_cast<size_t>(count));
-    accels[0]->start(static_cast<size_t>(count), comptime, 1);
+    accels[0]->start(InDirAccel::Operation::COMPUTE, static_cast<size_t>(count), comptime, 1);
+    ops[0] = InDirAccel::Operation::COMPUTE;
     total += static_cast<size_t>(count);
 
     count = in->read(buffer, BUF_SIZE);
@@ -88,6 +90,12 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
 
         // cout << "got msg from " << label << "\n";
 
+        if(ops[label] == InDirAccel::Operation::COMPUTE) {
+            ops[label] = InDirAccel::Operation::FORWARD;
+            accels[label]->start(InDirAccel::Operation::FORWARD, written, 0, label + 1);
+            continue;
+        }
+
         if(label == num - 1) {
             accels[num - 1]->read(buffer, written);
             // cout << "write " << written << " bytes\n";
@@ -96,13 +104,16 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
         }
 
         if(label == 0) {
-            if(num > 1)
-                accels[1]->start(written, comptime, 2);
+            if(num > 1) {
+                accels[1]->start(InDirAccel::Operation::COMPUTE, written, comptime, 2);
+                ops[1] = InDirAccel::Operation::COMPUTE;
+            }
 
             total += static_cast<size_t>(count);
             if(count > 0) {
                 accels[0]->write(buffer, static_cast<size_t>(count));
-                accels[0]->start(static_cast<size_t>(count), comptime, 1);
+                accels[0]->start(InDirAccel::Operation::COMPUTE, static_cast<size_t>(count), comptime, 1);
+                ops[0] = InDirAccel::Operation::COMPUTE;
 
                 count = in->read(buffer, BUF_SIZE);
                 // cout << "read " << count << " bytes\n";
@@ -110,8 +121,10 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
                     goto error;
             }
         }
-        else if(label != num - 1)
-            accels[label + 1]->start(written, comptime, label + 1 + 1);
+        else if(label != num - 1) {
+            accels[label + 1]->start(InDirAccel::Operation::COMPUTE, written, comptime, label + 1 + 1);
+            ops[label + 1] = InDirAccel::Operation::COMPUTE;
+        }
 
         // cout << seen << " / " << total << "\n";
     }
