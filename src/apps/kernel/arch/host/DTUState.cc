@@ -37,11 +37,11 @@ void *DTUState::get_ep(epid_t ep) {
     return _regs._eps + ep * m3::DTU::EPS_RCNT;
 }
 
-void DTUState::save(const VPEDesc &) {
+void DTUState::save(const VPEDesc &, size_t) {
     // not supported
 }
 
-void DTUState::restore(const VPEDesc &, vpeid_t) {
+void DTUState::restore(const VPEDesc &, size_t, vpeid_t) {
     // not supported
 }
 

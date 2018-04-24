@@ -39,8 +39,8 @@ public:
     cycles_t get_idle_time() const;
 
     void *get_ep(epid_t ep);
-    void save(const VPEDesc &vpe);
-    void restore(const VPEDesc &vpe, vpeid_t vpeid);
+    void save(const VPEDesc &vpe, size_t headers);
+    void restore(const VPEDesc &vpe, size_t headers, vpeid_t vpeid);
     void enable_communication(const VPEDesc &vpe);
 
     bool invalidate(epid_t ep, bool check);

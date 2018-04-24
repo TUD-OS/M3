@@ -59,15 +59,17 @@ void DTUState::move_rbufs(const VPEDesc &vpe, vpeid_t oldvpe, bool save) {
     }
 }
 
-void DTUState::save(const VPEDesc &vpe) {
-    DTU::get().read_mem(vpe, m3::DTU::BASE_ADDR, this, sizeof(*this));
+void DTUState::save(const VPEDesc &vpe, size_t headers) {
+    size_t regsSize = sizeof(_regs._dtu) + sizeof(_regs._cmd) + sizeof(_regs._eps);
+    regsSize += sizeof(_regs._header[0]) * headers;
+    DTU::get().read_mem(vpe, m3::DTU::BASE_ADDR, this, regsSize);
 
     // copy the receive buffers, which have pending messages, to an external location
     if(!Platform::pe(vpe.pe).has_virtmem())
         move_rbufs(vpe, 0, true);
 }
 
-void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
+void DTUState::restore(const VPEDesc &vpe, size_t headers, vpeid_t vpeid) {
     // copy the receive buffers back to the SPM
     if(!Platform::pe(vpe.pe).has_virtmem())
         move_rbufs(VPEDesc(vpe.pe, vpeid), vpe.id, false);
@@ -92,7 +94,7 @@ void DTUState::restore(const VPEDesc &vpe, vpeid_t vpeid) {
     // we've already set the VPE id
     DTU::get().write_mem(VPEDesc(vpe.pe, vpeid),
                          m3::DTU::BASE_ADDR + regsSize, _regs._header,
-                         sizeof(_regs._header));
+                         sizeof(_regs._header[0]) * headers);
 }
 
 void DTUState::enable_communication(const VPEDesc &vpe) {

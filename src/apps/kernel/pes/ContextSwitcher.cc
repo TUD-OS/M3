@@ -312,7 +312,7 @@ retry:
         }
 
         case S_STORE_DONE: {
-            _cur->_dtustate.save(_cur->desc());
+            _cur->_dtustate.save(_cur->desc(), _cur->_headers);
 
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
@@ -354,7 +354,7 @@ retry:
 
             _cur->_dtustate.reset();
 
-            _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->id());
+            _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->_headers, _cur->id());
 
             if(_cur->_flags & VPE::F_INIT)
                 _cur->init_memory();
