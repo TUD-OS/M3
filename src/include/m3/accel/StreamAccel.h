@@ -64,7 +64,7 @@ public:
     static const uint64_t LBL_OUT_REQ   = 3;
     static const uint64_t LBL_OUT_REPLY = 4;
 
-    static const size_t BUF_ADDR    = 0x6000;
+    static const size_t BUF_ADDR    = 0x8000;
     static const size_t BUF_SIZE    = 8192;
 
     explicit StreamAccel(VPE *vpe, cycles_t compTime)

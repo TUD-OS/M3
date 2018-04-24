@@ -32,7 +32,7 @@ public:
     static const size_t EP_OUT      = 5;
     static const capsel_t CAP_RECV  = 64;
 
-    static const size_t BUF_ADDR    = 0x6000;
+    static const size_t BUF_ADDR    = 0x8000;
     static const size_t BUF_SIZE    = 8192;
 
     enum Operation {
