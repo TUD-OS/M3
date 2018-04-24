@@ -1059,23 +1059,13 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     }
 
     res = wait_for(": syscall::forwardreply", tvpe, vpe, true);
-
-    if(res == m3::Errors::NONE) {
-        uint64_t sender = vpe->pe() | (vpe->id() << 8) |
-                        (static_cast<uint64_t>(head.senderEp) << 32) |
-                        (static_cast<uint64_t>(1) << 40);
-        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
-
-        while(vpe->state() != VPE::RUNNING) {
-            if(!vpe->resume())
-                return;
-        }
-
-        head.flags &= ~(m3::DTU::Header::FL_REPLY_FAILED | m3::DTU::Header::FL_REPLY_ENABLED);
-        res = DTU::get().set_header(vpe->desc(), &*rgatecap->obj, msgaddr, &head);
-    }
     if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "forwardreply failed");
+
+    uint64_t sender = vpe->pe() | (vpe->id() << 8) |
+                    (static_cast<uint64_t>(head.senderEp) << 32) |
+                    (static_cast<uint64_t>(1) << 40);
+    DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
 
     if(async)
         vpe->upcall_notify(res, event);
