@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     KLOG(MEM, MainMemory::get());
 
     // create some worker threads
-    m3::env()->workloop()->multithreaded(8);
+    m3::env()->workloop()->multithreaded(16);
 
     SyscallHandler::init();
     PEManager::create();
