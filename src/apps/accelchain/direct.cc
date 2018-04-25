@@ -35,12 +35,13 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
     memset(pipes, 0, sizeof(pipes));
     memset(mems, 0, sizeof(mems));
 
-    // create VPEs
+    // create VPEs and put them into the same group
+    VPEGroup group;
     for(size_t i = 0; i < num; ++i) {
         OStringStream name;
         name << "chain" << i;
 
-        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT), nullptr, false);
+        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT), nullptr, true, &group);
         if(Errors::last != Errors::NONE) {
             exitmsg("Unable to create VPE for " << name.str());
             break;

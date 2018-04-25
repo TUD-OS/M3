@@ -18,6 +18,7 @@
 
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "pes/VPEGroup.h"
 #include "DTU.h"
 #include "Platform.h"
 
@@ -94,7 +95,7 @@ void PEManager::stop_vpe(VPE *vpe) {
 }
 
 bool PEManager::migrate_vpe(VPE *vpe) {
-    peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true);
+    peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true, nullptr);
     if(npe == 0)
         return false;
 
@@ -161,7 +162,18 @@ bool PEManager::unblock_vpe(VPE *vpe, bool force) {
     return res;
 }
 
-peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
+bool PEManager::unblock_vpe_now(VPE *vpe) {
+    size_t global = ContextSwitcher::global_ready();
+
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    assert(ctx);
+    bool res = ctx->unblock_vpe_now(vpe);
+
+    update_yield(global);
+    return res;
+}
+
+peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable, const VPEGroup *group) {
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
@@ -175,6 +187,8 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable) {
 
         // TODO temporary
         if(tmuxable && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
+            if(group && group->is_pe_used(i))
+                continue;
             choice = i;
             others = _ctxswitcher[i]->count();
         }

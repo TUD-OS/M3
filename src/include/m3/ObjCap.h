@@ -44,6 +44,7 @@ public:
         RECV_GATE,
         SERVICE,
         SESSION,
+        VPEGRP,
         VIRTPE,
         EPMASK,
     };

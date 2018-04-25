@@ -22,6 +22,7 @@
 
 #include "pes/PEManager.h"
 #include "pes/VPEManager.h"
+#include "pes/VPEGroup.h"
 #include "pes/VPE.h"
 #include "DTU.h"
 #include "Platform.h"
@@ -29,7 +30,8 @@
 
 namespace kernel {
 
-VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epid_t rep, capsel_t sgate)
+VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epid_t rep,
+         capsel_t sgate, VPEGroup *group)
     : SListItem(),
       SlabObject<VPE>(),
       RefCounted(),
@@ -38,6 +40,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _pid(),
       _state(DEAD),
       _exitcode(),
+      _group(group),
       _pending_fwds(),
       _name(m3::Util::move(prog)),
       _objcaps(id + 1),
@@ -53,6 +56,9 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _requires(),
       _argc(),
       _argv() {
+    if(group)
+        _group->add(this);
+
     _objcaps.set(0, new VPECapability(&_objcaps, 0, this));
     _objcaps.set(1, new MGateCapability(&_objcaps, 1, pe(), id, 0, MEMCAP_END, m3::KIF::Perm::RWX));
     for(epid_t ep = m3::DTU::FIRST_FREE_EP; ep < EP_COUNT; ++ep) {
@@ -81,6 +87,9 @@ VPE::~VPE() {
     KLOG(VPES, "Deleting VPE '" << _name << "' [id=" << id() << "]");
 
     _state = DEAD;
+
+    if(_group)
+        _group->remove(this);
 
     free_reqs();
 
@@ -178,6 +187,8 @@ void VPE::yield() {
 bool VPE::migrate() {
     // idle VPEs are never migrated
     if(_flags & VPE::F_IDLE)
+        return false;
+    if(_group)
         return false;
 
     peid_t old = pe();

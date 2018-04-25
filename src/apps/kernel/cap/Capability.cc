@@ -167,6 +167,10 @@ void EPCapability::printInfo(m3::OStream &os) const {
         << ", ep=" << obj->ep << "]";
 }
 
+void VPEGroupCapability::printInfo(m3::OStream &os) const {
+    os << ": vgrp [refs=" << obj->refcount() << "]";
+}
+
 void VPECapability::printInfo(m3::OStream &os) const {
     os << ": vpe  [refs=" << obj->refcount()
        << ", name=" << obj->name() << "]";

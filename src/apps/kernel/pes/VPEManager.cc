@@ -51,10 +51,10 @@ void VPEManager::init(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
             // try to find a PE with the required ISA and external memory first
-            peid_t peid = PEManager::get().find_pe(pedesc_emem, 0, false);
+            peid_t peid = PEManager::get().find_pe(pedesc_emem, 0, false, nullptr);
             if(peid == 0) {
                 // if that failed, try to find a SPM PE
-                peid = PEManager::get().find_pe(pedesc_imem, 0, false);
+                peid = PEManager::get().find_pe(pedesc_imem, 0, false, nullptr);
                 if(peid == 0)
                     PANIC("Unable to find a free PE for boot module " << argv[i]);
             }
@@ -155,8 +155,8 @@ vpeid_t VPEManager::get_id() {
 }
 
 VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epid_t rep,
-                        capsel_t sgate, bool tmuxable) {
-    peid_t i = PEManager::get().find_pe(pe, 0, tmuxable);
+                        capsel_t sgate, bool tmuxable, VPEGroup *group) {
+    peid_t i = PEManager::get().find_pe(pe, 0, tmuxable, group);
     if(i == 0)
         return nullptr;
 
@@ -169,7 +169,7 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epi
         return nullptr;
 
     uint flags = tmuxable ? VPE::F_MUXABLE : 0;
-    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, sep, rep, sgate);
+    VPE *vpe = new VPE(m3::Util::move(name), i, id, flags, sep, rep, sgate, group);
     assert(vpe == _vpes[id]);
 
     return vpe;

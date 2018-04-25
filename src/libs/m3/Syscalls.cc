@@ -128,11 +128,21 @@ Errors::Code Syscalls::createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, cap
     return send_receive_result(&req, sizeof(req));
 }
 
+Errors::Code Syscalls::createvpegrp(capsel_t dst) {
+    LLOG(SYSC, "createvpegrp(dst=" << dst << ")");
+
+    KIF::Syscall::CreateVPEGrp req;
+    req.opcode = KIF::Syscall::CREATE_VPEGRP;
+    req.dst_sel = dst;
+    return send_receive_result(&req, sizeof(req));
+}
+
 Errors::Code Syscalls::createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, const String &name,
-                                 PEDesc &pe, epid_t sep, epid_t rep, bool tmuxable) {
+                                 PEDesc &pe, epid_t sep, epid_t rep, bool tmuxable, capsel_t group) {
     LLOG(SYSC, "createvpe(dst=" << dst << ", sgate=" << sgate
         << ", name=" << name << ", type=" << static_cast<int>(pe.type())
-        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable << ")");
+        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable
+        << ", group=" << group << ")");
 
     KIF::Syscall::CreateVPE req;
     req.opcode = KIF::Syscall::CREATE_VPE;
@@ -142,6 +152,7 @@ Errors::Code Syscalls::createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, con
     req.sep = sep;
     req.rep = rep;
     req.muxable = tmuxable;
+    req.group_sel = group;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);
 

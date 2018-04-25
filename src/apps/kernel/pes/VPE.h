@@ -25,6 +25,7 @@
 #include "mem/AddrSpace.h"
 #include "mem/SlabCache.h"
 #include "pes/VPEDesc.h"
+#include "pes/VPEGroup.h"
 #include "DTUState.h"
 #include "Types.h"
 
@@ -33,12 +34,14 @@ namespace kernel {
 class ContextSwitcher;
 class PEManager;
 class VPECapability;
+class VPEGroup;
 class VPEManager;
 
 class VPE : public m3::SListItem, public SlabObject<VPE>, public m3::RefCounted {
     friend class ContextSwitcher;
     friend class PEManager;
     friend class VPECapability;
+    friend class VPEGroup;
     friend class VPEManager;
 
     struct ServName : public m3::SListItem {
@@ -76,7 +79,7 @@ public:
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,
-                 epid_t rep = INVALID_EP, capsel_t sgate = m3::KIF::INV_SEL);
+                 epid_t rep = INVALID_EP, capsel_t sgate = m3::KIF::INV_SEL, VPEGroup *group = nullptr);
     VPE(const VPE &) = delete;
     VPE &operator=(const VPE &) = delete;
     ~VPE();
@@ -227,6 +230,7 @@ private:
     int _pid;
     State _state;
     int _exitcode;
+    VPEGroup *_group;
     uint _pending_fwds;
     m3::String _name;
     CapTable _objcaps;

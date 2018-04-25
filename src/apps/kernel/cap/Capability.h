@@ -34,6 +34,7 @@ class CapTable;
 class Capability;
 class EPObject;
 class GateObject;
+class VPEGroup;
 
 m3::OStream &operator<<(m3::OStream &os, const Capability &cc);
 
@@ -50,8 +51,9 @@ public:
         RGATE   = 0x08,
         MGATE   = 0x10,
         MAP     = 0x20,
-        VIRTPE  = 0x40,
-        EP      = 0x80,
+        VPEGRP  = 0x40,
+        VIRTPE  = 0x80,
+        EP      = 0x100,
     };
 
     explicit Capability(CapTable *tbl, capsel_t sel, unsigned type, uint len = 1)
@@ -406,6 +408,26 @@ private:
 
 public:
     m3::Reference<EPObject> obj;
+};
+
+class VPEGroupCapability : public SlabObject<VPEGroupCapability>, public Capability {
+public:
+    explicit VPEGroupCapability(CapTable *tbl, capsel_t sel, VPEGroup *g)
+        : Capability(tbl, sel, VPEGRP),
+          obj(g) {
+    }
+
+    void printInfo(m3::OStream &os) const override;
+
+private:
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        VPEGroupCapability *v = new VPEGroupCapability(*this);
+        v->put(tbl, sel);
+        return v;
+    }
+
+public:
+    m3::Reference<VPEGroup> obj;
 };
 
 class VPECapability : public SlabObject<VPECapability>, public Capability {

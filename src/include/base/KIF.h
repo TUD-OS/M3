@@ -130,6 +130,7 @@ struct KIF {
             CREATE_SGATE,
             CREATE_MGATE,
             CREATE_MAP,
+            CREATE_VPEGRP,
             CREATE_VPE,
 
             // capability operations
@@ -210,6 +211,10 @@ struct KIF {
             xfer_t perms;
         } PACKED;
 
+        struct CreateVPEGrp : public DefaultRequest {
+            xfer_t dst_sel;
+        } PACKED;
+
         struct CreateVPE : public DefaultRequest {
             xfer_t dst_crd;
             xfer_t sgate_sel;
@@ -217,6 +222,7 @@ struct KIF {
             xfer_t sep;
             xfer_t rep;
             xfer_t muxable;
+            xfer_t group_sel;
             xfer_t namelen;
             char name[32];
         } PACKED;

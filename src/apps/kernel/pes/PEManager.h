@@ -22,6 +22,8 @@
 
 namespace kernel {
 
+class VPEGroup;
+
 class PEManager {
 public:
     static void create() {
@@ -37,7 +39,7 @@ private:
 public:
     void init();
 
-    peid_t find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable);
+    peid_t find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable, const VPEGroup *group);
 
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
@@ -48,6 +50,7 @@ public:
     bool migrate_vpe(VPE *vpe);
     void yield_vpe(VPE *vpe);
     bool unblock_vpe(VPE *vpe, bool force);
+    bool unblock_vpe_now(VPE *vpe);
 
 private:
     void update_yield(size_t before);

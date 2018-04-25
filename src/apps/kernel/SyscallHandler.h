@@ -48,6 +48,7 @@ private:
     static void creatergate(VPE *vpe, const m3::DTU::Message *msg);
     static void createsgate(VPE *vpe, const m3::DTU::Message *msg);
     static void createmgate(VPE *vpe, const m3::DTU::Message *msg);
+    static void createvpegrp(VPE *vpe, const m3::DTU::Message *msg);
     static void createvpe(VPE *vpe, const m3::DTU::Message *msg);
     static void createmap(VPE *vpe, const m3::DTU::Message *msg);
     static void activate(VPE *vpe, const m3::DTU::Message *msg);

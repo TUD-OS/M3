@@ -41,6 +41,14 @@ class RecvGate;
 class ClientSession;
 
 /**
+ * A group of VPEs, which should be gang-scheduled.
+ */
+class VPEGroup : public ObjCap {
+public:
+    explicit VPEGroup();
+};
+
+/**
  * Represents a virtual processing element which has been assigned to a PE. It will be under your
  * control in the sense that you can run arbitrary programs on it, exchange capabilities, wait until
  * a program on it finished and so on. You can also execute multiple programs in a row on it.
@@ -80,8 +88,10 @@ public:
      * @param pe the desired PE type (default: same as the current PE)
      * @param pager the pager (optional)
      * @param tmuxable whether this VPE can share a PE with others
+     * @param group the VPEGroup, if any
      */
-    explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(), const char *pager = nullptr, bool tmuxable = false);
+    explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(),
+                 const char *pager = nullptr, bool tmuxable = false, const VPEGroup *group = nullptr);
     virtual ~VPE();
 
     /**

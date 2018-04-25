@@ -88,6 +88,16 @@ VPE* ContextSwitcher::schedule() {
         _global_ready--;
         assert(vpe->_flags & VPE::F_READY);
         vpe->_flags ^= VPE::F_READY;
+
+        if(vpe->_group) {
+            for(auto gvpe = vpe->_group->begin(); gvpe != vpe->_group->end(); ++gvpe) {
+                if(gvpe->vpe != vpe) {
+                    KLOG(CTXSW, "CtxSw[" << _pe << "] trying to gangschedule VPE " << gvpe->vpe->id());
+                    PEManager::get().unblock_vpe_now(gvpe->vpe);
+                }
+            }
+        }
+
         return vpe;
     }
 
@@ -152,10 +162,14 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
 
 VPE *ContextSwitcher::steal_vpe() {
     if(can_mux() && _ready.length() > 0) {
-        VPE *vpe = _ready.remove_first();
-        vpe->_flags ^= VPE::F_READY;
-        _global_ready--;
-        return vpe;
+        VPE *vpe = _ready.remove_if([](VPE *v) {
+            return v->_group == nullptr;
+        });
+        if(vpe) {
+            vpe->_flags ^= VPE::F_READY;
+            _global_ready--;
+            return vpe;
+        }
     }
 
     return nullptr;
@@ -164,7 +178,8 @@ VPE *ContextSwitcher::steal_vpe() {
 void ContextSwitcher::start_vpe(VPE *vpe) {
     if(_cur != vpe) {
         enqueue(vpe);
-        start_switch();
+        if(!_cur || (_cur->_flags & VPE::F_IDLE) || (!_cur->_group && _cur->is_waiting()))
+            start_switch();
         return;
     }
 
@@ -206,7 +221,7 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     enqueue(vpe);
 
     // if we are forced or are executing nothing useful atm, start a switch immediately
-    if(force || !_cur || (_cur->_flags & VPE::F_IDLE) || _cur->is_waiting())
+    if(force || !_cur || (_cur->_flags & VPE::F_IDLE) || (!_cur->_group && _cur->is_waiting()))
         return start_switch();
 
     if(!_timeout) {
@@ -226,11 +241,31 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     return false;
 }
 
+bool ContextSwitcher::unblock_vpe_now(VPE *vpe) {
+    // if it's already running, there is nothing to do
+    if(_cur == vpe)
+        return false;
+
+    // always put it to the front
+    if(vpe->_flags & VPE::F_READY)
+        _ready.remove(vpe);
+    else {
+        vpe->_flags |= VPE::F_READY;
+        _global_ready++;
+    }
+    _ready.insert(nullptr, vpe);
+
+    // if a syscall is running for it, don't context switch now
+    if(vpe->is_waiting())
+        return false;
+    return unblock_vpe(vpe, true);
+}
+
 void ContextSwitcher::update_yield() {
     // TODO track the number of ready VPEs per PE-type. if only the fft accelerator is
     // over-subscribed, there is no point in letting general purpose PEs notify us about idling
     bool yield = _global_ready > 0;
-    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield) {
+    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield && !_cur->_group) {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating yield=" << yield);
 
         // update yield time and wake him up in case he was idling
@@ -366,7 +401,7 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && (_set_yield = migvpe || _global_ready > 0)) ? YIELD_TIME : 0;
+            uint64_t report = (can_mux() && !_cur->_group && (_set_yield = migvpe || _global_ready > 0)) ? YIELD_TIME : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
 
             // tell rctmux whether there is an application and the PE id
@@ -421,7 +456,8 @@ retry:
         PEManager::get().unblock_vpe(migvpe, false);
 
     if(_wait_time) {
-        for(int i = 0; i < SIGNAL_WAIT_COUNT; ++i) {
+        int count = _cur->_group ? 1 : SIGNAL_WAIT_COUNT;
+        for(int i = 0; i < count; ++i) {
             DTU::get().read_swflags(_cur->desc(), &flags);
             if(flags & m3::RCTMuxCtrl::SIGNAL)
                 goto retry;

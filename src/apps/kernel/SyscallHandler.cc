@@ -85,6 +85,7 @@ void SyscallHandler::init() {
     add_operation(m3::KIF::Syscall::CREATE_RGATE,   &SyscallHandler::creatergate);
     add_operation(m3::KIF::Syscall::CREATE_SGATE,   &SyscallHandler::createsgate);
     add_operation(m3::KIF::Syscall::CREATE_MGATE,   &SyscallHandler::createmgate);
+    add_operation(m3::KIF::Syscall::CREATE_VPEGRP,  &SyscallHandler::createvpegrp);
     add_operation(m3::KIF::Syscall::CREATE_VPE,     &SyscallHandler::createvpe);
     add_operation(m3::KIF::Syscall::CREATE_MAP,     &SyscallHandler::createmap);
     add_operation(m3::KIF::Syscall::ACTIVATE,       &SyscallHandler::activate);
@@ -294,6 +295,20 @@ void SyscallHandler::createmgate(VPE *vpe, const m3::DTU::Message *msg) {
     reply_result(vpe, msg, m3::Errors::NONE);
 }
 
+void SyscallHandler::createvpegrp(VPE *vpe, const m3::DTU::Message *msg) {
+    auto req = get_message<m3::KIF::Syscall::CreateVPEGrp>(msg);
+    capsel_t dst = req->dst_sel;
+
+    LOG_SYS(vpe, ": syscall::createvpegrp", "(dst=" << dst << ")");
+
+    if(!vpe->objcaps().unused(dst))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid cap");
+
+    vpe->objcaps().set(dst, new VPEGroupCapability(&vpe->objcaps(), dst, new VPEGroup()));
+
+    reply_result(vpe, msg, m3::Errors::NONE);
+}
+
 void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     EVENT_TRACER_Syscall_createvpe();
 
@@ -304,11 +319,13 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     epid_t sep = req->sep;
     epid_t rep = req->rep;
     bool tmuxable = req->muxable;
+    capsel_t group = req->group_sel;
     m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createvpe", "(dst=" << dst << ", sgate=" << sgate << ", name=" << name
         << ", pe=" << static_cast<int>(m3::PEDesc(pe).type())
-        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable << ")");
+        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable
+        << ", group=" << group << ")");
 
     capsel_t capnum = 2 + EP_COUNT - m3::DTU::FIRST_FREE_EP;
     if(dst.count() != capnum || !vpe->objcaps().range_unused(dst))
@@ -324,9 +341,17 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     else
         sep = VPE::INVALID_EP;
 
+    VPEGroup *vpegrp = nullptr;
+    if(group != m3::KIF::INV_SEL) {
+        auto vpegrpcap = static_cast<VPEGroupCapability*>(vpe->objcaps().get(group, Capability::VPEGRP));
+        if(vpegrpcap == nullptr)
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid VPEGroup cap");
+        vpegrp = &*vpegrpcap->obj;
+    }
+
     // create VPE
     VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe),
-        sep, rep, sgate, tmuxable);
+        sep, rep, sgate, tmuxable, vpegrp);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 

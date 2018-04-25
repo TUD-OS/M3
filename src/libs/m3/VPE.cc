@@ -31,6 +31,12 @@ namespace m3 {
 const size_t VPE::BUF_SIZE    = 4096;
 INIT_PRIO_VPE VPE VPE::_self;
 
+VPEGroup::VPEGroup() : ObjCap(ObjCap::VPEGRP) {
+    capsel_t dst = VPE::self().alloc_sel();
+    Syscalls::get().createvpegrp(dst);
+    sel(dst);
+}
+
 // don't revoke these. they kernel does so on exit
 VPE::VPE()
     : ObjCap(VIRTPE, 0, KEEP_CAP),
@@ -63,7 +69,7 @@ VPE::VPE()
         _fds->set(STDERR_FD, new SerialFile());
 }
 
-VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
+VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable, const VPEGroup *group)
     : ObjCap(VIRTPE, VPE::self().alloc_sels(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
       _pe(pe),
       _mem(MemGate::bind(sel() + 1, 0)),
@@ -86,11 +92,12 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
             return;
     }
 
+    capsel_t group_sel = group ? group->sel() : ObjCap::INVALID;
     KIF::CapRngDesc dst(KIF::CapRngDesc::OBJ, sel(), 2 + EP_COUNT - DTU::FIRST_FREE_EP);
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
         Syscalls::get().createvpe(dst, _pager->child_sgate().sel(), name, _pe,
-            _pager->sep(), _pager->rep(), tmuxable);
+            _pager->sep(), _pager->rep(), tmuxable, group_sel);
         // mark the send gate cap allocated
         _next_sel = Math::max(_pager->child_sgate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager
@@ -99,7 +106,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable)
         delegate_obj(_pager->sel());
     }
     else
-        Syscalls::get().createvpe(dst, ObjCap::INVALID, name, _pe, 0, 0, tmuxable);
+        Syscalls::get().createvpe(dst, ObjCap::INVALID, name, _pe, 0, 0, tmuxable, group_sel);
 }
 
 VPE::~VPE() {

@@ -42,6 +42,7 @@ class StreamAccel {
         uint64_t outPos;
         uint64_t outLen;
         uint64_t lastSize;
+        uint64_t nextSysc;
     } PACKED;
 
 public:
