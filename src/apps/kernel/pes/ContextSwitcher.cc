@@ -175,9 +175,7 @@ VPE *ContextSwitcher::steal_vpe() {
 
 void ContextSwitcher::start_vpe(VPE *vpe) {
     if(_cur != vpe) {
-        enqueue(vpe);
-        if(!_cur || (_cur->_flags & VPE::F_IDLE) || (!_cur->_group && _cur->is_waiting()))
-            start_switch();
+        unblock_vpe(vpe, false);
         return;
     }
 
