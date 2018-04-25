@@ -37,7 +37,7 @@ struct Regs {
 };
 
 enum {
-    T_STACK_WORDS = 512
+    T_STACK_WORDS = 1024
 };
 
 void thread_init(_thread_func func, void *arg, Regs *regs, word_t *stack);
