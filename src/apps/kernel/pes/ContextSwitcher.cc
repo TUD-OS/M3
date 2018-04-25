@@ -82,26 +82,24 @@ ContextSwitcher::ContextSwitcher(peid_t pe)
     assert(pe > 0);
 }
 
-VPE* ContextSwitcher::schedule() {
+void ContextSwitcher::schedule() {
     if (_ready.length() > 0) {
-        VPE *vpe = _ready.remove_first();
+        _cur = _ready.remove_first();
         _global_ready--;
-        assert(vpe->_flags & VPE::F_READY);
-        vpe->_flags ^= VPE::F_READY;
+        assert(_cur->_flags & VPE::F_READY);
+        _cur->_flags ^= VPE::F_READY;
 
-        if(vpe->_group) {
-            for(auto gvpe = vpe->_group->begin(); gvpe != vpe->_group->end(); ++gvpe) {
-                if(gvpe->vpe != vpe) {
+        if(_cur->_group) {
+            for(auto gvpe = _cur->_group->begin(); gvpe != _cur->_group->end(); ++gvpe) {
+                if(gvpe->vpe != _cur) {
                     KLOG(CTXSW, "CtxSw[" << _pe << "] trying to gangschedule VPE " << gvpe->vpe->id());
                     PEManager::get().unblock_vpe_now(gvpe->vpe);
                 }
             }
         }
-
-        return vpe;
     }
-
-    return _idle;
+    else
+        _cur = _idle;
 }
 
 void ContextSwitcher::init() {
@@ -376,7 +374,7 @@ retry:
 
         case S_SWITCH: {
             vpeid_t old = _cur ? _cur->id() : VPE::INVALID_ID;
-            _cur = schedule();
+            schedule();
             if(_cur == nullptr) {
                 _state = S_IDLE;
                 return true;

@@ -85,7 +85,7 @@ public:
     void update_yield();
 
 private:
-    VPE* schedule();
+    void schedule();
 
     void enqueue(VPE *vpe);
     void dequeue(VPE *vpe);
