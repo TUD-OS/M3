@@ -47,7 +47,7 @@ class FileTable {
 
 public:
     static const fd_t MAX_EPS       = 4;
-    static const fd_t MAX_FDS       = 16;
+    static const fd_t MAX_FDS       = 32;
     static const fd_t INVALID       = MAX_FDS;
 
     /**
