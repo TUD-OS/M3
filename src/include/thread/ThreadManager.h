@@ -20,6 +20,7 @@
 #include <thread/Thread.h>
 
 #include <base/log/Lib.h>
+#include <base/Panic.h>
 
 namespace m3 {
 
@@ -58,7 +59,8 @@ public:
     void init(uint threads);
 
     void wait_for(event_t event) {
-        assert(_sleep.length() > 0);
+        if(_sleep.length() == 0)
+            PANIC("Not enough threads");
         _current->subscribe(event);
         _blocked.append(_current);
         LLOG(THREAD, "Thread " << _current->id() << " waits for " << fmt(event, "x"));
