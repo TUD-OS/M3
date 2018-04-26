@@ -243,9 +243,11 @@ static void run(const char *bench) {
         const size_t ITERS = (DATA_LEN / 512) * 11;
 
         Aladdin::InvokeMessage msg;
-        msg.array_count = 2;
-        add(alad, SIZE, msg.arrays + 0, MemGate::RW);                       // work_x
-        add(alad, SIZE, msg.arrays + 1, MemGate::RW);                       // work_y
+        msg.array_count = 4;
+        add(alad, SIZE, msg.arrays + 0, MemGate::R);                       // in_x
+        add(alad, SIZE, msg.arrays + 1, MemGate::R);                       // in_y
+        add(alad, SIZE, msg.arrays + 2, MemGate::W);                       // out_x
+        add(alad, SIZE, msg.arrays + 3, MemGate::W);                       // out_y
 
         alad.run(msg, ITERS);
     }
