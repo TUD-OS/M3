@@ -29,7 +29,7 @@ using namespace m3;
 
 #include "accelchain.h"
 
-static const size_t BUF_SIZE    = 8192;
+static const size_t BUF_SIZE    = 4096;
 static const size_t REPLY_SIZE  = 64;
 
 void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
