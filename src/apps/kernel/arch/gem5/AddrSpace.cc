@@ -293,7 +293,7 @@ goff_t AddrSpace::get_pte_addr_mem(const VPEDesc &vpe, gaddr_t root, goff_t virt
 }
 
 void AddrSpace::map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pages, int perm) {
-    bool running = Platform::kernel_pe() || VPEManager::get().vpe(vpe.id).is_on_pe();
+    bool running = vpe.pe == Platform::kernel_pe() || VPEManager::get().vpe(vpe.id).is_on_pe();
 
     VPEDesc rvpe(vpe);
     gaddr_t root = 0;
