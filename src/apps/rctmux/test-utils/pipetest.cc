@@ -29,7 +29,7 @@ using namespace m3;
 
 #define VERBOSE     0
 
-static const size_t PIPE_SHM_SIZE   = 128 * 1024;
+static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 static const int REPEATS            = 8;
 
 struct App {
