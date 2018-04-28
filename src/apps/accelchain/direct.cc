@@ -87,9 +87,13 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
 
     // wait for their completion
     capsel_t sels[num];
+    bool running[num];
+    for(size_t i = 0; i < num; ++i)
+        running[i] = true;
+
     for(size_t rem = num; rem > 0; --rem) {
         for(size_t x = 0, i = 0; i < num; ++i) {
-            if(vpes[i])
+            if(running[i])
                 sels[x++] = vpes[i]->sel();
         }
 
@@ -99,7 +103,7 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
             errmsg("Unable to wait for VPEs");
         else {
             for(size_t i = 0; i < num; ++i) {
-                if(vpes[i] && vpes[i]->sel() == vpe) {
+                if(running[i] && vpes[i]->sel() == vpe) {
                     if(exitcode != 0) {
                         cerr << "chain" << i
                              << " terminated with exit code " << exitcode << "\n";
@@ -110,9 +114,7 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
                         if(i > 0 && pipes[i - 1])
                             pipes[i - 1]->close_reader();
                     }
-                    delete vpes[i];
-                    delete accels[i];
-                    vpes[i] = nullptr;
+                    running[i] = false;
                     break;
                 }
             }
@@ -127,5 +129,9 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
             delete mems[i];
             delete pipes[i];
         }
+    }
+    for(size_t i = 0; i < num; ++i) {
+        delete vpes[i];
+        delete accels[i];
     }
 }
