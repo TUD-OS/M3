@@ -51,16 +51,12 @@ int main(int argc, char **argv) {
     File *fin = VPE::self().fds()->get(infd);
     File *fout = VPE::self().fds()->get(outfd);
 
-    cycles_t start = Time::start(0);
     if(mode == Mode::INDIR)
         chain_indirect(fin, fout, num, comptime);
     else
         chain_direct(fin, fout, num, comptime, mode);
-    cycles_t end = Time::stop(0);
 
     VFS::close(infd);
     VFS::close(outfd);
-
-    cout << "Total time: " << (end - start) << " cycles\n";
     return 0;
 }

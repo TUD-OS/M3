@@ -60,6 +60,8 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
     for(size_t i = 0; i < num - 1; ++i)
         accels[i]->connect_output(accels[i + 1]);
 
+    cycles_t end = 0, start = Time::start(0);
+
     // start VPEs
     for(size_t i = 0; i < num; ++i)
         vpes[i]->start();
@@ -128,6 +130,9 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
 
         // cout << seen << " / " << total << "\n";
     }
+
+    end = Time::stop(0);
+    cout << "Total time: " << (end - start) << " cycles\n";
 
 error:
     for(size_t i = 0; i < num; ++i) {

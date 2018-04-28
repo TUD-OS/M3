@@ -14,6 +14,8 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Time.h>
+
 #include <m3/accel/StreamAccel.h>
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
@@ -77,6 +79,8 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
         }
     }
 
+    cycles_t start = Time::start(0);
+
     // start VPEs
     for(size_t i = 0; i < num; ++i)
         vpes[i]->start();
@@ -114,6 +118,9 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
             }
         }
     }
+
+    cycles_t end = Time::stop(0);
+    cout << "Total time: " << (end - start) << " cycles\n";
 
     if(mode == Mode::DIR_SIMPLE) {
         for(size_t i = 0; i < num; ++i) {
