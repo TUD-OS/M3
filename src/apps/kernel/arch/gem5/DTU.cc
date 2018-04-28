@@ -222,7 +222,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         // the VPE might have been migrated
         rmsg.senderPe = v.pe();
         // re-enable replies
-        rmsg.flags |= 1 << 2;
+        rmsg.flags |= m3::DTU::ReplyHeader::FL_REPLY_ENABLED;
 
         memcpy((void*)m3::DTU::header_addr(idx), &rmsg, sizeof(rmsg));
 
