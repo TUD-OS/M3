@@ -27,6 +27,14 @@ VPEGroup::~VPEGroup() {
     }
 }
 
+bool VPEGroup::has_running() const {
+    for(auto it = vpes.begin(); it != vpes.end(); ++it) {
+        if(it->vpe->state() == VPE::RUNNING)
+            return true;
+    }
+    return false;
+}
+
 bool VPEGroup::is_pe_used(peid_t pe) const {
     for(auto it = vpes.begin(); it != vpes.end(); ++it) {
         if(it->vpe->pe() == pe)

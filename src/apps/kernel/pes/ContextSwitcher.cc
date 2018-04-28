@@ -70,6 +70,7 @@ size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
     : _muxable(Platform::pe(pe).supports_ctxsw()),
+      _no_gang(false),
       _pe(pe),
       _state(S_IDLE),
       _count(),
@@ -89,7 +90,7 @@ void ContextSwitcher::schedule() {
         assert(_cur->_flags & VPE::F_READY);
         _cur->_flags ^= VPE::F_READY;
 
-        if(_cur->_group) {
+        if(!_no_gang && _cur->_group) {
             for(auto gvpe = _cur->_group->begin(); gvpe != _cur->_group->end(); ++gvpe) {
                 if(gvpe->vpe != _cur) {
                     KLOG(CTXSW, "CtxSw[" << _pe << "] trying to gangschedule VPE " << gvpe->vpe->id());
@@ -97,6 +98,7 @@ void ContextSwitcher::schedule() {
                 }
             }
         }
+        _no_gang = false;
     }
     else
         _cur = _idle;
@@ -191,6 +193,8 @@ void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
     dequeue(vpe);
 
     if(_cur == vpe && _state == S_IDLE) {
+        // don't try to schedule others of the gang next time, if is still a gang running
+        _no_gang = vpe->_group && vpe->_group->has_running();
         // for non-programmable accelerator, we have to do the save first, because we cannot
         // interrupt the accelerator at arbitrary points in time (this might screw up his FSM)
         if(force || Platform::pe(_pe).is_programmable()) {

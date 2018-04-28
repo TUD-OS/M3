@@ -38,6 +38,7 @@ public:
     }
     ~VPEGroup();
 
+    bool has_running() const;
     bool is_pe_used(peid_t pe) const;
 
     iterator begin() {
