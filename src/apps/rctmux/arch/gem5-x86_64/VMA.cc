@@ -29,6 +29,7 @@ namespace RCTMux {
 
 static volatile size_t req_count = 0;
 static bool inpf = false;
+static bool ctxsw = false;
 static m3::DTU::reg_t cmdXferBuf = static_cast<m3::DTU::reg_t>(-1);
 static m3::DTU::reg_t reqs[4];
 static m3::DTU::reg_t cmdregs[2] = {0, 0};
@@ -224,8 +225,13 @@ void *VMA::handle_ext_req(m3::Exceptions::State *state, m3::DTU::reg_t mst_req) 
             break;
 
         case m3::DTU::ExtReqOpCode::RCTMUX: {
-            if(inpf)
+            if(inpf) {
+                // we're in a pagefault. remember that there was a ctxsw request
+                // TODO this is not optimal. we should stop waiting for the pagefault and switch
+                // immediately.
+                ctxsw = true;
                 return state;
+            }
 
             return ctxsw_protocol(state);
         }
@@ -255,6 +261,12 @@ void *VMA::dtu_irq(m3::Exceptions::State *state) {
                     }
                 }
             }
+
+            // was there a context switch request in the meantime?
+            if(ctxsw) {
+                ctxsw = false;
+                return ctxsw_protocol(state);
+            }
         }
     }
 
@@ -281,6 +293,12 @@ void *VMA::mmu_pf(m3::Exceptions::State *state) {
     }
 
     resume_cmd();
+
+    if(ctxsw) {
+        ctxsw = false;
+        return ctxsw_protocol(state);
+    }
+
     return state;
 }
 
