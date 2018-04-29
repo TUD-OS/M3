@@ -17,8 +17,8 @@
 #pragma once
 
 #include <base/Common.h>
-#include <base/RCTMux.h>
 #include <base/Config.h>
+#include <base/RCTMux.h>
 
 namespace RCTMux {
 
@@ -29,8 +29,6 @@ void *init_state();
 void abort();
 void resume();
 void enable_ints();
-void reset_sp();
-void save_sp();
 void sleep();
 
 }

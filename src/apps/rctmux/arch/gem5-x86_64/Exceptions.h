@@ -133,10 +133,6 @@ public:
 public:
     static void init();
 
-    static void set_sp(uintptr_t sp) {
-        tss.rsp0 = sp;
-    }
-
     static m3::Exceptions::isr_func *get_table() {
         return isrs;
     }

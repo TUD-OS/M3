@@ -16,6 +16,7 @@
 
 #include <base/CPU.h>
 #include <base/Env.h>
+#include <base/Exceptions.h>
 #include <base/RCTMux.h>
 
 #include "RCTMux.h"
@@ -31,7 +32,7 @@ enum Status {
 };
 
 static int status = 0;
-static void *state = nullptr;
+static m3::Exceptions::State state;
 
 static void save(void *s);
 static void *restore();
@@ -66,7 +67,6 @@ void *ctxsw_protocol(void *s) {
 
     if(flags & m3::RESTORE) {
         s = restore();
-        Arch::reset_sp();
         return s;
     }
 
@@ -75,7 +75,6 @@ void *ctxsw_protocol(void *s) {
             save(s);
 
         // stay here until reset
-        Arch::save_sp();
         Arch::enable_ints();
         while(1)
             sleep();
@@ -89,17 +88,19 @@ void *ctxsw_protocol(void *s) {
         // because it might happen that we are waked up by a message before the kernel has written
         // the flags register. in this case, we don't want to lose the application.
         status &= ~STARTED;
-        state = nullptr;
     }
 
-    Arch::reset_sp();
     return s;
 }
 
 static void save(void *s) {
     Arch::abort();
 
-    state = s;
+    static_assert(sizeof(state) % sizeof(word_t) == 0, "State not word-sized");
+    word_t *words_src = reinterpret_cast<word_t*>(s);
+    word_t *words_dst = reinterpret_cast<word_t*>(&state);
+    for(size_t i = 0; i < sizeof(state) / sizeof(word_t); ++i)
+        words_dst[i] = words_src[i];
 
     signal();
 }
@@ -111,6 +112,7 @@ static void *restore() {
     // remember the current PE (might have changed since last switch)
     senv->pe = flags >> 32;
 
+    void *res;
     if(!(status & STARTED)) {
         // if we get here, there is an application to jump to
 
@@ -118,14 +120,16 @@ static void *restore() {
         senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
 
         // initialize the state to be able to resume from it
-        state = Arch::init_state();
+        res = Arch::init_state();
         status |= STARTED;
     }
-    else
+    else {
+        res = &state;
         Arch::resume();
+    }
 
     signal();
-    return state;
+    return res;
 }
 
 static void signal() {
