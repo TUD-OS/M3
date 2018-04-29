@@ -214,8 +214,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     if(res == m3::Errors::VPE_GONE) {
         size_t idx = _state.get_header_idx(ep, msgidx);
         alignas(m3::DTU::reg_t) m3::DTU::ReplyHeader rmsg;
-        // this assumes that memcpy accesses the headers in 8-byte granularity
-        memcpy(&rmsg, (void*)m3::DTU::header_addr(idx), sizeof(rmsg));
+        m3::DTU::read_header(idx, rmsg);
 
         // senderVpeId can't be invalid
         VPE &v = VPEManager::get().vpe(rmsg.senderVpeId);
@@ -224,7 +223,7 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         // re-enable replies
         rmsg.flags |= m3::DTU::ReplyHeader::FL_REPLY_ENABLED;
 
-        memcpy((void*)m3::DTU::header_addr(idx), &rmsg, sizeof(rmsg));
+        m3::DTU::write_header(idx, rmsg);
 
         res = m3::DTU::get().reply(ep, msg, size, msgidx);
     }

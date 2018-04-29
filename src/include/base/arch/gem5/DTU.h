@@ -375,6 +375,20 @@ private:
         CPU::write8b(BASE_ADDR + idx * sizeof(reg_t), value);
     }
 
+    static void read_header(size_t idx, ReplyHeader &hd) {
+        static_assert(sizeof(hd) == 16, "Header size changed");
+        uintptr_t base = header_addr(idx);
+        uint64_t *words = reinterpret_cast<uint64_t*>(&hd);
+        words[0] = CPU::read8b(base);
+        words[1] = CPU::read8b(base + 8);
+    }
+    static void write_header(size_t idx, const ReplyHeader &hd) {
+        uintptr_t base = header_addr(idx);
+        const uint64_t *words = reinterpret_cast<const uint64_t*>(&hd);
+        CPU::write8b(base, words[0]);
+        CPU::write8b(base + 8, words[1]);
+    }
+
     static uintptr_t dtu_reg_addr(DtuRegs reg) {
         return BASE_ADDR + static_cast<size_t>(reg) * sizeof(reg_t);
     }
