@@ -33,41 +33,43 @@ static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 static const int REPEATS            = 8;
 
 struct App {
-    explicit App(int argc, const char *argv[], bool muxed)
-        : argc(argc),
-          argv(argv),
-          vpe(argv[0], VPE::self().pe(), "pager", muxed) {
+    explicit App(const char *name, bool muxed)
+        : name(name),
+          vpe(name, VPE::self().pe(), "pager", muxed) {
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");
     }
 
-    int argc;
-    const char **argv;
+    const char *name;
     VPE vpe;
 };
 
-static App *create(int no, int argc, char **argv, bool muxable) {
-    if(VERBOSE) cout << "VPE" << no << ": ";
-    const char **args2 = new const char*[argc];
-    for(int i = 0; i < argc; ++i) {
-        args2[i] = argv[i];
-        if(VERBOSE) cout << args2[i] << " ";
+struct RemoteServer {
+    explicit RemoteServer(VPE &vpe, const String &name)
+        : srv(ObjCap::SERVICE, VPE::self().alloc_sels(2)),
+          rgate(RecvGate::create_for(vpe, srv.sel() + 1, nextlog2<256>::val, nextlog2<256>::val)) {
+        rgate.activate();
+        Syscalls::get().createsrv(srv.sel(), vpe.sel(), rgate.sel(), name);
+        vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, srv.sel(), 2));
     }
-    if(VERBOSE) cout << "\n";
-    return new App(argc, args2, muxable);
-}
-
-static void wait_for(const char *service) {
-    while(1) {
-        for(volatile int x = 0; x < 10000; ++x)
-            ;
-
-        ClientSession *sess = new ClientSession(service);
-        if(sess->is_connected()) {
-            delete sess;
-            break;
-        }
+    ~RemoteServer() {
+        Syscalls::get().srvctrl(srv.sel(), KIF::Syscall::SCTRL_SHUTDOWN);
     }
+
+    const char *sel_arg() const {
+        static char buffer[32];
+        OStringStream os(buffer, sizeof(buffer));
+        os << srv.sel() << " " << rgate.ep();
+        return os.str();
+    }
+
+    ObjCap srv;
+    RecvGate rgate;
+};
+
+static App *create(int no, const char *name, bool muxable) {
+    if(VERBOSE) cout << "VPE" << no << ": " << name << "\n";
+    return new App(name, muxable);
 }
 
 static void usage(const char *name) {
@@ -83,7 +85,7 @@ static void usage(const char *name) {
     exit(1);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, const char **argv) {
     if(argc < 5)
         usage(argv[0]);
 
@@ -107,42 +109,42 @@ int main(int argc, char **argv) {
 
         if(VERBOSE) cout << "Creating VPEs...\n";
 
-        const char *pipeserv[] = {"/bin/pipeserv"};
-        const char *m3fs[] = {"/bin/m3fs", "-n=m3fs2", "67108864"};
+        const char **wargv = argv + 5;
+        const char **rargv = argv + 5 + wargs;
         if(mode < 2) {
-            apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 1);
+            apps[0] = create(0, "pipeserv", mode == 1);
             apps[1] = nullptr;
-            apps[2] = create(1, wargs, argv + 5, mode == 1);
-            apps[3] = create(2, rargs, argv + 5 + wargs, mode == 1);
+            apps[2] = create(1, wargv[0], mode == 1);
+            apps[3] = create(2, rargv[0], mode == 1);
         }
         else {
-            apps[2] = create(1, wargs, argv + 5, false);
-            apps[3] = create(2, rargs, argv + 5 + wargs, false);
-            apps[0] = create(0, ARRAY_SIZE(pipeserv), const_cast<char**>(pipeserv), mode == 3);
-            apps[1] = create(3, ARRAY_SIZE(m3fs), const_cast<char**>(m3fs), mode == 3);
+            apps[2] = create(1, wargv[0], false);
+            apps[3] = create(2, rargv[0], false);
+            apps[0] = create(0, "pipeserv", mode == 3);
+            apps[1] = create(3, "m3fs", mode == 3);
         }
 
-        if(VERBOSE) cout << "Starting service...\n";
+        RemoteServer *m3fs_srv = nullptr;
+        RemoteServer *pipe_srv = new RemoteServer(apps[0]->vpe, "pipe");
+        if(apps[1])
+            m3fs_srv = new RemoteServer(apps[1]->vpe, "mym3fs");
 
-        // start service
-        Errors::Code res = apps[0]->vpe.exec(apps[0]->argc, apps[0]->argv);
+        if(VERBOSE) cout << "Starting services...\n";
+
+        // start services
+        const char *pipe_args[] = {"/bin/pipeserv", "-s", pipe_srv->sel_arg()};
+        Errors::Code res = apps[0]->vpe.exec(ARRAY_SIZE(pipe_args), pipe_args);
         if(res != Errors::NONE)
-            PANIC("Cannot execute " << apps[0]->argv[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << pipe_args[0] << ": " << Errors::to_string(res));
 
         if(apps[1]) {
-            res = apps[1]->vpe.exec(apps[1]->argc, apps[1]->argv);
+            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fs_srv->sel_arg(), "67108864"};
+            res = apps[1]->vpe.exec(ARRAY_SIZE(m3fs_args), m3fs_args);
             if(res != Errors::NONE)
-                PANIC("Cannot execute " << apps[1]->argv[0] << ": " << Errors::to_string(res));
+                PANIC("Cannot execute " << m3fs_args[0] << ": " << Errors::to_string(res));
         }
 
-        if(VERBOSE) cout << "Waiting for service...\n";
-
-        // the kernel does not block us atm until the service is available
-        // so try to connect until it's available
-        wait_for("pipe");
-        if(apps[1])
-            wait_for("m3fs2");
-
+        // create pipe
         MemGate *vpemem = nullptr;
         VPE *memvpe = nullptr;
         IndirectPipe *pipe;
@@ -161,7 +163,7 @@ int main(int argc, char **argv) {
         if(VERBOSE) cout << "Starting reader and writer...\n";
 
         if(apps[1]) {
-            if(VFS::mount("/foo", "m3fs", "m3fs2") != Errors::NONE)
+            if(VFS::mount("/foo", "m3fs", "mym3fs") != Errors::NONE)
                 PANIC("Cannot mount root fs");
         }
 
@@ -172,32 +174,51 @@ int main(int argc, char **argv) {
         apps[2]->vpe.obtain_fds();
         apps[2]->vpe.mounts(*VPE::self().mounts());
         apps[2]->vpe.obtain_mounts();
-        res = apps[2]->vpe.exec(apps[2]->argc, apps[2]->argv);
+        res = apps[2]->vpe.exec(wargs, wargv);
         if(res != Errors::NONE)
-            PANIC("Cannot execute " << apps[2]->argv[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << wargv[0] << ": " << Errors::to_string(res));
 
         // start reader
         apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe->reader_fd()));
         apps[3]->vpe.obtain_fds();
         apps[3]->vpe.mounts(*VPE::self().mounts());
         apps[3]->vpe.obtain_mounts();
-        res = apps[3]->vpe.exec(apps[3]->argc, apps[3]->argv);
+        res = apps[3]->vpe.exec(rargs, rargv);
         if(res != Errors::NONE)
-            PANIC("Cannot execute " << apps[3]->argv[0] << ": " << Errors::to_string(res));
+            PANIC("Cannot execute " << rargv[0] << ": " << Errors::to_string(res));
 
         pipe->close_writer();
         pipe->close_reader();
 
-        if(VERBOSE) cout << "Waiting for VPEs...\n";
+        if(VERBOSE) cout << "Waiting for applications...\n";
 
         // don't wait for the services
         for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
             int res = apps[i]->vpe.wait();
-            if(VERBOSE) cout << apps[i]->argv[0] << " exited with " << res << "\n";
+            if(VERBOSE) cout << apps[i]->name << " exited with " << res << "\n";
         }
 
         cycles_t end = Time::stop(0x1234);
         cout << "Time: " << (end - start) << "\n";
+
+        if(VERBOSE) cout << "Waiting for services...\n";
+
+        // destroy pipe first
+        delete pipe;
+        delete vpemem;
+        delete memvpe;
+
+        // request shutdown
+        delete m3fs_srv;
+        delete pipe_srv;
+
+        // wait for services
+        for(size_t i = 0; i < 2; ++i) {
+            if(!apps[i])
+                continue;
+            int res = apps[i]->vpe.wait();
+            if(VERBOSE) cout << apps[i]->name << " exited with " << res << "\n";
+        }
 
         if(VERBOSE) cout << "Deleting VPEs...\n";
 
@@ -206,9 +227,6 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
-        delete pipe;
-        delete vpemem;
-        delete memvpe;
 
         if(VERBOSE) cout << "Done\n";
     }

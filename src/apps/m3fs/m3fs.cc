@@ -157,8 +157,9 @@ private:
 };
 
 static void usage(const char *name) {
-    Serial::get() << "Usage: " << name << " [-n <name>] [-e <blocks>] [-c] [-r] <size>\n";
+    Serial::get() << "Usage: " << name << " [-n <name>] [-s <sel>] [-e <blocks>] [-c] [-r] <size>\n";
     Serial::get() << "  -n: the name of the service (m3fs by default)\n";
+    Serial::get() << "  -s: don't create service, use selectors <sel>..<sel+1>\n";
     Serial::get() << "  -e: the number of blocks to extend files when appending\n";
     Serial::get() << "  -c: clear allocated blocks\n";
     Serial::get() << "  -r: revoke first, reply afterwards\n";
@@ -170,11 +171,19 @@ int main(int argc, char *argv[]) {
     size_t extend = 128;
     bool clear = false;
     bool revoke_first = false;
+    capsel_t sels = ObjCap::INVALID;
+    epid_t ep = EP_COUNT;
 
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "n:e:cr")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "n:s:e:cr")) != -1) {
         switch(opt) {
             case 'n': name = CmdArgs::arg; break;
+            case 's': {
+                String input(CmdArgs::arg);
+                IStringStream is(input);
+                is >> sels >> ep;
+                break;
+            }
             case 'e': extend = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'c': clear = true; break;
             case 'r': revoke_first = true; break;
@@ -186,7 +195,11 @@ int main(int argc, char *argv[]) {
         usage(argv[0]);
 
     size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
-    srv = new Server<M3FSRequestHandler>(name, new M3FSRequestHandler(size, extend, clear, revoke_first));
+    auto hdl = new M3FSRequestHandler(size, extend, clear, revoke_first);
+    if(sels != ObjCap::INVALID)
+        srv = new Server<M3FSRequestHandler>(sels, ep, hdl);
+    else
+        srv = new Server<M3FSRequestHandler>(name, hdl);
 
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();

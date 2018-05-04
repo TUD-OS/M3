@@ -15,6 +15,8 @@
  */
 
 #include <base/log/Services.h>
+#include <base/stream/IStringStream.h>
+#include <base/CmdArgs.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/server/Server.h>
@@ -123,8 +125,35 @@ private:
     RecvGate _rgate;
 };
 
-int main() {
-    srv = new Server<PipeServiceHandler>("pipe", new PipeServiceHandler());
+static void usage(const char *name) {
+    Serial::get() << "Usage: " << name << " [-s <sel>]\n";
+    Serial::get() << "  -s: don't create service, use selectors <sel>..<sel+1>\n";
+    exit(1);
+}
+
+int main(int argc, char **argv) {
+    capsel_t sels = ObjCap::INVALID;
+    epid_t ep = EP_COUNT;
+
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "s:")) != -1) {
+        switch(opt) {
+            case 's': {
+                String input(CmdArgs::arg);
+                IStringStream is(input);
+                is >> sels >> ep;
+                break;
+            }
+            default:
+                usage(argv[0]);
+        }
+    }
+
+    if(sels != ObjCap::INVALID)
+        srv = new Server<PipeServiceHandler>(sels, ep, new PipeServiceHandler());
+    else
+        srv = new Server<PipeServiceHandler>("pipe", new PipeServiceHandler());
+
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();
     delete srv;
