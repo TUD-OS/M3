@@ -52,7 +52,8 @@ struct RemoteServer {
         Syscalls::get().createsrv(srv.sel(), vpe.sel(), rgate.sel(), name);
         vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, srv.sel(), 2));
     }
-    ~RemoteServer() {
+
+    void request_shutdown() {
         Syscalls::get().srvctrl(srv.sel(), KIF::Syscall::SCTRL_SHUTDOWN);
     }
 
@@ -210,8 +211,9 @@ int main(int argc, const char **argv) {
         delete memvpe;
 
         // request shutdown
-        delete m3fs_srv;
-        delete pipe_srv;
+        pipe_srv->request_shutdown();
+        if(m3fs_srv)
+            m3fs_srv->request_shutdown();
 
         // wait for services
         for(size_t i = 0; i < 2; ++i) {
@@ -228,6 +230,8 @@ int main(int argc, const char **argv) {
 
         for(size_t i = 0; i < ARRAY_SIZE(apps); ++i)
             delete apps[i];
+        delete m3fs_srv;
+        delete pipe_srv;
 
         if(VERBOSE) cout << "Done\n";
     }
