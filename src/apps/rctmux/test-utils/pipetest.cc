@@ -79,6 +79,7 @@ static void usage(const char *name) {
     cerr << " 1: all muxable\n";
     cerr << " 2: m3fs with pipe\n";
     cerr << " 3: mux m3fs with pipe\n";
+    cerr << " 4: mux m3fs with pipe and apps\n";
     cerr << " <mem> can be:\n";
     cerr << " 0: DRAM\n";
     cerr << " 1: SPM\n";
@@ -118,10 +119,10 @@ int main(int argc, const char **argv) {
             apps[3] = create(2, rargv[0], mode == 1);
         }
         else {
-            apps[2] = create(1, wargv[0], false);
-            apps[3] = create(2, rargv[0], false);
-            apps[0] = create(0, "pipeserv", mode == 3);
-            apps[1] = create(3, "m3fs", mode == 3);
+            apps[2] = create(1, wargv[0], mode == 4);
+            apps[3] = create(2, rargv[0], mode == 4);
+            apps[0] = create(0, "pipeserv", mode >= 3);
+            apps[1] = create(3, "m3fs", mode >= 3);
         }
 
         RemoteServer *m3fs_srv = nullptr;
@@ -138,7 +139,7 @@ int main(int argc, const char **argv) {
             PANIC("Cannot execute " << pipe_args[0] << ": " << Errors::to_string(res));
 
         if(apps[1]) {
-            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fs_srv->sel_arg(), "67108864"};
+            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fs_srv->sel_arg(), "134217728"};
             res = apps[1]->vpe.exec(ARRAY_SIZE(m3fs_args), m3fs_args);
             if(res != Errors::NONE)
                 PANIC("Cannot execute " << m3fs_args[0] << ": " << Errors::to_string(res));
