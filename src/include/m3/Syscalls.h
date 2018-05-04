@@ -43,7 +43,7 @@ private:
     }
 
 public:
-    Errors::Code createsrv(capsel_t dst, capsel_t rgate, const String &name);
+    Errors::Code createsrv(capsel_t dst, capsel_t vpe, capsel_t rgate, const String &name);
     Errors::Code createsess(capsel_t dst, capsel_t srv, word_t ident);
     Errors::Code creatergate(capsel_t dst, int order, int msgorder);
     Errors::Code createsgate(capsel_t dst, capsel_t rgate, label_t label, word_t credits);

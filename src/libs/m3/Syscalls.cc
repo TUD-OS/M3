@@ -50,12 +50,14 @@ Errors::Code Syscalls::send_receive_result(const void *msg, size_t size) {
     return Errors::last;
 }
 
-Errors::Code Syscalls::createsrv(capsel_t dst, capsel_t rgate, const String &name) {
-    LLOG(SYSC, "createsrv(dst=" << dst << ", rgate=" << rgate << ", name=" << name << ")");
+Errors::Code Syscalls::createsrv(capsel_t dst, capsel_t vpe, capsel_t rgate, const String &name) {
+    LLOG(SYSC, "createsrv(dst=" << dst << ", vpe=" << vpe
+        << ", rgate=" << rgate << ", name=" << name << ")");
 
     KIF::Syscall::CreateSrv req;
     req.opcode = KIF::Syscall::CREATE_SRV;
     req.dst_sel = dst;
+    req.vpe_sel = vpe;
     req.rgate_sel = rgate;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);

@@ -360,9 +360,10 @@ public:
 
 private:
     virtual void revoke() override;
-    virtual Capability *clone(CapTable *, capsel_t) override {
-        /* not cloneable */
-        return nullptr;
+    virtual Capability *clone(CapTable *tbl, capsel_t sel) override {
+        ServCapability *s = new ServCapability(*this);
+        s->put(tbl, sel);
+        return s;
     }
 
 public:

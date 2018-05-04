@@ -142,7 +142,7 @@ NOINLINE static void create_srv() {
         }
 
         void run() override {
-            Syscalls::get().createsrv(selector, rgate.sel(), "test");
+            Syscalls::get().createsrv(selector, VPE::self().sel(), rgate.sel(), "test");
             if(Errors::occurred())
                 PANIC("syscall failed");
         }

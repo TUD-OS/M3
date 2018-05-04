@@ -154,19 +154,25 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
 
     auto req = get_message<m3::KIF::Syscall::CreateSrv>(msg);
     capsel_t dst = req->dst_sel;
+    capsel_t tvpe = req->vpe_sel;
     capsel_t rgate = req->rgate_sel;
     m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
-    LOG_SYS(vpe, ": syscall::createsrv", "(dst=" << dst << ", rgate=" << rgate << ", name=" << name << ")");
+    LOG_SYS(vpe, ": syscall::createsrv", "(dst=" << dst << ", vpe=" << tvpe
+        << ", rgate=" << rgate << ", name=" << name << ")");
 
     auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
     if(rgatecap == nullptr || !rgatecap->obj->activated())
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate capability invalid");
 
+    auto vpecap = static_cast<VPECapability*>(vpe->objcaps().get(tvpe, Capability::VIRTPE));
+    if(vpecap == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE capability invalid");
+
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Service does already exist");
 
-    Service *s = ServiceList::get().add(*vpe, dst, name, rgatecap->obj);
+    Service *s = ServiceList::get().add(*vpecap->obj, dst, name, rgatecap->obj);
     vpe->objcaps().set(dst, new ServCapability(&vpe->objcaps(), dst, s));
 
 #if defined(__host__)

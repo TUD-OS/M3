@@ -134,9 +134,10 @@ public:
      *
      * @param sel the capability selector
      * @param order the size of the buffer (2^<order> bytes)
+     * @param ep the endpoint it has already been activated to
      * @return the receive gate
      */
-    static RecvGate bind(capsel_t sel, int order);
+    static RecvGate bind(capsel_t sel, int order, epid_t ep = EP_COUNT);
 
     RecvGate(const RecvGate&) = delete;
     RecvGate &operator=(const RecvGate&) = delete;

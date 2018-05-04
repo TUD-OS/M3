@@ -37,17 +37,18 @@ public:
           _handler(handler),
           _ctrl_handler(),
           _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)) {
-        using std::placeholders::_1;
-        _rgate.start(std::bind(&Server::handle_message, this, _1));
-
-        _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
-        _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
-        _ctrl_handler[KIF::Service::DELEGATE] = &Server::handle_delegate;
-        _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
-        _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
+        init();
 
         LLOG(SERV, "create(" << name << ")");
-        Syscalls::get().createsrv(sel(), _rgate.sel(), name);
+        Syscalls::get().createsrv(sel(), VPE::self().sel(), _rgate.sel(), name);
+    }
+
+    explicit Server(capsel_t caps, epid_t ep, HDL *handler)
+        : ObjCap(SERVICE, caps + 0),
+          _handler(handler),
+          _ctrl_handler(),
+          _rgate(RecvGate::bind(caps + 1, nextlog2<256>::val, ep)) {
+        init();
     }
 
     void shutdown() {
@@ -60,6 +61,17 @@ public:
     }
 
 private:
+    void init() {
+        using std::placeholders::_1;
+        _rgate.start(std::bind(&Server::handle_message, this, _1));
+
+        _ctrl_handler[KIF::Service::OPEN] = &Server::handle_open;
+        _ctrl_handler[KIF::Service::OBTAIN] = &Server::handle_obtain;
+        _ctrl_handler[KIF::Service::DELEGATE] = &Server::handle_delegate;
+        _ctrl_handler[KIF::Service::CLOSE] = &Server::handle_close;
+        _ctrl_handler[KIF::Service::SHUTDOWN] = &Server::handle_shutdown;
+    }
+
     void handle_message(GateIStream &is) {
         auto *req = reinterpret_cast<const KIF::DefaultRequest*>(is.message().data);
         KIF::Service::Operation op = static_cast<KIF::Service::Operation>(req->opcode);

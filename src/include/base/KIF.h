@@ -171,6 +171,7 @@ struct KIF {
 
         struct CreateSrv : public DefaultRequest {
             xfer_t dst_sel;
+            xfer_t vpe_sel;
             xfer_t rgate_sel;
             xfer_t namelen;
             char name[32];
