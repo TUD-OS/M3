@@ -135,6 +135,7 @@ struct KIF {
 
             // capability operations
             ACTIVATE,
+            SRV_CTRL,
             VPE_CTRL,
             VPE_WAIT,
             DERIVE_MEM,
@@ -162,6 +163,9 @@ struct KIF {
             VCTRL_START,
             VCTRL_YIELD,
             VCTRL_STOP,
+        };
+        enum SrvOp {
+            SCTRL_SHUTDOWN,
         };
 
         struct Pagefault : public DefaultRequest {
@@ -236,6 +240,11 @@ struct KIF {
             xfer_t ep_sel;
             xfer_t gate_sel;
             xfer_t addr;
+        } PACKED;
+
+        struct SrvCtrl : public DefaultRequest {
+            xfer_t srv_sel;
+            xfer_t op;
         } PACKED;
 
         struct VPECtrl : public DefaultRequest {

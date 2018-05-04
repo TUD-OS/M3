@@ -181,6 +181,16 @@ Errors::Code Syscalls::activate(capsel_t ep, capsel_t gate, goff_t addr) {
     return send_receive_result(&req, sizeof(req));
 }
 
+Errors::Code Syscalls::srvctrl(capsel_t srv, KIF::Syscall::SrvOp op) {
+    LLOG(SYSC, "srvctrl(srv=" << srv << ", op=" << op << ")");
+
+    KIF::Syscall::SrvCtrl req;
+    req.opcode = KIF::Syscall::SRV_CTRL;
+    req.srv_sel = srv;
+    req.op = static_cast<xfer_t>(op);
+    return send_receive_result(&req, sizeof(req));
+}
+
 Errors::Code Syscalls::vpectrl(capsel_t vpe, KIF::Syscall::VPEOp op, xfer_t arg) {
     LLOG(SYSC, "vpectrl(vpe=" << vpe << ", op=" << op << ", arg=" << arg << ")");
 

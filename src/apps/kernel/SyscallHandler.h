@@ -52,6 +52,7 @@ private:
     static void createvpe(VPE *vpe, const m3::DTU::Message *msg);
     static void createmap(VPE *vpe, const m3::DTU::Message *msg);
     static void activate(VPE *vpe, const m3::DTU::Message *msg);
+    static void srvctrl(VPE *vpe, const m3::DTU::Message *msg);
     static void vpectrl(VPE *vpe, const m3::DTU::Message *msg);
     static void vpewait(VPE *vpe, const m3::DTU::Message *msg);
     static void derivemem(VPE *vpe, const m3::DTU::Message *msg);

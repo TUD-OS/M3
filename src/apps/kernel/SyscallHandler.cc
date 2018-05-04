@@ -89,6 +89,7 @@ void SyscallHandler::init() {
     add_operation(m3::KIF::Syscall::CREATE_VPE,     &SyscallHandler::createvpe);
     add_operation(m3::KIF::Syscall::CREATE_MAP,     &SyscallHandler::createmap);
     add_operation(m3::KIF::Syscall::ACTIVATE,       &SyscallHandler::activate);
+    add_operation(m3::KIF::Syscall::SRV_CTRL,       &SyscallHandler::srvctrl);
     add_operation(m3::KIF::Syscall::VPE_CTRL,       &SyscallHandler::vpectrl);
     add_operation(m3::KIF::Syscall::VPE_WAIT,       &SyscallHandler::vpewait);
     add_operation(m3::KIF::Syscall::DERIVE_MEM,     &SyscallHandler::derivemem);
@@ -530,6 +531,36 @@ void SyscallHandler::activate(VPE *vpe, const m3::DTU::Message *msg) {
         dstvpe.invalidate_ep(epcap->obj->ep);
 
     epcap->obj->gate = gateobj;
+
+    reply_result(vpe, msg, m3::Errors::NONE);
+}
+
+void SyscallHandler::srvctrl(VPE *vpe, const m3::DTU::Message *msg) {
+    auto req = get_message<m3::KIF::Syscall::SrvCtrl>(msg);
+    capsel_t srv_sel = req->srv_sel;
+    m3::KIF::Syscall::SrvOp op = static_cast<m3::KIF::Syscall::SrvOp>(req->op);
+
+    static const char *opnames[] = {
+        "SHUTDOWN"
+    };
+
+    LOG_SYS(vpe, ": syscall::srvctrl", "(srv=" << srv_sel
+        << ", op=" << (static_cast<size_t>(op) < ARRAY_SIZE(opnames) ? opnames[op] : "??") << ")");
+
+    auto srvcap = static_cast<ServCapability*>(vpe->objcaps().get(srv_sel, Capability::SERV));
+    if(srvcap == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid service cap");
+
+    switch(op) {
+        case m3::KIF::Syscall::SCTRL_SHUTDOWN: {
+            KLOG(SERV, "Sending SHUTDOWN message to " << srvcap->obj->name());
+
+            m3::KIF::Service::Shutdown smsg;
+            smsg.opcode = m3::KIF::Service::SHUTDOWN;
+            ServiceList::get().send(srvcap->obj, &smsg, sizeof(smsg), false);
+            break;
+        }
+    }
 
     reply_result(vpe, msg, m3::Errors::NONE);
 }
