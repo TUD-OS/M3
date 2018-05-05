@@ -1,2 +1,5 @@
 Import('env')
-env.M3Program(env, target = 'rand', source = Glob('*.cc'))
+
+myenv = env.Clone()
+myenv["CXXFLAGS"] = myenv["CXXFLAGS"].replace('-flto','')
+myenv.M3Program(myenv, 'rand', myenv.Glob('*.cc'))

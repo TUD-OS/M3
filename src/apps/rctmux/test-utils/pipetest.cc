@@ -30,7 +30,7 @@ using namespace m3;
 #define VERBOSE     0
 
 static const size_t PIPE_SHM_SIZE   = 512 * 1024;
-static const int REPEATS            = 8;
+static const int REPEATS            = 4;
 
 struct App {
     explicit App(const char *name, bool muxed)

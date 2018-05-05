@@ -15,6 +15,8 @@
  */
 
 #include <base/util/Chars.h>
+#include <base/util/Time.h>
+#include <base/CPU.h>
 
 #include <m3/stream/Standard.h>
 
@@ -22,7 +24,7 @@
 
 using namespace m3;
 
-alignas(64) static char buffer[4096];
+alignas(64) static char buffer[8192];
 
 static void count(FStream &in) {
     long lines = 0;
@@ -32,7 +34,9 @@ static void count(FStream &in) {
     size_t res;
     int last_space = false;
     while((res = in.read(buffer, sizeof(buffer))) > 0) {
+        Time::start(0x5555);
         count(buffer, res, &lines, &words, &last_space);
+        Time::stop(0x5555);
         bytes += static_cast<long>(res);
     }
 

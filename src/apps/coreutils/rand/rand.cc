@@ -16,25 +16,16 @@
 
 #include <base/stream/IStringStream.h>
 #include <base/util/Random.h>
+#include <base/util/Time.h>
+#include <base/CPU.h>
 
 #include <m3/stream/Standard.h>
 
+#include "loop.h"
+
 using namespace m3;
 
-#define BUFFER_SIZE     4096
-#define EL_COUNT        (BUFFER_SIZE / sizeof(rand_type))
-
-typedef uchar rand_type;
-
 alignas(64) static rand_type buffer[EL_COUNT];
-
-static unsigned get_rand() {
-    static unsigned _last = 0x1234;
-    static unsigned _randa = 1103515245;
-    static unsigned _randc = 12345;
-    _last = _randa * _last + _randc;
-    return (_last / 65536) % 32768;
-}
 
 int main(int argc, char **argv) {
     if(argc != 2)
@@ -45,8 +36,9 @@ int main(int argc, char **argv) {
     while(count > 0) {
         size_t amount = Math::min(count, ARRAY_SIZE(buffer));
 
-        for(size_t i = 0; i < amount; ++i)
-            buffer[i] = get_rand() * get_rand();
+        Time::start(0x5555);
+        generate(buffer, amount);
+        Time::stop(0x5555);
         cout.write(buffer, amount * sizeof(rand_type));
 
         count -= amount;

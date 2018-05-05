@@ -20,7 +20,7 @@
 
 using namespace m3;
 
-alignas(64) static char buffer[4096];
+alignas(64) static char buffer[8192];
 
 static void copy(FStream &in, FStream &out) {
     size_t res;
