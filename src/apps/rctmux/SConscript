@@ -45,6 +45,7 @@ elif env['ARCH'] == 'gem5':
 
 # build test and dev programs
 if env['ARCH'] == 't3' or env['ARCH'] == 'gem5':
+    env.M3Program(env, 'rctmux-util-aladdintest',['test-utils/aladdintest.cc'])
     env.M3Program(env, 'rctmux-util-bench',      ['test-utils/bench.cc'])
     env.M3Program(env, 'rctmux-util-compute',    ['test-utils/compute.cc'])
     env.M3Program(env, 'rctmux-util-counter',    ['test-utils/counter.cc'])
@@ -52,6 +53,7 @@ if env['ARCH'] == 't3' or env['ARCH'] == 'gem5':
     env.M3Program(env, 'rctmux-util-client',     ['test-utils/client.cc'])
     env.M3Program(env, 'rctmux-util-service',    ['test-utils/service.cc'])
     env.M3Program(env, 'rctmux-util-clitest',    ['test-utils/clitest.cc'])
+    env.M3Program(env, 'rctmux-util-streamtest', ['test-utils/streamtest.cc'])
     env.M3Program(env, 'rctmux-util-srvtest',    ['test-utils/srvtest.cc'])
     env.M3Program(env, 'rctmux-util-pipetest',   ['test-utils/pipetest.cc'])
     env.M3Program(env, 'rctmux-util-piperd',     ['test-utils/piperd.cc'])
