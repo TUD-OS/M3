@@ -20,12 +20,12 @@
 #include <base/util/Time.h>
 #include <base/CmdArgs.h>
 
-#include <m3/stream/Standard.h>
-
+#include <m3/accel/AladdinAccel.h>
 #include <m3/com/MemGate.h>
 #include <m3/com/RecvGate.h>
 #include <m3/com/SendGate.h>
 #include <m3/session/Pager.h>
+#include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
 
@@ -36,83 +36,6 @@ static const int REPEATS = 2;
 static size_t step_size = 0;
 static bool use_files = false;
 static bool map_eager = false;
-
-class Aladdin {
-public:
-    static const uint RBUF_SEL      = 64;
-    static const uint RECV_EP       = 7;
-    static const uint MEM_EP        = 8;
-    static const uint DATA_EP       = 9;
-    static const size_t RB_SIZE     = 256;
-
-    static const size_t BUF_SIZE    = 1024;
-    static const size_t BUF_ADDR    = 0x8000;
-    static const size_t STATE_SIZE  = 1024;
-    static const size_t STATE_ADDR  = BUF_ADDR - STATE_SIZE;
-    static const size_t RBUF_ADDR   = RECVBUF_SPACE + SYSC_RBUF_SIZE + UPCALL_RBUF_SIZE + DEF_RBUF_SIZE;
-
-    struct Array {
-        uint64_t addr;
-        uint64_t size;
-    } PACKED;
-
-    struct InvokeMessage {
-        Array arrays[8];
-        uint64_t array_count;
-        uint64_t iterations;
-    } PACKED;
-
-    explicit Aladdin(PEISA isa)
-        : _accel(new VPE("aladdin", PEDesc(PEType::COMP_EMEM, isa), "pager", true)),
-          _lastmem(ObjCap::INVALID),
-          _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
-          _srgate(RecvGate::create_for(*_accel, getnextlog2(RB_SIZE), getnextlog2(RB_SIZE))),
-          _sgate(SendGate::create(&_srgate, 0, RB_SIZE, &_rgate)) {
-        // has to be activated
-        _rgate.activate();
-
-        if(_accel->pager()) {
-            _accel->pager()->activate_gates(*_accel);
-            goff_t virt = STATE_ADDR;
-            _accel->pager()->map_anon(&virt, STATE_SIZE + BUF_SIZE, Pager::Prot::RW, 0);
-        }
-
-        _accel->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _srgate.sel(), 1), RBUF_SEL);
-        _srgate.activate(RECV_EP, RBUF_ADDR);
-        _accel->start();
-    }
-    ~Aladdin() {
-        delete _accel;
-    }
-
-    uint64_t invoke(const InvokeMessage &msg) {
-        GateIStream is = send_receive_msg(_sgate, &msg, sizeof(msg));
-        uint64_t res;
-        is >> res;
-        return res;
-    }
-
-    void run(InvokeMessage &msg, size_t iterations) {
-        cycles_t start = Time::start(0x1234);
-
-        size_t count = 0;
-        size_t per_step = step_size == 0 ? iterations : step_size;
-        while(count < iterations) {
-            msg.iterations = Math::min(iterations - count, per_step);
-            invoke(msg);
-            count += msg.iterations;
-        }
-
-        cycles_t end = Time::stop(0x1234);
-        cout << "Benchmark took " << (end - start) << " cycles\n";
-    }
-
-    VPE *_accel;
-    capsel_t _lastmem;
-    m3::RecvGate _rgate;
-    m3::RecvGate _srgate;
-    m3::SendGate _sgate;
-};
 
 static const size_t sizes[] = {16, 32, 64, 128, 256, 512, 1024, 2048};
 static size_t offs[ARRAY_SIZE(sizes)] = {0};
@@ -183,6 +106,21 @@ static void add(Aladdin &alad, size_t size, Aladdin::Array *a, int prot) {
     virt += psize;
 }
 
+static void run_bench(Aladdin &alad, Aladdin::InvokeMessage &msg, size_t iterations) {
+    cycles_t start = Time::start(0x1234);
+
+    size_t count = 0;
+    size_t per_step = step_size == 0 ? iterations : step_size;
+    while(count < iterations) {
+        msg.iterations = Math::min(iterations - count, per_step);
+        alad.invoke(msg);
+        count += msg.iterations;
+    }
+
+    cycles_t end = Time::stop(0x1234);
+    cout << "Benchmark took " << (end - start) << " cycles\n";
+}
+
 static void run(const char *bench) {
     if(strcmp(bench, "stencil") == 0) {
         Aladdin alad(PEISA::ACCEL_STE);
@@ -199,7 +137,7 @@ static void run(const char *bench) {
         add(alad, SIZE, msg.arrays + 1, MemGate::W);                        // sol
         add(alad, 8, msg.arrays + 2, MemGate::R);                           // C
 
-        alad.run(msg, ITERATIONS);
+        run_bench(alad, msg, ITERATIONS);
     }
     else if(strcmp(bench, "md") == 0) {
         Aladdin alad(PEISA::ACCEL_MD);
@@ -216,7 +154,7 @@ static void run(const char *bench) {
             add(alad, ATOM_SET, msg.arrays + 3 + i, MemGate::W);            // force_{x,y,z}
         add(alad, ATOMS * MAX_NEIGHBORS * 4, msg.arrays + 6, MemGate::R);   // NC
 
-        alad.run(msg, ATOMS);
+        run_bench(alad, msg, ATOMS);
     }
     else if(strcmp(bench, "spmv") == 0) {
         Aladdin alad(PEISA::ACCEL_SPMV);
@@ -233,7 +171,7 @@ static void run(const char *bench) {
         add(alad, VEC_LEN, msg.arrays + 3, MemGate::R);                     // vec
         add(alad, VEC_LEN, msg.arrays + 4, MemGate::W);                     // out
 
-        alad.run(msg, N);
+        run_bench(alad, msg, N);
     }
     else if(strcmp(bench, "fft") == 0) {
         Aladdin alad(PEISA::ACCEL_AFFT);
@@ -249,7 +187,7 @@ static void run(const char *bench) {
         add(alad, SIZE, msg.arrays + 2, MemGate::W);                       // out_x
         add(alad, SIZE, msg.arrays + 3, MemGate::W);                       // out_y
 
-        alad.run(msg, ITERS);
+        run_bench(alad, msg, ITERS);
     }
 }
 
