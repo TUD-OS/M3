@@ -14,8 +14,16 @@
 * General Public License version 2 for more details.
 */
 
-int main() {
-    for(volatile int i = 0; i < 400000; ++i)
-        ;
+#include <base/stream/IStringStream.h>
+#include <base/CPU.h>
+
+using namespace m3;
+
+int main(int argc, char **argv) {
+    cycles_t cycles = 1000000;
+    if(argc > 1)
+        cycles = IStringStream::read_from<cycles_t>(argv[1]);
+
+    CPU::compute(cycles);
     return 0;
 }

@@ -29,7 +29,6 @@
 using namespace m3;
 
 #define VERBOSE         0
-#define REPEATS         8
 #define MAX_TMP_DIRS    4
 #define MAX_TMP_FILES   16
 
@@ -48,8 +47,8 @@ struct App {
 };
 
 int main(int argc, char **argv) {
-    if(argc < 4) {
-        cerr << "Usage: " << argv[0] << " 1|0 <argcount> <prog1>...\n";
+    if(argc < 5) {
+        cerr << "Usage: " << argv[0] << " 1|0 <repeats> <argcount> <prog1>...\n";
         return 1;
     }
 
@@ -59,14 +58,15 @@ int main(int argc, char **argv) {
         PANIC("Cannot mount root fs");
 
     bool muxed = strcmp(argv[1], "1") == 0;
-    int argcount = IStringStream::read_from<int>(argv[2]);
-    App *apps[(argc - 3) / argcount];
+    int repeats = IStringStream::read_from<int>(argv[2]);
+    int argcount = IStringStream::read_from<int>(argv[3]);
+    App *apps[(argc - 4) / argcount];
 
-    for(int j = 0; j < REPEATS; ++j) {
+    for(int j = 0; j < repeats; ++j) {
         if(VERBOSE) cout << "Creating VPEs...\n";
 
         size_t idx = 0;
-        for(int i = 3; i < argc; i += argcount) {
+        for(int i = 4; i < argc; i += argcount) {
             const char **args = new const char*[argcount];
             for(int x = 0; x < argcount; ++x)
                 args[x] = argv[i + x];

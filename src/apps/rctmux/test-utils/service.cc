@@ -14,6 +14,8 @@
 * General Public License version 2 for more details.
 */
 
+#include <base/stream/IStringStream.h>
+
 #include <m3/com/GateStream.h>
 #include <m3/server/SimpleRequestHandler.h>
 #include <m3/server/Server.h>
@@ -44,10 +46,21 @@ private:
 };
 
 int main(int argc, char **argv) {
-    const char *name = argc > 1 ? argv[1] : "test";
-    Server<TestRequestHandler> srv(name, new TestRequestHandler());
+    Server<TestRequestHandler> *srv;
+    if(argc > 1) {
+        String input(argv[1]);
+        IStringStream is(input);
+        capsel_t sels;
+        epid_t ep;
+        is >> sels >> ep;
 
-    env()->workloop()->multithreaded(4);
+        srv = new Server<TestRequestHandler>(sels, ep, new TestRequestHandler());
+    }
+    else
+        srv = new Server<TestRequestHandler>("test", new TestRequestHandler());
+
     env()->workloop()->run();
+
+    delete srv;
     return 0;
 }

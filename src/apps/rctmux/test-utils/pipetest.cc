@@ -22,15 +22,15 @@
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/VFS.h>
-#include <m3/Syscalls.h>
 #include <m3/VPE.h>
+
+#include "Helper.h"
 
 using namespace m3;
 
 #define VERBOSE     0
 
 static const size_t PIPE_SHM_SIZE   = 512 * 1024;
-static const int REPEATS            = 4;
 
 struct App {
     explicit App(const char *name, bool muxed)
@@ -44,37 +44,13 @@ struct App {
     VPE vpe;
 };
 
-struct RemoteServer {
-    explicit RemoteServer(VPE &vpe, const String &name)
-        : srv(ObjCap::SERVICE, VPE::self().alloc_sels(2)),
-          rgate(RecvGate::create_for(vpe, srv.sel() + 1, nextlog2<256>::val, nextlog2<256>::val)) {
-        rgate.activate();
-        Syscalls::get().createsrv(srv.sel(), vpe.sel(), rgate.sel(), name);
-        vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, srv.sel(), 2));
-    }
-
-    void request_shutdown() {
-        Syscalls::get().srvctrl(srv.sel(), KIF::Syscall::SCTRL_SHUTDOWN);
-    }
-
-    const char *sel_arg() const {
-        static char buffer[32];
-        OStringStream os(buffer, sizeof(buffer));
-        os << srv.sel() << " " << rgate.ep();
-        return os.str();
-    }
-
-    ObjCap srv;
-    RecvGate rgate;
-};
-
 static App *create(int no, const char *name, bool muxable) {
     if(VERBOSE) cout << "VPE" << no << ": " << name << "\n";
     return new App(name, muxable);
 }
 
 static void usage(const char *name) {
-    cerr << "Usage: " << name << " <mode> <mem> <wargs> <rargs> ...\n";
+    cerr << "Usage: " << name << " <mode> <mem> <repeats> <wargs> <rargs> ...\n";
     cerr << " <mode> can be:\n";
     cerr << " 0: not muxable\n";
     cerr << " 1: all muxable\n";
@@ -88,7 +64,7 @@ static void usage(const char *name) {
 }
 
 int main(int argc, const char **argv) {
-    if(argc < 5)
+    if(argc < 6)
         usage(argv[0]);
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
@@ -98,21 +74,22 @@ int main(int argc, const char **argv) {
 
     int mode = IStringStream::read_from<int>(argv[1]);
     int mem = IStringStream::read_from<int>(argv[2]);
-    int wargs = IStringStream::read_from<int>(argv[3]);
-    int rargs = IStringStream::read_from<int>(argv[4]);
+    int repeats = IStringStream::read_from<int>(argv[3]);
+    int wargs = IStringStream::read_from<int>(argv[4]);
+    int rargs = IStringStream::read_from<int>(argv[5]);
 
-    if(argc != 5 + wargs + rargs)
+    if(argc != 6 + wargs + rargs)
         usage(argv[0]);
 
     MemGate pipemem = MemGate::create_global(PIPE_SHM_SIZE, MemGate::RW);
 
-    for(int j = 0; j < REPEATS; ++j) {
+    for(int j = 0; j < repeats; ++j) {
         App *apps[4];
 
         if(VERBOSE) cout << "Creating VPEs...\n";
 
-        const char **wargv = argv + 5;
-        const char **rargv = argv + 5 + wargs;
+        const char **wargv = argv + 6;
+        const char **rargv = argv + 6 + wargs;
         if(mode < 2) {
             apps[0] = create(0, "pipeserv", mode == 1);
             apps[1] = nullptr;
@@ -134,13 +111,15 @@ int main(int argc, const char **argv) {
         if(VERBOSE) cout << "Starting services...\n";
 
         // start services
-        const char *pipe_args[] = {"/bin/pipeserv", "-s", pipe_srv->sel_arg()};
+        String pipearg = pipe_srv->sel_arg();
+        const char *pipe_args[] = {"/bin/pipeserv", "-s", pipearg.c_str()};
         Errors::Code res = apps[0]->vpe.exec(ARRAY_SIZE(pipe_args), pipe_args);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << pipe_args[0] << ": " << Errors::to_string(res));
 
         if(apps[1]) {
-            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fs_srv->sel_arg(), "134217728"};
+            String m3fsarg = m3fs_srv->sel_arg();
+            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fsarg.c_str(), "134217728"};
             res = apps[1]->vpe.exec(ARRAY_SIZE(m3fs_args), m3fs_args);
             if(res != Errors::NONE)
                 PANIC("Cannot execute " << m3fs_args[0] << ": " << Errors::to_string(res));

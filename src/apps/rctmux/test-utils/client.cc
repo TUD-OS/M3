@@ -15,8 +15,11 @@
 */
 
 #include <base/Common.h>
+#include <base/stream/IStringStream.h>
+#include <base/util/Time.h>
 
 #include <m3/com/SendGate.h>
+#include <m3/com/GateStream.h>
 #include <m3/session/ClientSession.h>
 #include <m3/stream/Standard.h>
 
@@ -26,37 +29,48 @@ enum TestOp {
     TEST
 };
 
-int main(int, char *argv[]) {
-    // the kernel does not block us atm until the service is available
-    // so try to connect until it's available
-    ClientSession *sess = nullptr;
-    while(sess == nullptr) {
-        sess = new ClientSession(argv[2]);
-        if(sess->is_connected())
-            break;
+static const int WARMUP = 10;
+static const int REPEAT = 10;
 
-        for(volatile int x = 0; x < 10000; ++x)
-            ;
-        delete sess;
-        sess = nullptr;
+int main(int argc, char **argv) {
+    int mode = argc > 1 ? IStringStream::read_from<int>(argv[1]) : 0;
+
+    ClientSession *sess[2] = {nullptr, nullptr};
+    SendGate *sgate[2] = {nullptr, nullptr};
+    const char *name[2] = {nullptr, nullptr};
+
+    for(int i = 0; i < (mode == 2 ? 1 : 2); ++i) {
+        name[i] = i == 0 ? "srv1" : "srv2";
+        sess[i] = new ClientSession(name[i]);
+        sgate[i] = new SendGate(SendGate::bind(sess[i]->obtain(1).start()));
     }
 
-    {
-        SendGate sgate = SendGate::bind(sess->obtain(1).start());
+    for(int i = 0; i < WARMUP; ++i) {
+        int no = mode == 2 ? 0 : i % 2;
+        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
 
-        cout << argv[1] << ": Starting test...\n";
-
-        for(int i = 0; i < 200; ++i) {
-            int res;
-            GateIStream reply = send_receive_vmsg(sgate, TEST);
-            reply >> res;
-            cout << argv[1] << ": Got " << res << " from " << argv[2] << "\n";
-        }
-
-        cout << argv[1] << ": Test finished.\n";
+        int res;
+        reply >> res;
     }
 
-    delete sess;
+    cycles_t total = 0;
+    for(int i = 0; i < REPEAT; ++i) {
+        int no = mode == 2 ? 0 : i % 2;
 
+        cycles_t start = Time::start(0x1234);
+        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
+        cycles_t end = Time::stop(0x1234);
+
+        int res;
+        reply >> res;
+        total += end - start;
+    }
+
+    cout << "Time: " << (total / REPEAT) << "\n";
+
+    for(int i = 0; i < 2; ++i) {
+        delete sgate[i];
+        delete sess[i];
+    }
     return 0;
 }

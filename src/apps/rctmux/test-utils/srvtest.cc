@@ -15,6 +15,7 @@
 */
 
 #include <base/Common.h>
+#include <base/stream/IStringStream.h>
 #include <base/util/Time.h>
 #include <base/Panic.h>
 
@@ -23,12 +24,11 @@
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+#include "Helper.h"
+
 using namespace m3;
 
 #define VERBOSE     0
-
-static const int WARMUP = 10;
-static const int REPEAT = 10;
 
 static void start(VPE &v, int argc, const char **argv) {
     v.mounts(*VPE::self().mounts());
@@ -39,86 +39,60 @@ static void start(VPE &v, int argc, const char **argv) {
 }
 
 int main(int argc, char **argv) {
-    bool muxable = argc > 1 && strcmp(argv[1], "1") == 0;
+    int mode = argc > 1 ? IStringStream::read_from<int>(argv[1]) : 0;
 
     if(VERBOSE) cout << "Mounting filesystem...\n";
+
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         PANIC("Cannot mount root fs");
 
-    if(VERBOSE) cout << "Creating VPEs...\n";
+    {
+        if(VERBOSE) cout << "Creating VPEs...\n";
 
-    const char *args1[] = {"/bin/rctmux-util-service", "srv1"};
-    VPE s1(args1[0], VPE::self().pe(), "pager", muxable);
-    if(Errors::last != Errors::NONE)
-        exitmsg("Unable to create VPE");
+        VPE c1("client", VPE::self().pe(), "pager", mode == 2);
+        if(Errors::last != Errors::NONE)
+            exitmsg("Unable to create VPE");
 
-    const char *args2[] = {"/bin/rctmux-util-service", "srv2"};
-    VPE s2(args2[0], VPE::self().pe(), "pager", muxable);
-    if(Errors::last != Errors::NONE)
-        exitmsg("Unable to create VPE");
+        VPE s1("service1", VPE::self().pe(), "pager", mode >= 1);
+        if(Errors::last != Errors::NONE)
+            exitmsg("Unable to create VPE");
 
-    if(VERBOSE) cout << "Starting VPEs...\n";
+        VPE s2("service2", VPE::self().pe(), "pager", mode >= 1);
+        if(Errors::last != Errors::NONE)
+            exitmsg("Unable to create VPE");
 
-    start(s1, ARRAY_SIZE(args1), args1);
-    start(s2, ARRAY_SIZE(args2), args2);
+        if(VERBOSE) cout << "Creating services...\n";
 
-    enum TestOp {
-        TEST
-    };
+        RemoteServer srv1(s1, "srv1");
+        RemoteServer srv2(s2, "srv2");
 
-    if(VERBOSE) cout << "Starting session creation...\n";
+        if(VERBOSE) cout << "Starting VPEs...\n";
 
-    ClientSession *sess[2] = {nullptr, nullptr};
-    SendGate *sgate[2] = {nullptr, nullptr};
-    const char *name[2] = {nullptr, nullptr};
+        String srv1arg = srv1.sel_arg();
+        String srv2arg = srv2.sel_arg();
+        const char *args1[] = {"/bin/rctmux-util-client", argc > 1 ? argv[1] : "0"};
+        const char *args2[] = {"/bin/rctmux-util-service", srv1arg.c_str()};
+        const char *args3[] = {"/bin/rctmux-util-service", srv2arg.c_str()};
+        start(s1, ARRAY_SIZE(args2), args2);
+        start(s2, ARRAY_SIZE(args3), args3);
+        start(c1, ARRAY_SIZE(args1), args1);
 
-    for(int i = 0; i < 2; ++i) {
-        name[i] = i == 0 ? "srv1" : "srv2";
+        if(VERBOSE) cout << "Waiting for client VPE...\n";
 
-        // the kernel does not block us atm until the service is available
-        // so try to connect until it's available
-        while(sess[i] == nullptr) {
-            sess[i] = new ClientSession(name[i]);
-            if(sess[i]->is_connected())
-                break;
+        int exit1 = c1.wait();
+        if(VERBOSE) cout << "Client exited with " << exit1 << "\n";
 
-            for(volatile int x = 0; x < 10000; ++x)
-                ;
-            delete sess[i];
-            sess[i] = nullptr;
-        }
+        if(VERBOSE) cout << "Requesting shutdown\n";
 
-        sgate[i] = new SendGate(SendGate::bind(sess[i]->obtain(1).start()));
-    }
+        srv1.request_shutdown();
+        srv2.request_shutdown();
 
-    if(VERBOSE) cout << "Starting test...\n";
+        if(VERBOSE) cout << "Waiting for service VPEs\n";
 
-    for(int i = 0; i < WARMUP; ++i) {
-        int no = i % 2;
-        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
-
-        int res;
-        reply >> res;
-        cout << "Got " << res << " from " << name[no] << "\n";
-    }
-
-    for(int i = 0; i < REPEAT; ++i) {
-        int no = i % 2;
-
-        cycles_t start = Time::start(0x1234);
-        GateIStream reply = send_receive_vmsg(*sgate[no], TEST);
-        cycles_t end = Time::stop(0x1234);
-
-        int res;
-        reply >> res;
-        cout << "Got " << res << " from " << name[no] << " (" << (end - start) << " cycles)\n";
-    }
-
-    if(VERBOSE) cout << "Test finished.\n";
-
-    for(int i = 0; i < 2; ++i) {
-        delete sgate[i];
-        delete sess[i];
+        int exit2 = s1.wait();
+        if(VERBOSE) cout << "Service 1 exited with " << exit2 << "\n";
+        int exit3 = s2.wait();
+        if(VERBOSE) cout << "Service 2 exited with " << exit3 << "\n";
     }
 
     return 0;
