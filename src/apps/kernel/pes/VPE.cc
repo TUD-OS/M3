@@ -30,6 +30,8 @@
 
 namespace kernel {
 
+cycles_t VPE::TIME_SLICE = 6000000;
+
 VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epid_t rep,
          capsel_t sgate, VPEGroup *group)
     : SListItem(),

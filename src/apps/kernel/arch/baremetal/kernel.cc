@@ -14,6 +14,7 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/stream/IStringStream.h>
 #include <base/tracing/Tracing.h>
 #include <base/log/Kernel.h>
 
@@ -26,8 +27,8 @@
 using namespace kernel;
 
 int main(int argc, char *argv[]) {
-    if(argc < 2) {
-        m3::Serial::get() << "Usage: " << argv[0] << " <program>...\n";
+    if(argc < 3) {
+        m3::Serial::get() << "Usage: " << argv[0] << " [-t=<timeslice>] -- <program>...\n";
         m3::Machine::shutdown();
     }
 
@@ -38,10 +39,16 @@ int main(int argc, char *argv[]) {
     // create some worker threads
     m3::env()->workloop()->multithreaded(16);
 
+    if(strncmp(argv[1], "-t=", 3) == 0) {
+        VPE::set_timeslice(m3::IStringStream::read_from<cycles_t>(argv[1] + 3));
+        argc -= 1;
+        argv += 1;
+    }
+
     SyscallHandler::init();
     PEManager::create();
     VPEManager::create();
-    VPEManager::get().init(argc - 1, argv + 1);
+    VPEManager::get().init(argc - 2, argv + 2);
 
     PEManager::get().init();
 

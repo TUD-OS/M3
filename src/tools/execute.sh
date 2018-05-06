@@ -140,7 +140,7 @@ build_params_gem5() {
     c=0
     cmd=`generate_lines $1 | ( while read line; do
             if [ $c -eq 0 ]; then
-                echo -n $bindir/$KPREFIX$line $kargs,
+                echo -n $bindir/$KPREFIX$line -- $kargs,
             else
                 echo -n $bindir/rctmux,
             fi
