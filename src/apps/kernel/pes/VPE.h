@@ -187,7 +187,7 @@ public:
     }
 
     cycles_t yield_time() const {
-        return _services > 0 ? SRV_YIELD : APP_YIELD;
+        return _services > 0 || !Platform::pe(pe()).is_programmable() ? SRV_YIELD : APP_YIELD;
     }
     void add_service() {
         _services++;
