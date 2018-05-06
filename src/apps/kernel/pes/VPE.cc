@@ -43,6 +43,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _state(DEAD),
       _exitcode(),
       _group(group),
+      _services(),
       _pending_fwds(),
       _name(m3::Util::move(prog)),
       _objcaps(id + 1),

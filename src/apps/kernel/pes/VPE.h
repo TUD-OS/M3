@@ -55,6 +55,8 @@ public:
     static const epid_t INVALID_EP      = static_cast<epid_t>(-1);
 
     static cycles_t TIME_SLICE;
+    static const cycles_t APP_YIELD     = 20000;
+    static const cycles_t SRV_YIELD     = 1;
 
     static const int SYSC_MSGSIZE_ORD   = m3::nextlog2<512>::val;
     static const int SYSC_CREDIT_ORD    = SYSC_MSGSIZE_ORD;
@@ -184,6 +186,16 @@ public:
         _pending_fwds--;
     }
 
+    cycles_t yield_time() const {
+        return _services > 0 ? SRV_YIELD : APP_YIELD;
+    }
+    void add_service() {
+        _services++;
+    }
+    void rem_service() {
+        _services--;
+    }
+
     void start_app(int pid);
     void stop_app(int exitcode, bool self);
 
@@ -235,6 +247,7 @@ private:
     State _state;
     int _exitcode;
     VPEGroup *_group;
+    uint _services;
     uint _pending_fwds;
     m3::String _name;
     CapTable _objcaps;

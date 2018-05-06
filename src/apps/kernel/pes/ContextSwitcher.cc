@@ -270,7 +270,7 @@ void ContextSwitcher::update_yield() {
 
         // update yield time and wake him up in case he was idling
         _set_yield = yield;
-        uint64_t val = yield ? YIELD_TIME : 0;
+        uint64_t val = yield ? _cur->yield_time() : 0;
         DTU::get().write_mem(_cur->desc(), RCTMUX_YIELD, &val, sizeof(val));
         if(yield)
             DTU::get().inject_irq(_cur->desc());
@@ -401,7 +401,8 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && !_cur->_group && (_set_yield = migvpe || _global_ready > 0)) ? YIELD_TIME : 0;
+            uint64_t report = (can_mux() && !_cur->_group &&
+                               (_set_yield = migvpe || _global_ready > 0)) ? _cur->yield_time() : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
 
             // tell rctmux whether there is an application and the PE id

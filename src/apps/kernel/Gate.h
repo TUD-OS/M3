@@ -32,6 +32,10 @@ public:
           _label(label) {
     }
 
+    VPE &vpe() {
+        return _vpe;
+    }
+
     m3::Errors::Code send(const void *data, size_t len, epid_t rep, label_t label);
 
 private:

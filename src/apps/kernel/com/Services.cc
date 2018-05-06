@@ -31,9 +31,11 @@ Service::Service(VPE &vpe, capsel_t sel, const m3::String &name, const m3::Refer
       _name(name),
       _sgate(vpe, rgate->ep, 0),
       _rgate(rgate) {
+    vpe.add_service();
 }
 
 Service::~Service() {
+    _sgate.vpe().rem_service();
     // we have allocated the selector and stored it in our cap-table on creation; undo that
     ServiceList::get().remove(this);
 }
