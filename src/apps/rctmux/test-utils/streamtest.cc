@@ -24,7 +24,7 @@
 
 using namespace m3;
 
-static constexpr int REPEATS            = 20;
+static constexpr int REPEATS            = 24;
 static constexpr cycles_t COMP_TIME     = 1024;
 
 int main() {
@@ -94,7 +94,7 @@ int main() {
     vpes[0]->wait();
     vpes[1]->wait();
 
-    cout << "Total time: " << (total / REPEATS) << " cycles\n";
+    cout << "Time: " << (total / REPEATS) << " cycles\n";
 
     for(size_t i = 0; i < 2; ++i) {
         delete vpes[i];

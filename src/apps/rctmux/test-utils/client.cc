@@ -30,7 +30,7 @@ enum TestOp {
 };
 
 static const int WARMUP = 10;
-static const int REPEAT = 10;
+static const int REPEAT = 12;
 
 int main(int argc, char **argv) {
     int mode = argc > 1 ? IStringStream::read_from<int>(argv[1]) : 0;

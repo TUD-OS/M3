@@ -31,7 +31,7 @@
 
 using namespace m3;
 
-static const int REPEATS = 10;
+static const int REPEATS = 24;
 
 static void add(Aladdin &alad, uintptr_t *virt, size_t size, Aladdin::Array *a, int prot) {
     size_t psize = Math::round_up(size, PAGE_SIZE);
@@ -85,6 +85,6 @@ int main() {
         total += end - start;
     }
 
-    cout << "Time per call: " << (total / REPEATS) << " cycles\n";
+    cout << "Time: " << (total / REPEATS) << " cycles\n";
     return 0;
 }
