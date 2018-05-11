@@ -184,8 +184,8 @@ void DTU::recv_msgs(epid_t ep, uintptr_t buf, int order, int msgorder) {
     header_off += 1UL << (order - msgorder);
 }
 
-void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-                  label_t replylbl, epid_t replyep, uint64_t sender) {
+m3::Errors::Code DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
+                              size_t size, label_t replylbl, epid_t replyep, uint64_t sender) {
     size_t msgsize = size + m3::DTU::HEADER_SIZE;
     _state.config_send(_ep, label, vpe.pe, vpe.id, ep, msgsize, m3::DTU::CREDITS_UNLIM);
     write_ep_local(_ep);
@@ -204,9 +204,7 @@ void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
     m3::DTU::reg_t cmd = m3::DTU::get().buildCommand(_ep, m3::DTU::CmdOpCode::SEND);
     m3::DTU::get().write_reg(m3::DTU::CmdRegs::COMMAND, cmd);
 
-    m3::Errors::Code res = m3::DTU::get().get_error();
-    if(res != m3::Errors::NONE)
-        PANIC("Send failed");
+    return m3::DTU::get().get_error();
 }
 
 void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
@@ -231,9 +229,9 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
         PANIC("Reply failed");
 }
 
-void DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg, size_t size,
-                   uint64_t sender) {
-    send_to(vpe, rep, label, msg, size, 0, 0, sender);
+m3::Errors::Code DTU::reply_to(const VPEDesc &vpe, epid_t rep, label_t label, const void *msg,
+                               size_t size, uint64_t sender) {
+    return send_to(vpe, rep, label, msg, size, 0, 0, sender);
 }
 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size) {

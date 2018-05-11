@@ -20,9 +20,9 @@
 
 namespace kernel {
 
-m3::Errors::Code SendGate::send(const void *data, size_t len, epid_t rep, label_t label) {
-    DTU::get().send_to(_vpe.desc(), _ep, _label, data, len, label, rep);
-    return m3::Errors::NONE;
+void SendGate::send(const void *data, size_t len, epid_t rep, label_t label) {
+    if(DTU::get().send_to(_vpe.desc(), _ep, _label, data, len, label, rep) != m3::Errors::NONE)
+        PANIC("send failed");
 }
 
 }

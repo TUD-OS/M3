@@ -130,15 +130,16 @@ void DTU::reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
     m3::DTU::get().reply(ep, msg, size, msgidx);
 }
 
-void DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg, size_t size,
-                  label_t replylbl, epid_t replyep, uint64_t) {
+m3::Errors::Code DTU::send_to(const VPEDesc &vpe, epid_t ep, label_t label, const void *msg,
+                              size_t size, label_t replylbl, epid_t replyep, uint64_t) {
     const size_t msg_ord = static_cast<uint>(m3::getnextlog2(size + m3::DTU::HEADER_SIZE));
     m3::DTU::get().configure(_ep, label, vpe.pe, ep, 1UL << msg_ord, msg_ord);
-    m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
+    return m3::DTU::get().send(_ep, msg, size, replylbl, replyep);
 }
 
-void DTU::reply_to(const VPEDesc &, epid_t, label_t, const void *, size_t, uint64_t) {
+m3::Errors::Code DTU::reply_to(const VPEDesc &, epid_t, label_t, const void *, size_t, uint64_t) {
     // UNUSED
+    return m3::Errors::NONE;
 }
 
 m3::Errors::Code DTU::try_write_mem(const VPEDesc &vpe, goff_t addr, const void *data, size_t size) {

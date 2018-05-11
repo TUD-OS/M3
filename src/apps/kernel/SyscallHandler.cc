@@ -979,10 +979,10 @@ void SyscallHandler::forwardmsg(VPE *vpe, const m3::DTU::Message *msg) {
         vpe->forward_msg(ep, tvpe.pe(), tvpe.id());
 
         uint64_t sender = vpe->pe() | (vpe->id() << 8) | (ep << 24) | (static_cast<uint64_t>(rep) << 32);
-        DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label, msg_ptr,
-            len, rlabel, rep, sender);
+        res = DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label,
+                                 msg_ptr, len, rlabel, rep, sender);
     }
-    else
+    if(res != m3::Errors::NONE)
         LOG_ERROR(vpe, res, "forwardmsg failed");
 
     if(async)
@@ -1121,14 +1121,14 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
     }
 
     res = wait_for(": syscall::forwardreply", tvpe, vpe, true);
-    if(res != m3::Errors::NONE)
-        LOG_ERROR(vpe, res, "forwardreply failed");
-    else {
+    if(res == m3::Errors::NONE) {
         uint64_t sender = vpe->pe() | (vpe->id() << 8) |
                         (static_cast<uint64_t>(head.senderEp) << 32) |
                         (static_cast<uint64_t>(1) << 40);
-        DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
+        res = DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
     }
+    if(res != m3::Errors::NONE)
+        LOG_ERROR(vpe, res, "forwardreply failed");
 
     if(async)
         vpe->upcall_notify(res, event);
