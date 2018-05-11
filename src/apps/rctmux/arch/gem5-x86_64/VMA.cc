@@ -211,15 +211,6 @@ void *VMA::handle_ext_req(m3::Exceptions::State *state, m3::DTU::reg_t mst_req) 
     dtu.set_ext_req(0);
 
     switch(cmd) {
-        case m3::DTU::ExtReqOpCode::SET_ROOTPT:
-            asm volatile (
-                "mov %0, %%cr3;"
-                "jmp _start;"
-                : : "r"(mst_req)
-            );
-            UNREACHED;
-            break;
-
         case m3::DTU::ExtReqOpCode::INV_PAGE:
             asm volatile ("invlpg (%0)" : : "r" (mst_req));
             break;

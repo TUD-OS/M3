@@ -52,7 +52,7 @@ public:
     void unset_vpeid(const VPEDesc &vpe);
 
     cycles_t get_time();
-    void wakeup(const VPEDesc &vpe, goff_t addr = 0);
+    void wakeup(const VPEDesc &vpe);
     void suspend(const VPEDesc &vpe);
     void inject_irq(const VPEDesc &vpe);
     void ext_request(const VPEDesc &vpe, uint64_t req);

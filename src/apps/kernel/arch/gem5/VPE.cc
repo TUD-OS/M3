@@ -283,13 +283,10 @@ void VPE::load_app() {
 void VPE::init_memory() {
     bool vm = Platform::pe(pe()).has_virtmem();
     if(vm) {
+        address_space()->setup(desc());
+        // write all PTEs to memory until we have loaded rctmux
         if(Platform::pe(pe()).has_mmu())
             _state = VPE::SUSPENDED;
-        else {
-            _dtustate.config_pf(address_space()->root_pt(),
-                address_space()->sep(), address_space()->rep());
-            address_space()->setup(desc());
-        }
     }
 
     if(Platform::pe(pe()).is_programmable())
@@ -300,12 +297,11 @@ void VPE::init_memory() {
         map_segment(*this, phys, RCTMUX_FLAGS & ~PAGE_MASK, PAGE_SIZE, m3::DTU::PTE_RW);
     }
 
-    if(Platform::pe(pe()).has_mmu()) {
+    // rctmux is ready; let it initialize itself
+    DTU::get().wakeup(desc());
+    // we can now write the PTEs to the VPE's address space
+    if(Platform::pe(pe()).has_mmu())
         _state = VPE::RUNNING;
-        _dtustate.config_pf(address_space()->root_pt(),
-            address_space()->sep(), address_space()->rep());
-        address_space()->setup(desc());
-    }
 
     if(vm) {
         // map receive buffer

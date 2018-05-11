@@ -22,10 +22,6 @@ void AddrSpace::setup(const VPEDesc &) {
     // not supported
 }
 
-void AddrSpace::set_rootpt_remote(const VPEDesc &) {
-    // not supported
-}
-
 void AddrSpace::map_pages(const VPEDesc &, goff_t, gaddr_t, uint, int) {
     // not supported
 }

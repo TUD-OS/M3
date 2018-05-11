@@ -71,8 +71,8 @@ void DTU::unset_vpeid(const VPEDesc &vpe) {
     do_set_vpeid(vpe, VPE::INVALID_ID);
 }
 
-void DTU::wakeup(const VPEDesc &vpe, goff_t addr) {
-    m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE) | addr << 3;
+void DTU::wakeup(const VPEDesc &vpe) {
+    m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::WAKEUP_CORE);
     do_ext_cmd(vpe, cmd);
 }
 

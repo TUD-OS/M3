@@ -169,9 +169,8 @@ public:
     };
 
     enum ExtReqOpCode {
-        SET_ROOTPT          = 0,
-        INV_PAGE            = 1,
-        RCTMUX              = 2,
+        INV_PAGE            = 0,
+        RCTMUX              = 1,
     };
 
     struct ReplyHeader {

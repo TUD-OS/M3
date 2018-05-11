@@ -47,7 +47,7 @@ cycles_t DTU::get_time() {
     return 0;
 }
 
-void DTU::wakeup(const VPEDesc &, goff_t) {
+void DTU::wakeup(const VPEDesc &) {
     // nothing to do
 }
 

@@ -57,7 +57,6 @@ public:
     }
 
     void setup(const VPEDesc &vpe);
-    void set_rootpt_remote(const VPEDesc &vpe);
 
     void map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pages, int perm);
     void unmap_pages(const VPEDesc &vpe, goff_t virt, uint pages);

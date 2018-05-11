@@ -92,11 +92,6 @@ m3::DTU::pte_t AddrSpace::to_dtu_pte(mmu_pte_t pte) {
 #endif
 }
 
-void AddrSpace::set_rootpt_remote(const VPEDesc &vpe) {
-    assert(_pe.has_mmu());
-    mmu_cmd_remote(vpe, to_mmu_pte(_root) | m3::DTU::ExtReqOpCode::SET_ROOTPT);
-}
-
 void AddrSpace::mmu_cmd_remote(const VPEDesc &vpe, m3::DTU::reg_t arg) {
     assert(arg != 0);
     DTU::get().ext_request(vpe, arg);
@@ -114,31 +109,6 @@ void AddrSpace::setup(const VPEDesc &vpe) {
     m3::DTU::pte_t pte = to_mmu_pte(_root | m3::DTU::PTE_RWX);
     DTU::get().write_mem(VPEDesc(m3::DTU::gaddr_to_pe(_root), VPE::INVALID_ID),
         addr + m3::DTU::PTE_REC_IDX * sizeof(pte), &pte, sizeof(pte));
-
-    if(_pe.has_dtuvm()) {
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::FEATURES) == 0, "FEATURES wrong");
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::ROOT_PT) == 1, "ROOT_PT wrong");
-        static_assert(static_cast<int>(m3::DTU::DtuRegs::PF_EP) == 2, "PF_EP wrong");
-
-        // init DTU registers
-        alignas(DTU_PKG_SIZE) m3::DTU::reg_t regs[3];
-        uint features = 0;
-        if(_sep != static_cast<epid_t>(-1))
-            features = static_cast<uint>(m3::DTU::StatusFlags::PAGEFAULTS);
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::FEATURES)] = features;
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::ROOT_PT)] = _root;
-        regs[static_cast<size_t>(m3::DTU::DtuRegs::PF_EP)] = _sep | (_rep << 8);
-        m3::CPU::compiler_barrier();
-        DTU::get().write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::FEATURES),
-            regs, sizeof(regs));
-    }
-    else {
-        alignas(DTU_PKG_SIZE) m3::DTU::reg_t reg = _sep | (_rep << 8);
-        m3::CPU::compiler_barrier();
-        DTU::get().write_mem(vpe, m3::DTU::dtu_reg_addr(m3::DTU::DtuRegs::PF_EP), &reg, sizeof(reg));
-
-        set_rootpt_remote(vpe);
-    }
 
     // invalidate TLB, because we have changed the root PT
     DTU::get().invtlb_remote(vpe);

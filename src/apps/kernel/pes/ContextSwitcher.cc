@@ -388,14 +388,17 @@ retry:
             _cur->_state = VPE::RESUMING;
             _cur->_lastsched = DTU::get().get_time();
 
-            _cur->_dtustate.reset();
+            _cur->_dtustate.reset(RCTMUX_ENTRY);
 
+            // set address space properties first to load them during the restore
+            if((_cur->_flags & VPE::F_INIT) && _cur->address_space()) {
+                AddrSpace *as = _cur->address_space();
+                _cur->_dtustate.config_pf(as->root_pt(), as->sep(), as->rep());
+            }
             _cur->_dtustate.restore(VPEDesc(_pe, old), _cur->_headers, _cur->id());
 
             if(_cur->_flags & VPE::F_INIT)
                 _cur->init_memory();
-            else if(Platform::pe(_pe).has_mmu())
-                _cur->address_space()->set_rootpt_remote(_cur->desc());
 
             [[fallthrough]];
         }
@@ -414,12 +417,7 @@ retry:
                 << report << " flags=" << m3::fmt(flags, "#x"));
 
             DTU::get().write_swstate(_cur->desc(), flags, report);
-            // if we're doing that for the first time without MMU, we need to setup interrupts first
-            // before we can inject one
-            if(!Platform::pe(_pe).has_mmu() && Platform::pe(_pe).is_programmable() && (_cur->_flags & VPE::F_INIT))
-                DTU::get().wakeup(_cur->desc(), RCTMUX_ENTRY);
-            else
-                DTU::get().inject_irq(_cur->desc());
+            DTU::get().inject_irq(_cur->desc());
             _state = S_RESTORE_DONE;
 
             _wait_time = INIT_WAIT_TIME;
