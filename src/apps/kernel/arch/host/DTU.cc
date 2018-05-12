@@ -47,6 +47,10 @@ cycles_t DTU::get_time() {
     return 0;
 }
 
+void DTU::flush_cache(const VPEDesc &) {
+    // nothing to do
+}
+
 void DTU::wakeup(const VPEDesc &) {
     // nothing to do
 }

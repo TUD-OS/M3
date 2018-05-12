@@ -18,6 +18,7 @@
 #include <base/util/Math.h>
 
 #include "mem/AddrSpace.h"
+#include "pes/PEManager.h"
 #include "pes/VPEManager.h"
 #include "pes/VPE.h"
 #include "DTU.h"
@@ -269,6 +270,11 @@ void AddrSpace::map_pages(const VPEDesc &vpe, goff_t virt, gaddr_t phys, uint pa
     gaddr_t root = 0;
     if(!running) {
         VPE &v = VPEManager::get().vpe(vpe.id);
+        // first, flush the cache to ensure that all PTEs are in memory
+        v.flush_cache();
+        // update the cache from memory when resuming the VPE
+        v.needs_invalidate();
+
         // TODO we currently assume that all PTEs are in the same mem PE as the root PT
         peid_t pe = m3::DTU::gaddr_to_pe(v.address_space()->root_pt());
         root = v.address_space()->root_pt();

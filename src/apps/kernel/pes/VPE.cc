@@ -38,7 +38,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       SlabObject<VPE>(),
       RefCounted(),
       _desc(peid, id),
-      _flags(flags | F_INIT),
+      _flags(flags | F_INIT | F_NEEDS_INVAL),
       _pid(),
       _state(DEAD),
       _exitcode(),
@@ -58,7 +58,8 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _rbufcpy(),
       _requires(),
       _argc(),
-      _argv() {
+      _argv(),
+      _epaddr() {
     if(group)
         _group->add(this);
 
@@ -108,6 +109,18 @@ VPE::~VPE() {
     delete _as;
 
     VPEManager::get().remove(this);
+}
+
+void VPE::flush_cache() {
+    if(_flags & F_FLUSHED)
+        return;
+
+    KLOG(VPES, "Flushing cache of VPE '" << _name << "' [id=" << id() << "]");
+
+    VPE *cur = PEManager::get().current(pe());
+    assert(cur != nullptr);
+    DTU::get().flush_cache(cur->desc());
+    _flags |= F_FLUSHED;
 }
 
 void VPE::make_daemon() {

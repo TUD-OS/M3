@@ -41,6 +41,8 @@ public:
 
     peid_t find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable, const VPEGroup *group);
 
+    VPE *current(peid_t pe);
+
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 

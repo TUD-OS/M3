@@ -64,6 +64,9 @@ public:
     size_t count() const {
         return _count;
     }
+    VPE *current() {
+        return _cur;
+    }
 
     bool can_mux() const {
         return _muxable;

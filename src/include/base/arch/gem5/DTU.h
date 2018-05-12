@@ -130,6 +130,7 @@ private:
         INV_TLB             = 4,
         RESET               = 5,
         ACK_MSG             = 6,
+        FLUSH_CACHE         = 7,
     };
 
 public:

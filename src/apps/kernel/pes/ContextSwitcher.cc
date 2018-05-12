@@ -166,6 +166,7 @@ VPE *ContextSwitcher::steal_vpe() {
             return v->_group == nullptr;
         });
         if(vpe) {
+            DTU::get().flush_cache(_cur->desc());
             vpe->_flags ^= VPE::F_READY;
             _global_ready--;
             return vpe;
@@ -191,6 +192,9 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
 
 void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
     dequeue(vpe);
+
+    // ensure that all PTEs are in memory
+    DTU::get().flush_cache(_cur->desc());
 
     if(_cur == vpe && _state == S_IDLE) {
         // don't try to schedule others of the gang next time, if is still a gang running
@@ -388,7 +392,8 @@ retry:
             _cur->_state = VPE::RESUMING;
             _cur->_lastsched = DTU::get().get_time();
 
-            _cur->_dtustate.reset(RCTMUX_ENTRY);
+            _cur->_dtustate.reset(RCTMUX_ENTRY, _cur->_flags & VPE::F_NEEDS_INVAL);
+            _cur->_flags &= ~static_cast<uint>(VPE::F_NEEDS_INVAL | VPE::F_FLUSHED);
 
             // set address space properties first to load them during the restore
             if((_cur->_flags & VPE::F_INIT) && _cur->address_space()) {

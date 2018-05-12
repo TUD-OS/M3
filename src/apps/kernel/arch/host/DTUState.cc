@@ -116,7 +116,7 @@ void DTUState::config_pf(gaddr_t, epid_t, epid_t) {
     // not supported
 }
 
-void DTUState::reset(gaddr_t) {
+void DTUState::reset(gaddr_t, bool) {
     // not supported
 }
 

@@ -76,6 +76,11 @@ void DTU::wakeup(const VPEDesc &vpe) {
     do_ext_cmd(vpe, cmd);
 }
 
+void DTU::flush_cache(const VPEDesc &vpe) {
+    m3::DTU::reg_t cmd = static_cast<m3::DTU::reg_t>(m3::DTU::ExtCmdOpCode::FLUSH_CACHE);
+    do_ext_cmd(vpe, cmd);
+}
+
 void DTU::inject_irq(const VPEDesc &vpe) {
     ext_request(vpe, m3::DTU::ExtReqOpCode::RCTMUX);
 }

@@ -44,6 +44,13 @@ void PEManager::init() {
     }
 }
 
+VPE *PEManager::current(peid_t pe) {
+    ContextSwitcher *ctx = _ctxswitcher[pe];
+    if(ctx)
+        return ctx->current();
+    return nullptr;
+}
+
 void PEManager::update_yield(size_t before) {
     if((before == 0 && ContextSwitcher::global_ready() > 0) ||
        (before > 0 && ContextSwitcher::global_ready() == 0)) {
@@ -107,6 +114,7 @@ bool PEManager::migrate_vpe(VPE *vpe) {
     ctx->remove_vpe(vpe);
 
     vpe->set_pe(npe);
+    vpe->needs_invalidate();
 
     ctx = _ctxswitcher[npe];
     assert(ctx);
@@ -141,6 +149,7 @@ void PEManager::yield_vpe(VPE *vpe) {
             KLOG(VPES, "Stole VPE " << nvpe->id() << " from " << i << " to " << pe);
 
             nvpe->set_pe(pe);
+            nvpe->needs_invalidate();
             _ctxswitcher[pe]->add_vpe(nvpe);
 
             _ctxswitcher[pe]->unblock_vpe(nvpe, true);

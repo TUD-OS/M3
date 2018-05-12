@@ -82,6 +82,8 @@ public:
         F_MUXABLE     = 1 << 5, // TODO temporary
         F_READY       = 1 << 6,
         F_WAITING     = 1 << 7,
+        F_NEEDS_INVAL = 1 << 8,
+        F_FLUSHED     = 1 << 9,
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,
@@ -195,6 +197,11 @@ public:
     void rem_service() {
         _services--;
     }
+
+    void needs_invalidate() {
+        _flags |= F_NEEDS_INVAL;
+    }
+    void flush_cache();
 
     void start_app(int pid);
     void stop_app(int exitcode, bool self);
