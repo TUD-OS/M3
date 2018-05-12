@@ -108,6 +108,10 @@ static void save(void *s) {
 static void *restore() {
     uint64_t flags = flags_get();
 
+    // do that now, because we can't cause pagefaults before the kernel enabled our communication
+    // (Arch::init_state() might, because we store values to the user stack)
+    signal();
+
     m3::Env *senv = m3::env();
     // remember the current PE (might have changed since last switch)
     senv->pe = flags >> 32;
@@ -128,7 +132,6 @@ static void *restore() {
         Arch::resume();
     }
 
-    signal();
     return res;
 }
 
