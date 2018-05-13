@@ -41,6 +41,9 @@ public:
     size_t ready_count() const {
         return _ready.length();
     }
+    size_t blocked_count() const {
+        return _blocked.length();
+    }
     size_t sleeping_count() const {
         return _sleep.length();
     }

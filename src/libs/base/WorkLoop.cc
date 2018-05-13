@@ -22,9 +22,20 @@
 namespace m3 {
 
 void WorkLoop::thread_startup(void *) {
-    env()->workloop()->run();
+    WorkLoop *wl = env()->workloop();
+    wl->run();
 
-    ThreadManager::get().stop();
+    // first wait until we have no threads left that wait for some event
+    ThreadManager &tm = ThreadManager::get();
+    while(tm.get().blocked_count() > 0) {
+        DTU::get().try_sleep();
+
+        wl->tick();
+
+        tm.yield();
+    }
+
+    tm.stop();
 
     PANIC("Should not get here");
 }
