@@ -84,6 +84,7 @@ public:
         F_WAITING     = 1 << 7,
         F_NEEDS_INVAL = 1 << 8,
         F_FLUSHED     = 1 << 9,
+        F_NOBLOCK     = 1 << 10,
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,

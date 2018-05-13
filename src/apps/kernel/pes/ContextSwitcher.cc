@@ -182,8 +182,11 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
         return;
     }
 
-    if(_state != S_IDLE)
+    if(_state != S_IDLE) {
+        // make sure that we don't get blocked
+        vpe->_flags |= VPE::F_NOBLOCK;
         return;
+    }
 
     m3::Time::start(0xcccc);
     _state = S_RESTORE_WAIT;
@@ -357,7 +360,9 @@ retry:
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
-            bool blocked = (_cur->_flags & VPE::F_HASAPP) && _cur->_dtustate.was_idling();
+            bool blocked = ((_cur->_flags & (VPE::F_HASAPP | VPE::F_NOBLOCK)) == VPE::F_HASAPP) &&
+                            _cur->_dtustate.was_idling();
+            _cur->_flags &= ~static_cast<uint>(VPE::F_NOBLOCK);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: saved VPE " << _cur->id() << " (idled "
                 << cycles << " of " << total << " cycles)");
