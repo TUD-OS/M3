@@ -159,7 +159,8 @@ bool AddrSpace::create_pt(const VPEDesc &vpe, goff_t virt, goff_t pteAddr, m3::D
         pte = to_mmu_pte(pte);
         const size_t ptsize = (1UL << (m3::DTU::LEVEL_BITS * level)) * PAGE_SIZE;
         KLOG(PTES, "VPE" << _vpeid << ": lvl " << level << " PTE for "
-            << m3::fmt(virt & ~(ptsize - 1), "p") << ": " << m3::fmt(pte, "#0x", 16));
+            << m3::fmt(virt & ~(ptsize - 1), "p") << ": " << m3::fmt(pte, "#0x", 16)
+            << (Platform::pe(vpe.pe).type() == m3::PEType::MEM ? " (to mem)" : ""));
         DTU::get().write_mem(vpe, pteAddr, &pte, sizeof(pte));
     }
     return false;
