@@ -33,7 +33,7 @@ using namespace m3;
 
 static const int REPEATS = 24;
 
-static void add(Aladdin &alad, uintptr_t *virt, size_t size, Aladdin::Array *a, int prot) {
+static void add(Aladdin &alad, goff_t *virt, size_t size, Aladdin::Array *a, int prot) {
     size_t psize = Math::round_up(size, PAGE_SIZE);
 
     MemGate *mem = new MemGate(MemGate::create_global(psize, prot));
