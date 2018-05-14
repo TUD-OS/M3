@@ -55,7 +55,7 @@ public:
 
 private:
     static const uintptr_t BASE_ADDR        = 0xF0000000;
-    static const size_t DTU_REGS            = 8;
+    static const size_t DTU_REGS            = 9;
     static const size_t REQ_REGS            = 3;
     static const size_t CMD_REGS            = 5;
     static const size_t EP_REGS             = 3;
@@ -73,6 +73,7 @@ private:
         IDLE_TIME           = 5,
         MSG_CNT             = 6,
         EXT_CMD             = 7,
+        CLEAR_IRQ           = 8,
     };
 
     enum class ReqRegs {
@@ -118,8 +119,7 @@ private:
         FETCH_MSG           = 5,
         ACK_MSG             = 6,
         SLEEP               = 7,
-        CLEAR_IRQ           = 8,
-        PRINT               = 9,
+        PRINT               = 8,
     };
 
     enum class ExtCmdOpCode {
@@ -307,7 +307,7 @@ public:
     }
 
     void clear_irq() {
-        write_reg(CmdRegs::COMMAND, buildCommand(0, CmdOpCode::CLEAR_IRQ));
+        write_reg(DtuRegs::CLEAR_IRQ, 1);
     }
 
 private:
