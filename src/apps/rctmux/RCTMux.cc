@@ -15,6 +15,7 @@
  */
 
 #include <base/CPU.h>
+#include <base/DTU.h>
 #include <base/Env.h>
 #include <base/Exceptions.h>
 #include <base/RCTMux.h>
@@ -32,7 +33,11 @@ enum Status {
 };
 
 static int status = 0;
+#if defined(__arm__)
+static void *state_ptr;
+#else
 static m3::Exceptions::State state;
+#endif
 
 static void save(void *s);
 static void *restore();
@@ -96,11 +101,15 @@ void *ctxsw_protocol(void *s) {
 static void save(void *s) {
     Arch::abort();
 
+#if defined(__arm__)
+    state_ptr = s;
+#else
     static_assert(sizeof(state) % sizeof(word_t) == 0, "State not word-sized");
     word_t *words_src = reinterpret_cast<word_t*>(s);
     word_t *words_dst = reinterpret_cast<word_t*>(&state);
     for(size_t i = 0; i < sizeof(state) / sizeof(word_t); ++i)
         words_dst[i] = words_src[i];
+#endif
 
     signal();
 }
@@ -128,7 +137,11 @@ static void *restore() {
         status |= STARTED;
     }
     else {
+#if defined(__arm__)
+        res = state_ptr;
+#else
         res = &state;
+#endif
         Arch::resume();
     }
 

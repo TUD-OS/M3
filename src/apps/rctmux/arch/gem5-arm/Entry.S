@@ -19,6 +19,7 @@
 .extern exc_handler
 .extern init
 .extern sleep
+.global idle_stack
 
 .text
 
@@ -138,3 +139,5 @@ _tmp:
     .align      2
     .space 1024,0
 rctmux_stack:
+    .space 128, 0
+idle_stack:

@@ -38,10 +38,6 @@ static void *isr_irq(m3::Exceptions::State *state) {
 
     uint cmd = ext_req & 0x3;
     switch(cmd) {
-        case m3::DTU::ExtReqOpCode::SET_ROOTPT:
-            PRINTSTR("Unsupported: SET_ROOTPT\n");
-            break;
-
         case m3::DTU::ExtReqOpCode::INV_PAGE:
             PRINTSTR("Unsupported: INV_PAGE\n");
             break;
@@ -79,6 +75,8 @@ void init() {
 
 void enable_ints() {
     asm volatile (
+        // set idle stack and enable interrupts
+        "ldr     sp, =idle_stack;\n"
         "mrs     r0, CPSR;\n"
         "bic     r0, #1 << 7;\n"
         "msr     CPSR, r0;\n"
