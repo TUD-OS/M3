@@ -57,9 +57,10 @@ inline void CPU::jumpto(uintptr_t addr) {
     UNREACHED;
 }
 
-inline void CPU::compute(cycles_t cycles) {
+void CPU::compute(cycles_t cycles) {
     cycles_t iterations = cycles / 2;
     asm volatile (
+        ".align 16;"
         "1: dec %0;"
         "test   %0, %0;"
         "ja     1b;"
