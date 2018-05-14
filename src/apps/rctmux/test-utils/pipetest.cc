@@ -172,6 +172,7 @@ int main(int argc, const char **argv) {
         pipe->close_reader();
 
         if(VERBOSE) cout << "Waiting for applications...\n";
+        cycles_t runstart = Time::start(0x1111);
 
         // don't wait for the services
         for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
@@ -179,8 +180,9 @@ int main(int argc, const char **argv) {
             if(VERBOSE) cout << apps[i]->name << " exited with " << res << "\n";
         }
 
+        cycles_t runend = Time::stop(0x1111);
         cycles_t end = Time::stop(0x1234);
-        cout << "Time: " << (end - start) << "\n";
+        cout << "Time: " << (end - start) << ", runtime: " << (runend - runstart) << "\n";
 
         if(VERBOSE) cout << "Waiting for services...\n";
 
