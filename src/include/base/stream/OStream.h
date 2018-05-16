@@ -380,7 +380,7 @@ template<>
 class OStream::FormatImpl<char*> : public OStream::FormatImplStr<char*> {
 };
 // this is necessary to be able to pass a string literal to fmt()
-template<int X>
+template<size_t X>
 class OStream::FormatImpl<char [X]> : public OStream::FormatImplStr<char [X]> {
 };
 
@@ -422,7 +422,7 @@ template<>
 class OStream::FormatImpl<volatile char*> : public OStream::FormatImplStr<volatile char*> {
 };
 // this is necessary to be able to pass a string literal to fmt()
-template<int X>
+template<size_t X>
 class OStream::FormatImpl<volatile char [X]> : public OStream::FormatImplStr<volatile char [X]> {
 };
 

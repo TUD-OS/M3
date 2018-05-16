@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     bool muxed = strcmp(argv[1], "1") == 0;
     int repeats = IStringStream::read_from<int>(argv[2]);
     int argcount = IStringStream::read_from<int>(argv[3]);
-    App *apps[(argc - 4) / argcount];
+    App *apps[static_cast<size_t>(argc - 4) / static_cast<size_t>(argcount)];
 
     for(int j = 0; j < repeats; ++j) {
         if(VERBOSE) cout << "Creating VPEs...\n";

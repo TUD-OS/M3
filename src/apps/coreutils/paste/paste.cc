@@ -21,7 +21,7 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    FStream *files[argc - 1];
+    FStream *files[static_cast<size_t>(argc) - 1];
     size_t count = 0;
 
     for(int i = 1; i < argc; ++i) {

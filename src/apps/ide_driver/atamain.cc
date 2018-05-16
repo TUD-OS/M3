@@ -80,10 +80,16 @@ class ATAPartitionDevice {
   	uint16_t mode;
 
   public:
-  	ATAPartitionDevice(uint32_t id, uint32_t partition, char* name, uint16_t mode) :
-  		id(id), partition(partition), mode(mode) {
-  			strcpy(name, this->accessId);
-  		}
+  	ATAPartitionDevice(uint32_t id, uint32_t partition, char* name, uint16_t mode)
+  		: id(id),
+  		  partition(partition),
+  		  accessId(new char[strlen(name) + 1]),
+  		  mode(mode) {
+		strcpy(this->accessId, name);
+	}
+	~ATAPartitionDevice() {
+		delete[] accessId;
+	}
 };
 
 int main(int argc,char **argv) {

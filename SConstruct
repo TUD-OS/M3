@@ -106,7 +106,8 @@ env.Append(
     CPPFLAGS = ' -U_FORTIFY_SOURCE',
     CFLAGS = ' -gdwarf-2',
     ASFLAGS = ' -Wl,-W -Wall -Wextra',
-    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch',
+    LINKFLAGS = ' -fno-exceptions -fno-rtti -Wl,--no-gc-sections -Wno-lto-type-mismatch' \
+        ' -fno-stack-protector',
     CRGFLAGS = ' --target ' + isa + '-unknown-' + target + '-' + rustabi,
 )
 
