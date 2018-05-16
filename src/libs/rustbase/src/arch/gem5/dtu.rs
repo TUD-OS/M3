@@ -34,7 +34,7 @@ pub const BASE_ADDR: usize      = 0xF0000000;
 /// The base address of the DTU's MMIO area for external requests
 pub const BASE_REQ_ADDR: usize  = BASE_ADDR + cfg::PAGE_SIZE;
 /// The number of DTU registers
-pub const DTU_REGS: usize       = 8;
+pub const DTU_REGS: usize       = 9;
 // const REQ_REGS: usize        = 3;
 /// The number of command registers
 pub const CMD_REGS: usize       = 5;
@@ -53,7 +53,7 @@ int_enum! {
     /// The DTU registers
     pub struct DtuReg : Reg {
         /// Stores various status flags
-        const STATUS    = 0;
+        const STATUS      = 0;
         const ROOT_PT     = 1;
         const PF_EP       = 2;
         const VPE_ID      = 3;
@@ -61,6 +61,7 @@ int_enum! {
         const IDLE_TIME   = 5;
         const MSG_CNT     = 6;
         const EXT_CMD     = 7;
+        const CLEAR_IRQ   = 8;
     }
 }
 
@@ -128,10 +129,8 @@ int_enum! {
         const ACK_MSG     = 0x6;
         /// Puts the CU to sleep
         const SLEEP       = 0x7;
-        /// For ARM only: clears the IRQ at the interrupt controller
-        const CLEAR_IRQ   = 0x8;
         /// Prints a message
-        const PRINT       = 0x9;
+        const PRINT       = 0x8;
     }
 }
 

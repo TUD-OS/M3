@@ -24,28 +24,30 @@ int_enum! {
         const CREATE_SGATE      = 4;
         const CREATE_MGATE      = 5;
         const CREATE_MAP        = 6;
-        const CREATE_VPE        = 7;
+        const CREATE_VPEGRP     = 7;
+        const CREATE_VPE        = 8;
 
         // capability operations
-        const ACTIVATE          = 8;
-        const VPE_CTRL          = 9;
-        const VPE_WAIT          = 10;
-        const DERIVE_MEM        = 11;
-        const OPEN_SESS         = 12;
+        const ACTIVATE          = 9;
+        const SRV_CTRL          = 10;
+        const VPE_CTRL          = 11;
+        const VPE_WAIT          = 12;
+        const DERIVE_MEM        = 13;
+        const OPEN_SESS         = 14;
 
         // capability exchange
-        const DELEGATE          = 13;
-        const OBTAIN            = 14;
-        const EXCHANGE          = 15;
-        const REVOKE            = 16;
+        const DELEGATE          = 15;
+        const OBTAIN            = 16;
+        const EXCHANGE          = 17;
+        const REVOKE            = 18;
 
         // forwarding
-        const FORWARD_MSG       = 17;
-        const FORWARD_MEM       = 18;
-        const FORWARD_REPLY     = 19;
+        const FORWARD_MSG       = 19;
+        const FORWARD_MEM       = 20;
+        const FORWARD_REPLY     = 21;
 
         // misc
-        const NOOP              = 20;
+        const NOOP              = 22;
     }
 }
 
@@ -153,6 +155,13 @@ pub struct CreateMap {
     pub perms: u64,
 }
 
+/// The create VPE group request message
+#[repr(C, packed)]
+pub struct CreateVPEGrp {
+    pub opcode: u64,
+    pub dst_sel: u64,
+}
+
 /// The create VPE request message
 #[repr(C, packed)]
 pub struct CreateVPE {
@@ -163,6 +172,7 @@ pub struct CreateVPE {
     pub sep: u64,
     pub rep: u64,
     pub muxable: u64,
+    pub group_sel: u64,
     pub namelen: u64,
     pub name: [u8; MAX_STR_SIZE],
 }
@@ -181,6 +191,21 @@ pub struct Activate {
     pub ep_sel: u64,
     pub gate_sel: u64,
     pub addr: u64,
+}
+
+int_enum! {
+    /// The operations for the `srv_ctrl` system call
+    pub struct SrvOp : u64 {
+        const SHUTDOWN = 0x0;
+    }
+}
+
+/// The service control request message
+#[repr(C, packed)]
+pub struct SrvCtrl {
+    pub opcode: u64,
+    pub srv_sel: u64,
+    pub op: u64,
 }
 
 int_enum! {

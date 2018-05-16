@@ -16,6 +16,25 @@ use util;
 use vfs::{BufReader, FileRef, OpenFlags, VFS};
 use vfs::{FileTable, MountTable};
 
+pub struct VPEGroup {
+    cap: Capability,
+}
+
+impl VPEGroup {
+    pub fn new() -> Result<Self, Error> {
+        let sel = VPE::cur().alloc_sel();
+
+        syscalls::create_vpe_group(sel)?;
+        Ok(VPEGroup {
+            cap: Capability::new(sel, CapFlags::empty()),
+        })
+    }
+
+    pub fn sel(&self) -> Selector {
+        self.cap.sel()
+    }
+}
+
 pub struct VPE {
     cap: Capability,
     pe: PEDesc,
@@ -33,6 +52,7 @@ pub struct VPEArgs<'n, 'p> {
     pager: Option<&'p str>,
     pe: PEDesc,
     muxable: bool,
+    group: Option<VPEGroup>,
 }
 
 pub trait Activity {
@@ -116,6 +136,7 @@ impl<'n, 'p> VPEArgs<'n, 'p> {
             pager: None,
             pe: VPE::cur().pe(),
             muxable: false,
+            group: None,
         }
     }
 
@@ -131,6 +152,11 @@ impl<'n, 'p> VPEArgs<'n, 'p> {
 
     pub fn muxable(mut self, muxable: bool) -> Self {
         self.muxable = muxable;
+        self
+    }
+
+    pub fn group(mut self, group: VPEGroup) -> Self {
+        self.group = Some(group);
         self
     }
 }
@@ -229,7 +255,8 @@ impl VPE {
             // now create VPE, which implicitly obtains the gate cap from us
             vpe.pe = syscalls::create_vpe(
                 crd, sgate_sel, args.name,
-                args.pe, pg.sep(), pg.rep(), args.muxable
+                args.pe, pg.sep(), pg.rep(), args.muxable,
+                args.group.map_or(INVALID_SEL, |g| g.sel())
             )?;
 
             // after the VPE creation, we can activate the receive gate
@@ -247,7 +274,8 @@ impl VPE {
         else {
             vpe.pe = syscalls::create_vpe(
                 crd, INVALID_SEL, args.name,
-                args.pe, 0, 0, args.muxable
+                args.pe, 0, 0, args.muxable,
+                args.group.map_or(INVALID_SEL, |g| g.sel())
             )?;
             None
         };

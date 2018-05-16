@@ -156,12 +156,27 @@ pub fn create_map(dst: Selector, vpe: Selector, mgate: Selector, first: Selector
     send_receive_result(&req)
 }
 
-pub fn create_vpe(dst: CapRngDesc, sgate: Selector, name: &str, pe: PEDesc,
-                  sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool) -> Result<PEDesc, Error> {
+pub fn create_vpe_group(dst: Selector) -> Result<(), Error> {
     log!(
         SYSC,
-        "syscalls::create_vpe(dst={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={})",
-        dst, sgate, name, pe, sep, rep, tmuxable
+        "syscalls::create_vpe_group(dst={})",
+        dst
+    );
+
+    let req = syscalls::CreateVPEGrp {
+        opcode: syscalls::Operation::CREATE_VPEGRP.val,
+        dst_sel: dst as u64
+    };
+    send_receive_result(&req)
+}
+
+pub fn create_vpe(dst: CapRngDesc, sgate: Selector, name: &str, pe: PEDesc,
+                  sep: dtu::EpId, rep: dtu::EpId, tmuxable: bool,
+                  group: Selector) -> Result<PEDesc, Error> {
+    log!(
+        SYSC,
+        "syscalls::create_vpe(dst={}, sgate={}, name={}, pe={:?}, sep={}, rep={}, tmuxable={}, group={})",
+        dst, sgate, name, pe, sep, rep, tmuxable, group
     );
 
     let mut req = syscalls::CreateVPE {
@@ -172,6 +187,7 @@ pub fn create_vpe(dst: CapRngDesc, sgate: Selector, name: &str, pe: PEDesc,
         sep: sep as u64,
         rep: rep as u64,
         muxable: tmuxable as u64,
+        group_sel: group as u64,
         namelen: name.len() as u64,
         name: unsafe { intrinsics::uninit() },
     };
@@ -202,6 +218,21 @@ pub fn derive_mem(dst: Selector, src: Selector, offset: goff, size: usize, perms
         offset: offset as u64,
         size: size as u64,
         perms: perms.bits() as u64,
+    };
+    send_receive_result(&req)
+}
+
+pub fn srv_ctrl(srv: Selector, op: syscalls::SrvOp) -> Result<(), Error> {
+    log!(
+        SYSC,
+        "syscalls::srv_ctrl(srv={}, op={:?})",
+        srv, op
+    );
+
+    let req = syscalls::SrvCtrl {
+        opcode: syscalls::Operation::SRV_CTRL.val,
+        srv_sel: srv as u64,
+        op: op.val,
     };
     send_receive_result(&req)
 }
