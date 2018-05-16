@@ -58,7 +58,6 @@ inline void CPU::jumpto(uintptr_t addr) {
 
 inline void CPU::compute(cycles_t cycles) {
     asm volatile (
-        ".align 16;"
         "1: subs %0, %0, #1;"
         "bgt     1b;"
         // let the compiler know that we change the value of cycles
