@@ -239,12 +239,13 @@ fn create_sgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
 fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Error> {
     let req: &kif::syscalls::CreateSrv = get_message(msg);
     let dst_sel = req.dst_sel as CapSel;
+    let vpe_sel = req.vpe_sel as CapSel;
     let rgate_sel = req.rgate_sel as CapSel;
     let name: &str = unsafe { intrinsics::transmute(&req.name[0..req.namelen as usize]) };
 
     sysc_log!(
-        vpe, "create_srv(dst={}, rgate={}, name={})",
-        dst_sel, rgate_sel, name
+        vpe, "create_srv(dst={}, vpe={}, rgate={}, name={})",
+        dst_sel, vpe_sel, rgate_sel, name
     );
 
     if !vpe.borrow().obj_caps().unused(dst_sel) {
@@ -254,13 +255,14 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
         sysc_err!(vpe, Code::Exists, "Service {} does already exist", name);
     }
 
+    let dst_vpe: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
     let rgate: Rc<RefCell<RGateObject>> = get_kobj!(vpe, rgate_sel, RGate);
 
     vpe.borrow_mut().obj_caps_mut().insert(
-        Capability::new(dst_sel, KObject::Serv(ServObject::new(vpe, name.to_string(), rgate)))
+        Capability::new(dst_sel, KObject::Serv(ServObject::new(&dst_vpe, name.to_string(), rgate)))
     );
 
-    ServiceList::get().add(name.to_string(), vpe, dst_sel);
+    ServiceList::get().add(name.to_string(), &dst_vpe, dst_sel);
     vpemng::get().start_pending();
 
     reply_success(msg);

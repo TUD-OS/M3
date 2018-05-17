@@ -47,16 +47,17 @@ fn send_receive_result<T>(msg: *const T) -> Result<(), Error> {
     }
 }
 
-pub fn create_srv(dst: Selector, rgate: Selector, name: &str) -> Result<(), Error> {
+pub fn create_srv(dst: Selector, vpe: Selector, rgate: Selector, name: &str) -> Result<(), Error> {
     log!(
         SYSC,
-        "syscalls::create_srv(dst={}, rgate={}, name={})",
-        dst, rgate, name
+        "syscalls::create_srv(dst={}, vpe={}, rgate={}, name={})",
+        dst, vpe, rgate, name
     );
 
     let mut req = syscalls::CreateSrv {
         opcode: syscalls::Operation::CREATE_SRV.val,
         dst_sel: dst as u64,
+        vpe_sel: vpe as u64,
         rgate_sel: rgate as u64,
         namelen: name.len() as u64,
         name: unsafe { intrinsics::uninit() },

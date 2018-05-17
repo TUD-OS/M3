@@ -100,6 +100,7 @@ pub struct Pagefault {
 pub struct CreateSrv {
     pub opcode: u64,
     pub dst_sel: u64,
+    pub vpe_sel: u64,
     pub rgate_sel: u64,
     pub namelen: u64,
     pub name: [u8; MAX_STR_SIZE],

@@ -143,7 +143,8 @@ fn create_srv() {
             }
         }
         fn run(&mut self) {
-            assert_ok!(syscalls::create_srv(*SEL, self.0.as_ref().unwrap().sel(), "test"));
+            assert_ok!(syscalls::create_srv(*SEL, VPE::cur().sel(),
+                                            self.0.as_ref().unwrap().sel(), "test"));
         }
         fn post(&mut self) {
             assert_ok!(syscalls::revoke(0, kif::CapRngDesc::new(kif::CapType::OBJECT, *SEL, 1), true));

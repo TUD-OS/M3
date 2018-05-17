@@ -33,7 +33,7 @@ impl Server {
         let mut rgate = RecvGate::new(util::next_log2(256), util::next_log2(256))?;
         rgate.activate()?;
 
-        syscalls::create_srv(sel, rgate.sel(), name)?;
+        syscalls::create_srv(sel, VPE::cur().sel(), rgate.sel(), name)?;
 
         Ok(Server {
             cap: Capability::new(sel, CapFlags::KEEP_CAP),
