@@ -1,3 +1,4 @@
+use base::GlobAddr;
 use base::cell::StaticCell;
 use base::cfg;
 use base::col::Vec;
@@ -93,11 +94,20 @@ impl State {
         Ok(())
     }
 
+    pub fn config_pf(&mut self, rootpt: GlobAddr, sep: Option<EpId>, rep: Option<EpId>) {
+        let (status, pf_ep) = match (sep, rep) {
+            (Some(sep), Some(rep))  => (StatusFlags::PAGEFAULTS.bits(), sep | rep << 8),
+            (Some(sep), None)       => (StatusFlags::PAGEFAULTS.bits(), sep),
+            _                       => (0, 0),
+        };
+        self.set_dtu_reg(DtuReg::STATUS, status);
+        self.set_dtu_reg(DtuReg::ROOT_PT, rootpt.raw());
+        self.set_dtu_reg(DtuReg::PF_EP, pf_ep as Reg);
+    }
+
     pub fn restore(&mut self, vpe: &VPEDesc, vpe_id: VPEId) {
         // TODO copy the receive buffers back to the SPM
 
-        // TODO reenable pagefaults
-        self.set_dtu_reg(DtuReg::STATUS, 0);
         self.set_dtu_reg(DtuReg::VPE_ID, vpe_id as Reg);
         self.set_dtu_reg(DtuReg::IDLE_TIME, 0);
 
@@ -117,8 +127,9 @@ impl State {
         DTU::write(KTMP_EP, self.header.as_mut_ptr() as *mut u8, hdr_size, 0, CmdFlags::NOPF).unwrap();
     }
 
-    pub fn reset(&mut self) {
-        self.set_dtu_reg(DtuReg::EXT_CMD, ExtCmdOpCode::RESET.val as Reg);
+    pub fn reset(&mut self, entry: goff, flushinval: bool) {
+        let value = (ExtCmdOpCode::RESET.val as Reg) | (entry << 3) | ((flushinval as Reg) << 63);
+        self.set_dtu_reg(DtuReg::EXT_CMD, value);
     }
 }
 
@@ -290,9 +301,8 @@ impl KDTU {
         self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID) as goff, &[id])
     }
 
-    pub fn wakeup(&mut self, vpe: &VPEDesc, addr: goff) -> Result<(), Error> {
-        let cmd = ExtCmdOpCode::WAKEUP_CORE.val | (addr << 3) as u64;
-        self.do_ext_cmd(vpe, cmd)
+    pub fn wakeup(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
+        self.do_ext_cmd(vpe, ExtCmdOpCode::WAKEUP_CORE.val)
     }
 
     pub fn inject_irq(&mut self, vpe: &VPEDesc, cmd: Reg) -> Result<(), Error> {

@@ -159,12 +159,10 @@ int_enum! {
 int_enum! {
     /// The external requests
     pub struct ExtReqOpCode : Reg {
-        /// Sets the root page table
-        const SET_ROOTPT  = 0x0;
         /// Invalidates a TLB entry in the CU's MMU
-        const INV_PAGE    = 0x1;
+        const INV_PAGE    = 0x0;
         /// Requests some rctmux action
-        const RCTMUX      = 0x2;
+        const RCTMUX      = 0x1;
     }
 }
 

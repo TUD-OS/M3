@@ -65,8 +65,14 @@ impl AddrSpace {
         })
     }
 
+    pub fn root_pt(&self) -> GlobAddr {
+        self.root
+    }
     pub fn sep(&self) -> Option<EpId> {
         self.sep
+    }
+    pub fn rep(&self) -> Option<EpId> {
+        self.rep
     }
     pub fn sgate_sel(&self) -> Option<CapSel> {
         self.sgate
@@ -79,33 +85,6 @@ impl AddrSpace {
         KDTU::get().write_slice(
             &VPEDesc::new_mem(self.root.pe()), off + (dtu::PTE_REC_IDX * 8) as goff, &[pte]
         );
-
-        let (status, pf_ep) = match (self.sep, self.rep) {
-            (Some(sep), Some(rep))  => (dtu::StatusFlags::PAGEFAULTS.bits(), sep | rep << 8),
-            (Some(sep), None)       => (dtu::StatusFlags::PAGEFAULTS.bits(), sep),
-            _                       => (0, 0),
-        };
-
-        if self.pe.has_dtuvm() {
-            const_assert!(dtu::DtuReg::STATUS.val == 0);
-            const_assert!(dtu::DtuReg::ROOT_PT.val == 1);
-            const_assert!(dtu::DtuReg::PF_EP.val == 2);
-
-            // init DTU registers
-            let regs = [status, self.root.raw(), pf_ep as dtu::Reg];
-            KDTU::get().try_write_slice(vpe,
-                dtu::DTU::dtu_reg_addr(dtu::DtuReg::STATUS) as goff, &regs).unwrap();
-        }
-        else {
-            // set PF_EP register
-            let reg: dtu::Reg = pf_ep as dtu::Reg;
-            KDTU::get().try_write_slice(vpe,
-                dtu::DTU::dtu_reg_addr(dtu::DtuReg::PF_EP) as goff, &[reg]).unwrap();
-
-            // set root PT
-            let rootpt = self.to_mmu_pte(self.root.raw());
-            Self::mmu_cmd_remote(vpe, rootpt | dtu::ExtReqOpCode::SET_ROOTPT.val);
-        }
 
         // invalidate TLB, because we have changed the root PT
         KDTU::get().invalidate_tlb(vpe).unwrap();

@@ -278,10 +278,23 @@ impl Loader {
     pub fn init_app(&mut self, vpe: &mut VPE) -> Result<(), Error> {
         {
             // get DTU into correct state first
-            vpe.dtu_state().reset();
+            vpe.dtu_state().reset(rctmux::ENTRY_ADDR as goff, true);
+            let (root, sep, rep) = if let Some(aspace) = vpe.addr_space() {
+                (aspace.root_pt(), aspace.sep(), aspace.rep())
+            }
+            else {
+                (GlobAddr::new(0), None, None)
+            };
+            if vpe.addr_space().is_some() {
+                vpe.dtu_state().config_pf(root, sep, rep);
+            }
             let vpe_desc = VPEDesc::new_mem(vpe.pe_id());
             let vpe_id = vpe.id();
             vpe.dtu_state().restore(&vpe_desc, vpe_id);
+        }
+
+        if let Some(aspace) = vpe.addr_space() {
+            aspace.setup(&vpe.desc());
         }
 
         if vpe.pe_desc().has_mmu() {
@@ -289,20 +302,15 @@ impl Loader {
             vpe.set_state(State::SUSPENDED);
             self.map_idle(vpe)?;
             vpe.set_state(State::RUNNING);
-
-            if let Some(aspace) = vpe.addr_space() {
-                aspace.setup(&vpe.desc());
-            }
         }
         else {
             vpe.set_state(State::RUNNING);
 
-            if let Some(aspace) = vpe.addr_space() {
-                aspace.setup(&vpe.desc());
-            }
-
             self.map_idle(vpe)?;
         }
+
+        // rctmux is ready; let it initialize itself
+        KDTU::get().wakeup(&vpe.desc())?;
 
         if vpe.is_bootmod() {
             let entry: usize = {
@@ -360,12 +368,7 @@ impl Loader {
             flags |= (vpe.pe_id() as u64) << 32;
 
             KDTU::get().write_swstate(&vpe.desc(), flags, report)?;
-            if !vpe.pe_desc().has_mmu() && vpe.pe_desc().is_programmable() {
-                KDTU::get().wakeup(&vpe.desc(), rctmux::ENTRY_ADDR as goff)?;
-            }
-            else {
-                KDTU::get().inject_irq(&vpe.desc(), dtu::ExtReqOpCode::RCTMUX.val)?;
-            }
+            KDTU::get().inject_irq(&vpe.desc(), dtu::ExtReqOpCode::RCTMUX.val)?;
         }
 
         Ok(0)
