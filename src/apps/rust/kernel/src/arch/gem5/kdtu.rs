@@ -297,6 +297,12 @@ impl KDTU {
 
     pub fn reset(&mut self, vpe: &VPEDesc) -> Result<(), Error> {
         // TODO temporary
+
+        // flush and invalidate cache
+        let value = (ExtCmdOpCode::RESET.val as Reg) | ((1 as Reg) << 63);
+        self.do_ext_cmd(vpe, value)?;
+
+        // reset VPE id
         let id = INVALID_VPE as Reg;
         self.try_write_slice(vpe, DTU::dtu_reg_addr(DtuReg::VPE_ID) as goff, &[id])
     }
