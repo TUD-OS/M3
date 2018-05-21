@@ -115,9 +115,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
     PEDesc descs[MAX_CMDS];
     StreamAccel *accels[MAX_CMDS] = {nullptr};
 
-    // find accelerator chain
-    size_t chain_start = MAX_CMDS;
-    size_t chain_end = MAX_CMDS;
+    // get PE types
     for(size_t i = 0; i < list->count; ++i) {
         if(list->cmds[i]->args->count == 0) {
             errmsg("Command has no arguments");
@@ -125,11 +123,6 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
         }
 
         descs[i] = get_pedesc(*list->cmds[i]->vars, expr_value(list->cmds[i]->args->args[0]));
-        if(!descs[i].is_programmable()) {
-            if(chain_start == MAX_CMDS)
-                chain_start = i;
-            chain_end = i;
-        }
     }
 
     size_t vpe_count = 0;
@@ -163,7 +156,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
             }
             vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(infd));
         }
-        else if(!(i > chain_start && i <= chain_end))
+        else if(descs[i - 1].is_programmable() || descs[i].is_programmable())
             vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[i - 1]->reader_fd()));
 
         if(i + 1 == list->count) {
@@ -176,13 +169,13 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
             }
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
         }
-        else if(!(i + 1 > chain_start && i + 1 <= chain_end)) {
+        else if(descs[i].is_programmable() || descs[i + 1].is_programmable()) {
             mems[i] = new MemGate(MemGate::create_global(PIPE_SHM_SIZE, MemGate::RW));
             pipes[i] = new IndirectPipe(*mems[i], PIPE_SHM_SIZE);
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(pipes[i]->writer_fd()));
         }
 
-        if(!(i >= chain_start && i <= chain_end)) {
+        if(descs[i].is_programmable()) {
             vpes[i]->fds()->set(STDERR_FD, VPE::self().fds()->get(STDERR_FD));
             vpes[i]->obtain_fds();
 
@@ -214,7 +207,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
     File *clones[vpe_count * 2];
     size_t c = 0;
     for(size_t i = 0; i < vpe_count; ++i) {
-        if(vpes[i] && i >= chain_start && i <= chain_end) {
+        if(accels[i]) {
             File *in = vpes[i]->fds()->get(STDIN_FD);
             if(in) {
                 File *ain = in == VPE::self().fds()->get(STDIN_FD) ? in->clone() : in;
@@ -234,9 +227,13 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
             }
             else if(accels[i + 1])
                 accels[i]->connect_output(accels[i + 1]);
-
-            vpes[i]->start();
         }
+    }
+
+    // start accelerator VPEs
+    for(size_t i = 0; i < vpe_count; ++i) {
+        if(accels[i])
+            vpes[i]->start();
     }
 
     capsel_t sels[vpe_count];
