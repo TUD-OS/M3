@@ -42,7 +42,7 @@ enum class PEISA {
     XTENSA      = 3,
     ACCEL_INDIR = 4,
     ACCEL_FFT   = 5,
-    ACCEL_TOUP  = 6,
+    ACCEL_ROT13 = 6,
     ACCEL_STE   = 7,
     ACCEL_MD    = 8,
     ACCEL_SPMV  = 9,

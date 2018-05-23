@@ -42,7 +42,7 @@ for i in range(0, num_mem):
 options.cpu_clock = '1GHz'
 
 # create accelerator PEs
-accs = ['indir', 'indir', 'indir', 'indir', 'fft', 'fft', 'fft', 'fft', 'toupper']
+accs = ['indir', 'indir', 'indir', 'indir', 'fft', 'fft', 'fft', 'fft', 'rot13']
 for i in range(0, len(accs)):
     pe = createAccelPE(noc=root.noc,
                        options=options,

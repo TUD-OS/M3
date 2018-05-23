@@ -51,8 +51,8 @@ static struct {
     const char *name;
     PEISA isa;
 } isas[] = {
-    {"FFT",     PEISA::ACCEL_FFT},
-    {"TOUP",    PEISA::ACCEL_TOUP},
+    {"FFT",      PEISA::ACCEL_FFT},
+    {"ROT13",    PEISA::ACCEL_ROT13},
 };
 
 static PEDesc get_pe_type(const char *name) {
