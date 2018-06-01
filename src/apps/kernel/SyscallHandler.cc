@@ -910,7 +910,7 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur,
         if(tvpe.pe() == cur->pe())
             tvpe.migrate();
 
-        LOG_SYS(cur, name, ": waiting for VPE " << tvpe.id() << " at " << tvpe.pe());
+        LOG_SYS(cur, name, ": waiting for VPE " << tvpe.id() << " at " << tvpe.pe() << ", state=" << tvpe.state());
 
         if(!tvpe.resume(need_app))
             res = m3::Errors::VPE_GONE;
@@ -1127,8 +1127,10 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
                         (static_cast<uint64_t>(1) << 40);
         res = DTU::get().reply_to(tvpe.desc(), head.replyEp, head.replylabel, msg_ptr, len, sender);
     }
-    if(res != m3::Errors::NONE)
-        LOG_ERROR(vpe, res, "forwardreply failed");
+    if(res != m3::Errors::NONE) {
+        LOG_ERROR(vpe, res, "forwardreply to "
+            << tvpe.id() << ":" << tvpe.name() << "@" << tvpe.pe() << " failed");
+    }
 
     if(async)
         vpe->upcall_notify(res, event);
