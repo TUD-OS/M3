@@ -46,10 +46,8 @@ BEGIN_FUNC(_start)
     ldr     sp, =rctmux_stack
     mov     fp, #0
 
-    // check if have an application
+    // perform initialization, if necessary
     bl      init
-    cmp     r0, #0
-    bne     2f
 
     // enable interrupts and supervisor mode
     mov     r0, #0x13
@@ -117,7 +115,6 @@ BEGIN_FUNC(exc_common)
     mov     r0, sp
     bl      exc_handler
 
-2:
     // skip vector number
     add     sp, r0, #4
     // restore CPSR

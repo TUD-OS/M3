@@ -38,7 +38,7 @@ uint64_t report_time();
 void *ctxsw_protocol(void *s, bool inpf);
 void ctxsw_resume();
 
-EXTERN_C void *init();
+EXTERN_C void init();
 EXTERN_C void sleep();
 
 } /* namespace RCTMux */

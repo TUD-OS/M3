@@ -40,8 +40,6 @@ BEGIN_FUNC(_start)
     mov     $0, %rbp
 
     call    init
-    test    %rax, %rax
-    jne     2f
 
     // return to idle code
     pushq   $(4 << 3) | 3   // ss
@@ -79,7 +77,6 @@ BEGIN_FUNC(isr_common)
     call    interrupt_handler
 
     // restore application state
-2:
     mov     %rax, %rsp
     pop     %r15
     pop     %r14

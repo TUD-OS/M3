@@ -58,16 +58,12 @@ static inline void flags_set(uint64_t flags) {
     rctmux_flags[1] = flags;
 }
 
-void *init() {
+void init() {
     // if we're here for the first time, setup exception handling
     if(!(status & INITIALIZED)) {
         Arch::init();
         status |= INITIALIZED;
     }
-
-    void *res = ctxsw_protocol(nullptr, false);
-    ctxsw_resume();
-    return res;
 }
 
 void sleep() {
