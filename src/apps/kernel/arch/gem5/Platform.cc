@@ -37,7 +37,7 @@ Platform::KEnv::KEnv() {
 
     // register memory modules
     int count = 0;
-    const size_t USABLE_MEM  = 256 * 1024 * 1024;
+    const size_t USABLE_MEM  = 512 * 1024 * 1024;
     MainMemory &mem = MainMemory::get();
     for(size_t i = 0; i < pe_count; ++i) {
         if(pes[i].type() == m3::PEType::MEM) {
