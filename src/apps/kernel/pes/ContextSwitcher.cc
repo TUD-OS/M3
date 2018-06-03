@@ -370,6 +370,7 @@ retry:
                 << (blocked ? "blocked" : "ready"));
 
             _cur->_state = VPE::SUSPENDED;
+            _cur->_flags &= ~static_cast<uint>(VPE::F_FLUSHED);
             if(!blocked) {
                 // the VPE is ready, so try to migrate it somewhere else to continue immediately
                 if(!_cur->migrate())
@@ -415,9 +416,9 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && !_cur->_group &&
-                               (_set_yield = migvpe || _global_ready > 0)) ? _cur->yield_time() : 0;
+            uint64_t report = (can_mux() && !_cur->_group && _global_ready > 0) ? _cur->yield_time() : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
+            _set_yield = report > 0;
 
             // tell rctmux whether there is an application and the PE id
             if(_cur->_flags & VPE::F_HASAPP)
