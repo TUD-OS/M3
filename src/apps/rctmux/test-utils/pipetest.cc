@@ -33,9 +33,9 @@ using namespace m3;
 static const size_t PIPE_SHM_SIZE   = 512 * 1024;
 
 struct App {
-    explicit App(const char *name, bool muxed)
+    explicit App(const char *name, const char *pager, bool muxed)
         : name(name),
-          vpe(name, VPE::self().pe(), "pager", muxed) {
+          vpe(name, VPE::self().pe(), pager, muxed) {
         if(Errors::last != Errors::NONE)
             exitmsg("Unable to create VPE");
     }
@@ -44,9 +44,9 @@ struct App {
     VPE vpe;
 };
 
-static App *create(int no, const char *name, bool muxable) {
-    if(VERBOSE) cout << "VPE" << no << ": " << name << "\n";
-    return new App(name, muxable);
+static App *create(const char *name, const char *pager, bool muxable) {
+    if(VERBOSE) cout << "VPE: " << name << "\n";
+    return new App(name, pager, muxable);
 }
 
 static void usage(const char *name) {
@@ -84,23 +84,35 @@ int main(int argc, const char **argv) {
     MemGate pipemem = MemGate::create_global(PIPE_SHM_SIZE, MemGate::RW);
 
     for(int j = 0; j < repeats; ++j) {
-        App *apps[4];
+        App *apps[5];
 
         if(VERBOSE) cout << "Creating VPEs...\n";
+
+        // start pager
+        apps[2] = create("pager", "pager", mode >= 3);
+        RemoteServer *pagr_srv = new RemoteServer(apps[2]->vpe, "mypager");
+
+        {
+            String pgarg = pagr_srv->sel_arg();
+            const char *pager_args[] = {"/bin/pager", "-a", "16", "-f", "16", "-s", pgarg.c_str()};
+            Errors::Code res = apps[2]->vpe.exec(ARRAY_SIZE(pager_args), pager_args);
+            if(res != Errors::NONE)
+                PANIC("Cannot execute " << pager_args[0] << ": " << Errors::to_string(res));
+        }
 
         const char **wargv = argv + 6;
         const char **rargv = argv + 6 + wargs;
         if(mode < 2) {
-            apps[0] = create(0, "pipeserv", mode == 1);
+            apps[0] = create("pipeserv", "pager", mode == 1);
             apps[1] = nullptr;
-            apps[2] = create(1, wargv[0], mode == 1);
-            apps[3] = create(2, rargv[0], mode == 1);
+            apps[3] = create(wargv[0], "mypager", mode == 1);
+            apps[4] = create(rargv[0], "mypager", mode == 1);
         }
         else {
-            apps[2] = create(1, wargv[0], mode == 4);
-            apps[3] = create(2, rargv[0], mode == 4);
-            apps[0] = create(0, "pipeserv", mode >= 3);
-            apps[1] = create(3, "m3fs", mode >= 3);
+            apps[3] = create(wargv[0], "mypager", mode == 4);
+            apps[4] = create(rargv[0], "mypager", mode == 4);
+            apps[0] = create("pipeserv", "pager", mode >= 3);
+            apps[1] = create("m3fs", "pager", mode >= 3);
         }
 
         RemoteServer *m3fs_srv = nullptr;
@@ -151,20 +163,20 @@ int main(int argc, const char **argv) {
         cycles_t start = Time::start(0x1234);
 
         // start writer
-        apps[2]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe->writer_fd()));
-        apps[2]->vpe.obtain_fds();
-        apps[2]->vpe.mounts(*VPE::self().mounts());
-        apps[2]->vpe.obtain_mounts();
-        res = apps[2]->vpe.exec(wargs, wargv);
+        apps[3]->vpe.fds()->set(STDOUT_FD, VPE::self().fds()->get(pipe->writer_fd()));
+        apps[3]->vpe.obtain_fds();
+        apps[3]->vpe.mounts(*VPE::self().mounts());
+        apps[3]->vpe.obtain_mounts();
+        res = apps[3]->vpe.exec(wargs, wargv);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << wargv[0] << ": " << Errors::to_string(res));
 
         // start reader
-        apps[3]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe->reader_fd()));
-        apps[3]->vpe.obtain_fds();
-        apps[3]->vpe.mounts(*VPE::self().mounts());
-        apps[3]->vpe.obtain_mounts();
-        res = apps[3]->vpe.exec(rargs, rargv);
+        apps[4]->vpe.fds()->set(STDIN_FD, VPE::self().fds()->get(pipe->reader_fd()));
+        apps[4]->vpe.obtain_fds();
+        apps[4]->vpe.mounts(*VPE::self().mounts());
+        apps[4]->vpe.obtain_mounts();
+        res = apps[4]->vpe.exec(rargs, rargv);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << rargv[0] << ": " << Errors::to_string(res));
 
@@ -175,7 +187,7 @@ int main(int argc, const char **argv) {
         cycles_t runstart = Time::start(0x1111);
 
         // don't wait for the services
-        for(size_t i = 2; i < ARRAY_SIZE(apps); ++i) {
+        for(size_t i = 3; i < ARRAY_SIZE(apps); ++i) {
             int res = apps[i]->vpe.wait();
             if(VERBOSE) cout << apps[i]->name << " exited with " << res << "\n";
         }
@@ -193,11 +205,12 @@ int main(int argc, const char **argv) {
 
         // request shutdown
         pipe_srv->request_shutdown();
+        pagr_srv->request_shutdown();
         if(m3fs_srv)
             m3fs_srv->request_shutdown();
 
         // wait for services
-        for(size_t i = 0; i < 2; ++i) {
+        for(size_t i = 0; i < 3; ++i) {
             if(!apps[i])
                 continue;
             int res = apps[i]->vpe.wait();
@@ -213,6 +226,7 @@ int main(int argc, const char **argv) {
             delete apps[i];
         delete m3fs_srv;
         delete pipe_srv;
+        delete pagr_srv;
 
         if(VERBOSE) cout << "Done\n";
     }

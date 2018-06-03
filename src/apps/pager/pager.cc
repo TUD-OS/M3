@@ -321,24 +321,38 @@ private:
 };
 
 static void usage(const char *name) {
-    Serial::get() << "Usage: " << name << " [-a <maxAnon>] [-f <maxFile>]\n";
+    Serial::get() << "Usage: " << name << " [-a <maxAnon>] [-f <maxFile>] [-s <sel>]\n";
     Serial::get() << "  -a: the max. number of anonymous pages to map at once\n";
     Serial::get() << "  -f: the max. number of file pages to map at once\n";
+    Serial::get() << "  -s: don't create service, use selectors <sel>..<sel+1>\n";
     exit(1);
 }
 
 int main(int argc, char **argv) {
+    capsel_t sels = ObjCap::INVALID;
+    epid_t ep = EP_COUNT;
+
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "a:f:")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "a:f:s:")) != -1) {
         switch(opt) {
             case 'a': maxAnonPages = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'f': maxExternPages = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 's': {
+                String input(CmdArgs::arg);
+                IStringStream is(input);
+                is >> sels >> ep;
+                break;
+            }
             default:
                 usage(argv[0]);
         }
     }
 
-    srv = new Server<MemReqHandler>("pager", new MemReqHandler());
+    if(sels != ObjCap::INVALID)
+        srv = new Server<MemReqHandler>(sels, ep, new MemReqHandler());
+    else
+        srv = new Server<MemReqHandler>("pager", new MemReqHandler());
+
     env()->workloop()->multithreaded(4);
     env()->workloop()->run();
     return 0;
