@@ -145,6 +145,11 @@ Errors::Code VPE::exec(int argc, const char **argv) {
     senv.fds_len = _fds->serialize(buffer + offset, RT_SPACE_SIZE - offset);
     offset = Math::round_up(offset + static_cast<size_t>(senv.fds_len), sizeof(word_t));
 
+    // map the memory first in case the VPE is not running and the kernel needs to forward the mem
+    // access (the kernel cannot cause a pagefault)
+    if(_pager)
+        _pager->pagefault(RT_SPACE_START, MemGate::W);
+
     /* write entire runtime stuff */
     _mem.write(buffer, offset, RT_SPACE_START);
 
