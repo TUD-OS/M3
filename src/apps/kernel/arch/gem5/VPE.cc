@@ -91,7 +91,7 @@ static gaddr_t alloc_mem(size_t size) {
 
 static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offset) {
     if(offset + size < offset || offset + size > mod->size)
-        PANIC("Invalid ELF file");
+        PANIC("Invalid ELF file: offset invalid");
 
     goff_t addr = m3::DTU::gaddr_to_virt(mod->addr + offset);
     peid_t pe = m3::DTU::gaddr_to_pe(mod->addr + offset);
@@ -119,7 +119,7 @@ static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bo
 
     if(header.e_ident[0] != '\x7F' || header.e_ident[1] != 'E' || header.e_ident[2] != 'L' ||
         header.e_ident[3] != 'F')
-        PANIC("Invalid ELF file");
+        PANIC("Invalid ELF file: invalid magic number");
 
     // map load segments
     goff_t end = 0;
