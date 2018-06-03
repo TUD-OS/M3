@@ -132,6 +132,7 @@ void SyscallHandler::handle_message(VPE *vpe, const m3::DTU::Message *msg) {
 void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
     EVENT_TRACER_Syscall_pagefault();
 
+    m3::Errors::Code res = m3::Errors::NOT_SUP;
 #if defined(__gem5__)
     auto req = get_message<m3::KIF::Syscall::Pagefault>(msg);
     uint64_t virt = req->virt;
@@ -140,14 +141,46 @@ void SyscallHandler::pagefault(VPE *vpe, const m3::DTU::Message *msg) {
     LOG_SYS(vpe, ": syscall::pagefault", "(virt=" << m3::fmt(virt, "p")
         << ", access " << m3::fmt(access, "#x") << ")");
 
-    if(!vpe->address_space())
+    AddrSpace *as = vpe->address_space();
+    if(!as)
         SYS_ERROR(vpe, msg, m3::Errors::NOT_SUP, "No address space / PF handler");
 
-    // TODO this might also indicates that the pf handler is not available (ctx switch, migrate, ...)
-    SYS_ERROR(vpe, msg, m3::Errors::NOT_SUP, "Unexpected pagefault");
-#endif
+    // get sgate
+    auto sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(as->sgate(), Capability::SGATE));
+    if(sgatecap == nullptr)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid msg cap");
+
+    // get and check EP
+    epid_t sep = as->sep();
+    if(!vpe->can_forward_msg(sep))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Send did not fail");
 
     reply_result(vpe, msg, m3::Errors::NONE);
+
+    // wait for pager
+    VPE &tvpe = VPEManager::get().vpe(sgatecap->obj->rgate->vpe);
+    res = wait_for(": syscall::pagefault", tvpe, vpe, true);
+
+    if(res == m3::Errors::NONE) {
+        // re-enable the EP first, because the reply to the sent message below might otherwise
+        // pass credits back BEFORE we overwrote the EP
+        vpe->forward_msg(sep, tvpe.pe(), tvpe.id());
+
+        // forward PF msg to pager
+        m3::KIF::Syscall::Pagefault pfmsg;
+        pfmsg.virt = virt;
+        pfmsg.access = access;
+
+        epid_t rep = as->rep();
+        uint64_t sender = vpe->pe() | (vpe->id() << 8) | (sep << 24) | (static_cast<uint64_t>(rep) << 32);
+        res = DTU::get().send_to(tvpe.desc(), sgatecap->obj->rgate->ep, sgatecap->obj->label,
+                                 &pfmsg, sizeof(pfmsg), 0, rep, sender);
+    }
+    if(res != m3::Errors::NONE)
+        LOG_ERROR(vpe, res, "pagefault failed");
+#else
+    reply_result(vpe, msg, res);
+#endif
 }
 
 void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {

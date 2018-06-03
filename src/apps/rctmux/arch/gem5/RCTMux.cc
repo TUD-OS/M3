@@ -33,7 +33,10 @@ void abort() {
 }
 
 void resume() {
-    m3::DTU::get().retry(cmdreg);
+    if(cmdreg) {
+        m3::DTU::get().retry(cmdreg);
+        cmdreg = 0;
+    }
 }
 
 void sleep() {

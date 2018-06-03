@@ -39,12 +39,12 @@ static void *isr_irq(m3::Exceptions::State *state) {
     uint cmd = ext_req & 0x3;
     switch(cmd) {
         case m3::DTU::ExtReqOpCode::INV_PAGE:
-            PRINTSTR("Unsupported: INV_PAGE\n");
+            printf("Unsupported: INV_PAGE\n");
             break;
 
         case m3::DTU::ExtReqOpCode::RCTMUX: {
             dtu.clear_irq();
-            return ctxsw_protocol(state);
+            return ctxsw_protocol(state, false);
         }
     }
 
@@ -73,7 +73,7 @@ void init() {
     isrs[6] = VMA::isr_irq;
 }
 
-void enable_ints() {
+void wait_for_reset() {
     asm volatile (
         // set idle stack and enable interrupts
         "ldr     sp, =idle_stack;\n"
@@ -81,9 +81,11 @@ void enable_ints() {
         "bic     r0, #1 << 7;\n"
         "msr     CPSR, r0;\n"
     );
+    while(1)
+        m3::DTU::get().sleep();
 }
 
-void *init_state() {
+void *init_state(m3::Exceptions::State *) {
     m3::Env *senv = m3::env();
     senv->isrs = reinterpret_cast<uintptr_t>(isrs);
 

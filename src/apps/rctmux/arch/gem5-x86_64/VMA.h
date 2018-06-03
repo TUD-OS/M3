@@ -28,14 +28,16 @@ public:
     static void *dtu_irq(m3::Exceptions::State *state);
     static void *mmu_pf(m3::Exceptions::State *state);
 
+    static void execute_fsm(m3::Exceptions::State *state);
+    static void abort_pf();
+
 private:
     static uintptr_t get_pte_addr(uintptr_t virt, int level);
     static m3::DTU::pte_t to_dtu_pte(uint64_t pte);
     static void resume_cmd();
-    static bool handle_pf(m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm);
-    static bool handle_xlate(m3::DTU::reg_t xlate_req);
+    static bool handle_pf(m3::Exceptions::State *state, m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm);
+    static bool handle_xlate(m3::Exceptions::State *state, m3::DTU::reg_t xlate_req);
     static void *handle_ext_req(m3::Exceptions::State *state, m3::DTU::reg_t mst_req);
-    static void terminate(m3::Exceptions::State *state, uintptr_t cr2);
 };
 
 }

@@ -33,16 +33,15 @@ void init() {
     Exceptions::get_table()[64] = VMA::dtu_irq;
 }
 
-void enable_ints() {
+void wait_for_reset() {
     asm volatile ("sti");
+    while(1)
+        asm volatile ("hlt");
 }
 
-void *init_state() {
+void *init_state(m3::Exceptions::State *state) {
     m3::Env *senv = m3::env();
     senv->isrs = reinterpret_cast<uintptr_t>(Exceptions::get_table());
-
-    // put state at the stack top
-    m3::Exceptions::State *state = reinterpret_cast<m3::Exceptions::State*>(senv->sp) - 1;
 
     // init State
     state->rax = 0xDEADBEEF;    // tell crt0 that we've set the SP
@@ -63,7 +62,7 @@ void *init_state() {
     state->cs  = (Exceptions::SEG_UCODE << 3) | 3;
     state->ss  = (Exceptions::SEG_UDATA << 3) | 3;
     state->rip = senv->entry;
-    state->rsp = reinterpret_cast<uintptr_t>(state);
+    state->rsp = senv->sp;
     state->rbp = 0;
     state->rflags = 0x200;  // enable interrupts
 

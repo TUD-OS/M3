@@ -22,7 +22,13 @@ namespace RCTMux {
 
 void print_num(uint64_t num, uint base);
 void print(const char *str, size_t len);
+void printf(const char *fmt, ...);
 
-#define PRINTSTR(str)   print(str, sizeof(str) - 1)
+#define panic_if(cond, msg, ...) do { if((cond)) {                                              \
+        printf("Panic: '" #cond "' at %s, %s() line %d: " msg, __FILE__, __FUNCTION__,          \
+            __LINE__, ## __VA_ARGS__);                                                          \
+        while(1)                                                                                \
+            ;                                                                                   \
+    } } while(0);
 
 }

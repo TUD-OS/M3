@@ -20,9 +20,13 @@
 #include <base/Exceptions.h>
 #include <base/RCTMux.h>
 
+#if defined(__x86_64__)
+#   include "arch/gem5-x86_64/VMA.h"
+#endif
 #include "RCTMux.h"
 #include "Print.h"
 
+EXTERN_C void *rctmux_stack;
 EXTERN_C void _start();
 
 namespace RCTMux {
@@ -30,6 +34,7 @@ namespace RCTMux {
 enum Status {
     INITIALIZED = 1,
     STARTED     = 2,
+    RESUMING    = 4,
 };
 
 static int status = 0;
@@ -60,14 +65,20 @@ void *init() {
         status |= INITIALIZED;
     }
 
-    return ctxsw_protocol(nullptr);
+    void *res = ctxsw_protocol(nullptr, false);
+    ctxsw_resume();
+    return res;
 }
 
 void sleep() {
     Arch::sleep();
 }
 
-void *ctxsw_protocol(void *s) {
+uint64_t report_time() {
+    return rctmux_flags[0];
+}
+
+void *ctxsw_protocol(void *s, bool inpf) {
     uint64_t flags = flags_get();
 
     if(flags & m3::RESTORE) {
@@ -76,13 +87,19 @@ void *ctxsw_protocol(void *s) {
     }
 
     if(flags & m3::STORE) {
+        // if we're currently handling a PF, don't do the store here
+        if(inpf)
+            return s;
+
+#if defined(__x86_64__)
+        VMA::abort_pf();
+#endif
         if(s)
             save(s);
+        signal();
 
         // stay here until reset
-        Arch::enable_ints();
-        while(1)
-            sleep();
+        Arch::wait_for_reset();
         UNREACHED;
     }
 
@@ -93,12 +110,28 @@ void *ctxsw_protocol(void *s) {
         // because it might happen that we are waked up by a message before the kernel has written
         // the flags register. in this case, we don't want to lose the application.
         status &= ~STARTED;
+
+#if defined(__x86_64__)
+        // resume the PF handling, if there is any
+        if(!inpf) {
+            VMA::execute_fsm(nullptr);
+            if(flags_get() & m3::RESTORE)
+                return restore();
+        }
+#endif
     }
 
     return s;
 }
 
-static void save(void *s) {
+void ctxsw_resume() {
+    if(status & RESUMING) {
+        Arch::resume();
+        status &= ~RESUMING;
+    }
+}
+
+static void save(UNUSED void *s) {
     Arch::abort();
 
 #if defined(__arm__)
@@ -110,22 +143,25 @@ static void save(void *s) {
     for(size_t i = 0; i < sizeof(state) / sizeof(word_t); ++i)
         words_dst[i] = words_src[i];
 #endif
-
-    signal();
 }
 
 static void *restore() {
     uint64_t flags = flags_get();
 
-    // do that now, because we can't cause pagefaults before the kernel enabled our communication
-    // (Arch::init_state() might, because we store values to the user stack)
+    // notify the kernel as early as possible
     signal();
+
+    // first, resume PF handling, if necessary
+#if defined(__x86_64__)
+    VMA::execute_fsm(nullptr);
+#endif
 
     m3::Env *senv = m3::env();
     // remember the current PE (might have changed since last switch)
     senv->pe = flags >> 32;
 
     void *res;
+    auto *stacktop = reinterpret_cast<m3::Exceptions::State*>(&rctmux_stack) - 1;
     if(!(status & STARTED)) {
         // if we get here, there is an application to jump to
 
@@ -133,17 +169,21 @@ static void *restore() {
         senv->exitaddr = reinterpret_cast<uintptr_t>(&_start);
 
         // initialize the state to be able to resume from it
-        res = Arch::init_state();
+        res = Arch::init_state(stacktop);
         status |= STARTED;
     }
     else {
 #if defined(__arm__)
         res = state_ptr;
 #else
-        res = &state;
+        word_t *words_src = reinterpret_cast<word_t*>(&state);
+        word_t *words_dst = reinterpret_cast<word_t*>(stacktop);
+        for(size_t i = 0; i < sizeof(state) / sizeof(word_t); ++i)
+            words_dst[i] = words_src[i];
+        res = stacktop;
 #endif
-        Arch::resume();
     }
+    status |= RESUMING;
 
     return res;
 }

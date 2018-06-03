@@ -18,6 +18,7 @@
 
 #include <base/Common.h>
 #include <base/Config.h>
+#include <base/Exceptions.h>
 #include <base/RCTMux.h>
 
 namespace RCTMux {
@@ -25,15 +26,17 @@ namespace RCTMux {
 namespace Arch {
 
 void init();
-void *init_state();
+void *init_state(m3::Exceptions::State *state);
 void abort();
 void resume();
-void enable_ints();
+void wait_for_reset();
 void sleep();
 
 }
 
-void *ctxsw_protocol(void *s);
+uint64_t report_time();
+void *ctxsw_protocol(void *s, bool inpf);
+void ctxsw_resume();
 
 EXTERN_C void *init();
 EXTERN_C void sleep();

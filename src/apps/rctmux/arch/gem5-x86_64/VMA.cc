@@ -27,15 +27,31 @@
 
 namespace RCTMux {
 
+enum class PfState {
+    IDLE,
+    SEND_PAGER,
+    WAIT_PAGER,
+    SEND_YIELD,
+    SEND_KERNEL,
+    WAIT_KERNEL,
+};
+
+static volatile bool inpf = false;
+static PfState pfstate = PfState::IDLE;
+
 static volatile size_t req_count = 0;
-static bool inpf = false;
-static bool ctxsw = false;
+static volatile bool ctxsw = false;
 static m3::DTU::reg_t cmdXferBuf = static_cast<m3::DTU::reg_t>(-1);
 static m3::DTU::reg_t reqs[4];
 static m3::DTU::reg_t cmdregs[2] = {0, 0};
 
-// store message in static data to ensure that we don't pagefault
-alignas(64) static uint64_t pfmsg[3] = {m3::KIF::Syscall::PAGEFAULT, 0, 0};
+// store messages in static data to ensure that we don't pagefault
+alignas(64) static uint64_t pfmsg[3] = {
+    m3::KIF::Syscall::PAGEFAULT, 0, 0
+};
+alignas(64) static uint64_t yieldmsg[4] = {
+    m3::KIF::Syscall::VPE_CTRL, 0, m3::KIF::Syscall::VCTRL_YIELD, 0
+};
 
 uintptr_t VMA::get_pte_addr(uintptr_t virt, int level) {
     static uintptr_t recMask =
@@ -86,10 +102,10 @@ void VMA::resume_cmd() {
     }
 }
 
-bool VMA::handle_pf(m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm) {
+bool VMA::handle_pf(m3::Exceptions::State *state, m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm) {
     m3::DTU &dtu = m3::DTU::get();
 
-    if(inpf) {
+    if(pfstate != PfState::IDLE) {
         for(size_t i = 0; i < ARRAY_SIZE(reqs); ++i) {
             if(reqs[i] == 0) {
                 reqs[i] = xlate_req;
@@ -100,51 +116,153 @@ bool VMA::handle_pf(m3::DTU::reg_t xlate_req, uintptr_t virt, uint perm) {
         return false;
     }
 
-    inpf = true;
-
     // abort the current command, if there is any
     cmdXferBuf = dtu.abort(m3::DTU::ABORT_CMD, cmdregs + 0);
     // if a command was being executed, save the DATA register, because we'll overwrite it
     if(cmdregs[0] != static_cast<m3::DTU::reg_t>(m3::DTU::CmdOpCode::IDLE))
         cmdregs[1] = dtu.read_reg(m3::DTU::CmdRegs::DATA);
 
-    // allow other translation requests in the meantime
-    asm volatile ("sti" : : : "memory");
-
-retry:
-    m3::DTU::reg_t pfeps = dtu.get_pfep();
-    epid_t sep = pfeps & 0xFF;
-    epid_t rep = pfeps >> 8;
-    if(!dtu.ep_valid(sep))
-        sep = m3::DTU::SYSC_SEP;
-
+    // execute PF state machine
     pfmsg[1] = virt;
     pfmsg[2] = perm;
-
-    // send PF to pager/kernel
-    m3::Errors::Code res = m3::Errors::MISS_CREDITS;
-    while(res == m3::Errors::MISS_CREDITS) {
-        res = dtu.send(sep, pfmsg, sizeof(pfmsg), 0, rep);
-        dtu.sleep();
-    }
-
-    // handle reply
-    m3::DTU::Message *reply = dtu.fetch_msg(rep);
-    while(!reply) {
-        dtu.sleep();
-        reply = dtu.fetch_msg(rep);
-    }
-    dtu.mark_read(rep, reinterpret_cast<size_t>(reply));
-    if(sep == m3::DTU::SYSC_SEP)
-        goto retry;
-
-    asm volatile ("cli" : : : "memory");
-
-    inpf = false;
+    pfstate = PfState::SEND_PAGER;
+    execute_fsm(state);
     return true;
 }
 
-bool VMA::handle_xlate(m3::DTU::reg_t xlate_req) {
+void VMA::execute_fsm(m3::Exceptions::State *state) {
+    if(inpf || pfstate == PfState::IDLE)
+        return;
+
+    m3::DTU &dtu = m3::DTU::get();
+    // get PF EPs
+    m3::DTU::reg_t pfeps = dtu.get_pfep();
+    epid_t sep = pfeps & 0xFF;
+    epid_t rep = pfeps >> 8;
+    inpf = true;
+
+    // allow other translation requests and context switches in the meantime
+    asm volatile ("sti" : : : "memory");
+
+    m3::Errors::Code res;
+    bool sleep = false;
+    while(pfstate != PfState::IDLE) {
+        if(sleep) {
+            dtu.sleep();
+            // ensure that we stay here until the IRQ was handled (we set EXT_REQ to 0).
+            // otherwise we might continue execution (O3 CPU) and miss the ctxsw request, for example
+            m3::CPU::memory_barrier();
+            while(dtu.get_ext_req() != 0)
+                ;
+            sleep = false;
+        }
+
+        if(ctxsw) {
+            asm volatile ("cli" : : : "memory");
+            // the following call may return or not; if not, we will continue the FSM later
+            ctxsw = false;
+            inpf = false;
+            ctxsw_protocol(state, false);
+            inpf = true;
+            asm volatile ("sti" : : : "memory");
+        }
+
+        switch(pfstate) {
+            case PfState::SEND_PAGER: {
+                res = dtu.send(sep, pfmsg, sizeof(pfmsg), 0, rep);
+                // if the pager isn't available, let the kernel forward the PF msg
+                if(res == m3::Errors::VPE_GONE)
+                    pfstate = PfState::SEND_KERNEL;
+                else {
+                    panic_if(res != m3::Errors::NONE, "RCTMux: unexpected result: %u\n", res);
+                    pfstate = PfState::WAIT_PAGER;
+                }
+                break;
+            }
+
+            case PfState::WAIT_PAGER: {
+                m3::DTU::Message *reply = dtu.fetch_msg(rep);
+                if(reply) {
+                    dtu.mark_read(rep, reinterpret_cast<size_t>(reply));
+                    pfstate = PfState::IDLE;
+                }
+                // notify the kernel about idling (TODO: only after the given delay)
+                else if(report_time() > 0)
+                    pfstate = PfState::SEND_YIELD;
+                else
+                    sleep = true;
+                break;
+            }
+
+            case PfState::SEND_YIELD: {
+                res = dtu.send(m3::DTU::SYSC_SEP, yieldmsg, sizeof(yieldmsg), 0, m3::DTU::SYSC_REP);
+                if(res == m3::Errors::MISS_CREDITS) {
+                    // if we have no credits (maybe the app is currently doing a syscall), don't
+                    // notify the kernel about our idling.
+                    sleep = true;
+                    pfstate = PfState::WAIT_PAGER;
+                }
+                else {
+                    panic_if(res != m3::Errors::NONE, "RCTMux: unexpected result: %u\n", res);
+                    pfstate = PfState::WAIT_KERNEL;
+                }
+                break;
+            }
+
+            case PfState::SEND_KERNEL: {
+                res = dtu.send(m3::DTU::SYSC_SEP, pfmsg, sizeof(pfmsg), 0, m3::DTU::SYSC_REP);
+                if(res == m3::Errors::MISS_CREDITS) {
+                    // if we have no credits (maybe the app is currently doing a syscall), just
+                    // wait until we receive a message and try to send to the pager again
+                    sleep = true;
+                    pfstate = PfState::SEND_PAGER;
+                }
+                else {
+                    panic_if(res != m3::Errors::NONE, "RCTMux: unexpected result: %u\n", res);
+                    pfstate = PfState::WAIT_KERNEL;
+                }
+                break;
+            }
+
+            case PfState::WAIT_KERNEL: {
+                m3::DTU::Message *reply = dtu.fetch_msg(m3::DTU::SYSC_REP);
+                if(reply) {
+                    dtu.mark_read(m3::DTU::SYSC_REP, reinterpret_cast<size_t>(reply));
+                    // we still need to get the reply from the pager
+                    pfstate = PfState::WAIT_PAGER;
+                }
+                else
+                    sleep = true;
+                break;
+            }
+
+            case PfState::IDLE:
+                break;
+        }
+    }
+
+    asm volatile ("cli" : : : "memory");
+    inpf = false;
+
+    // check for ctxsw requests again, now that interrupts are disabled again
+    if(ctxsw) {
+        ctxsw = false;
+        ctxsw_protocol(state, false);
+    }
+
+    // if we didn't came from an interrupt, resume the command here
+    if(state == nullptr)
+        resume_cmd();
+}
+
+void VMA::abort_pf() {
+    // forget the requests, the DTU's abort command aborts them as well
+    req_count = 0;
+    for(size_t i = 0; i < ARRAY_SIZE(reqs); ++i)
+        reqs[i] = 0;
+}
+
+bool VMA::handle_xlate(m3::Exceptions::State *state, m3::DTU::reg_t xlate_req) {
     m3::DTU &dtu = m3::DTU::get();
 
     uintptr_t virt = xlate_req & ~PAGE_MASK;
@@ -178,7 +296,7 @@ bool VMA::handle_xlate(m3::DTU::reg_t xlate_req) {
             pte = PAGE_SIZE;
         }
         else {
-            if(!handle_pf(xlate_req, virt, perm))
+            if(!handle_pf(state, xlate_req, virt, perm))
                 return false;
 
             // read PTE again
@@ -216,15 +334,12 @@ void *VMA::handle_ext_req(m3::Exceptions::State *state, m3::DTU::reg_t mst_req) 
             break;
 
         case m3::DTU::ExtReqOpCode::RCTMUX: {
-            if(inpf) {
-                // we're in a pagefault. remember that there was a ctxsw request
-                // TODO this is not optimal. we should stop waiting for the pagefault and switch
-                // immediately.
+            ctxsw_protocol(state, inpf);
+            // if we're currently handling a PF, just remember that there was a ctxsw request and
+            // call ctxsw_protocol() again as soon as we can.
+            if(inpf)
                 ctxsw = true;
-                return state;
-            }
-
-            return ctxsw_protocol(state);
+            break;
         }
     }
 
@@ -240,7 +355,7 @@ void *VMA::dtu_irq(m3::Exceptions::State *state) {
         // acknowledge the translation
         dtu.set_xlate_req(0);
 
-        if(handle_xlate(xlate_req)) {
+        if(handle_xlate(state, xlate_req)) {
             // handle other requests that pagefaulted in the meantime
             while(req_count > 0) {
                 for(size_t i = 0; i < ARRAY_SIZE(reqs); ++i) {
@@ -248,24 +363,21 @@ void *VMA::dtu_irq(m3::Exceptions::State *state) {
                     if(xlate_req) {
                         req_count--;
                         reqs[i] = 0;
-                        handle_xlate(xlate_req);
+                        handle_xlate(state, xlate_req);
                     }
                 }
-            }
-
-            // was there a context switch request in the meantime?
-            if(ctxsw) {
-                ctxsw = false;
-                return ctxsw_protocol(state);
             }
         }
     }
 
-    // paging request from kernel?
+    // request from kernel?
     m3::DTU::reg_t ext_req = dtu.get_ext_req();
     if(ext_req != 0)
-        return handle_ext_req(state, ext_req);
+        handle_ext_req(state, ext_req);
 
+    // if we return to the application, resume the DTU command, if necessary
+    if(state->cs & 0x3)
+        ctxsw_resume();
     return state;
 }
 
@@ -273,34 +385,19 @@ void *VMA::mmu_pf(m3::Exceptions::State *state) {
     uintptr_t cr2;
     asm volatile ("mov %%cr2, %0" : "=r"(cr2));
 
-    if(!m3::env()->pedesc.has_mmu()) {
-        PRINTSTR("RCTMux: unexpected pagefault ");
-        terminate(state, cr2);
-    }
+    // rctmux isn't causing PFs
+    panic_if(state->cs != ((Exceptions::SEG_UCODE << 3) | 3),
+        "RCTMux: pagefault from ourself for 0x%x @ 0x%x; stopping\n", cr2, state->rip);
 
-    if(!handle_pf(0, cr2, to_dtu_pte(state->errorCode & 0x7))) {
-        PRINTSTR("RCTMux: nested pagefault ");
-        terminate(state, cr2);
-    }
+    // if we don't use the MMU, we shouldn't get here
+    panic_if(!m3::env()->pedesc.has_mmu(),
+        "RCTMux: unexpected pagefault for 0x%x @ 0x%x; stopping\n", cr2, state->rip);
 
-    resume_cmd();
-
-    if(ctxsw) {
-        ctxsw = false;
-        return ctxsw_protocol(state);
-    }
+    bool res = handle_pf(state, 0, cr2, to_dtu_pte(state->errorCode & 0x7));
+    // if we can't handle the PF, there is something wrong
+    panic_if(!res, "RCTMux: nested pagefault for 0x%x @ 0x%x; stopping\n", cr2, state->rip);
 
     return state;
-}
-
-void VMA::terminate(m3::Exceptions::State *state, uintptr_t cr2) {
-    PRINTSTR("for 0x");
-    print_num(cr2, 16);
-    PRINTSTR(" @ 0x");
-    print_num(state->rip, 16);
-    PRINTSTR("; stopping\n");
-    while(1)
-        ;
 }
 
 }
