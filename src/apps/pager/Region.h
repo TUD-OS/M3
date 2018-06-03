@@ -48,7 +48,8 @@ public:
           _memoff(),
           _size(size),
           _flags(),
-          _mapped(false) {
+          _mapped(false),
+          _copying(false) {
     }
     Region(const Region &r)
         : SListItem(r),
@@ -58,7 +59,8 @@ public:
           _memoff(r._memoff),
           _size(r._size),
           _flags(r._flags),
-          _mapped(false) {
+          _mapped(false),
+          _copying(false) {
     }
     Region &operator=(const Region &r) = delete;
     ~Region();
@@ -129,4 +131,5 @@ private:
     size_t _size;
     uint _flags;
     bool _mapped;
+    bool _copying;
 };

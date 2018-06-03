@@ -93,10 +93,10 @@ m3::Errors::Code AnonDataSpace::handle_pf(goff_t vaddr) {
     }
     // if we have memory, but COW is in progress
     else if(reg->flags() & Region::COW) {
+        reg->flags(reg->flags() ^ Region::COW);
         // writable memory needs to be copied
         if(_flags & m3::DTU::PTE_W)
             reg->copy(_as->mem, addr());
-        reg->flags(reg->flags() ^ Region::COW);
     }
     else if(reg->is_mapped()) {
         // there is nothing to do
@@ -154,9 +154,9 @@ m3::Errors::Code ExternalDataSpace::handle_pf(goff_t vaddr) {
     }
     // handle copy on write
     else if(reg->flags() & Region::COW) {
+        reg->flags(reg->flags() ^ Region::COW);
         if(_flags & m3::DTU::PTE_W)
             reg->copy(_as->mem, addr());
-        reg->flags(reg->flags() ^ Region::COW);
     }
     else if(reg->is_mapped()) {
         // there is nothing to do

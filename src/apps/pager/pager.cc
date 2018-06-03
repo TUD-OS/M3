@@ -339,6 +339,7 @@ int main(int argc, char **argv) {
     }
 
     srv = new Server<MemReqHandler>("pager", new MemReqHandler());
+    env()->workloop()->multithreaded(4);
     env()->workloop()->run();
     return 0;
 }

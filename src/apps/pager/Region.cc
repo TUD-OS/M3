@@ -16,6 +16,8 @@
 
 #include <m3/Syscalls.h>
 
+#include <thread/ThreadManager.h>
+
 #include "AddrSpace.h"
 #include "DataSpace.h"
 #include "Region.h"
@@ -63,6 +65,9 @@ m3::Errors::Code Region::map(int flags) {
 }
 
 void Region::copy(m3::MemGate *mem, goff_t virt) {
+    if(_copying)
+        m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(this));
+
     // if we are the last one, we can just take the memory
     if(_mem->is_last()) {
         SLOG(PAGER, "Keeping memory "
@@ -86,7 +91,13 @@ void Region::copy(m3::MemGate *mem, goff_t virt) {
         << " from " << (_mem->owner_mem ? "owner" : "origin")
         << " (we are " << (mem == _mem->owner_mem ? "owner" : "not owner") << ")");
 
+    // if we copy from owner memory, this may require a forward and thus cause a thread switch
+    // make sure that the other users of this memory don't continue (in copy()) until this is done
+    // TODO if the owner unmaps the memory, we have a problem
+    _copying = true;
     copy_block(ogate, ngate, off + _offset, size());
+    _copying = false;
+    m3::ThreadManager::get().notify(reinterpret_cast<event_t>(this));
 
     // are we the owner?
     if(mem == _mem->owner_mem) {
