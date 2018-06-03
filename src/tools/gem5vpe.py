@@ -11,6 +11,7 @@ if len(sys.argv) < 2:
 
 id = int(sys.argv[1])
 cur_vpe = -1
+cur_pe = ""
 
 while True:
     line = sys.stdin.readline()
@@ -20,11 +21,12 @@ while True:
     old_vpe = cur_vpe
 
     if "VPE_ID" in line:
-        m = re.match('.*DTU\[VPE_ID\s*\]: 0x([0-9a-f]+).*', line)
+        m = re.match('.*(pe[0-9]+\.).*DTU\[VPE_ID\s*\]: 0x([0-9a-f]+).*', line)
         if m:
-            cur_vpe = int(m[1], 16)
+            cur_vpe = int(m[2], 16)
+            cur_pe = m[1]
 
     if old_vpe != cur_vpe:
-        print("------ Context Switch from %d to %d ------" % (old_vpe, cur_vpe))
-    if cur_vpe == id:
+        print("------ Context Switch from %d to %d on %s ------" % (old_vpe, cur_vpe, cur_pe))
+    if "PRINT: " in line or (cur_vpe == id and cur_pe in line):
         print(line.rstrip())
