@@ -20,9 +20,11 @@
 
 #include <functional>
 
+#include "mem/SlabCache.h"
+
 namespace kernel {
 
-struct Timeout : public m3::SListItem {
+struct Timeout : public m3::SListItem, public SlabObject<Timeout> {
     explicit Timeout(cycles_t when, std::function<void()> &&callback)
         : m3::SListItem(),
           when(when),
