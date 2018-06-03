@@ -106,7 +106,7 @@ void SyscallHandler::init() {
 
 void SyscallHandler::reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void *reply, size_t size) {
     while(vpe->state() != VPE::RUNNING) {
-        if(!vpe->resume())
+        if(!vpe->resume(false))
             return;
     }
 
@@ -1153,7 +1153,7 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
     }
 
-    res = wait_for(": syscall::forwardreply", tvpe, vpe, true);
+    res = wait_for(": syscall::forwardreply", tvpe, vpe, false);
     if(res == m3::Errors::NONE) {
         uint64_t sender = vpe->pe() | (vpe->id() << 8) |
                         (static_cast<uint64_t>(head.senderEp) << 32) |
