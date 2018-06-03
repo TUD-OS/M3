@@ -102,6 +102,9 @@ void PEManager::stop_vpe(VPE *vpe) {
 }
 
 bool PEManager::migrate_vpe(VPE *vpe) {
+    // TODO maybe we should only migrate if the remaining timeslice on the target PE is less than
+    // a threshold? otherwise we are potentially waiting until the timeslice depleted, although we
+    // could have run it somewhere else in the meantime
     peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true, nullptr);
     if(npe == 0)
         return false;
