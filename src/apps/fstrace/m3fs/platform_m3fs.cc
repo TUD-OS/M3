@@ -14,7 +14,7 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/stream/Standard.h>
+#include <base/stream/Serial.h>
 
 #include <stdarg.h>
 
@@ -56,7 +56,7 @@ void Platform::drop_caches() {
 
 
 void Platform::log(const char *msg) {
-    m3::cout << msg << "\n";
+    m3::Serial::get() << msg << "\n";
 }
 
 void Platform::logf(UNUSED const char *fmt, ...) {

@@ -15,7 +15,9 @@
  */
 
 #include <base/Common.h>
+#include <base/stream/IStringStream.h>
 #include <base/Panic.h>
+#include <base/CmdArgs.h>
 
 #include <m3/session/M3FS.h>
 #include <m3/stream/Standard.h>
@@ -27,7 +29,7 @@
 
 using namespace m3;
 
-static const size_t MAX_TMP_FILES   = 16;
+static const size_t MAX_TMP_FILES   = 128;
 static const bool VERBOSE           = 0;
 
 static void remove_rec(const char *path) {
@@ -78,31 +80,44 @@ static void cleanup() {
     }
 }
 
+static void usage(const char *name) {
+    cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w]";
+    exit(1);
+}
+
 int main(int argc, char **argv) {
     Platform::init(argc, argv);
 
     VFS::mount("/", "m3fs");
 
     // defaults
-    int num_iterations  = 8;
+    int num_iterations  = 1;
     bool keep_time      = true;
     bool make_ckpt      = false;
     bool wait           = false;
+    const char *prefix  = "";
 
-    // playback / revert to init-trace contents
-    const char *prefix = "";
-    if(argc > 1) {
-        prefix = argv[1];
-        if(*prefix)
-            VFS::mkdir(prefix, 0755);
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "p:n:w")) != -1) {
+        switch(opt) {
+            case 'p': prefix = CmdArgs::arg; break;
+            case 'n': num_iterations = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 'w': wait = true; break;
+            default:
+                usage(argv[0]);
+        }
     }
+
+    if(*prefix)
+        VFS::mkdir(prefix, 0755);
 
     TracePlayer player(prefix);
 
     // print parameters for reference
     cout << "VPFS trace_bench started ["
          << "n=" << num_iterations << ","
-         << "keeptime=" << (keep_time   ? "yes" : "no")
+         << "wait=" << (wait ? "yes" : "no") << ","
+         << "prefix=" << prefix
          << "]\n";
 
     for(int i = 0; i < num_iterations; ++i) {

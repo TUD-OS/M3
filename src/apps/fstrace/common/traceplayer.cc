@@ -23,8 +23,33 @@
 #include "exceptions.h"
 
 #ifndef __LINUX__
+#   include <base/stream/Serial.h>
 #   include <base/util/Time.h>
 #endif
+
+static const char *op_names[] = {
+    "INVALID",
+    "WAITUNTIL",
+    "OPEN",
+    "CLOSE",
+    "FSYNC",
+    "READ",
+    "WRITE",
+    "PREAD",
+    "PWRITE",
+    "LSEEK",
+    "FTRUNCATE",
+    "FSTAT",
+    "FSTATAT",
+    "STAT",
+    "RENAME",
+    "UNLINK",
+    "RMDIR",
+    "MKDIR",
+    "SENDFILE",
+    "GETDENTS",
+    "CREATEFILE",
+};
 
 /*
  * *************************************************************************
@@ -76,17 +101,13 @@ int TracePlayer::play(bool wait, bool keep_time, bool) {
     while (op && op->opcode != INVALID_OP) {
 #ifndef __LINUX__
         m3::Time::start(static_cast<uint>(lineNo));
-#endif
 
-        // if (lineNo % 100 == 0)
-        //     fs->checkpoint(numReplayed, numTraceOps, make_chkpt);
-
-#ifndef __LINUX__
         if(op->opcode != WAITUNTIL_OP)
             m3::Time::stop(0xBBBB);
+
+        // m3::Serial::get() << "line " << lineNo << ": opcode=" << op_names[op->opcode] << "\n";
 #endif
 
-        //Platform::logf("line #%u: opcode=%u,op=%p\n", lineNo, op->opcode, op);
         switch (op->opcode) {
             case WAITUNTIL_OP:
             {
