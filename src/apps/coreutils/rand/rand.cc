@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
         size_t amount = Math::min(count, ARRAY_SIZE(buffer));
 
         Time::start(0x5555);
-        generate(buffer, amount);
+        CPU::compute(amount * 8);
+        // generate(buffer, amount);
         Time::stop(0x5555);
         cout.write(buffer, amount * sizeof(rand_type));
 
