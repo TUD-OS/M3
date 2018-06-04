@@ -47,5 +47,6 @@ pub fn main() -> i32 {
     run_suite!(tester, btreap::run);
     run_suite!(tester, btreemap::run);
 
+    println!("\x1B[1;32mAll tests successful!\x1B[0;m");
     0
 }
