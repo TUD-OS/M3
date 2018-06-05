@@ -101,7 +101,7 @@ public:
         return _pe;
     }
 
-    capsel_t ep_sel(epid_t ep) {
+    capsel_t ep_to_sel(epid_t ep) {
         return sel() + 2 + ep - DTU::FIRST_FREE_EP;
     }
 

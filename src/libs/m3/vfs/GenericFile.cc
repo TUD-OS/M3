@@ -30,7 +30,7 @@ GenericFile::~GenericFile() {
         submit();
     if(_mg.ep() != MemGate::UNBOUND) {
         LLOG(FS, "GenFile[" << fd() << "]::revoke_ep(" << _mg.ep() << ")");
-        capsel_t sel = VPE::self().ep_sel(_mg.ep());
+        capsel_t sel = VPE::self().ep_to_sel(_mg.ep());
         VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel), true);
         VPE::self().free_ep(_mg.ep());
     }
@@ -163,7 +163,7 @@ void GenericFile::evict() {
     submit();
 
     // revoke EP cap
-    capsel_t ep_sel = VPE::self().ep_sel(_mg.ep());
+    capsel_t ep_sel = VPE::self().ep_to_sel(_mg.ep());
     VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, ep_sel), true);
     _mg.ep(MemGate::UNBOUND);
 }
@@ -194,7 +194,7 @@ Errors::Code GenericFile::delegate_ep() {
     if(_mg.ep() == MemGate::UNBOUND) {
         epid_t ep = VPE::self().fds()->request_ep(this);
         LLOG(FS, "GenFile[" << fd() << "]::delegate_ep(" << ep << ")");
-        _sess.delegate_obj(VPE::self().ep_sel(ep));
+        _sess.delegate_obj(VPE::self().ep_to_sel(ep));
         if(Errors::last != Errors::NONE)
             return Errors::last;
         _mg.ep(ep);

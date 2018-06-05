@@ -114,7 +114,7 @@ public:
 private:
     void connect_file(GenericFile *file, epid_t sep, epid_t mep, capsel_t scap) {
         file->sgate().activate_for(*_vpe, sep);
-        file->sess().delegate_obj(_vpe->ep_sel(mep));
+        file->sess().delegate_obj(_vpe->ep_to_sel(mep));
         _vpe->delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, file->sgate().sel()), scap);
     }
 

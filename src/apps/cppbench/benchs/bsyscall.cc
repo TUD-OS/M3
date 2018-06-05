@@ -45,7 +45,7 @@ NOINLINE static void activate() {
 
     Profile pr;
     cout << pr.run_with_id([&mgate] {
-        Syscalls::get().activate(VPE::self().ep_sel(mgate.ep()), mgate.sel(), 0);
+        Syscalls::get().activate(VPE::self().ep_to_sel(mgate.ep()), mgate.sel(), 0);
         if(Errors::occurred())
             PANIC("syscall failed");
     }, 0x51) << "\n";
