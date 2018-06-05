@@ -112,7 +112,10 @@ ssize_t GenericFile::read(void *buffer, size_t count) {
     size_t amount = Math::min(count, _len - _pos);
     if(amount > 0) {
         Time::start(0xaaaa);
-        _mg.read(buffer, amount, _off + _pos);
+        if(flags() & FILE_NODATA)
+            CPU::compute(count / 2);
+        else
+            _mg.read(buffer, amount, _off + _pos);
         Time::stop(0xaaaa);
         _pos += amount;
     }
@@ -141,7 +144,10 @@ ssize_t GenericFile::write(const void *buffer, size_t count) {
     size_t amount = Math::min(count, _len - _pos);
     if(amount > 0) {
         Time::start(0xaaaa);
-        _mg.write(buffer, amount, _off + _pos);
+        if(flags() & FILE_NODATA)
+            CPU::compute(count / 4);
+        else
+            _mg.write(buffer, amount, _off + _pos);
         Time::stop(0xaaaa);
         _pos += amount;
     }

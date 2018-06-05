@@ -70,7 +70,7 @@ void DirectPipeWriter::State::read_replies() {
 }
 
 DirectPipeWriter::DirectPipeWriter(capsel_t caps, size_t size, State *state)
-    : File(), _caps(caps), _size(size), _state(state), _noeof() {
+    : File(FILE_W), _caps(caps), _size(size), _state(state), _noeof() {
 }
 
 DirectPipeWriter::~DirectPipeWriter() {

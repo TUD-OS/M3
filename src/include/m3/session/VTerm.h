@@ -36,7 +36,7 @@ public:
         args.count = 1;
         args.vals[0] = read ? 0 : 1;
         obtain_for(VPE::self(), KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, 2), &args);
-        return new GenericFile(sels);
+        return new GenericFile(read ? FILE_R : FILE_W, sels);
     }
 };
 

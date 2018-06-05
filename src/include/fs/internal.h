@@ -84,7 +84,8 @@ enum {
     FILE_RWX    = FILE_R | FILE_W | FILE_X,
     FILE_TRUNC  = 8,
     FILE_APPEND = 16,
-    FILE_CREATE = 32
+    FILE_CREATE = 32,
+    FILE_NODATA = 64,
 };
 
 static_assert(FILE_R == MemGate::R, "FILE_R is out of sync");

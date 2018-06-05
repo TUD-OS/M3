@@ -34,7 +34,7 @@ public:
         args.count = 1;
         args.vals[0] = read;
         KIF::CapRngDesc desc = obtain(2, &args);
-        return new GenericFile(desc.start());
+        return new GenericFile(read ? FILE_R : FILE_W, desc.start());
     }
 };
 

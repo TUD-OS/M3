@@ -114,9 +114,18 @@ public:
         size_t pos;
     };
 
+    explicit File(int flags) : _flags(flags), _fd() {
+    }
     File(const File &) = delete;
     File &operator=(const File &) = delete;
     virtual ~File() {
+    }
+
+    /**
+     * @return the open flags
+     */
+    int flags() const {
+        return _flags;
     }
 
     /**
@@ -221,6 +230,7 @@ private:
         _fd = fd;
     }
 
+    int _flags;
     fd_t _fd;
 };
 

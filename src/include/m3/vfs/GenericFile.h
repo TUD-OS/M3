@@ -38,8 +38,8 @@ public:
         COUNT,
     };
 
-    explicit GenericFile(capsel_t caps)
-        : File(),
+    explicit GenericFile(int flags, capsel_t caps)
+        : File(flags),
           _sess(caps + 0, 0),
           _sg(SendGate::bind(caps + 1)),
           _mg(MemGate::bind(ObjCap::INVALID)),
@@ -78,7 +78,7 @@ public:
 
     virtual File *clone() const override {
         KIF::CapRngDesc crd = _sess.obtain(2);
-        return new GenericFile(crd.start());
+        return new GenericFile(flags(), crd.start());
     }
 
     virtual Errors::Code delegate(VPE &vpe) override {
@@ -87,13 +87,14 @@ public:
     }
 
     virtual void serialize(Marshaller &m) override {
-        m << _sess.sel();
+        m << flags() << _sess.sel();
     }
 
     static File *unserialize(Unmarshaller &um) {
+        int fl;
         capsel_t caps;
-        um >> caps;
-        return new GenericFile(caps);
+        um >> fl >> caps;
+        return new GenericFile(fl, caps);
     }
 
 private:

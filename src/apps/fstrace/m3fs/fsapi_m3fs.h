@@ -84,7 +84,7 @@ public:
             }
         }
         else {
-            auto nfile = m3::VFS::open(add_prefix(args->name), args->flags);
+            auto nfile = m3::VFS::open(add_prefix(args->name), args->flags | m3::FILE_NODATA);
             if(m3::Errors::occurred()) {
                 m3::VFS::close(nfile);
                 if(args->fd != -1)

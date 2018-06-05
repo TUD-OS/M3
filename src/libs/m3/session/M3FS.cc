@@ -28,7 +28,7 @@ File *M3FS::open(const char *path, int perms) {
     KIF::CapRngDesc crd = obtain(2, &args);
     if(Errors::last != Errors::NONE)
         return nullptr;
-    return new GenericFile(crd.start());
+    return new GenericFile(perms, crd.start());
 }
 
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {

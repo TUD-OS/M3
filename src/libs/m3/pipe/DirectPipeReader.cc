@@ -32,7 +32,8 @@ DirectPipeReader::State::State(capsel_t caps)
 }
 
 DirectPipeReader::DirectPipeReader(capsel_t caps, State *state)
-    : _noeof(),
+    : File(FILE_R),
+      _noeof(),
       _caps(caps),
       _state(state) {
 }

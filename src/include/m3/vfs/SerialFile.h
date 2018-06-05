@@ -28,7 +28,7 @@ namespace m3 {
  */
 class SerialFile : public File {
 public:
-    explicit SerialFile() : File() {
+    explicit SerialFile() : File(FILE_RW) {
     }
 
     virtual Errors::Code stat(FileInfo &) const override {
