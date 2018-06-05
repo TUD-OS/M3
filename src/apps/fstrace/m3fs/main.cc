@@ -82,32 +82,43 @@ static void cleanup() {
 }
 
 static void usage(const char *name) {
-    cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w]";
+    cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w] [-f <fs>] [-g <rgate selector>]";
     exit(1);
 }
 
 int main(int argc, char **argv) {
     Platform::init(argc, argv);
 
-    VFS::mount("/", "m3fs");
-
     // defaults
     int num_iterations  = 1;
     bool keep_time      = true;
     bool make_ckpt      = false;
     bool wait           = false;
+    const char *fs      = "m3fs";
     const char *prefix  = "";
+    capsel_t rgate      = ObjCap::INVALID;
+    epid_t rgate_ep     = EP_COUNT;
 
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "p:n:w")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:")) != -1) {
         switch(opt) {
             case 'p': prefix = CmdArgs::arg; break;
             case 'n': num_iterations = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'w': wait = true; break;
+            case 'f': fs = CmdArgs::arg; break;
+            case 'g': {
+                String input(CmdArgs::arg);
+                IStringStream is(input);
+                is >> rgate >> rgate_ep;
+                break;
+            }
             default:
                 usage(argv[0]);
         }
     }
+
+    if(VFS::mount("/", "m3fs", fs) != Errors::NONE)
+        PANIC("Unable to mount root filesystem " << fs);
 
     if(*prefix)
         VFS::mkdir(prefix, 0755);
@@ -124,6 +135,17 @@ int main(int argc, char **argv) {
         PANIC("Unable to delegate EPs to meta session");
 
     TracePlayer player(prefix);
+
+    if(rgate != ObjCap::INVALID) {
+        RecvGate rg = RecvGate::bind(rgate, 6, rgate_ep);
+        {
+            // tell the coordinator, that we are ready
+            GateIStream msg = receive_msg(rg);
+            reply_vmsg(msg, 1);
+        }
+        // wait until we should start
+        receive_msg(rg);
+    }
 
     // print parameters for reference
     cout << "VPFS trace_bench started ["

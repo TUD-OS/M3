@@ -19,12 +19,11 @@
 #include <base/util/Time.h>
 #include <base/Panic.h>
 
+#include <m3/server/RemoteServer.h>
 #include <m3/stream/Standard.h>
 #include <m3/pipe/IndirectPipe.h>
 #include <m3/vfs/VFS.h>
 #include <m3/VPE.h>
-
-#include "Helper.h"
 
 using namespace m3;
 
@@ -131,7 +130,7 @@ int main(int argc, const char **argv) {
 
         if(apps[1]) {
             String m3fsarg = m3fs_srv->sel_arg();
-            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fsarg.c_str(), "134217728"};
+            const char *m3fs_args[] = {"/bin/m3fs", "-s", m3fsarg.c_str(), "268435456"};
             res = apps[1]->vpe.exec(ARRAY_SIZE(m3fs_args), m3fs_args);
             if(res != Errors::NONE)
                 PANIC("Cannot execute " << m3fs_args[0] << ": " << Errors::to_string(res));

@@ -19,12 +19,11 @@
 #include <base/util/Time.h>
 #include <base/Panic.h>
 
+#include <m3/server/RemoteServer.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/VFS.h>
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
-
-#include "Helper.h"
 
 using namespace m3;
 

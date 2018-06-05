@@ -15,30 +15,35 @@
  */
 
 #include <base/Common.h>
+#include <base/stream/OStringStream.h>
 
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+namespace m3 {
+
 struct RemoteServer {
-    explicit RemoteServer(m3::VPE &vpe, const m3::String &name)
-        : srv(m3::ObjCap::SERVICE, m3::VPE::self().alloc_sels(2)),
-          rgate(m3::RecvGate::create_for(vpe, srv.sel() + 1, m3::nextlog2<256>::val,
-                                                             m3::nextlog2<256>::val)) {
+    explicit RemoteServer(VPE &vpe, const String &name)
+        : srv(ObjCap::SERVICE, VPE::self().alloc_sels(2)),
+          rgate(RecvGate::create_for(vpe, srv.sel() + 1, nextlog2<256>::val,
+                                                             nextlog2<256>::val)) {
         rgate.activate();
-        m3::Syscalls::get().createsrv(srv.sel(), vpe.sel(), rgate.sel(), name);
-        vpe.delegate(m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, srv.sel(), 2));
+        Syscalls::get().createsrv(srv.sel(), vpe.sel(), rgate.sel(), name);
+        vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, srv.sel(), 2));
     }
 
     void request_shutdown() {
-        m3::Syscalls::get().srvctrl(srv.sel(), m3::KIF::Syscall::SCTRL_SHUTDOWN);
+        Syscalls::get().srvctrl(srv.sel(), KIF::Syscall::SCTRL_SHUTDOWN);
     }
 
-    m3::String sel_arg() const {
-        m3::OStringStream os;
+    String sel_arg() const {
+        OStringStream os;
         os << srv.sel() << " " << rgate.ep();
         return os.str();
     }
 
-    m3::ObjCap srv;
-    m3::RecvGate rgate;
+    ObjCap srv;
+    RecvGate rgate;
 };
+
+}
