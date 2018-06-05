@@ -12,6 +12,7 @@ num_mem = 1
 num_pes = int(os.environ.get('M3_GEM5_PES'))
 fsimg = os.environ.get('M3_GEM5_FS')
 num_fft = 2
+fsimgnum = os.environ.get('M3_GEM5_FSNUM', '1')
 mem_pe = num_pes + 1 + num_fft
 
 pes = []
@@ -58,8 +59,9 @@ for i in range(0, num_mem):
     pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + 1 + num_fft + i,
-                     size='1024MB',
-                     content=fsimg if i == 0 else None)
+                     size='2048MB',
+                     image=fsimg if i == 0 else None,
+                     imageNum=int(fsimgnum))
     pes.append(pe)
 
 runSimulation(root, options, pes)

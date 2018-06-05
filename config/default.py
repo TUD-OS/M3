@@ -16,6 +16,7 @@ num_spm = 4 if num_pes >= 4 else 4 - num_pes
 mem_pe = num_pes
 
 fsimg = os.environ.get('M3_GEM5_FS')
+fsimgnum = os.environ.get('M3_GEM5_FSNUM', '1')
 
 # create disk image
 hard_disk0 = os.environ.get('M3_GEM5_IDE_DRIVE')
@@ -53,8 +54,9 @@ for i in range(0, num_mem):
     pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + i,
-                     size='1024MB',
-                     content=fsimg if i == 0 else None)
+                     size='2048MB',
+                     image=fsimg if i == 0 else None,
+                     imageNum=int(fsimgnum))
     pes.append(pe)
 
 # create the persistent storage PEs

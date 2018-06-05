@@ -22,8 +22,7 @@ for i in range(0, num_pes):
 pe = createMemPE(noc=root.noc,
                  options=options,
                  no=num_pes,
-                 size='1024MB',
-                 content=None)
+                 size='1024MB')
 
 pes.append(pe)
 
