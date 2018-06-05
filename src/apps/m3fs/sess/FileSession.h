@@ -73,6 +73,9 @@ public:
     m3::inodeno_t ino() const {
         return _ino;
     }
+    const m3::String &path() const {
+        return _filename;
+    }
 
     m3::KIF::CapRngDesc caps() const {
         return m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sel(), 2);
@@ -99,7 +102,7 @@ private:
 
     capsel_t _last;
     capsel_t _epcap;
-    m3::SendGate _sgate;
+    m3::SendGate *_sgate;
 
     int _oflags;
     m3::String _filename;

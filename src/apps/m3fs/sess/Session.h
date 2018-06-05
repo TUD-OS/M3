@@ -41,6 +41,13 @@ public:
 
     virtual Type type() const = 0;
 
+    virtual void open_private_file(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void close_private_file(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+
     virtual void read(m3::GateIStream &is) {
         m3::reply_error(is, m3::Errors::NOT_SUP);
     }

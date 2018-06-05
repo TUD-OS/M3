@@ -31,7 +31,13 @@ public:
     static constexpr size_t MAX_FILES   = 64;
 
     explicit M3FSMetaSession(capsel_t srv_sel, m3::RecvGate &rgate, FSHandle &handle)
-        : M3FSSession(srv_sel), _sgates(), _rgate(rgate), _handle(handle), _files() {
+        : M3FSSession(srv_sel),
+          _sgates(),
+          _rgate(rgate),
+          _handle(handle),
+          _ep_start(),
+          _ep_count(),
+          _files() {
     }
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)
@@ -45,6 +51,19 @@ public:
     virtual Type type() const override {
         return META;
     }
+
+    void set_eps(capsel_t sel, uint count) {
+        _ep_start = sel;
+        _ep_count = count;
+    }
+
+    virtual void open_private_file(m3::GateIStream &is) override;
+    virtual void close_private_file(m3::GateIStream &is) override;
+
+    virtual void read(m3::GateIStream &is) override;
+    virtual void write(m3::GateIStream &is) override;
+    virtual void seek(m3::GateIStream &is) override;
+    virtual void fstat(m3::GateIStream &is) override;
 
     virtual void stat(m3::GateIStream &is) override;
     virtual void mkdir(m3::GateIStream &is) override;
@@ -64,11 +83,14 @@ public:
     void remove_file(M3FSFileSession *file);
 
 private:
+    m3::Errors::Code do_open(capsel_t srv, const char *path, int flags, size_t *id);
     ssize_t alloc_file(capsel_t srv, const char *path, int flags, m3::inodeno_t ino);
 
     m3::SList<MetaSGate> _sgates;
     m3::RecvGate &_rgate;
     FSHandle &_handle;
+    capsel_t _ep_start;
+    capsel_t _ep_count;
     // TODO change that to a list?
     M3FSFileSession *_files[MAX_FILES];
 };

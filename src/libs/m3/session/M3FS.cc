@@ -21,14 +21,27 @@
 namespace m3 {
 
 File *M3FS::open(const char *path, int perms) {
-    KIF::ExchangeArgs args;
-    args.count = 1;
-    args.svals[0] = static_cast<xfer_t>(perms);
-    strncpy(args.str, path, sizeof(args.str));
-    KIF::CapRngDesc crd = obtain(2, &args);
-    if(Errors::last != Errors::NONE)
-        return nullptr;
-    return new GenericFile(perms, crd.start());
+    capsel_t ep;
+    if((perms & FILE_NOSESS) && (ep = alloc_ep()) != ObjCap::INVALID) {
+        GateIStream reply = send_receive_vmsg(_gate, OPEN_PRIV, path, perms, ep - _eps);
+        reply >> Errors::last;
+        if(Errors::last != Errors::NONE)
+            return nullptr;
+        size_t id;
+        reply >> id;
+        return new GenericFile(perms, sel(), id, VPE::self().sel_to_ep(ep), this);
+    }
+    else {
+        perms &= ~FILE_NOSESS;
+        KIF::ExchangeArgs args;
+        args.count = 1;
+        args.svals[0] = static_cast<xfer_t>(perms);
+        strncpy(args.str, path, sizeof(args.str));
+        KIF::CapRngDesc crd = obtain(2, &args);
+        if(Errors::last != Errors::NONE)
+            return nullptr;
+        return new GenericFile(perms, crd.start());
+    }
 }
 
 Errors::Code M3FS::stat(const char *path, FileInfo &info) {

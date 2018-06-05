@@ -39,10 +39,12 @@ public:
      */
     explicit ServerSession(capsel_t srv_sel, capsel_t _sel = ObjCap::INVALID)
         : ObjCap(SESSION) {
-        if(_sel == ObjCap::INVALID)
-            _sel = VPE::self().alloc_sel();
-        Syscalls::get().createsess(_sel, srv_sel, reinterpret_cast<word_t>(this));
-        sel(_sel);
+        if(srv_sel != ObjCap::INVALID) {
+            if(_sel == ObjCap::INVALID)
+                _sel = VPE::self().alloc_sel();
+            Syscalls::get().createsess(_sel, srv_sel, reinterpret_cast<word_t>(this));
+            sel(_sel);
+        }
     }
 
     // has to be virtual, because we pass <this> as the ident to the kernel

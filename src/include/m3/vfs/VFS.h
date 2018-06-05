@@ -56,6 +56,15 @@ public:
     static void unmount(const char *path);
 
     /**
+     * Delegates the given EP caps to the file system at <path>.
+     *
+     * @param first the first EP cap
+     * @param count the number of caps
+     * @return the error, if any
+     */
+    static Errors::Code delegate_eps(const char *path, capsel_t first, uint count);
+
+    /**
      * Opens the file at <path> using the given permissions.
      *
      * @param path the path to the file to open

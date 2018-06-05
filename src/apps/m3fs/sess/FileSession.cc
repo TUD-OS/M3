@@ -25,7 +25,7 @@ using namespace m3;
 
 M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta,
                                  const m3::String &filename, int flags, m3::inodeno_t ino)
-    : M3FSSession(srv_sel, m3::VPE::self().alloc_sels(2)),
+    : M3FSSession(srv_sel, srv_sel == ObjCap::INVALID ? srv_sel : m3::VPE::self().alloc_sels(2)),
       m3::SListItem(),
       _extent(),
       _extoff(),
@@ -36,8 +36,10 @@ M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta,
       _append_ext(),
       _last(ObjCap::INVALID),
       _epcap(ObjCap::INVALID),
-      _sgate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this),
-                                  MSG_SIZE, nullptr, sel() + 1)),
+      _sgate(srv_sel == ObjCap::INVALID
+        ? nullptr
+        : new m3::SendGate(m3::SendGate::create(&meta->rgate(), reinterpret_cast<label_t>(this),
+                                                MSG_SIZE, nullptr, sel() + 1))),
       _oflags(flags),
       _filename(filename),
       _ino(ino),
@@ -48,6 +50,8 @@ M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta,
 
 M3FSFileSession::~M3FSFileSession() {
     PRINT(this, "file::close(path=" << _filename << ")");
+
+    delete _sgate;
 
     if(_append_ext) {
         FSHandle &h = _meta->handle();

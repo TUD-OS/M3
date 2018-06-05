@@ -26,6 +26,8 @@
 
 namespace m3 {
 
+class M3FS;
+
 class GenericFile : public File {
     friend class FileTable;
 
@@ -38,21 +40,12 @@ public:
         COUNT,
     };
 
-    explicit GenericFile(int flags, capsel_t caps)
-        : File(flags),
-          _sess(caps + 0, 0),
-          _sg(SendGate::bind(caps + 1)),
-          _mg(MemGate::bind(ObjCap::INVALID)),
-          _goff(),
-          _off(),
-          _pos(),
-          _len(),
-          _writing() {
-    }
+    explicit GenericFile(int flags, capsel_t caps, size_t id = 0, epid_t mep = EP_COUNT,
+                         M3FS *sess_obj = nullptr);
     virtual ~GenericFile();
 
     SendGate &sgate() {
-        return _sg;
+        return *_sg;
     }
     ClientSession &sess() {
         return _sess;
@@ -77,33 +70,43 @@ public:
     }
 
     virtual File *clone() const override {
+        if(flags() & FILE_NOSESS)
+            return nullptr;
         KIF::CapRngDesc crd = _sess.obtain(2);
         return new GenericFile(flags(), crd.start());
     }
 
     virtual Errors::Code delegate(VPE &vpe) override {
+        if(flags() & FILE_NOSESS)
+            return Errors::NOT_SUP;
         KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, _sess.sel(), 2);
         return _sess.obtain_for(vpe, crd);
     }
 
     virtual void serialize(Marshaller &m) override {
-        m << flags() << _sess.sel();
+        m << flags() << _sess.sel() << _id;
     }
 
     static File *unserialize(Unmarshaller &um) {
         int fl;
         capsel_t caps;
-        um >> fl >> caps;
-        return new GenericFile(fl, caps);
+        size_t id;
+        um >> fl >> caps >> id;
+        return new GenericFile(fl, caps, id);
     }
 
 private:
+    bool have_sess() const {
+        return !(flags() & FILE_NOSESS);
+    }
     void evict();
     Errors::Code submit();
     Errors::Code delegate_ep();
 
+    size_t _id;
+    M3FS *_sess_obj;
     mutable ClientSession _sess;
-    mutable SendGate _sg;
+    mutable SendGate *_sg;
     MemGate _mg;
     size_t _goff;
     size_t _off;

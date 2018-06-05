@@ -39,8 +39,9 @@ public:
      * Opens the given directory
      *
      * @param path the path of the directory
+     * @param flags the desired flags (FILE_R by default)
      */
-    explicit Dir(const char *path) : _f(path, FILE_R, sizeof(Entry) * 16) {
+    explicit Dir(const char *path, int flags = FILE_R) : _f(path, flags, sizeof(Entry) * 16) {
     }
 
     /**

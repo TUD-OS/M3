@@ -34,6 +34,38 @@ Errors::Code M3FSMetaSession::get_sgate(KIF::Service::ExchangeData &data) {
     return Errors::NONE;
 }
 
+void M3FSMetaSession::open_private_file(m3::GateIStream &is) {
+    int flags;
+    uint ep;
+    char buffer[64];
+    String path(buffer, sizeof(buffer));
+    is >> path >> flags >> ep;
+    if(ep >= _ep_count) {
+        reply_error(is, Errors::INV_ARGS);
+        return;
+    }
+
+    size_t id;
+    Errors::Code res = do_open(ObjCap::INVALID, path.c_str(), flags, &id);
+    if(res != Errors::NONE) {
+        reply_error(is, res);
+        return;
+    }
+
+    _files[id]->set_ep(_ep_start + ep);
+    reply_vmsg(is, res, id);
+}
+
+void M3FSMetaSession::close_private_file(m3::GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr) {
+        delete _files[id];
+        _files[id] = nullptr;
+    }
+    reply_error(is, Errors::NONE);
+}
+
 Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData &data) {
     if(data.args.count != 1)
         return Errors::INV_ARGS;
@@ -42,7 +74,32 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     data.args.str[sizeof(data.args.str) - 1] = '\0';
     const char *path = data.args.str;
 
-    PRINT(this, "fs::open(path=" << path << ", flags=" << fmt(flags, "#x") << ")");
+    size_t id;
+    Errors::Code res = do_open(srv, path, flags, &id);
+    if(res != Errors::NONE)
+        return res;
+
+    data.args.count = 0;
+    data.caps = _files[id]->caps().value();
+    return Errors::NONE;
+}
+
+static const char *decode_flags(int flags) {
+    static char buf[9];
+    buf[0] = (flags & FILE_R)       ? 'r' : '-';
+    buf[1] = (flags & FILE_W)       ? 'w' : '-';
+    buf[2] = (flags & FILE_X)       ? 'x' : '-';
+    buf[3] = (flags & FILE_TRUNC)   ? 't' : '-';
+    buf[4] = (flags & FILE_APPEND)  ? 'a' : '-';
+    buf[5] = (flags & FILE_CREATE)  ? 'c' : '-';
+    buf[6] = (flags & FILE_NODATA)  ? 'd' : '-';
+    buf[7] = (flags & FILE_NOSESS)  ? 's' : '-';
+    buf[8] = '\0';
+    return buf;
+}
+
+Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags, size_t *id) {
+    PRINT(this, "fs::open(path=" << path << ", flags=" << decode_flags(flags) << ")");
 
     inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE);
     if(ino == INVALID_INO) {
@@ -71,11 +128,46 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     if(res < 0)
         return static_cast<Errors::Code>(-res);
 
-    data.args.count = 0;
-    data.caps = _files[res]->caps().value();
+    *id = static_cast<size_t>(res);
+    PRINT(this, "-> inode=" << inode->inode << ", id=" << *id);
 
-    PRINT(this, "-> inode=" << inode->inode);
     return Errors::NONE;
+}
+
+void M3FSMetaSession::read(GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr)
+        _files[id]->read(is);
+    else
+        reply_error(is, Errors::INV_ARGS);
+}
+
+void M3FSMetaSession::write(GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr)
+        _files[id]->write(is);
+    else
+        reply_error(is, Errors::INV_ARGS);
+}
+
+void M3FSMetaSession::seek(GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr)
+        _files[id]->seek(is);
+    else
+        reply_error(is, Errors::INV_ARGS);
+}
+
+void M3FSMetaSession::fstat(GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr)
+        _files[id]->fstat(is);
+    else
+        reply_error(is, Errors::INV_ARGS);
 }
 
 void M3FSMetaSession::stat(GateIStream &is) {

@@ -51,6 +51,8 @@ public:
                                   nextlog2<M3FSSession::MSG_SIZE>::val)),
           _mem(MemGate::create_global_for(FS_IMG_OFFSET, fssize, MemGate::RWX)),
           _handle(_mem.sel(), extend, clear, revoke_first) {
+        add_operation(M3FS::OPEN_PRIV, &M3FSRequestHandler::open_private_file);
+        add_operation(M3FS::CLOSE_PRIV, &M3FSRequestHandler::close_private_file);
         add_operation(M3FS::READ, &M3FSRequestHandler::read);
         add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
@@ -86,13 +88,23 @@ public:
     }
 
     virtual Errors::Code delegate(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
-        if(sess->type() == M3FSSession::META || data.args.count != 0 || data.caps != 1)
+        if(data.args.count != 0)
             return Errors::NOT_SUP;
 
-        capsel_t sel = VPE::self().alloc_sel();
-        static_cast<M3FSFileSession*>(sess)->set_ep(sel);
-        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
-        return Errors::NONE;
+        if(sess->type() == M3FSSession::META) {
+            capsel_t sels = VPE::self().alloc_sels(data.caps);
+            static_cast<M3FSMetaSession*>(sess)->set_eps(sels, data.caps);
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, data.caps).value();
+            return Errors::NONE;
+        }
+        else {
+            if(data.caps != 1)
+                return Errors::NOT_SUP;
+            capsel_t sel = VPE::self().alloc_sel();
+            static_cast<M3FSFileSession*>(sess)->set_ep(sel);
+            data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+            return Errors::NONE;
+        }
     }
 
     virtual Errors::Code close(M3FSSession *sess) override {
@@ -103,6 +115,16 @@ public:
     virtual void shutdown() override {
         _rgate.stop();
         _handle.flush_cache();
+    }
+
+    void open_private_file(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        sess->open_private_file(is);
+    }
+
+    void close_private_file(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        sess->close_private_file(is);
     }
 
     void read(GateIStream &is) {

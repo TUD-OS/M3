@@ -52,6 +52,14 @@ void VFS::unmount(const char *path) {
     ms()->remove(path);
 }
 
+Errors::Code VFS::delegate_eps(const char *path, capsel_t first, uint count) {
+    size_t pos;
+    Reference<FileSystem> fs = ms()->resolve(path, &pos);
+    if(!fs.valid())
+        return Errors::last = Errors::NO_SUCH_FILE;
+    return fs->delegate_eps(first, count);
+}
+
 fd_t VFS::open(const char *path, int perms) {
     size_t pos;
     Reference<FileSystem> fs = ms()->resolve(path, &pos);
