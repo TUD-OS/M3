@@ -71,7 +71,7 @@ public:
             exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
-            auto dir = new m3::Dir(add_prefix(args->name));
+            auto dir = new m3::Dir(add_prefix(args->name), m3::FILE_R | m3::FILE_NOSESS);
             if(m3::Errors::occurred()) {
                delete dir;
                 if(args->fd != -1)
@@ -84,7 +84,8 @@ public:
             }
         }
         else {
-            auto nfile = m3::VFS::open(add_prefix(args->name), args->flags | m3::FILE_NODATA);
+            auto nfile = m3::VFS::open(add_prefix(args->name),
+                                       args->flags | m3::FILE_NODATA | m3::FILE_NOSESS);
             if(m3::Errors::occurred()) {
                 m3::VFS::close(nfile);
                 if(args->fd != -1)

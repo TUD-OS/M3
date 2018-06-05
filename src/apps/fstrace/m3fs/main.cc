@@ -31,6 +31,7 @@ using namespace m3;
 
 static const size_t MAX_TMP_FILES   = 128;
 static const bool VERBOSE           = 0;
+static const uint META_EPS          = 4;
 
 static void remove_rec(const char *path) {
     if(VERBOSE) cout << "Unlinking " << path << "\n";
@@ -110,6 +111,17 @@ int main(int argc, char **argv) {
 
     if(*prefix)
         VFS::mkdir(prefix, 0755);
+
+    // pass some EP caps to m3fs (required for FILE_NOSESS)
+    epid_t eps = VPE::self().alloc_ep();
+    if(eps == EP_COUNT)
+        PANIC("Unable to allocate EPs for meta session");
+    for(uint i = 1; i < META_EPS; ++i) {
+        if(VPE::self().alloc_ep() != eps + i)
+           PANIC("Unable to allocate EPs for meta session");
+    }
+    if(VFS::delegate_eps("/", VPE::self().ep_to_sel(eps), META_EPS) != Errors::NONE)
+        PANIC("Unable to delegate EPs to meta session");
 
     TracePlayer player(prefix);
 
