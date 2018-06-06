@@ -197,10 +197,11 @@ public:
     }
 
     virtual void rename(const rename_args_t *args, int lineNo) override {
-        int res = m3::VFS::link(args->from, args->to);
+        static char todst[255];
+        int res = m3::VFS::link(add_prefix(args->from), add_prefix_to(args->to, todst, sizeof(todst)));
         if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
-        res = m3::VFS::unlink(args->from);
+        res = m3::VFS::unlink(add_prefix(args->from));
         if ((res == m3::Errors::NONE) != (args->err == 0))
             THROW1(ReturnValueException, res, args->err, lineNo);
     }
@@ -268,14 +269,17 @@ public:
     }
 
 private:
-    const char *add_prefix(const char *path) {
-        static char tmp[255];
+    const char *add_prefix_to(const char *path, char *dst, size_t max) {
         if(_prefix.length() == 0 || strncmp(path, "/tmp/", 5) != 0)
             return path;
 
-        m3::OStringStream os(tmp, sizeof(tmp));
+        m3::OStringStream os(dst, max);
         os << _prefix << (path + 5);
-        return tmp;
+        return dst;
+    }
+    const char *add_prefix(const char *path) {
+        static char tmp[255];
+        return add_prefix_to(path, tmp, sizeof(tmp));
     }
 
     bool _wait;
