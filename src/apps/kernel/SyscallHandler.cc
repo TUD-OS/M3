@@ -64,7 +64,10 @@ static const T *get_message(const m3::DTU::Message *msg) {
 void SyscallHandler::init() {
 #if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
-    int buford = m3::getnextlog2(Platform::pe_count()) + VPE::SYSC_MSGSIZE_ORD;
+    // TODO we currently use just one REP, which is insufficient if we have more PEs.
+    // TODO we also need to make sure that a VPE's syscall slot isn't in use if we suspend it
+    size_t pes = m3::Math::min(static_cast<size_t>(32), Platform::pe_count());
+    int buford = m3::getnextlog2(pes) + VPE::SYSC_MSGSIZE_ORD;
     size_t bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(ep(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, VPE::SYSC_MSGSIZE_ORD);
