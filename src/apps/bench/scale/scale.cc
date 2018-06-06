@@ -52,8 +52,8 @@ struct App {
 };
 
 int main(int argc, char **argv) {
-    if(argc != 5) {
-        cerr << "Usage: " << argv[0] << " 1|0 <repeats> <instances> <servers>\n";
+    if(argc != 6) {
+        cerr << "Usage: " << argv[0] << " 1|0 <repeats> <instances> <servers> <fssize>\n";
         return 1;
     }
 
@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
     int repeats = IStringStream::read_from<int>(argv[2]);
     size_t instances = IStringStream::read_from<size_t>(argv[3]);
     size_t servers = IStringStream::read_from<size_t>(argv[4]);
+    size_t fssize = IStringStream::read_from<size_t>(argv[5]);
     App *apps[instances];
 
     RemoteServer *srv[servers];
@@ -81,10 +82,13 @@ int main(int argc, char **argv) {
         srv[i] = new RemoteServer(*srvvpes[i], name.str());
 
         String m3fsarg = srv[i]->sel_arg();
-        OStringStream fsoff(new char[16], 16);
-        fsoff << (256 * 1024 * 1024 * i);
+        OStringStream fs_off_str(new char[16], 16);
+        fs_off_str << (fssize * i);
+        OStringStream fs_size_str(new char[16], 16);
+        fs_size_str << fssize;
         const char *m3fs_args[] = {
-            "/bin/m3fs", "-n", srvnames[i], "-s", m3fsarg.c_str(), "-o", fsoff.str(), "268435456"
+            "/bin/m3fs", "-n", srvnames[i], "-s", m3fsarg.c_str(),
+            "-o", fs_off_str.str(), fs_size_str.str()
         };
         if(VERBOSE) {
             cout << "Creating ";
