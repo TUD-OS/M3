@@ -31,7 +31,7 @@ for i in range(0, num_mem):
     pe = createMemPE(noc=root.noc,
                      options=options,
                      no=num_pes + i,
-                     size='2048MB',
+                     size='3072MB',
                      image=fsimg if i == 0 else None,
                      imageNum=int(fsimgnum))
     pes.append(pe)
