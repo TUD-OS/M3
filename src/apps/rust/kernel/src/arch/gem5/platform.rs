@@ -11,7 +11,7 @@ use mem;
 use pes::VPEDesc;
 use platform;
 
-const USABLE_MEM: usize     = (1024 + 512) * 1024 * 1024;
+const USABLE_MEM: usize     = (2048 + 512) * 1024 * 1024;
 
 static LAST_PE: StaticCell<PEId> = StaticCell::new(0);
 
