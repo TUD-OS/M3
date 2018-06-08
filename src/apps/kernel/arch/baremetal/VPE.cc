@@ -25,7 +25,7 @@ void VPE::init() {
     RGateObject rgate(SYSC_MSGSIZE_ORD, SYSC_MSGSIZE_ORD);
     rgate.vpe = VPEManager::MAX_VPES;
     rgate.addr = 1;  // has to be non-zero
-    rgate.ep = m3::DTU::SYSC_SEP;
+    rgate.ep = syscall_ep();
     rgate.add_ref(); // don't free this (on destruction of SGateObject)
 
     // configure syscall endpoint

@@ -42,6 +42,7 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _pid(),
       _state(DEAD),
       _exitcode(),
+      _sysc_ep((flags & F_IDLE) ? SyscallHandler::ep(0) : SyscallHandler::alloc_ep()),
       _group(group),
       _services(),
       _pending_fwds(),
@@ -60,6 +61,8 @@ VPE::VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep, epi
       _argc(),
       _argv(),
       _epaddr() {
+    if(_sysc_ep == EP_COUNT)
+        PANIC("Too few slots in syscall receive buffers");
     if(group)
         _group->add(this);
 
@@ -101,7 +104,8 @@ VPE::~VPE() {
     _mapcaps.revoke_all();
 
     // ensure that there are no syscalls for this VPE anymore
-    DTU::get().drop_msgs(SyscallHandler::ep(), reinterpret_cast<label_t>(this));
+    DTU::get().drop_msgs(syscall_ep(), reinterpret_cast<label_t>(this));
+    SyscallHandler::free_ep(syscall_ep());
 
     if(_rbufcpy)
         MainMemory::get().free(_rbufcpy);

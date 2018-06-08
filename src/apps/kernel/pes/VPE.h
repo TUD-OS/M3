@@ -110,6 +110,10 @@ public:
         _desc.pe = pe;
     }
 
+    epid_t syscall_ep() const {
+        return _sysc_ep;
+    }
+
     int pid() const {
         return _pid;
     }
@@ -254,6 +258,7 @@ private:
     int _pid;
     State _state;
     int _exitcode;
+    epid_t _sysc_ep;
     VPEGroup *_group;
     uint _services;
     uint _pending_fwds;

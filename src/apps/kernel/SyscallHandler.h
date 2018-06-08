@@ -29,14 +29,29 @@ class SyscallHandler {
     using handler_func = void (*)(VPE *vpe, const m3::DTU::Message *msg);
 
 public:
+    static const size_t SYSC_REP_COUNT = 2;
+
     static void init();
 
-    static epid_t ep() {
+    static epid_t ep(size_t no) {
         // we can use it here because we won't issue syscalls ourself
-        return m3::DTU::SYSC_SEP;
+        return m3::DTU::SYSC_SEP + no;
     }
     static epid_t srvep() {
-        return m3::DTU::SYSC_REP;
+        return ep(SYSC_REP_COUNT);
+    }
+
+    static epid_t alloc_ep() {
+        for(size_t i = 0; i < SYSC_REP_COUNT; ++i) {
+            if(_vpes_per_ep[i] < 32) {
+                _vpes_per_ep[i]++;
+                return ep(i);
+            }
+        }
+        return EP_COUNT;
+    }
+    static void free_ep(epid_t id) {
+        _vpes_per_ep[id - ep(0)]--;
     }
 
     static void handle_message(VPE *vpe, const m3::DTU::Message *msg);
@@ -78,6 +93,7 @@ private:
                                         const m3::KIF::CapRngDesc &c2, bool obtain);
     static void exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, bool obtain);
 
+    static ulong _vpes_per_ep[SYSC_REP_COUNT];
     static handler_func _callbacks[];
 };
 

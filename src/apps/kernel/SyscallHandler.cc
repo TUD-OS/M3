@@ -36,6 +36,7 @@ extern int int_target;
 
 namespace kernel {
 
+ulong SyscallHandler::_vpes_per_ep[SyscallHandler::SYSC_REP_COUNT];
 SyscallHandler::handler_func SyscallHandler::_callbacks[m3::KIF::Syscall::COUNT];
 
 #define LOG_SYS(vpe, sysname, expr)                                                         \
@@ -64,16 +65,16 @@ static const T *get_message(const m3::DTU::Message *msg) {
 void SyscallHandler::init() {
 #if !defined(__t2__)
     // configure both receive buffers (we need to do that manually in the kernel)
-    // TODO we currently use just one REP, which is insufficient if we have more PEs.
     // TODO we also need to make sure that a VPE's syscall slot isn't in use if we suspend it
-    size_t pes = m3::Math::min(static_cast<size_t>(32), Platform::pe_count());
-    int buford = m3::getnextlog2(pes) + VPE::SYSC_MSGSIZE_ORD;
-    size_t bufsize = static_cast<size_t>(1) << buford;
-    DTU::get().recv_msgs(ep(),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
-        buford, VPE::SYSC_MSGSIZE_ORD);
+    for(size_t i = 0; i < SYSC_REP_COUNT; ++i) {
+        int buford = m3::getnextlog2(32) + VPE::SYSC_MSGSIZE_ORD;
+        size_t bufsize = static_cast<size_t>(1) << buford;
+        DTU::get().recv_msgs(ep(i),reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
+            buford, VPE::SYSC_MSGSIZE_ORD);
+    }
 
-    buford = m3::nextlog2<1024>::val;
-    bufsize = static_cast<size_t>(1) << buford;
+    int buford = m3::nextlog2<1024>::val;
+    size_t bufsize = static_cast<size_t>(1) << buford;
     DTU::get().recv_msgs(srvep(), reinterpret_cast<uintptr_t>(new uint8_t[bufsize]),
         buford, m3::nextlog2<256>::val);
 #endif
@@ -113,7 +114,8 @@ void SyscallHandler::reply_msg(VPE *vpe, const m3::DTU::Message *msg, const void
             return;
     }
 
-    DTU::get().reply(ep(), reply, size, m3::DTU::get().get_msgoff(ep(), msg));
+    epid_t ep = vpe->syscall_ep();
+    DTU::get().reply(ep, reply, size, m3::DTU::get().get_msgoff(ep, msg));
 }
 
 void SyscallHandler::reply_result(VPE *vpe, const m3::DTU::Message *msg, m3::Errors::Code code) {
@@ -646,7 +648,7 @@ void SyscallHandler::vpectrl(VPE *vpe, const m3::DTU::Message *msg) {
             vpecap->obj->stop_app(static_cast<int>(arg), self);
             if(self) {
                 // if we don't reply, we need to mark it read manually
-                m3::DTU::get().mark_read(ep(), reinterpret_cast<uintptr_t>(msg));
+                m3::DTU::get().mark_read(vpe->syscall_ep(), reinterpret_cast<uintptr_t>(msg));
                 return;
             }
             break;

@@ -77,7 +77,9 @@ void WorkLoop::run() {
 #endif
 
     m3::DTU &dtu = m3::DTU::get();
-    epid_t sysep = SyscallHandler::ep();
+    static_assert(SyscallHandler::SYSC_REP_COUNT == 2, "Wrong SYSC_REP_COUNT");
+    epid_t sysep0 = SyscallHandler::ep(0);
+    epid_t sysep1 = SyscallHandler::ep(1);
     epid_t srvep = SyscallHandler::srvep();
     const m3::DTU::Message *msg;
     while(has_items()) {
@@ -86,7 +88,15 @@ void WorkLoop::run() {
             m3::DTU::get().try_sleep(false, sleep);
         Timeouts::get().trigger();
 
-        msg = dtu.fetch_msg(sysep);
+        msg = dtu.fetch_msg(sysep0);
+        if(msg) {
+            // we know the subscriber here, so optimize that a bit
+            VPE *vpe = reinterpret_cast<VPE*>(msg->label);
+            SyscallHandler::handle_message(vpe, msg);
+            EVENT_TRACE_FLUSH_LIGHT();
+        }
+
+        msg = dtu.fetch_msg(sysep1);
         if(msg) {
             // we know the subscriber here, so optimize that a bit
             VPE *vpe = reinterpret_cast<VPE*>(msg->label);

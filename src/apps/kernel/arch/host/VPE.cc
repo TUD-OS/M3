@@ -29,14 +29,14 @@
 
 namespace kernel {
 
-static void write_env_file(pid_t pid, peid_t pe, label_t label) {
+static void write_env_file(epid_t ep, pid_t pid, peid_t pe, label_t label) {
     char tmpfile[64];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/m3/%d", pid);
     std::ofstream of(tmpfile);
     of << m3::env()->shm_prefix().c_str() << "\n";
     of << pe << "\n";
     of << label << "\n";
-    of << SyscallHandler::ep() << "\n";
+    of << ep << "\n";
     of << (1 << VPE::SYSC_CREDIT_ORD) << "\n";
 }
 
@@ -49,7 +49,7 @@ void VPE::load_app() {
         if(_pid < 0)
             PANIC("fork");
         if(_pid == 0) {
-            write_env_file(getpid(), pe(), reinterpret_cast<label_t>(this));
+            write_env_file(syscall_ep(), getpid(), pe(), reinterpret_cast<label_t>(this));
             char **childargs = new char*[_argc + 1];
             size_t i = 0, j = 0;
             for(; i < _argc; ++i) {
@@ -70,7 +70,7 @@ void VPE::load_app() {
         }
     }
     else
-        write_env_file(_pid, pe(), reinterpret_cast<label_t>(this));
+        write_env_file(syscall_ep(), _pid, pe(), reinterpret_cast<label_t>(this));
 
     KLOG(VPES, "Started VPE '" << _name << "' [pid=" << _pid << "]");
 }

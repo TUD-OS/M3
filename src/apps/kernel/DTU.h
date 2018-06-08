@@ -21,6 +21,7 @@
 #include <base/Panic.h>
 
 #include "DTUState.h"
+#include "SyscallHandler.h"
 
 namespace kernel {
 
@@ -29,7 +30,7 @@ class VPE;
 class VPEDesc;
 
 class DTU {
-    explicit DTU() : _ep(m3::DTU::UPCALL_REP) {
+    explicit DTU() : _ep(SyscallHandler::srvep() + 1) {
         init();
     }
 
