@@ -75,7 +75,8 @@ public:
 
     void yield() {
         if(_ready.length()) {
-            _sleep.append(_current);
+            // prepend the thread to the list to prefer the reuse of threads
+            _sleep.insert(nullptr, _current);
             switch_to(_ready.remove_first());
         }
     }
