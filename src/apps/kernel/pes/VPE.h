@@ -85,6 +85,7 @@ public:
         F_NEEDS_INVAL = 1 << 8,
         F_FLUSHED     = 1 << 9,
         F_NOBLOCK     = 1 << 10,
+        F_PINNED      = 1 << 11,
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,
@@ -129,6 +130,9 @@ public:
     }
     bool is_on_pe() const {
         return state() == RUNNING || state() == RESUMING;
+    }
+    bool is_pinned() const {
+        return _flags & F_PINNED;
     }
     State state() const {
         return _state;

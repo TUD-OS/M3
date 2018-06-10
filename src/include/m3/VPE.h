@@ -71,6 +71,11 @@ public:
      */
     static constexpr uint SEL_START     = 2 + (EP_COUNT - DTU::FIRST_FREE_EP);
 
+    enum Flags {
+        MUXABLE     = KIF::VPEFlags::MUXABLE,
+        PINNED      = KIF::VPEFlags::PINNED,
+    };
+
     explicit VPE();
 
 public:
@@ -87,11 +92,11 @@ public:
      * @param name the VPE name
      * @param pe the desired PE type (default: same as the current PE)
      * @param pager the pager (optional)
-     * @param tmuxable whether this VPE can share a PE with others
+     * @param flags see Flags
      * @param group the VPEGroup, if any
      */
     explicit VPE(const String &name, const PEDesc &pe = VPE::self().pe(),
-                 const char *pager = nullptr, bool tmuxable = false, const VPEGroup *group = nullptr);
+                 const char *pager = nullptr, uint flags = 0, const VPEGroup *group = nullptr);
     virtual ~VPE();
 
     /**
@@ -334,7 +339,6 @@ private:
     MountTable *_ms;
     FileTable *_fds;
     FStream *_exec;
-    bool _tmuxable;
     static VPE _self;
 };
 

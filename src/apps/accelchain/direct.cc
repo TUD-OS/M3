@@ -43,7 +43,8 @@ void chain_direct(File *in, File *out, size_t num, cycles_t comptime, Mode mode)
         OStringStream name;
         name << "chain" << i;
 
-        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT), nullptr, true, &group);
+        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT),
+                          nullptr, VPE::MUXABLE, &group);
         if(Errors::last != Errors::NONE) {
             exitmsg("Unable to create VPE for " << name.str());
             break;

@@ -50,7 +50,7 @@ public:
     } PACKED;
 
     explicit Aladdin(PEISA isa)
-        : _accel(new VPE("aladdin", PEDesc(PEType::COMP_EMEM, isa), "pager", true)),
+        : _accel(new VPE("aladdin", PEDesc(PEType::COMP_EMEM, isa), "pager", VPE::MUXABLE)),
           _lastmem(ObjCap::INVALID),
           _rgate(RecvGate::create(nextlog2<256>::val, nextlog2<256>::val)),
           _srgate(RecvGate::create_for(*_accel, getnextlog2(RB_SIZE), getnextlog2(RB_SIZE))),

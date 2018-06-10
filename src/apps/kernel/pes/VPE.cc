@@ -206,9 +206,7 @@ void VPE::yield() {
 
 bool VPE::migrate() {
     // idle VPEs are never migrated
-    if(_flags & VPE::F_IDLE)
-        return false;
-    if(_group)
+    if(_flags & (VPE::F_IDLE | VPE::F_PINNED))
         return false;
 
     peid_t old = pe();

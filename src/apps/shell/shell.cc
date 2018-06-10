@@ -131,7 +131,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
     for(size_t i = 0; i < list->count; ++i) {
         Command *cmd = list->cmds[i];
 
-        vpes[i] = new VPE(expr_value(cmd->args->args[0]), descs[i], nullptr, muxed);
+        vpes[i] = new VPE(expr_value(cmd->args->args[0]), descs[i], nullptr, muxed ? VPE::MUXABLE : 0);
         if(Errors::last != Errors::NONE) {
             delete vpes[i];
             vpes[i] = nullptr;

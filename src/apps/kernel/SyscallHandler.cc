@@ -363,13 +363,13 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     m3::PEDesc::value_t pe = req->pe;
     epid_t sep = req->sep;
     epid_t rep = req->rep;
-    bool tmuxable = req->muxable;
+    uint flags = req->flags;
     capsel_t group = req->group_sel;
     m3::String name(req->name, m3::Math::min(static_cast<size_t>(req->namelen), sizeof(req->name)));
 
     LOG_SYS(vpe, ": syscall::createvpe", "(dst=" << dst << ", sgate=" << sgate << ", name=" << name
         << ", pe=" << static_cast<int>(m3::PEDesc(pe).type())
-        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable
+        << ", sep=" << sep << ", rep=" << rep << ", flags=" << flags
         << ", group=" << group << ")");
 
     capsel_t capnum = 2 + EP_COUNT - m3::DTU::FIRST_FREE_EP;
@@ -396,7 +396,7 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
 
     // create VPE
     VPE *nvpe = VPEManager::get().create(m3::Util::move(name), m3::PEDesc(pe),
-        sep, rep, sgate, tmuxable, vpegrp);
+        sep, rep, sgate, flags, vpegrp);
     if(nvpe == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::NO_FREE_PE, "No free and suitable PE found");
 

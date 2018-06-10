@@ -50,7 +50,7 @@ public:
     Errors::Code createmgate(capsel_t dst, goff_t addr, size_t size, int perms);
     Errors::Code createvpegrp(capsel_t dst);
     Errors::Code createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, const String &name, PEDesc &pe,
-                           epid_t sep, epid_t rep, bool tmuxable, capsel_t group);
+                           epid_t sep, epid_t rep, uint flags, capsel_t group);
     Errors::Code createmap(capsel_t dst, capsel_t vpe, capsel_t mgate, capsel_t first,
                            capsel_t pages, int perms);
 

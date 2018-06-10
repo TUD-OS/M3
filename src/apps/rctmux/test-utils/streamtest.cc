@@ -39,7 +39,8 @@ int main() {
         OStringStream name;
         name << "chain" << i;
 
-        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT), nullptr, true);
+        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT),
+                          nullptr, VPE::MUXABLE);
         if(Errors::last != Errors::NONE) {
             exitmsg("Unable to create VPE for " << name.str());
             break;

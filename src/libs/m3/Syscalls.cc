@@ -140,10 +140,10 @@ Errors::Code Syscalls::createvpegrp(capsel_t dst) {
 }
 
 Errors::Code Syscalls::createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, const String &name,
-                                 PEDesc &pe, epid_t sep, epid_t rep, bool tmuxable, capsel_t group) {
+                                 PEDesc &pe, epid_t sep, epid_t rep, uint flags, capsel_t group) {
     LLOG(SYSC, "createvpe(dst=" << dst << ", sgate=" << sgate
         << ", name=" << name << ", type=" << static_cast<int>(pe.type())
-        << ", sep=" << sep << ", rep=" << rep << ", tmuxable=" << tmuxable
+        << ", sep=" << sep << ", rep=" << rep << ", flags=" << flags
         << ", group=" << group << ")");
 
     KIF::Syscall::CreateVPE req;
@@ -153,7 +153,7 @@ Errors::Code Syscalls::createvpe(const KIF::CapRngDesc &dst, capsel_t sgate, con
     req.pe = pe.value();
     req.sep = sep;
     req.rep = rep;
-    req.muxable = tmuxable;
+    req.flags = static_cast<xfer_t>(flags);
     req.group_sel = group;
     req.namelen = Math::min(name.length(), sizeof(req.name));
     memcpy(req.name, name.c_str(), req.namelen);

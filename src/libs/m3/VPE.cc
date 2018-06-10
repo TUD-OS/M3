@@ -49,8 +49,7 @@ VPE::VPE()
       _rbufend(),
       _ms(),
       _fds(),
-      _exec(),
-      _tmuxable(false) {
+      _exec() {
     static_assert(EP_COUNT < 64, "64 endpoints are the maximum due to the 64-bit bitmask");
     init_state();
     init_fs();
@@ -69,7 +68,7 @@ VPE::VPE()
         _fds->set(STDERR_FD, new SerialFile());
 }
 
-VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable, const VPEGroup *group)
+VPE::VPE(const String &name, const PEDesc &pe, const char *pager, uint flags, const VPEGroup *group)
     : ObjCap(VIRTPE, VPE::self().alloc_sels(2 + EP_COUNT - DTU::FIRST_FREE_EP)),
       _pe(pe),
       _mem(MemGate::bind(sel() + 1, 0)),
@@ -80,8 +79,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable,
       _rbufend(),
       _ms(new MountTable()),
       _fds(new FileTable()),
-      _exec(),
-      _tmuxable(tmuxable) {
+      _exec() {
     // create pager first, to create session and obtain gate cap
     if(_pe.has_virtmem()) {
         if(pager)
@@ -97,7 +95,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable,
     if(_pager) {
         // now create VPE, which implicitly obtains the gate cap from us
         Syscalls::get().createvpe(dst, _pager->child_sgate().sel(), name, _pe,
-            _pager->sep(), _pager->rep(), tmuxable, group_sel);
+            _pager->sep(), _pager->rep(), flags, group_sel);
         // mark the send gate cap allocated
         _next_sel = Math::max(_pager->child_sgate().sel() + 1, _next_sel);
         // now delegate our VPE cap and memory cap to the pager
@@ -106,7 +104,7 @@ VPE::VPE(const String &name, const PEDesc &pe, const char *pager, bool tmuxable,
         delegate_obj(_pager->sel());
     }
     else
-        Syscalls::get().createvpe(dst, ObjCap::INVALID, name, _pe, 0, 0, tmuxable, group_sel);
+        Syscalls::get().createvpe(dst, ObjCap::INVALID, name, _pe, 0, 0, flags, group_sel);
 }
 
 VPE::~VPE() {

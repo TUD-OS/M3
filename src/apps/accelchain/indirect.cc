@@ -47,7 +47,7 @@ void chain_indirect(File *in, File *out, size_t num, cycles_t comptime) {
         OStringStream name;
         name << "chain" << i;
 
-        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_INDIR), nullptr, false);
+        vpes[i] = new VPE(name.str(), PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_INDIR));
         if(Errors::last != Errors::NONE) {
             exitmsg("Unable to create VPE for " << name.str());
             break;

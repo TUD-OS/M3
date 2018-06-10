@@ -54,6 +54,13 @@ struct KIF {
         static const int RWX = R | W | X;
     };
 
+    enum VPEFlags {
+        // whether the PE can be shared with others
+        MUXABLE     = 1,
+        // whether this VPE gets pinned on one PE
+        PINNED      = 2,
+    };
+
     struct CapRngDesc {
         typedef xfer_t value_type;
 
@@ -226,7 +233,7 @@ struct KIF {
             xfer_t pe;
             xfer_t sep;
             xfer_t rep;
-            xfer_t muxable;
+            xfer_t flags;
             xfer_t group_sel;
             xfer_t namelen;
             char name[32];

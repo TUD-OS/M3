@@ -163,7 +163,7 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
 VPE *ContextSwitcher::steal_vpe() {
     if(can_mux() && _ready.length() > 0) {
         VPE *vpe = _ready.remove_if([](VPE *v) {
-            return v->_group == nullptr;
+            return !v->is_pinned();
         });
         if(vpe) {
             DTU::get().flush_cache(_cur->desc());

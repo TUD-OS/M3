@@ -185,7 +185,7 @@ bool PEManager::unblock_vpe_now(VPE *vpe) {
     return res;
 }
 
-peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable, const VPEGroup *group) {
+peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool muxable, const VPEGroup *group) {
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
@@ -198,7 +198,7 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool tmuxable, co
             return i;
 
         // TODO temporary
-        if(tmuxable && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
+        if(muxable && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
             if(group && group->is_pe_used(i))
                 continue;
             choice = i;
