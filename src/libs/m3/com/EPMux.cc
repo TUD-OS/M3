@@ -86,16 +86,22 @@ void EPMux::reset() {
 }
 
 epid_t EPMux::select_victim() {
-    size_t count = 0;
     epid_t victim = _next_victim;
-    while(!VPE::self().is_ep_free(victim) && count++ < EP_COUNT) {
-        // victim = (victim + 1) % EP_COUNT
-        size_t rem;
-        divide(victim + 1, static_cast<size_t>(EP_COUNT), &rem);
-        victim = rem;
+    for(size_t count = 0; count < EP_COUNT; ++count) {
+        if(!VPE::self().is_ep_free(victim) ||
+            (_gates[victim] && _gates[victim]->type() == ObjCap::SEND_GATE &&
+             DTU::get().has_missing_credits(victim))) {
+            // victim = (victim + 1) % EP_COUNT
+            size_t rem;
+            divide(victim + 1, static_cast<size_t>(EP_COUNT), &rem);
+            victim = rem;
+        }
+        else
+            goto done;
     }
-    if(!VPE::self().is_ep_free(victim))
-        PANIC("No free endpoints for multiplexing");
+    PANIC("No free endpoints for multiplexing");
+
+done:
     if(_gates[victim] != nullptr)
         _gates[victim]->_ep = Gate::UNBOUND;
 

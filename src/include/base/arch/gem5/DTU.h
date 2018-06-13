@@ -252,6 +252,12 @@ public:
         write_reg(CmdRegs::COMMAND, cmd);
     }
 
+    bool has_missing_credits(epid_t ep) const {
+        reg_t r1 = read_reg(ep, 1);
+        uint16_t cur = r1 & 0xFFFF;
+        uint16_t max = (r1 >> 16) & 0xFFFF;
+        return cur < max;
+    }
     bool is_valid(epid_t ep) const {
         reg_t r0 = read_reg(ep, 0);
         return static_cast<EpType>(r0 >> 61) != EpType::INVALID;
