@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
@@ -16,29 +16,17 @@
 
 #pragma once
 
-#include <base/log/Log.h>
+#include "op_types.h"
 
-#define SLOG(lvl, msg)  LOG(ServiceLog, lvl, msg)
-
-namespace m3 {
-
-class ServiceLog {
-    ServiceLog() = delete;
-
-public:
-    enum Level {
-        KEYB        = 1 << 0,
-        FS          = 1 << 1,
-        PAGER       = 1 << 2,
-        PIPE        = 1 << 3,
-        HASH        = 1 << 4,
-        VTERM       = 1 << 5,
-        IDE         = 1 << 6,
-        IDE_ALL     = 1 << 7,
-        LOADGEN     = 1 << 8,
-    };
-
-    static const int level = 0;
+struct Trace {
+    const char *name;
+    trace_op_t *trace_ops;
 };
 
-}
+class Traces {
+public:
+    static Trace *get(const char *name);
+
+private:
+    static Trace traces[];
+};

@@ -17,10 +17,10 @@
  * *************************************************************************
  */
 
-void Platform::init(int argc, const char * const argv[]) {
+void Platform::init(int argc, const char * const argv[], const char *loadgen) {
 
     // nothing to do here
-    (void)argc; (void)argv;
+    (void)argc; (void)argv; (void)loadgen;
 }
 
 
@@ -37,16 +37,19 @@ FILE *file;
 m3::SuperBlock sb;
 
 int main(int argc, char **argv) {
+    if(argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <name>\n";
+        exit(1);
+    }
 
-    (void)argc; (void)argv;
+    const char *name = argv[1];
 
     TraceRecorder rec;
 
     try {
         rec.import();
-        rec.print();
+        rec.print(name);
     }
-
     catch (Exception &e) {
         e.complain();
         return 1;

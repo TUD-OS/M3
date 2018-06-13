@@ -4,5 +4,8 @@ myenv = env.Clone()
 
 myenv.M3Program(myenv,
     target = 'fstrace-m3fs',
-    source = [myenv.Glob('*.cc'), 'common/traceplayer.cc', 'common/buffer.cc', 'trace.c']
+    source = [
+        myenv.Glob('*.cc'), myenv.Glob('traces/*.c'),
+        'common/traceplayer.cc', 'common/buffer.cc', 'common/traces.cc'
+    ]
 )

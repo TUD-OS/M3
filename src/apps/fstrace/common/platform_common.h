@@ -24,7 +24,7 @@ class Platform {
     /*
      * @brief Initializes the platform.
      */
-    static void init(int argc, const char * const * argv);
+    static void init(int argc, const char * const * argv, const char *loadgen);
 
     /**
      * @brief return the FSAPI object

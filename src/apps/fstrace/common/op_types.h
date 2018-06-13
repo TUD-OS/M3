@@ -108,7 +108,10 @@ typedef enum {
     MKDIR_OP,
     SENDFILE_OP,
     GETDENTS_OP,
-    CREATEFILE_OP
+    CREATEFILE_OP,
+    ACCEPT_OP,
+    RECVFROM_OP,
+    WRITEV_OP,
 } trace_opcode_t;
 
 /*
@@ -135,6 +138,9 @@ typedef struct { int err; char const * name; int mode; } mkdir_args_t;
 typedef struct { int err; int out_fd; int in_fd; off_t *offset; size_t count; } sendfile_args_t;
 typedef struct { int err; int fd; int count; size_t bufsize; } getdents_args_t;
 typedef struct { int err; char const * name; int mode; off_t size; } createfile_args_t;
+typedef struct { int err; int fd; } accept_args_t;
+typedef struct { int err; int fd; size_t size; } recvfrom_args_t;
+typedef struct { int err; int fd; size_t size; } writev_args_t;
 
 typedef struct {
     int opcode;
@@ -159,14 +165,11 @@ typedef struct {
         sendfile_args_t   sendfile;
         getdents_args_t   getdents;
         createfile_args_t createfile;
+        accept_args_t     accept;
+        recvfrom_args_t     recvfrom;
+        writev_args_t     writev;
     } args;
 } trace_op_t;
-
-/*
- * *************************************************************************
- */
-
-extern trace_op_t trace_ops[];
 
 /*
  * *************************************************************************

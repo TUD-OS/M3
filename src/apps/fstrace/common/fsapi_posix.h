@@ -234,6 +234,16 @@ public:
             THROW1(ReturnValueException, -errno, 0, lineNo);
     }
 
+    virtual void accept(const accept_args_t *, int) override {
+        // TODO unsupported
+    }
+    virtual void recvfrom(Buffer &, const recvfrom_args_t *, int) override {
+        // TODO unsupported
+    }
+    virtual void writev(Buffer &, const writev_args_t *, int) override {
+        // TODO unsupported
+    }
+
 private:
     char const *redirectPath(char const *path) {
         static unsigned cur_buf_idx = 0;

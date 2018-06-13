@@ -82,13 +82,12 @@ static void cleanup() {
 }
 
 static void usage(const char *name) {
-    cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w] [-f <fs>] [-g <rgate selector>]";
+    cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w] [-f <fs>]"
+                              << " [-g <rgate selector>] [-l <loadgen>] <name>";
     exit(1);
 }
 
 int main(int argc, char **argv) {
-    Platform::init(argc, argv);
-
     // defaults
     int num_iterations  = 1;
     bool keep_time      = true;
@@ -96,16 +95,18 @@ int main(int argc, char **argv) {
     bool wait           = false;
     const char *fs      = "m3fs";
     const char *prefix  = "";
+    const char *loadgen = "";
     capsel_t rgate      = ObjCap::INVALID;
     epid_t rgate_ep     = EP_COUNT;
 
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:l:")) != -1) {
         switch(opt) {
             case 'p': prefix = CmdArgs::arg; break;
             case 'n': num_iterations = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'w': wait = true; break;
             case 'f': fs = CmdArgs::arg; break;
+            case 'l': loadgen = CmdArgs::arg; break;
             case 'g': {
                 String input(CmdArgs::arg);
                 IStringStream is(input);
@@ -116,9 +117,15 @@ int main(int argc, char **argv) {
                 usage(argv[0]);
         }
     }
+    if(CmdArgs::ind >= argc)
+        usage(argv[0]);
 
-    if(VFS::mount("/", "m3fs", fs) != Errors::NONE)
-        PANIC("Unable to mount root filesystem " << fs);
+    Platform::init(argc, argv, loadgen);
+
+    if(VFS::mount("/", "m3fs", fs) != Errors::NONE) {
+        if(Errors::last != Errors::EXISTS)
+            PANIC("Unable to mount root filesystem " << fs);
+    }
 
     if(*prefix)
         VFS::mkdir(prefix, 0755);
@@ -147,16 +154,24 @@ int main(int argc, char **argv) {
         receive_msg(rg);
     }
 
+    Trace *trace = Traces::get(argv[CmdArgs::ind]);
+    if(!trace)
+        PANIC("Trace '" << argv[CmdArgs::ind] << "' does not exist.");
+
     // print parameters for reference
     cout << "VPFS trace_bench started ["
+         << "trace=" << argv[CmdArgs::ind] << ","
          << "n=" << num_iterations << ","
          << "wait=" << (wait ? "yes" : "no") << ","
-         << "prefix=" << prefix
+         << "prefix=" << prefix << ","
+         << "fs=" << fs << ","
+         << "loadgen=" << loadgen
          << "]\n";
 
     for(int i = 0; i < num_iterations; ++i) {
-        player.play(wait, keep_time, make_ckpt);
-        cleanup();
+        player.play(trace, wait, keep_time, make_ckpt);
+        if(i + 1 < num_iterations)
+            cleanup();
     }
 
     cout << "VPFS trace_bench benchmark terminated\n";

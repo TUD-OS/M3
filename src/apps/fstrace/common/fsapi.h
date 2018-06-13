@@ -49,4 +49,7 @@ public:
     virtual void sendfile(Buffer &buf, const sendfile_args_t *args, int lineNo) = 0;
     virtual void getdents(const getdents_args_t *args, int lineNo) = 0;
     virtual void createfile(const createfile_args_t *args, int lineNo) = 0;
+    virtual void accept(const accept_args_t *args, int lineNo) = 0;
+    virtual void recvfrom(Buffer &buf, const recvfrom_args_t *args, int lineNo) = 0;
+    virtual void writev(Buffer &buf, const writev_args_t *args, int lineNo) = 0;
 };

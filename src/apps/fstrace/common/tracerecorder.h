@@ -35,13 +35,13 @@ class TraceRecorder {
     /*
      * @brief Print the C code that describes the complete trace.
      */
-    void print();
+    void print(const char *name);
 
   protected:
     /*
      * @brief Print some C code that prepares the trace description.
      */
-    void printPrologue();
+    void printPrologue(const char *name);
 
     void printFuncStart(unsigned int funcNum);
     void printFuncEnd();

@@ -16,6 +16,8 @@
 
 #include <base/stream/Serial.h>
 
+#include <m3/session/LoadGen.h>
+
 #include <stdarg.h>
 
 #include "fsapi_m3fs.h"
@@ -25,13 +27,22 @@
  * *************************************************************************
  */
 
-void Platform::init(int /*argc*/, const char * const * /*argv*/) {
+static m3::LoadGen::Channel *chan;
 
+void Platform::init(int /*argc*/, const char * const * /*argv*/, const char *loadgen) {
+    if(*loadgen) {
+        // connect to load generator
+        m3::LoadGen *lg = new m3::LoadGen(loadgen);
+        if(lg->is_connected()) {
+            chan = lg->create_channel(2 * 1024 * 1024);
+            lg->start(3 * 11);
+        }
+    }
 }
 
 
 FSAPI *Platform::fsapi(bool wait, const char *root) {
-    return new FSAPI_M3FS(wait, root);
+    return new FSAPI_M3FS(wait, root, chan);
 }
 
 

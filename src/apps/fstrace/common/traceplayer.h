@@ -17,6 +17,7 @@
 
 #include "buffer.h"
 #include "op_types.h"
+#include "traces.h"
 
 /*
  * *************************************************************************
@@ -30,7 +31,7 @@ class TracePlayer {
         : pathPrefix(rootDir) { }
 
     virtual ~TracePlayer() { };
-    virtual int play(bool wait, bool keep_time = false, bool make_chkpt = false);
+    virtual int play(Trace *trace, bool wait, bool keep_time = false, bool make_chkpt = false);
 
   protected:
     const char *pathPrefix;

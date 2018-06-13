@@ -18,6 +18,7 @@
 
 #include <base/util/Time.h>
 
+#include <m3/session/LoadGen.h>
 #include <m3/stream/Standard.h>
 #include <m3/vfs/File.h>
 #include <m3/vfs/Dir.h>
@@ -29,7 +30,7 @@
 #include "common/buffer.h"
 
 class FSAPI_M3FS : public FSAPI {
-    enum { MaxOpenFds = 8 };
+    enum { MaxOpenFds = 16 };
 
     void checkFd(int fd) {
         if(_fdMap[fd] == 0)
@@ -37,12 +38,17 @@ class FSAPI_M3FS : public FSAPI {
     }
 
 public:
-    explicit FSAPI_M3FS(bool wait, m3::String const &prefix)
+    explicit FSAPI_M3FS(bool wait, m3::String const &prefix, m3::LoadGen::Channel *lgchan)
         : _wait(wait),
           _start(),
           _prefix(prefix),
           _fdMap(),
-          _dirMap() {
+          _dirMap(),
+          _lgchan(lgchan) {
+        if(_lgchan) {
+            open_args_t args = { 5, "/tmp/log.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644 };
+            open(&args, 0);
+        }
     }
 
     virtual void start() override {
@@ -108,6 +114,8 @@ public:
             delete _dirMap[args->fd];
             _dirMap[args->fd] = nullptr;
         }
+        else if(args->fd == _lgchan_fd)
+            _lgchan_fd = -1;
         else
             exitmsg("Using uninitialized file @ " << args->fd);
     }
@@ -226,6 +234,12 @@ public:
 
     virtual void sendfile(Buffer &buf, const sendfile_args_t *args, int lineNo) override {
         assert(args->offset == nullptr);
+
+        if(args->out_fd == _lgchan_fd) {
+            lgchansend(buf, args, lineNo);
+            return;
+        }
+
         checkFd(args->in_fd);
         checkFd(args->out_fd);
         m3::File *in = m3::VPE::self().fds()->get(_fdMap[args->in_fd]);
@@ -268,6 +282,51 @@ public:
         // TODO not implemented
     }
 
+    virtual void accept(const accept_args_t *args, int lineNo) override {
+        if(!_lgchan)
+            THROW1(IllegalArgumentException, -ENOTSUP, 0, lineNo);
+        _lgchan->wait();
+        _lgchan_fd = args->err;
+    }
+    virtual void recvfrom(Buffer &buf, const recvfrom_args_t *args, int lineNo) override {
+        if(!_lgchan)
+            THROW1(IllegalArgumentException, -ENOTSUP, 0, lineNo);
+
+        char *rbuf = buf.readBuffer(args->size);
+        _lgchan->pull(rbuf, args->size);
+    }
+    virtual void writev(Buffer &buf, const writev_args_t *args, int lineNo) override {
+        if(!_lgchan)
+            THROW1(IllegalArgumentException, -ENOTSUP, 0, lineNo);
+
+        char *wbuf = buf.writeBuffer(args->size);
+        _lgchan->push(wbuf, args->size);
+    }
+    void lgchansend(Buffer &buf, const sendfile_args_t *args, int lineNo) {
+        if(!_lgchan)
+            THROW1(IllegalArgumentException, -ENOTSUP, 0, lineNo);
+
+        checkFd(args->in_fd);
+        m3::File *in = m3::VPE::self().fds()->get(_fdMap[args->in_fd]);
+
+        char *rbuf = buf.readBuffer(Buffer::MaxBufferSize);
+        size_t rem = args->count;
+        while(rem > 0) {
+            size_t amount = m3::Math::min(static_cast<size_t>(Buffer::MaxBufferSize), rem);
+
+            ssize_t res = in->read(rbuf, amount);
+            if(res < 0)
+                THROW1(ReturnValueException, res, amount, lineNo);
+
+            _lgchan->push(rbuf, static_cast<size_t>(res));
+
+            rem -= static_cast<size_t>(res);
+        }
+
+        // there is always just one sendfile() call and it's the last data written to the socket
+        _lgchan->reply();
+    }
+
 private:
     const char *add_prefix_to(const char *path, char *dst, size_t max) {
         if(_prefix.length() == 0 || strncmp(path, "/tmp/", 5) != 0)
@@ -287,4 +346,6 @@ private:
     const m3::String _prefix;
     fd_t _fdMap[MaxOpenFds];
     m3::Dir *_dirMap[MaxOpenFds];
+    fd_t _lgchan_fd;
+    m3::LoadGen::Channel *_lgchan;
 };

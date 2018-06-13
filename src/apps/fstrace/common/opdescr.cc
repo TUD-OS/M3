@@ -345,6 +345,24 @@ public:
     CreateFileOpDescr(const std::string &str);
 };
 
+
+class AcceptOpDescr: public OpDescr {
+public:
+    AcceptOpDescr(const std::string &str);
+};
+
+
+class RecvFromOpDescr: public OpDescr {
+public:
+    RecvFromOpDescr(const std::string &str);
+};
+
+
+class WritevOpDescr: public OpDescr {
+public:
+    WritevOpDescr(const std::string &str);
+};
+
 /*
  * *************************************************************************
  */
@@ -599,8 +617,9 @@ SendfileOpDescr::SendfileOpDescr(const string &in) {
     ArgsVector args(4);
 
     extractValues(in, 4, args, retVal);
+
     buildCodeLine("SENDFILE_OP", "sendfile",
-                  retVal + ", " + args[0] + ", " + args[1] + ", " + args[2] + ", " + args[3]);
+                  retVal + ", " + args[0] + ", " + args[1] + ", 0, " + args[3]);
 }
 
 /*
@@ -629,6 +648,50 @@ CreateFileOpDescr::CreateFileOpDescr(const string &in) {
     extractValues(in, 3, args, retVal);
     buildCodeLine("CREATEFILE_OP", "createfile",
                   retVal + ", " + args[0] + ", " + args[1] + ", " + args[2]);
+}
+
+/*
+ * *************************************************************************
+ */
+
+AcceptOpDescr::AcceptOpDescr(const string &in) {
+
+    string retVal;
+    ArgsVector args(1);
+
+    extractValues(in, 1, args, retVal);
+    buildCodeLine("ACCEPT_OP", "accept",
+                  retVal + ", " + args[0]);
+}
+
+/*
+ * *************************************************************************
+ */
+
+RecvFromOpDescr::RecvFromOpDescr(const string &in) {
+
+    string retVal;
+    ArgsVector args(3);
+
+    extractValues(in, 3, args, retVal);
+    string argStr = retVal + ", " + args[0] + ", " + args[2];
+    buildCodeLine("RECVFROM_OP", "recvfrom", argStr);
+}
+
+/*
+ * *************************************************************************
+ */
+
+WritevOpDescr::WritevOpDescr(const string &in) {
+
+    string retVal;
+    ArgsVector args(3);
+
+    extractValues(in, 3, args, retVal);
+    // remove trailing '}' and remove leading iov_len=
+    string len = args[2].substr(8, args[2].length() - (8 + 2));
+    string argStr = retVal + ", " + args[0] + ", " + len;
+    buildCodeLine("WRITEV_OP", "writev", argStr);
 }
 
 /*
@@ -689,6 +752,12 @@ OpDescr *OpDescrFactory::create(const string &line) {
         return new GetDEntsOpDescr(line);
     if (OpDescrFactory::isStringHead(line, "_createfile("))
         return new CreateFileOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "accept4("))
+        return new AcceptOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "recvfrom("))
+        return new RecvFromOpDescr(line);
+    if (OpDescrFactory::isStringHead(line, "writev("))
+        return new WritevOpDescr(line);
 
     return 0;
 }

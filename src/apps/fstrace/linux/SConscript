@@ -9,6 +9,7 @@ myenv.Append(
 prog = myenv.Program(
     target = 'linux-replay',
     source = [
-        myenv.Glob('*.cc'), 'common/main.cc', 'common/buffer.cc', 'common/traceplayer.cc', 'trace.c'
+        myenv.Glob('*.cc'), myenv.Glob('traces/*.c'),
+        'common/buffer.cc', 'common/traceplayer.cc', 'common/traces.cc'
     ]
 )

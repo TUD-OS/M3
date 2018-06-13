@@ -24,7 +24,7 @@
  * *************************************************************************
  */
 
-void Platform::init(int /*argc*/, const char * const * /*argv*/) {
+void Platform::init(int /*argc*/, const char * const * /*argv*/, const char *) {
 
 }
 

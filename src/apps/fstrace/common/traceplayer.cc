@@ -49,20 +49,22 @@ static const char *op_names[] = {
     "SENDFILE",
     "GETDENTS",
     "CREATEFILE",
+    "ACCEPT",
+    "RECVFROM",
+    "WRITEV"
 };
 
 /*
  * *************************************************************************
  */
 
-int TracePlayer::play(bool wait, bool keep_time, bool) {
-    trace_op_t *op = trace_ops;
-
+int TracePlayer::play(Trace *trace, bool wait, bool keep_time, bool) {
     size_t rdBufSize = 0;
     size_t wrBufSize = 0;
 
     // touch all operations to make sure we don't get pagefaults in trace_ops arrary
     unsigned int numTraceOps = 0;
+    trace_op_t *op = trace->trace_ops;
     while (op && op->opcode != INVALID_OP) {
         op++;
         if (op->opcode != WAITUNTIL_OP)
@@ -74,9 +76,15 @@ int TracePlayer::play(bool wait, bool keep_time, bool) {
             case PREAD_OP:
                 rdBufSize = rdBufSize < op->args.read.size ? op->args.read.size : rdBufSize;
                 break;
+            case RECVFROM_OP:
+                rdBufSize = rdBufSize < op->args.recvfrom.size ? op->args.recvfrom.size : rdBufSize;
+                break;
             case WRITE_OP:
             case PWRITE_OP:
                 wrBufSize = wrBufSize < op->args.write.size ? op->args.write.size : wrBufSize;
+                break;
+            case WRITEV_OP:
+                wrBufSize = wrBufSize < op->args.writev.size ? op->args.writev.size : wrBufSize;
                 break;
             case SENDFILE_OP:
                 rdBufSize = rdBufSize < Buffer::MaxBufferSize ? Buffer::MaxBufferSize : rdBufSize;
@@ -97,7 +105,7 @@ int TracePlayer::play(bool wait, bool keep_time, bool) {
 #endif
 
     // let's play
-    op = trace_ops;
+    op = trace->trace_ops;
     while (op && op->opcode != INVALID_OP) {
 #ifndef __LINUX__
         m3::Time::start(static_cast<uint>(lineNo));
@@ -226,6 +234,21 @@ int TracePlayer::play(bool wait, bool keep_time, bool) {
             case CREATEFILE_OP:
             {
                 fs->createfile(&op->args.createfile, lineNo);
+                break;
+            }
+            case ACCEPT_OP:
+            {
+                fs->accept(&op->args.accept, lineNo);
+                break;
+            }
+            case RECVFROM_OP:
+            {
+                fs->recvfrom(buf, &op->args.recvfrom, lineNo);
+                break;
+            }
+            case WRITEV_OP:
+            {
+                fs->writev(buf, &op->args.writev, lineNo);
                 break;
             }
             default:

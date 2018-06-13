@@ -1,5 +1,4 @@
 /**
- * Copyright (C) 2015, René Küttner <rene.kuettner@.tu-dresden.de>
  * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universität Dresden (Germany)
  *
@@ -52,8 +51,8 @@ struct App {
 };
 
 int main(int argc, char **argv) {
-    if(argc != 6) {
-        cerr << "Usage: " << argv[0] << " 1|0 <repeats> <instances> <servers> <fssize>\n";
+    if(argc != 8) {
+        cerr << "Usage: " << argv[0] << " <name> <muxed> <loadgen> <repeats> <instances> <servers> <fssize>\n";
         return 1;
     }
 
@@ -62,11 +61,13 @@ int main(int argc, char **argv) {
     if(VFS::mount("/", "m3fs") != Errors::NONE)
         PANIC("Cannot mount root fs");
 
-    bool muxed = strcmp(argv[1], "1") == 0;
-    UNUSED int repeats = IStringStream::read_from<int>(argv[2]);
-    size_t instances = IStringStream::read_from<size_t>(argv[3]);
-    size_t servers = IStringStream::read_from<size_t>(argv[4]);
-    size_t fssize = IStringStream::read_from<size_t>(argv[5]);
+    const char *name = argv[1];
+    bool muxed = strcmp(argv[2], "1") == 0;
+    bool loadgen = strcmp(argv[3], "1") == 0;
+    UNUSED int repeats = IStringStream::read_from<int>(argv[4]);
+    size_t instances = IStringStream::read_from<size_t>(argv[5]);
+    size_t servers = IStringStream::read_from<size_t>(argv[6]);
+    size_t fssize = IStringStream::read_from<size_t>(argv[7]);
     App *apps[instances];
 
     RemoteServer *srv[servers];
@@ -75,7 +76,7 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Creating application VPEs...\n";
 
-    constexpr size_t ARG_COUNT = 8;
+    const size_t ARG_COUNT = loadgen ? 11 : 9;
     for(size_t i = 0; i < instances; ++i) {
         const char **args = new const char *[ARG_COUNT];
         args[0] = "/bin/fstrace-m3fs";
@@ -87,9 +88,9 @@ int main(int argc, char **argv) {
 
     for(size_t i = 0; i < servers; ++i) {
         srvvpes[i] = new VPE("m3fs", VPE::self().pe(), "pager", muxed ? VPE::MUXABLE : 0);
-        OStringStream name(srvnames[i], sizeof(srvnames[i]));
-        name << "m3fs" << i;
-        srv[i] = new RemoteServer(*srvvpes[i], name.str());
+        OStringStream m3fs_name(srvnames[i], sizeof(srvnames[i]));
+        m3fs_name << "m3fs" << i;
+        srv[i] = new RemoteServer(*srvvpes[i], m3fs_name.str());
 
         String m3fsarg = srv[i]->sel_arg();
         OStringStream fs_off_str(new char[16], 16);
@@ -97,8 +98,12 @@ int main(int argc, char **argv) {
         OStringStream fs_size_str(new char[16], 16);
         fs_size_str << fssize;
         const char *m3fs_args[] = {
-            "/bin/m3fs", "-n", srvnames[i], "-s", m3fsarg.c_str(),
-            "-o", fs_off_str.str(), fs_size_str.str()
+            "/bin/m3fs",
+            "-n", srvnames[i],
+            "-s", m3fsarg.c_str(),
+            "-o", fs_off_str.str(),
+            "-e", "512",
+            fs_size_str.str()
         };
         if(VERBOSE) {
             cout << "Creating ";
@@ -127,6 +132,15 @@ int main(int argc, char **argv) {
         OStringStream rgatesel(new char[11], 11);
         rgatesel << apps[i]->rgate.sel() << " " << apps[i]->rgate.ep();
         args[7] = rgatesel.str();
+        if(loadgen) {
+            args[8] = "-l";
+            OStringStream loadgen(new char[16], 16);
+            loadgen << "loadgen" << (i % 8);
+            args[9] = loadgen.str();
+            args[10] = name;
+        }
+        else
+            args[8] = name;
 
         if(VERBOSE) {
             cout << "Starting ";

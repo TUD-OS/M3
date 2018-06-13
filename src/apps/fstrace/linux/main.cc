@@ -46,7 +46,7 @@ class MeasuringTracePlayer: public TracePlayer {
 
     MeasuringTracePlayer(std::string const &rootDir) : TracePlayer(rootDir.c_str()) { }
 
-    virtual int play(FlushMode mode, FlushType type, int num_iterations,
+    virtual int play(Trace *trace, FlushMode mode, FlushType type, int num_iterations,
                      bool keep_time) {
 
         clock.start();
@@ -54,7 +54,7 @@ class MeasuringTracePlayer: public TracePlayer {
         // play trace
         for (int i = 0; i < num_iterations; i++) {
             //cout << "replay trace: iteration " << i + 1 << " of " << num_iterations << endl;
-            TracePlayer::play(true, keep_time, mode == Interval);
+            TracePlayer::play(trace, true, keep_time, mode == Interval);
 
             // sync/checkpoint FS, if requested
             if (mode == None)
@@ -89,7 +89,7 @@ class MeasuringTracePlayer: public TracePlayer {
 int main(int argc, char **argv) {
 
     try {
-        Platform::init(argc, argv);
+        Platform::init(argc, argv, "");
 
         // defaults
         MeasuringTracePlayer::FlushMode flush_mode = MeasuringTracePlayer::None;
@@ -146,6 +146,13 @@ int main(int argc, char **argv) {
             // print parameters for reference
             char const * const sync_mode_str[3] = { "none", "last", "all" };
             char const * const sync_type_str[2] = { "sync", "checkpoint" };
+
+            Trace *trace = Traces::get(trace_name.c_str());
+            if(!trace) {
+                cerr << "Trace '" << trace_name << "' does not exist.";
+                return 1;
+            }
+
             printf("VPFS trace_bench '%s' started [n=%ld,keeptime=%s,coldcaches=%s,%s=%s]\n",
                    trace_name.c_str(), num_iterations,
                    keep_time   ? "yes" : "no",
@@ -157,7 +164,7 @@ int main(int argc, char **argv) {
             if (drop_caches)
                 Platform::drop_caches();
 
-            player.play(flush_mode, flush_type, num_iterations, keep_time);
+            player.play(trace, flush_mode, flush_type, num_iterations, keep_time);
             player.report(trace_name);
             printf("VPFS trace_bench benchmark terminated\n");
         }
