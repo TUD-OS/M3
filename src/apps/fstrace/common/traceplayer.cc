@@ -58,11 +58,10 @@ static const char *op_names[] = {
  * *************************************************************************
  */
 
-int TracePlayer::play(Trace *trace, bool wait, bool keep_time, bool) {
+int TracePlayer::play(Trace *trace, bool wait, bool data, bool stdio, bool keep_time, bool) {
     size_t rdBufSize = 0;
     size_t wrBufSize = 0;
 
-    // touch all operations to make sure we don't get pagefaults in trace_ops arrary
     unsigned int numTraceOps = 0;
     trace_op_t *op = trace->trace_ops;
     while (op && op->opcode != INVALID_OP) {
@@ -97,7 +96,7 @@ int TracePlayer::play(Trace *trace, bool wait, bool keep_time, bool) {
     Buffer buf(rdBufSize, wrBufSize);
     int lineNo = 1;
     unsigned int numReplayed = 0;
-    FSAPI *fs = Platform::fsapi(wait, pathPrefix);
+    FSAPI *fs = Platform::fsapi(wait, data, stdio, pathPrefix);
 
     fs->start();
 #ifndef __LINUX__
@@ -143,8 +142,9 @@ int TracePlayer::play(Trace *trace, bool wait, bool keep_time, bool) {
             case READ_OP:
             {
                 read_args_t *args = &op->args.read;
+                size_t amount = (stdio && args->fd == 0) ? static_cast<size_t>(args->err) : args->size;
                 for (unsigned int i = 0; i < args->count; i++) {
-                    ssize_t err = fs->read(args->fd, buf.readBuffer(args->size), args->size);
+                    ssize_t err = fs->read(args->fd, buf.readBuffer(amount), amount);
                     if (err != (ssize_t)args->err)
                         THROW1(ReturnValueException, err, args->err, lineNo);
                 }
@@ -153,8 +153,9 @@ int TracePlayer::play(Trace *trace, bool wait, bool keep_time, bool) {
             case WRITE_OP:
             {
                 write_args_t *args = &op->args.write;
+                size_t amount = (stdio && args->fd == 1) ? static_cast<size_t>(args->err) : args->size;
                 for (unsigned int i = 0; i < args->count; i++) {
-                    ssize_t err = fs->write(args->fd, buf.writeBuffer(args->size), args->size);
+                    ssize_t err = fs->write(args->fd, buf.writeBuffer(amount), amount);
                     if (err != (ssize_t)args->err)
                         THROW1(ReturnValueException, err, args->err, lineNo);
                 }

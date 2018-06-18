@@ -17,7 +17,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include "common/fsapi_posix.h"
+#include "fsapi_posix.h"
 #include "platform.h"
 
 /*
@@ -28,7 +28,7 @@ void Platform::init(int /*argc*/, const char * const * /*argv*/, const char *) {
 
 }
 
-FSAPI *Platform::fsapi(bool, const char *root) {
+FSAPI *Platform::fsapi(bool, bool, bool, const char *root) {
     return new FSAPI_POSIX(root);
 }
 

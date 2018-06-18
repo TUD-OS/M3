@@ -33,13 +33,14 @@ class FSAPI_M3FS : public FSAPI {
     enum { MaxOpenFds = 16 };
 
     void checkFd(int fd) {
-        if(_fdMap[fd] == 0)
+        if(_fdMap[fd] == -1)
             exitmsg("Using uninitialized file @ " << fd);
     }
 
 public:
-    explicit FSAPI_M3FS(bool wait, m3::String const &prefix, m3::LoadGen::Channel *lgchan)
+    explicit FSAPI_M3FS(bool wait, bool data, bool stdio, m3::String const &prefix, m3::LoadGen::Channel *lgchan)
         : _wait(wait),
+          _data(data),
           _start(),
           _prefix(prefix),
           _fdMap(),
@@ -49,6 +50,12 @@ public:
             open_args_t args = { 5, "/tmp/log.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644 };
             open(&args, 0);
         }
+        for(size_t i = 0; i < ARRAY_SIZE(_fdMap); ++i)
+            _fdMap[i] = -1;
+        if(stdio) {
+            _fdMap[0] = 0;
+            _fdMap[1] = 1;
+        }
     }
 
     virtual void start() override {
@@ -56,7 +63,7 @@ public:
     }
     virtual void stop() override {
         cycles_t end = m3::Time::stop(0);
-        m3::cout << "Total time: " << (end - _start) << " cycles\n";
+        m3::cerr << "Total time: " << (end - _start) << " cycles\n";
     }
 
     virtual int error() override {
@@ -73,7 +80,7 @@ public:
     }
 
     virtual void open(const open_args_t *args, UNUSED int lineNo) override {
-        if(args->fd != -1 && (_fdMap[args->fd] != 0 || _dirMap[args->fd] != nullptr))
+        if(args->fd != -1 && (_fdMap[args->fd] != -1 || _dirMap[args->fd] != nullptr))
             exitmsg("Overwriting already used file/dir @ " << args->fd);
 
         if(args->flags & O_DIRECTORY) {
@@ -91,7 +98,7 @@ public:
         }
         else {
             auto nfile = m3::VFS::open(add_prefix(args->name),
-                                       args->flags | m3::FILE_NODATA | m3::FILE_NOSESS);
+                                       args->flags | (_data ? 0 : m3::FILE_NODATA) | m3::FILE_NOSESS);
             if(m3::Errors::occurred()) {
                 m3::VFS::close(nfile);
                 if(args->fd != -1)
@@ -106,9 +113,9 @@ public:
     }
 
     virtual void close(const close_args_t *args, int ) override {
-        if(_fdMap[args->fd]) {
+        if(_fdMap[args->fd] != -1) {
             m3::VFS::close(_fdMap[args->fd]);
-            _fdMap[args->fd] = 0;
+            _fdMap[args->fd] = -1;
         }
         else if(_dirMap[args->fd]) {
             delete _dirMap[args->fd];
@@ -179,7 +186,7 @@ public:
     virtual void fstat(const fstat_args_t *args, UNUSED int lineNo) override {
         int res;
         m3::FileInfo info;
-        if(_fdMap[args->fd])
+        if(_fdMap[args->fd] != -1)
             res = m3::VPE::self().fds()->get(_fdMap[args->fd])->stat(info);
         else if(_dirMap[args->fd])
             res = _dirMap[args->fd]->stat(info);
@@ -250,6 +257,8 @@ public:
             size_t amount = m3::Math::min(static_cast<size_t>(Buffer::MaxBufferSize), rem);
 
             ssize_t res = in->read(rbuf, amount);
+            if(res == 0)
+                break;
             if(res < 0)
                 THROW1(ReturnValueException, res, amount, lineNo);
 
@@ -259,6 +268,8 @@ public:
 
             rem -= static_cast<size_t>(res);
         }
+        if(static_cast<int>(args->count - rem) != args->err)
+            THROW1(ReturnValueException, args->count - rem, args->err, lineNo);
     }
 
     virtual void getdents(const getdents_args_t *args, UNUSED int lineNo) override {
@@ -342,6 +353,7 @@ private:
     }
 
     bool _wait;
+    bool _data;
     cycles_t _start;
     const m3::String _prefix;
     fd_t _fdMap[MaxOpenFds];

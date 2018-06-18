@@ -20,10 +20,10 @@
 
 namespace m3 {
 
-IndirectPipe::IndirectPipe(MemGate &mem, size_t memsize)
-    : _pipe("pipe", mem, memsize),
-      _rdfd(VPE::self().fds()->alloc(_pipe.create_channel(true))),
-      _wrfd(VPE::self().fds()->alloc(_pipe.create_channel(false))) {
+IndirectPipe::IndirectPipe(MemGate &mem, size_t memsize, const char *service, int flags)
+    : _pipe(service, mem, memsize),
+      _rdfd(VPE::self().fds()->alloc(_pipe.create_channel(true, flags))),
+      _wrfd(VPE::self().fds()->alloc(_pipe.create_channel(false, flags))) {
 }
 
 IndirectPipe::~IndirectPipe() {

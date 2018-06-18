@@ -34,7 +34,7 @@ static const bool VERBOSE           = 0;
 static const uint META_EPS          = 4;
 
 static void remove_rec(const char *path) {
-    if(VERBOSE) cout << "Unlinking " << path << "\n";
+    if(VERBOSE) cerr << "Unlinking " << path << "\n";
     if(VFS::unlink(path) == Errors::IS_DIR) {
         Dir::Entry e;
         char tmp[128];
@@ -59,7 +59,7 @@ static void cleanup() {
     size_t x = 0;
     String *entries[MAX_TMP_FILES];
 
-    if(VERBOSE) cout << "Collecting files in /tmp\n";
+    if(VERBOSE) cerr << "Collecting files in /tmp\n";
 
     // remove all entries; we assume here that they are files
     Dir::Entry e;
@@ -83,7 +83,7 @@ static void cleanup() {
 
 static void usage(const char *name) {
     cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w] [-f <fs>]"
-                              << " [-g <rgate selector>] [-l <loadgen>] <name>";
+                              << " [-g <rgate selector>] [-l <loadgen>] [-i] [-d] <name>";
     exit(1);
 }
 
@@ -93,6 +93,8 @@ int main(int argc, char **argv) {
     bool keep_time      = true;
     bool make_ckpt      = false;
     bool wait           = false;
+    bool stdio          = false;
+    bool data           = false;
     const char *fs      = "m3fs";
     const char *prefix  = "";
     const char *loadgen = "";
@@ -100,13 +102,15 @@ int main(int argc, char **argv) {
     epid_t rgate_ep     = EP_COUNT;
 
     int opt;
-    while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:l:")) != -1) {
+    while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:l:id")) != -1) {
         switch(opt) {
             case 'p': prefix = CmdArgs::arg; break;
             case 'n': num_iterations = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'w': wait = true; break;
             case 'f': fs = CmdArgs::arg; break;
             case 'l': loadgen = CmdArgs::arg; break;
+            case 'i': stdio = true; break;
+            case 'd': data = true; break;
             case 'g': {
                 String input(CmdArgs::arg);
                 IStringStream is(input);
@@ -143,6 +147,19 @@ int main(int argc, char **argv) {
 
     TracePlayer player(prefix);
 
+    Trace *trace = Traces::get(argv[CmdArgs::ind]);
+    if(!trace)
+        PANIC("Trace '" << argv[CmdArgs::ind] << "' does not exist.");
+
+    // touch all operations to make sure we don't get pagefaults in trace_ops arrary
+    unsigned int numTraceOps = 0;
+    trace_op_t *op = trace->trace_ops;
+    while (op && op->opcode != INVALID_OP) {
+        op++;
+        if (op->opcode != WAITUNTIL_OP)
+            numTraceOps++;
+    }
+
     if(rgate != ObjCap::INVALID) {
         RecvGate rg = RecvGate::bind(rgate, 6, rgate_ep);
         {
@@ -154,27 +171,26 @@ int main(int argc, char **argv) {
         receive_msg(rg);
     }
 
-    Trace *trace = Traces::get(argv[CmdArgs::ind]);
-    if(!trace)
-        PANIC("Trace '" << argv[CmdArgs::ind] << "' does not exist.");
-
     // print parameters for reference
-    cout << "VPFS trace_bench started ["
+    cerr << "VPFS trace_bench started ["
          << "trace=" << argv[CmdArgs::ind] << ","
          << "n=" << num_iterations << ","
          << "wait=" << (wait ? "yes" : "no") << ","
+         << "data=" << (data ? "yes" : "no") << ","
+         << "stdio=" << (stdio ? "yes" : "no") << ","
          << "prefix=" << prefix << ","
          << "fs=" << fs << ","
-         << "loadgen=" << loadgen
+         << "loadgen=" << loadgen << ","
+         << "ops=" << numTraceOps
          << "]\n";
 
     for(int i = 0; i < num_iterations; ++i) {
-        player.play(trace, wait, keep_time, make_ckpt);
+        player.play(trace, wait, data, stdio, keep_time, make_ckpt);
         if(i + 1 < num_iterations)
             cleanup();
     }
 
-    cout << "VPFS trace_bench benchmark terminated\n";
+    cerr << "VPFS trace_bench benchmark terminated\n";
 
     // done
     Platform::shutdown();
