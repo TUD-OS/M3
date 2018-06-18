@@ -27,7 +27,7 @@
 #   include <base/util/Time.h>
 #endif
 
-static const char *op_names[] = {
+__attribute__((unused)) static const char *op_names[] = {
     "INVALID",
     "WAITUNTIL",
     "OPEN",
