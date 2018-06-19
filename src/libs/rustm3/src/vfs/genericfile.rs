@@ -17,10 +17,11 @@ use vpe::VPE;
 
 int_enum! {
     pub struct Operation : u64 {
-        const STAT    = 0;
-        const SEEK    = 1;
-        const READ    = 2;
-        const WRITE   = 3;
+        const STAT      = 0;
+        const SEEK      = 1;
+        const NEXT_IN   = 2;
+        const NEXT_OUT  = 3;
+        const COMMIT    = 4;
     }
 }
 
@@ -59,7 +60,7 @@ impl GenericFile {
         if self.pos > 0 && (self.writing || force) {
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                if self.writing { Operation::WRITE } else { Operation::READ }, self.pos
+                Operation::COMMIT, self.pos
             )?;
             // if we append, the file was truncated
             let filesize = reply.pop();
@@ -181,7 +182,7 @@ impl Read for GenericFile {
             time::start(0xbbbb);
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::READ, 0usize
+                Operation::NEXT_IN
             )?;
             time::stop(0xbbbb);
             self.goff += self.len;
@@ -214,7 +215,7 @@ impl Write for GenericFile {
             time::start(0xbbbb);
             let mut reply = send_recv_res!(
                 &self.sgate, RecvGate::def(),
-                Operation::WRITE, 0usize
+                Operation::NEXT_OUT
             )?;
             time::stop(0xbbbb);
             self.goff += self.len;

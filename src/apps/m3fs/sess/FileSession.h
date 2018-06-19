@@ -65,8 +65,9 @@ public:
         return FILE;
     }
 
-    virtual void read(m3::GateIStream &is) override;
-    virtual void write(m3::GateIStream &is) override;
+    virtual void next_in(m3::GateIStream &is) override;
+    virtual void next_out(m3::GateIStream &is) override;
+    virtual void commit(m3::GateIStream &is) override;
     virtual void seek(m3::GateIStream &is) override;
     virtual void fstat(m3::GateIStream &is) override;
 
@@ -88,7 +89,7 @@ public:
     m3::Errors::Code get_mem(m3::KIF::Service::ExchangeData &data);
 
 private:
-    void read_write(m3::GateIStream &is, bool write);
+    void next_in_out(m3::GateIStream &is, bool out);
     m3::Errors::Code commit(m3::INode *inode, size_t submit);
 
     size_t _extent;

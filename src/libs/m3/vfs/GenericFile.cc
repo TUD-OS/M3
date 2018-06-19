@@ -126,8 +126,8 @@ ssize_t GenericFile::read(void *buffer, size_t count) {
 
     if(_pos == _len) {
         Time::start(0xbbbb);
-        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, READ, _id, static_cast<size_t>(0))
-                                         : send_receive_vmsg(*_sg, READ, static_cast<size_t>(0));
+        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, NEXT_IN, _id)
+                                         : send_receive_vmsg(*_sg, NEXT_IN);
         reply >> Errors::last;
         Time::stop(0xbbbb);
         if(Errors::last != Errors::NONE)
@@ -162,8 +162,8 @@ ssize_t GenericFile::write(const void *buffer, size_t count) {
 
     if(_pos == _len) {
         Time::start(0xbbbb);
-        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, WRITE, _id, static_cast<size_t>(0))
-                                         : send_receive_vmsg(*_sg, WRITE, static_cast<size_t>(0));
+        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, NEXT_OUT, _id)
+                                         : send_receive_vmsg(*_sg, NEXT_OUT);
         reply >> Errors::last;
         Time::stop(0xbbbb);
         if(Errors::last != Errors::NONE)
@@ -209,8 +209,8 @@ Errors::Code GenericFile::submit() {
         LLOG(FS, "GenFile[" << fd() << "," << _id << "]::submit("
             << (_writing ? "write" : "read") << ", " << _pos << ")");
 
-        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, _writing ? WRITE : READ, _id, _pos)
-                                         : send_receive_vmsg(*_sg, _writing ? WRITE : READ, _pos);
+        GateIStream reply = !have_sess() ? send_receive_vmsg(*_sg, COMMIT, _id, _pos)
+                                         : send_receive_vmsg(*_sg, COMMIT, _pos);
         reply >> Errors::last;
         if(Errors::last != Errors::NONE)
             return Errors::last;

@@ -117,15 +117,12 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
     return Errors::NONE;
 }
 
-void M3FSFileSession::read_write(GateIStream &is, bool write) {
-    size_t submit;
-    is >> submit;
-
-    PRINT(this, "file::" << (write ? "write" : "read") << "(submit=" << submit << "); "
+void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
+    PRINT(this, "file::next_" << (out ? "out" : "in") << "(); "
         << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
         << ", extoff=" << _extoff << "]");
 
-    if((write && !(_oflags & FILE_W)) || (!write && !(_oflags & FILE_R))) {
+    if((out && !(_oflags & FILE_W)) || (!out && !(_oflags & FILE_R))) {
         reply_error(is, Errors::NO_PERM);
         return;
     }
@@ -134,21 +131,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     INode *inode = INodes::get(h, _ino);
     assert(inode != nullptr);
 
-    if(submit > 0) {
-        if(_extent == 0) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
-
-        Errors::Code res = write ? commit(inode, submit) : Errors::NONE;
-        if(res == Errors::NONE && _lastoff + submit < _extlen) {
-            _extent--;
-            _extoff = _lastoff + submit;
-        }
-        reply_vmsg(is, res, inode->size);
-        return;
-    }
-    else if(write && _appending) {
+    // in/out implicitly commits the previous in/out request
+    if(out && _appending) {
         Errors::Code res = commit(inode, _extlen - _lastoff);
         if(res != Errors::NONE) {
             reply_error(is, res);
@@ -161,7 +145,7 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     size_t len;
 
     // do we need to append to the file?
-    if(write && _fileoff == inode->size) {
+    if(out && _fileoff == inode->size) {
         OpenFiles::OpenFile *of = h.files().get_file(_ino);
         assert(of != nullptr);
         if(of->appending) {
@@ -216,8 +200,8 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     else
         _lastoff = 0;
 
-    PRINT(this, "file::" << (write ? "write" : "read")
-        << " -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
+    PRINT(this, "file::next_" << (out ? "out" : "in")
+        << "() -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
 
     if(h.revoke_first()) {
         // revoke last mem cap and remember new one
@@ -236,12 +220,37 @@ void M3FSFileSession::read_write(GateIStream &is, bool write) {
     }
 }
 
-void M3FSFileSession::read(GateIStream &is) {
-    read_write(is, false);
+void M3FSFileSession::next_in(GateIStream &is) {
+    next_in_out(is, false);
 }
 
-void M3FSFileSession::write(GateIStream &is) {
-    read_write(is, true);
+void M3FSFileSession::next_out(GateIStream &is) {
+    next_in_out(is, true);
+}
+
+void M3FSFileSession::commit(GateIStream &is) {
+    size_t nbytes;
+    is >> nbytes;
+
+    PRINT(this, "file::commit(nbytes=" << nbytes << "); "
+        << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
+        << ", extoff=" << _extoff << "]");
+
+    if(nbytes == 0 || _extent == 0) {
+        reply_error(is, Errors::INV_ARGS);
+        return;
+    }
+
+    FSHandle &h = _meta->handle();
+    INode *inode = INodes::get(h, _ino);
+    assert(inode != nullptr);
+
+    Errors::Code res = _appending ? commit(inode, nbytes) : Errors::NONE;
+    if(res == Errors::NONE && _lastoff + nbytes < _extlen) {
+        _extent--;
+        _extoff = _lastoff + nbytes;
+    }
+    reply_vmsg(is, res, inode->size);
 }
 
 void M3FSFileSession::seek(GateIStream &is) {

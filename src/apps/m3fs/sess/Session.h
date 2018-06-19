@@ -48,10 +48,13 @@ public:
         m3::reply_error(is, m3::Errors::NOT_SUP);
     }
 
-    virtual void read(m3::GateIStream &is) {
+    virtual void next_in(m3::GateIStream &is) {
         m3::reply_error(is, m3::Errors::NOT_SUP);
     }
-    virtual void write(m3::GateIStream &is) {
+    virtual void next_out(m3::GateIStream &is) {
+        m3::reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void commit(m3::GateIStream &is) {
         m3::reply_error(is, m3::Errors::NOT_SUP);
     }
     virtual void seek(m3::GateIStream &is) {

@@ -51,10 +51,13 @@ struct VTermSession : public ServerSession {
 
     virtual Type type() const = 0;
 
-    virtual void read(m3::GateIStream &is, size_t) {
+    virtual void next_in(m3::GateIStream &is) {
         reply_error(is, m3::Errors::NOT_SUP);
     }
-    virtual void write(m3::GateIStream &is, size_t) {
+    virtual void next_out(m3::GateIStream &is) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
+    virtual void commit(m3::GateIStream &is, size_t) {
         reply_error(is, m3::Errors::NOT_SUP);
     }
 };
@@ -91,26 +94,17 @@ public:
         return CHAN;
     }
 
-    virtual void read(m3::GateIStream &is, size_t submit) override {
-        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::read(submit=" << submit << ")");
+    virtual void next_in(m3::GateIStream &is) override {
+        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::next_in()");
 
         if(writing) {
             reply_error(is, Errors::NO_PERM);
             return;
         }
-        if(submit > len - pos) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
 
-        pos += submit ? submit : (len - pos);
-        if(submit > 0) {
-            reply_vmsg(is, Errors::NONE, len);
-            return;
-        }
+        pos += len - pos;
 
         Errors::last = Errors::NONE;
-
         if(pos == len) {
             char buf[BUF_SIZE];
             len = static_cast<size_t>(Machine::read(buf, sizeof(buf)));
@@ -129,28 +123,19 @@ public:
             reply_vmsg(is, Errors::NONE, pos, len - pos);
     }
 
-    virtual void write(m3::GateIStream &is, size_t submit) override {
-        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::write(submit=" << submit << ")");
+    virtual void next_out(m3::GateIStream &is) override {
+        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::next_out()");
 
         if(!writing) {
             reply_error(is, Errors::NO_PERM);
             return;
         }
-        if(submit > len) {
-            reply_error(is, Errors::INV_ARGS);
-            return;
-        }
 
         if(len > 0) {
             char buf[BUF_SIZE];
-            size_t amount = submit ? submit : len;
-            mem.read(buf, amount, 0);
-            Machine::write(buf, amount);
+            mem.read(buf, len, 0);
+            Machine::write(buf, len);
             len = 0;
-        }
-        if(submit > 0) {
-            reply_vmsg(is, Errors::NONE, BUF_SIZE);
-            return;
         }
 
         if(!active) {
@@ -161,11 +146,32 @@ public:
         if(Errors::last != Errors::NONE)
             reply_error(is, Errors::last);
         else {
+            pos = 0;
             len = BUF_SIZE;
-            if(submit > 0)
-                reply_vmsg(is, Errors::NONE, BUF_SIZE);
-            else
-                reply_vmsg(is, Errors::NONE, static_cast<size_t>(0), BUF_SIZE);
+            reply_vmsg(is, Errors::NONE, static_cast<size_t>(0), BUF_SIZE);
+        }
+    }
+
+    virtual void commit(m3::GateIStream &is, size_t nbytes) override {
+        SLOG(VTERM, fmt((word_t)this, "p") << " vterm::commit(nbytes=" << nbytes << ")");
+
+        if(nbytes > len - pos) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        if(writing) {
+            if(len > 0) {
+                char buf[BUF_SIZE];
+                mem.read(buf, nbytes, 0);
+                Machine::write(buf, nbytes);
+                len = 0;
+            }
+            reply_vmsg(is, Errors::NONE, BUF_SIZE);
+        }
+        else {
+            pos += nbytes;
+            reply_vmsg(is, Errors::NONE, len);
         }
     }
 
@@ -196,8 +202,9 @@ public:
           _rgate(RecvGate::create(nextlog2<32 * MSG_SIZE>::val, nextlog2<MSG_SIZE>::val)) {
         add_operation(GenericFile::SEEK, &VTermHandler::invalid_op);
         add_operation(GenericFile::STAT, &VTermHandler::invalid_op);
-        add_operation(GenericFile::READ, &VTermHandler::read);
-        add_operation(GenericFile::WRITE, &VTermHandler::write);
+        add_operation(GenericFile::NEXT_IN, &VTermHandler::next_in);
+        add_operation(GenericFile::NEXT_OUT, &VTermHandler::next_out);
+        add_operation(GenericFile::COMMIT, &VTermHandler::commit);
 
         using std::placeholders::_1;
         _rgate.start(std::bind(&VTermHandler::handle_message, this, _1));
@@ -251,20 +258,22 @@ public:
         reply_vmsg(is, m3::Errors::NOT_SUP);
     }
 
-    void read(m3::GateIStream &is) {
+    void next_in(m3::GateIStream &is) {
         VTermSession *sess = is.label<VTermSession*>();
-        size_t submit;
-        is >> submit;
-
-        sess->read(is, submit);
+        sess->next_in(is);
     }
 
-    void write(m3::GateIStream &is) {
+    void next_out(m3::GateIStream &is) {
         VTermSession *sess = is.label<VTermSession*>();
-        size_t submit;
-        is >> submit;
+        sess->next_out(is);
+    }
 
-        sess->write(is, submit);
+    void commit(m3::GateIStream &is) {
+        VTermSession *sess = is.label<VTermSession*>();
+        size_t nbytes;
+        is >> nbytes;
+
+        sess->commit(is, nbytes);
     }
 
 private:

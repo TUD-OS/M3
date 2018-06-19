@@ -43,8 +43,9 @@ public:
           _rgate(RecvGate::create(nextlog2<32 * MSG_SIZE>::val, nextlog2<MSG_SIZE>::val)) {
         add_operation(GenericFile::SEEK, &PipeServiceHandler::invalid_op);
         add_operation(GenericFile::STAT, &PipeServiceHandler::invalid_op);
-        add_operation(GenericFile::READ, &PipeServiceHandler::read);
-        add_operation(GenericFile::WRITE, &PipeServiceHandler::write);
+        add_operation(GenericFile::NEXT_IN, &PipeServiceHandler::next_in);
+        add_operation(GenericFile::NEXT_OUT, &PipeServiceHandler::next_out);
+        add_operation(GenericFile::COMMIT, &PipeServiceHandler::commit);
 
         using std::placeholders::_1;
         _rgate.start(std::bind(&PipeServiceHandler::handle_message, this, _1));
@@ -105,20 +106,19 @@ public:
         reply_vmsg(is, m3::Errors::NOT_SUP);
     }
 
-    void read(m3::GateIStream &is) {
+    void next_in(m3::GateIStream &is) {
         PipeSession *sess = is.label<PipeSession*>();
-        size_t submit;
-        is >> submit;
-
-        sess->read(is, submit);
+        sess->read(is, 0);
     }
 
-    void write(m3::GateIStream &is) {
+    void next_out(m3::GateIStream &is) {
         PipeSession *sess = is.label<PipeSession*>();
-        size_t submit;
-        is >> submit;
+        sess->write(is, 0);
+    }
 
-        sess->write(is, submit);
+    void commit(m3::GateIStream &is) {
+        PipeSession *sess = is.label<PipeSession*>();
+        sess->commit(is);
     }
 
 private:

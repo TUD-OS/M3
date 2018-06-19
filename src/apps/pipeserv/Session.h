@@ -50,6 +50,9 @@ public:
     virtual void write(m3::GateIStream &is, size_t) {
         reply_error(is, m3::Errors::NOT_SUP);
     }
+    virtual void commit(m3::GateIStream &is) {
+        reply_error(is, m3::Errors::NOT_SUP);
+    }
     virtual m3::Errors::Code close() {
         return m3::Errors::NOT_SUP;
     }
@@ -95,7 +98,12 @@ public:
         return RCHAN;
     }
 
-    virtual void read(m3::GateIStream &is, size_t submit) override;
+    virtual void read(m3::GateIStream &is, size_t commit) override;
+    virtual void commit(m3::GateIStream &is) override {
+        size_t commit;
+        is >> commit;
+        read(is, commit);
+    }
     virtual m3::Errors::Code close() override;
 
 private:
@@ -111,7 +119,12 @@ public:
         return WCHAN;
     }
 
-    virtual void write(m3::GateIStream &is, size_t submit) override;
+    virtual void write(m3::GateIStream &is, size_t commit) override;
+    virtual void commit(m3::GateIStream &is) override {
+        size_t commit;
+        is >> commit;
+        write(is, commit);
+    }
     virtual m3::Errors::Code close() override;
 
 private:

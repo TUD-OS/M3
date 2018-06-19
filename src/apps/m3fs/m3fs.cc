@@ -55,8 +55,9 @@ public:
           _handle(_mem.sel(), extend, clear, revoke_first) {
         add_operation(M3FS::OPEN_PRIV, &M3FSRequestHandler::open_private_file);
         add_operation(M3FS::CLOSE_PRIV, &M3FSRequestHandler::close_private_file);
-        add_operation(M3FS::READ, &M3FSRequestHandler::read);
-        add_operation(M3FS::WRITE, &M3FSRequestHandler::write);
+        add_operation(M3FS::NEXT_IN, &M3FSRequestHandler::next_in);
+        add_operation(M3FS::NEXT_OUT, &M3FSRequestHandler::next_out);
+        add_operation(M3FS::COMMIT, &M3FSRequestHandler::commit);
         add_operation(M3FS::FSTAT, &M3FSRequestHandler::fstat);
         add_operation(M3FS::SEEK, &M3FSRequestHandler::seek);
         add_operation(M3FS::STAT, &M3FSRequestHandler::stat);
@@ -129,14 +130,19 @@ public:
         sess->close_private_file(is);
     }
 
-    void read(GateIStream &is) {
+    void next_in(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        sess->read(is);
+        sess->next_in(is);
     }
 
-    void write(GateIStream &is) {
+    void next_out(GateIStream &is) {
         M3FSSession *sess = is.label<M3FSSession*>();
-        sess->write(is);
+        sess->next_out(is);
+    }
+
+    void commit(GateIStream &is) {
+        M3FSSession *sess = is.label<M3FSSession*>();
+        sess->commit(is);
     }
 
     void seek(GateIStream &is) {

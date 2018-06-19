@@ -37,8 +37,9 @@ public:
     enum Operation {
         FSTAT = GenericFile::STAT,
         SEEK = GenericFile::SEEK,
-        READ = GenericFile::READ,
-        WRITE = GenericFile::WRITE,
+        NEXT_IN = GenericFile::NEXT_IN,
+        NEXT_OUT = GenericFile::NEXT_OUT,
+        COMMIT = GenericFile::COMMIT,
         STAT,
         MKDIR,
         RMDIR,

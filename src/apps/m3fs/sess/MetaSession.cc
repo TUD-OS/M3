@@ -134,20 +134,29 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
     return Errors::NONE;
 }
 
-void M3FSMetaSession::read(GateIStream &is) {
+void M3FSMetaSession::next_in(GateIStream &is) {
     size_t id;
     is >> id;
     if(_files[id] != nullptr)
-        _files[id]->read(is);
+        _files[id]->next_in(is);
     else
         reply_error(is, Errors::INV_ARGS);
 }
 
-void M3FSMetaSession::write(GateIStream &is) {
+void M3FSMetaSession::next_out(GateIStream &is) {
     size_t id;
     is >> id;
     if(_files[id] != nullptr)
-        _files[id]->write(is);
+        _files[id]->next_out(is);
+    else
+        reply_error(is, Errors::INV_ARGS);
+}
+
+void M3FSMetaSession::commit(GateIStream &is) {
+    size_t id;
+    is >> id;
+    if(_files[id] != nullptr)
+        _files[id]->commit(is);
     else
         reply_error(is, Errors::INV_ARGS);
 }

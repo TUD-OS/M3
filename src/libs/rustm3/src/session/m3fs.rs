@@ -23,11 +23,11 @@ pub struct M3FS {
 
 int_enum! {
     struct Operation : u32 {
-        const STAT      = 0x4;
-        const MKDIR     = 0x5;
-        const RMDIR     = 0x6;
-        const LINK      = 0x7;
-        const UNLINK    = 0x8;
+        const STAT      = 0x5;
+        const MKDIR     = 0x6;
+        const RMDIR     = 0x7;
+        const LINK      = 0x8;
+        const UNLINK    = 0x9;
     }
 }
 

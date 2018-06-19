@@ -35,8 +35,9 @@ public:
     enum Operation {
         STAT,
         SEEK,
-        READ,
-        WRITE,
+        NEXT_IN,
+        NEXT_OUT,
+        COMMIT,
         COUNT,
     };
 

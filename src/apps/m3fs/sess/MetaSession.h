@@ -60,8 +60,9 @@ public:
     virtual void open_private_file(m3::GateIStream &is) override;
     virtual void close_private_file(m3::GateIStream &is) override;
 
-    virtual void read(m3::GateIStream &is) override;
-    virtual void write(m3::GateIStream &is) override;
+    virtual void next_in(m3::GateIStream &is) override;
+    virtual void next_out(m3::GateIStream &is) override;
+    virtual void commit(m3::GateIStream &is) override;
     virtual void seek(m3::GateIStream &is) override;
     virtual void fstat(m3::GateIStream &is) override;
 

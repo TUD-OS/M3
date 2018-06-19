@@ -137,7 +137,7 @@ Errors::Code PipeReadChannel::close() {
     return Errors::NONE;
 }
 
-void PipeReadChannel::read(GateIStream &is, size_t submit) {
+void PipeReadChannel::read(GateIStream &is, size_t commit) {
     Errors::Code res = activate();
     if(res != Errors::NONE) {
         reply_error(is, res);
@@ -150,13 +150,13 @@ void PipeReadChannel::read(GateIStream &is, size_t submit) {
             return;
         }
 
-        size_t amount = submit == 0 ? lastamount : submit;
+        size_t amount = commit == 0 ? lastamount : commit;
         PRINTCHAN(pipe, id, "read-pull: " << amount);
         pipe->rbuf.pull(amount);
         pipe->last_reader = nullptr;
     }
 
-    if(submit > 0) {
+    if(commit > 0) {
         reply_vmsg(is, Errors::NONE, pipe->rbuf.size());
         return;
     }
@@ -243,7 +243,7 @@ Errors::Code PipeWriteChannel::close() {
     return Errors::NONE;
 }
 
-void PipeWriteChannel::write(GateIStream &is, size_t submit) {
+void PipeWriteChannel::write(GateIStream &is, size_t commit) {
     Errors::Code res = activate();
     if(res != Errors::NONE) {
         reply_error(is, res);
@@ -262,13 +262,13 @@ void PipeWriteChannel::write(GateIStream &is, size_t submit) {
             return;
         }
 
-        size_t amount = submit == 0 ? lastamount : submit;
+        size_t amount = commit == 0 ? lastamount : commit;
         PRINTCHAN(pipe, id, "write-push: " << amount);
         pipe->rbuf.push(lastamount, amount);
         pipe->last_writer = nullptr;
     }
 
-    if(submit > 0) {
+    if(commit > 0) {
         reply_vmsg(is, Errors::NONE, pipe->rbuf.size());
         return;
     }
