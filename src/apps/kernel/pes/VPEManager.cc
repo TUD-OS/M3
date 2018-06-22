@@ -51,10 +51,10 @@ void VPEManager::init(int argc, char **argv) {
         // for idle, don't create a VPE
         if(strcmp(argv[i], "idle")) {
             // try to find a PE with the required ISA and external memory first
-            peid_t peid = PEManager::get().find_pe(pedesc_emem, 0, false, nullptr);
+            peid_t peid = PEManager::get().find_pe(pedesc_emem, 0, 0, nullptr);
             if(peid == 0) {
                 // if that failed, try to find a SPM PE
-                peid = PEManager::get().find_pe(pedesc_imem, 0, false, nullptr);
+                peid = PEManager::get().find_pe(pedesc_imem, 0, 0, nullptr);
                 if(peid == 0)
                     PANIC("Unable to find a free PE for boot module " << argv[i]);
             }
@@ -156,7 +156,14 @@ vpeid_t VPEManager::get_id() {
 
 VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epid_t rep,
                         capsel_t sgate, uint flags, VPEGroup *group) {
-    peid_t i = PEManager::get().find_pe(pe, 0, flags & m3::KIF::VPEFlags::MUXABLE, group);
+    uint vflags = 0;
+    if(flags & m3::KIF::VPEFlags::MUXABLE)
+        vflags |= VPE::F_MUXABLE;
+    // groups are implicitly pinned
+    if(group || (flags & m3::KIF::VPEFlags::PINNED))
+        vflags |= VPE::F_PINNED;
+
+    peid_t i = PEManager::get().find_pe(pe, 0, vflags, group);
     if(i == 0)
         return nullptr;
 
@@ -168,12 +175,6 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epi
     if(id == MAX_VPES)
         return nullptr;
 
-    uint vflags = 0;
-    if(flags & m3::KIF::VPEFlags::MUXABLE)
-        vflags |= VPE::F_MUXABLE;
-    // groups are implicitly pinned
-    if(group || (flags & m3::KIF::VPEFlags::PINNED))
-        vflags |= VPE::F_PINNED;
     VPE *vpe = new VPE(m3::Util::move(name), i, id, vflags, sep, rep, sgate, group);
     assert(vpe == _vpes[id]);
 

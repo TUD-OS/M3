@@ -105,7 +105,7 @@ bool PEManager::migrate_vpe(VPE *vpe) {
     // TODO maybe we should only migrate if the remaining timeslice on the target PE is less than
     // a threshold? otherwise we are potentially waiting until the timeslice depleted, although we
     // could have run it somewhere else in the meantime
-    peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), true, nullptr);
+    peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), VPE::F_MUXABLE, nullptr);
     if(npe == 0)
         return false;
 
@@ -185,7 +185,7 @@ bool PEManager::unblock_vpe_now(VPE *vpe) {
     return res;
 }
 
-peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool muxable, const VPEGroup *group) {
+peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, uint flags, const VPEGroup *group) {
     peid_t choice = 0;
     uint others = VPEManager::MAX_VPES;
     for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
@@ -198,8 +198,10 @@ peid_t PEManager::find_pe(const m3::PEDesc &pe, peid_t except, bool muxable, con
             return i;
 
         // TODO temporary
-        if(muxable && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
+        if((flags & VPE::F_MUXABLE) && _ctxswitcher[i]->can_mux() && _ctxswitcher[i]->count() < others) {
             if(group && group->is_pe_used(i))
+                continue;
+            if((flags & VPE::F_PINNED) && _ctxswitcher[i]->has_pinned())
                 continue;
             choice = i;
             others = _ctxswitcher[i]->count();

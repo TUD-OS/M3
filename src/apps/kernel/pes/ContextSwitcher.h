@@ -71,6 +71,9 @@ public:
     bool can_mux() const {
         return _muxable;
     }
+    bool has_pinned() const {
+        return _pinned > 0;
+    }
 
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
@@ -103,6 +106,7 @@ private:
     peid_t _pe;
     State _state;
     size_t _count;
+    size_t _pinned;
     m3::SList<VPE> _ready;
     Timeout *_timeout;
     cycles_t _wait_time;

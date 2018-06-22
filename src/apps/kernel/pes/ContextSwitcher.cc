@@ -74,6 +74,7 @@ ContextSwitcher::ContextSwitcher(peid_t pe)
       _pe(pe),
       _state(S_IDLE),
       _count(),
+      _pinned(0),
       _ready(),
       _timeout(),
       _wait_time(),
@@ -141,6 +142,8 @@ void ContextSwitcher::dequeue(VPE *vpe) {
 void ContextSwitcher::add_vpe(VPE *vpe) {
     if(!(vpe->_flags & VPE::F_MUXABLE))
         _muxable = false;
+    if(vpe->_flags & VPE::F_PINNED)
+        _pinned++;
 
     _count++;
 }
@@ -150,6 +153,8 @@ void ContextSwitcher::remove_vpe(VPE *vpe) {
 
     if(--_count == 0)
         _muxable = Platform::pe(_pe).supports_ctxsw();
+    if(vpe->_flags & VPE::F_PINNED)
+        _pinned--;
 
     if(_count == 1) {
         // cancel timeout; the remaining VPE can run as long as it likes

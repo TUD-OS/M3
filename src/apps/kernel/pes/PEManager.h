@@ -39,7 +39,7 @@ private:
 public:
     void init();
 
-    peid_t find_pe(const m3::PEDesc &pe, peid_t except, bool muxable, const VPEGroup *group);
+    peid_t find_pe(const m3::PEDesc &pe, peid_t except, uint flags, const VPEGroup *group);
 
     VPE *current(peid_t pe);
 
