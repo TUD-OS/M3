@@ -86,6 +86,7 @@ public:
         F_FLUSHED     = 1 << 9,
         F_NOBLOCK     = 1 << 10,
         F_PINNED      = 1 << 11,
+        F_YIELDED     = 1 << 12,
     };
 
     explicit VPE(m3::String &&prog, peid_t peid, vpeid_t id, uint flags, epid_t sep = INVALID_EP,

@@ -200,6 +200,7 @@ void VPE::exit_app(int exitcode) {
 }
 
 void VPE::yield() {
+    _flags |= F_YIELDED;
     if(_pending_fwds == 0)
         PEManager::get().yield_vpe(this);
 }

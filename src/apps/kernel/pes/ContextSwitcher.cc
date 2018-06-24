@@ -230,7 +230,7 @@ bool ContextSwitcher::yield_vpe(VPE *vpe) {
 }
 
 bool ContextSwitcher::current_is_idling() const {
-    return !_cur || (_cur->_flags & VPE::F_IDLE) || !_cur->has_app() ||
+    return !_cur || (_cur->_flags & (VPE::F_IDLE | VPE::F_YIELDED)) || !_cur->has_app() ||
         (!_cur->_group && _cur->is_waiting());
 }
 
@@ -421,7 +421,7 @@ retry:
             _cur->_lastsched = DTU::get().get_time();
 
             _cur->_dtustate.reset(RCTMUX_ENTRY, _cur->_flags & VPE::F_NEEDS_INVAL);
-            _cur->_flags &= ~static_cast<uint>(VPE::F_NEEDS_INVAL | VPE::F_FLUSHED);
+            _cur->_flags &= ~static_cast<uint>(VPE::F_NEEDS_INVAL | VPE::F_FLUSHED | VPE::F_YIELDED);
 
             // set address space properties first to load them during the restore
             if((_cur->_flags & VPE::F_INIT) && _cur->address_space()) {
