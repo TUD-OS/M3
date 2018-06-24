@@ -217,7 +217,8 @@ public:
 
     void yield();
 
-    bool migrate();
+    bool migrate(bool fast);
+    bool migrate_for(VPE *vpe);
     bool resume(bool need_app = true, bool unblock = true);
     void wakeup();
 

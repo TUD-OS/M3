@@ -75,6 +75,8 @@ public:
         return _pinned > 0;
     }
 
+    bool can_switch() const;
+
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);
 
@@ -94,6 +96,8 @@ private:
 
     void enqueue(VPE *vpe);
     void dequeue(VPE *vpe);
+
+    bool current_is_idling() const;
 
     bool start_switch(bool timedout = false);
     void continue_switch();

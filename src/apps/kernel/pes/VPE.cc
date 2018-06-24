@@ -204,17 +204,29 @@ void VPE::yield() {
         PEManager::get().yield_vpe(this);
 }
 
-bool VPE::migrate() {
+bool VPE::migrate(bool fast) {
     // idle VPEs are never migrated
     if(_flags & (VPE::F_IDLE | VPE::F_PINNED))
         return false;
 
     peid_t old = pe();
 
-    bool changed = PEManager::get().migrate_vpe(this);
+    bool changed = PEManager::get().migrate_vpe(this, fast);
     if(changed)
         KLOG(VPES, "Migrated VPE '" << _name << "' [id=" << id() << "] from " << old << " to " << pe());
 
+    return changed;
+}
+
+bool VPE::migrate_for(VPE *vpe) {
+    if(_flags & (VPE::F_IDLE | VPE::F_PINNED))
+        return false;
+
+    peid_t old = pe();
+
+    bool changed = PEManager::get().migrate_for(this, vpe);
+    if(changed)
+        KLOG(VPES, "Migrated VPE '" << _name << "' [id=" << id() << "] from " << old << " to " << pe());
     return changed;
 }
 

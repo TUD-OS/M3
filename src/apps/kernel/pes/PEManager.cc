@@ -101,18 +101,29 @@ void PEManager::stop_vpe(VPE *vpe) {
     update_yield(global);
 }
 
-bool PEManager::migrate_vpe(VPE *vpe) {
-    // TODO maybe we should only migrate if the remaining timeslice on the target PE is less than
-    // a threshold? otherwise we are potentially waiting until the timeslice depleted, although we
-    // could have run it somewhere else in the meantime
+bool PEManager::migrate_vpe(VPE *vpe, bool fast) {
     peid_t npe = find_pe(Platform::pe(vpe->pe()), vpe->pe(), VPE::F_MUXABLE, nullptr);
     if(npe == 0)
         return false;
 
+    return migrate_to(vpe, npe, fast);
+}
+
+bool PEManager::migrate_for(VPE *vpe, VPE *dst) {
+    if(vpe->pe() == dst->pe())
+        return migrate_vpe(vpe, true);
+    if(!_ctxswitcher[dst->pe()]->can_mux())
+        return false;
+
+    return migrate_to(vpe, dst->pe(), true);
+}
+
+bool PEManager::migrate_to(VPE *vpe, peid_t npe, bool fast) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    if(!ctx)
+    // only migrate if we can directly switch to this VPE on the other PE
+    if(!ctx || (fast && !_ctxswitcher[npe]->can_switch()))
         return false;
     ctx->remove_vpe(vpe);
 
@@ -134,33 +145,36 @@ void PEManager::yield_vpe(VPE *vpe) {
     ContextSwitcher *ctx = _ctxswitcher[pe];
     assert(ctx);
     // check if there is somebody else on the current PE
-    if(!ctx->yield_vpe(vpe)) {
-        m3::PEDesc pedesc = Platform::pe(pe);
-
-        // try to steal a VPE from a different PE
-        for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
-            if(!_ctxswitcher[i] ||
-                i == pe ||
-                Platform::pe(i).isa() != pedesc.isa() ||
-                Platform::pe(i).type() != pedesc.type())
-                continue;
-
-            VPE *nvpe = _ctxswitcher[i]->steal_vpe();
-            if(!nvpe)
-                continue;
-
-            KLOG(VPES, "Stole VPE " << nvpe->id() << " from " << i << " to " << pe);
-
-            nvpe->set_pe(pe);
-            nvpe->needs_invalidate();
-            _ctxswitcher[pe]->add_vpe(nvpe);
-
-            _ctxswitcher[pe]->unblock_vpe(nvpe, true);
-            break;
-        }
-    }
+    if(!ctx->yield_vpe(vpe))
+        steal_vpe(pe);
 
     update_yield(global);
+}
+
+void PEManager::steal_vpe(peid_t pe) {
+    m3::PEDesc pedesc = Platform::pe(pe);
+
+    // try to steal a VPE from a different PE
+    for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
+        if(!_ctxswitcher[i] ||
+            i == pe ||
+            Platform::pe(i).isa() != pedesc.isa() ||
+            Platform::pe(i).type() != pedesc.type())
+            continue;
+
+        VPE *nvpe = _ctxswitcher[i]->steal_vpe();
+        if(!nvpe)
+            continue;
+
+        KLOG(VPES, "Stole VPE " << nvpe->id() << " from " << i << " to " << pe);
+
+        nvpe->set_pe(pe);
+        nvpe->needs_invalidate();
+        _ctxswitcher[pe]->add_vpe(nvpe);
+
+        _ctxswitcher[pe]->unblock_vpe(nvpe, true);
+        break;
+    }
 }
 
 bool PEManager::unblock_vpe(VPE *vpe, bool force) {

@@ -751,6 +751,7 @@ void SyscallHandler::opensess(VPE *vpe, const m3::DTU::Message *msg) {
 
     vpe->start_wait();
     while(s->vpe().state() != VPE::RUNNING) {
+        s->vpe().migrate_for(vpe);
         if(!s->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, msg, m3::Errors::VPE_GONE, "VPE does no longer exist");
@@ -899,6 +900,7 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
 
     vpe->start_wait();
     while(rsrv->vpe().state() != VPE::RUNNING) {
+        rsrv->vpe().migrate_for(vpe);
         if(!rsrv->vpe().resume()) {
             vpe->stop_wait();
             SYS_ERROR(vpe, msg, m3::Errors::VPE_GONE, "VPE does no longer exist");
@@ -944,9 +946,7 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur,
         cur->start_wait();
         tvpe.add_forward();
 
-        // TODO not required anymore
-        if(tvpe.pe() == cur->pe())
-            tvpe.migrate();
+        tvpe.migrate_for(cur);
 
         LOG_SYS(cur, name, ": waiting for VPE " << tvpe.id() << " at " << tvpe.pe() << ", state=" << tvpe.state());
 

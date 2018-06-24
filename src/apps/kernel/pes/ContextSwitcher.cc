@@ -229,12 +229,29 @@ bool ContextSwitcher::yield_vpe(VPE *vpe) {
     return true;
 }
 
+bool ContextSwitcher::current_is_idling() const {
+    return !_cur || (_cur->_flags & VPE::F_IDLE) || !_cur->has_app() ||
+        (!_cur->_group && _cur->is_waiting());
+}
+
+bool ContextSwitcher::can_switch() const {
+    if(current_is_idling())
+        return true;
+
+    if(!_timeout) {
+        uint64_t now = DTU::get().get_time();
+        uint64_t exectime = now - _cur->_lastsched;
+        // if there is some time left in the timeslice, program a timeout
+        if(exectime >= VPE::TIME_SLICE)
+            return true;
+    }
+    return false;
+}
+
 bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
     enqueue(vpe);
 
-    // if we are forced or are executing nothing useful atm, start a switch immediately
-    if(force || !_cur || (_cur->_flags & VPE::F_IDLE) || !_cur->has_app() ||
-        (!_cur->_group && _cur->is_waiting()))
+    if(force || current_is_idling())
         return start_switch();
 
     if(!_timeout) {
@@ -378,7 +395,7 @@ retry:
             _cur->_flags &= ~static_cast<uint>(VPE::F_FLUSHED);
             if(!blocked) {
                 // the VPE is ready, so try to migrate it somewhere else to continue immediately
-                if(!_cur->migrate())
+                if(!_cur->migrate(false))
                     enqueue(_cur);
                 // if that worked, remember to switch to it. don't do that now, because we have to
                 // do the reset first to ensure that the cache is flushed in case of non coherent

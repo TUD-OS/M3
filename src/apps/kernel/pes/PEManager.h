@@ -49,12 +49,15 @@ public:
     void start_vpe(VPE *vpe);
     void stop_vpe(VPE *vpe);
 
-    bool migrate_vpe(VPE *vpe);
+    bool migrate_vpe(VPE *vpe, bool fast);
+    bool migrate_for(VPE *vpe, VPE *dst);
     void yield_vpe(VPE *vpe);
     bool unblock_vpe(VPE *vpe, bool force);
     bool unblock_vpe_now(VPE *vpe);
 
 private:
+    bool migrate_to(VPE *vpe, peid_t npe, bool fast);
+    void steal_vpe(peid_t pe);
     void update_yield(size_t before);
     void deprivilege_pes();
 
