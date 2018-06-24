@@ -31,10 +31,10 @@ using namespace m3;
 #define VERBOSE         1
 
 struct App {
-    explicit App(int argc, const char **argv, uint flags)
+    explicit App(int argc, const char **argv, const char *pager, uint flags)
         : argc(argc),
           argv(argv),
-          vpe(argv[0], VPE::self().pe(), "pager", flags),
+          vpe(argv[0], VPE::self().pe(), pager, flags),
           rgate(RecvGate::create_for(vpe, 6, 6)),
           sgate(SendGate::create(&rgate)) {
         if(Errors::last != Errors::NONE)
@@ -64,15 +64,30 @@ int main(int argc, char **argv) {
     const char *name = argv[1];
     bool muxed = strcmp(argv[2], "1") == 0;
     bool loadgen = strcmp(argv[3], "1") == 0;
-    UNUSED int repeats = IStringStream::read_from<int>(argv[4]);
+    int repeats = IStringStream::read_from<int>(argv[4]);
     size_t instances = IStringStream::read_from<size_t>(argv[5]);
     size_t servers = IStringStream::read_from<size_t>(argv[6]);
     size_t fssize = IStringStream::read_from<size_t>(argv[7]);
     App *apps[instances];
 
-    RemoteServer *srv[servers];
-    VPE *srvvpes[servers];
-    char srvnames[servers][16];
+    RemoteServer *srv[1 + servers];
+    VPE *srvvpes[1 + servers];
+    char srvnames[1 + servers][16];
+
+    if(VERBOSE) cout << "Creating pager...\n";
+
+    {
+        srvvpes[0] = new VPE("pager", VPE::self().pe(), "pager", muxed ? VPE::MUXABLE : 0);
+        srv[0] = new RemoteServer(*srvvpes[0], "mypager");
+        OStringStream pager_name(srvnames[0], sizeof(srvnames[0]));
+        pager_name << "pager";
+
+        String srv_arg = srv[0]->sel_arg();
+        const char *args[] = {"/bin/pager", "-a", "16", "-f", "16", "-s", srv_arg.c_str()};
+        Errors::Code res = srvvpes[0]->exec(ARRAY_SIZE(args), args);
+        if(res != Errors::NONE)
+            PANIC("Cannot execute " << args[0] << ": " << Errors::to_string(res));
+    }
 
     if(VERBOSE) cout << "Creating application VPEs...\n";
 
@@ -81,25 +96,25 @@ int main(int argc, char **argv) {
         const char **args = new const char *[ARG_COUNT];
         args[0] = "/bin/fstrace-m3fs";
 
-        apps[i] = new App(ARG_COUNT, args, muxed ? (VPE::MUXABLE | VPE::PINNED) : 0);
+        apps[i] = new App(ARG_COUNT, args, "mypager", muxed ? (VPE::MUXABLE | VPE::PINNED) : 0);
     }
 
     if(VERBOSE) cout << "Creating servers...\n";
 
     for(size_t i = 0; i < servers; ++i) {
-        srvvpes[i] = new VPE("m3fs", VPE::self().pe(), "pager", muxed ? VPE::MUXABLE : 0);
-        OStringStream m3fs_name(srvnames[i], sizeof(srvnames[i]));
+        srvvpes[i + 1] = new VPE("m3fs", VPE::self().pe(), "pager", muxed ? VPE::MUXABLE : 0);
+        OStringStream m3fs_name(srvnames[i + 1], sizeof(srvnames[i + 1]));
         m3fs_name << "m3fs" << i;
-        srv[i] = new RemoteServer(*srvvpes[i], m3fs_name.str());
+        srv[i + 1] = new RemoteServer(*srvvpes[i + 1], m3fs_name.str());
 
-        String m3fsarg = srv[i]->sel_arg();
+        String m3fsarg = srv[i + 1]->sel_arg();
         OStringStream fs_off_str(new char[16], 16);
         fs_off_str << (fssize * i);
         OStringStream fs_size_str(new char[16], 16);
         fs_size_str << fssize;
         const char *m3fs_args[] = {
             "/bin/m3fs",
-            "-n", srvnames[i],
+            "-n", srvnames[i + 1],
             "-s", m3fsarg.c_str(),
             "-o", fs_off_str.str(),
             "-e", "512",
@@ -111,7 +126,7 @@ int main(int argc, char **argv) {
                 cout << m3fs_args[x] << " ";
             cout << "\n";
         }
-        Errors::Code res = srvvpes[i]->exec(ARRAY_SIZE(m3fs_args), m3fs_args);
+        Errors::Code res = srvvpes[i + 1]->exec(ARRAY_SIZE(m3fs_args), m3fs_args);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << m3fs_args[0] << ": " << Errors::to_string(res));
     }
@@ -122,11 +137,19 @@ int main(int argc, char **argv) {
         OStringStream tmpdir(new char[16], 16);
         tmpdir << "/tmp/" << i << "/";
         const char **args = apps[i]->argv;
-        args[1] = "-p";
-        args[2] = tmpdir.str();
+        if(repeats > 1) {
+            args[1] = "-n";
+            OStringStream num(new char[16], 16);
+            num << repeats;
+            args[2] = num.str();
+        }
+        else {
+            args[1] = "-p";
+            args[2] = tmpdir.str();
+        }
         args[3] = "-w";
         args[4] = "-f";
-        args[5] = srvnames[i % servers];
+        args[5] = srvnames[1 + (i % servers)];
         args[6] = "-g";
 
         OStringStream rgatesel(new char[11], 11);
@@ -180,12 +203,12 @@ int main(int argc, char **argv) {
 
     if(VERBOSE) cout << "Shutting down servers...\n";
 
-    for(size_t i = 0; i < servers; ++i) {
+    for(size_t i = 0; i < servers + 1; ++i) {
         srv[i]->request_shutdown();
         int res = srvvpes[i]->wait();
         if(VERBOSE) cout << srvnames[i] << " exited with " << res << "\n";
     }
-    for(size_t i = 0; i < servers; ++i) {
+    for(size_t i = 0; i < servers + 1; ++i) {
         delete srvvpes[i];
         delete srv[i];
     }
