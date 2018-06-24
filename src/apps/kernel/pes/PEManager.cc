@@ -75,8 +75,12 @@ void PEManager::remove_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    if(ctx)
+    if(ctx) {
         ctx->remove_vpe(vpe);
+        // if there is no one left, try to steal a VPE from somewhere else
+        if(ctx->ready() == 0)
+            steal_vpe(vpe->pe());
+    }
 
     update_yield(global);
 }
@@ -95,8 +99,11 @@ void PEManager::stop_vpe(VPE *vpe) {
     size_t global = ContextSwitcher::global_ready();
 
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    if(ctx)
+    if(ctx) {
         ctx->stop_vpe(vpe);
+        if(ctx->ready() == 0)
+            steal_vpe(vpe->pe());
+    }
 
     update_yield(global);
 }

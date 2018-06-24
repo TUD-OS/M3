@@ -64,6 +64,9 @@ public:
     size_t count() const {
         return _count;
     }
+    size_t ready() const {
+        return _ready.length();
+    }
     VPE *current() {
         return _cur;
     }
