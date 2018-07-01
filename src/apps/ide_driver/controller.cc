@@ -38,11 +38,6 @@
 
 using namespace m3;
 
-/* Endpoints, corresponding to EP_* in base_proxy.cc */
-const uint IdeController::RECV_EP = 10;
-const uint IdeController::REPLY_EP = 9;
-const uint IdeController::SEND_EP = 8;
-
 /* port-bases */
 static const int PORTBASE_PRIMARY			= 0x1F0;
 static const int PORTBASE_SECONDARY			= 0x170;
@@ -57,9 +52,6 @@ static const size_t BAR_OFFSET			= 0x10;
 
 static const size_t BAR_ADDR_IO_MASK	= 0xFFFFFFFC;
 static const size_t BAR_ADDR_MEM_MASK	= 0xFFFFFFF0;
-
-static const uintptr_t IO_ADDRESS_SPACE_BASE = ((uintptr_t) 0x2 << 28);
-static const uintptr_t PCI_CONFIG_SPACE_BASE = ((uintptr_t) 0x3 << 28);
 
 static const int MSG_PCI_GET_BY_CLASS		= 900;	/* searches for a PCI device with given class */
 
@@ -93,38 +85,13 @@ static bool isBarPrefetchable(uint32_t bar)
 }
 
 IdeController::IdeController()
-	: vpe(new VPE("ide_controller",
-		PEDesc(PEType::COMP_IMEM, PEISA::IDE_DEV))),
-	  srGate(RecvGate::create(
-		8,  // order size of buffer
-		8)),// order size of messages in buffer
-	  sendGate(SendGate::create(&srGate,
-		0, // label
-		256, // credits, should be accoring to buffer size
-		&recvGate)),// gate to which replies should be sent) {
-	  recvGate(RecvGate::create_for(*vpe,8,8))
+	: device("idectrl", PEISA::IDE_DEV)
 {
-	recvGate.activate(REPLY_EP, 0x100000FF);
-	srGate.activate(RECV_EP);
-
-	// activate send gate
-	sendGate.activate_for(*vpe, SEND_EP);
-}
-
-IdeController::~IdeController() {
-	delete vpe;
 }
 
 IdeController*
 IdeController::create() {
-	IdeController * controller = new IdeController();
-	controller->getVPE()->start();
-	return controller;
-}
-
-VPE *
-IdeController::getVPE() {
-	return vpe;
+	return new IdeController();
 }
 
 Device
@@ -158,17 +125,9 @@ IdeController::getConfig() {
 
 void IdeController::waitForInterrupt()
 {
-	uint32_t irq = 0; // Variable for catching the interrupt "message"
-	uint32_t content = 0xFFFF; // Just send some recognizable message
-
-	SLOG(IDE_ALL, "Trying to receive msg");
-	GateIStream is = receive_msg(srGate);
-
-	is >> irq;
-	SLOG(IDE_ALL, "Content irq: 0x" << fmt(irq, "x"));
-
-	//use reply here, credits sent back
-	reply_msg(is, &content, sizeof(content));
+	SLOG(IDE_ALL, "Waiting for IRQ message");
+	device.waitForIRQ();
+	SLOG(IDE_ALL, "Received IRQ message");
 }
 
 void IdeController::fillBar(Bar * bar, uint i)
@@ -207,35 +166,6 @@ void IdeController::fillBar(Bar * bar, uint i)
 		bar->size &= ~(bar->size - 1);
 	}
 	writeRegs<uint32_t>(BAR_OFFSET + i * 4, val);
-}
-
-template<class T> T IdeController::readPIO(uintptr_t addr)
-{
-	T read;
-	(addr >= 0xCF0 && addr <= 0xCFF) ?
-		vpe->mem().read(&read, sizeof(read), addr)
-		: vpe->mem().read(&read, sizeof(read), IO_ADDRESS_SPACE_BASE + addr);
-	return read;
-}
-
-template<class T> void IdeController::writePIO(uintptr_t addr, T content)
-{
-	(addr >= 0xCF0 && addr <= 0xCFF) ?
-		vpe->mem().write(&content, sizeof(content), addr)
-		: vpe->mem().write(&content, sizeof(content), IO_ADDRESS_SPACE_BASE + addr);
-}
-
-template<class T> T IdeController::readRegs(uintptr_t regAddr)
-{
-	T read;
-	vpe->mem().read(&read, sizeof(read), PCI_CONFIG_SPACE_BASE + regAddr);
-	return read;
-}
-
-template<class T> void IdeController::writeRegs(uintptr_t regAddr, T content)
-{
-	vpe->mem().write(&content, sizeof(content),
-		PCI_CONFIG_SPACE_BASE + regAddr);
 }
 
 uint32_t

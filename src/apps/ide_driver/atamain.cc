@@ -109,6 +109,8 @@ int main(int argc,char **argv) {
 	/* flush prints */
 
 	sATADevice * ataDev = ctrl_getDevice(0);
+	device_print(ataDev, cout);
+
 	/* Example input */
 	uint16_t arg[256] = {0xC0FF, 0xEEEE};
 	/* Output */

@@ -203,7 +203,7 @@ class E1000 {
     };
 
 public:
-    explicit E1000(ProxiedPciDevice & nic);
+    explicit E1000(pci::ProxiedPciDevice & nic);
 
     ulong mtu() const {
         return TX_BUF_SIZE;
@@ -229,7 +229,7 @@ private:
 
     uint32_t incTail(uint32_t tail, uint32_t descriptorCount);
 
-    ProxiedPciDevice & _nic;
+    pci::ProxiedPciDevice & _nic;
     EEPROM _eeprom;
     m3::net::MAC _mac;
     uint32_t _curRxBuf;

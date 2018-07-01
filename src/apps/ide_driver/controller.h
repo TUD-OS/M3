@@ -30,6 +30,8 @@
 #include <m3/com/SendGate.h>
 #include <m3/com/RecvGate.h>
 
+#include <pci/Device.h>
+
 #include "device.h"
 /* Defines time_t */
 #include "custom_types.h"
@@ -108,23 +110,12 @@ static const int CTRL_IRQ_BASE		= 14;
 class IdeController {
 
   public:
-	static const uint RECV_EP;
-	static const uint REPLY_EP;
-	static const uint SEND_EP;
-
 	/**
 	 * Creates a new controller object.
 	 *
 	 * @return new controller object
 	 */
 	static IdeController * create();
-
-	/**
-	 * Gets the VPE on which the controller is running.
-	 *
-	 * @return the associated VPE of the controller
-	 */
-	m3::VPE * getVPE();
 
 	/**
 	 * Read the configuration parameters from the controller and return a struct containing the
@@ -147,7 +138,9 @@ class IdeController {
 	 * @param the register address
 	 * @return the content of the register
 	 */
-	template<class T> T readRegs(uintptr_t regAddr);
+	template<class T> T readRegs(uintptr_t offset) {
+		return device.readConfig<T>(offset);
+	}
 
 	/**
 	 * Template function to write to the PCI device register with the specified content.
@@ -155,7 +148,9 @@ class IdeController {
 	 * @param the register to be written to
 	 * @param the value to be written
 	 */
-	template<class T> void writeRegs(uintptr_t regAddr, T content);
+	template<class T> void writeRegs(uintptr_t offset, T content) {
+		device.writeConfig(offset, content);
+	}
 
 	/**
 	 * Template function to read from the IO-registers of the device.
@@ -163,7 +158,9 @@ class IdeController {
 	 * @param the register to be read from
 	 * @return the value of the register
 	 */
-	template<class T> T readPIO(uintptr_t regAddr);
+	template<class T> T readPIO(uintptr_t regAddr) {
+		return device.readReg<T>(regAddr);
+	}
 
 	/**
 	 * Template function to write to some IO-register of the device.
@@ -171,17 +168,14 @@ class IdeController {
 	 * @param the address of the register
 	 * @param the value to be written
 	 */
-	template<class T> void writePIO(uintptr_t regAddr, T content);
+	template<class T> void writePIO(uintptr_t regAddr, T content) {
+		device.writeReg(regAddr, content);
+	}
 
 	/**
 	 * Function to wait for an interrupt by the physical controller.
 	 */
 	void waitForInterrupt();
-
-  	/**
-  	 * Destructor for the class.
-  	 */
-  	~IdeController();
 
   private:
   	/**
@@ -197,17 +191,8 @@ class IdeController {
   	 */
   	void fillBar(Bar * bar, uint i);
 
-  	/* The VPE of the controller. */
-	m3::VPE * vpe;
-
-	/* Replying gate. */
-	m3::RecvGate srGate;
-
-	/* Gate which sends messages from the controller VPE to this VPE. */
-	m3::SendGate sendGate;
-
-	/* Gate to which replies are sent. */
-	m3::RecvGate recvGate;
+  	/* The PCI device. */
+	pci::ProxiedPciDevice device;
 };
 
 /**

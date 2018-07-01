@@ -22,25 +22,50 @@
 #include <m3/com/SendGate.h>
 #include <m3/com/MemGate.h>
 
-namespace net {
+namespace pci {
 
 class ProxiedPciDevice {
 public:
-    static const uint EP_INT        = 7;
-    static const uint EP_DMA        = 8;
+    static const uint EP_INT            = 7;
+    static const uint EP_DMA            = 8;
 
     // Hardcoded for now
-    static const size_t REG_SIZE    = 128 * 1024;
-    static const size_t REG_ADDR    = 0x4000;
+    static const size_t REG_SIZE        = 128 * 1024;
+    static const size_t REG_ADDR        = 0x4000;
+    static const size_t PCI_CFG_ADDR    = 0xF000000;
 
-    explicit ProxiedPciDevice(m3::PEISA isa);
+    explicit ProxiedPciDevice(const char *name, m3::PEISA isa);
 
-    uint32_t readReg(size_t offset);
-    void writeReg(size_t offset, uint32_t value);
+    template<typename T>
+    T readReg(size_t offset) {
+        T val;
+        _vpe.mem().read(&val, sizeof(T), REG_ADDR + offset);
+        return val;
+    }
+    template<typename T>
+    void writeReg(size_t offset, T val) {
+        _vpe.mem().write(&val, sizeof(T), REG_ADDR + offset);
+    }
+
+    template<typename T>
+    T readConfig(uintptr_t offset) {
+        T val;
+        _vpe.mem().read(&val, sizeof(val), REG_ADDR + PCI_CFG_ADDR + offset);
+        return val;
+    }
+    template<typename T>
+    void writeConfig(uintptr_t offset, T val) {
+        _vpe.mem().write(&val, sizeof(val), REG_ADDR + PCI_CFG_ADDR + offset);
+    }
 
     void setDmaEp(m3::MemGate &memgate);
 
-    void setInterruptCallback(std::function<void()> callback);
+    void listenForIRQs(std::function<void()> callback);
+
+    void waitForIRQ() {
+        const m3::DTU::Message *msg;
+        _intgate.wait(nullptr, &msg);
+    }
 
     /**
      * @return the VPE for the proxied pci device

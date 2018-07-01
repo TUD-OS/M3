@@ -30,7 +30,7 @@ namespace net {
 
 static uint8_t ZEROS[4096];
 
-E1000::E1000(ProxiedPciDevice & nic)
+E1000::E1000(pci::ProxiedPciDevice & nic)
     : _nic(nic),
       _eeprom(*this),
       _curRxBuf(),
@@ -46,7 +46,7 @@ E1000::E1000(ProxiedPciDevice & nic)
     _nic.setDmaEp(_bufs);
 
     // register interrupt callback
-    _nic.setInterruptCallback(std::bind(&E1000::receiveInterrupt, this));
+    _nic.listenForIRQs(std::bind(&E1000::receiveInterrupt, this));
 
     // clear descriptors
     for(size_t i = 0; i < sizeof(Buffers); i += sizeof(ZEROS))
@@ -148,7 +148,7 @@ void E1000::writeReg(uint16_t reg,uint32_t value) {
 }
 
 uint32_t E1000::readReg(uint16_t reg) {
-    uint32_t val = _nic.readReg(reg);
+    uint32_t val = _nic.readReg<uint32_t>(reg);
     SLOG(NIC, "REG[" << fmt(reg, "#0x", 4) << "] -> " << fmt(val, "#0x", 8));
     return val;
 }

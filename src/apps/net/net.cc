@@ -600,7 +600,7 @@ int main(int argc, char **argv) {
 
     struct netif netif;
 
-    ProxiedPciDevice nic(m3::PEISA::NIC);
+    pci::ProxiedPciDevice nic("nic", m3::PEISA::NIC);
     E1000 e1000(nic);
     e1000.setReceiveCallback(&eth_recv_callback);
 
@@ -641,7 +641,8 @@ int main(int argc, char **argv) {
 
         /* Cyclic lwIP timers check */
         sys_check_timeouts();
-        // TODO: Sleep according to sys_timeouts_sleeptime() when !recvQueue.empty() and _socket->send_pipe->reader()->read() has no incoming messages
+        // TODO: Sleep according to sys_timeouts_sleeptime() when !recvQueue.empty() and
+        // _socket->send_pipe->reader()->read() has no incoming messages
 
         // Hack: run the workloop manually
         // - interrupt receive gate
