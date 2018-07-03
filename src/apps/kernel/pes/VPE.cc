@@ -220,7 +220,7 @@ bool VPE::migrate(bool fast) {
 }
 
 bool VPE::migrate_for(VPE *vpe) {
-    if(_flags & (VPE::F_IDLE | VPE::F_PINNED))
+    if(is_on_pe() || (_flags & (VPE::F_IDLE | VPE::F_PINNED)))
         return false;
 
     peid_t old = pe();
@@ -238,7 +238,7 @@ bool VPE::resume(bool need_app, bool unblock) {
     KLOG(VPES, "Resuming VPE '" << _name << "' (unblock=" << unblock << ") [id=" << id() << "]");
 
     bool wait = true;
-    if(unblock)
+    if(unblock && !is_on_pe())
         wait = !PEManager::get().unblock_vpe(this, false);
     if(wait)
         m3::ThreadManager::get().wait_for(reinterpret_cast<event_t>(this));
@@ -250,7 +250,7 @@ bool VPE::resume(bool need_app, bool unblock) {
 void VPE::wakeup() {
     if(_state == RUNNING)
         DTU::get().inject_irq(desc());
-    else if(has_app())
+    else if(has_app() && !is_on_pe())
         PEManager::get().unblock_vpe(this, false);
 }
 
