@@ -159,8 +159,7 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epi
     uint vflags = 0;
     if(flags & m3::KIF::VPEFlags::MUXABLE)
         vflags |= VPE::F_MUXABLE;
-    // groups are implicitly pinned
-    if(group || (flags & m3::KIF::VPEFlags::PINNED))
+    if(flags & m3::KIF::VPEFlags::PINNED)
         vflags |= VPE::F_PINNED;
 
     peid_t i = PEManager::get().find_pe(pe, 0, vflags, group);
@@ -175,6 +174,9 @@ VPE *VPEManager::create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epi
     if(id == MAX_VPES)
         return nullptr;
 
+    // groups are implicitly pinned
+    if(group)
+        vflags |= VPE::F_PINNED;
     VPE *vpe = new VPE(m3::Util::move(name), i, id, vflags, sep, rep, sgate, group);
     assert(vpe == _vpes[id]);
 
