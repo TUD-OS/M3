@@ -46,12 +46,12 @@ public:
           _fdMap(),
           _dirMap(),
           _lgchan(lgchan) {
+        for(size_t i = 0; i < ARRAY_SIZE(_fdMap); ++i)
+            _fdMap[i] = -1;
         if(_lgchan) {
             open_args_t args = { 5, "/tmp/log.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644 };
             open(&args, 0);
         }
-        for(size_t i = 0; i < ARRAY_SIZE(_fdMap); ++i)
-            _fdMap[i] = -1;
         if(stdio) {
             _fdMap[0] = 0;
             _fdMap[1] = 1;
