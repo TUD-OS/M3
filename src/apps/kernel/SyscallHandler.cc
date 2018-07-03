@@ -1158,7 +1158,11 @@ void SyscallHandler::forwardreply(VPE *vpe, const m3::DTU::Message *msg) {
         reply_result(vpe, msg, m3::Errors::UPCALL_REPLY);
     }
 
-    res = wait_for(": syscall::forwardreply", tvpe, vpe, false);
+    // on PEs with an MMU, the VMA needs to do message passing even though the application might not
+    // be running yet. otherwise, the app needs to be running
+    // TODO this is just a stop-gap solution
+    bool need_app = !Platform::pe(tvpe.pe()).has_mmu();
+    res = wait_for(": syscall::forwardreply", tvpe, vpe, need_app);
     if(res == m3::Errors::NONE) {
         uint64_t sender = vpe->pe() | (vpe->id() << 8) |
                         (static_cast<uint64_t>(head.senderEp) << 32) |
