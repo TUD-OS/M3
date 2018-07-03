@@ -204,7 +204,7 @@ void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
     // ensure that all PTEs are in memory
     DTU::get().flush_cache(_cur->desc());
 
-    if(_cur == vpe && _state == S_IDLE) {
+    if(_cur == vpe) {
         // don't try to schedule others of the gang next time, if is still a gang running
         _no_gang = vpe->_group && vpe->_group->has_running();
         // for non-programmable accelerator, we have to do the save first, because we cannot
@@ -214,6 +214,12 @@ void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
             DTU::get().unset_vpeid(_cur->desc());
             vpe->_state = VPE::SUSPENDED;
             _cur = nullptr;
+        }
+        // it is possible that we already started to save the state of <vpe>. we are no longer
+        // interested in that, so just switch to someone else
+        if(_state != S_IDLE) {
+            assert(_state == S_STORE_DONE);
+            _state = S_IDLE;
         }
         start_switch();
     }
