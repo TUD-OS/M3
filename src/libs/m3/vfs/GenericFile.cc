@@ -25,13 +25,14 @@
 
 namespace m3 {
 
-GenericFile::GenericFile(int flags, capsel_t caps, size_t id, epid_t mep, M3FS *sess_obj)
+GenericFile::GenericFile(int flags, capsel_t caps, size_t id, epid_t mep, M3FS *sess_obj, size_t memoff)
     : File(flags),
       _id(id),
       _sess_obj(sess_obj),
       _sess(caps + 0, sess_obj ? ObjCap::KEEP_CAP : 0),
       _sg(sess_obj ? &sess_obj->_gate : new SendGate(SendGate::bind(caps + 1))),
       _mg(MemGate::bind(ObjCap::INVALID)),
+      _memoff(memoff),
       _goff(),
       _off(),
       _pos(),
@@ -146,7 +147,7 @@ ssize_t GenericFile::read(void *buffer, size_t count) {
                 CPU::compute(count / 2);
         }
         else
-            _mg.read(buffer, amount, _off + _pos);
+            _mg.read(buffer, amount, _memoff + _off + _pos);
         Time::stop(0xaaaa);
         _pos += amount;
     }
@@ -182,7 +183,7 @@ ssize_t GenericFile::write(const void *buffer, size_t count) {
                 CPU::compute(count / 4);
         }
         else
-            _mg.write(buffer, amount, _off + _pos);
+            _mg.write(buffer, amount, _memoff + _off + _pos);
         Time::stop(0xaaaa);
         _pos += amount;
     }
