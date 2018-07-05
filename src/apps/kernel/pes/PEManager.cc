@@ -46,11 +46,21 @@ void PEManager::init() {
     }
 }
 
-VPE *PEManager::current(peid_t pe) {
+VPE *PEManager::current(peid_t pe) const {
     ContextSwitcher *ctx = _ctxswitcher[pe];
     if(ctx)
         return ctx->current();
     return nullptr;
+}
+
+bool PEManager::yield(peid_t pe) {
+    ContextSwitcher *ctx = _ctxswitcher[pe];
+    if(ctx) {
+        VPE *cur = ctx->current();
+        if(cur)
+            return ctx->yield_vpe(cur);
+    }
+    return false;
 }
 
 void PEManager::update_yield(size_t before) {

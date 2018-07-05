@@ -41,7 +41,8 @@ public:
 
     peid_t find_pe(const m3::PEDesc &pe, peid_t except, uint flags, const VPEGroup *group);
 
-    VPE *current(peid_t pe);
+    VPE *current(peid_t pe) const;
+    bool yield(peid_t pe);
 
     void add_vpe(VPE *vpe);
     void remove_vpe(VPE *vpe);

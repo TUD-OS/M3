@@ -109,7 +109,6 @@ private:
 
 private:
     bool _muxable;
-    bool _no_gang;
     peid_t _pe;
     State _state;
     size_t _count;

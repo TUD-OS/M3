@@ -27,9 +27,9 @@ VPEGroup::~VPEGroup() {
     }
 }
 
-bool VPEGroup::has_running() const {
+bool VPEGroup::has_other_app(VPE *self) const {
     for(auto it = vpes.begin(); it != vpes.end(); ++it) {
-        if(it->vpe->state() == VPE::RUNNING)
+        if(it->vpe != self && it->vpe->has_app())
             return true;
     }
     return false;

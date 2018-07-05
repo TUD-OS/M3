@@ -70,7 +70,6 @@ size_t ContextSwitcher::_global_ready = 0;
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
     : _muxable(Platform::pe(pe).supports_ctxsw()),
-      _no_gang(false),
       _pe(pe),
       _state(S_IDLE),
       _count(),
@@ -91,7 +90,7 @@ void ContextSwitcher::schedule() {
         assert(_cur->_flags & VPE::F_READY);
         _cur->_flags ^= VPE::F_READY;
 
-        if(!_no_gang && _cur->_group) {
+        if(_cur->_group) {
             for(auto gvpe = _cur->_group->begin(); gvpe != _cur->_group->end(); ++gvpe) {
                 if(gvpe->vpe != _cur) {
                     KLOG(CTXSW, "CtxSw[" << _pe << "] trying to gangschedule VPE " << gvpe->vpe->id());
@@ -99,7 +98,6 @@ void ContextSwitcher::schedule() {
                 }
             }
         }
-        _no_gang = false;
     }
     else
         _cur = _idle;
@@ -171,7 +169,8 @@ VPE *ContextSwitcher::steal_vpe() {
             return !v->is_pinned();
         });
         if(vpe) {
-            DTU::get().flush_cache(_cur->desc());
+            if(_cur)
+                DTU::get().flush_cache(_cur->desc());
             vpe->_flags ^= VPE::F_READY;
             _global_ready--;
             return vpe;
@@ -201,12 +200,12 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
 void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
     dequeue(vpe);
 
-    // ensure that all PTEs are in memory
-    DTU::get().flush_cache(_cur->desc());
+    if(_cur) {
+        // ensure that all PTEs are in memory
+        DTU::get().flush_cache(_cur->desc());
+    }
 
     if(_cur == vpe) {
-        // don't try to schedule others of the gang next time, if is still a gang running
-        _no_gang = vpe->_group && vpe->_group->has_running();
         // for non-programmable accelerator, we have to do the save first, because we cannot
         // interrupt the accelerator at arbitrary points in time (this might screw up his FSM)
         if(force || Platform::pe(_pe).is_programmable()) {
@@ -221,7 +220,19 @@ void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
             assert(_state == S_STORE_DONE);
             _state = S_IDLE;
         }
-        start_switch();
+        // don't switch to someone else if the group is still running
+        if(!(vpe->_group && vpe->_group->has_other_app(vpe))) {
+            // if there is no one ready on this PE and we have a group, check if there is someone
+            // ready on one of the VPEs of the group.
+            if(vpe->_group && _ready.length() == 0) {
+                for(auto gvpe = vpe->_group->begin(); gvpe != vpe->_group->end(); ++gvpe) {
+                    if(gvpe->vpe != vpe && PEManager::get().yield(gvpe->vpe->pe()))
+                        return;
+                }
+            }
+            else
+                start_switch();
+        }
     }
 }
 
