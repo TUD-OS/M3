@@ -262,7 +262,7 @@ struct KIF {
 
         struct VPEWait : public DefaultRequest {
             xfer_t vpe_count;
-            xfer_t sels[16];
+            xfer_t sels[48];
         } PACKED;
 
         struct VPEWaitReply : public DefaultReply {
