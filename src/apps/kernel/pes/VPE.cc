@@ -151,6 +151,8 @@ void VPE::stop_app(int exitcode, bool self) {
     if(!has_app())
         return;
 
+    KLOG(VPES, "Stopping VPE '" << _name << "' [id=" << id() << "]");
+
     if(self)
         exit_app(exitcode);
     else if(_state == RUNNING)
@@ -203,6 +205,8 @@ void VPE::yield() {
     _flags |= F_YIELDED;
     if(_pending_fwds == 0)
         PEManager::get().yield_vpe(this);
+    else
+        KLOG(VPES, "Ignoring yield of VPE '" << _name << "' due to pending forwards");
 }
 
 bool VPE::migrate(bool fast) {
