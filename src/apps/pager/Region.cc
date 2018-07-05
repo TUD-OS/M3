@@ -82,7 +82,7 @@ void Region::copy(m3::MemGate *mem, goff_t virt) {
 
     // make a copy; either from owner memory or the physical memory
     m3::MemGate *ogate = _mem->owner_mem ? _mem->owner_mem : _mem->gate;
-    goff_t off = _mem->owner_mem ? _mem->owner_virt : _memoff;
+    goff_t off = _mem->owner_mem ? _mem->owner_virt + _offset : _memoff;
     m3::MemGate *ngate = new m3::MemGate(m3::MemGate::create_global(size(), m3::MemGate::RWX));
 
     SLOG(PAGER, "Copying memory "
@@ -95,7 +95,7 @@ void Region::copy(m3::MemGate *mem, goff_t virt) {
     // make sure that the other users of this memory don't continue (in copy()) until this is done
     // TODO if the owner unmaps the memory, we have a problem
     _copying = true;
-    copy_block(ogate, ngate, off + _offset, size());
+    copy_block(ogate, ngate, off, size());
     _copying = false;
     m3::ThreadManager::get().notify(reinterpret_cast<event_t>(this));
 
