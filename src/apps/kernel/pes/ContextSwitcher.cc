@@ -388,8 +388,8 @@ retry:
             uint64_t now = DTU::get().get_time();
             uint64_t cycles = _cur->_dtustate.get_idle_time();
             uint64_t total = now - _cur->_lastsched;
-            bool blocked = ((_cur->_flags & (VPE::F_HASAPP | VPE::F_NOBLOCK)) == VPE::F_HASAPP) &&
-                            _cur->_dtustate.was_idling();
+            bool blocked = !(_cur->_flags & VPE::F_HASAPP) ||
+                           (!(_cur->_flags & VPE::F_NOBLOCK) && _cur->_dtustate.was_idling());
             _cur->_flags &= ~static_cast<uint>(VPE::F_NOBLOCK);
 
             KLOG(CTXSW, "CtxSw[" << _pe << "]: saved VPE " << _cur->id() << " (idled "
