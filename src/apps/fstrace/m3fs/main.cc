@@ -83,7 +83,7 @@ static void cleanup() {
 
 static void usage(const char *name) {
     cerr << "Usage: " << name << " [-p <prefix>] [-n <iterations>] [-w] [-f <fs>]"
-                              << " [-g <rgate selector>] [-l <loadgen>] [-i] [-d] <name>";
+                              << " [-g <rgate selector>] [-l <loadgen>] [-i] [-d] <name>\n";
     exit(1);
 }
 
