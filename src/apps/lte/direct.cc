@@ -28,25 +28,55 @@
 using namespace m3;
 
 static constexpr bool VERBOSE           = 1;
-static constexpr size_t PIPE_SHM_SIZE   = 512 * 1024;
+static constexpr size_t PIPE_SIZE       = 512 * 1024;
 
 static constexpr cycles_t FFT_TIME      = 17000 / 4;
 static constexpr cycles_t EQ_TIME       = 6000;         // TODO
 
 class MemBackedPipe {
 public:
-    explicit MemBackedPipe(size_t size)
-        : _mem(MemGate::create_global(size, MemGate::RW)),
-          _pipe(_mem, size) {
+    explicit MemBackedPipe(MemGate &base, size_t off, size_t size)
+        : _mem(base.derive(off, size, MemGate::RW)),
+          _pipe("pipe", _mem, size),
+          _rdfd(),
+          _wrfd() {
+    }
+    ~MemBackedPipe() {
+        close_reader();
+        close_writer();
     }
 
-    IndirectPipe &pipe() {
-        return _pipe;
+    void create_channel(bool read, epid_t mep = EP_COUNT, size_t memoff = 0) {
+        KIF::ExchangeArgs args;
+        args.count = 1;
+        args.vals[0] = read;
+        KIF::CapRngDesc desc = _pipe.obtain(2, &args);
+        fd_t fd = VPE::self().fds()->alloc(
+            new GenericFile(read ? FILE_R : FILE_W, desc.start(), 0, mep, nullptr, memoff));
+        if(read)
+            _rdfd = fd;
+        else
+            _wrfd = fd;
     }
 
-private:
+    fd_t reader_fd() const {
+        return _rdfd;
+    }
+    fd_t writer_fd() const {
+        return _wrfd;
+    }
+
+    void close_reader() {
+        delete VPE::self().fds()->free(_rdfd);
+    }
+    void close_writer() {
+        delete VPE::self().fds()->free(_wrfd);
+    }
+
     MemGate _mem;
-    IndirectPipe _pipe;
+    Pipe _pipe;
+    fd_t _rdfd;
+    fd_t _wrfd;
 };
 
 void chain_direct(File *in, size_t num) {
@@ -55,18 +85,23 @@ void chain_direct(File *in, size_t num) {
     StreamAccel *accels[1 + num * 3];
     MemBackedPipe *pipes[1 + num * 2];
 
+    MemGate basemem = MemGate::create_global(PIPE_SIZE * (1 + num), MemGate::RW);
+    basemem.activate_for(VPE::self(), VPE::self().alloc_ep());
+
     if(VERBOSE) Serial::get() << "Creating FFT VPE...\n";
 
     vpes[0] = new VPE("FFT", PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT));
     if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE for FFT");
     accels[0] = new StreamAccel(vpes[0], FFT_TIME);
-    pipes[0] = new MemBackedPipe(PIPE_SHM_SIZE);
+    pipes[0] = new MemBackedPipe(basemem, 0, PIPE_SIZE);
+    pipes[0]->create_channel(false);
+    pipes[0]->create_channel(true, basemem.ep(), 0);
 
     // file -> FFT
     accels[0]->connect_input(static_cast<GenericFile*>(in));
     // FFT -> DISP
-    File *wr = VPE::self().fds()->get(pipes[0]->pipe().writer_fd());
+    File *wr = VPE::self().fds()->get(pipes[0]->writer_fd());
     accels[0]->connect_output(static_cast<GenericFile*>(wr));
 
     // create dispatcher first to reserve PE
@@ -77,35 +112,38 @@ void chain_direct(File *in, size_t num) {
         groups[j] = new VPEGroup();
 
         // pipe from DISP -> EQ
-        pipes[1 + j * 2 + 0] = new MemBackedPipe(PIPE_SHM_SIZE);
+        size_t pipeidx = 1 + j * 2;
+        pipes[pipeidx + 0] = new MemBackedPipe(basemem, PIPE_SIZE + j * PIPE_SIZE, PIPE_SIZE);
+        pipes[pipeidx + 0]->create_channel(false, basemem.ep(), PIPE_SIZE + j * PIPE_SIZE);
+        pipes[pipeidx + 0]->create_channel(true);
         // pipe from IFFT -> APP
-        pipes[1 + j * 2 + 1] = new MemBackedPipe(PIPE_SHM_SIZE);
+        pipes[pipeidx + 1] = new MemBackedPipe(basemem, PIPE_SIZE + j * PIPE_SIZE, PIPE_SIZE);
+        pipes[pipeidx + 1]->create_channel(false);
+        pipes[pipeidx + 1]->create_channel(true);
 
         // create accel VPEs
+        size_t aidx = 1 + j * 3;
         const char *names[] = {"EQ", "IFFT"};
         const cycles_t times[] = {EQ_TIME, FFT_TIME};
         for(size_t i = 0; i < 2; ++i) {
-            size_t idx = 1 + j * 3 + i;
-
             if(VERBOSE) Serial::get() << "Creating VPE " << names[i] << " for user " << j << "\n";
 
-            vpes[idx] = new VPE(names[i], PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT),
+            vpes[aidx + i] = new VPE(names[i], PEDesc(PEType::COMP_IMEM, PEISA::ACCEL_FFT),
                                 nullptr, VPE::MUXABLE, groups[j]);
             if(Errors::last != Errors::NONE)
                 exitmsg("Unable to create VPE for " << names[i]);
-            accels[idx] = new StreamAccel(vpes[idx], times[i]);
+            accels[aidx + i] = new StreamAccel(vpes[aidx + i], times[i]);
         }
 
         if(VERBOSE) Serial::get() << "Starting application...\n";
 
         // application
-        size_t aidx = 1 + j * 3 + 2;
-        vpes[aidx] = new VPE("APP", VPE::self().pe(), nullptr, VPE::MUXABLE, nullptr);
-        File *ard = VPE::self().fds()->get(pipes[1 + j * 2 + 1]->pipe().reader_fd());
-        vpes[aidx]->fds()->set(STDIN_FD, ard);
-        vpes[aidx]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
-        vpes[aidx]->obtain_fds();
-        vpes[aidx]->run([] {
+        vpes[aidx + 2] = new VPE("APP", VPE::self().pe(), nullptr, VPE::MUXABLE, nullptr);
+        File *ard = VPE::self().fds()->get(pipes[pipeidx + 1]->reader_fd());
+        vpes[aidx + 2]->fds()->set(STDIN_FD, ard);
+        vpes[aidx + 2]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
+        vpes[aidx + 2]->obtain_fds();
+        vpes[aidx + 2]->run([] {
             alignas(64) char buffer[8192];
             cout << "Hello from application\n";
             File *in = VPE::self().fds()->get(STDIN_FD);
@@ -117,21 +155,21 @@ void chain_direct(File *in, size_t num) {
             }
             return 0;
         });
-        pipes[1 + j * 2 + 1]->pipe().close_reader();
+        pipes[pipeidx + 1]->close_reader();
 
         if(VERBOSE) Serial::get() << "Connecting input and output...\n";
 
         // connect input/output
 
         // DISP -> EQ
-        File *rd = VPE::self().fds()->get(pipes[1 + j * 2 + 0]->pipe().reader_fd());
-        accels[1 + j * 3 + 0]->connect_input(static_cast<GenericFile*>(rd));
+        File *rd = VPE::self().fds()->get(pipes[pipeidx + 0]->reader_fd());
+        accels[aidx + 0]->connect_input(static_cast<GenericFile*>(rd));
         // EQ -> IFFT
-        accels[1 + j * 3 + 0]->connect_output(accels[1 + j * 3 + 1]);
-        accels[1 + j * 3 + 1]->connect_input(accels[1 + j * 3 + 0]);
+        accels[aidx + 0]->connect_output(accels[aidx + 1]);
+        accels[aidx + 1]->connect_input(accels[aidx + 0]);
         // IFFT -> APP
-        File *wr = VPE::self().fds()->get(pipes[1 + j * 2 + 1]->pipe().writer_fd());
-        accels[1 + j * 3 + 1]->connect_output(static_cast<GenericFile*>(wr));
+        File *wr = VPE::self().fds()->get(pipes[pipeidx + 1]->writer_fd());
+        accels[aidx + 1]->connect_output(static_cast<GenericFile*>(wr));
     }
 
     if(VERBOSE) Serial::get() << "Starting accelerators...\n";
@@ -148,11 +186,11 @@ void chain_direct(File *in, size_t num) {
     if(VERBOSE) Serial::get() << "Starting dispatcher...\n";
 
     // dispatcher
-    File *in_pipe = VPE::self().fds()->get(pipes[0]->pipe().reader_fd());
-    vpes[didx]->fds()->set(STDIN_FD, in_pipe);
+    // TODO this doesn't work with exec yet, because we do not properly serialize GenericFile!
+    vpes[didx]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[0]->reader_fd()));
     vpes[didx]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
     for(size_t i = 0; i < num; ++i)
-        vpes[didx]->fds()->set(3 + i, VPE::self().fds()->get(pipes[1 + i * 2]->pipe().writer_fd()));
+        vpes[didx]->fds()->set(3 + i, VPE::self().fds()->get(pipes[1 + i * 2]->writer_fd()));
     vpes[didx]->obtain_fds();
     vpes[didx]->run([num] {
         alignas(64) char buffer[8192];
@@ -174,9 +212,9 @@ void chain_direct(File *in, size_t num) {
     if(VERBOSE) Serial::get() << "Closing pipe ends...\n";
 
     // close our ends
-    pipes[0]->pipe().close_reader();
+    pipes[0]->close_reader();
     for(size_t i = 0; i < num; ++i)
-        pipes[1 + i * 2]->pipe().close_writer();
+        pipes[1 + i * 2]->close_writer();
 
     if(VERBOSE) Serial::get() << "Waiting for VPEs...\n";
 
@@ -188,6 +226,8 @@ void chain_direct(File *in, size_t num) {
             if(running[i])
                 sels[count++] = vpes[i]->sel();
         }
+
+        if(VERBOSE) Serial::get() << "Waiting for " << rem << " VPEs...\n";
 
         capsel_t vpe;
         int exitcode;
@@ -201,14 +241,14 @@ void chain_direct(File *in, size_t num) {
                     if(exitcode != 0)
                         cerr << "VPE" << i << " terminated with exit code " << exitcode << "\n";
                     if(i == 0)
-                        pipes[0]->pipe().close_writer();
+                        pipes[0]->close_writer();
                     else if(i != ARRAY_SIZE(vpes) - 1) {
                         size_t user = (i - 1) / 3;
                         size_t off = (i - 1) % 3;
                         if(off == 0)
-                            pipes[1 + user * 2 + 0]->pipe().close_reader();
+                            pipes[1 + user * 2 + 0]->close_reader();
                         else if(off == 1)
-                            pipes[1 + user * 2 + 1]->pipe().close_writer();
+                            pipes[1 + user * 2 + 1]->close_writer();
                     }
                     running[i] = false;
                     break;
