@@ -157,7 +157,7 @@ bool PEManager::migrate_to(VPE *vpe, peid_t npe, bool fast) {
     // only migrate if we can directly switch to this VPE on the other PE
     if(!ctx || (fast && !_ctxswitcher[npe]->can_switch()))
         return false;
-    ctx->remove_vpe(vpe);
+    ctx->remove_vpe(vpe, true);
 
     vpe->set_pe(npe);
     vpe->needs_invalidate();

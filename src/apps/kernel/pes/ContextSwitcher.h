@@ -81,14 +81,14 @@ public:
     bool can_switch() const;
 
     void add_vpe(VPE *vpe);
-    void remove_vpe(VPE *vpe);
+    void remove_vpe(VPE *vpe, bool migrate = false);
 
     bool yield_vpe(VPE *vpe);
     bool unblock_vpe(VPE *vpe, bool force);
     bool unblock_vpe_now(VPE *vpe);
 
     void start_vpe(VPE *vpe);
-    void stop_vpe(VPE *vpe, bool force = false);
+    void stop_vpe(VPE *vpe, bool force = false, bool migrate = false);
 
     VPE *steal_vpe();
 

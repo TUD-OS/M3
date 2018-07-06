@@ -146,8 +146,8 @@ void ContextSwitcher::add_vpe(VPE *vpe) {
     _count++;
 }
 
-void ContextSwitcher::remove_vpe(VPE *vpe) {
-    stop_vpe(vpe, true);
+void ContextSwitcher::remove_vpe(VPE *vpe, bool migrate) {
+    stop_vpe(vpe, true, migrate);
 
     if(--_count == 0)
         _muxable = Platform::pe(_pe).supports_ctxsw();
@@ -197,7 +197,7 @@ void ContextSwitcher::start_vpe(VPE *vpe) {
     next_state(0);
 }
 
-void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
+void ContextSwitcher::stop_vpe(VPE *vpe, bool force, bool migrate) {
     dequeue(vpe);
 
     if(_cur) {
@@ -205,7 +205,7 @@ void ContextSwitcher::stop_vpe(VPE *vpe, bool force) {
         DTU::get().flush_cache(_cur->desc());
     }
 
-    if(_cur == vpe) {
+    if(_cur == vpe && !migrate) {
         // for non-programmable accelerator, we have to do the save first, because we cannot
         // interrupt the accelerator at arbitrary points in time (this might screw up his FSM)
         if(force || Platform::pe(_pe).is_programmable()) {
