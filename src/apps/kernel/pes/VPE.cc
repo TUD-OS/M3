@@ -254,7 +254,7 @@ bool VPE::resume(bool need_app, bool unblock) {
 void VPE::wakeup() {
     if(_state == RUNNING)
         DTU::get().inject_irq(desc());
-    else if(has_app() && !is_on_pe())
+    else if(has_app() && !is_on_pe() && !is_waiting())
         PEManager::get().unblock_vpe(this, false);
 }
 
