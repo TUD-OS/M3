@@ -28,7 +28,6 @@
 using namespace m3;
 
 static constexpr int VERBOSE            = 1;
-static constexpr size_t PIPE_SIZE       = 32 * 1024;
 
 static constexpr cycles_t FFT_TIME      = 17000 / 4;
 static constexpr cycles_t EQ_TIME       = 6000;         // TODO
@@ -79,13 +78,13 @@ public:
     fd_t _wrfd;
 };
 
-void chain_direct(File *in, size_t num) {
+void chain_direct(File *in, size_t pipesize, size_t num) {
     VPEGroup *groups[num];
     VPE *vpes[2 + num * 3];
     StreamAccel *accels[1 + num * 3];
     MemBackedPipe *pipes[1 + num * 2];
 
-    MemGate basemem = MemGate::create_global(PIPE_SIZE * (1 + num), MemGate::RW);
+    MemGate basemem = MemGate::create_global(pipesize * (1 + num), MemGate::RW);
     basemem.activate_for(VPE::self(), VPE::self().alloc_ep());
 
     if(VERBOSE) Serial::get() << "Creating FFT VPE...\n";
@@ -94,7 +93,7 @@ void chain_direct(File *in, size_t num) {
     if(Errors::last != Errors::NONE)
         exitmsg("Unable to create VPE for FFT");
     accels[0] = new StreamAccel(vpes[0], FFT_TIME);
-    pipes[0] = new MemBackedPipe(basemem, 0, PIPE_SIZE);
+    pipes[0] = new MemBackedPipe(basemem, 0, pipesize);
     pipes[0]->create_channel(false);
     pipes[0]->create_channel(true, basemem.ep(), 0);
 
@@ -114,11 +113,11 @@ void chain_direct(File *in, size_t num) {
 
         // pipe from DISP -> EQ
         size_t pipeidx = 1 + j * 2;
-        pipes[pipeidx + 0] = new MemBackedPipe(basemem, PIPE_SIZE + j * PIPE_SIZE, PIPE_SIZE);
-        pipes[pipeidx + 0]->create_channel(false, basemem.ep(), PIPE_SIZE + j * PIPE_SIZE);
+        pipes[pipeidx + 0] = new MemBackedPipe(basemem, pipesize + j * pipesize, pipesize);
+        pipes[pipeidx + 0]->create_channel(false, basemem.ep(), pipesize + j * pipesize);
         pipes[pipeidx + 0]->create_channel(true);
         // pipe from IFFT -> APP
-        pipes[pipeidx + 1] = new MemBackedPipe(basemem, PIPE_SIZE + j * PIPE_SIZE, PIPE_SIZE);
+        pipes[pipeidx + 1] = new MemBackedPipe(basemem, pipesize + j * pipesize, pipesize);
         pipes[pipeidx + 1]->create_channel(false);
         pipes[pipeidx + 1]->create_channel(true);
 

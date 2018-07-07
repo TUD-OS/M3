@@ -26,8 +26,8 @@
 using namespace m3;
 
 int main(int argc, char **argv) {
-    if(argc < 5)
-        exitmsg("Usage: " << argv[0] << " <in> <mode> <num> <repeats>");
+    if(argc < 6)
+        exitmsg("Usage: " << argv[0] << " <in> <mode> <num> <pipesize> <repeats>");
 
     if(VFS::mount("/", "m3fs") != Errors::NONE) {
         if(Errors::last != Errors::EXISTS)
@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
     const char *in = argv[1];
     // Mode mode = static_cast<Mode>(IStringStream::read_from<int>(argv[2]));
     size_t num = IStringStream::read_from<size_t>(argv[3]);
-    int repeats = IStringStream::read_from<int>(argv[4]);
+    size_t pipesize = IStringStream::read_from<size_t>(argv[4]);
+    int repeats = IStringStream::read_from<int>(argv[5]);
 
     for(int i = 0; i < repeats; ++i) {
         // open file
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
         // else if(mode == Mode::DIR_MULTI)
         //     chain_direct_multi(fin, fout, num, comptime, Mode::DIR);
         // else
-            chain_direct(fin, num);
+            chain_direct(fin, pipesize, num);
 
         VFS::close(infd);
     }

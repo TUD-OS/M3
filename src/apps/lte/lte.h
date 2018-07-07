@@ -25,6 +25,6 @@ enum Mode {
     DIR_MULTI   = 3,
 };
 
-void chain_direct(m3::File *in, size_t num);
+void chain_direct(m3::File *in, size_t pipesize, size_t num);
 // void chain_direct_multi(m3::File *in, m3::File *out, size_t num, cycles_t comptime, Mode mode);
 // void chain_indirect(m3::File *in, m3::File *out, size_t num, cycles_t comptime);
