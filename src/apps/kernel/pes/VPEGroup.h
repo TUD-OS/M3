@@ -38,6 +38,7 @@ public:
     }
     ~VPEGroup();
 
+    bool all_yielded() const;
     bool has_other_app(VPE *self) const;
     bool is_pe_used(peid_t pe) const;
 

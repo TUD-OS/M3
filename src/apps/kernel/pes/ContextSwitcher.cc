@@ -275,6 +275,8 @@ bool ContextSwitcher::yield_vpe(VPE *vpe) {
         return false;
     if(_ready.length() == 0)
         return false;
+    if(vpe->_group && !vpe->_group->all_yielded())
+        return false;
 
     start_switch();
     return true;
@@ -349,7 +351,7 @@ void ContextSwitcher::update_yield() {
     // TODO track the number of ready VPEs per PE-type. if only the fft accelerator is
     // over-subscribed, there is no point in letting general purpose PEs notify us about idling
     bool yield = _global_ready > 0;
-    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield && !_cur->_group) {
+    if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield) {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating yield=" << yield);
 
         // update yield time and wake him up in case he was idling
@@ -389,6 +391,8 @@ bool ContextSwitcher::start_switch(bool timedout) {
 
 void ContextSwitcher::continue_switch() {
     assert(_state == S_STORE_DONE || _state == S_RESTORE_DONE);
+    if(!_cur)
+        return;
 
     uint64_t flags = 0;
     DTU::get().read_swflags(_cur->desc(), &flags);
@@ -492,7 +496,7 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && !_cur->_group && _global_ready > 0) ? _cur->yield_time() : 0;
+            uint64_t report = (can_mux() && _global_ready > 0) ? _cur->yield_time() : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
             _set_yield = report > 0;
 

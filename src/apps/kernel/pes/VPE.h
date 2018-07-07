@@ -123,6 +123,9 @@ public:
         return _pid;
     }
 
+    bool has_yielded() const {
+        return _flags & F_YIELDED;
+    }
     bool is_daemon() const {
         return _flags & F_DAEMON;
     }
@@ -202,6 +205,8 @@ public:
     }
 
     cycles_t yield_time() const {
+        if(_group)
+            return APP_YIELD;
         return _services > 0 || !Platform::pe(pe()).is_programmable() ? SRV_YIELD : APP_YIELD;
     }
     void add_service() {

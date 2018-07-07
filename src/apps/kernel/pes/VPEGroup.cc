@@ -27,6 +27,14 @@ VPEGroup::~VPEGroup() {
     }
 }
 
+bool VPEGroup::all_yielded() const {
+    for(auto it = vpes.begin(); it != vpes.end(); ++it) {
+        if(!it->vpe->has_yielded())
+            return false;
+    }
+    return true;
+}
+
 bool VPEGroup::has_other_app(VPE *self) const {
     for(auto it = vpes.begin(); it != vpes.end(); ++it) {
         if(it->vpe != self && it->vpe->has_app())
