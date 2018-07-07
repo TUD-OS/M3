@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <base/CPU.h>
 #include <base/Errors.h>
 #include <base/KIF.h>
 
