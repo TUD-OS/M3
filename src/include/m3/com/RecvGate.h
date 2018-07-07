@@ -193,6 +193,16 @@ public:
     void stop();
 
     /**
+     * Fetches a message from this receive gate and returns it, if there is any.
+     *
+     * @return the message or nullptr
+     */
+    const DTU::Message *fetch() {
+        activate();
+        return DTU::get().fetch_msg(ep());
+    }
+
+    /**
      * Waits until a message is received. If <sgate> is given, it will stop if as soon as <sgate>
      * gets invalid and return the appropriate error.
      *

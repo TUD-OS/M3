@@ -107,6 +107,7 @@ void chain_direct(File *in, size_t num) {
     // create dispatcher first to reserve PE
     size_t didx = ARRAY_SIZE(vpes) - 1;
     vpes[didx] = new VPE("DISP");
+    basemem.activate_for(*vpes[didx], vpes[didx]->alloc_ep());
 
     for(size_t j = 0; j < num; ++j) {
         groups[j] = new VPEGroup();
@@ -193,18 +194,100 @@ void chain_direct(File *in, size_t num) {
         vpes[didx]->fds()->set(3 + i, VPE::self().fds()->get(pipes[1 + i * 2]->writer_fd()));
     vpes[didx]->obtain_fds();
     vpes[didx]->run([num] {
-        alignas(64) char buffer[8192];
-        File *in = VPE::self().fds()->get(STDIN_FD);
-        for(size_t i = 0; ; ++i) {
-            ssize_t amount = in->read(buffer, sizeof(buffer));
-            if(amount <= 0) {
-                if(VERBOSE) Serial::get() << "Received " << amount << ". Stopping.\n";
-                break;
+        const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
+        const cycles_t sleep_time = 100 /* us */ * cycles_per_usec;
+        const cycles_t max_delay  = 1000 /* us */ * cycles_per_usec;
+
+        RecvGate rgate = RecvGate::create(nextlog2<32 * 64>::val, nextlog2<64>::val);
+        rgate.activate();
+
+        GenericFile *in = static_cast<GenericFile*>(VPE::self().fds()->get(STDIN_FD));
+        in->sgate().reply_gate(&rgate);
+
+        bool sent_in_req = false;
+        bool sent_out_req[num];
+        cycles_t last_push[num];
+        for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
+            GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + i));
+            out_pipe->sgate().reply_gate(&rgate);
+            sent_out_req[i] = false;
+            last_push[i] = 0;
+        }
+
+        size_t no = 0;
+        while(1) {
+            cycles_t now = DTU::get().tsc();
+
+            // have we got a response to a next-input request?
+            const DTU::Message *msg = rgate.fetch();
+            if(msg) {
+                if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Received response from " << msg->label << "\n";
+                GateIStream is(rgate, msg);
+                if(msg->label == 1) {
+                    if(in->received_next_input(is) == 0) {
+                        if(VERBOSE) Serial::get() << "Received EOF. Stopping.\n";
+                        break;
+                    }
+                    sent_in_req = false;
+                }
+                else {
+                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + (msg->label - 2)));
+                    out_pipe->received_next_output(is);
+                    sent_out_req[msg->label - 2] = false;
+                }
             }
 
-            File *out_pipe = VPE::self().fds()->get(3 + (i % num));
-            out_pipe->write(buffer, static_cast<size_t>(amount));
+            alignas(64) static cycles_t buffer[8192 / sizeof(cycles_t)];
+            while(in->has_data()) {
+                size_t user = no % num;
+                GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
+                if(out_pipe->has_data()) {
+                    ssize_t amount = in->read(buffer, sizeof(buffer));
+                    assert(amount > 0);
+
+                    buffer[0] = DTU::get().tsc();
+
+                    // push it into the user pipe
+                    if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Pushing to user " << user << "\n";
+                    out_pipe->write(buffer, static_cast<size_t>(amount));
+                    if(last_push[user] == 0)
+                        last_push[user] = now;
+                    no += 1;
+                }
+                else {
+                    if(!sent_out_req[user]) {
+                        if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Sending output request for " << user << "\n";
+                        out_pipe->send_next_output(2 + user);
+                        sent_out_req[user] = true;
+                    }
+                    break;
+                }
+            }
+
+            // otherwise, request new data
+            if(!in->has_data() && !sent_in_req) {
+                if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Sending input request\n";
+                in->send_next_input(1);
+                sent_in_req = true;
+            }
+
+            // flush the pipes for which the max latency is reached
+            // for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
+            //     if(last_push[i] > 0 && now - last_push[i] > max_delay) {
+            //         if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Committing to user " << i << "\n";
+            //         File *out_pipe = VPE::self().fds()->get(3 + i);
+            //         out_pipe->flush();
+            //         last_push[i] = 0;
+            //     }
+            // }
+
+            // wait for some time or the next message
+            DTU::get().try_sleep(true, sleep_time);
         }
+
+        VFS::close(0);
+        for(size_t i = 0; i < num; ++i)
+            VFS::close(3 + i);
         return 0;
     });
     running[didx] = true;
