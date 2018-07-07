@@ -27,8 +27,8 @@
 
 using namespace m3;
 
-static constexpr bool VERBOSE           = 1;
-static constexpr size_t PIPE_SIZE       = 512 * 1024;
+static constexpr int VERBOSE            = 1;
+static constexpr size_t PIPE_SIZE       = 32 * 1024;
 
 static constexpr cycles_t FFT_TIME      = 17000 / 4;
 static constexpr cycles_t EQ_TIME       = 6000;         // TODO
@@ -144,13 +144,16 @@ void chain_direct(File *in, size_t num) {
         vpes[aidx + 2]->fds()->set(STDIN_FD, ard);
         vpes[aidx + 2]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
         vpes[aidx + 2]->obtain_fds();
-        vpes[aidx + 2]->run([] {
-            alignas(64) char buffer[8192];
-            cout << "Hello from application\n";
+        vpes[aidx + 2]->run([j] {
+            alignas(64) static cycles_t buffer[8192 / sizeof(cycles_t)];
+            cout << "Hello from user " << j << "\n";
+            const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
             File *in = VPE::self().fds()->get(STDIN_FD);
             while(1) {
                 ssize_t amount = in->read(buffer, sizeof(buffer));
-                cout << "Got " << amount << " bytes\n";
+                cycles_t start = buffer[0];
+                cycles_t now = DTU::get().tsc();
+                cout << "[user" << j << "] Got " << amount << " bytes (delay=" << ((now - start) / cycles_per_usec) << "us)\n";
                 if(amount <= 0)
                     break;
             }
