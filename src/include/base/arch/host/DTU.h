@@ -285,6 +285,26 @@ public:
     }
     void try_sleep(bool report = true, uint64_t cycles = 0) const;
 
+    void drop_msgs(epid_t ep, label_t label) {
+        // we assume that the one that used the label can no longer send messages. thus, if there are
+        // no messages yet, we are done.
+        if(get_ep(ep, m3::DTU::EP_BUF_MSGCNT) == 0)
+            return;
+
+        goff_t base = get_ep(ep, m3::DTU::EP_BUF_ADDR);
+        int order = get_ep(ep, m3::DTU::EP_BUF_ORDER);
+        int msgorder = get_ep(ep, m3::DTU::EP_BUF_MSGORDER);
+        word_t unread = get_ep(ep, m3::DTU::EP_BUF_UNREAD);
+        int max = 1UL << (order - msgorder);
+        for(int i = 0; i < max; ++i) {
+            if(unread & (1UL << i)) {
+                Message *msg = reinterpret_cast<Message*>(base + (static_cast<goff_t>(i) << msgorder));
+                if(msg->label == label)
+                    mark_read(ep, reinterpret_cast<goff_t>(msg));
+            }
+        }
+    }
+
 private:
     bool is_unread(word_t unread, int idx) const {
         return unread & (static_cast<word_t>(1) << idx);

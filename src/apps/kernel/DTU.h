@@ -69,8 +69,6 @@ public:
 
     void mark_read_remote(const VPEDesc &vpe, epid_t ep, goff_t msg);
 
-    void drop_msgs(epid_t ep, label_t label);
-
     m3::Errors::Code get_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,
                                 void *head);
     m3::Errors::Code set_header(const VPEDesc &vpe, const RGateObject *obj, goff_t &msgaddr,

@@ -321,6 +321,26 @@ public:
         write_reg(DtuRegs::CLEAR_IRQ, 1);
     }
 
+    void drop_msgs(epid_t ep, label_t label) {
+        // we assume that the one that used the label can no longer send messages. thus, if there are
+        // no messages yet, we are done.
+        reg_t r0 = read_reg(ep, 0);
+        if((r0 & 0xFFFF) == 0)
+            return;
+
+        goff_t base = read_reg(ep, 1);
+        size_t bufsize = (r0 >> 16) & 0xFFFF;
+        size_t msgsize = (r0 >> 32) & 0xFFFF;
+        word_t unread = read_reg(ep, 2) >> 32;
+        for(size_t i = 0; i < bufsize; ++i) {
+            if(unread & (static_cast<size_t>(1) << i)) {
+                m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i * msgsize));
+                if(msg->label == label)
+                    mark_read(ep, reinterpret_cast<size_t>(msg));
+            }
+        }
+    }
+
 private:
     Errors::Code transfer(reg_t cmd, uintptr_t data, size_t size, goff_t off);
 

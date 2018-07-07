@@ -212,6 +212,15 @@ public:
      */
     Errors::Code reply(const void *data, size_t len, size_t msgidx);
 
+    /**
+     * Drops all messages with given label. That is, these messages will be marked as read.
+     *
+     * @param label the label
+     */
+    void drop_msgs_with(label_t label) {
+        DTU::get().drop_msgs(ep(), label);
+    }
+
 private:
     static void *allocate(VPE &vpe, epid_t ep, size_t size);
     static void free(void *);

@@ -104,7 +104,7 @@ VPE::~VPE() {
     _mapcaps.revoke_all();
 
     // ensure that there are no syscalls for this VPE anymore
-    DTU::get().drop_msgs(syscall_ep(), reinterpret_cast<label_t>(this));
+    m3::DTU::get().drop_msgs(syscall_ep(), reinterpret_cast<label_t>(this));
     SyscallHandler::free_ep(syscall_ep());
 
     if(_rbufcpy)

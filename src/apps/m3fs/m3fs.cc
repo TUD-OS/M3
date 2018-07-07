@@ -112,6 +112,7 @@ public:
 
     virtual Errors::Code close(M3FSSession *sess) override {
         delete sess;
+        _rgate.drop_msgs_with(reinterpret_cast<label_t>(sess));
         return Errors::NONE;
     }
 

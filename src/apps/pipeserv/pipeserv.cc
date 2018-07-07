@@ -95,6 +95,7 @@ public:
     virtual Errors::Code close(PipeSession *sess) override {
         sess->close();
         delete sess;
+        _rgate.drop_msgs_with(reinterpret_cast<label_t>(sess));
         return Errors::NONE;
     }
 

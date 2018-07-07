@@ -130,26 +130,6 @@ void DTU::mark_read_remote(const VPEDesc &vpe, epid_t ep, goff_t msg) {
     do_ext_cmd(vpe, cmd | (ep << 3) | (static_cast<m3::DTU::reg_t>(msg) << 11));
 }
 
-void DTU::drop_msgs(epid_t ep, label_t label) {
-    m3::DTU::reg_t *regs = reinterpret_cast<m3::DTU::reg_t*>(_state.get_ep(ep));
-    // we assume that the one that used the label can no longer send messages. thus, if there are
-    // no messages yet, we are done.
-    if((regs[0] & 0xFFFF) == 0)
-        return;
-
-    goff_t base = regs[1];
-    size_t bufsize = (regs[0] >> 16) & 0xFFFF;
-    size_t msgsize = (regs[0] >> 32) & 0xFFFF;
-    word_t unread = regs[2] >> 32;
-    for(size_t i = 0; i < bufsize; ++i) {
-        if(unread & (1UL << i)) {
-            m3::DTU::Message *msg = reinterpret_cast<m3::DTU::Message*>(base + (i * msgsize));
-            if(msg->label == label)
-                m3::DTU::get().mark_read(ep, reinterpret_cast<size_t>(msg));
-        }
-    }
-}
-
 static size_t get_msgidx(const RGateObject *obj, goff_t msgaddr) {
     // the message has to be within the receive buffer
     if(!(msgaddr >= obj->addr && msgaddr < obj->addr + obj->size()))
