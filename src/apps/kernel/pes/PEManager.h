@@ -41,6 +41,7 @@ public:
 
     peid_t find_pe(const m3::PEDesc &pe, peid_t except, uint flags, const VPEGroup *group);
 
+    bool can_unblock_now(VPE *vpe);
     VPE *current(peid_t pe) const;
     bool yield(peid_t pe);
 
@@ -54,7 +55,6 @@ public:
     bool migrate_for(VPE *vpe, VPE *dst);
     void yield_vpe(VPE *vpe);
     bool unblock_vpe(VPE *vpe, bool force);
-    bool unblock_vpe_now(VPE *vpe);
 
 private:
     bool migrate_to(VPE *vpe, peid_t npe, bool fast);

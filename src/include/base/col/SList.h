@@ -163,13 +163,7 @@ public:
         }
         if(!t)
             return nullptr;
-        if(p)
-            p->next(t->next());
-        else
-            _head = static_cast<T*>(t->next());
-        if(!t->next())
-            _tail = p;
-        _len--;
+        remove(p, t);
         return t;
     }
     /**
@@ -181,6 +175,21 @@ public:
      */
     bool remove(T *e) {
         return remove_if([e](T *e2) { return e == e2; }) != nullptr;
+    }
+    /**
+     * Removes <e> from the list, assuming that <p> is its predecessor.
+     *
+     * @param p the previous item
+     * @param e the item to remove
+     */
+    void remove(T *p, T *e) {
+        if(p)
+            p->next(e->next());
+        else
+            _head = static_cast<T*>(e->next());
+        if(!e->next())
+            _tail = p;
+        _len--;
     }
     /**
      * Removes all items from the list

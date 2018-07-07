@@ -46,6 +46,13 @@ void PEManager::init() {
     }
 }
 
+bool PEManager::can_unblock_now(VPE *vpe) {
+    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
+    if(ctx)
+        return ctx->can_unblock_now(vpe);
+    return false;
+}
+
 VPE *PEManager::current(peid_t pe) const {
     ContextSwitcher *ctx = _ctxswitcher[pe];
     if(ctx)
@@ -215,17 +222,6 @@ bool PEManager::unblock_vpe(VPE *vpe, bool force) {
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
     bool res = ctx->unblock_vpe(vpe, force);
-
-    update_yield(global);
-    return res;
-}
-
-bool PEManager::unblock_vpe_now(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
-    ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    assert(ctx);
-    bool res = ctx->unblock_vpe_now(vpe);
 
     update_yield(global);
     return res;

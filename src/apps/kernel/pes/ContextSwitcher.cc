@@ -85,19 +85,53 @@ ContextSwitcher::ContextSwitcher(peid_t pe)
 
 void ContextSwitcher::schedule() {
     if (_ready.length() > 0) {
-        _cur = _ready.remove_first();
-        _global_ready--;
-        assert(_cur->_flags & VPE::F_READY);
-        _cur->_flags ^= VPE::F_READY;
+        VPE *old = _cur;
 
-        if(_cur->_group) {
-            for(auto gvpe = _cur->_group->begin(); gvpe != _cur->_group->end(); ++gvpe) {
-                if(gvpe->vpe != _cur) {
-                    KLOG(CTXSW, "CtxSw[" << _pe << "] trying to gangschedule VPE " << gvpe->vpe->id());
-                    PEManager::get().unblock_vpe_now(gvpe->vpe);
+        // find the next VPE to schedule
+        _cur = nullptr;
+        VPE *prev = nullptr;
+        for(auto v = _ready.begin(); v != _ready.end(); ++v) {
+            if(v->_group) {
+                // first check if we can unblock all VPEs of the group at the same time
+                bool unblock_now = true;
+                for(auto gvpe = v->_group->begin(); gvpe != v->_group->end(); ++gvpe) {
+                    if(gvpe->vpe != &*v && !PEManager::get().can_unblock_now(gvpe->vpe)) {
+                        KLOG(CTXSW, "CtxSw[" << _pe << "] no sched of " << v->id()
+                            << ", " << gvpe->vpe->id() << " not unblockable");
+                        unblock_now = false;
+                        break;
+                    }
+                }
+                // ok, try the next one. and don't schedule the same VPE again
+                if(&*v == old || !unblock_now) {
+                    prev = &*v;
+                    continue;
+                }
+            }
+
+            // found a VPE to schedule
+            _ready.remove(prev, &*v);
+            _cur = &*v;
+            break;
+        }
+
+        if(_cur) {
+            _global_ready--;
+            assert(_cur->_flags & VPE::F_READY);
+            _cur->_flags ^= VPE::F_READY;
+
+            // unblock all other VPEs of the group
+            if(_cur->_group) {
+                for(auto gvpe = _cur->_group->begin(); gvpe != _cur->_group->end(); ++gvpe) {
+                    if(gvpe->vpe != _cur) {
+                        KLOG(CTXSW, "CtxSw[" << _pe << "] gangscheduling VPE " << gvpe->vpe->id());
+                        PEManager::get().unblock_vpe(gvpe->vpe, true);
+                    }
                 }
             }
         }
+        else
+            _cur = _idle;
     }
     else
         _cur = _idle;
@@ -251,6 +285,26 @@ bool ContextSwitcher::current_is_idling() const {
         (!_cur->_group && _cur->is_waiting());
 }
 
+bool ContextSwitcher::can_unblock_now(VPE *vpe) {
+    // if it's already running, it's fine too
+    if(_cur == vpe)
+        return true;
+    // if the VPE is not waiting and not ready, just make it ready. this is required, because the
+    // VPEs within a group might communicate with each other and might be waiting for another VPE
+    // in the group
+    if(!vpe->is_waiting() && !(vpe->_flags & VPE::F_READY)) {
+        // always put it to the front
+        vpe->_flags |= VPE::F_READY;
+        _global_ready++;
+        _ready.insert(nullptr, vpe);
+        return true;
+    }
+    // if it's not the first VPE in the list, don't schedule it now
+    if(_ready.length() > 0 && _ready.begin()->id() != vpe->id())
+        return false;
+    return !vpe->is_waiting();
+}
+
 bool ContextSwitcher::can_switch() const {
     if(current_is_idling())
         return true;
@@ -266,6 +320,9 @@ bool ContextSwitcher::can_switch() const {
 }
 
 bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
+    if(_cur == vpe)
+        return true;
+
     enqueue(vpe);
 
     if(force || current_is_idling())
@@ -286,26 +343,6 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 
     // wait for the timeout
     return false;
-}
-
-bool ContextSwitcher::unblock_vpe_now(VPE *vpe) {
-    // if it's already running, there is nothing to do
-    if(_cur == vpe)
-        return false;
-
-    // always put it to the front
-    if(vpe->_flags & VPE::F_READY)
-        _ready.remove(vpe);
-    else {
-        vpe->_flags |= VPE::F_READY;
-        _global_ready++;
-    }
-    _ready.insert(nullptr, vpe);
-
-    // if a syscall is running for it, don't context switch now
-    if(vpe->is_waiting())
-        return false;
-    return unblock_vpe(vpe, true);
 }
 
 void ContextSwitcher::update_yield() {
