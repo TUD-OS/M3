@@ -116,6 +116,33 @@ ssize_t GenericFile::seek(size_t offset, int whence) {
     return static_cast<ssize_t>(_goff + off);
 }
 
+bool GenericFile::send_next_input(label_t reply_label) {
+    if(delegate_ep() != Errors::NONE)
+        return false;
+    if(_writing && submit() != Errors::NONE)
+        return false;
+
+    LLOG(FS, "GenFile[" << fd() << "," << _id << "]::next_input(pos=" << (_goff + _pos) << ")");
+
+    if(_pos < _len)
+        return false;
+
+    auto msg = create_vmsg(NEXT_IN, _id);
+    _sg->send(msg.bytes(), msg.total(), reply_label);
+    return true;
+}
+
+size_t GenericFile::received_next_input(GateIStream &is) {
+    is >> Errors::last;
+    if(Errors::last != Errors::NONE)
+        return 0;
+
+    _goff += _len;
+    is >> _off >> _len;
+    _pos = 0;
+    return _len;
+}
+
 ssize_t GenericFile::read(void *buffer, size_t count) {
     if(delegate_ep() != Errors::NONE)
         return -1;
@@ -152,6 +179,31 @@ ssize_t GenericFile::read(void *buffer, size_t count) {
         _pos += amount;
     }
     return static_cast<ssize_t>(amount);
+}
+
+bool GenericFile::send_next_output(label_t reply_label) {
+    if(delegate_ep() != Errors::NONE)
+        return false;
+
+    LLOG(FS, "GenFile[" << fd() << "," << _id << "]::next_output(pos=" << (_goff + _pos) << ")");
+
+    if(_pos < _len)
+        return false;
+
+    auto msg = create_vmsg(NEXT_OUT, _id);
+    _sg->send(msg.bytes(), msg.total(), reply_label);
+    return true;
+}
+
+size_t GenericFile::received_next_output(GateIStream &is) {
+    is >> Errors::last;
+    if(Errors::last != Errors::NONE)
+        return 0;
+
+    _goff += _len;
+    is >> _off >> _len;
+    _pos = 0;
+    return _len;
 }
 
 ssize_t GenericFile::write(const void *buffer, size_t count) {

@@ -55,6 +55,31 @@ public:
         return _sess;
     }
 
+    /**
+     * @return true if there is still data to read or write without contacting the server
+     */
+    bool has_data() const {
+        return _pos < _len;
+    }
+
+    /**
+     * Sends the next/output input request using the given reply label
+     *
+     * @param reply_label the reply label to set
+     * @return true on success
+     */
+    bool send_next_input(label_t reply_label);
+    bool send_next_output(label_t reply_label);
+
+    /**
+     * Passes the reply for the previous input/output request to this object.
+     *
+     * @param is the reply
+     * @return the number of bytes that can be read/write afterwards
+     */
+    size_t received_next_input(GateIStream &is);
+    size_t received_next_output(GateIStream &is);
+
     virtual Errors::Code stat(FileInfo &info) const override;
 
     virtual ssize_t seek(size_t offset, int whence) override;
