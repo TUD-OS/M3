@@ -101,6 +101,9 @@ public:
     const m3::String &name() const {
         return _name;
     }
+    const VPEGroup *group() const {
+        return _group;
+    }
 
     const VPEDesc &desc() const {
         return _desc;

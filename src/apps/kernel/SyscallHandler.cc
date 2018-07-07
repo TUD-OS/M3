@@ -942,8 +942,10 @@ void SyscallHandler::exchange_over_sess(VPE *vpe, const m3::DTU::Message *msg, b
 
 m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur, bool need_app) {
     m3::Errors::Code res = m3::Errors::NONE;
+    bool same_group = cur->group() && cur->group() == tvpe.group();
     while(res == m3::Errors::NONE && tvpe.state() != VPE::RUNNING) {
-        cur->start_wait();
+        if(!same_group)
+            cur->start_wait();
         tvpe.add_forward();
 
         tvpe.migrate_for(cur);
@@ -954,7 +956,8 @@ m3::Errors::Code SyscallHandler::wait_for(const char *name, VPE &tvpe, VPE *cur,
             res = m3::Errors::VPE_GONE;
 
         tvpe.rem_forward();
-        cur->stop_wait();
+        if(!same_group)
+            cur->stop_wait();
     }
 
     LOG_SYS(cur, name, "-cont: VPE " << tvpe.id() << " ready");
