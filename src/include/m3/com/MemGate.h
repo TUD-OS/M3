@@ -130,7 +130,7 @@ public:
      * @param perms the permissions (you can only downgrade)
      * @return the new memory gate
      */
-    MemGate derive(capsel_t sel, goff_t offset, size_t size, int perms = RWX) const;
+    MemGate derive_with_sel(capsel_t sel, goff_t offset, size_t size, int perms = RWX) const;
 
     /**
      * Writes the <len> bytes at <data> to <offset>.

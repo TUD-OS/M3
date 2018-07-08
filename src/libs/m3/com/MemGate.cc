@@ -41,7 +41,7 @@ MemGate MemGate::derive(goff_t offset, size_t size, int perms) const {
     return MemGate(0, nsel);
 }
 
-MemGate MemGate::derive(capsel_t cap, goff_t offset, size_t size, int perms) const {
+MemGate MemGate::derive_with_sel(capsel_t cap, goff_t offset, size_t size, int perms) const {
     Syscalls::get().derivemem(cap, sel(), offset, size, perms);
     return MemGate(0, cap);
 }
