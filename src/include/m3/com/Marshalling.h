@@ -73,7 +73,7 @@ public:
     template<typename T>
     Marshaller & operator<<(const T& value) {
         assert(fits(_bytecount, sizeof(T)));
-        *reinterpret_cast<T*>(_bytes + _bytecount) = value;
+        *reinterpret_cast<xfer_t*>(_bytes + _bytecount) = (xfer_t)value;
         _bytecount += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }
@@ -189,7 +189,7 @@ public:
     template<typename T>
     Unmarshaller & operator>>(T &value) {
         assert(_pos + sizeof(T) <= length());
-        value = *reinterpret_cast<const T*>(_data + _pos);
+        value = (T)*reinterpret_cast<const xfer_t*>(_data + _pos);
         _pos += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }

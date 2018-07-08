@@ -299,7 +299,7 @@ public:
     template<typename T>
     GateIStream & operator>>(T &value) {
         assert(_pos + sizeof(T) <= length());
-        value = *reinterpret_cast<const T*>(_msg->data + _pos);
+        value = (T)*reinterpret_cast<const xfer_t*>(_msg->data + _pos);
         _pos += Math::round_up(sizeof(T), sizeof(xfer_t));
         return *this;
     }
