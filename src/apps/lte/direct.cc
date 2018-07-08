@@ -241,6 +241,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                     GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
                     out_pipe->received_next_resp(is);
                     sent_out_req[user] = false;
+                    last_push[user] = 0;
                 }
             }
 
@@ -278,14 +279,16 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             }
 
             // flush the pipes for which the max latency is reached
-            // for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
-            //     if(last_push[i] > 0 && now - last_push[i] > max_delay) {
-            //         if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Committing to user " << i << "\n";
-            //         File *out_pipe = VPE::self().fds()->get(3 + i);
-            //         out_pipe->flush();
-            //         last_push[i] = 0;
-            //     }
-            // }
+            for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
+                if(!sent_out_req[i] && last_push[i] > 0 && now - last_push[i] > max_delay) {
+                    if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Committing to user " << i << "\n";
+                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + i));
+                    out_pipe->sgate().reply_gate(&RecvGate::def());
+                    out_pipe->flush();
+                    out_pipe->sgate().reply_gate(&rgate);
+                    last_push[i] = 0;
+                }
+            }
 
             // wait for some time or the next message
             DTU::get().try_sleep(true, sleep_time);
