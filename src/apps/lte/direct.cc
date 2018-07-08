@@ -226,16 +226,17 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                 if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Received response from " << msg->label << "\n";
                 GateIStream is(rgate, msg);
                 if(msg->label == 1) {
-                    if(in->received_next_input(is) == 0) {
+                    if(in->received_next_resp(is) == 0) {
                         if(VERBOSE) Serial::get() << "Received EOF. Stopping.\n";
                         break;
                     }
                     sent_in_req = false;
                 }
                 else {
-                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + (msg->label - 2)));
-                    out_pipe->received_next_output(is);
-                    sent_out_req[msg->label - 2] = false;
+                    size_t user = msg->label - 2;
+                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
+                    out_pipe->received_next_resp(is);
+                    sent_out_req[user] = false;
                 }
             }
 

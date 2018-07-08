@@ -132,7 +132,7 @@ bool GenericFile::send_next_input(label_t reply_label) {
     return true;
 }
 
-size_t GenericFile::received_next_input(GateIStream &is) {
+size_t GenericFile::received_next_resp(GateIStream &is) {
     is >> Errors::last;
     if(Errors::last != Errors::NONE)
         return 0;
@@ -193,17 +193,6 @@ bool GenericFile::send_next_output(label_t reply_label) {
     auto msg = create_vmsg(NEXT_OUT, _id);
     _sg->send(msg.bytes(), msg.total(), reply_label);
     return true;
-}
-
-size_t GenericFile::received_next_output(GateIStream &is) {
-    is >> Errors::last;
-    if(Errors::last != Errors::NONE)
-        return 0;
-
-    _goff += _len;
-    is >> _off >> _len;
-    _pos = 0;
-    return _len;
 }
 
 ssize_t GenericFile::write(const void *buffer, size_t count) {

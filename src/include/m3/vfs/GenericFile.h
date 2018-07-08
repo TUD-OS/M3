@@ -77,8 +77,7 @@ public:
      * @param is the reply
      * @return the number of bytes that can be read/write afterwards
      */
-    size_t received_next_input(GateIStream &is);
-    size_t received_next_output(GateIStream &is);
+    size_t received_next_resp(GateIStream &is);
 
     virtual Errors::Code stat(FileInfo &info) const override;
 
