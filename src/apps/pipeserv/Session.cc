@@ -32,6 +32,18 @@ static void reply_vmsg_late(RecvGate &rgate, const DTU::Message *msg, const Args
     rgate.reply(reply.bytes(), reply.total(), idx);
 }
 
+template<class T>
+static void remove_pending(SList<PipeData::RdWrRequest<T>> &list, T *chan) {
+    PipeData::RdWrRequest<T> *prev = nullptr;
+    for(auto rq = list.begin(); rq != list.end(); ) {
+        auto old = rq++;
+        if(old->chan == chan)
+           list.remove(prev, &*old);
+        else
+            prev = &*old;
+    }
+}
+
 void PipeData::WorkItem::work() {
     pipe->handle_pending_write();
     pipe->handle_pending_read();
@@ -127,6 +139,8 @@ Errors::Code PipeChannel::activate() {
 }
 
 Errors::Code PipeReadChannel::close() {
+    remove_pending(pipe->pending_reads, this);
+
     if(pipe->flags & READ_EOF)
         return Errors::INV_ARGS;
 
@@ -232,6 +246,8 @@ void PipeData::handle_pending_read() {
 }
 
 Errors::Code PipeWriteChannel::close() {
+    remove_pending(pipe->pending_writes, this);
+
     if(pipe->flags & WRITE_EOF)
         return Errors::INV_ARGS;
 
