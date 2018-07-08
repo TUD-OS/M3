@@ -82,6 +82,17 @@ PipeChannel *PipeData::attach(capsel_t _sel, bool read) {
     return handler;
 }
 
+size_t PipeData::get_read_size() const {
+    // TODO hand out less, if it is above a certain threshold
+    assert(reader.length() > 0);
+    return rbuf.size() / static_cast<size_t>(4 * reader.length());
+}
+
+size_t PipeData::get_write_size() const {
+    assert(writer.length() > 0);
+    return rbuf.size() / static_cast<size_t>(4 * writer.length());
+}
+
 PipeChannel *PipeChannel::clone(capsel_t _sel) const {
     return pipe->attach(_sel, type() == RCHAN);
 }
@@ -168,8 +179,7 @@ void PipeReadChannel::read(GateIStream &is, size_t commit) {
         }
     }
 
-    // TODO hand out less, if it is above a certain threshold
-    size_t amount = pipe->rbuf.size() / static_cast<size_t>(4 * pipe->reader.length());
+    size_t amount = pipe->get_read_size();
     ssize_t pos = pipe->rbuf.get_read_pos(&amount);
     if(pos == -1) {
         if(pipe->flags & WRITE_EOF) {
@@ -199,7 +209,7 @@ void PipeData::handle_pending_read() {
 
     while(pending_reads.length() > 0) {
         PipeData::RdWrRequest<PipeReadChannel> *req = &*pending_reads.begin();
-        size_t ramount = rbuf.size() / static_cast<size_t>(4 * reader.length());
+        size_t ramount = get_read_size();
         ssize_t rpos = rbuf.get_read_pos(&ramount);
         if(rpos != -1) {
             pending_reads.remove_first();
@@ -278,8 +288,7 @@ void PipeWriteChannel::write(GateIStream &is, size_t commit) {
         return;
     }
 
-    // TODO hand out less, if it is above a certain threshold
-    size_t amount = pipe->rbuf.size() / static_cast<size_t>(4 * pipe->writer.length());
+    size_t amount = pipe->get_write_size();
     ssize_t pos = pipe->rbuf.get_write_pos(amount);
     if(pos == -1)
         append_request(pipe, is);
@@ -311,7 +320,7 @@ void PipeData::handle_pending_write() {
     }
     else if(pending_writes.length() > 0) {
         PipeData::RdWrRequest<PipeWriteChannel> *req = &*pending_writes.begin();
-        size_t amount = rbuf.size() / static_cast<size_t>(4 * writer.length());
+        size_t amount = get_write_size();
         ssize_t wpos = rbuf.get_write_pos(amount);
         if(wpos != -1) {
             pending_writes.remove_first();

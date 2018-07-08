@@ -157,6 +157,8 @@ public:
     virtual Type type() const override {
         return META;
     }
+    size_t get_read_size() const;
+    size_t get_write_size() const;
 
     PipeChannel *attach(capsel_t srv_sel, bool read);
     void handle_pending_read();
