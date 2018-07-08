@@ -154,18 +154,26 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
             File *in = VPE::self().fds()->get(STDIN_FD);
             cycles_t maxDelay = 0;
+            cycles_t totalDelay = 0;
+            size_t pktCount = 0;
             while(1) {
                 ssize_t amount = in->read(buffer, sizeof(buffer));
                 cycles_t start = buffer[0];
                 cycles_t now = DTU::get().tsc();
                 cycles_t delay = ((now - start) / cycles_per_usec);
-                if(amount == static_cast<ssize_t>(sizeof(buffer)) && delay > maxDelay)
-                    maxDelay = delay;
                 cout << "[user" << j << "] Got " << amount << " bytes (delay=" << delay << "us)\n";
+
+                if(amount == static_cast<ssize_t>(sizeof(buffer))) {
+                    if(delay > maxDelay)
+                        maxDelay = delay;
+                    totalDelay += delay;
+                    pktCount++;
+                }
                 if(amount <= 0)
                     break;
             }
-            cout << "[user" << j << "] max delay = " << maxDelay << "\n";
+            cout << "[user" << j << "] max delay = " << maxDelay
+                                 << ", avg delay = " << (totalDelay / pktCount) << "\n";
             return 0;
         });
         pipes[pipeidx + 1]->close_reader();
