@@ -31,7 +31,7 @@ using namespace m3;
 #define VERBOSE         1
 
 struct App {
-    explicit App(int argc, const char **argv, const char *pager, uint flags)
+    explicit App(size_t argc, const char **argv, const char *pager, uint flags)
         : argc(argc),
           argv(argv),
           vpe(argv[0], VPE::self().pe(), pager, flags),
@@ -43,7 +43,7 @@ struct App {
         vpe.delegate_obj(rgate.sel());
     }
 
-    int argc;
+    size_t argc;
     const char **argv;
     VPE vpe;
     RecvGate rgate;
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
             cout << "\n";
         }
 
-        Errors::Code res = apps[i]->vpe.exec(apps[i]->argc, apps[i]->argv);
+        Errors::Code res = apps[i]->vpe.exec(static_cast<int>(apps[i]->argc), apps[i]->argv);
         if(res != Errors::NONE)
             PANIC("Cannot execute " << apps[i]->argv[0] << ": " << Errors::to_string(res));
     }

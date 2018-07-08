@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
     const char *wr_name = argv[1];
     const char *rd_name = argv[2];
-    int repeats = IStringStream::read_from<size_t>(argv[3]);
+    int repeats = IStringStream::read_from<int>(argv[3]);
     bool data = strcmp(argv[4], "1") == 0;
     bool muxed = strcmp(argv[5], "1") == 0;
     size_t instances = IStringStream::read_from<size_t>(argv[6]);

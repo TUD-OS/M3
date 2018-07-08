@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     while((opt = CmdArgs::get(argc, argv, "p:n:wf:g:l:id")) != -1) {
         switch(opt) {
             case 'p': prefix = CmdArgs::arg; break;
-            case 'n': num_iterations = IStringStream::read_from<size_t>(CmdArgs::arg); break;
+            case 'n': num_iterations = IStringStream::read_from<int>(CmdArgs::arg); break;
             case 'w': wait = true; break;
             case 'f': fs = CmdArgs::arg; break;
             case 'l': loadgen = CmdArgs::arg; break;
