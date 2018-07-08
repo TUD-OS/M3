@@ -78,6 +78,11 @@ public:
     fd_t _wrfd;
 };
 
+static size_t next_user(size_t num) {
+    static size_t no = 0;
+    return no++ % num;
+}
+
 void chain_direct(File *in, size_t pipesize, size_t num) {
     VPEGroup *groups[num];
     VPE *vpes[2 + num * 3];
@@ -216,7 +221,6 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             last_push[i] = 0;
         }
 
-        size_t no = 0;
         while(1) {
             cycles_t now = DTU::get().tsc();
 
@@ -242,7 +246,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
 
             alignas(64) static cycles_t buffer[8192 / sizeof(cycles_t)];
             while(in->has_data()) {
-                size_t user = no % num;
+                size_t user = next_user(num);
                 GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
                 if(out_pipe->has_data()) {
                     ssize_t amount = in->read(buffer, sizeof(buffer));
@@ -255,7 +259,6 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                     out_pipe->write(buffer, static_cast<size_t>(amount));
                     if(last_push[user] == 0)
                         last_push[user] = now;
-                    no += 1;
                 }
                 else {
                     if(!sent_out_req[user]) {
