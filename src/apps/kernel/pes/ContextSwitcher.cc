@@ -348,6 +348,10 @@ bool ContextSwitcher::unblock_vpe(VPE *vpe, bool force) {
 }
 
 void ContextSwitcher::update_yield() {
+    // if a context switch is in progress, leave it alone
+    if(_state != S_IDLE)
+        return;
+
     // TODO track the number of ready VPEs per PE-type. if only the fft accelerator is
     // over-subscribed, there is no point in letting general purpose PEs notify us about idling
     bool yield = _global_ready > 0;
