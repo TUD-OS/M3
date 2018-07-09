@@ -53,6 +53,7 @@ impl GenericFile {
     }
 
     pub fn unserialize(s: &mut SliceSource) -> vfs::FileHandle {
+        let _ : i32 = s.pop(); // flags
         Rc::new(RefCell::new(GenericFile::new(s.pop())))
     }
 
@@ -141,7 +142,9 @@ impl vfs::File for GenericFile {
     }
 
     fn serialize(&self, s: &mut VecSink) {
+        s.push(&0); // flags
         s.push(&self.sess.sel());
+        s.push(&0); // id
     }
 }
 
