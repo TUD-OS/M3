@@ -34,7 +34,7 @@ pub const BASE_ADDR: usize      = 0xF0000000;
 /// The base address of the DTU's MMIO area for external requests
 pub const BASE_REQ_ADDR: usize  = BASE_ADDR + cfg::PAGE_SIZE;
 /// The number of DTU registers
-pub const DTU_REGS: usize       = 9;
+pub const DTU_REGS: usize       = 10;
 // const REQ_REGS: usize        = 3;
 /// The number of command registers
 pub const CMD_REGS: usize       = 5;
@@ -62,6 +62,7 @@ int_enum! {
         const MSG_CNT     = 6;
         const EXT_CMD     = 7;
         const CLEAR_IRQ   = 8;
+        const CLOCK       = 9;
     }
 }
 
