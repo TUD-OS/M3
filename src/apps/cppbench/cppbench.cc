@@ -26,5 +26,7 @@ int main() {
     RUN_SUITE(bmemgate);
     RUN_SUITE(bsyscall);
     RUN_SUITE(bpipe);
+
+    m3::cout << "\033[1;32mAll tests successful!\033[0;m\n";
     return 0;
 }
