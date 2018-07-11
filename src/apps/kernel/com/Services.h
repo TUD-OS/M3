@@ -89,6 +89,9 @@ public:
         _list.append(inst);
         return inst;
     }
+    bool contains(const m3::String &name) const {
+        return const_cast<ServiceList*>(this)->find(name) != nullptr;
+    }
     Service *find(const m3::String &name) {
         for(auto &s : _list) {
             if(s.name() == name)

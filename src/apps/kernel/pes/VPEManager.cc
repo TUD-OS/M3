@@ -103,11 +103,11 @@ void VPEManager::init(int argc, char **argv) {
     }
 }
 
-void VPEManager::start_pending(ServiceList &serv) {
+void VPEManager::start_pending(const ServiceList &serv) {
     for(auto it = _pending.begin(); it != _pending.end(); ) {
         bool fullfilled = true;
         for(auto &r : it->vpe->requirements()) {
-            if(!serv.find(r.name)) {
+            if(!serv.contains(r.name)) {
                 fullfilled = false;
                 break;
             }

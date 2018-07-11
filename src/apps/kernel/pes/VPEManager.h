@@ -61,7 +61,7 @@ public:
     VPE *create(m3::String &&name, const m3::PEDesc &pe, epid_t sep, epid_t rep,
                 capsel_t sgate, uint flags = 0, VPEGroup *group = nullptr);
 
-    void start_pending(ServiceList &serv);
+    void start_pending(const ServiceList &serv);
 
     size_t used() const {
         return _count;

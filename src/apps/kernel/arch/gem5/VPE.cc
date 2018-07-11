@@ -35,7 +35,7 @@ static size_t count = 0;
 static BootModule mods[Platform::MAX_MODS];
 static uint64_t loaded = 0;
 
-static BootModule *get_mod(size_t argc, char **argv, bool *first) {
+static const BootModule *get_mod(size_t argc, const char *const *argv, bool *first) {
     static_assert(sizeof(loaded) * 8 >= Platform::MAX_MODS, "Too few bits for modules");
 
     if(count == 0) {
@@ -89,7 +89,7 @@ static gaddr_t alloc_mem(size_t size) {
     return m3::DTU::build_gaddr(alloc.pe(), alloc.addr);
 }
 
-static void read_from_mod(BootModule *mod, void *data, size_t size, size_t offset) {
+static void read_from_mod(const BootModule *mod, void *data, size_t size, size_t offset) {
     if(offset + size < offset || offset + size > mod->size)
         PANIC("Invalid ELF file: offset invalid");
 
@@ -112,7 +112,7 @@ static void map_segment(VPE &vpe, gaddr_t phys, goff_t virt, size_t size, int pe
     }
 }
 
-static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bool to_mem) {
+static goff_t load_mod(VPE &vpe, const BootModule *mod, bool copy, bool needs_heap, bool to_mem) {
     // load and check ELF header
     m3::ElfEh header;
     read_from_mod(mod, &header, sizeof(header), 0);
@@ -190,8 +190,8 @@ static goff_t load_mod(VPE &vpe, BootModule *mod, bool copy, bool needs_heap, bo
 
 static goff_t map_idle(VPE &vpe) {
     bool first;
-    char *args[] = {const_cast<char*>("rctmux")};
-    BootModule *idle = get_mod(1, args, &first);
+    const char *args[] = {"rctmux"};
+    const BootModule *idle = get_mod(1, args, &first);
     if(!idle)
         PANIC("Unable to find boot module 'rctmux'");
 
@@ -220,7 +220,7 @@ void VPE::load_app() {
     assert(_argc > 0 && _argv);
 
     bool appFirst;
-    BootModule *mod = get_mod(_argc, _argv, &appFirst);
+    const BootModule *mod = get_mod(_argc, _argv, &appFirst);
     if(!mod)
         PANIC("Unable to find boot module '" << _argv[0] << "'");
 

@@ -250,7 +250,7 @@ public:
         _requires.append(new ServName(name));
     }
 
-    void set_args(size_t argc, char **argv) {
+    void set_args(size_t argc, const char *const *argv) {
         _argc = argc;
         _argv = argv;
     }
@@ -289,7 +289,7 @@ private:
     MainMemory::Allocation _rbufcpy;
     m3::SList<ServName> _requires;
     size_t _argc;
-    char **_argv;
+    const char *const *_argv;
     goff_t _epaddr;
 };
 
