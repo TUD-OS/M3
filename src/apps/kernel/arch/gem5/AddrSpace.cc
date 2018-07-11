@@ -126,16 +126,18 @@ void AddrSpace::clear_pt(gaddr_t pt) {
     }
 }
 
-bool AddrSpace::create_pt(const VPEDesc &vpe, goff_t virt, goff_t pteAddr, m3::DTU::pte_t pte,
+bool AddrSpace::create_pt(const VPEDesc &vpe, goff_t &virt, goff_t pteAddr, m3::DTU::pte_t pte,
                           gaddr_t &phys, uint &pages, int perm, int level) {
     // use a large page, if possible
     if(level == 1 && m3::Math::is_aligned(virt, m3::DTU::LPAGE_SIZE) &&
+                     m3::Math::is_aligned(phys, m3::DTU::LPAGE_SIZE) &&
                      pages * PAGE_SIZE >= m3::DTU::LPAGE_SIZE) {
         pte = to_mmu_pte(phys | static_cast<uint>(perm) | m3::DTU::PTE_I | m3::DTU::PTE_LARGE);
         KLOG(PTES, "VPE" << _vpeid << ": lvl " << level << " PTE for "
             << m3::fmt(virt, "p") << ": " << m3::fmt(pte, "#0x", 16));
         DTU::get().write_mem(vpe, pteAddr, &pte, sizeof(pte));
         phys += m3::DTU::LPAGE_SIZE;
+        virt += m3::DTU::LPAGE_SIZE;
         pages -= m3::DTU::LPAGE_SIZE / PAGE_SIZE;
         return true;
     }
