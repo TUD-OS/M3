@@ -59,7 +59,7 @@ public:
 private:
     bool migrate_to(VPE *vpe, peid_t npe, bool fast);
     void steal_vpe(peid_t pe);
-    void update_yield(size_t before);
+    void update_yield(size_t before, size_t after);
     void deprivilege_pes();
 
     ContextSwitcher **_ctxswitcher;

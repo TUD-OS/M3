@@ -70,9 +70,8 @@ bool PEManager::yield(peid_t pe) {
     return false;
 }
 
-void PEManager::update_yield(size_t before) {
-    if((before == 0 && ContextSwitcher::global_ready() > 0) ||
-       (before > 0 && ContextSwitcher::global_ready() == 0)) {
+void PEManager::update_yield(size_t before, size_t after) {
+    if((before == 0 && after > 0) || (before > 0 && after == 0)) {
         for(peid_t i = Platform::first_pe(); i <= Platform::last_pe(); ++i) {
             if(_ctxswitcher[i])
                 _ctxswitcher[i]->update_yield();
@@ -81,63 +80,57 @@ void PEManager::update_yield(size_t before) {
 }
 
 void PEManager::add_vpe(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    if(ctx)
+    if(ctx) {
+        size_t global = ctx->global_ready();
         ctx->add_vpe(vpe);
+        update_yield(global, ctx->global_ready());
+    }
     else
         _used[vpe->pe()] = true;
-
-    update_yield(global);
 }
 
 void PEManager::remove_vpe(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx) {
+        size_t global = ctx->global_ready();
         ctx->remove_vpe(vpe);
         // if there is no one left, try to steal a VPE from somewhere else
         if(ctx->ready() == 0)
             steal_vpe(vpe->pe());
+        update_yield(global, ctx->global_ready());
     }
     else
         _used[vpe->pe()] = false;
-
-    update_yield(global);
 }
 
 void PEManager::start_vpe(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
-    if(ctx)
+    if(ctx) {
+        size_t global = ctx->global_ready();
         ctx->start_vpe(vpe);
+        update_yield(global, ctx->global_ready());
+    }
     else {
         vpe->_dtustate.restore(VPEDesc(vpe->pe(), VPE::INVALID_ID), 0, vpe->id());
         vpe->_state = VPE::RUNNING;
         vpe->init_memory();
     }
-
-    update_yield(global);
 }
 
 void PEManager::stop_vpe(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     if(ctx) {
+        size_t global = ctx->global_ready();
         ctx->stop_vpe(vpe);
         if(ctx->ready() == 0)
             steal_vpe(vpe->pe());
+        update_yield(global, ctx->global_ready());
     }
     else {
         DTU::get().unset_vpeid(vpe->desc());
         vpe->_state = VPE::SUSPENDED;
     }
-
-    update_yield(global);
 }
 
 bool PEManager::migrate_vpe(VPE *vpe, bool fast) {
@@ -158,12 +151,12 @@ bool PEManager::migrate_for(VPE *vpe, VPE *dst) {
 }
 
 bool PEManager::migrate_to(VPE *vpe, peid_t npe, bool fast) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     // only migrate if we can directly switch to this VPE on the other PE
     if(!ctx || (fast && !_ctxswitcher[npe]->can_switch()))
         return false;
+
+    size_t global = ctx->global_ready();
     ctx->remove_vpe(vpe, true);
 
     vpe->set_pe(npe);
@@ -173,21 +166,22 @@ bool PEManager::migrate_to(VPE *vpe, peid_t npe, bool fast) {
     assert(ctx);
     ctx->add_vpe(vpe);
 
-    update_yield(global);
+    // we can use a different ctx object here, because we only migrate between compatible PEs.
+    // hence, the ISA is the same.
+    update_yield(global, ctx->global_ready());
     return true;
 }
 
 void PEManager::yield_vpe(VPE *vpe) {
-    size_t global = ContextSwitcher::global_ready();
-
     peid_t pe = vpe->pe();
     ContextSwitcher *ctx = _ctxswitcher[pe];
     assert(ctx);
+    size_t global = ctx->global_ready();
     // check if there is somebody else on the current PE
     if(!ctx->yield_vpe(vpe))
         steal_vpe(pe);
 
-    update_yield(global);
+    update_yield(global, ctx->global_ready());
 }
 
 void PEManager::steal_vpe(peid_t pe) {
@@ -217,13 +211,12 @@ void PEManager::steal_vpe(peid_t pe) {
 }
 
 bool PEManager::unblock_vpe(VPE *vpe, bool force) {
-    size_t global = ContextSwitcher::global_ready();
-
     ContextSwitcher *ctx = _ctxswitcher[vpe->pe()];
     assert(ctx);
+    size_t global = ctx->global_ready();
     bool res = ctx->unblock_vpe(vpe, force);
 
-    update_yield(global);
+    update_yield(global, ctx->global_ready());
     return res;
 }
 

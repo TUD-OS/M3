@@ -66,11 +66,12 @@ static const char *stateNames[] = {
  *                       +------------------+
  */
 
-size_t ContextSwitcher::_global_ready = 0;
+size_t ContextSwitcher::_global_ready[m3::isa_count()];
 
 ContextSwitcher::ContextSwitcher(peid_t pe)
     : _muxable(Platform::pe(pe).supports_ctxsw()),
       _pe(pe),
+      _isa(static_cast<size_t>(Platform::pe(pe).isa())),
       _state(S_IDLE),
       _count(),
       _pinned(0),
@@ -116,7 +117,7 @@ void ContextSwitcher::schedule() {
         }
 
         if(_cur) {
-            _global_ready--;
+            _global_ready[_isa]--;
             assert(_cur->_flags & VPE::F_READY);
             _cur->_flags ^= VPE::F_READY;
 
@@ -159,7 +160,7 @@ void ContextSwitcher::enqueue(VPE *vpe) {
 
     vpe->_flags |= VPE::F_READY;
     _ready.append(vpe);
-    _global_ready++;
+    _global_ready[_isa]++;
 }
 
 void ContextSwitcher::dequeue(VPE *vpe) {
@@ -168,7 +169,7 @@ void ContextSwitcher::dequeue(VPE *vpe) {
 
     vpe->_flags ^= VPE::F_READY;
     _ready.remove(vpe);
-    _global_ready--;
+    _global_ready[_isa]--;
 }
 
 void ContextSwitcher::add_vpe(VPE *vpe) {
@@ -206,7 +207,7 @@ VPE *ContextSwitcher::steal_vpe() {
             if(_cur)
                 DTU::get().flush_cache(_cur->desc());
             vpe->_flags ^= VPE::F_READY;
-            _global_ready--;
+            _global_ready[_isa]--;
             return vpe;
         }
     }
@@ -297,7 +298,7 @@ bool ContextSwitcher::can_unblock_now(VPE *vpe) {
     if(!vpe->is_waiting() && !(vpe->_flags & VPE::F_READY)) {
         // always put it to the front
         vpe->_flags |= VPE::F_READY;
-        _global_ready++;
+        _global_ready[_isa]++;
         _ready.insert(nullptr, vpe);
         return true;
     }
@@ -352,9 +353,7 @@ void ContextSwitcher::update_yield() {
     if(_state != S_IDLE)
         return;
 
-    // TODO track the number of ready VPEs per PE-type. if only the fft accelerator is
-    // over-subscribed, there is no point in letting general purpose PEs notify us about idling
-    bool yield = _global_ready > 0;
+    bool yield = _global_ready[_isa] > 0;
     if(can_mux() && _cur && !(_cur->_flags & VPE::F_IDLE) && yield != _set_yield) {
         KLOG(CTXSW, "CtxSw[" << _pe << "]: VPE " << _cur->id() << " updating yield=" << yield);
 
@@ -500,7 +499,7 @@ retry:
 
         case S_RESTORE_WAIT: {
             // let the VPE report idle times if there are other VPEs
-            uint64_t report = (can_mux() && _global_ready > 0) ? _cur->yield_time() : 0;
+            uint64_t report = (can_mux() && _global_ready[_isa] > 0) ? _cur->yield_time() : 0;
             uint64_t flags = m3::RCTMuxCtrl::WAITING;
             _set_yield = report > 0;
 

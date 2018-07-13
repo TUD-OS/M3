@@ -52,10 +52,6 @@ class ContextSwitcher {
 public:
     explicit ContextSwitcher(peid_t pe);
 
-    static size_t global_ready() {
-        return _global_ready;
-    }
-
     void init();
 
     peid_t pe() const {
@@ -69,6 +65,9 @@ public:
     }
     VPE *current() {
         return _cur;
+    }
+    size_t global_ready() {
+        return _global_ready[_isa];
     }
 
     bool can_mux() const {
@@ -110,6 +109,7 @@ private:
 private:
     bool _muxable;
     peid_t _pe;
+    size_t _isa;
     State _state;
     size_t _count;
     size_t _pinned;
@@ -119,7 +119,7 @@ private:
     VPE *_idle;
     VPE *_cur;
     bool _set_yield;
-    static size_t _global_ready;
+    static size_t _global_ready[];
 };
 
 }

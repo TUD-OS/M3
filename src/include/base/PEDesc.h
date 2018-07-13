@@ -60,6 +60,13 @@ enum PEFlags {
 };
 
 /**
+ * @return the number of supported ISAs
+ */
+static constexpr size_t isa_count() {
+    return static_cast<size_t>(PEISA::NIC) + 1;
+}
+
+/**
  * Describes a PE
  */
 struct PEDesc {
