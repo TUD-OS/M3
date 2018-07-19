@@ -197,8 +197,10 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
         _extoff = 0;
         _fileoff += len - _lastoff;
     }
-    else
+    else {
         _lastoff = 0;
+        sel = ObjCap::INVALID;
+    }
 
     PRINT(this, "file::next_" << (out ? "out" : "in")
         << "() -> (" << _lastoff << ", " << (_extlen - _lastoff) << ")");
