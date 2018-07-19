@@ -18,6 +18,7 @@
 
 #include <base/Common.h>
 #include <base/Errors.h>
+#include <base/DTU.h>
 
 #include <assert.h>
 
@@ -46,7 +47,7 @@ class FileTable {
     };
 
 public:
-    static const fd_t MAX_EPS       = 4;
+    static const fd_t MAX_EPS       = EP_COUNT / 4;
     static const fd_t MAX_FDS       = 64;
     static const fd_t INVALID       = MAX_FDS;
 
