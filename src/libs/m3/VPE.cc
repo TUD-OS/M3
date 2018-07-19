@@ -50,7 +50,7 @@ VPE::VPE()
       _ms(),
       _fds(),
       _exec() {
-    static_assert(EP_COUNT < 64, "64 endpoints are the maximum due to the 64-bit bitmask");
+    static_assert(EP_COUNT <= 64, "64 endpoints are the maximum due to the 64-bit bitmask");
     init_state();
     init_fs();
 
