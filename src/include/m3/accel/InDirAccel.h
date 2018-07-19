@@ -38,6 +38,7 @@ public:
     enum Operation {
         COMPUTE,
         FORWARD,
+        IDLE,
     };
 
     struct InvokeMsg {
