@@ -26,14 +26,14 @@ namespace m3 {
 
 class InDirAccel {
 public:
-    static const size_t MSG_SIZE    = 64;
+    static const size_t MSG_SIZE        = 64;
 
-    static const size_t EP_RECV     = 4;
-    static const size_t EP_OUT      = 5;
-    static const capsel_t CAP_RECV  = 64;
+    static const size_t EP_RECV         = 4;
+    static const size_t EP_OUT          = 5;
+    static const capsel_t CAP_RECV      = 64;
 
-    static const size_t BUF_ADDR    = 0x8000;
-    static const size_t BUF_SIZE    = 8192;
+    static const size_t BUF_ADDR        = 0x8000;
+    static const size_t MAX_BUF_SIZE    = 32768;
 
     enum Operation {
         COMPUTE,
@@ -62,17 +62,17 @@ public:
     }
 
     void connect_output(InDirAccel *accel) {
-        _mgate = new MemGate(accel->_vpe->mem().derive(BUF_ADDR, BUF_SIZE));
+        _mgate = new MemGate(accel->_vpe->mem().derive(BUF_ADDR, MAX_BUF_SIZE));
         _mgate->activate_for(*_vpe, EP_OUT);
     }
 
     void read(void *data, size_t size) {
-        assert(size <= BUF_SIZE);
+        assert(size <= MAX_BUF_SIZE);
         _vpe->mem().read(data, size, BUF_ADDR);
     }
 
     void write(const void *data, size_t size) {
-        assert(size <= BUF_SIZE);
+        assert(size <= MAX_BUF_SIZE);
         _vpe->mem().write(data, size, BUF_ADDR);
     }
 
