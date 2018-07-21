@@ -42,11 +42,13 @@ public:
 
     /**
      * Reserves the given endpoint in the sense that it is not used for multiplexing. This is
-     * necessary for receive gates, that need to stay on one endpoint all the time.
+     * necessary for receive gates, that need to stay on one endpoint all the time. Note that this
+     * can fail if a send gate with missing credits is using this EP.
      *
      * @param ep the endpoint id
+     * @return true if successful
      */
-    void reserve(epid_t ep);
+    bool reserve(epid_t ep);
 
     /**
      * Configures an endpoint for the given gate. If necessary, a victim will be picked and removed
@@ -80,6 +82,7 @@ public:
     void reset();
 
 private:
+    bool is_in_use(epid_t ep) const;
     epid_t select_victim();
     void activate(epid_t ep, capsel_t newcap);
 

@@ -35,13 +35,17 @@ EPMux::EPMux()
       _gates() {
 }
 
-void EPMux::reserve(epid_t ep) {
+bool EPMux::reserve(epid_t ep) {
     // take care that some non-fixed gate could already use that endpoint
+    if(is_in_use(ep))
+        return false;
+
     if(_gates[ep]) {
         activate(ep, ObjCap::INVALID);
         _gates[ep]->_ep = Gate::UNBOUND;
         _gates[ep] = nullptr;
     }
+    return true;
 }
 
 void EPMux::switch_to(Gate *gate) {
@@ -85,12 +89,15 @@ void EPMux::reset() {
     }
 }
 
+bool EPMux::is_in_use(epid_t ep) const {
+    return _gates[ep] && _gates[ep]->type() == ObjCap::SEND_GATE &&
+           DTU::get().has_missing_credits(ep);
+}
+
 epid_t EPMux::select_victim() {
     epid_t victim = _next_victim;
     for(size_t count = 0; count < EP_COUNT; ++count) {
-        if(!VPE::self().is_ep_free(victim) ||
-            (_gates[victim] && _gates[victim]->type() == ObjCap::SEND_GATE &&
-             DTU::get().has_missing_credits(victim))) {
+        if(!VPE::self().is_ep_free(victim) || is_in_use(victim)) {
             // victim = (victim + 1) % EP_COUNT
             size_t rem;
             divide(victim + 1, static_cast<size_t>(EP_COUNT), &rem);
