@@ -30,11 +30,17 @@ using namespace m3;
 static constexpr bool VERBOSE           = 1;
 static constexpr size_t PIPE_SHM_SIZE   = 512 * 1024;
 
+static const char *names[] = {
+    "FFT",
+    "MUL",
+    "IFFT",
+};
+
 class DirectChain {
 public:
     static const size_t ACCEL_COUNT     = 3;
 
-    explicit DirectChain(File *in, File *out, Mode _mode)
+    explicit DirectChain(size_t id, File *in, File *out, Mode _mode)
         : mode(_mode),
           group(),
           vpes(),
@@ -44,7 +50,7 @@ public:
         // create VPEs and put them into the same group
         for(size_t i = 0; i < ACCEL_COUNT; ++i) {
             OStringStream name;
-            name << "chain" << i;
+            name << names[i] << id;
 
             if(VERBOSE) Serial::get() << "Creating VPE " << name.str() << "\n";
 
@@ -177,7 +183,8 @@ void chain_direct(const char *in, size_t num, Mode mode) {
         if(outfds[i] == FileTable::INVALID)
             exitmsg("Unable to open " << outpath.str());
 
-        chains[i] = new DirectChain(VPE::self().fds()->get(infds[i]),
+        chains[i] = new DirectChain(i,
+                                    VPE::self().fds()->get(infds[i]),
                                     VPE::self().fds()->get(outfds[i]),
                                     mode);
     }
