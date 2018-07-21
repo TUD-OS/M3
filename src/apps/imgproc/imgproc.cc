@@ -27,7 +27,7 @@ using namespace m3;
 
 const cycles_t ACCEL_TIMES[] = {
     5856 / 2,   // FFT
-    1024,       // multiply
+    1189 / 2,   // multiply
     5856 / 2,   // IFFT
 };
 

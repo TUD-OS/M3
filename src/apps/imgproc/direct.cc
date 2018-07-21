@@ -142,6 +142,24 @@ private:
     bool running[ACCEL_COUNT];
 };
 
+static void wait_for(DirectChain **chains, size_t num) {
+    for(size_t rem = num * DirectChain::ACCEL_COUNT; rem > 0; --rem) {
+        size_t count = 0;
+        capsel_t sels[num * DirectChain::ACCEL_COUNT];
+        for(size_t i = 0; i < num; ++i)
+            chains[i]->add_running(sels, &count);
+
+        capsel_t vpe;
+        int exitcode;
+        if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
+            errmsg("Unable to wait for VPEs");
+        else {
+            for(size_t i = 0; i < num; ++i)
+                chains[i]->terminated(vpe, exitcode);
+        }
+    }
+}
+
 void chain_direct(const char *in, size_t num, Mode mode) {
     DirectChain *chains[num];
     fd_t infds[num];
@@ -168,25 +186,18 @@ void chain_direct(const char *in, size_t num, Mode mode) {
 
     cycles_t start = Time::start(0);
 
-    // start them
-    for(size_t i = 0; i < num; ++i)
-        chains[i]->start();
-
-    // wait for their completion
-    for(size_t rem = num * DirectChain::ACCEL_COUNT; rem > 0; --rem) {
-        size_t count = 0;
-        capsel_t sels[num * DirectChain::ACCEL_COUNT];
+    if(mode == Mode::DIR) {
         for(size_t i = 0; i < num; ++i)
-            chains[i]->add_running(sels, &count);
-
-        capsel_t vpe;
-        int exitcode;
-        if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
-            errmsg("Unable to wait for VPEs");
-        else {
-            for(size_t i = 0; i < num; ++i)
-                chains[i]->terminated(vpe, exitcode);
-        }
+            chains[i]->start();
+        wait_for(chains, num);
+    }
+    else {
+        for(size_t i = 0; i < num / 2; ++i)
+            chains[i]->start();
+        wait_for(chains, num / 2);
+        for(size_t i = num / 2; i < num; ++i)
+            chains[i]->start();
+        wait_for(chains + num / 2, num / 2);
     }
 
     cycles_t end = Time::stop(0);

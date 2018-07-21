@@ -30,7 +30,7 @@ using namespace m3;
 #include "imgproc.h"
 
 static const bool VERBOSE           = 0;
-static const size_t BUF_SIZE        = 4096;
+static const size_t BUF_SIZE        = 2048;
 static const size_t REPLY_SIZE      = 64;
 
 static constexpr size_t ACCEL_COUNT = 3;
@@ -214,7 +214,10 @@ void chain_indirect(const char *in, size_t num) {
     cout << "Total time: " << (end - start) << " cycles\n";
 
 error:
-    for(size_t i = 0; i < num; ++i)
+    for(size_t i = 0; i < num; ++i) {
+        VFS::close(infds[i]);
+        VFS::close(outfds[i]);
         delete chains[i];
+    }
     delete[] buffer;
 }
