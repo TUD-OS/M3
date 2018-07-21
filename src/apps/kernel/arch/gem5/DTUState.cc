@@ -88,12 +88,17 @@ void DTUState::restore(const VPEDesc &vpe, size_t headers, vpeid_t vpeid) {
     _regs.set(m3::DTU::DtuRegs::IDLE_TIME, 0);
 
     m3::CPU::compiler_barrier();
-    size_t regsSize = sizeof(_regs._dtu) + sizeof(_regs._cmd) + sizeof(_regs._eps);
+    size_t regsSize = sizeof(_regs._dtu) + sizeof(_regs._cmd);
     DTU::get().write_mem(vpe, m3::DTU::BASE_ADDR, this, regsSize);
 
     // we've already set the VPE id
     DTU::get().write_mem(VPEDesc(vpe.pe, vpeid),
-                         m3::DTU::BASE_ADDR + regsSize, _regs._header,
+                         m3::DTU::BASE_ADDR + regsSize,
+                         _regs._eps,
+                         sizeof(_regs._eps));
+    DTU::get().write_mem(VPEDesc(vpe.pe, vpeid),
+                         m3::DTU::BASE_ADDR + regsSize + sizeof(_regs._eps),
+                         _regs._header,
                          sizeof(_regs._header[0]) * headers);
 }
 
