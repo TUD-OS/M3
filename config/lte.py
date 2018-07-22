@@ -45,9 +45,9 @@ for i in range(0, num_mem):
 # create accelerator PEs
 for i in range(0, num_accels):
     if i == 0:
-        options.cpu_clock = '2000MHz'
+        options.cpu_clock = '1400MHz'
     else:
-        options.cpu_clock = '1000MHz' if i % 2 == 0 else '568MHz'
+        options.cpu_clock = '500MHz' if i % 2 == 0 else '568MHz'
     pe = createAccelPE(noc=root.noc,
                        options=options,
                        no=num_pes + num_mem + i,

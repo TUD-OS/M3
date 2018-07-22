@@ -27,10 +27,12 @@
 
 using namespace m3;
 
-static constexpr int VERBOSE            = 1;
+static constexpr int VERBOSE            = 2;
 
 static constexpr cycles_t FFT_TIME      = 17000 / 4;
 static constexpr cycles_t EQ_TIME       = 6000;         // TODO
+
+static constexpr size_t BUF_SIZE        = 4096;
 
 class MemBackedPipe {
 public:
@@ -149,7 +151,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
         vpes[aidx + 2]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
         vpes[aidx + 2]->obtain_fds();
         vpes[aidx + 2]->run([j] {
-            alignas(64) static cycles_t buffer[8192 / sizeof(cycles_t)];
+            alignas(64) static cycles_t buffer[BUF_SIZE / sizeof(cycles_t)];
             cout << "Hello from user " << j << "\n";
             const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
             File *in = VPE::self().fds()->get(STDIN_FD);
@@ -215,7 +217,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
     vpes[didx]->obtain_fds();
     vpes[didx]->run([num] {
         const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
-        const cycles_t sleep_time = 100 /* us */ * cycles_per_usec;
+        const cycles_t sleep_time = 10 /* us */ * cycles_per_usec;
         const cycles_t max_delay  = 1000 /* us */ * cycles_per_usec;
 
         RecvGate rgate = RecvGate::create(nextlog2<32 * 64>::val, nextlog2<64>::val);
@@ -258,7 +260,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                 }
             }
 
-            alignas(64) static cycles_t buffer[8192 / sizeof(cycles_t)];
+            alignas(64) static cycles_t buffer[BUF_SIZE / sizeof(cycles_t)];
             while(in->has_data()) {
                 size_t user = next_user(num);
                 GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
