@@ -76,7 +76,7 @@ size_t atapi_getCapacity(sATADevice *device) {
 	bool res = atapi_request(device,cmd,resp,8);
 	if(!res)
 		return 0;
-	return (size_t) (resp[0] << 24) | (resp[1] << 16) | (resp[2] << 8) | (resp[3] << 0);
+	return ((size_t)resp[0] << 24) | ((size_t)resp[1] << 16) | ((size_t)resp[2] << 8) | resp[3];
 }
 
 static bool atapi_request(sATADevice *device,uint8_t *cmd,void *buffer,size_t bufSize) {

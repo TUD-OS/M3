@@ -241,7 +241,7 @@ void ctrl_init(bool useDma,bool useIRQ)
 			<< fmt(ctrls[i].bmrBase, "x"));
 
 		if(useDma && ctrls[i].bmrBase) {
-			ctrls[i].bmrBase += i * (uint) BMR_SEC_OFFSET;
+			ctrls[i].bmrBase += i * static_cast<ssize_t>(BMR_SEC_OFFSET);
 
 			// allocate memory for PRDT and buffer
 			ctrls[i].dma_prdt_virt =

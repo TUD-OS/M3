@@ -151,7 +151,7 @@ public:
 
     ~NMSession() {
         for(size_t i = 0; i < MAX_SOCKETS; i++)
-            release_sd(i);
+            release_sd(static_cast<int>(i));
     }
 
     Socket *get(int sd) {

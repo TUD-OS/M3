@@ -85,6 +85,10 @@ static size_t next_user(size_t num) {
     return no++ % num;
 }
 
+static fd_t idx_to_fd(size_t idx) {
+    return 3 + static_cast<fd_t>(idx);
+}
+
 void chain_direct(File *in, size_t pipesize, size_t num) {
     VPEGroup *groups[num];
     VPE *vpes[2 + num * 3];
@@ -213,7 +217,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
     vpes[didx]->fds()->set(STDIN_FD, VPE::self().fds()->get(pipes[0]->reader_fd()));
     vpes[didx]->fds()->set(STDOUT_FD, VPE::self().fds()->get(STDOUT_FD));
     for(size_t i = 0; i < num; ++i)
-        vpes[didx]->fds()->set(3 + i, VPE::self().fds()->get(pipes[1 + i * 2]->writer_fd()));
+        vpes[didx]->fds()->set(idx_to_fd(i), VPE::self().fds()->get(pipes[1 + i * 2]->writer_fd()));
     vpes[didx]->obtain_fds();
     vpes[didx]->run([num] {
         const cycles_t cycles_per_usec = DTU::get().clock() / 1000000;
@@ -230,7 +234,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
         bool sent_out_req[num];
         cycles_t last_push[num];
         for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
-            GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + i));
+            auto out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(idx_to_fd(i)));
             out_pipe->sgate().reply_gate(&rgate);
             sent_out_req[i] = false;
             last_push[i] = 0;
@@ -253,7 +257,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                 }
                 else {
                     size_t user = msg->label - 2;
-                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
+                    auto out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(idx_to_fd(user)));
                     out_pipe->received_next_resp(is);
                     sent_out_req[user] = false;
                     last_push[user] = 0;
@@ -263,7 +267,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             alignas(64) static cycles_t buffer[BUF_SIZE / sizeof(cycles_t)];
             while(in->has_data()) {
                 size_t user = next_user(num);
-                GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + user));
+                auto out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(idx_to_fd(user)));
                 if(out_pipe->has_data()) {
                     ssize_t amount = in->read(buffer, sizeof(buffer));
                     assert(amount > 0);
@@ -297,7 +301,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
                 if(!sent_out_req[i] && last_push[i] > 0 && now - last_push[i] > max_delay) {
                     if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Committing to user " << i << "\n";
-                    GenericFile *out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(3 + i));
+                    auto out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(idx_to_fd(i)));
                     out_pipe->sgate().reply_gate(&RecvGate::def());
                     out_pipe->flush();
                     out_pipe->sgate().reply_gate(&rgate);
@@ -311,7 +315,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
 
         VFS::close(0);
         for(size_t i = 0; i < num; ++i)
-            VFS::close(3 + i);
+            VFS::close(idx_to_fd(i));
         return 0;
     });
     running[didx] = true;
