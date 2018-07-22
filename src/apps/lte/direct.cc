@@ -34,6 +34,9 @@ static constexpr cycles_t EQ_TIME       = 6000;         // TODO
 
 static constexpr size_t BUF_SIZE        = 4096;
 
+#define DBG_PRINT(expr) \
+    if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] " << expr << "\n"
+
 class MemBackedPipe {
 public:
     explicit MemBackedPipe(MemGate &base, size_t off, size_t size)
@@ -246,7 +249,8 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             // have we got a response to a next-input request?
             const DTU::Message *msg = rgate.fetch();
             if(msg) {
-                if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Received response from " << msg->label << "\n";
+                DBG_PRINT("Received response from " << msg->label);
+
                 GateIStream is(rgate, msg);
                 if(msg->label == 1) {
                     if(in->received_next_resp(is) == 0) {
@@ -275,14 +279,14 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
                     buffer[0] = DTU::get().tsc();
 
                     // push it into the user pipe
-                    if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Pushing to user " << user << "\n";
+                    DBG_PRINT("Pushing to user " << user);
                     out_pipe->write(buffer, static_cast<size_t>(amount));
                     if(last_push[user] == 0)
                         last_push[user] = now;
                 }
                 else {
                     if(!sent_out_req[user]) {
-                        if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Sending output request for " << user << "\n";
+                        DBG_PRINT("Sending output request for " << user);
                         out_pipe->send_next_output(2 + user);
                         sent_out_req[user] = true;
                     }
@@ -292,7 +296,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
 
             // otherwise, request new data
             if(!in->has_data() && !sent_in_req) {
-                if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Sending input request\n";
+                DBG_PRINT("Sending input request");
                 in->send_next_input(1);
                 sent_in_req = true;
             }
@@ -300,7 +304,7 @@ void chain_direct(File *in, size_t pipesize, size_t num) {
             // flush the pipes for which the max latency is reached
             for(size_t i = 0; i < ARRAY_SIZE(last_push); ++i) {
                 if(!sent_out_req[i] && last_push[i] > 0 && now - last_push[i] > max_delay) {
-                    if(VERBOSE > 1) Serial::get() << "[" << (now / cycles_per_usec) << "] Committing to user " << i << "\n";
+                    DBG_PRINT("Committing to user " << i);
                     auto out_pipe = static_cast<GenericFile*>(VPE::self().fds()->get(idx_to_fd(i)));
                     out_pipe->sgate().reply_gate(&RecvGate::def());
                     out_pipe->flush();
