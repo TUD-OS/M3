@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     else
         srv = new Server<M3FSRequestHandler>(name, hdl);
 
-    env()->workloop()->multithreaded(4);
+    env()->workloop()->multithreaded(16);
     env()->workloop()->run();
 
     delete srv;
