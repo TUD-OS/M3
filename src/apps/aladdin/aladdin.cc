@@ -31,7 +31,7 @@
 
 using namespace m3;
 
-static const int REPEATS = 2;
+static const int REPEATS = 4;
 
 static size_t step_size = 0;
 static bool use_files = false;
