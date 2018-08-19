@@ -51,7 +51,8 @@ public:
                                  int perms, capsel_t sel);
     static size_t req_append(FSHandle &h, m3::INode *inode, size_t i, capsel_t sel,
                              int perm, m3::Extent *ext);
-    static m3::Errors::Code append_extent(FSHandle &h, m3::INode *inode, m3::Extent *next);
+    static m3::Errors::Code append_extent(FSHandle &h, m3::INode *inode, m3::Extent *next,
+                                          size_t *prev_ext_len);
 
     static m3::Extent *get_extent(FSHandle &h, m3::INode *inode, size_t i,
                                   m3::Extent **indir, bool create);

@@ -247,11 +247,17 @@ void M3FSFileSession::commit(GateIStream &is) {
     INode *inode = INodes::get(h, _ino);
     assert(inode != nullptr);
 
-    Errors::Code res = _appending ? commit(inode, nbytes) : Errors::NONE;
-    if(res == Errors::NONE && _lastoff + nbytes < _extlen) {
-        _extent--;
-        _extoff = _lastoff + nbytes;
+    Errors::Code res;
+    if(_appending)
+        res = commit(inode, nbytes);
+    else {
+        res = Errors::NONE;
+        if(_lastoff + nbytes < _extlen) {
+            _extent--;
+            _extoff = _lastoff + nbytes;
+        }
     }
+
     reply_vmsg(is, res, inode->size);
 }
 
@@ -296,14 +302,20 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit) {
 
     FSHandle &h = _meta->handle();
 
+    // adjust file position
+    _fileoff -= (_extlen - _lastoff) - submit;
+
     // add new extent?
+    size_t lastoff = _lastoff;
+    bool truncated = _lastoff + submit < _extlen;
+    size_t prev_ext_len = 0;
     if(_append_ext) {
         size_t blocks = (submit + h.sb().blocksize - 1) / h.sb().blocksize;
         size_t old_len = _append_ext->length;
 
         // append extent to file
         _append_ext->length = blocks;
-        Errors::Code res = INodes::append_extent(h, inode, _append_ext);
+        Errors::Code res = INodes::append_extent(h, inode, _append_ext, &prev_ext_len);
         if(res != Errors::NONE)
             return res;
 
@@ -311,11 +323,18 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit) {
         if(old_len > blocks)
             h.blocks().free(h, _append_ext->start + blocks, old_len - blocks);
 
-        // for the position adjustment after the commit() call in read_write().
-        _fileoff -= (_extlen - _lastoff) - submit;
         _extlen = blocks * h.sb().blocksize;
+        // have we appended the new extent to the previous extent?
+        if(prev_ext_len > 0)
+            _extent--;
         _lastoff = 0;
         delete _append_ext;
+    }
+
+    if(truncated) {
+        // move to the end of the last extent
+        _extent--;
+        _extoff = prev_ext_len + lastoff + submit;
     }
 
     // change size

@@ -120,15 +120,18 @@ size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, capsel_t sel, int
     return bytes;
 }
 
-Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next) {
+Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size_t *prev_ext_len) {
     Extent *indir = nullptr;
 
     Extent *ext = nullptr;
+    *prev_ext_len = 0;
     if(inode->extents > 0) {
         ext = INodes::get_extent(h, inode, inode->extents - 1, &indir, false);
         assert(ext != nullptr);
         if(ext->start + ext->length != next->start)
             ext = nullptr;
+        else
+            *prev_ext_len = ext->length * h.sb().blocksize;
     }
     if(ext == nullptr) {
         ext = INodes::get_extent(h, inode, inode->extents, &indir, true);
