@@ -297,7 +297,17 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence,
         // TODO support off != 0
         assert(off == 0);
         extent = inode->extents;
-        extoff = inode->size % h.sb().blocksize;
+        extoff = 0;
+        // determine extent offset
+        if(extent > 0) {
+            Extent *ext = get_extent(h, inode, extent - 1, &indir, false);
+            assert(ext != nullptr);
+            extoff = ext->length * h.sb().blocksize;
+            // ensure to stay within the file size
+            size_t unaligned = inode->size % h.sb().blocksize;
+            if(unaligned)
+                extoff -= h.sb().blocksize - unaligned;
+        }
         if(extoff)
             extent--;
         off = 0;

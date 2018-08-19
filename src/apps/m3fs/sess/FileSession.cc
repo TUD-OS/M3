@@ -155,9 +155,9 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
         }
 
         // continue in last extent, if there is space
-        if(_extent > 0 && _fileoff == inode->size && (inode->size % h.sb().blocksize) != 0) {
-            _extoff = inode->size % h.sb().blocksize;
-            _extent--;
+        if(_extent > 0 && _fileoff == inode->size && (_fileoff % h.sb().blocksize) != 0) {
+            size_t off = 0;
+            _fileoff = INodes::seek(h, inode, off, M3FS_SEEK_END, _extent, _extoff);
         }
 
         Extent e = {0 ,0};
