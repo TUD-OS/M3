@@ -32,7 +32,7 @@
 
 using namespace m3;
 
-alignas(DTU_PKG_SIZE) static uint8_t largebuf[1024];
+alignas(DTU_PKG_SIZE) static uint8_t largebuf[100 * 8];
 
 static const char *small_file = "/test.txt";
 static const char *pat_file = "/pat.bin";
@@ -45,9 +45,8 @@ static void check_content(const char *filename, size_t size) {
     size_t pos = 0;
     ssize_t count;
     while((count = file->read(largebuf, sizeof(largebuf))) > 0) {
-        assert_size(static_cast<size_t>(count), sizeof(largebuf));
         for(ssize_t i = 0; i < count; ++i)
-            assert_int(largebuf[i], pos++ & 0xFF);
+            assert_int(largebuf[i], pos++ % 100);
     }
     assert_size(pos, size);
 
@@ -64,7 +63,7 @@ static void extending_small_file() {
             exitmsg("open of " << small_file << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int i = 0; i < 129; ++i)
             assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
@@ -80,7 +79,7 @@ static void creating_in_steps() {
             exitmsg("open of " << "/steps.txt" << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int j = 0; j < 8; ++j) {
             for(int i = 0; i < 4; ++i)
@@ -99,7 +98,7 @@ static void small_write_at_begin() {
             exitmsg("open of " << small_file << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int i = 0; i < 3; ++i)
             assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
@@ -115,7 +114,7 @@ static void truncate() {
             exitmsg("open of " << small_file << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int i = 0; i < 2; ++i)
             assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
@@ -131,7 +130,7 @@ static void append() {
             exitmsg("open of " << small_file << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int i = 0; i < 2; ++i)
             assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
@@ -147,7 +146,7 @@ static void append_with_read() {
             exitmsg("open of " << small_file << " failed");
 
         for(size_t i = 0; i < sizeof(largebuf); ++i)
-            largebuf[i] = i & 0xFF;
+            largebuf[i] = i % 100;
 
         for(int i = 0; i < 2; ++i)
             assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
