@@ -56,6 +56,53 @@ static void check_content(const char *filename, size_t size) {
     assert_size(info.size, size);
 }
 
+static void append_bug() {
+    size_t total = 0;
+
+    {
+        FileRef file("/myfile1", FILE_W | FILE_CREATE | FILE_TRUNC);
+        if(Errors::occurred())
+            exitmsg("open of /myfile1 failed");
+
+        for(size_t i = 0; i < sizeof(largebuf); ++i)
+            largebuf[i] = i % 100;
+
+        // create first extent
+        assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
+        assert_int(file->flush(), Errors::NONE);
+        total += sizeof(largebuf);
+
+        // use the following blocks for something else to force a new extent for the following write
+        {
+            FileRef nfile("/myfile2", FILE_W | FILE_CREATE | FILE_TRUNC);
+            if(Errors::occurred())
+                exitmsg("open of /myfile2 failed");
+
+            assert_int(nfile->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
+        }
+
+        // write more two blocks; this gives us a new extent and we don't stay within the first block
+        // of the new extent
+        for(size_t i = 0; i <= 4096 * 2; i += sizeof(largebuf)) {
+            assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
+            total += sizeof(largebuf);
+        }
+    }
+
+    {
+        FileRef file("/myfile1", FILE_W);
+        if(Errors::occurred())
+            exitmsg("open of /myfile1 failed");
+
+        file->seek(0, M3FS_SEEK_END);
+
+        assert_int(file->write_all(largebuf, sizeof(largebuf)), Errors::NONE);
+        total += sizeof(largebuf);
+    }
+
+    check_content("/myfile1", total);
+}
+
 static void extending_small_file() {
     {
         FileRef file(small_file, FILE_W);
@@ -507,6 +554,7 @@ static void buffered_write_with_seek() {
 
 void tfs() {
     RUN_TEST(extending_small_file);
+    RUN_TEST(append_bug);
     RUN_TEST(creating_in_steps);
     RUN_TEST(small_write_at_begin);
     RUN_TEST(truncate);
