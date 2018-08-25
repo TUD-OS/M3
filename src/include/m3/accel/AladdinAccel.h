@@ -47,6 +47,7 @@ public:
         Array arrays[8];
         uint64_t array_count;
         uint64_t iterations;
+        uint64_t repeats;
     } PACKED;
 
     explicit Aladdin(PEISA isa)
@@ -72,11 +73,21 @@ public:
         delete _accel;
     }
 
-    uint64_t invoke(const InvokeMessage &msg) {
-        GateIStream is = send_receive_msg(_sgate, &msg, sizeof(msg));
+    PEISA isa() const {
+        return _accel->pe().isa();
+    }
+    void start(const InvokeMessage &msg) {
+        send_msg(_sgate, &msg, sizeof(msg));
+    }
+    uint64_t wait() {
+        GateIStream is = receive_reply(_sgate);
         uint64_t res;
         is >> res;
         return res;
+    }
+    uint64_t invoke(const InvokeMessage &msg) {
+        start(msg);
+        return wait();
     }
 
     VPE *_accel;
