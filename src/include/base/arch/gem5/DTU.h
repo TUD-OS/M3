@@ -325,11 +325,11 @@ public:
         // we assume that the one that used the label can no longer send messages. thus, if there are
         // no messages yet, we are done.
         reg_t r0 = read_reg(ep, 0);
-        if((r0 & 0xFFFF) == 0)
+        if((r0 & 0x3F) == 0)
             return;
 
         goff_t base = read_reg(ep, 1);
-        size_t bufsize = (r0 >> 16) & 0xFFFF;
+        size_t bufsize = (r0 >> 26) & 0x3F;
         size_t msgsize = (r0 >> 32) & 0xFFFF;
         word_t unread = read_reg(ep, 2) >> 32;
         for(size_t i = 0; i < bufsize; ++i) {
