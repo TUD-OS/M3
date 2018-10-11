@@ -42,7 +42,7 @@ void Heap::init_arch() {
     }
     // TODO temporary
     else if(env()->pedesc.has_mmu() && env()->pe == 0)
-        end = Math::round_up<size_t>(begin, PAGE_SIZE) + 2048 * 1024;
+        end = Math::round_up<size_t>(begin, PAGE_SIZE) + (4096 + 2048) * 1024;
     else
         end = Math::round_up<size_t>(begin, PAGE_SIZE) + env()->heapsize;
     heap_end = reinterpret_cast<HeapArea*>(end) - 1;
