@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     KLOG(MEM, MainMemory::get());
 
     // create some worker threads
-    m3::env()->workloop()->multithreaded(32);
+    m3::env()->workloop()->multithreaded(48);
 
     if(strncmp(argv[1], "-t=", 3) == 0) {
         VPE::set_timeslice(m3::IStringStream::read_from<cycles_t>(argv[1] + 3));
