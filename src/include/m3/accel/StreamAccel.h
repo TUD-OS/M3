@@ -29,7 +29,6 @@ class StreamAccel {
         uint16_t bufOff;
         uint16_t flags;
         uint32_t masks;
-        uint32_t outLenMask[2];
         uint64_t compTime;
         uint64_t msgAddr;
         uint64_t inReqAddr;
@@ -44,6 +43,7 @@ class StreamAccel {
         uint64_t outLen;
         uint64_t lastSize;
         uint64_t nextSysc;
+        uint64_t : 64;
     } PACKED;
 
 public:
