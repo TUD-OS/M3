@@ -60,7 +60,7 @@ void VPE::load_app() {
                 else if(strncmp(_argv[i], "requires=", sizeof("requires=") - 1) == 0)
                     continue;
 
-                childargs[j++] = _argv[i];
+                childargs[j++] = const_cast<char*>(_argv[i]);
             }
             childargs[j] = nullptr;
             execv(childargs[0], childargs);
