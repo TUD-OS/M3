@@ -158,4 +158,19 @@ private:
     SendGate _sgate;
 };
 
+static inline Unmarshaller &operator>>(Unmarshaller &u, Keyboard::Event &ev) {
+    u >> ev.scancode >> ev.keycode >> ev.isbreak;
+    return u;
+}
+
+static inline GateIStream &operator>>(GateIStream &is, Keyboard::Event &ev) {
+    is >> ev.scancode >> ev.keycode >> ev.isbreak;
+    return is;
+}
+
+static inline Marshaller &operator<<(Marshaller &m, const Keyboard::Event &ev) {
+    m << ev.scancode << ev.keycode << ev.isbreak;
+    return m;
+}
+
 }
