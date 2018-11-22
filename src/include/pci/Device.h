@@ -65,6 +65,7 @@ public:
     void waitForIRQ() {
         const m3::DTU::Message *msg;
         _intgate.wait(nullptr, &msg);
+        m3::DTU::get().mark_read(_intgate.ep(), m3::DTU::get().get_msgoff(_intgate.ep(), msg));
     }
 
     /**
