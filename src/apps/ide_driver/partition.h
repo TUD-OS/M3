@@ -27,15 +27,15 @@
 #include <base/Common.h>
 
 /* the number of partitions per disk */
-static const size_t PARTITION_COUNT		= 4;
+static const size_t PARTITION_COUNT = 4;
 
 /* represents a partition (in memory) */
 typedef struct {
-	uchar present;
-	/* start sector */
-	size_t start;
-	/* sector count */
-	size_t size;
+    uchar present;
+    /* start sector */
+    size_t start;
+    /* sector count */
+    size_t size;
 } sPartition;
 
 /**
@@ -44,7 +44,7 @@ typedef struct {
  * @param table the table to fill
  * @param mbr the content of the first sector
  */
-void part_fillPartitions(sPartition *table,void *mbr);
+void part_fillPartitions(sPartition *table, void *mbr);
 
 /**
  * Prints the given partition table

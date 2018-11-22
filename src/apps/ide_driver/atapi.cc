@@ -22,91 +22,91 @@
  * not used for actions in the driver. Logging is modified for M3.
  */
 
-#include "ata.h"
 #include "atapi.h"
+
+#include "ata.h"
 #include "controller.h"
 #include "device.h"
 
-static bool atapi_request(sATADevice *device,uint8_t *cmd,void *buffer,size_t bufSize);
+static bool atapi_request(sATADevice *device, uint8_t *cmd, void *buffer, size_t bufSize);
 
 void atapi_softReset(sATADevice *device) {
-	int i = 1000000;
-	ctrl_outb(device->ctrl,ATA_REG_DRIVE_SELECT,((device->id & SLAVE_BIT) << 4) | 0xA0);
-	ctrl_wait(device->ctrl);
-	ctrl_outb(device->ctrl,ATA_REG_COMMAND,COMMAND_ATAPI_RESET);
-	while((ctrl_inb(device->ctrl,ATA_REG_STATUS) & CMD_ST_BUSY) && i--)
-		ctrl_wait(device->ctrl);
-	ctrl_outb(device->ctrl,ATA_REG_DRIVE_SELECT,(device->id << 4) | 0xA0);
-	i = 1000000;
-	while((ctrl_inb(device->ctrl,ATA_REG_CONTROL) & CMD_ST_BUSY) && i--)
-		ctrl_wait(device->ctrl);
-	ctrl_wait(device->ctrl);
+    int i = 1000000;
+    ctrl_outb(device->ctrl, ATA_REG_DRIVE_SELECT, ((device->id & SLAVE_BIT) << 4) | 0xA0);
+    ctrl_wait(device->ctrl);
+    ctrl_outb(device->ctrl, ATA_REG_COMMAND, COMMAND_ATAPI_RESET);
+    while((ctrl_inb(device->ctrl, ATA_REG_STATUS) & CMD_ST_BUSY) && i--)
+        ctrl_wait(device->ctrl);
+    ctrl_outb(device->ctrl, ATA_REG_DRIVE_SELECT, (device->id << 4) | 0xA0);
+    i = 1000000;
+    while((ctrl_inb(device->ctrl, ATA_REG_CONTROL) & CMD_ST_BUSY) && i--)
+        ctrl_wait(device->ctrl);
+    ctrl_wait(device->ctrl);
 }
 
-bool atapi_read(sATADevice *device,uint op,void *buffer,uint64_t lba, UNUSED size_t secSize,
-		size_t secCount) {
-	uint8_t cmd[] = {SCSI_CMD_READ_SECTORS_EXT,0,0,0,0,0,0,0,0,0,0,0};
-	if(!device->info.feats.flags.lba48)
-		cmd[0] = SCSI_CMD_READ_SECTORS;
-	/* no writing here ;) */
-	if(op != OP_READ)
-		return false;
-	if(secCount == 0)
-		return false;
-	if(cmd[0] == SCSI_CMD_READ_SECTORS_EXT) {
-		cmd[6] = (secCount >> 24) & 0xFF;
-		cmd[7] = (secCount >> 16) & 0xFF;
-		cmd[8] = (secCount >> 8) & 0xFF;
-		cmd[9] = (secCount >> 0) & 0xFF;
-	}
-	else {
-		cmd[7] = (secCount >> 8) & 0xFF;
-		cmd[8] = (secCount >> 0) & 0xFF;
-	}
-	cmd[2] = (lba >> 24) & 0xFF;
-	cmd[3] = (lba >> 16) & 0xFF;
-	cmd[4] = (lba >> 8) & 0xFF;
-	cmd[5] = (lba >> 0) & 0xFF;
-	return atapi_request(device,cmd,buffer,secCount * device->secSize);
+bool atapi_read(sATADevice *device, uint op, void *buffer, uint64_t lba, UNUSED size_t secSize,
+                size_t secCount) {
+    uint8_t cmd[] = {SCSI_CMD_READ_SECTORS_EXT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if(!device->info.feats.flags.lba48)
+        cmd[0] = SCSI_CMD_READ_SECTORS;
+    /* no writing here ;) */
+    if(op != OP_READ)
+        return false;
+    if(secCount == 0)
+        return false;
+    if(cmd[0] == SCSI_CMD_READ_SECTORS_EXT) {
+        cmd[6] = (secCount >> 24) & 0xFF;
+        cmd[7] = (secCount >> 16) & 0xFF;
+        cmd[8] = (secCount >> 8) & 0xFF;
+        cmd[9] = (secCount >> 0) & 0xFF;
+    }
+    else {
+        cmd[7] = (secCount >> 8) & 0xFF;
+        cmd[8] = (secCount >> 0) & 0xFF;
+    }
+    cmd[2] = (lba >> 24) & 0xFF;
+    cmd[3] = (lba >> 16) & 0xFF;
+    cmd[4] = (lba >> 8) & 0xFF;
+    cmd[5] = (lba >> 0) & 0xFF;
+    return atapi_request(device, cmd, buffer, secCount * device->secSize);
 }
 
 size_t atapi_getCapacity(sATADevice *device) {
-	uint8_t resp[8];
-	uint8_t cmd[] = {SCSI_CMD_READ_CAPACITY,0,0,0,0,0,0,0,0,0,0,0};
-	bool res = atapi_request(device,cmd,resp,8);
-	if(!res)
-		return 0;
-	return ((size_t)resp[0] << 24) | ((size_t)resp[1] << 16) | ((size_t)resp[2] << 8) | resp[3];
+    uint8_t resp[8];
+    uint8_t cmd[] = {SCSI_CMD_READ_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    bool res      = atapi_request(device, cmd, resp, 8);
+    if(!res)
+        return 0;
+    return ((size_t)resp[0] << 24) | ((size_t)resp[1] << 16) | ((size_t)resp[2] << 8) | resp[3];
 }
 
-static bool atapi_request(sATADevice *device,uint8_t *cmd,void *buffer,size_t bufSize) {
-	int res;
-	size_t size;
-	sATAController *ctrl = device->ctrl;
+static bool atapi_request(sATADevice *device, uint8_t *cmd, void *buffer, size_t bufSize) {
+    int res;
+    size_t size;
+    sATAController *ctrl = device->ctrl;
 
-	/* send PACKET command to drive */
-	if(!ata_readWrite(device,OP_PACKET,cmd,0xFFFF00,12,1))
-		return false;
+    /* send PACKET command to drive */
+    if(!ata_readWrite(device, OP_PACKET, cmd, 0xFFFF00, 12, 1))
+        return false;
 
-	/* now transfer the data */
-	if(ctrl->useDma && device->info.caps.flags.DMA)
-		return ata_transferDMA(device,OP_READ,buffer,device->secSize,bufSize / device->secSize);
+    /* now transfer the data */
+    if(ctrl->useDma && device->info.caps.flags.DMA)
+        return ata_transferDMA(device, OP_READ, buffer, device->secSize, bufSize / device->secSize);
 
-	/* ok, no DMA, so wait first until the drive is ready */
-	res = ctrl_waitUntil(ctrl,ATAPI_TRANSFER_TIMEOUT,ATAPI_TRANSFER_SLEEPTIME,
-			CMD_ST_DRQ,CMD_ST_BUSY);
-	if(res == -1) {
-		SLOG(IDE, "Device " << device->id << ": Timeout before ATAPI-PIO-transfer");
-		return false;
-	}
-	if(res != 0) {
-		SLOG(IDE, "Device " << device->id << ": ATAPI-PIO-transfer failed: " << res);
-		return false;
-	}
+    /* ok, no DMA, so wait first until the drive is ready */
+    res = ctrl_waitUntil(ctrl, ATAPI_TRANSFER_TIMEOUT, ATAPI_TRANSFER_SLEEPTIME, CMD_ST_DRQ, CMD_ST_BUSY);
+    if(res == -1) {
+        SLOG(IDE, "Device " << device->id << ": Timeout before ATAPI-PIO-transfer");
+        return false;
+    }
+    if(res != 0) {
+        SLOG(IDE, "Device " << device->id << ": ATAPI-PIO-transfer failed: " << res);
+        return false;
+    }
 
-	/* read the actual size per transfer */
-	SLOG(IDE_ALL, "Reading response-size");
-	size = ((size_t)ctrl_inb(ctrl,ATA_REG_ADDRESS3) << 8) | (size_t)ctrl_inb(ctrl,ATA_REG_ADDRESS2);
-	/* do the PIO-transfer (no check at the beginning; seems to cause trouble on some machines) */
-	return ata_transferPIO(device,OP_READ,buffer,size,bufSize / size,false);
+    /* read the actual size per transfer */
+    SLOG(IDE_ALL, "Reading response-size");
+    size = ((size_t)ctrl_inb(ctrl, ATA_REG_ADDRESS3) << 8) | (size_t)ctrl_inb(ctrl, ATA_REG_ADDRESS2);
+    /* do the PIO-transfer (no check at the beginning; seems to cause trouble on some machines) */
+    return ata_transferPIO(device, OP_READ, buffer, size, bufSize / size, false);
 }

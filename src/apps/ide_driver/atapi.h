@@ -41,7 +41,7 @@ void atapi_softReset(sATADevice *device);
  * @param secCount number of sectors
  * @return true on success
  */
-bool atapi_read(sATADevice *device,uint op,void *buffer,uint64_t lba,size_t secSize,size_t secCount);
+bool atapi_read(sATADevice *device, uint op, void *buffer, uint64_t lba, size_t secSize, size_t secCount);
 
 /**
  * Determines the capacity for the given device

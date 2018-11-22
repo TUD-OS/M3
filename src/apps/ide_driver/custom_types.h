@@ -25,9 +25,9 @@
 
 #include <base/Types.h>
 
-#define SSTRLEN(str)			(sizeof((str)) - 1)
+#define SSTRLEN(str) (sizeof((str)) - 1)
 
 #define time_t uint32_t
 #define mode_t uint16_t
 
-#define MAX_PATH_LEN		255
+#define MAX_PATH_LEN 255

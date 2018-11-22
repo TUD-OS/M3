@@ -24,10 +24,9 @@
 
 #pragma once
 
-#include <base/log/Services.h>
-
 #include <base/Common.h>
 #include <base/log/Log.h>
+#include <base/log/Services.h>
 
 #include "device.h"
 
@@ -42,8 +41,8 @@
  * @param secCount number of sectors
  * @return true on success
  */
-bool ata_readWrite(sATADevice *device,uint op,void *buffer,uint64_t lba,size_t secSize,
-		size_t secCount);
+bool ata_readWrite(sATADevice *device, uint op, void *buffer, uint64_t lba, size_t secSize,
+                   size_t secCount);
 
 /**
  * Performs a PIO-transfer
@@ -56,8 +55,8 @@ bool ata_readWrite(sATADevice *device,uint op,void *buffer,uint64_t lba,size_t s
  * @param waitFirst whether you want to wait until the device is ready BEFORE the first read
  * @return true if successfull
  */
-bool ata_transferPIO(sATADevice *device,uint op,void *buffer,size_t secSize,size_t secCount,
-		bool waitFirst);
+bool ata_transferPIO(sATADevice *device, uint op, void *buffer, size_t secSize, size_t secCount,
+                     bool waitFirst);
 
 /**
  * Performs a DMA-transfer
@@ -69,4 +68,4 @@ bool ata_transferPIO(sATADevice *device,uint op,void *buffer,size_t secSize,size
  * @param secCount number of sectors
  * @return true if successfull
  */
-bool ata_transferDMA(sATADevice *device,uint op,void *buffer,size_t secSize,size_t secCount);
+bool ata_transferDMA(sATADevice *device, uint op, void *buffer, size_t secSize, size_t secCount);
