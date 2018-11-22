@@ -14,8 +14,9 @@
  * General Public License version 2 for more details.
  */
 
-#include "../data/INodes.h"
 #include "OpenFiles.h"
+
+#include "../data/INodes.h"
 
 void OpenFiles::delete_file(m3::inodeno_t ino) {
     OpenFile *file = get_file(ino);

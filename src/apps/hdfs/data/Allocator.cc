@@ -15,11 +15,13 @@
  */
 
 #include "Allocator.h"
+
 #include "../FSHandle.h"
 
 using namespace m3;
 
-Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free, uint32_t total, uint32_t blocks)
+Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
+                     uint32_t total, uint32_t blocks)
     : _first(first),
       _first_free(first_free),
       _free(free),
@@ -103,7 +105,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
             no++;
             i = 0;
         }
-    h.metabuffer().quit(no);
+        h.metabuffer().quit(no);
     }
 
     assert(*_free >= total);

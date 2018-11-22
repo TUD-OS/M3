@@ -24,9 +24,8 @@ class Links {
     Links() = delete;
 
 public:
-    static m3::Errors::Code create(FSHandle &h, m3::INode *dir,
-                                   const char *name, size_t namelen,
+    static m3::Errors::Code create(FSHandle &h, m3::INode *dir, const char *name, size_t namelen,
                                    m3::INode *inode, UsedBlocks *used_blocks);
-    static m3::Errors::Code remove(FSHandle &h, m3::INode *dir,
-                                   const char *name, size_t namelen, bool isdir, UsedBlocks *used_blocks);
+    static m3::Errors::Code remove(FSHandle &h, m3::INode *dir, const char *name, size_t namelen,
+                                   bool isdir, UsedBlocks *used_blocks);
 };

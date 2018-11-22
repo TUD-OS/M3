@@ -16,9 +16,9 @@
 
 #pragma once
 
+#include "../FSHandle.h"
 #include "FileSession.h"
 #include "Session.h"
-#include "../FSHandle.h"
 
 class M3FSMetaSession : public M3FSSession {
     struct MetaSGate : public m3::SListItem {
@@ -42,7 +42,7 @@ public:
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)
             delete _files[i];
-        for(auto it = _sgates.begin(); it != _sgates.end(); ) {
+        for(auto it = _sgates.begin(); it != _sgates.end();) {
             auto old = it++;
             delete &*old;
         }

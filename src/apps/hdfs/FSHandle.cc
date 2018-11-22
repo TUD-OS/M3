@@ -14,26 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/log/Services.h>
+#include "FSHandle.h"
+
 #include <base/Panic.h>
+#include <base/log/Services.h>
 
 #include "data/INodes.h"
-#include "FSHandle.h"
 
 using namespace m3;
 
 bool FSHandle::load_superblock(SuperBlock *sb, bool clear, DiskSession *disk) {
     SLOG(FS, "Loading Superblock from disk");
-    size_t len = sizeof(*sb);
+    size_t len  = sizeof(*sb);
     MemGate tmp = MemGate::create_global(512, MemGate::RW);
     KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, tmp.sel(), 1);
     KIF::ExchangeArgs args;
-    args.count = 2;
+    args.count   = 2;
     args.vals[0] = static_cast<xfer_t>(0);
     args.vals[1] = static_cast<xfer_t>(1);
     disk->delegate(crd, &args);
     disk->read(0, 0, 1, 512);
     tmp.read(sb, len, 0);
+
     SLOG(FS, "Superblock:");
     SLOG(FS, "  blocksize=" << sb->blocksize);
     SLOG(FS, "  total_inodes=" << sb->total_inodes);
@@ -54,9 +56,9 @@ FSHandle::FSHandle(size_t extend, bool clear, bool revoke_first, size_t max_load
       _extend(extend),
       _filebuffer(_sb.blocksize, _disk, max_load),
       _metabuffer(_sb.blocksize, _disk),
-      _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks,
-            _sb.total_blocks, _sb.blockbm_blocks()),
-      _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes,
-            _sb.total_inodes, _sb.inodebm_blocks()),
+      _blocks(_sb.first_blockbm_block(), &_sb.first_free_block, &_sb.free_blocks, _sb.total_blocks,
+              _sb.blockbm_blocks()),
+      _inodes(_sb.first_inodebm_block(), &_sb.first_free_inode, &_sb.free_inodes, _sb.total_inodes,
+              _sb.inodebm_blocks()),
       _files(*this) {
 }

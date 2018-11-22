@@ -18,11 +18,11 @@
 
 #include <fs/internal.h>
 
+#include "./../ide_driver/Session/DiskSession.h"
+#include "FileBuffer.h"
+#include "MetaBuffer.h"
 #include "data/Allocator.h"
 #include "sess/OpenFiles.h"
-#include "MetaBuffer.h"
-#include "FileBuffer.h"
-#include "./../ide_driver/Session/DiskSession.h"
 
 class FSHandle {
 public:
@@ -30,7 +30,7 @@ public:
 
     m3::SuperBlock &sb() {
         return _sb;
-}
+    }
     FileBuffer &filebuffer() {
         return _filebuffer;
     }
@@ -78,7 +78,7 @@ public:
         tmp.write(&_sb, len, 0);
         _disk->write(0, 0, 1, 512);
         */
-        SLOG(FS,"flushed everything\n");
+        SLOG(FS, "flushed everything\n");
     }
 
 private:

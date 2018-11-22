@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <base/col/SList.h>
 #include <base/KIF.h>
+#include <base/col/SList.h>
 
-#include <m3/com/SendGate.h>
 #include <m3/VPE.h>
+#include <m3/com/SendGate.h>
 
 #include <fs/internal.h>
 
@@ -59,7 +59,7 @@ struct CapContainer {
     explicit CapContainer() : caps() {
     }
     ~CapContainer() {
-        for(auto it = caps.begin(); it != caps.end(); ) {
+        for(auto it = caps.begin(); it != caps.end();) {
             auto old = it++;
             delete &*old;
         }

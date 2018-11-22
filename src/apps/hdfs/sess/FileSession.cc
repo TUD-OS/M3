@@ -14,24 +14,28 @@
  * General Public License version 2 for more details.
  */
 
-#include <m3/session/M3FS.h>
-#include <m3/Syscalls.h>
-
-#include "../data/INodes.h"
 #include "FileSession.h"
-#include "MetaSession.h"
-#include "../FSHandle.h"
+
 #include <base/util/Time.h>
+
+#include <m3/Syscalls.h>
+#include <m3/session/M3FS.h>
+
+#include "../FSHandle.h"
+#include "../data/INodes.h"
+#include "MetaSession.h"
 
 using namespace m3;
 
-UsedBlocks::UsedBlocks(FSHandle &handle) : _handle(handle), used(0) {}
+UsedBlocks::UsedBlocks(FSHandle &handle)
+    : _handle(handle),
+      used(0) {
+}
 
 UsedBlocks::~UsedBlocks() {
     Time::start(0xfe00);
-    for(size_t i = 0; i < used; i++) {
+    for(size_t i = 0; i < used; i++)
         _handle.metabuffer().quit(blocks[i]);
-    }
     Time::stop(0xfe00);
 }
 
@@ -45,16 +49,16 @@ void UsedBlocks::next() {
 }
 
 void UsedBlocks::quit_last_n(size_t n) {
-    for(size_t i = 0; i<n; i++) {
+    for(size_t i = 0; i < n; i++) {
         if(used != 0) {
-            _handle.metabuffer().quit(blocks[used-1]);
+            _handle.metabuffer().quit(blocks[used - 1]);
             used--;
         }
     }
 }
 
-M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta,
-                                 const m3::String &filename, int flags, m3::inodeno_t ino)
+M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
+                                 int flags, m3::inodeno_t ino)
     : M3FSSession(srv_sel, srv_sel == ObjCap::INVALID ? srv_sel : m3::VPE::self().alloc_sels(2)),
       m3::SListItem(),
       _extent(),
@@ -120,7 +124,6 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     size_t offset = data.args.vals[0];
 
-
     UsedBlocks used_blocks = UsedBlocks(_meta->handle());
 
     PRINT(this, "file::get_mem(path=" << _filename << ", offset=" << offset << ")");
@@ -156,7 +159,6 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     _capscon.add(sel);
 
-
     return Errors::NONE;
 }
 
@@ -164,8 +166,8 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     UsedBlocks used_blocks = UsedBlocks(_meta->handle());
 
     PRINT(this, "file::next_" << (out ? "out" : "in") << "(); "
-        << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
-        << ", extoff=" << _extoff << "]");
+                              << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
+                              << ", extoff=" << _extoff << "]");
 
     if((out && !(_oflags & FILE_W)) || (!out && !(_oflags & FILE_R))) {
         reply_error(is, Errors::NO_PERM);
@@ -209,8 +211,9 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
             _fileoff = INodes::seek(h, inode, off, M3FS_SEEK_END, _extent, _extoff, &used_blocks);
         }
 
-        Extent e = {0 ,0};
-        len = INodes::req_append(h, inode, _extent, _extoff, &extlen, sel, _oflags & MemGate::RWX, &e, &used_blocks, _accessed);
+        Extent e = {0, 0};
+        len = INodes::req_append(h, inode, _extent, _extoff, &extlen, sel, _oflags & MemGate::RWX, &e,
+                                 &used_blocks, _accessed);
         if(Errors::occurred()) {
             PRINT(this, "append failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
@@ -223,7 +226,8 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     }
     else {
         // get next mem cap
-        len = INodes::get_extent_mem(h, inode, _extent, _extoff, &extlen, _oflags & MemGate::RWX, sel, out, &used_blocks, _accessed);
+        len = INodes::get_extent_mem(h, inode, _extent, _extoff, &extlen, _oflags & MemGate::RWX, sel, out,
+                                     &used_blocks, _accessed);
         if(Errors::occurred()) {
             PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
@@ -259,8 +263,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
         sel = ObjCap::INVALID;
     }
 
-    PRINT(this, "file::next_" << (out ? "out" : "in")
-        << "() -> (" << _lastoff << ", " << _lastbytes << ")");
+    PRINT(this, "file::next_" << (out ? "out" : "in") << "() -> (" << _lastoff << ", " << _lastbytes << ")");
 
     if(h.revoke_first()) {
         // revoke last mem cap and remember new one
@@ -268,10 +271,10 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
         _last = sel;
 
-        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes );
+        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes);
     }
     else {
-        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes );
+        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes);
 
         if(_last != ObjCap::INVALID)
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
@@ -294,8 +297,8 @@ void M3FSFileSession::commit(GateIStream &is) {
     UsedBlocks used_blocks = UsedBlocks(_meta->handle());
 
     PRINT(this, "file::commit(nbytes=" << nbytes << "); "
-        << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
-        << ", extoff=" << _extoff << "]");
+                                       << "file[path=" << _filename << ", fileoff=" << _fileoff
+                                       << ", ext=" << _extent << ", extoff=" << _extoff << "]");
 
     if(nbytes == 0 || nbytes > _lastbytes) {
         reply_error(is, Errors::INV_ARGS);
@@ -326,7 +329,6 @@ void M3FSFileSession::seek(GateIStream &is) {
     size_t off;
     is >> off >> whence;
 
-
     UsedBlocks used_blocks = UsedBlocks(_meta->handle());
 
     PRINT(this, "file::seek(path=" << _filename << ", off=" << off << ", whence=" << whence << ")");
@@ -342,13 +344,10 @@ void M3FSFileSession::seek(GateIStream &is) {
     size_t pos = INodes::seek(_meta->handle(), inode, off, whence, _extent, _extoff, &used_blocks);
     _fileoff = pos + off;
 
-
     reply_vmsg(is, Errors::NONE, pos, off);
 }
 
 void M3FSFileSession::fstat(GateIStream &is) {
-
-
     UsedBlocks used_blocks = UsedBlocks(_meta->handle());
 
     PRINT(this, "file::fstat(path=" << _filename << ")");
@@ -358,7 +357,6 @@ void M3FSFileSession::fstat(GateIStream &is) {
 
     m3::FileInfo info;
     INodes::stat(_meta->handle(), inode, info);
-
 
     reply_vmsg(is, Errors::NONE, info);
 }

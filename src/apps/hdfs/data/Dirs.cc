@@ -14,23 +14,25 @@
  * General Public License version 2 for more details.
  */
 
+#include <base/util/Time.h>
+
 #include <libgen.h>
 
 #include "Dirs.h"
 #include "INodes.h"
 #include "Links.h"
-#include <base/util/Time.h>
+
 using namespace m3;
 
-static constexpr size_t BUF_SIZE    = 64;
+static constexpr size_t BUF_SIZE = 64;
 
-DirEntry *Dirs::find_entry(FSHandle &h, INode *inode, const char *name, size_t namelen, UsedBlocks *used_blocks) {
+DirEntry *Dirs::find_entry(FSHandle &h, INode *inode, const char *name, size_t namelen,
+                           UsedBlocks *used_blocks) {
     foreach_block(h, inode, bno, used_blocks) {
         used_blocks->set(bno);
         foreach_direntry(h, bno, e) {
-            if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0) {
+            if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0)
                 return e;
-            }
         }
         used_blocks->quit_last_n(2);
     }
@@ -72,7 +74,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
         if(!e)
             break;
         // if the path is empty, we're done
-        if(!*end){
+        if(!*end) {
             Time::stop(0xf001);
             Time::stop(0xf000);
             return e->nodeno;
@@ -186,9 +188,9 @@ Errors::Code Dirs::remove(FSHandle &h, const char *path, UsedBlocks *used_blocks
         used_blocks->set(bno);
         foreach_direntry(h, bno, e) {
             if(!(e->namelen == 1 && strncmp(e->name, ".", 1) == 0) &&
-                !(e->namelen == 2 && strncmp(e->name, "..", 2) == 0)){
-                    return Errors::DIR_NOT_EMPTY;
-                }
+               !(e->namelen == 2 && strncmp(e->name, "..", 2) == 0)) {
+                return Errors::DIR_NOT_EMPTY;
+            }
         }
         used_blocks->quit_last_n(2);
     }

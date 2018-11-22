@@ -14,13 +14,14 @@
  * General Public License version 2 for more details.
  */
 
+#include "MetaSession.h"
+
+#include <base/util/Time.h>
+
 #include <m3/session/M3FS.h>
 
 #include "../data/Dirs.h"
 #include "../data/INodes.h"
-#include "MetaSession.h"
-#include <base/util/Time.h>
-
 
 using namespace m3;
 
@@ -72,10 +73,10 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     if(data.args.count != 1)
         return Errors::INV_ARGS;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
-    int flags = data.args.svals[0];
+    UsedBlocks used_blocks                   = UsedBlocks(handle());
+    int flags                                = data.args.svals[0];
     data.args.str[sizeof(data.args.str) - 1] = '\0';
-    const char *path = data.args.str;
+    const char *path                         = data.args.str;
 
     size_t id;
     Errors::Code res = do_open(srv, path, flags, &id);
@@ -83,7 +84,7 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
         return res;
 
     data.args.count = 0;
-    data.caps = _files[id]->caps().value();
+    data.caps       = _files[id]->caps().value();
     return Errors::NONE;
 }
 
@@ -116,7 +117,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
     INode *inode = INodes::get(handle(), ino, &used_blocks);
     Time::stop(0xff01);
     if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
-        ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
+       ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::NO_PERM));
         return Errors::NO_PERM;
     }
@@ -196,7 +197,6 @@ void M3FSMetaSession::stat(GateIStream &is) {
     String path;
     is >> path;
 
-
     UsedBlocks used_blocks = UsedBlocks(handle());
 
     PRINT(this, "fs::stat(path=" << path << ")");
@@ -222,7 +222,6 @@ void M3FSMetaSession::mkdir(GateIStream &is) {
     mode_t mode;
     is >> path >> mode;
 
-
     UsedBlocks used_blocks = UsedBlocks(handle());
 
     PRINT(this, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
@@ -237,7 +236,6 @@ void M3FSMetaSession::rmdir(GateIStream &is) {
     EVENT_TRACER_FS_rmdir();
     String path;
     is >> path;
-
 
     UsedBlocks used_blocks = UsedBlocks(handle());
 
@@ -254,7 +252,6 @@ void M3FSMetaSession::link(GateIStream &is) {
     String oldpath, newpath;
     is >> oldpath >> newpath;
 
-
     UsedBlocks used_blocks = UsedBlocks(handle());
 
     PRINT(this, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
@@ -269,7 +266,6 @@ void M3FSMetaSession::unlink(GateIStream &is) {
     EVENT_TRACER_FS_unlink();
     String path;
     is >> path;
-
 
     UsedBlocks used_blocks = UsedBlocks(handle());
 

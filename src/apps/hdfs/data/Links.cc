@@ -14,13 +14,14 @@
  * General Public License version 2 for more details.
  */
 
+#include "Dirs.h"
 #include "INodes.h"
 #include "Links.h"
-#include "Dirs.h"
 
 using namespace m3;
 
-Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t namelen, INode *inode, UsedBlocks *used_blocks) {
+Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t namelen, INode *inode,
+                           UsedBlocks *used_blocks) {
     size_t rem;
     DirEntry *e;
 
@@ -71,7 +72,8 @@ found:
     return Errors::NONE;
 }
 
-Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir, UsedBlocks *used_blocks) {
+Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir,
+                           UsedBlocks *used_blocks) {
     foreach_block(h, dir, bno, used_blocks) {
         used_blocks->set(bno);
         DirEntry *prev = nullptr;

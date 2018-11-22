@@ -41,7 +41,6 @@ INode *INodes::create(FSHandle &h, mode_t mode, UsedBlocks *used_blocks) {
 }
 
 void INodes::free(FSHandle &h, inodeno_t ino, UsedBlocks *used_blocks) {
-
     UsedBlocks used = UsedBlocks(h);
 
     INode *inode = nullptr;
@@ -89,12 +88,11 @@ void INodes::write_back(FSHandle &h, INode *inode, UsedBlocks *used_blocks) {
     foreach_block(h, inode, bno, used_blocks) {
         used_blocks->set(bno);
         if(h.metabuffer().dirty(bno)) {
-
             capsel_t msel = VPE::self().alloc_sel();
             size_t ret = h.filebuffer().get_extent(bno,1,msel,MemGate::RWX,1,false,false);
             if(ret) {
                 MemGate m = MemGate::bind(msel);
-                m.write(h.metabuffer().get_block(bno),h.sb().blocksize,0);
+                m.write(h.metabuffer().get_block(bno), h.sb().blocksize, 0);
             }
             else
                 h.metabuffer().write_back(bno);
@@ -104,7 +102,8 @@ void INodes::write_back(FSHandle &h, INode *inode, UsedBlocks *used_blocks) {
     }
 }
 
-size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t extoff, size_t *extlen, int perms, capsel_t sel, bool dirty, UsedBlocks *used_blocks, size_t accessed) {
+size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t extoff, size_t *extlen,
+                              int perms, capsel_t sel, bool dirty, UsedBlocks *used_blocks, size_t accessed) {
     Extent *indir = nullptr;
     Extent *ext = get_extent(h, inode, extent, &indir, false, used_blocks);
     if(ext == nullptr || ext->length == 0)
@@ -117,9 +116,8 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t e
     bytes = h.filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff, sel, perms, accessed);
     if(dirty)
         h.filebuffer().mark_dirty(ext->start + blockoff);
-    if(bytes == 0){
-            return 0;
-    }
+    if(bytes == 0)
+        return 0;
 
     // stop at file-end
     if(extent == inode->extents - 1 && ext->length * h.sb().blocksize <= extoff + bytes) {
@@ -132,9 +130,10 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t e
     return bytes;
 }
 
-size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, size_t *extlen, capsel_t sel, int perm, Extent *ext, UsedBlocks *used_blocks, size_t accessed) {
+size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, size_t *extlen, capsel_t sel,
+                          int perm, Extent *ext, UsedBlocks *used_blocks, size_t accessed) {
     bool load = true;
-    SLOG(FS,"req accessed: "<<accessed);
+    SLOG(FS, "req accessed: " << accessed);
     if(i < inode->extents) {
         Extent *indir = nullptr;
         ext = get_extent(h, inode, i, &indir, false, used_blocks);
@@ -152,12 +151,14 @@ size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, si
 
     *extlen = ext->length * h.sb().blocksize;
     size_t blockoff = extoff / h.sb().blocksize;
-    size_t bytes = h.filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff, sel, perm, accessed, load);
+    size_t bytes = h.filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff,
+                                             sel, perm, accessed, load);
     h.filebuffer().mark_dirty(ext->start + blockoff);
     return bytes;
 }
 
-Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size_t *prev_ext_len, UsedBlocks *used_blocks) {
+Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size_t *prev_ext_len,
+                                   UsedBlocks *used_blocks) {
     Extent *indir = nullptr;
 
     Extent *ext = nullptr;
@@ -184,7 +185,8 @@ Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size
     return Errors::NONE;
 }
 
-Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool create, UsedBlocks *used_blocks) {
+Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool create,
+                           UsedBlocks *used_blocks) {
     if(i < INODE_DIR_COUNT)
         return inode->direct + i;
     i -= INODE_DIR_COUNT;
@@ -253,14 +255,15 @@ Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, 
     return nullptr;
 }
 
-Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool remove, UsedBlocks *used_blocks) {
+Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool remove,
+                              UsedBlocks *used_blocks) {
     if(i < INODE_DIR_COUNT)
         return inode->direct + i;
 
     i -= INODE_DIR_COUNT;
     if(i < h.sb().extents_per_block()) {
         assert(inode->indirect != 0);
-        if(!*indir){
+        if(!*indir) {
             *indir = reinterpret_cast<Extent*>(h.metabuffer().get_block(inode->indirect));
             used_blocks->set(inode->indirect);
         }
@@ -283,7 +286,7 @@ Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indi
         used_blocks->set(inode->dindirect);
         Extent *ptr = dindir + i / h.sb().extents_per_block();
         dindir = reinterpret_cast<Extent*>(h.metabuffer().get_block(ptr->start));
-        used_blocks->set(ptr->start);;
+        used_blocks->set(ptr->start);
 
         Extent *ext = dindir + i % h.sb().extents_per_block();
         h.metabuffer().mark_dirty(ptr->start);
@@ -324,7 +327,8 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks
         size_t i = 0;
         while(i < count) {
             // since we override everything with zeros we don't have to load from the disk
-            size_t bytes = h.filebuffer().get_extent(ext->start + i, count - i, sel, MemGate::RW, accessed, false);
+            size_t bytes = h.filebuffer().get_extent(ext->start + i, count - i,
+                                                     sel, MemGate::RW, accessed, false);
             h.filebuffer().mark_dirty(ext->start + i);
             MemGate mem = MemGate::bind(sel);
             mem.write(zeros, bytes, 0);
@@ -341,8 +345,8 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks
     }
 }
 
-size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence,
-                    size_t &extent, size_t &extoff, UsedBlocks *used_blocks) {
+size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff,
+                    UsedBlocks *used_blocks) {
     assert(whence != M3FS_SEEK_CUR);
     Extent *indir = nullptr;
 

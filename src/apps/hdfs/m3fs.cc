@@ -14,27 +14,26 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/Common.h>
-#include <base/stream/IStringStream.h>
 #include <base/CmdArgs.h>
+#include <base/Common.h>
 #include <base/Errors.h>
+#include <base/stream/IStringStream.h>
 
-#include <m3/session/M3FS.h>
-#include <m3/session/ServerSession.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
+#include <m3/session/M3FS.h>
+#include <m3/session/ServerSession.h>
 #include <m3/stream/Standard.h>
 
 #include <limits>
 #include <stdlib.h>
 
+#include "./../ide_driver/Session/DiskSession.h"
+#include "FSHandle.h"
+#include "data/Dirs.h"
+#include "data/INodes.h"
 #include "sess/FileSession.h"
 #include "sess/MetaSession.h"
-#include "data/INodes.h"
-#include "data/Dirs.h"
-#include "FSHandle.h"
-
-#include "./../ide_driver/Session/DiskSession.h"
 
 // TODO remove workloop; do it like in rust
 
@@ -44,9 +43,7 @@ using namespace m3;
 
 class M3FSRequestHandler;
 
-using base_class = RequestHandler<
-    M3FSRequestHandler, M3FS::Operation, M3FS::COUNT, M3FSSession
->;
+using base_class = RequestHandler<M3FSRequestHandler, M3FS::Operation, M3FS::COUNT, M3FSSession>;
 
 static Server<M3FSRequestHandler> *srv;
 
@@ -83,13 +80,12 @@ public:
 
     virtual Errors::Code obtain(M3FSSession *sess, KIF::Service::ExchangeData &data) override {
         if(sess->type() == M3FSSession::META) {
-            auto meta = static_cast<M3FSMetaSession*>(sess);
+            auto meta = static_cast<M3FSMetaSession *>(sess);
             if(data.args.count == 0)
                 return meta->get_sgate(data);
             return meta->open_file(srv->sel(), data);
-        }
-        else {
-            auto file = static_cast<M3FSFileSession*>(sess);
+        } else {
+            auto file = static_cast<M3FSFileSession *>(sess);
             if(data.args.count == 0)
                 return file->clone(srv->sel(), data);
             return file->get_mem(data);
@@ -102,15 +98,14 @@ public:
 
         if(sess->type() == M3FSSession::META) {
             capsel_t sels = VPE::self().alloc_sels(data.caps);
-            static_cast<M3FSMetaSession*>(sess)->set_eps(sels, data.caps);
+            static_cast<M3FSMetaSession *>(sess)->set_eps(sels, data.caps);
             data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, data.caps).value();
             return Errors::NONE;
-        }
-        else {
+        } else {
             if(data.caps != 1)
                 return Errors::NOT_SUP;
             capsel_t sel = VPE::self().alloc_sel();
-            static_cast<M3FSFileSession*>(sess)->set_ep(sel);
+            static_cast<M3FSFileSession *>(sess)->set_ep(sel);
             data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
             return Errors::NONE;
         }
@@ -128,62 +123,62 @@ public:
     }
 
     void open_private_file(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->open_private_file(is);
     }
 
     void close_private_file(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->close_private_file(is);
     }
 
     void next_in(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->next_in(is);
     }
 
     void next_out(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->next_out(is);
     }
 
     void commit(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->commit(is);
     }
 
     void seek(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->seek(is);
     }
 
     void fstat(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->fstat(is);
     }
 
     void stat(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->stat(is);
     }
 
     void mkdir(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->mkdir(is);
     }
 
     void rmdir(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->rmdir(is);
     }
 
     void link(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->link(is);
     }
 
     void unlink(GateIStream &is) {
-        M3FSSession *sess = is.label<M3FSSession*>();
+        M3FSSession *sess = is.label<M3FSSession *>();
         sess->unlink(is);
     }
 
@@ -194,7 +189,8 @@ private:
 };
 
 static void usage(const char *name) {
-    cerr << "Usage: " << name << " [-n <name>] [-s <sel>] [-e <blocks>] [-c] [-r] [-o <fsoffset>] [-b <blocks>] <size>\n";
+    cerr << "Usage: " << name
+         << " [-n <name>] [-s <sel>] [-e <blocks>] [-c] [-r] [-o <fsoffset>] [-b <blocks>] <size>\n";
     cerr << "  -n: the name of the service (m3fs by default)\n";
     cerr << "  -s: don't create service, use selectors <sel>..<sel+1>\n";
     cerr << "  -e: the number of blocks to extend files when appending\n";
@@ -206,14 +202,14 @@ static void usage(const char *name) {
 }
 
 int main(int argc, char *argv[]) {
-    const char *name = "m3fs";
-    size_t extend = 128;
-    size_t max_load = 128;
-    bool clear = false;
+    const char *name  = "m3fs";
+    size_t extend     = 128;
+    size_t max_load   = 128;
+    bool clear        = false;
     bool revoke_first = false;
-    capsel_t sels = ObjCap::INVALID;
-    epid_t ep = EP_COUNT;
-    goff_t fs_offset = FS_IMG_OFFSET;
+    capsel_t sels     = ObjCap::INVALID;
+    epid_t ep         = EP_COUNT;
+    goff_t fs_offset  = FS_IMG_OFFSET;
 
     int opt;
     while((opt = CmdArgs::get(argc, argv, "n:s:e:cro:b:")) != -1) {
@@ -230,15 +226,14 @@ int main(int argc, char *argv[]) {
             case 'r': revoke_first = true; break;
             case 'o': fs_offset = IStringStream::read_from<goff_t>(CmdArgs::arg); break;
             case 'b': max_load = IStringStream::read_from<size_t>(CmdArgs::arg); break;
-            default:
-                usage(argv[0]);
+            default: usage(argv[0]);
         }
     }
     if(CmdArgs::ind >= argc)
         usage(argv[0]);
 
     size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
-    auto hdl = new M3FSRequestHandler(fs_offset, size, extend, clear, revoke_first, max_load);
+    auto hdl    = new M3FSRequestHandler(fs_offset, size, extend, clear, revoke_first, max_load);
     if(sels != ObjCap::INVALID)
         srv = new Server<M3FSRequestHandler>(sels, ep, hdl);
     else
