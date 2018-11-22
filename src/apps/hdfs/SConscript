@@ -1,0 +1,2 @@
+Import('env')
+env.M3Program(env, 'hdfs', [env.Glob('*.cc'), env.Glob('*/*.cc')])

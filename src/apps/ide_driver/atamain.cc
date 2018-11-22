@@ -36,7 +36,178 @@
 #include "device.h"
 #include "partition.h"
 
+#include <m3/server/RequestHandler.h>
+#include <m3/server/Server.h>
+
+#include "Session/DiskSession.h"
+#include "Session/DiskSrvSession.h"
+
+#include <base/col/Treap.h>
+
 using namespace m3;
+
+static ulong handleRead(sATADevice *device,sPartition *part,uint16_t *buf,uint offset,uint count);
+static ulong handleWrite(sATADevice *device,sPartition *part,uint16_t *buf,uint offset,uint count);
+
+struct CapNode : public TreapNode<CapNode, blockno_t> {
+friend class TreapNode;
+
+        CapNode(blockno_t bno, capsel_t mem, size_t len) : TreapNode(bno),_len(len), _mem(mem) {}
+        size_t _len;
+        capsel_t _mem;
+
+        bool matches(blockno_t bno) {
+            return (key() <= bno) && (bno < key() + _len);
+        }
+};
+
+class DiskRequestHandler;
+
+using base_class = RequestHandler<DiskRequestHandler, DiskSession::Operation, DiskSession::COUNT, DiskSrvSession>;
+static Server<DiskRequestHandler> *srv;
+
+class DiskRequestHandler : public base_class {
+public:
+    explicit DiskRequestHandler(sATADevice *dev)
+        : base_class(),
+          _rgate(RecvGate::create(nextlog2<32 * DiskSession::MSG_SIZE>::val,
+                                  nextlog2<DiskSession::MSG_SIZE>::val)),
+          _dev(dev) {
+        add_operation(DiskSession::READ, &DiskRequestHandler::read);
+        add_operation(DiskSession::WRITE, &DiskRequestHandler::write);
+
+        using std::placeholders::_1;
+        _rgate.start(std::bind(&DiskRequestHandler::handle_message, this, _1));
+    }
+
+    virtual Errors::Code obtain(DiskSrvSession *sess, KIF::Service::ExchangeData &data) override {
+        if(data.args.count != 0 || data.caps != 1)
+                return Errors::INV_ARGS;
+
+        return sess->get_sgate(data);
+    }
+
+    virtual Errors::Code open(DiskSrvSession **sess, capsel_t srv_sel, word_t) override {
+        *sess = new DiskSrvSession(srv_sel, &_rgate);
+	return Errors::NONE;
+    }
+
+
+    virtual Errors::Code delegate(DiskSrvSession *sess, KIF::Service::ExchangeData &data) override {
+        if(data.args.count != 2 || data.caps != 1) {
+            return Errors::NOT_SUP;
+        }
+
+        capsel_t sel = VPE::self().alloc_sel();
+        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+
+        CapNode *node = caps.find(data.args.vals[0]);
+        if(node)
+                caps.remove(node);
+        caps.insert(new CapNode(data.args.vals[0], sel, data.args.vals[1]));
+        return Errors::NONE;
+    }
+
+    virtual Errors::Code close(DiskSrvSession *sess) override {
+        delete sess;
+        return Errors::NONE;
+    }
+
+    void read(GateIStream &is) {
+        blockno_t cap, start;
+        size_t len, blocksize;
+        goff_t off;
+        is >> cap;
+        is >> start;
+        is >> len;
+        is >> blocksize;
+        is >> off;
+
+        SLOG(FS, "DISK: Read blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+        if(len * blocksize < 512) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        Errors::Code res;
+
+        uint16_t *buf = new uint16_t[(30 * blocksize) / 2];
+        capsel_t m_cap = caps.find(cap)->_mem;
+        if(m_cap != ObjCap::INVALID) {
+                MemGate m = MemGate::bind(m_cap);
+
+                //we can only read 255 sectors (<31 blocks) at once (see ata.cc ata_setupCommand)
+                size_t i = 0;
+                for(; i < (len / 30); i++)  {
+                    handleRead(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, 30 * blocksize);
+                    res = m.write(buf, 30 * blocksize, (off + i * 30) * blocksize);
+                }
+                //now read the rest
+                if(len % 30) {
+                    handleRead(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, (len % 30) * blocksize);
+                    res = m.write(buf, (len % 30) * blocksize, (off + i * 30) * blocksize);
+                }
+        }
+        else {
+                res = Errors::NO_PERM;
+        }
+        delete[] buf;
+
+        reply_error(is, res);
+
+    }
+
+    void write(GateIStream &is) {
+        blockno_t cap, start;
+        size_t len, blocksize;
+        goff_t off;
+        is >> cap;
+        is >> start;
+        is >> len;
+        is >> blocksize;
+        is >> off;
+
+        SLOG(FS, "DISK: Write blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+
+        if(len * blocksize < 512) {
+            reply_error(is, Errors::INV_ARGS);
+            return;
+        }
+
+        Errors::Code res;
+
+        uint16_t *buf = new uint16_t[(30 * blocksize) / 2];
+
+        capsel_t m_cap = caps.find(cap)->_mem;
+        if(m_cap != ObjCap::INVALID) {
+                MemGate m = MemGate::bind(m_cap);
+
+                //we can only write 255 sectors (<31 blocks) at once (see ata.cc ata_setupCommand)
+                size_t i = 0;
+                for(; i < (len / 30); i++)  {
+                    res = m.read(buf, 30 * blocksize, (off + i * 30) * blocksize);
+                    handleWrite(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, 30 * blocksize);
+                }
+                //now read the rest
+                if(len % 30) {
+                    res = m.read(buf, (len % 30) * blocksize, (off + i * 30) * blocksize);
+                    handleWrite(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, (len % 30) * blocksize);
+                }
+        }
+        else {
+                res = Errors::NO_PERM;
+        }
+
+        delete[] buf;
+        reply_error(is, res);
+    }
+
+private:
+    RecvGate _rgate;
+    sATADevice *_dev;
+    Treap<CapNode> caps;
+};
+
 
 /* a partition on the disk */
 typedef struct {
@@ -60,8 +231,7 @@ typedef struct {
 static const size_t MAX_RW_SIZE		= 4096;
 static const int RETRY_COUNT		= 3;
 
-static ulong handleRead(sATADevice *device,sPartition *part,uint16_t *buf,uint offset,uint count);
-static ulong handleWrite(sATADevice *device,sPartition *part,uint16_t *buf,uint offset,uint count);
+
 static void initDrives(void);
 class ATAPartitionDevice;
 
@@ -134,8 +304,10 @@ int main(int argc,char **argv) {
 			src[i].endSector = 0x3F;
 			src[i].startHead = i;
 			src[i].endHead = i;
-			src[i].start = 0x20*i;
-			src[i].size = 0x20;
+			src[i].start = 0x0;
+            // this could be too small for bench.img
+			src[i].size = 173000000;
+
 		}
 
 		/* write the information to the in-memory partition table */
@@ -143,14 +315,15 @@ int main(int argc,char **argv) {
 		part_print(ataDev->partTable);
 	}
 
-	cout << "Writing 0x" << fmt(arg[0],"X") << fmt(arg[1],"X") << " and reading it again...\n";
+	// ctrl_deinit();
 
-	handleWrite(ataDev, ataDev->partTable, arg, 0, sizeof(arg));
-	handleRead(ataDev, ataDev->partTable, res, 0, sizeof(res));
+        const char *name = "disk";
+        srv = new Server<DiskRequestHandler>(name, new DiskRequestHandler(ataDev));
 
-	cout << "Returned result: 0x" << fmt(res[0],"X") << fmt(res[1],"X") << "\n";
+        // env()->workloop()->multithreaded(8);
+        env()->workloop()->run();
 
-	ctrl_deinit();
+        delete srv;
 	return 0;
 }
 
