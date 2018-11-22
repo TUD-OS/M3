@@ -95,7 +95,7 @@ public:
         return Errors::NONE;
     }
 
-    virtual Errors::Code delegate(DiskSrvSession *sess, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code delegate(DiskSrvSession *, KIF::Service::ExchangeData &data) override {
         if(data.args.count != 2 || data.caps != 1)
             return Errors::NOT_SUP;
 
@@ -272,12 +272,6 @@ int main(int argc, char **argv) {
     sATADevice *ataDev = ctrl_getDevice(0);
     device_print(ataDev, cout);
 
-    /* Example input */
-    uint16_t arg[256] = {0xC0FF, 0xEEEE};
-    /* Output */
-    uint16_t res[256] = {0, 0};
-
-    uint8_t buf[0x1FF];
 
     part_print(ataDev->partTable);
     uint present = 0;
@@ -286,6 +280,7 @@ int main(int argc, char **argv) {
         present |= ataDev->partTable[i].present;
 
     /* Just setup a example partition table, not written or read from disk */
+    uint8_t buf[0x1FF];
     if(!present) {
         sDiskPart *src = (sDiskPart *)(buf + 0x1BE);
         for(uint i = 0; i < PARTITION_COUNT; i++) {
