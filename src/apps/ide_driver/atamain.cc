@@ -128,7 +128,7 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(FS, "DISK: Read blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+        SLOG(IDE, "DISK: Read blocks " << start << ":" << len << " @ " << fmt(off, "x"));
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
             return;
@@ -170,7 +170,7 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(FS, "DISK: Write blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+        SLOG(IDE, "DISK: Write blocks " << start << ":" << len << " @ " << fmt(off, "x"));
 
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
