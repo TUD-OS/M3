@@ -69,7 +69,7 @@ public:
     static m3::Extent *change_extent(FSHandle &h, m3::INode *inode, size_t i, m3::Extent **indir,
                                      bool remove, UsedBlocks *used_blocks);
     static void fill_extent(FSHandle &h, m3::INode *inode, m3::Extent *ext, uint32_t blocks,
-                            size_t accessed);
+                            size_t accessed, UsedBlocks *used_blocks);
 
     static void truncate(FSHandle &h, m3::INode *inode, size_t extent, size_t extoff,
                          UsedBlocks *used_blocks);

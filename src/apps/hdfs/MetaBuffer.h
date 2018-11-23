@@ -6,7 +6,7 @@
 
 #include <fs/internal.h>
 
-#include "./sess/Session.h"
+#include "sess/FileSession.h"
 #include "Buffer.h"
 
 #define META_BUFFER_SIZE    512
@@ -34,15 +34,14 @@ class MetaBuffer : public Buffer {
 public:
     explicit MetaBuffer(size_t blocksize, DiskSession *disk);
 
-    void *get_block(blockno_t bno);
-    void quit(blockno_t bno);
+    void *get_block(blockno_t bno, UsedBlocks *used_blocks);
+    void quit(MetaBufferHead *b);
     void write_back(blockno_t bno);
     void flush() override;
     bool dirty(blockno_t);
 
 private:
     MetaBufferHead *get(blockno_t bno) override;
-    void remove_block(blockno_t bno);
     void flush_chunk(BufferHead *b) override;
     char *_blocks;
     MemGate gate;

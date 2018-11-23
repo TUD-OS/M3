@@ -31,7 +31,7 @@ Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
     static_assert(sizeof(inodeno_t) == sizeof(uint32_t), "Wrong type");
 }
 
-uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
+uint32_t Allocator::alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks) {
     const size_t perblock = h.sb().blocksize * 8;
     const uint32_t lastno = _first + _blocks - 1;
     const size_t icount = *count;
@@ -40,7 +40,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
     uint32_t i = *_first_free % perblock;
 
     while(total == 0 && no <= lastno) {
-        Bitmap::word_t *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no));
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no, used_blocks));
         h.metabuffer().mark_dirty(no);
         // take care that total_blocks might not be a multiple of perblock
         size_t max = perblock;
@@ -101,7 +101,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
             }
         }
 
-        h.metabuffer().quit(no);
+        used_blocks->quit_last_n(1);
         if(total == 0) {
             no++;
             i = 0;
@@ -119,14 +119,14 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
     return start;
 }
 
-void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
+void Allocator::free(FSHandle &h, uint32_t start, size_t count, UsedBlocks *used_blocks) {
     size_t perblock = h.sb().blocksize * 8;
     uint32_t no = _first + start / perblock;
     if(start < *_first_free)
         *_first_free = start;
     *_free += count;
     while(count > 0) {
-        Bitmap::word_t *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no));
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no, used_blocks));
         h.metabuffer().mark_dirty(no);
         Bitmap bm(bytes);
 
@@ -153,7 +153,7 @@ void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
         }
 
         // to next bitmap block
-        h.metabuffer().quit(no);
+        used_blocks->quit_last_n(1);
         count -= i - begin;
         start = (start + perblock - 1) & ~(perblock - 1);
         no++;

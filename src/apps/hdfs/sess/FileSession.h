@@ -28,6 +28,7 @@
 
 #define MAX_USED_BLOCKS 16
 
+class MetaBufferHead;
 class M3FSMetaSession;
 class FSHandle;
 
@@ -38,10 +39,9 @@ struct UsedBlocks {
 
     FSHandle &_handle;
     size_t used;
-    m3::blockno_t blocks[MAX_USED_BLOCKS];
+    MetaBufferHead *blocks[MAX_USED_BLOCKS];
 
-    void set(m3::blockno_t bno);
-    void next();
+    void set(MetaBufferHead *b);
     void quit_last_n(size_t n);
 };
 

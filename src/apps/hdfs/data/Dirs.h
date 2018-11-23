@@ -24,10 +24,9 @@
 /**
  * Walks over all dir-entries in block <bno>, assigning it to <e>.
  */
-#define foreach_direntry(h, bno, e, used_blocks)                                            \
-    used_blocks->set(bno);                                                                  \
-    DirEntry *e = reinterpret_cast<DirEntry*>((h).metabuffer().get_block((bno)));           \
-    DirEntry *__eend = e + (h).sb().blocksize / sizeof(DirEntry);                           \
+#define foreach_direntry(h, bno, e, used_blocks)                                                 \
+    DirEntry *e = reinterpret_cast<DirEntry*>((h).metabuffer().get_block((bno), (used_blocks))); \
+    DirEntry *__eend = e + (h).sb().blocksize / sizeof(DirEntry);                                \
     for(; e < __eend; e = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next))
 
 class Dirs {

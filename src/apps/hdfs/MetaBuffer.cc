@@ -27,7 +27,7 @@ MetaBuffer::MetaBuffer(size_t blocksize, DiskSession *disk)
     _disk->delegate(crd, &args);
 }
 
-void *MetaBuffer::get_block(blockno_t bno) {
+void *MetaBuffer::get_block(blockno_t bno, UsedBlocks *used_blocks) {
     MetaBufferHead *b;
     while(true) {
         b = get(bno);
@@ -42,6 +42,7 @@ void *MetaBuffer::get_block(blockno_t bno) {
                 b->_linkcount++;
                 SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
                                                             << b->_linkcount);
+                used_blocks->set(b);
                 return b->_data;
             }
         }
@@ -63,7 +64,8 @@ void *MetaBuffer::get_block(blockno_t bno) {
     }
     b->key(bno);
     ht.insert(b);
-    //disk load in b->_data;
+
+    // disk load into b->_data;
     _disk->read(0, bno, 1, _blocksize, b->_off);
     gate.read(b->_data, _blocksize, b->_off * _blocksize);
 
@@ -72,19 +74,19 @@ void *MetaBuffer::get_block(blockno_t bno) {
     b->locked = false;
     ThreadManager::get().notify(b->unlock);
 
+    used_blocks->set(b);
     return b->_data;
 }
 
-void MetaBuffer::quit(blockno_t bno) {
-    if(bno != 0) {
-        MetaBufferHead *b = static_cast<MetaBufferHead*>(ht.find(bno));
-        if(b) {
-            assert(b->_linkcount > 0);
-            SLOG(FS, "MetaBuffer: Dereferencing block <" << b->key() << ">, Links: " << b->_linkcount);
-            b->_linkcount--;
-            if(b->_linkcount == 0)
-                remove_block(bno);
-        }
+void MetaBuffer::quit(MetaBufferHead *b) {
+    assert(b->_linkcount > 0);
+    SLOG(FS, "MetaBuffer: Dereferencing block <" << b->key() << ">, Links: " << b->_linkcount);
+    b->_linkcount--;
+    if(b->_linkcount == 0) {
+        // append block to the free list(lru)
+        // the block remains inside the ht until a new block needs to be loaded
+        lru.append(b);
+        _size--;
     }
 }
 
@@ -93,18 +95,6 @@ MetaBufferHead *MetaBuffer::get(blockno_t bno) {
     if(b)
         return b;
     return nullptr;
-}
-
-/*
- * Appends block<bno> to the free list(lru)
- * The block remains inside the ht until a new block needs to be loaded
- */
-void MetaBuffer::remove_block(blockno_t bno) {
-    MetaBufferHead *b = get(bno);
-    if(!b)
-        return;
-    lru.append(b);
-    _size--;
 }
 
 void MetaBuffer::flush_chunk(BufferHead *b) {

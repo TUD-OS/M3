@@ -39,22 +39,15 @@ UsedBlocks::~UsedBlocks() {
     Time::stop(0xfe00);
 }
 
-void UsedBlocks::set(blockno_t bno) {
-    blocks[used] = bno;
-    used++;
-}
-
-void UsedBlocks::next() {
+void UsedBlocks::set(MetaBufferHead *b) {
+    blocks[used] = b;
     used++;
 }
 
 void UsedBlocks::quit_last_n(size_t n) {
-    for(size_t i = 0; i < n; i++) {
-        if(used != 0) {
-            _handle.metabuffer().quit(blocks[used - 1]);
-            used--;
-        }
-    }
+    assert(used >= n);
+    for(size_t i = 0; i < n; i++)
+        _handle.metabuffer().quit(blocks[--used]);
 }
 
 M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
@@ -88,11 +81,13 @@ M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const 
 M3FSFileSession::~M3FSFileSession() {
     PRINT(this, "file::close(path=" << _filename << ")");
 
+    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+
     delete _sgate;
 
     if(_append_ext) {
         FSHandle &h = _meta->handle();
-        h.blocks().free(h, _append_ext->start, _append_ext->length);
+        h.blocks().free(h, _append_ext->start, _append_ext->length, &used_blocks);
         delete _append_ext;
     }
 
@@ -390,7 +385,7 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
 
         // free superfluous blocks
         if(old_len > blocks)
-            h.blocks().free(h, _append_ext->start + blocks, old_len - blocks);
+            h.blocks().free(h, _append_ext->start + blocks, old_len - blocks, used_blocks);
 
         _extlen = blocks * h.sb().blocksize;
         // have we appended the new extent to the previous extent?

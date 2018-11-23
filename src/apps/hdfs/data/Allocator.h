@@ -18,6 +18,7 @@
 
 #include <fs/internal.h>
 
+#include "../sess/FileSession.h"
 #include "../MetaBuffer.h"
 
 class FSHandle;
@@ -27,12 +28,12 @@ public:
     explicit Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
                        uint32_t total, uint32_t blocks);
 
-    uint32_t alloc(FSHandle &h) {
+    uint32_t alloc(FSHandle &h, UsedBlocks *used_blocks) {
         size_t count = 1;
-        return alloc(h, &count);
+        return alloc(h, &count, used_blocks);
     }
-    uint32_t alloc(FSHandle &h, size_t *count);
-    void free(FSHandle &h, uint32_t start, size_t count);
+    uint32_t alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks);
+    void free(FSHandle &h, uint32_t start, size_t count, UsedBlocks *used_blocks);
 
 private:
     uint32_t _first;

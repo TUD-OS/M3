@@ -52,13 +52,12 @@ Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t nam
             return Errors::NO_SPACE;
 
         // insert one block in extent
-        INodes::fill_extent(h, dir, ext, 1, 1);
+        INodes::fill_extent(h, dir, ext, 1, 1, used_blocks);
         if(ext->length == 0)
             return Errors::NO_SPACE;
 
         // put entry at the beginning of the block
-        e = reinterpret_cast<DirEntry*>(h.metabuffer().get_block(ext->start));
-        used_blocks->set(ext->start);
+        e = reinterpret_cast<DirEntry*>(h.metabuffer().get_block(ext->start, used_blocks));
         h.metabuffer().mark_dirty(ext->start);
         rem = h.sb().blocksize;
     }
