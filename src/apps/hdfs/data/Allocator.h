@@ -18,8 +18,7 @@
 
 #include <fs/internal.h>
 
-#include "../sess/FileSession.h"
-#include "../MetaBuffer.h"
+#include "../sess/Request.h"
 
 class FSHandle;
 

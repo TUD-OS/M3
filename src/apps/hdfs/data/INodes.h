@@ -20,9 +20,7 @@
 
 #include <fs/internal.h>
 
-#include "../FSHandle.h"
-#include "../sess/MetaSession.h"
-#include "Allocator.h"
+#include "../sess/Request.h"
 
 /**
  * Walks over each extent of the inode, assigning it to <ext>.

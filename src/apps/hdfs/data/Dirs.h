@@ -18,8 +18,8 @@
 
 #include <fs/internal.h>
 
+#include "../sess/Request.h"
 #include "../FSHandle.h"
-#include "../sess/MetaSession.h"
 
 /**
  * Walks over all dir-entries in block <bno>, assigning it to <e>.

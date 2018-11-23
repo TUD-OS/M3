@@ -19,6 +19,7 @@
 #include <m3/Syscalls.h>
 #include <m3/VPE.h>
 
+#include "../FSHandle.h"
 #include "INodes.h"
 
 using namespace m3;
