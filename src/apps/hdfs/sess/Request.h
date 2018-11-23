@@ -20,9 +20,10 @@
 class FSHandle;
 class MetaBufferHead;
 
-#define MAX_USED_BLOCKS 16
+class Request {
+    static constexpr size_t MAX_USED_BLOCKS = 16;
 
-struct Request {
+public:
     explicit Request(FSHandle &handle)
         : _handle(handle),
           _used(0) {

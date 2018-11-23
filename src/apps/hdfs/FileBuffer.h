@@ -21,9 +21,6 @@
 
 #include "Buffer.h"
 
-#define FILE_BUFFER_SIZE    16384 // at least 128
-#define LOAD_LIMIT          128
-
 using namespace m3;
 
 struct InodeExt : public DListItem {
@@ -49,6 +46,9 @@ private:
 };
 
 class FileBuffer : public Buffer {
+    static constexpr size_t FILE_BUFFER_SIZE    = 16384; // at least 128
+    static constexpr size_t LOAD_LIMIT          = 128;
+
 public:
     explicit FileBuffer(size_t blocksize, DiskSession *disk, size_t max_load);
 
