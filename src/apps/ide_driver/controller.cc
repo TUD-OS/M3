@@ -1,20 +1,18 @@
-/**
- * $Id$
- * Copyright (C) 2008 - 2014 Nils Asmussen
+/*
+ * Copyright (C) 2017, Lukas Landgraf <llandgraf317@gmail.com>
+ * Copyright (C) 2018, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * M3 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * M3 is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details.
  */
 
 /**
