@@ -27,6 +27,7 @@
 void bslist();
 void bdlist();
 void btreap();
+void bfsmeta();
 void bregfile();
 void bmemgate();
 void bsyscall();
