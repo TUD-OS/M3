@@ -114,6 +114,10 @@ public:
         return Errors::NONE;
     }
 
+    virtual void shutdown() override {
+        _rgate.stop();
+    }
+
     void read(GateIStream &is) {
         blockno_t cap, start;
         size_t len, blocksize;
