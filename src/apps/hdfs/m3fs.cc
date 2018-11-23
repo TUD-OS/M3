@@ -84,7 +84,8 @@ public:
             if(data.args.count == 0)
                 return meta->get_sgate(data);
             return meta->open_file(srv->sel(), data);
-        } else {
+        }
+        else {
             auto file = static_cast<M3FSFileSession *>(sess);
             if(data.args.count == 0)
                 return file->clone(srv->sel(), data);
@@ -101,7 +102,8 @@ public:
             static_cast<M3FSMetaSession *>(sess)->set_eps(sels, data.caps);
             data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sels, data.caps).value();
             return Errors::NONE;
-        } else {
+        }
+        else {
             if(data.caps != 1)
                 return Errors::NOT_SUP;
             capsel_t sel = VPE::self().alloc_sel();
