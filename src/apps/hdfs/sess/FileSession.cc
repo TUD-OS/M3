@@ -99,11 +99,8 @@ M3FSFileSession::~M3FSFileSession() {
     _meta->handle().files().rem_sess(this);
     _meta->remove_file(this);
 
-    if(_last != ObjCap::INVALID) {
-        cout << "#!invalid: " << _last << "\n";
+    if(_last != ObjCap::INVALID)
         VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
-    }
-    cout << "#1\n";
 }
 
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {

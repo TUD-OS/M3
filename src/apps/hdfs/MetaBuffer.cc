@@ -40,7 +40,8 @@ void *MetaBuffer::get_block(blockno_t bno) {
                     _size++;
                 }
                 b->_linkcount++;
-                SLOG(FS, "Load already known block <" << b->key() << ">, Links: " << b->_linkcount);
+                SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
+                                                            << b->_linkcount);
                 return b->_data;
             }
         }
@@ -67,7 +68,7 @@ void *MetaBuffer::get_block(blockno_t bno) {
     gate.read(b->_data, _blocksize, b->_off * _blocksize);
 
     b->_linkcount = 1;
-    SLOG(FS, "Load new block <" << b->key() << ">, Links: " << b->_linkcount);
+    SLOG(FS, "MetaBuffer: Load new block <" << b->key() << ">, Links: " << b->_linkcount);
     b->locked = false;
     ThreadManager::get().notify(b->unlock);
 
@@ -78,11 +79,11 @@ void MetaBuffer::quit(blockno_t bno) {
     if(bno != 0) {
         MetaBufferHead *b = static_cast<MetaBufferHead*>(ht.find(bno));
         if(b) {
-            if(b->_linkcount != 0) {
-                b->_linkcount--;
-                if(b->_linkcount == 0)
-                    remove_block(bno);
-            }
+            assert(b->_linkcount > 0);
+            SLOG(FS, "MetaBuffer: Dereferencing block <" << b->key() << ">, Links: " << b->_linkcount);
+            b->_linkcount--;
+            if(b->_linkcount == 0)
+                remove_block(bno);
         }
     }
 }
@@ -102,7 +103,6 @@ void MetaBuffer::remove_block(blockno_t bno) {
     MetaBufferHead *b = get(bno);
     if(!b)
         return;
-    //cout << "removed: <" << bno << ">\n";
     lru.append(b);
     _size--;
 }
@@ -110,7 +110,9 @@ void MetaBuffer::remove_block(blockno_t bno) {
 void MetaBuffer::flush_chunk(BufferHead *b) {
     MetaBufferHead *mb = reinterpret_cast<MetaBufferHead*>(b);
     mb->locked         = true;
-    //write_to_disk
+
+    // write_to_disk
+    SLOG(FS, "MetaBuffer: Write back block <" << b->key() << ">");
     gate.write(mb->_data, _blocksize, mb->_off * _blocksize);
     _disk->write(0, b->key(), 1, _blocksize, mb->_off);
 
@@ -130,7 +132,6 @@ void MetaBuffer::write_back(blockno_t bno) {
 void MetaBuffer::flush() {
     while(!ht.empty()) {
         MetaBufferHead *b = reinterpret_cast<MetaBufferHead*>(ht.remove_root());
-        SLOG(FS, "Flushing <" << b->key() << ">, Links: " << b->_linkcount);
         if(b->dirty)
             flush_chunk(b);
     }

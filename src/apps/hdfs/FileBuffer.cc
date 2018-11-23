@@ -21,14 +21,17 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
         FileBufferHead *b = FileBuffer::get(bno);
         if(b) {
             if(b->locked) {
-                //wait
+                // wait
+                SLOG(FS, "FileFuffer: Waiting for cached blocks <"
+                    << b->key() << "," << b->_size << ">, for block " << bno);
                 ThreadManager::get().wait_for(b->unlock);
             }
             else {
                 // lock?
                 lru.remove(b);
                 lru.append(b);
-                SLOG(FS, "Filebuffer: Found <" << b->key() << "," << b->_size << ">, for " << bno);
+                SLOG(FS, "FileFuffer: Found cached blocks <"
+                    << b->key() << "," << b->_size << ">, for block " << bno);
                 size_t len       = Math::min(size, (b->_size - (bno - b->key())));
                 Errors::Code res = m3::Syscalls::get().derivemem(
                     sel, b->_data.sel(), (bno - b->key()) * _blocksize, len * _blocksize, perms);
@@ -44,6 +47,7 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
 
     if(check)
         return 0;
+
     // load chunk into memory
     // size_t max_size = Math::min((size_t)FILE_BUFFER_SIZE, _max_load);
     size_t max_size = (size_t)Math::min(FILE_BUFFER_SIZE, (1 << (accessed)));
@@ -53,18 +57,18 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
     FileBufferHead *b;
     if((_size + load_size) > FILE_BUFFER_SIZE) {
         do {
-            SLOG(FS, "Evict");
             b = FileBuffer::get(lru.begin()->key());
             if(b->locked) {
                 // wait
+                SLOG(FS, "FileBuffer: Waiting for eviction of block <" << b->key() << ">");
                 ThreadManager::get().wait_for(b->unlock);
             }
             else {
+                SLOG(FS, "FileBuffer: Evicting block <" << b->key() << ">");
                 lru.removeFirst();
                 ht.remove(b);
-                if(b->dirty) {
+                if(b->dirty)
                     flush_chunk(b);
-                }
                 // revoke all subsets
                 VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, b->_data.sel(), 1));
                 _size -= b->_size;
@@ -79,8 +83,8 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
     _size += b->_size;
     ht.insert(b);
     lru.append(b);
-    //load from disk
-    SLOG(FS, "FileBuffer: New block <" << b->key() << ">" << (load ? " : loading" : ""));
+    // load from disk
+    SLOG(FS, "FileBuffer: Allocating block <" << b->key() << ">" << (load ? " : loading" : ""));
     KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, b->_data.sel(), 1);
     KIF::ExchangeArgs args;
     args.count = 2;
@@ -110,6 +114,7 @@ FileBufferHead *FileBuffer::get(blockno_t bno) {
 void FileBuffer::flush_chunk(BufferHead *b) {
     b->locked = true;
 
+    SLOG(FS, "FileBuffer: Write back block <" << b->key() << ">");
     _disk->write(b->key(), b->key(), b->_size, _blocksize);
 
     b->dirty  = false;
