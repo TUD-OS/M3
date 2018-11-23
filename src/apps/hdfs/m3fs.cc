@@ -120,6 +120,7 @@ public:
     virtual void shutdown() override {
         _rgate.stop();
         _handle.flush_buffer();
+        _handle.shutdown();
     }
 
     void open_private_file(GateIStream &is) {

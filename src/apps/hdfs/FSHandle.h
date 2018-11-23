@@ -57,15 +57,10 @@ public:
     }
 
     void flush_buffer() {
-        /*
-         * skipped because this takes time
-         * and it's not needed for benchmarks
-         */
-        //_metabuffer.flush();
-        //_filebuffer.flush();
-        // This should work, but it doesn't
+        _metabuffer.flush();
+        _filebuffer.flush();
 
-        /*
+        // write back super block
         _sb.checksum = _sb.get_checksum();
         size_t len = sizeof(_sb);
         MemGate tmp = MemGate::create_global(512, MemGate::RW);
@@ -77,8 +72,12 @@ public:
         _disk->delegate(crd, &args);
         tmp.write(&_sb, len, 0);
         _disk->write(0, 0, 1, 512);
-        */
-        SLOG(FS, "flushed everything\n");
+    }
+
+    void shutdown() {
+        // close disk session
+        delete _disk;
+        _disk = nullptr;
     }
 
 private:
