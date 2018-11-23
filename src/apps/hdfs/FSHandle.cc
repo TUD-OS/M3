@@ -23,7 +23,7 @@
 
 using namespace m3;
 
-bool FSHandle::load_superblock(SuperBlock *sb, bool clear, DiskSession *disk) {
+bool FSHandle::load_superblock(SuperBlock *sb, bool clear, Disk *disk) {
     SLOG(FS, "Loading Superblock from disk");
     size_t len  = sizeof(*sb);
     MemGate tmp = MemGate::create_global(512, MemGate::RW);
@@ -50,7 +50,7 @@ bool FSHandle::load_superblock(SuperBlock *sb, bool clear, DiskSession *disk) {
 }
 
 FSHandle::FSHandle(size_t extend, bool clear, bool revoke_first, size_t max_load)
-    : _disk(new DiskSession()),
+    : _disk(new Disk("disk")),
       _clear(load_superblock(&_sb, clear, _disk)),
       _revoke_first(revoke_first),
       _extend(extend),

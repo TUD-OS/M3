@@ -25,9 +25,7 @@
 #include <m3/com/SendGate.h>
 #include <m3/session/ServerSession.h>
 
-using namespace m3;
-
-class DiskSrvSession : public ServerSession {
+class DiskSrvSession : public m3::ServerSession {
     struct DiskSrvSGate : public m3::SListItem {
         explicit DiskSrvSGate(m3::SendGate &&_sgate) : sgate(m3::Util::move(_sgate)) {
         }
@@ -37,26 +35,26 @@ class DiskSrvSession : public ServerSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
 
-    explicit DiskSrvSession(capsel_t srv_sel, RecvGate *rgate, capsel_t _sel = ObjCap::INVALID)
+    explicit DiskSrvSession(capsel_t srv_sel, m3::RecvGate *rgate, capsel_t _sel = m3::ObjCap::INVALID)
         : ServerSession(srv_sel, _sel), _rgate(rgate), _sgates(){};
 
-    const RecvGate &rgate() const {
+    const m3::RecvGate &rgate() const {
         return *_rgate;
     }
 
-    Errors::Code get_sgate(KIF::Service::ExchangeData &data) {
+    m3::Errors::Code get_sgate(m3::KIF::Service::ExchangeData &data) {
         if(data.caps != 1)
-            return Errors::INV_ARGS;
+            return m3::Errors::INV_ARGS;
 
         label_t label       = reinterpret_cast<label_t>(this);
-        DiskSrvSGate *sgate = new DiskSrvSGate(SendGate::create(_rgate, label, MSG_SIZE));
+        DiskSrvSGate *sgate = new DiskSrvSGate(m3::SendGate::create(_rgate, label, MSG_SIZE));
         _sgates.append(sgate);
 
-        data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sgate->sgate.sel()).value();
-        return Errors::NONE;
+        data.caps = m3::KIF::CapRngDesc(m3::KIF::CapRngDesc::OBJ, sgate->sgate.sel()).value();
+        return m3::Errors::NONE;
     }
 
 private:
-    RecvGate *_rgate;
-    SList<DiskSrvSGate> _sgates;
+    m3::RecvGate *_rgate;
+    m3::SList<DiskSrvSGate> _sgates;
 };

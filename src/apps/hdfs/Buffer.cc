@@ -13,7 +13,7 @@ BufferHead::BufferHead(blockno_t bno, size_t size)
       unlock(ThreadManager::get().get_wait_event()) {
 }
 
-Buffer::Buffer(size_t blocksize, DiskSession *disk) : _blocksize(blocksize), _disk(disk) {
+Buffer::Buffer(size_t blocksize, Disk *disk) : _blocksize(blocksize), _disk(disk) {
 }
 
 void Buffer::lock(blockno_t bno) {

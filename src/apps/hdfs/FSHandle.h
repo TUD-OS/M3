@@ -18,7 +18,8 @@
 
 #include <fs/internal.h>
 
-#include "./../ide_driver/Session/DiskSession.h"
+#include <m3/session/Disk.h>
+
 #include "FileBuffer.h"
 #include "MetaBuffer.h"
 #include "data/Allocator.h"
@@ -63,9 +64,9 @@ public:
         // write back super block
         _sb.checksum = _sb.get_checksum();
         size_t len = sizeof(_sb);
-        MemGate tmp = MemGate::create_global(512, MemGate::RW);
-        KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, tmp.sel(), 1);
-        KIF::ExchangeArgs args;
+        m3::MemGate tmp = m3::MemGate::create_global(512, m3::MemGate::RW);
+        m3::KIF::CapRngDesc crd(m3::KIF::CapRngDesc::OBJ, tmp.sel(), 1);
+        m3::KIF::ExchangeArgs args;
         args.count = 2;
         args.vals[0] = static_cast<xfer_t>(0);
         args.vals[1] = static_cast<xfer_t>(1);
@@ -81,9 +82,9 @@ public:
     }
 
 private:
-    static bool load_superblock(m3::SuperBlock *sb, bool clear, DiskSession *disk);
+    static bool load_superblock(m3::SuperBlock *sb, bool clear, m3::Disk *disk);
 
-    DiskSession *_disk;
+    m3::Disk *_disk;
     bool _clear;
     bool _revoke_first;
     size_t _extend;

@@ -27,7 +27,7 @@ FileBufferHead::FileBufferHead(blockno_t bno, size_t size, size_t blocksize)
     _extents.append(new InodeExt(bno, size));
 }
 
-FileBuffer::FileBuffer(size_t blocksize, DiskSession *disk, size_t max_load)
+FileBuffer::FileBuffer(size_t blocksize, Disk *disk, size_t max_load)
     : Buffer(blocksize, disk),
       _max_load(max_load) {
 }

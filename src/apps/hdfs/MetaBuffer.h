@@ -20,19 +20,18 @@
 #include <base/col/Treap.h>
 
 #include <m3/com/MemGate.h>
+#include <m3/session/Disk.h>
 
 #include <fs/internal.h>
 
 #include "sess/FileSession.h"
 #include "Buffer.h"
 
-using namespace m3;
-
 class MetaBufferHead : public BufferHead {
     friend class MetaBuffer;
 
 public:
-    explicit MetaBufferHead(blockno_t bno, size_t size, size_t off, char *data);
+    explicit MetaBufferHead(m3::blockno_t bno, size_t size, size_t off, char *data);
 
 private:
     size_t _off;
@@ -49,17 +48,17 @@ class MetaBuffer : public Buffer {
     static constexpr size_t META_BUFFER_SIZE    = 512;
 
 public:
-    explicit MetaBuffer(size_t blocksize, DiskSession *disk);
+    explicit MetaBuffer(size_t blocksize, m3::Disk *disk);
 
-    void *get_block(Request &r, blockno_t bno);
+    void *get_block(Request &r, m3::blockno_t bno);
     void quit(MetaBufferHead *b);
-    void write_back(blockno_t bno);
+    void write_back(m3::blockno_t bno);
     void flush() override;
-    bool dirty(blockno_t);
+    bool dirty(m3::blockno_t);
 
 private:
-    MetaBufferHead *get(blockno_t bno) override;
+    MetaBufferHead *get(m3::blockno_t bno) override;
     void flush_chunk(BufferHead *b) override;
     char *_blocks;
-    MemGate gate;
+    m3::MemGate gate;
 };

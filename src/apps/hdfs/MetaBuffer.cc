@@ -28,7 +28,7 @@ MetaBufferHead::MetaBufferHead(blockno_t bno, size_t size, size_t off, char *dat
       _linkcount(0) {
 }
 
-MetaBuffer::MetaBuffer(size_t blocksize, DiskSession *disk)
+MetaBuffer::MetaBuffer(size_t blocksize, Disk *disk)
     : Buffer(blocksize, disk),
       _blocks(new char[_blocksize * META_BUFFER_SIZE]),
       gate(MemGate::create_global(_blocksize * META_BUFFER_SIZE, MemGate::RW)) {

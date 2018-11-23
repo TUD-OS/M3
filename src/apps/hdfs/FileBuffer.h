@@ -21,14 +21,12 @@
 
 #include "Buffer.h"
 
-using namespace m3;
-
-struct InodeExt : public DListItem {
-    blockno_t _start;
+struct InodeExt : public m3::DListItem {
+    m3::blockno_t _start;
     size_t _size;
 
-    explicit InodeExt(blockno_t start, size_t size)
-        : DListItem(),
+    explicit InodeExt(m3::blockno_t start, size_t size)
+        : m3::DListItem(),
           _start(start),
           _size(size) {
     }
@@ -38,11 +36,11 @@ class FileBufferHead : public BufferHead {
     friend class FileBuffer;
 
 public:
-    explicit FileBufferHead(blockno_t bno, size_t size, size_t blocksize);
+    explicit FileBufferHead(m3::blockno_t bno, size_t size, size_t blocksize);
 
 private:
-    MemGate _data;
-    DList<InodeExt> _extents;
+    m3::MemGate _data;
+    m3::DList<InodeExt> _extents;
 };
 
 class FileBuffer : public Buffer {
@@ -50,14 +48,14 @@ class FileBuffer : public Buffer {
     static constexpr size_t LOAD_LIMIT          = 128;
 
 public:
-    explicit FileBuffer(size_t blocksize, DiskSession *disk, size_t max_load);
+    explicit FileBuffer(size_t blocksize, m3::Disk *disk, size_t max_load);
 
-    size_t get_extent(blockno_t bno, size_t size, capsel_t sel, int perms, size_t accessed,
+    size_t get_extent(m3::blockno_t bno, size_t size, capsel_t sel, int perms, size_t accessed,
                       bool load = true, bool check = false);
     void flush() override;
 
 private:
-    FileBufferHead *get(blockno_t bno) override;
+    FileBufferHead *get(m3::blockno_t bno) override;
     void flush_chunk(BufferHead *b) override;
 
     size_t _max_load;

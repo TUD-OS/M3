@@ -25,12 +25,15 @@
 #include <m3/com/SendGate.h>
 #include <m3/session/ClientSession.h>
 
-#include <limits>
+#include <fs/internal.h>
+
 #include <thread/ThreadManager.h>
 
-using namespace m3;
+#include <limits>
 
-class DiskSession : public ClientSession {
+namespace m3 {
+
+class Disk : public ClientSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
 
@@ -40,9 +43,8 @@ public:
         COUNT
     };
 
-    // TODO pass srv name as arg
-    explicit DiskSession()
-        : ClientSession("disk", 0, VPE::self().alloc_sels(2)),
+    explicit Disk(const char *name)
+        : ClientSession(name, 0, VPE::self().alloc_sels(2)),
           _rgate(RecvGate::create(nextlog2<MSG_SIZE * 8>::val, nextlog2<MSG_SIZE>::val)),
           _sgate(obtain_sgate()) {
         _rgate.activate();
@@ -96,3 +98,5 @@ private:
     RecvGate _rgate;
     SendGate _sgate;
 };
+
+}

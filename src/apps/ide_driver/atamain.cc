@@ -30,10 +30,10 @@
 #include <m3/com/MemGate.h>
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
+#include <m3/session/Disk.h>
 #include <m3/stream/Standard.h>
 
-#include "Session/DiskSession.h"
-#include "Session/DiskSrvSession.h"
+#include "Session.h"
 #include "ata.h"
 #include "controller.h"
 #include "custom_types.h"
@@ -64,7 +64,7 @@ struct CapNode : public TreapNode<CapNode, blockno_t> {
 class DiskRequestHandler;
 
 using base_class = RequestHandler<
-    DiskRequestHandler, DiskSession::Operation, DiskSession::COUNT, DiskSrvSession
+    DiskRequestHandler, Disk::Operation, Disk::COUNT, DiskSrvSession
 >;
 static Server<DiskRequestHandler> *srv;
 
@@ -72,11 +72,11 @@ class DiskRequestHandler : public base_class {
 public:
     explicit DiskRequestHandler(sATADevice *dev)
         : base_class(),
-          _rgate(RecvGate::create(nextlog2<32 * DiskSession::MSG_SIZE>::val,
-                                  nextlog2<DiskSession::MSG_SIZE>::val)),
+          _rgate(RecvGate::create(nextlog2<32 * Disk::MSG_SIZE>::val,
+                                  nextlog2<Disk::MSG_SIZE>::val)),
           _dev(dev) {
-        add_operation(DiskSession::READ, &DiskRequestHandler::read);
-        add_operation(DiskSession::WRITE, &DiskRequestHandler::write);
+        add_operation(Disk::READ, &DiskRequestHandler::read);
+        add_operation(Disk::WRITE, &DiskRequestHandler::write);
 
         using std::placeholders::_1;
         _rgate.start(std::bind(&DiskRequestHandler::handle_message, this, _1));

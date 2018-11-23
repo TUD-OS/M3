@@ -21,6 +21,7 @@
 
 #include <m3/server/RequestHandler.h>
 #include <m3/server/Server.h>
+#include <m3/session/Disk.h>
 #include <m3/session/M3FS.h>
 #include <m3/session/ServerSession.h>
 #include <m3/stream/Standard.h>
@@ -28,7 +29,6 @@
 #include <limits>
 #include <stdlib.h>
 
-#include "./../ide_driver/Session/DiskSession.h"
 #include "FSHandle.h"
 #include "data/Dirs.h"
 #include "data/INodes.h"
