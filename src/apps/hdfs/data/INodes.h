@@ -25,14 +25,21 @@
 #include "Allocator.h"
 
 /**
+ * Walks over each extent of the inode, assigning it to <ext>.
+ */
+#define foreach_extent(h, inode, ext, used_blocks)                                                 \
+    Extent *__indir = nullptr;                                                                     \
+    Extent *ext = INodes::get_extent((h), (inode), 0, &__indir, false, (used_blocks));             \
+    for(uint32_t __i = 0;                                                                          \
+        __i < (inode)->extents;                                                                    \
+        ++__i, ext = INodes::get_extent((h), (inode), __i, &__indir, false, (used_blocks)))
+
+/**
  * Walks over each block of the inode, assigning it to <bno>.
  */
-#define foreach_block(h, inode, bno, used_blocks)                                                  \
+#define foreach_block(h, ext, bno)                                                                 \
     blockno_t bno;                                                                                 \
-    Extent *__ch, *__indir = nullptr;                                                              \
-    for(uint32_t __j, __i = 0; __i < (inode)->extents; ++__i)                                      \
-        for(__ch = INodes::get_extent((h), (inode), __i, &__indir, false, (used_blocks)), __j = 0; \
-            (bno = __ch->start + __j) && __j < __ch->length; ++__j)
+    for(uint32_t __j = 0; (bno = ext->start + __j) && __j < ext->length; ++__j)
 
 class INodes {
     INodes() = delete;

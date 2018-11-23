@@ -25,20 +25,23 @@ Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t nam
     size_t rem;
     DirEntry *e;
 
-    foreach_block(h, dir, bno, used_blocks) {
-        used_blocks->set(bno);
-        foreach_direntry(h, bno, de) {
-            rem = de->next - (sizeof(DirEntry) + de->namelen);
-            if(rem >= sizeof(DirEntry) + namelen) {
-                // change previous entry
-                de->next = de->namelen + sizeof(DirEntry);
-                // get pointer to new one
-                e = reinterpret_cast<DirEntry*>(reinterpret_cast<uintptr_t>(de) + de->next);
-                h.metabuffer().mark_dirty(bno);
-                goto found;
+    foreach_extent(h, dir, ext, used_blocks) {
+        foreach_block(h, ext, bno) {
+            foreach_direntry(h, bno, de, used_blocks) {
+                rem = de->next - (sizeof(DirEntry) + de->namelen);
+                if(rem >= sizeof(DirEntry) + namelen) {
+                    // change previous entry
+                    de->next = de->namelen + sizeof(DirEntry);
+                    // get pointer to new one
+                    e = reinterpret_cast<DirEntry*>(reinterpret_cast<uintptr_t>(de) + de->next);
+                    h.metabuffer().mark_dirty(bno);
+                    used_blocks->quit_last_n(2);
+                    goto found;
+                }
             }
+            used_blocks->quit_last_n(1);
         }
-        used_blocks->quit_last_n(2);
+        used_blocks->quit_last_n(1);
     }
 
     // no suitable space found; extend directory
@@ -74,41 +77,45 @@ found:
 
 Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir,
                            UsedBlocks *used_blocks) {
-    foreach_block(h, dir, bno, used_blocks) {
-        used_blocks->set(bno);
-        DirEntry *prev = nullptr;
-        foreach_direntry(h, bno, e) {
-            if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0) {
-                // if we're not removing a dir, we're coming from unlink(). in this case, directories
-                // are not allowed
-                INode *inode = INodes::get(h, e->nodeno, used_blocks);
-                if(!isdir && M3FS_ISDIR(inode->mode)) {
-                    return Errors::IS_DIR;
-                }
-
-                // remove entry by skipping over it
-                if(prev)
-                    prev->next += e->next;
-                // copy the next entry back, if there is any
-                else {
-                    DirEntry *next = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next);
-                    if(next < __eend) {
-                        size_t dist = e->next;
-                        memcpy(e, next, sizeof(DirEntry) + next->namelen);
-                        e->next = dist + next->next;
+    foreach_extent(h, dir, ext, used_blocks) {
+        foreach_block(h, ext, bno) {
+            DirEntry *prev = nullptr;
+            foreach_direntry(h, bno, e, used_blocks) {
+                if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0) {
+                    // if we're not removing a dir, we're coming from unlink(). in this case, directories
+                    // are not allowed
+                    INode *inode = INodes::get(h, e->nodeno, used_blocks);
+                    if(!isdir && M3FS_ISDIR(inode->mode)) {
+                        used_blocks->quit_last_n(2);
+                        return Errors::IS_DIR;
                     }
+
+                    // remove entry by skipping over it
+                    if(prev)
+                        prev->next += e->next;
+                    // copy the next entry back, if there is any
+                    else {
+                        DirEntry *next = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next);
+                        if(next < __eend) {
+                            size_t dist = e->next;
+                            memcpy(e, next, sizeof(DirEntry) + next->namelen);
+                            e->next = dist + next->next;
+                        }
+                    }
+                    h.metabuffer().mark_dirty(bno);
+
+                    // reduce links and free, if necessary
+                    if(--inode->links == 0)
+                        h.files().delete_file(inode->inode);
+                    used_blocks->quit_last_n(2);
+                    return Errors::NONE;
                 }
-                h.metabuffer().mark_dirty(bno);
 
-                // reduce links and free, if necessary
-                if(--inode->links == 0)
-                    h.files().delete_file(inode->inode);
-                return Errors::NONE;
+                prev = e;
             }
-
-            prev = e;
+            used_blocks->quit_last_n(1);
         }
-        used_blocks->quit_last_n(2);
+        used_blocks->quit_last_n(1);
     }
     return Errors::NO_SUCH_FILE;
 }

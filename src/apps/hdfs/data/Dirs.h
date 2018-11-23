@@ -24,7 +24,8 @@
 /**
  * Walks over all dir-entries in block <bno>, assigning it to <e>.
  */
-#define foreach_direntry(h, bno, e)                                                         \
+#define foreach_direntry(h, bno, e, used_blocks)                                            \
+    used_blocks->set(bno);                                                                  \
     DirEntry *e = reinterpret_cast<DirEntry*>((h).metabuffer().get_block((bno)));           \
     DirEntry *__eend = e + (h).sb().blocksize / sizeof(DirEntry);                           \
     for(; e < __eend; e = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next))
@@ -32,9 +33,10 @@
 class Dirs {
     Dirs() = delete;
 
-public:
     static m3::DirEntry *find_entry(FSHandle &h, m3::INode *inode, const char *name, size_t namelen,
                                     UsedBlocks *used_blocks);
+
+public:
     static m3::inodeno_t search(FSHandle &h, const char *path, bool create = false,
                                 UsedBlocks *used_blocks = nullptr);
     static m3::Errors::Code create(FSHandle &h, const char *path, m3::mode_t mode,

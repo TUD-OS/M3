@@ -101,11 +101,11 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
             }
         }
 
+        h.metabuffer().quit(no);
         if(total == 0) {
             no++;
             i = 0;
         }
-        h.metabuffer().quit(no);
     }
 
     assert(*_free >= total);

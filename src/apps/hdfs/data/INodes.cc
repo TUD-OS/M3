@@ -85,20 +85,22 @@ void INodes::mark_dirty(FSHandle &h, inodeno_t ino) {
 }
 
 void INodes::write_back(FSHandle &h, INode *inode, UsedBlocks *used_blocks) {
-    foreach_block(h, inode, bno, used_blocks) {
-        used_blocks->set(bno);
-        if(h.metabuffer().dirty(bno)) {
-            capsel_t msel = VPE::self().alloc_sel();
-            size_t ret = h.filebuffer().get_extent(bno,1,msel,MemGate::RWX,1,false,false);
-            if(ret) {
-                MemGate m = MemGate::bind(msel);
-                m.write(h.metabuffer().get_block(bno), h.sb().blocksize, 0);
+    foreach_extent(h, inode, ext, used_blocks) {
+        foreach_block(h, ext, bno) {
+            used_blocks->set(bno);
+            if(h.metabuffer().dirty(bno)) {
+                capsel_t msel = VPE::self().alloc_sel();
+                size_t ret = h.filebuffer().get_extent(bno, 1, msel, MemGate::RWX, 1, false, false);
+                if(ret) {
+                    MemGate m = MemGate::bind(msel);
+                    m.write(h.metabuffer().get_block(bno), h.sb().blocksize, 0);
+                }
+                else
+                    h.metabuffer().write_back(bno);
             }
-            else
-                h.metabuffer().write_back(bno);
-            // ^this actually never happens
             used_blocks->quit_last_n(1);
         }
+        used_blocks->quit_last_n(1);
     }
 }
 

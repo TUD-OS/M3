@@ -107,7 +107,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
 
     UsedBlocks used_blocks = UsedBlocks(handle());
 
-    inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE);
+    inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE, &used_blocks);
     if(ino == INVALID_INO) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::last));
         return Errors::last;

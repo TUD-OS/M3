@@ -28,13 +28,15 @@ static constexpr size_t BUF_SIZE = 64;
 
 DirEntry *Dirs::find_entry(FSHandle &h, INode *inode, const char *name, size_t namelen,
                            UsedBlocks *used_blocks) {
-    foreach_block(h, inode, bno, used_blocks) {
-        used_blocks->set(bno);
-        foreach_direntry(h, bno, e) {
-            if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0)
-                return e;
+    foreach_extent(h, inode, ext, used_blocks) {
+        foreach_block(h, ext, bno) {
+            foreach_direntry(h, bno, e, used_blocks) {
+                if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0)
+                    return e;
+            }
+            used_blocks->quit_last_n(1);
         }
-        used_blocks->quit_last_n(2);
+        used_blocks->quit_last_n(1);
     }
     return nullptr;
 }
@@ -71,12 +73,15 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
         while(*end == '/')
             end++;
         // stop if the file doesn't exist
-        if(!e)
+        if(!e) {
+            used_blocks->quit_last_n(3);
             break;
+        }
         // if the path is empty, we're done
         if(!*end) {
             Time::stop(0xf001);
             Time::stop(0xf000);
+            used_blocks->quit_last_n(3);
             return e->nodeno;
         }
 
@@ -184,15 +189,18 @@ Errors::Code Dirs::remove(FSHandle &h, const char *path, UsedBlocks *used_blocks
         return Errors::IS_NO_DIR;
 
     // check whether it's empty
-    foreach_block(h, inode, bno, used_blocks) {
-        used_blocks->set(bno);
-        foreach_direntry(h, bno, e) {
-            if(!(e->namelen == 1 && strncmp(e->name, ".", 1) == 0) &&
-               !(e->namelen == 2 && strncmp(e->name, "..", 2) == 0)) {
-                return Errors::DIR_NOT_EMPTY;
+    foreach_extent(h, inode, ext, used_blocks) {
+        foreach_block(h, ext, bno) {
+            foreach_direntry(h, bno, e, used_blocks) {
+                if(!(e->namelen == 1 && strncmp(e->name, ".", 1) == 0) &&
+                   !(e->namelen == 2 && strncmp(e->name, "..", 2) == 0)) {
+                    used_blocks->quit_last_n(2);
+                    return Errors::DIR_NOT_EMPTY;
+                }
             }
+            used_blocks->quit_last_n(1);
         }
-        used_blocks->quit_last_n(2);
+        used_blocks->quit_last_n(1);
     }
 
     // hardlinks to directories are not possible, thus we always have 2
