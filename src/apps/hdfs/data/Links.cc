@@ -20,46 +20,46 @@
 
 using namespace m3;
 
-Errors::Code Links::create(FSHandle &h, INode *dir, const char *name, size_t namelen, INode *inode,
-                           UsedBlocks *used_blocks) {
+Errors::Code Links::create(Request &r, INode *dir, const char *name, size_t namelen, INode *inode) {
     size_t rem;
     DirEntry *e;
 
-    foreach_extent(h, dir, ext, used_blocks) {
-        foreach_block(h, ext, bno) {
-            foreach_direntry(h, bno, de, used_blocks) {
+    size_t org_used = r.used_meta();
+    foreach_extent(r, dir, ext) {
+        foreach_block(ext, bno) {
+            foreach_direntry(r, bno, de) {
                 rem = de->next - (sizeof(DirEntry) + de->namelen);
                 if(rem >= sizeof(DirEntry) + namelen) {
                     // change previous entry
                     de->next = de->namelen + sizeof(DirEntry);
                     // get pointer to new one
                     e = reinterpret_cast<DirEntry*>(reinterpret_cast<uintptr_t>(de) + de->next);
-                    h.metabuffer().mark_dirty(bno);
-                    used_blocks->quit_last_n(2);
+                    r.hdl().metabuffer().mark_dirty(bno);
+                    r.pop_meta(r.used_meta() - org_used);
                     goto found;
                 }
             }
-            used_blocks->quit_last_n(1);
+            r.pop_meta();
         }
-        used_blocks->quit_last_n(1);
+        r.pop_meta(r.used_meta() - org_used);
     }
 
     // no suitable space found; extend directory
     {
         Extent *indir = nullptr;
-        Extent *ext = INodes::get_extent(h, dir, dir->extents, &indir, true, used_blocks);
+        Extent *ext = INodes::get_extent(r, dir, dir->extents, &indir, true);
         if(!ext)
             return Errors::NO_SPACE;
 
         // insert one block in extent
-        INodes::fill_extent(h, dir, ext, 1, 1, used_blocks);
+        INodes::fill_extent(r, dir, ext, 1, 1);
         if(ext->length == 0)
             return Errors::NO_SPACE;
 
         // put entry at the beginning of the block
-        e = reinterpret_cast<DirEntry*>(h.metabuffer().get_block(ext->start, used_blocks));
-        h.metabuffer().mark_dirty(ext->start);
-        rem = h.sb().blocksize;
+        e = reinterpret_cast<DirEntry*>(r.hdl().metabuffer().get_block(r, ext->start));
+        r.hdl().metabuffer().mark_dirty(ext->start);
+        rem = r.hdl().sb().blocksize;
     }
 
 found:
@@ -70,22 +70,22 @@ found:
     strncpy(e->name, name, namelen);
 
     inode->links++;
-    INodes::mark_dirty(h, inode->inode);
+    INodes::mark_dirty(r, inode->inode);
     return Errors::NONE;
 }
 
-Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t namelen, bool isdir,
-                           UsedBlocks *used_blocks) {
-    foreach_extent(h, dir, ext, used_blocks) {
-        foreach_block(h, ext, bno) {
+Errors::Code Links::remove(Request &r, INode *dir, const char *name, size_t namelen, bool isdir) {
+    size_t org_used = r.used_meta();
+    foreach_extent(r, dir, ext) {
+        foreach_block(ext, bno) {
             DirEntry *prev = nullptr;
-            foreach_direntry(h, bno, e, used_blocks) {
+            foreach_direntry(r, bno, e) {
                 if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0) {
                     // if we're not removing a dir, we're coming from unlink(). in this case, directories
                     // are not allowed
-                    INode *inode = INodes::get(h, e->nodeno, used_blocks);
+                    INode *inode = INodes::get(r, e->nodeno);
                     if(!isdir && M3FS_ISDIR(inode->mode)) {
-                        used_blocks->quit_last_n(2);
+                        r.pop_meta(r.used_meta() - org_used);
                         return Errors::IS_DIR;
                     }
 
@@ -101,20 +101,20 @@ Errors::Code Links::remove(FSHandle &h, INode *dir, const char *name, size_t nam
                             e->next = dist + next->next;
                         }
                     }
-                    h.metabuffer().mark_dirty(bno);
+                    r.hdl().metabuffer().mark_dirty(bno);
 
                     // reduce links and free, if necessary
                     if(--inode->links == 0)
-                        h.files().delete_file(inode->inode);
-                    used_blocks->quit_last_n(2);
+                        r.hdl().files().delete_file(inode->inode);
+                    r.pop_meta(r.used_meta() - org_used);
                     return Errors::NONE;
                 }
 
                 prev = e;
             }
-            used_blocks->quit_last_n(1);
+            r.pop_meta();
         }
-        used_blocks->quit_last_n(1);
+        r.pop_meta(r.used_meta() - org_used);
     }
     return Errors::NO_SUCH_FILE;
 }

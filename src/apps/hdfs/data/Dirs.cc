@@ -26,22 +26,22 @@ using namespace m3;
 
 static constexpr size_t BUF_SIZE = 64;
 
-DirEntry *Dirs::find_entry(FSHandle &h, INode *inode, const char *name, size_t namelen,
-                           UsedBlocks *used_blocks) {
-    foreach_extent(h, inode, ext, used_blocks) {
-        foreach_block(h, ext, bno) {
-            foreach_direntry(h, bno, e, used_blocks) {
+DirEntry *Dirs::find_entry(Request &r, INode *inode, const char *name, size_t namelen) {
+    size_t org_used = r.used_meta();
+    foreach_extent(r, inode, ext) {
+        foreach_block(ext, bno) {
+            foreach_direntry(r, bno, e) {
                 if(e->namelen == namelen && strncmp(e->name, name, namelen) == 0)
                     return e;
             }
-            used_blocks->quit_last_n(1);
+            r.pop_meta();
         }
-        used_blocks->quit_last_n(1);
+        r.pop_meta(r.used_meta() - org_used);
     }
     return nullptr;
 }
 
-inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *used_blocks) {
+inodeno_t Dirs::search(Request &r, const char *path, bool create) {
     Time::start(0xf000);
     while(*path == '/')
         path++;
@@ -56,9 +56,10 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
     size_t namelen;
     inodeno_t ino = 0;
     Time::start(0xf001);
+    size_t org_used = r.used_meta();
     while(1) {
         Time::start(0xf002);
-        inode = INodes::get(h, ino, used_blocks);
+        inode = INodes::get(r, ino);
         Time::stop(0xf002);
         // find path component end
         end = path;
@@ -67,21 +68,21 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
 
         namelen = static_cast<size_t>(end - path);
         Time::start(0xf003);
-        DirEntry *e = find_entry(h, inode, path, namelen, used_blocks);
+        DirEntry *e = find_entry(r, inode, path, namelen);
         Time::stop(0xf003);
         // in any case, skip trailing slashes (see if(create) ...)
         while(*end == '/')
             end++;
         // stop if the file doesn't exist
         if(!e) {
-            used_blocks->quit_last_n(3);
+            r.pop_meta();
             break;
         }
         // if the path is empty, we're done
         if(!*end) {
             Time::stop(0xf001);
             Time::stop(0xf000);
-            used_blocks->quit_last_n(3);
+            r.pop_meta(r.used_meta() - org_used);
             return e->nodeno;
         }
 
@@ -89,7 +90,7 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
         ino = e->nodeno;
         path = end;
 
-        used_blocks->quit_last_n(3);
+        r.pop_meta(r.used_meta() - org_used);
     }
     Time::stop(0xf001);
     Time::start(0xf004);
@@ -104,15 +105,15 @@ inodeno_t Dirs::search(FSHandle &h, const char *path, bool create, UsedBlocks *u
         }
 
         // create inode and put a link into the directory
-        INode *ninode = INodes::create(h, M3FS_IFREG | 0644, used_blocks);
+        INode *ninode = INodes::create(r, M3FS_IFREG | 0644);
         if(!ninode) {
             Time::stop(0xf004);
             Time::stop(0xf000);
             return INVALID_INO;
         }
-        Errors::Code res = Links::create(h, inode, path, namelen, ninode, used_blocks);
+        Errors::Code res = Links::create(r, inode, path, namelen, ninode);
         if(res != Errors::NONE) {
-            h.files().delete_file(ninode->inode);
+            r.hdl().files().delete_file(ninode->inode);
             Time::stop(0xf004);
             Time::stop(0xf000);
             return INVALID_INO;
@@ -137,106 +138,107 @@ static void split_path(const char *path, char *buf1, char *buf2, char **base, ch
     *dir = dirname(buf2);
 }
 
-Errors::Code Dirs::create(FSHandle &h, const char *path, mode_t mode, UsedBlocks *used_blocks) {
+Errors::Code Dirs::create(Request &r, const char *path, mode_t mode) {
     char buf1[BUF_SIZE], buf2[BUF_SIZE], *base, *dir;
     split_path(path, buf1, buf2, &base, &dir);
     size_t baselen = strlen(base);
 
     // first, get parent directory
-    inodeno_t parino = search(h, dir, false, used_blocks);
+    inodeno_t parino = search(r, dir, false);
     if(parino == INVALID_INO)
         return Errors::NO_SUCH_FILE;
     // ensure that the entry doesn't exist
-    if(search(h, path, false, used_blocks) != INVALID_INO)
+    if(search(r, path, false) != INVALID_INO)
         return Errors::EXISTS;
 
-    INode *parinode = INodes::get(h, parino, used_blocks);
-    INode *dirinode = INodes::create(h, M3FS_IFDIR | (mode & 0x777), used_blocks);
+    INode *parinode = INodes::get(r, parino);
+    INode *dirinode = INodes::create(r, M3FS_IFDIR | (mode & 0x777));
     if(dirinode == nullptr)
         return Errors::NO_SPACE;
 
     // create directory itself
-    Errors::Code res = Links::create(h, parinode, base, baselen, dirinode, used_blocks);
+    Errors::Code res = Links::create(r, parinode, base, baselen, dirinode);
     if(res != Errors::NONE)
         goto errINode;
 
     // create "." and ".."
-    res = Links::create(h, dirinode, ".", 1, dirinode, used_blocks);
+    res = Links::create(r, dirinode, ".", 1, dirinode);
     if(res != Errors::NONE)
         goto errLink1;
-    res = Links::create(h, dirinode, "..", 2, parinode, used_blocks);
+    res = Links::create(r, dirinode, "..", 2, parinode);
     if(res != Errors::NONE)
         goto errLink2;
     return Errors::NONE;
 
 errLink2:
-    Links::remove(h, dirinode, ".", 1, true, used_blocks);
+    Links::remove(r, dirinode, ".", 1, true);
 errLink1:
-    Links::remove(h, parinode, base, baselen, true, used_blocks);
+    Links::remove(r, parinode, base, baselen, true);
 errINode:
-    h.files().delete_file(dirinode->inode);
+    r.hdl().files().delete_file(dirinode->inode);
     return res;
 }
 
-Errors::Code Dirs::remove(FSHandle &h, const char *path, UsedBlocks *used_blocks) {
-    inodeno_t ino = search(h, path, false, used_blocks);
+Errors::Code Dirs::remove(Request &r, const char *path) {
+    inodeno_t ino = search(r, path, false);
     if(ino == INVALID_INO)
         return Errors::NO_SUCH_FILE;
 
     // it has to be a directory
-    INode *inode = INodes::get(h, ino, used_blocks);
+    INode *inode = INodes::get(r, ino);
     if(!M3FS_ISDIR(inode->mode))
         return Errors::IS_NO_DIR;
 
     // check whether it's empty
-    foreach_extent(h, inode, ext, used_blocks) {
-        foreach_block(h, ext, bno) {
-            foreach_direntry(h, bno, e, used_blocks) {
+    size_t org_used = r.used_meta();
+    foreach_extent(r, inode, ext) {
+        foreach_block(ext, bno) {
+            foreach_direntry(r, bno, e) {
                 if(!(e->namelen == 1 && strncmp(e->name, ".", 1) == 0) &&
                    !(e->namelen == 2 && strncmp(e->name, "..", 2) == 0)) {
-                    used_blocks->quit_last_n(2);
+                    r.pop_meta(r.used_meta() - org_used);
                     return Errors::DIR_NOT_EMPTY;
                 }
             }
-            used_blocks->quit_last_n(1);
+            r.pop_meta();
         }
-        used_blocks->quit_last_n(1);
+        r.pop_meta(r.used_meta() - org_used);
     }
 
     // hardlinks to directories are not possible, thus we always have 2
     assert(inode->links == 2);
     // ensure that the inode is removed
     inode->links--;
-    return unlink(h, path, true, used_blocks);
+    return unlink(r, path, true);
 }
 
-Errors::Code Dirs::link(FSHandle &h, const char *oldpath, const char *newpath, UsedBlocks *used_blocks) {
-    inodeno_t oldino = search(h, oldpath, false, used_blocks);
+Errors::Code Dirs::link(Request &r, const char *oldpath, const char *newpath) {
+    inodeno_t oldino = search(r, oldpath, false);
     if(oldino == INVALID_INO)
         return Errors::NO_SUCH_FILE;
 
     // is can't be a directory
-    INode *oldinode = INodes::get(h, oldino, used_blocks);
+    INode *oldinode = INodes::get(r, oldino);
     if(M3FS_ISDIR(oldinode->mode))
         return Errors::IS_DIR;
 
     char buf1[BUF_SIZE], buf2[BUF_SIZE], *base, *dir;
     split_path(newpath, buf1, buf2, &base, &dir);
 
-    inodeno_t dirino = search(h, dir, false, used_blocks);
+    inodeno_t dirino = search(r, dir, false);
     if(dirino == INVALID_INO)
         return Errors::NO_SUCH_FILE;
 
-    return Links::create(h, INodes::get(h, dirino, used_blocks), base, strlen(base), oldinode, used_blocks);
+    return Links::create(r, INodes::get(r, dirino), base, strlen(base), oldinode);
 }
 
-Errors::Code Dirs::unlink(FSHandle &h, const char *path, bool isdir, UsedBlocks *used_blocks) {
+Errors::Code Dirs::unlink(Request &r, const char *path, bool isdir) {
     char buf1[BUF_SIZE], buf2[BUF_SIZE], *base, *dir;
     split_path(path, buf1, buf2, &base, &dir);
 
-    inodeno_t parino = search(h, dir, false, used_blocks);
+    inodeno_t parino = search(r, dir, false);
     if(parino == INVALID_INO)
         return Errors::NO_SUCH_FILE;
 
-    return Links::remove(h, INodes::get(h, parino, used_blocks), base, strlen(base), isdir, used_blocks);
+    return Links::remove(r, INodes::get(r, parino), base, strlen(base), isdir);
 }

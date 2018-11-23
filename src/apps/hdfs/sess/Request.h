@@ -16,16 +16,31 @@
 
 #pragma once
 
-#include "../FSHandle.h"
-#include "../MetaBuffer.h"
-#include "../sess/MetaSession.h"
+class FSHandle;
+class MetaBufferHead;
 
-class Links {
-    Links() = delete;
+#define MAX_USED_BLOCKS 16
 
-public:
-    static m3::Errors::Code create(Request &r, m3::INode *dir, const char *name, size_t namelen,
-                                   m3::INode *inode);
-    static m3::Errors::Code remove(Request &r, m3::INode *dir, const char *name, size_t namelen,
-                                   bool isdir);
+struct Request {
+    explicit Request(FSHandle &handle)
+        : _handle(handle),
+          _used(0) {
+    }
+    ~Request();
+
+    FSHandle &hdl() {
+        return _handle;
+    }
+
+    size_t used_meta() const {
+        return _used;
+    }
+    void push_meta(MetaBufferHead *b);
+    void pop_meta();
+    void pop_meta(size_t n);
+
+private:
+    FSHandle &_handle;
+    size_t _used;
+    MetaBufferHead *_blocks[MAX_USED_BLOCKS];
 };

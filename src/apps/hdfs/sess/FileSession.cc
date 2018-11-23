@@ -27,32 +27,9 @@
 
 using namespace m3;
 
-UsedBlocks::UsedBlocks(FSHandle &handle)
-    : _handle(handle),
-      used(0) {
-}
-
-UsedBlocks::~UsedBlocks() {
-    Time::start(0xfe00);
-    for(size_t i = 0; i < used; i++)
-        _handle.metabuffer().quit(blocks[i]);
-    Time::stop(0xfe00);
-}
-
-void UsedBlocks::set(MetaBufferHead *b) {
-    blocks[used] = b;
-    used++;
-}
-
-void UsedBlocks::quit_last_n(size_t n) {
-    assert(used >= n);
-    for(size_t i = 0; i < n; i++)
-        _handle.metabuffer().quit(blocks[--used]);
-}
-
-M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
-                                 int flags, m3::inodeno_t ino)
-    : M3FSSession(srv_sel, srv_sel == ObjCap::INVALID ? srv_sel : m3::VPE::self().alloc_sels(2)),
+M3FSFileSession::M3FSFileSession(FSHandle &handle, capsel_t srv_sel, M3FSMetaSession *meta,
+                                 const m3::String &filename, int flags, m3::inodeno_t ino)
+    : M3FSSession(handle, srv_sel, srv_sel == ObjCap::INVALID ? srv_sel : m3::VPE::self().alloc_sels(2)),
       m3::SListItem(),
       _extent(),
       _extoff(),
@@ -75,23 +52,22 @@ M3FSFileSession::M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const 
       _ino(ino),
       _capscon(),
       _meta(meta) {
-    _meta->handle().files().add_sess(this);
+    hdl().files().add_sess(this);
 }
 
 M3FSFileSession::~M3FSFileSession() {
     PRINT(this, "file::close(path=" << _filename << ")");
 
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+    Request r(hdl());
 
     delete _sgate;
 
     if(_append_ext) {
-        FSHandle &h = _meta->handle();
-        h.blocks().free(h, _append_ext->start, _append_ext->length, &used_blocks);
+        hdl().blocks().free(r, _append_ext->start, _append_ext->length);
         delete _append_ext;
     }
 
-    _meta->handle().files().rem_sess(this);
+    hdl().files().rem_sess(this);
     _meta->remove_file(this);
 
     if(_last != ObjCap::INVALID)
@@ -101,7 +77,7 @@ M3FSFileSession::~M3FSFileSession() {
 Errors::Code M3FSFileSession::clone(capsel_t srv, KIF::Service::ExchangeData &data) {
     PRINT(this, "file::clone(path=" << _filename << ")");
 
-    auto nfile =  new M3FSFileSession(srv, _meta, _filename, _oflags, _ino);
+    auto nfile =  new M3FSFileSession(hdl(), srv, _meta, _filename, _oflags, _ino);
 
     data.args.count = 0;
     data.caps = nfile->caps().value();
@@ -116,26 +92,26 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     size_t offset = data.args.vals[0];
 
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+    Request r(hdl());
 
     PRINT(this, "file::get_mem(path=" << _filename << ", offset=" << offset << ")");
 
-    INode *inode = INodes::get(_meta->handle(), _ino, &used_blocks);
+    INode *inode = INodes::get(r, _ino);
     assert(inode != nullptr);
 
     // determine extent from byte offset
     size_t firstOff = offset;
     {
         size_t tmp_extent, tmp_extoff;
-        INodes::seek(_meta->handle(), inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff, &used_blocks);
+        INodes::seek(r, inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
         offset = tmp_extent;
     }
 
     capsel_t sel = VPE::self().alloc_sel();
     Errors::last = Errors::NONE;
     size_t extlen = 0;
-    size_t len = INodes::get_extent_mem(_meta->handle(), inode, offset, 0, &extlen,
-                                        _oflags & MemGate::RWX, sel, true, &used_blocks, _accessed);
+    size_t len = INodes::get_extent_mem(r, inode, offset, 0, &extlen,
+                                        _oflags & MemGate::RWX, sel, true, _accessed);
     if(Errors::occurred()) {
         PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
 
@@ -155,8 +131,6 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 }
 
 void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
-
     PRINT(this, "file::next_" << (out ? "out" : "in") << "(); "
                               << "file[path=" << _filename << ", fileoff=" << _fileoff << ", ext=" << _extent
                               << ", extoff=" << _extoff << "]");
@@ -166,13 +140,13 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
         return;
     }
 
-    FSHandle &h = _meta->handle();
-    INode *inode = INodes::get(h, _ino, &used_blocks);
+    Request r(hdl());
+    INode *inode = INodes::get(r, _ino);
     assert(inode != nullptr);
 
     // in/out implicitly commits the previous in/out request
     if(out && _appending) {
-        Errors::Code res = commit(inode, _lastbytes, &used_blocks);
+        Errors::Code res = commit(r, inode, _lastbytes);
         if(res != Errors::NONE) {
             reply_error(is, res);
             return;
@@ -189,7 +163,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
 
     // do we need to append to the file?
     if(out && _fileoff == inode->size) {
-        OpenFiles::OpenFile *of = h.files().get_file(_ino);
+        OpenFiles::OpenFile *of = hdl().files().get_file(_ino);
         assert(of != nullptr);
         if(of->appending) {
             PRINT(this, "append already in progress");
@@ -198,14 +172,14 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
         }
 
         // continue in last extent, if there is space
-        if(_extent > 0 && _fileoff == inode->size && (_fileoff % h.sb().blocksize) != 0) {
+        if(_extent > 0 && _fileoff == inode->size && (_fileoff % hdl().sb().blocksize) != 0) {
             size_t off = 0;
-            _fileoff = INodes::seek(h, inode, off, M3FS_SEEK_END, _extent, _extoff, &used_blocks);
+            _fileoff = INodes::seek(r, inode, off, M3FS_SEEK_END, _extent, _extoff);
         }
 
         Extent e = {0, 0};
-        len = INodes::req_append(h, inode, _extent, _extoff, &extlen, sel, _oflags & MemGate::RWX, &e,
-                                 &used_blocks, _accessed);
+        len = INodes::req_append(r, inode, _extent, _extoff, &extlen, sel,
+                                 _oflags & MemGate::RWX, &e, _accessed);
         if(Errors::occurred()) {
             PRINT(this, "append failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
@@ -218,8 +192,8 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     }
     else {
         // get next mem cap
-        len = INodes::get_extent_mem(h, inode, _extent, _extoff, &extlen, _oflags & MemGate::RWX, sel, out,
-                                     &used_blocks, _accessed);
+        len = INodes::get_extent_mem(r, inode, _extent, _extoff, &extlen,
+                                     _oflags & MemGate::RWX, sel, out, _accessed);
         if(Errors::occurred()) {
             PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
             reply_error(is, Errors::last);
@@ -230,7 +204,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     _lastoff = _extoff;
     // the mem cap covers all blocks from <_extoff> to <_extoff>+<len>. thus, the offset to start
     // is the offset within the first of these blocks.
-    size_t capoff = _lastoff % h.sb().blocksize;
+    size_t capoff = _lastoff % hdl().sb().blocksize;
     _extlen = extlen;
     _lastbytes = len - capoff;
     if(len > 0) {
@@ -248,7 +222,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
             _extoff = 0;
         }
         else {
-            _extoff += len - _extoff % h.sb().blocksize;
+            _extoff += len - _extoff % hdl().sb().blocksize;
             _moved_forward = false;
         }
         _fileoff += len - capoff;
@@ -261,7 +235,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     PRINT(this, "file::next_" << (out ? "out" : "in")
                               << "() -> (" << _lastoff << ", " << _lastbytes << ")");
 
-    if(h.revoke_first()) {
+    if(hdl().revoke_first()) {
         // revoke last mem cap and remember new one
         if(_last != ObjCap::INVALID)
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
@@ -290,7 +264,7 @@ void M3FSFileSession::commit(GateIStream &is) {
     size_t nbytes;
     is >> nbytes;
 
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+    Request r(hdl());
 
     PRINT(this, "file::commit(nbytes=" << nbytes << "); "
                                        << "file[path=" << _filename << ", fileoff=" << _fileoff
@@ -301,13 +275,12 @@ void M3FSFileSession::commit(GateIStream &is) {
         return;
     }
 
-    FSHandle &h = _meta->handle();
-    INode *inode = INodes::get(h, _ino, &used_blocks);
+    INode *inode = INodes::get(r, _ino);
     assert(inode != nullptr);
 
     Errors::Code res;
     if(_appending)
-        res = commit(inode, nbytes, &used_blocks);
+        res = commit(r, inode, nbytes);
     else {
         res = Errors::NONE;
         if(_moved_forward && _lastoff + nbytes < _extlen)
@@ -325,7 +298,7 @@ void M3FSFileSession::seek(GateIStream &is) {
     size_t off;
     is >> off >> whence;
 
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+    Request r(hdl());
 
     PRINT(this, "file::seek(path=" << _filename << ", off=" << off << ", whence=" << whence << ")");
 
@@ -334,37 +307,35 @@ void M3FSFileSession::seek(GateIStream &is) {
         return;
     }
 
-    INode *inode = INodes::get(_meta->handle(), _ino, &used_blocks);
+    INode *inode = INodes::get(r, _ino);
     assert(inode != nullptr);
 
-    size_t pos = INodes::seek(_meta->handle(), inode, off, whence, _extent, _extoff, &used_blocks);
+    size_t pos = INodes::seek(r, inode, off, whence, _extent, _extoff);
     _fileoff = pos + off;
 
     reply_vmsg(is, Errors::NONE, pos, off);
 }
 
 void M3FSFileSession::fstat(GateIStream &is) {
-    UsedBlocks used_blocks = UsedBlocks(_meta->handle());
+    Request r(hdl());
 
     PRINT(this, "file::fstat(path=" << _filename << ")");
 
-    INode *inode = INodes::get(_meta->handle(), _ino, &used_blocks);
+    INode *inode = INodes::get(r, _ino);
     assert(inode != nullptr);
 
     m3::FileInfo info;
-    INodes::stat(_meta->handle(), inode, info);
+    INodes::stat(r, inode, info);
 
     reply_vmsg(is, Errors::NONE, info);
 }
 
-Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *used_blocks) {
+Errors::Code M3FSFileSession::commit(Request &r, INode *inode, size_t submit) {
     assert(submit > 0);
 
     // were we actually appending?
     if(!_appending)
         return Errors::NONE;
-
-    FSHandle &h = _meta->handle();
 
     // adjust file position.
     _fileoff -= _lastbytes - submit;
@@ -374,20 +345,21 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
     bool truncated = submit < _lastbytes;
     size_t prev_ext_len = 0;
     if(_append_ext) {
-        size_t blocks = (submit + h.sb().blocksize - 1) / h.sb().blocksize;
+        uint32_t blocksize = r.hdl().sb().blocksize;
+        size_t blocks = (submit + blocksize - 1) / blocksize;
         size_t old_len = _append_ext->length;
 
         // append extent to file
         _append_ext->length = blocks;
-        Errors::Code res = INodes::append_extent(h, inode, _append_ext, &prev_ext_len, used_blocks);
+        Errors::Code res = INodes::append_extent(r, inode, _append_ext, &prev_ext_len);
         if(res != Errors::NONE)
             return res;
 
         // free superfluous blocks
         if(old_len > blocks)
-            h.blocks().free(h, _append_ext->start + blocks, old_len - blocks, used_blocks);
+            r.hdl().blocks().free(r, _append_ext->start + blocks, old_len - blocks);
 
-        _extlen = blocks * h.sb().blocksize;
+        _extlen = blocks * blocksize;
         // have we appended the new extent to the previous extent?
         if(prev_ext_len > 0)
             _extent--;
@@ -408,10 +380,10 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
 
     // change size
     inode->size += submit;
-    INodes::mark_dirty(h, inode->inode);
+    INodes::mark_dirty(r, inode->inode);
 
     // stop appending
-    OpenFiles::OpenFile *ofile = h.files().get_file(_ino);
+    OpenFiles::OpenFile *ofile = r.hdl().files().get_file(_ino);
     assert(ofile != nullptr);
     assert(ofile->appending);
     ofile->appending = false;

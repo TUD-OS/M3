@@ -73,10 +73,9 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
     if(data.args.count != 1)
         return Errors::INV_ARGS;
 
-    UsedBlocks used_blocks                   = UsedBlocks(handle());
-    int flags                                = data.args.svals[0];
+    int flags = data.args.svals[0];
     data.args.str[sizeof(data.args.str) - 1] = '\0';
-    const char *path                         = data.args.str;
+    const char *path = data.args.str;
 
     size_t id;
     Errors::Code res = do_open(srv, path, flags, &id);
@@ -105,16 +104,16 @@ static const char *decode_flags(int flags) {
 Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags, size_t *id) {
     PRINT(this, "fs::open(path=" << path << ", flags=" << decode_flags(flags) << ")");
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
-    inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE, &used_blocks);
+    inodeno_t ino = Dirs::search(r, path, flags & FILE_CREATE);
     if(ino == INVALID_INO) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::last));
         return Errors::last;
     }
 
     Time::start(0xff01);
-    INode *inode = INodes::get(handle(), ino, &used_blocks);
+    INode *inode = INodes::get(r, ino);
     Time::stop(0xff01);
     if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
        ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
@@ -125,7 +124,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
     // only determine the current size, if we're writing and the file isn't empty
     if(flags & FILE_TRUNC) {
         Time::start(0xff03);
-        INodes::truncate(_handle, inode, 0, 0, &used_blocks);
+        INodes::truncate(r, inode, 0, 0);
         Time::stop(0xff03);
         // TODO revoke access, if necessary
     }
@@ -133,7 +132,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
     Time::start(0xff04);
     // for directories: ensure that we don't have a changed version in the cache
     if(M3FS_ISDIR(inode->mode))
-        INodes::write_back(_handle, inode, &used_blocks);
+        INodes::write_back(r, inode);
     Time::stop(0xff04);
     Time::start(0xff05);
     ssize_t res = alloc_file(srv, path, flags, inode->inode);
@@ -197,22 +196,22 @@ void M3FSMetaSession::stat(GateIStream &is) {
     String path;
     is >> path;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
     PRINT(this, "fs::stat(path=" << path << ")");
 
-    m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false, &used_blocks);
+    m3::inodeno_t ino = Dirs::search(r, path.c_str(), false);
     if(ino == INVALID_INO) {
         PRINT(this, "stat failed: " << Errors::to_string(Errors::last));
         reply_error(is, Errors::last);
         return;
     }
 
-    m3::INode *inode = INodes::get(_handle, ino, &used_blocks);
+    m3::INode *inode = INodes::get(r, ino);
     assert(inode != nullptr);
 
     m3::FileInfo info;
-    INodes::stat(_handle, inode, info);
+    INodes::stat(r, inode, info);
     reply_vmsg(is, Errors::NONE, info);
 }
 
@@ -222,11 +221,11 @@ void M3FSMetaSession::mkdir(GateIStream &is) {
     mode_t mode;
     is >> path >> mode;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
     PRINT(this, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
 
-    Errors::Code res = Dirs::create(_handle, path.c_str(), mode, &used_blocks);
+    Errors::Code res = Dirs::create(r, path.c_str(), mode);
     if(res != Errors::NONE)
         PRINT(this, "mkdir failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -237,11 +236,11 @@ void M3FSMetaSession::rmdir(GateIStream &is) {
     String path;
     is >> path;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
     PRINT(this, "fs::rmdir(path=" << path << ")");
 
-    Errors::Code res = Dirs::remove(_handle, path.c_str(), &used_blocks);
+    Errors::Code res = Dirs::remove(r, path.c_str());
     if(res != Errors::NONE)
         PRINT(this, "rmdir failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -252,11 +251,11 @@ void M3FSMetaSession::link(GateIStream &is) {
     String oldpath, newpath;
     is >> oldpath >> newpath;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
     PRINT(this, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
 
-    Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str(), &used_blocks);
+    Errors::Code res = Dirs::link(r, oldpath.c_str(), newpath.c_str());
     if(res != Errors::NONE)
         PRINT(this, "link failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -267,11 +266,11 @@ void M3FSMetaSession::unlink(GateIStream &is) {
     String path;
     is >> path;
 
-    UsedBlocks used_blocks = UsedBlocks(handle());
+    Request r(hdl());
 
     PRINT(this, "fs::unlink(path=" << path << ")");
 
-    Errors::Code res = Dirs::unlink(_handle, path.c_str(), false, &used_blocks);
+    Errors::Code res = Dirs::unlink(r, path.c_str(), false);
     if(res != Errors::NONE)
         PRINT(this, "unlink failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -290,7 +289,7 @@ ssize_t M3FSMetaSession::alloc_file(capsel_t srv, const char *path, int flags, i
     assert(flags != 0);
     for(size_t i = 0; i < MAX_FILES; ++i) {
         if(_files[i] == NULL) {
-            _files[i] = new M3FSFileSession(srv, this, path, flags, ino);
+            _files[i] = new M3FSFileSession(hdl(), srv, this, path, flags, ino);
             return static_cast<ssize_t>(i);
         }
     }

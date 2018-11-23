@@ -31,8 +31,8 @@ Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
     static_assert(sizeof(inodeno_t) == sizeof(uint32_t), "Wrong type");
 }
 
-uint32_t Allocator::alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks) {
-    const size_t perblock = h.sb().blocksize * 8;
+uint32_t Allocator::alloc(Request &r, size_t *count) {
+    const size_t perblock = r.hdl().sb().blocksize * 8;
     const uint32_t lastno = _first + _blocks - 1;
     const size_t icount = *count;
     uint32_t no = _first + *_first_free / perblock;
@@ -40,8 +40,8 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks) {
     uint32_t i = *_first_free % perblock;
 
     while(total == 0 && no <= lastno) {
-        auto *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no, used_blocks));
-        h.metabuffer().mark_dirty(no);
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
+        r.hdl().metabuffer().mark_dirty(no);
         // take care that total_blocks might not be a multiple of perblock
         size_t max = perblock;
         if(no == lastno) {
@@ -101,7 +101,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks) {
             }
         }
 
-        used_blocks->quit_last_n(1);
+        r.pop_meta();
         if(total == 0) {
             no++;
             i = 0;
@@ -119,15 +119,15 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks) {
     return start;
 }
 
-void Allocator::free(FSHandle &h, uint32_t start, size_t count, UsedBlocks *used_blocks) {
-    size_t perblock = h.sb().blocksize * 8;
+void Allocator::free(Request &r, uint32_t start, size_t count) {
+    size_t perblock = r.hdl().sb().blocksize * 8;
     uint32_t no = _first + start / perblock;
     if(start < *_first_free)
         *_first_free = start;
     *_free += count;
     while(count > 0) {
-        auto *bytes = reinterpret_cast<Bitmap::word_t*>(h.metabuffer().get_block(no, used_blocks));
-        h.metabuffer().mark_dirty(no);
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
+        r.hdl().metabuffer().mark_dirty(no);
         Bitmap bm(bytes);
 
         // first, align it to word-size
@@ -153,7 +153,7 @@ void Allocator::free(FSHandle &h, uint32_t start, size_t count, UsedBlocks *used
         }
 
         // to next bitmap block
-        used_blocks->quit_last_n(1);
+        r.pop_meta();
         count -= i - begin;
         start = (start + perblock - 1) & ~(perblock - 1);
         no++;

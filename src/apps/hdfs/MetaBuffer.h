@@ -34,7 +34,7 @@ class MetaBuffer : public Buffer {
 public:
     explicit MetaBuffer(size_t blocksize, DiskSession *disk);
 
-    void *get_block(blockno_t bno, UsedBlocks *used_blocks);
+    void *get_block(Request &r, blockno_t bno);
     void quit(MetaBufferHead *b);
     void write_back(blockno_t bno);
     void flush() override;

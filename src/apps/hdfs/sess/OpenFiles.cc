@@ -19,11 +19,12 @@
 #include "../data/INodes.h"
 
 void OpenFiles::delete_file(m3::inodeno_t ino) {
+    Request r(_hdl);
     OpenFile *file = get_file(ino);
     if(file)
         file->deleted = true;
     else
-        INodes::free(_hdl, ino);
+        INodes::free(r, ino);
 }
 
 void OpenFiles::add_sess(M3FSFileSession *sess) {
@@ -44,8 +45,10 @@ void OpenFiles::rem_sess(M3FSFileSession *sess) {
 
     if(file->sessions.length() == 0) {
         _files.remove(file);
-        if(file->deleted)
-            INodes::free(_hdl, sess->ino());
+        if(file->deleted) {
+            Request r(_hdl);
+            INodes::free(r, sess->ino());
+        }
         delete file;
     }
 }

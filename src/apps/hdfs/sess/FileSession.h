@@ -24,26 +24,10 @@
 
 #include <fs/internal.h>
 
+#include "Request.h"
 #include "Session.h"
 
-#define MAX_USED_BLOCKS 16
-
-class MetaBufferHead;
 class M3FSMetaSession;
-class FSHandle;
-
-struct UsedBlocks {
-    UsedBlocks(FSHandle &handle);
-
-    ~UsedBlocks();
-
-    FSHandle &_handle;
-    size_t used;
-    MetaBufferHead *blocks[MAX_USED_BLOCKS];
-
-    void set(MetaBufferHead *b);
-    void quit_last_n(size_t n);
-};
 
 struct CapContainer {
     struct Entry : public m3::SListItem {
@@ -74,8 +58,8 @@ struct CapContainer {
 
 class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
-    explicit M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
-                             int flags, m3::inodeno_t ino);
+    explicit M3FSFileSession(FSHandle &handle, capsel_t srv_sel, M3FSMetaSession *meta,
+                             const m3::String &filename, int flags, m3::inodeno_t ino);
     virtual ~M3FSFileSession();
 
     virtual Type type() const override {
@@ -107,7 +91,7 @@ public:
 
 private:
     void next_in_out(m3::GateIStream &is, bool out);
-    m3::Errors::Code commit(m3::INode *inode, size_t submit, UsedBlocks *used_blocks);
+    m3::Errors::Code commit(Request &r, m3::INode *inode, size_t submit);
 
     size_t _extent;
     size_t _extoff;

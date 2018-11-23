@@ -28,12 +28,12 @@ public:
     explicit Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
                        uint32_t total, uint32_t blocks);
 
-    uint32_t alloc(FSHandle &h, UsedBlocks *used_blocks) {
+    uint32_t alloc(Request &r) {
         size_t count = 1;
-        return alloc(h, &count, used_blocks);
+        return alloc(r, &count);
     }
-    uint32_t alloc(FSHandle &h, size_t *count, UsedBlocks *used_blocks);
-    void free(FSHandle &h, uint32_t start, size_t count, UsedBlocks *used_blocks);
+    uint32_t alloc(Request &r, size_t *count);
+    void free(Request &r, uint32_t start, size_t count);
 
 private:
     uint32_t _first;

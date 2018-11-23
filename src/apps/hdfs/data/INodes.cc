@@ -25,48 +25,38 @@ using namespace m3;
 
 alignas(64) static char zeros[MAX_BLOCK_SIZE];
 
-INode *INodes::create(FSHandle &h, mode_t mode, UsedBlocks *used_blocks) {
-    inodeno_t ino = h.inodes().alloc(h, used_blocks);
+INode *INodes::create(Request &r, mode_t mode) {
+    inodeno_t ino = r.hdl().inodes().alloc(r);
     if(ino == 0) {
         Errors::last = Errors::NO_SPACE;
         return nullptr;
     }
-    INode *inode = get(h, ino, used_blocks);
+    INode *inode = get(r, ino);
     memset(inode, 0, sizeof(*inode));
     inode->inode = ino;
     inode->devno = 0; /* TODO */
     inode->mode = mode;
-    mark_dirty(h, ino);
+    mark_dirty(r, ino);
     return inode;
 }
 
-void INodes::free(FSHandle &h, inodeno_t ino, UsedBlocks *used_blocks) {
-    UsedBlocks used = UsedBlocks(h);
-
-    INode *inode = nullptr;
-    if(!used_blocks)
-        inode = get(h, ino, &used);
-    else
-        inode = get(h, ino, used_blocks);
-
+void INodes::free(Request &r, inodeno_t ino) {
+    INode *inode = get(r, ino);
     if(inode) {
-        if(!used_blocks)
-            truncate(h, inode, 0, 0, &used);
-        else
-            truncate(h, inode, 0, 0, used_blocks);
-        h.inodes().free(h, inode->inode, 1, &used);
+        truncate(r, inode, 0, 0);
+        r.hdl().inodes().free(r, inode->inode, 1);
     }
 }
 
-INode *INodes::get(FSHandle &h, inodeno_t ino, UsedBlocks *used_blocks) {
-    size_t inos_per_blk = h.sb().inodes_per_block();
-    blockno_t bno = h.sb().first_inode_block() + ino / inos_per_blk;
-    INode *inos = reinterpret_cast<INode*>(h.metabuffer().get_block(bno, used_blocks));
+INode *INodes::get(Request &r, inodeno_t ino) {
+    size_t inos_per_blk = r.hdl().sb().inodes_per_block();
+    blockno_t bno = r.hdl().sb().first_inode_block() + ino / inos_per_blk;
+    INode *inos = reinterpret_cast<INode*>(r.hdl().metabuffer().get_block(r, bno));
     INode *inode = inos + ino % inos_per_blk;
     return inode;
 }
 
-void INodes::stat(FSHandle &, const m3::INode *inode, FileInfo &info) {
+void INodes::stat(Request &, const m3::INode *inode, FileInfo &info) {
     info.devno = inode->devno;
     info.inode = inode->inode;
     info.mode = inode->mode;
@@ -78,106 +68,105 @@ void INodes::stat(FSHandle &, const m3::INode *inode, FileInfo &info) {
     info.firstblock = inode->direct[0].start;
 }
 
-void INodes::mark_dirty(FSHandle &h, inodeno_t ino) {
-    size_t inos_per_blk = h.sb().inodes_per_block();
-    h.metabuffer().mark_dirty(h.sb().first_inode_block() + ino / inos_per_blk);
+void INodes::mark_dirty(Request &r, inodeno_t ino) {
+    size_t inos_per_blk = r.hdl().sb().inodes_per_block();
+    r.hdl().metabuffer().mark_dirty(r.hdl().sb().first_inode_block() + ino / inos_per_blk);
 }
 
-void INodes::write_back(FSHandle &h, INode *inode, UsedBlocks *used_blocks) {
-    foreach_extent(h, inode, ext, used_blocks) {
-        foreach_block(h, ext, bno) {
-            if(h.metabuffer().dirty(bno)) {
+void INodes::write_back(Request &r, INode *inode) {
+    size_t org_used = r.used_meta();
+    foreach_extent(r, inode, ext) {
+        foreach_block(ext, bno) {
+            if(r.hdl().metabuffer().dirty(bno)) {
                 capsel_t msel = VPE::self().alloc_sel();
-                size_t ret = h.filebuffer().get_extent(bno, 1, msel, MemGate::RWX, 1, false, false);
+                size_t ret = r.hdl().filebuffer().get_extent(bno, 1, msel, MemGate::RWX, 1, false, false);
                 if(ret) {
                     MemGate m = MemGate::bind(msel);
-                    m.write(h.metabuffer().get_block(bno, used_blocks), h.sb().blocksize, 0);
-                    used_blocks->quit_last_n(1);
+                    m.write(r.hdl().metabuffer().get_block(r, bno), r.hdl().sb().blocksize, 0);
+                    r.pop_meta();
                 }
                 else
-                    h.metabuffer().write_back(bno);
+                    r.hdl().metabuffer().write_back(bno);
             }
         }
-        used_blocks->quit_last_n(1);
+        r.pop_meta(r.used_meta() - org_used);
     }
 }
 
-size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t extoff, size_t *extlen,
-                              int perms, capsel_t sel, bool dirty, UsedBlocks *used_blocks,
-                              size_t accessed) {
+size_t INodes::get_extent_mem(Request &r, INode *inode, size_t extent, size_t extoff, size_t *extlen,
+                              int perms, capsel_t sel, bool dirty, size_t accessed) {
     Extent *indir = nullptr;
-    Extent *ext = get_extent(h, inode, extent, &indir, false, used_blocks);
+    Extent *ext = get_extent(r, inode, extent, &indir, false);
     if(ext == nullptr || ext->length == 0)
         return 0;
 
+    uint32_t blocksize = r.hdl().sb().blocksize;
     // create memory capability for extent
-    *extlen = ext->length * h.sb().blocksize;
+    *extlen = ext->length * blocksize;
     size_t bytes = 0;
-    size_t first_block = extoff / h.sb().blocksize;
-    bytes = h.filebuffer().get_extent(ext->start + first_block, ext->length - first_block,
-                                      sel, perms, accessed);
+    size_t first_block = extoff / blocksize;
+    bytes = r.hdl().filebuffer().get_extent(ext->start + first_block, ext->length - first_block,
+                                            sel, perms, accessed);
     if(dirty)
-        h.filebuffer().mark_dirty(ext->start + first_block);
+        r.hdl().filebuffer().mark_dirty(ext->start + first_block);
     if(bytes == 0)
         return 0;
 
     // stop at file-end
-    if(extent == inode->extents - 1 && ext->length * h.sb().blocksize <= extoff + bytes) {
-        size_t rem = inode->size % h.sb().blocksize;
+    if(extent == inode->extents - 1 && ext->length * blocksize <= extoff + bytes) {
+        size_t rem = inode->size % blocksize;
         if(rem > 0) {
-            bytes -= h.sb().blocksize - rem;
-            *extlen -= h.sb().blocksize - rem;
+            bytes -= blocksize - rem;
+            *extlen -= blocksize - rem;
         }
     }
     return bytes;
 }
 
-size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, size_t *extlen,
-                          capsel_t sel, int perm, Extent *ext, UsedBlocks *used_blocks,
-                          size_t accessed) {
+size_t INodes::req_append(Request &r, INode *inode, size_t i, size_t extoff, size_t *extlen,
+                          capsel_t sel, int perm, Extent *ext, size_t accessed) {
     bool load = true;
     SLOG(FS, "req accessed: " << accessed);
     if(i < inode->extents) {
         Extent *indir = nullptr;
-        ext = get_extent(h, inode, i, &indir, false, used_blocks);
+        ext = get_extent(r, inode, i, &indir, false);
         assert(ext != nullptr);
     }
     else {
-        fill_extent(h, nullptr, ext, h.extend(), accessed, used_blocks);
+        fill_extent(r, nullptr, ext, r.hdl().extend(), accessed);
         // this is a new extent we dont have to load it
-        if(!h.clear_blocks())
+        if(!r.hdl().clear_blocks())
             load = false;
         if(Errors::occurred())
             return 0;
         extoff = 0;
     }
 
-    *extlen = ext->length * h.sb().blocksize;
-    size_t blockoff = extoff / h.sb().blocksize;
-    size_t bytes = h.filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff,
+    *extlen = ext->length * r.hdl().sb().blocksize;
+    size_t blockoff = extoff / r.hdl().sb().blocksize;
+    size_t bytes = r.hdl().filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff,
                                              sel, perm, accessed, load);
-    h.filebuffer().mark_dirty(ext->start + blockoff);
+    r.hdl().filebuffer().mark_dirty(ext->start + blockoff);
     return bytes;
 }
 
-Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size_t *prev_ext_len,
-                                   UsedBlocks *used_blocks) {
+Errors::Code INodes::append_extent(Request &r, INode *inode, Extent *next, size_t *prev_ext_len) {
     Extent *indir = nullptr;
 
     Extent *ext = nullptr;
 
     *prev_ext_len = 0;
     if(inode->extents > 0) {
-        ext = INodes::get_extent(h, inode, inode->extents - 1, &indir, false, used_blocks);
+        ext = INodes::get_extent(r, inode, inode->extents - 1, &indir, false);
         assert(ext != nullptr);
         if(ext->start + ext->length != next->start)
             ext = nullptr;
         else
-            *prev_ext_len = ext->length * h.sb().blocksize;
+            *prev_ext_len = ext->length * r.hdl().sb().blocksize;
     }
 
     if(ext == nullptr) {
-        ext = INodes::get_extent(h, inode, inode->extents, &indir, true, used_blocks);
+        ext = INodes::get_extent(r, inode, inode->extents, &indir, true);
         if(!ext)
             return Errors::NO_SPACE;
         ext->start = next->start;
@@ -188,118 +177,116 @@ Errors::Code INodes::append_extent(FSHandle &h, INode *inode, Extent *next, size
     return Errors::NONE;
 }
 
-Extent *INodes::get_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool create,
-                           UsedBlocks *used_blocks) {
+Extent *INodes::get_extent(Request &r, INode *inode, size_t i, Extent **indir, bool create) {
     if(i < INODE_DIR_COUNT)
         return inode->direct + i;
     i -= INODE_DIR_COUNT;
 
     // indirect extents
-    if(i < h.sb().extents_per_block()) {
+    if(i < r.hdl().sb().extents_per_block()) {
         // create indirect block if not done yet
         if(!*indir) {
             bool created = false;
             if(inode->indirect == 0) {
                 if(!create)
                     return nullptr;
-                inode->indirect = h.blocks().alloc(h, used_blocks);
+                inode->indirect = r.hdl().blocks().alloc(r);
                 created = true;
             }
             // init with zeros
-            *indir = reinterpret_cast<Extent*>(h.metabuffer().get_block(inode->indirect, used_blocks));
+            *indir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, inode->indirect));
             if(created)
-                memset(*indir, 0, h.sb().blocksize);
+                memset(*indir, 0, r.hdl().sb().blocksize);
         }
         // we're going to change it, if its empty and the caller wants to create blocks
         if(create && (*indir)[i].length == 0)
-            h.metabuffer().mark_dirty(inode->indirect);
+            r.hdl().metabuffer().mark_dirty(inode->indirect);
         return &(*indir)[i];
     }
 
     // double indirect extents
-    i -= h.sb().extents_per_block();
-    if(i < h.sb().extents_per_block() * h.sb().extents_per_block()) {
+    i -= r.hdl().sb().extents_per_block();
+    if(i < r.hdl().sb().extents_per_block() * r.hdl().sb().extents_per_block()) {
         bool created = false;
         // create double indirect block, if not done yet
         if(inode->dindirect == 0) {
             if(!create)
                 return nullptr;
-            inode->dindirect = h.blocks().alloc(h, used_blocks);
+            inode->dindirect = r.hdl().blocks().alloc(r);
             created = true;
         }
         // init with zeros
-        Extent *dindir = reinterpret_cast<Extent*>(h.metabuffer().get_block(inode->dindirect, used_blocks));
+        Extent *dindir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, inode->dindirect));
         if(created)
-            memset(dindir, 0, h.sb().blocksize);
+            memset(dindir, 0, r.hdl().sb().blocksize);
 
         // create indirect block, if necessary
         created = false;
-        Extent *ptr = dindir + i / h.sb().extents_per_block();
+        Extent *ptr = dindir + i / r.hdl().sb().extents_per_block();
         if(ptr->length == 0) {
-            h.metabuffer().mark_dirty(inode->dindirect);
-            ptr->start = h.blocks().alloc(h, used_blocks);
+            r.hdl().metabuffer().mark_dirty(inode->dindirect);
+            ptr->start = r.hdl().blocks().alloc(r);
             ptr->length = 1;
             created = true;
         }
         // init with zeros
-        dindir = reinterpret_cast<Extent*>(h.metabuffer().get_block(ptr->start, used_blocks));
+        dindir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, ptr->start));
         if(created)
-            memset(dindir, 0, h.sb().blocksize);
+            memset(dindir, 0, r.hdl().sb().blocksize);
 
         // get extent
-        Extent *ext = dindir + i % h.sb().extents_per_block();
+        Extent *ext = dindir + i % r.hdl().sb().extents_per_block();
         if(create && ext->length == 0)
-            h.metabuffer().mark_dirty(ptr->start);
+            r.hdl().metabuffer().mark_dirty(ptr->start);
         return ext;
     }
     return nullptr;
 }
 
-Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indir, bool remove,
-                              UsedBlocks *used_blocks) {
+Extent *INodes::change_extent(Request &r, INode *inode, size_t i, Extent **indir, bool remove) {
     if(i < INODE_DIR_COUNT)
         return inode->direct + i;
 
     i -= INODE_DIR_COUNT;
-    if(i < h.sb().extents_per_block()) {
+    if(i < r.hdl().sb().extents_per_block()) {
         assert(inode->indirect != 0);
         if(!*indir) {
-            *indir = reinterpret_cast<Extent*>(h.metabuffer().get_block(inode->indirect, used_blocks));
+            *indir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, inode->indirect));
         }
 
-        h.metabuffer().mark_dirty(inode->indirect);
+        r.hdl().metabuffer().mark_dirty(inode->indirect);
 
         // we assume that we only delete extents at the end; thus, if its the first, we can remove
         // the indirect block as well.
         if(remove && i == 0) {
-            h.blocks().free(h, inode->indirect, 1, used_blocks);
+            r.hdl().blocks().free(r, inode->indirect, 1);
             inode->indirect = 0;
         }
         return &(*indir)[i];
     }
 
-    i -= h.sb().extents_per_block();
-    if(i < h.sb().extents_per_block() * h.sb().extents_per_block()) {
+    i -= r.hdl().sb().extents_per_block();
+    if(i < r.hdl().sb().extents_per_block() * r.hdl().sb().extents_per_block()) {
         assert(inode->dindirect != 0);
-        Extent *dindir = reinterpret_cast<Extent*>(h.metabuffer().get_block(inode->dindirect, used_blocks));
-        Extent *ptr = dindir + i / h.sb().extents_per_block();
-        dindir = reinterpret_cast<Extent*>(h.metabuffer().get_block(ptr->start, used_blocks));
+        Extent *dindir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, inode->dindirect));
+        Extent *ptr = dindir + i / r.hdl().sb().extents_per_block();
+        dindir = reinterpret_cast<Extent*>(r.hdl().metabuffer().get_block(r, ptr->start));
 
-        Extent *ext = dindir + i % h.sb().extents_per_block();
-        h.metabuffer().mark_dirty(ptr->start);
+        Extent *ext = dindir + i % r.hdl().sb().extents_per_block();
+        r.hdl().metabuffer().mark_dirty(ptr->start);
 
         // same here; if its the first, remove the indirect-block
         if(remove) {
             if(ext == dindir) {
-                h.blocks().free(h, ptr->start, 1, used_blocks);
+                r.hdl().blocks().free(r, ptr->start, 1);
                 ptr->length = 0;
                 ptr->start = 0;
-                h.metabuffer().mark_dirty(inode->dindirect);
+                r.hdl().metabuffer().mark_dirty(inode->dindirect);
             }
 
             // and for the double-indirect, too
             if(i == 0) {
-                h.blocks().free(h, inode->dindirect, 1, used_blocks);
+                r.hdl().blocks().free(r, inode->dindirect, 1);
                 inode->dindirect = 0;
             }
         }
@@ -308,26 +295,26 @@ Extent *INodes::change_extent(FSHandle &h, INode *inode, size_t i, Extent **indi
     return nullptr;
 }
 
-void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks, size_t accessed,
-                         UsedBlocks *used_blocks) {
+void INodes::fill_extent(Request &r, INode *inode, Extent *ext, uint32_t blocks, size_t accessed) {
     size_t count = blocks;
-    ext->start = h.blocks().alloc(h, &count, used_blocks);
+    ext->start = r.hdl().blocks().alloc(r, &count);
     if(count == 0) {
         Errors::last = Errors::NO_SPACE;
         ext->length = 0;
         return;
     }
     ext->length = count;
-    if(h.clear_blocks()) {
-        uint32_t blocksize = h.sb().blocksize;
+
+    uint32_t blocksize = r.hdl().sb().blocksize;
+    if(r.hdl().clear_blocks()) {
         Time::start(0xaaaa);
         capsel_t sel = VPE::self().alloc_sel();
         size_t i = 0;
         while(i < count) {
             // since we override everything with zeros we don't have to load from the disk
-            size_t bytes = h.filebuffer().get_extent(ext->start + i, count - i,
+            size_t bytes = r.hdl().filebuffer().get_extent(ext->start + i, count - i,
                                                      sel, MemGate::RW, accessed, false);
-            h.filebuffer().mark_dirty(ext->start + i);
+            r.hdl().filebuffer().mark_dirty(ext->start + i);
             MemGate mem = MemGate::bind(sel);
             mem.write(zeros, bytes, 0);
             i += bytes / blocksize;
@@ -337,16 +324,16 @@ void INodes::fill_extent(FSHandle &h, INode *inode, Extent *ext, uint32_t blocks
 
     if(inode) {
         inode->extents++;
-        inode->size = (inode->size + h.sb().blocksize - 1) & ~(h.sb().blocksize - 1);
-        inode->size += count * h.sb().blocksize;
-        mark_dirty(h, inode->inode);
+        inode->size = (inode->size + blocksize - 1) & ~(blocksize - 1);
+        inode->size += count * blocksize;
+        mark_dirty(r, inode->inode);
     }
 }
 
-size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff,
-                    UsedBlocks *used_blocks) {
+size_t INodes::seek(Request &r, INode *inode, size_t &off, int whence, size_t &extent, size_t &extoff) {
     assert(whence != M3FS_SEEK_CUR);
     Extent *indir = nullptr;
+    uint32_t blocksize = r.hdl().sb().blocksize;
 
     // seeking to the end is easy
     if(whence == M3FS_SEEK_END) {
@@ -356,13 +343,13 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &
         extoff = 0;
         // determine extent offset
         if(extent > 0) {
-            Extent *ext = get_extent(h, inode, extent - 1, &indir, false, used_blocks);
+            Extent *ext = get_extent(r, inode, extent - 1, &indir, false);
             assert(ext != nullptr);
-            extoff = ext->length * h.sb().blocksize;
+            extoff = ext->length * blocksize;
             // ensure to stay within the file size
-            size_t unaligned = inode->size % h.sb().blocksize;
+            size_t unaligned = inode->size % blocksize;
             if(unaligned)
-                extoff -= h.sb().blocksize - unaligned;
+                extoff -= blocksize - unaligned;
         }
         if(extoff)
             extent--;
@@ -376,17 +363,17 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &
     // now search until we've found the extent covering the desired file position
     size_t pos = 0;
     for(size_t i = 0; i < inode->extents; ++i) {
-        Extent *ext = get_extent(h, inode, i, &indir, false, used_blocks);
+        Extent *ext = get_extent(r, inode, i, &indir, false);
         if(!ext)
             break;
 
-        if(off < ext->length * h.sb().blocksize) {
+        if(off < ext->length * blocksize) {
             extent = i;
             extoff = off;
             return pos;
         }
-        pos += ext->length * h.sb().blocksize;
-        off -= ext->length * h.sb().blocksize;
+        pos += ext->length * blocksize;
+        off -= ext->length * blocksize;
     }
 
     extent = inode->extents;
@@ -394,35 +381,37 @@ size_t INodes::seek(FSHandle &h, INode *inode, size_t &off, int whence, size_t &
     return pos;
 }
 
-void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff, UsedBlocks *used_blocks) {
+void INodes::truncate(Request &r, INode *inode, size_t extent, size_t extoff) {
+    uint32_t blocksize = r.hdl().sb().blocksize;
+
     Extent *indir = nullptr;
     if(inode->extents > 0) {
         // erase everything up to <extent>
         for(size_t i = inode->extents - 1; i > extent; --i) {
-            Extent *ext = change_extent(h, inode, i, &indir, true, used_blocks);
+            Extent *ext = change_extent(r, inode, i, &indir, true);
             assert(ext && ext->length > 0);
-            h.blocks().free(h, ext->start, ext->length, used_blocks);
+            r.hdl().blocks().free(r, ext->start, ext->length);
             inode->extents--;
-            inode->size -= ext->length * h.sb().blocksize;
+            inode->size -= ext->length * blocksize;
             ext->start = 0;
             ext->length = 0;
         }
 
         // get <extent> and determine length
-        Extent *ext = change_extent(h, inode, extent, &indir, extoff == 0, used_blocks);
+        Extent *ext = change_extent(r, inode, extent, &indir, extoff == 0);
         if(ext && ext->length > 0) {
-            size_t curlen = ext->length * h.sb().blocksize;
+            size_t curlen = ext->length * blocksize;
             size_t mod;
-            if((mod = (inode->size % h.sb().blocksize)) != 0)
-                curlen -= h.sb().blocksize - mod;
+            if((mod = (inode->size % blocksize)) != 0)
+                curlen -= blocksize - mod;
 
             // do we need to reduce the size of <extent>?
             if(extoff < curlen) {
                 size_t diff = curlen - extoff;
-                size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, h.sb().blocksize) : diff;
-                size_t blocks = bdiff / h.sb().blocksize;
+                size_t bdiff = extoff == 0 ? Math::round_up<size_t>(diff, blocksize) : diff;
+                size_t blocks = bdiff / blocksize;
                 if(blocks > 0)
-                    h.blocks().free(h, ext->start + ext->length - blocks, blocks, used_blocks);
+                    r.hdl().blocks().free(r, ext->start + ext->length - blocks, blocks);
                 inode->size -= diff;
                 ext->length -= blocks;
                 if(ext->length == 0) {
@@ -431,6 +420,6 @@ void INodes::truncate(FSHandle &h, INode *inode, size_t extent, size_t extoff, U
                 }
             }
         }
-        mark_dirty(h, inode->inode);
+        mark_dirty(r, inode->inode);
     }
 }

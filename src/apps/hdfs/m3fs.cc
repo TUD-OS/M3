@@ -74,7 +74,7 @@ public:
     }
 
     virtual Errors::Code open(M3FSSession **sess, capsel_t srv_sel, word_t) override {
-        *sess = new M3FSMetaSession(srv_sel, _rgate, _handle);
+        *sess = new M3FSMetaSession(_handle, srv_sel, _rgate);
         return Errors::NONE;
     }
 

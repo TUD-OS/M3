@@ -14,18 +14,26 @@
  * General Public License version 2 for more details.
  */
 
-#pragma once
-
 #include "../FSHandle.h"
-#include "../MetaBuffer.h"
-#include "../sess/MetaSession.h"
+#include "Request.h"
 
-class Links {
-    Links() = delete;
+Request::~Request() {
+    for(size_t i = 0; i < _used; i++)
+        _handle.metabuffer().quit(_blocks[i]);
+}
 
-public:
-    static m3::Errors::Code create(Request &r, m3::INode *dir, const char *name, size_t namelen,
-                                   m3::INode *inode);
-    static m3::Errors::Code remove(Request &r, m3::INode *dir, const char *name, size_t namelen,
-                                   bool isdir);
-};
+void Request::push_meta(MetaBufferHead *b) {
+    _blocks[_used] = b;
+    _used++;
+}
+
+void Request::pop_meta() {
+    assert(_used > 0);
+    _handle.metabuffer().quit(_blocks[--_used]);
+}
+
+void Request::pop_meta(size_t n) {
+    assert(_used >= n);
+    for(size_t i = 0; i < n; i++)
+        _handle.metabuffer().quit(_blocks[--_used]);
+}

@@ -27,7 +27,7 @@ MetaBuffer::MetaBuffer(size_t blocksize, DiskSession *disk)
     _disk->delegate(crd, &args);
 }
 
-void *MetaBuffer::get_block(blockno_t bno, UsedBlocks *used_blocks) {
+void *MetaBuffer::get_block(Request &r, blockno_t bno) {
     MetaBufferHead *b;
     while(true) {
         b = get(bno);
@@ -42,7 +42,7 @@ void *MetaBuffer::get_block(blockno_t bno, UsedBlocks *used_blocks) {
                 b->_linkcount++;
                 SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
                                                             << b->_linkcount);
-                used_blocks->set(b);
+                r.push_meta(b);
                 return b->_data;
             }
         }
@@ -74,7 +74,7 @@ void *MetaBuffer::get_block(blockno_t bno, UsedBlocks *used_blocks) {
     b->locked = false;
     ThreadManager::get().notify(b->unlock);
 
-    used_blocks->set(b);
+    r.push_meta(b);
     return b->_data;
 }
 

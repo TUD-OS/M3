@@ -24,6 +24,8 @@
 
 #define PRINT(sess, expr) SLOG(FS, fmt((word_t)sess, "#x") << ": " << expr)
 
+class FSHandle;
+
 class M3FSSession : public m3::ServerSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
@@ -33,10 +35,15 @@ public:
         FILE,
     };
 
-    explicit M3FSSession(capsel_t srv_sel, capsel_t sel = m3::ObjCap::INVALID)
-        : m3::ServerSession(srv_sel, sel) {
+    explicit M3FSSession(FSHandle &handle, capsel_t srv_sel, capsel_t sel = m3::ObjCap::INVALID)
+        : m3::ServerSession(srv_sel, sel),
+          _handle(handle) {
     }
     virtual ~M3FSSession() {
+    }
+
+    FSHandle &hdl() {
+        return _handle;
     }
 
     virtual Type type() const = 0;
@@ -79,4 +86,7 @@ public:
     virtual void unlink(m3::GateIStream &is) {
         m3::reply_error(is, m3::Errors::NOT_SUP);
     }
+
+private:
+    FSHandle &_handle;
 };
