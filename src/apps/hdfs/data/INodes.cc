@@ -105,7 +105,8 @@ void INodes::write_back(FSHandle &h, INode *inode, UsedBlocks *used_blocks) {
 }
 
 size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t extoff, size_t *extlen,
-                              int perms, capsel_t sel, bool dirty, UsedBlocks *used_blocks, size_t accessed) {
+                              int perms, capsel_t sel, bool dirty, UsedBlocks *used_blocks,
+                              size_t accessed) {
     Extent *indir = nullptr;
     Extent *ext = get_extent(h, inode, extent, &indir, false, used_blocks);
     if(ext == nullptr || ext->length == 0)
@@ -114,10 +115,11 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t e
     // create memory capability for extent
     *extlen = ext->length * h.sb().blocksize;
     size_t bytes = 0;
-    size_t blockoff = extoff / h.sb().blocksize;
-    bytes = h.filebuffer().get_extent(ext->start + blockoff, ext->length - blockoff, sel, perms, accessed);
+    size_t first_block = extoff / h.sb().blocksize;
+    bytes = h.filebuffer().get_extent(ext->start + first_block, ext->length - first_block,
+                                      sel, perms, accessed);
     if(dirty)
-        h.filebuffer().mark_dirty(ext->start + blockoff);
+        h.filebuffer().mark_dirty(ext->start + first_block);
     if(bytes == 0)
         return 0;
 
@@ -132,8 +134,9 @@ size_t INodes::get_extent_mem(FSHandle &h, INode *inode, size_t extent, size_t e
     return bytes;
 }
 
-size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, size_t *extlen, capsel_t sel,
-                          int perm, Extent *ext, UsedBlocks *used_blocks, size_t accessed) {
+size_t INodes::req_append(FSHandle &h, INode *inode, size_t i, size_t extoff, size_t *extlen,
+                          capsel_t sel, int perm, Extent *ext, UsedBlocks *used_blocks,
+                          size_t accessed) {
     bool load = true;
     SLOG(FS, "req accessed: " << accessed);
     if(i < inode->extents) {

@@ -180,7 +180,7 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
 
     // in/out implicitly commits the previous in/out request
     if(out && _appending) {
-        Errors::Code res = commit(inode, _lastbytes - _lastoff % h.sb().blocksize, &used_blocks);
+        Errors::Code res = commit(inode, _lastbytes, &used_blocks);
         if(res != Errors::NONE) {
             reply_error(is, res);
             return;
@@ -236,8 +236,11 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
     }
 
     _lastoff = _extoff;
+    // the mem cap covers all blocks from <_extoff> to <_extoff>+<len>. thus, the offset to start
+    // is the offset within the first of these blocks.
+    size_t capoff = _lastoff % h.sb().blocksize;
     _extlen = extlen;
-    _lastbytes = len - _lastoff % h.sb().blocksize;
+    _lastbytes = len - capoff;
     if(len > 0) {
         // activate mem cap for client
         if(Syscalls::get().activate(_epcap, sel, 0) != Errors::NONE) {
@@ -256,14 +259,15 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
             _extoff += len - _extoff % h.sb().blocksize;
             _moved_forward = false;
         }
-        _fileoff += len - _lastoff % h.sb().blocksize;
+        _fileoff += len - capoff;
     }
     else {
-        _lastoff = 0;
+        capoff = _lastoff = 0;
         sel = ObjCap::INVALID;
     }
 
-    PRINT(this, "file::next_" << (out ? "out" : "in") << "() -> (" << _lastoff << ", " << _lastbytes << ")");
+    PRINT(this, "file::next_" << (out ? "out" : "in")
+                              << "() -> (" << _lastoff << ", " << _lastbytes << ")");
 
     if(h.revoke_first()) {
         // revoke last mem cap and remember new one
@@ -271,10 +275,10 @@ void M3FSFileSession::next_in_out(GateIStream &is, bool out) {
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
         _last = sel;
 
-        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes);
+        reply_vmsg(is, Errors::NONE, capoff, _lastbytes);
     }
     else {
-        reply_vmsg(is, Errors::NONE, _lastoff % h.sb().blocksize, _lastbytes);
+        reply_vmsg(is, Errors::NONE, capoff, _lastbytes);
 
         if(_last != ObjCap::INVALID)
             VPE::self().revoke(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, _last, 1));
@@ -371,11 +375,11 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
     FSHandle &h = _meta->handle();
 
     // adjust file position.
-    _fileoff -= (_lastbytes - _lastoff % h.sb().blocksize) - submit;
+    _fileoff -= _lastbytes - submit;
 
     // add new extent?
     size_t lastoff = _lastoff;
-    bool truncated = _lastoff + submit < _lastbytes; // TODO submit from the offset or the first given block?
+    bool truncated = submit < _lastbytes;
     size_t prev_ext_len = 0;
     if(_append_ext) {
         size_t blocks = (submit + h.sb().blocksize - 1) / h.sb().blocksize;
@@ -392,10 +396,10 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
             h.blocks().free(h, _append_ext->start + blocks, old_len - blocks);
 
         _extlen = blocks * h.sb().blocksize;
-        _extoff = 0;
         // have we appended the new extent to the previous extent?
         if(prev_ext_len > 0)
             _extent--;
+        _lastoff = 0;
         delete _append_ext;
     }
 
@@ -407,7 +411,7 @@ Errors::Code M3FSFileSession::commit(INode *inode, size_t submit, UsedBlocks *us
     else if(truncated) {
         // move to the end of the last extent
         _extent--;
-        _extoff = prev_ext_len + lastoff + submit; // TODO +lastoff?
+        _extoff = prev_ext_len + lastoff + submit;
     }
 
     // change size
