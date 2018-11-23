@@ -16,8 +16,6 @@
 
 #include "MetaSession.h"
 
-#include <base/util/Time.h>
-
 #include <m3/session/M3FS.h>
 
 #include "../data/Dirs.h"
@@ -112,9 +110,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
         return Errors::last;
     }
 
-    Time::start(0xff01);
     INode *inode = INodes::get(r, ino);
-    Time::stop(0xff01);
     if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
        ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::NO_PERM));
@@ -123,20 +119,14 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
 
     // only determine the current size, if we're writing and the file isn't empty
     if(flags & FILE_TRUNC) {
-        Time::start(0xff03);
         INodes::truncate(r, inode, 0, 0);
-        Time::stop(0xff03);
         // TODO revoke access, if necessary
     }
 
-    Time::start(0xff04);
     // for directories: ensure that we don't have a changed version in the cache
     if(M3FS_ISDIR(inode->mode))
         INodes::write_back(r, inode);
-    Time::stop(0xff04);
-    Time::start(0xff05);
     ssize_t res = alloc_file(srv, path, flags, inode->inode);
-    Time::stop(0xff05);
     if(res < 0)
         return static_cast<Errors::Code>(-res);
 

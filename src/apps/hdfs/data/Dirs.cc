@@ -14,8 +14,6 @@
  * General Public License version 2 for more details.
  */
 
-#include <base/util/Time.h>
-
 #include <libgen.h>
 
 #include "Dirs.h"
@@ -42,34 +40,26 @@ DirEntry *Dirs::find_entry(Request &r, INode *inode, const char *name, size_t na
 }
 
 inodeno_t Dirs::search(Request &r, const char *path, bool create) {
-    Time::start(0xf000);
     while(*path == '/')
         path++;
     // root inode requested?
-    if(*path == '\0') {
-        Time::stop(0xf000);
+    if(*path == '\0')
         return 0;
-    }
 
     INode *inode;
     const char *end;
     size_t namelen;
     inodeno_t ino = 0;
-    Time::start(0xf001);
     size_t org_used = r.used_meta();
     while(1) {
-        Time::start(0xf002);
         inode = INodes::get(r, ino);
-        Time::stop(0xf002);
         // find path component end
         end = path;
         while(*end && *end != '/')
             end++;
 
         namelen = static_cast<size_t>(end - path);
-        Time::start(0xf003);
         DirEntry *e = find_entry(r, inode, path, namelen);
-        Time::stop(0xf003);
         // in any case, skip trailing slashes (see if(create) ...)
         while(*end == '/')
             end++;
@@ -80,8 +70,6 @@ inodeno_t Dirs::search(Request &r, const char *path, bool create) {
         }
         // if the path is empty, we're done
         if(!*end) {
-            Time::stop(0xf001);
-            Time::stop(0xf000);
             r.pop_meta(r.used_meta() - org_used);
             return e->nodeno;
         }
@@ -92,40 +80,28 @@ inodeno_t Dirs::search(Request &r, const char *path, bool create) {
 
         r.pop_meta(r.used_meta() - org_used);
     }
-    Time::stop(0xf001);
-    Time::start(0xf004);
 
     if(create) {
         // if there are more path components, we can't create the file
         if(*end) {
             Errors::last = Errors::NO_SUCH_FILE;
-            Time::stop(0xf004);
-            Time::stop(0xf000);
             return INVALID_INO;
         }
 
         // create inode and put a link into the directory
         INode *ninode = INodes::create(r, M3FS_IFREG | 0644);
         if(!ninode) {
-            Time::stop(0xf004);
-            Time::stop(0xf000);
             return INVALID_INO;
         }
         Errors::Code res = Links::create(r, inode, path, namelen, ninode);
         if(res != Errors::NONE) {
             r.hdl().files().delete_file(ninode->inode);
-            Time::stop(0xf004);
-            Time::stop(0xf000);
             return INVALID_INO;
         }
-        Time::stop(0xf004);
-        Time::stop(0xf000);
         return ninode->inode;
     }
 
     Errors::last = Errors::NO_SUCH_FILE;
-    Time::stop(0xf004);
-    Time::stop(0xf000);
     return INVALID_INO;
 }
 
