@@ -154,8 +154,10 @@ void RecvGate::activate(epid_t _ep, uintptr_t addr) {
 }
 
 void RecvGate::deactivate() {
-    if(_free & FREE_EP)
+    if(_free & FREE_EP) {
         _vpe.free_ep(ep());
+        _free &= ~static_cast<uint>(FREE_EP);
+    }
     ep(UNBOUND);
 
     stop();
