@@ -49,8 +49,8 @@ bool FSHandle::load_superblock(SuperBlock *sb, bool clear, Disk *disk) {
     return clear;
 }
 
-FSHandle::FSHandle(size_t extend, bool clear, bool revoke_first, size_t max_load)
-    : _disk(new Disk("disk")),
+FSHandle::FSHandle(size_t dev, size_t extend, bool clear, bool revoke_first, size_t max_load)
+    : _disk(new Disk("disk", dev)),
       _clear(load_superblock(&_sb, clear, _disk)),
       _revoke_first(revoke_first),
       _extend(extend),

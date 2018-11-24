@@ -20,6 +20,7 @@ fsimgnum = os.environ.get('M3_GEM5_FSNUM', '1')
 
 # disk image
 hard_disk0 = os.environ.get('M3_GEM5_IDE_DRIVE')
+call(["./src/tools/disk.py", "create", hard_disk0, fsimg])
 
 dtupos = int(os.environ.get('M3_GEM5_DTUPOS', 0))
 mmu = int(os.environ.get('M3_GEM5_MMU', 0))

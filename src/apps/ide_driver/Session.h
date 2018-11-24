@@ -25,6 +25,8 @@
 #include <m3/com/SendGate.h>
 #include <m3/session/ServerSession.h>
 
+#define PRINT(sess, expr) SLOG(IDE, fmt((word_t)sess, "#x") << ": " << expr)
+
 class DiskSrvSession : public m3::ServerSession {
     struct DiskSrvSGate : public m3::SListItem {
         explicit DiskSrvSGate(m3::SendGate &&_sgate) : sgate(m3::Util::move(_sgate)) {
@@ -35,9 +37,13 @@ class DiskSrvSession : public m3::ServerSession {
 public:
     static constexpr size_t MSG_SIZE = 128;
 
-    explicit DiskSrvSession(capsel_t srv_sel, m3::RecvGate *rgate, capsel_t _sel = m3::ObjCap::INVALID)
-        : ServerSession(srv_sel, _sel), _rgate(rgate), _sgates(){};
+    explicit DiskSrvSession(size_t dev, capsel_t srv_sel, m3::RecvGate *rgate, capsel_t _sel = m3::ObjCap::INVALID)
+        : ServerSession(srv_sel, _sel), _dev(dev), _rgate(rgate), _sgates() {
+    }
 
+    size_t device() const {
+        return _dev;
+    }
     const m3::RecvGate &rgate() const {
         return *_rgate;
     }
@@ -55,6 +61,7 @@ public:
     }
 
 private:
+    size_t _dev;
     m3::RecvGate *_rgate;
     m3::SList<DiskSrvSGate> _sgates;
 };

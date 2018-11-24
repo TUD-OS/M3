@@ -349,6 +349,11 @@ struct sATAController {
 void device_init(sATADevice *device);
 
 /**
+ * @return the device model name
+ */
+const char *device_model_name(sATADevice *device);
+
+/**
  * Prints information about the given device
  */
 void device_print(sATADevice *device, m3::OStream &os);

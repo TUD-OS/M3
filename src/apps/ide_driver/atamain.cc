@@ -63,8 +63,21 @@ struct CapNode : public TreapNode<CapNode, blockno_t> {
     }
 };
 
-class DiskRequestHandler;
+struct ATAPartitionDevice;
 
+static size_t drvCount = 0;
+static ATAPartitionDevice *devs[PARTITION_COUNT * DEVICE_COUNT];
+
+struct ATAPartitionDevice {
+    uint32_t id;
+    uint32_t partition;
+
+    explicit ATAPartitionDevice(uint32_t id, uint32_t partition)
+        : id(id), partition(partition) {
+    }
+};
+
+class DiskRequestHandler;
 using base_class = RequestHandler<
     DiskRequestHandler, Disk::Operation, Disk::COUNT, DiskSrvSession
 >;
@@ -76,11 +89,10 @@ static constexpr size_t MAX_DMA_SIZE = Math::min(255 * 512, 0x10000);
 
 class DiskRequestHandler : public base_class {
 public:
-    explicit DiskRequestHandler(sATADevice *dev)
+    explicit DiskRequestHandler()
         : base_class(),
           _rgate(RecvGate::create(nextlog2<32 * Disk::MSG_SIZE>::val,
-                                  nextlog2<Disk::MSG_SIZE>::val)),
-          _dev(dev) {
+                                  nextlog2<Disk::MSG_SIZE>::val)) {
         add_operation(Disk::READ, &DiskRequestHandler::read);
         add_operation(Disk::WRITE, &DiskRequestHandler::write);
 
@@ -95,17 +107,23 @@ public:
         return sess->get_sgate(data);
     }
 
-    virtual Errors::Code open(DiskSrvSession **sess, capsel_t srv_sel, word_t) override {
-        *sess = new DiskSrvSession(srv_sel, &_rgate);
+    virtual Errors::Code open(DiskSrvSession **sess, capsel_t srv_sel, word_t dev) override {
+        if(dev >= ARRAY_SIZE(devs) || devs[dev] == nullptr)
+            return Errors::INV_ARGS;
+
+        *sess = new DiskSrvSession(dev, srv_sel, &_rgate);
+        PRINT(*sess, "new session for partition " << dev);
         return Errors::NONE;
     }
 
-    virtual Errors::Code delegate(DiskSrvSession *, KIF::Service::ExchangeData &data) override {
+    virtual Errors::Code delegate(DiskSrvSession *sess, KIF::Service::ExchangeData &data) override {
         if(data.args.count != 2 || data.caps != 1)
             return Errors::NOT_SUP;
 
         capsel_t sel = VPE::self().alloc_sel();
         data.caps    = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
+
+        PRINT(sess, "received caps: bno=" << data.args.vals[0] << ", len=" << data.args.vals[1]);
 
         CapNode *node = caps.find(data.args.vals[0]);
         if(node) {
@@ -136,8 +154,14 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(IDE, "DISK: Read blocks " << start << ":"
-            << len << " @ " << fmt(off, "x") << " in " << blocksize << "b blocks");
+        DiskSrvSession *sess = is.label<DiskSrvSession*>();
+        ATAPartitionDevice *pdev = devs[sess->device()];
+        sATADevice *dev = ctrl_getDevice(pdev->id);
+        sPartition *part = dev->partTable + pdev->partition;
+
+        PRINT(sess, "read blocks " << start << ":" << len
+                                   << " @ " << fmt(off, "x")
+                                   << " in " << blocksize << "b blocks");
 
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
@@ -156,14 +180,14 @@ public:
             len *= blocksize;
 
             while(len >= MAX_DMA_SIZE) {
-                handleRead(_dev, _dev->partTable, m, off, start, MAX_DMA_SIZE);
+                handleRead(dev, part, m, off, start, MAX_DMA_SIZE);
                 start += MAX_DMA_SIZE;
                 off += MAX_DMA_SIZE;
                 len -= MAX_DMA_SIZE;
             }
             // now read the rest
             if(len)
-                handleRead(_dev, _dev->partTable, m, off, start, len);
+                handleRead(dev, part, m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
@@ -181,8 +205,14 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(IDE, "DISK: Write blocks " << start << ":"
-            << len << " @ " << fmt(off, "x") << " in " << blocksize << "b blocks");
+        DiskSrvSession *sess = is.label<DiskSrvSession*>();
+        ATAPartitionDevice *pdev = devs[sess->device()];
+        sATADevice *dev = ctrl_getDevice(pdev->id);
+        sPartition *part = dev->partTable + pdev->partition;
+
+        PRINT(sess, "write blocks " << start << ":" << len
+                                    << " @ " << fmt(off, "x")
+                                    << " in " << blocksize << "b blocks");
 
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
@@ -201,14 +231,14 @@ public:
             len *= blocksize;
 
             while(len >= MAX_DMA_SIZE) {
-                handleWrite(_dev, _dev->partTable, m, off, start, MAX_DMA_SIZE);
+                handleWrite(dev, part, m, off, start, MAX_DMA_SIZE);
                 start += MAX_DMA_SIZE;
                 off += MAX_DMA_SIZE;
                 len -= MAX_DMA_SIZE;
             }
             // now write the rest
             if(len)
-                handleWrite(_dev, _dev->partTable, m, off, start, len);
+                handleWrite(dev, part, m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
@@ -218,52 +248,12 @@ public:
 
 private:
     RecvGate _rgate;
-    sATADevice *_dev;
     Treap<CapNode> caps;
 };
 
-/* a partition on the disk */
-typedef struct {
-    /* Boot indicator bit flag: 0 = no, 0x80 = bootable (or "active") */
-    uint8_t bootable;
-    /* start: Cylinder, Head, Sector */
-    uint8_t startHead;
-    uint16_t startSector : 6, startCylinder : 10;
-    uint8_t systemId;
-    /* end: Cylinder, Head, Sector */
-    uint8_t endHead;
-    uint16_t endSector : 6, endCylinder : 10;
-    /* Relative Sector (to start of partition -- also equals the partition's starting LBA value) */
-    uint32_t start;
-    /* Total Sectors in partition */
-    uint32_t size;
-} PACKED sDiskPart;
-
-static const size_t MAX_RW_SIZE = 4096;
 static const int RETRY_COUNT    = 3;
 
 static void initDrives(void);
-class ATAPartitionDevice;
-
-static size_t drvCount = 0;
-static ATAPartitionDevice *devs[PARTITION_COUNT * DEVICE_COUNT];
-
-class ATAPartitionDevice {
-private:
-    uint32_t id;
-    uint32_t partition;
-    char *accessId;
-    uint16_t mode;
-
-public:
-    ATAPartitionDevice(uint32_t id, uint32_t partition, char *name, uint16_t mode)
-        : id(id), partition(partition), accessId(new char[strlen(name) + 1]), mode(mode) {
-        strcpy(this->accessId, name);
-    }
-    ~ATAPartitionDevice() {
-        delete[] accessId;
-    }
-};
 
 int main(int argc, char **argv) {
     bool useDma = true;
@@ -279,44 +269,14 @@ int main(int argc, char **argv) {
     /* detect and init all devices */
     ctrl_init(useDma, useIRQ);
     initDrives();
-    /* flush prints */
 
-    sATADevice *ataDev = ctrl_getDevice(0);
-    device_print(ataDev, cout);
-
-
-    part_print(ataDev->partTable);
-    uint present = 0;
-
-    for(uint i = 0; i < PARTITION_COUNT; i++)
-        present |= ataDev->partTable[i].present;
-
-    /* Just setup a example partition table, not written or read from disk */
-    uint8_t buf[0x1FF];
-    if(!present) {
-        sDiskPart *src = (sDiskPart *)(buf + 0x1BE);
-        for(uint i = 0; i < PARTITION_COUNT; i++) {
-            src[i].systemId    = i + 1;
-            src[i].startSector = 0x20 * i;
-            src[i].endSector   = 0x3F;
-            src[i].startHead   = i;
-            src[i].endHead     = i;
-            src[i].start       = 0x0;
-            // this could be too small for bench.img
-            src[i].size = 64 * 1024 * 1024;
-        }
-
-        /* write the information to the in-memory partition table */
-        part_fillPartitions(ataDev->partTable, (void *)buf);
-        part_print(ataDev->partTable);
-    }
-
-    srv = new Server<DiskRequestHandler>("disk", new DiskRequestHandler(ataDev));
+    srv = new Server<DiskRequestHandler>("disk", new DiskRequestHandler());
 
     // env()->workloop()->multithreaded(8);
     env()->workloop()->run();
 
     delete srv;
+
     ctrl_deinit();
     return 0;
 }
@@ -375,21 +335,21 @@ static ulong handleWrite(sATADevice *ataDev, sPartition *part, MemGate &mem, siz
 
 static void initDrives(void) {
     uint deviceIds[] = {DEVICE_PRIM_MASTER, DEVICE_PRIM_SLAVE, DEVICE_SEC_MASTER, DEVICE_SEC_SLAVE};
-    char name[SSTRLEN("hda1") + 1];
-    char path[MAX_PATH_LEN] = "/dev/";
     for(size_t i = 0; i < DEVICE_COUNT; i++) {
         sATADevice *ataDev = ctrl_getDevice(deviceIds[i]);
         if(ataDev->present == 0)
             continue;
 
+        size_t size = (ataDev->info.userSectorCount * 512) / (1024 * 1024);
+        SLOG(IDE, "Found disk device '" << device_model_name(ataDev) << "' (" << size << " MiB)");
+
         /* register device for every partition */
         for(size_t p = 0; p < PARTITION_COUNT; p++) {
             if(ataDev->partTable[p].present) {
-                strcpy(path + SSTRLEN("/dev/"), name);
-
-                devs[drvCount] = new ATAPartitionDevice(ataDev->id, p, path, 0770);
-                SLOG(IDE, "Registered device '" << name << "' (device " << ataDev->id << ", partition "
-                                                << p + 1 << ")");
+                devs[drvCount] = new ATAPartitionDevice(ataDev->id, p);
+                SLOG(IDE, "Registered partition " << drvCount
+                                                  << " (device " << ataDev->id
+                                                  << ", partition " << p + 1 << ")");
 
                 drvCount++;
             }

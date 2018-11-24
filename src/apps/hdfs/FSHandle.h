@@ -27,7 +27,7 @@
 
 class FSHandle {
 public:
-    explicit FSHandle(size_t extend, bool clear, bool revoke_first, size_t max_load);
+    explicit FSHandle(size_t dev, size_t extend, bool clear, bool revoke_first, size_t max_load);
 
     m3::SuperBlock &sb() {
         return _sb;

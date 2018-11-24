@@ -49,13 +49,12 @@ static Server<M3FSRequestHandler> *srv;
 
 class M3FSRequestHandler : public base_class {
 public:
-    explicit M3FSRequestHandler(goff_t fsoff, size_t fssize, size_t extend, bool clear,
+    explicit M3FSRequestHandler(size_t dev, size_t extend, bool clear,
                                 bool revoke_first, size_t max_load)
         : base_class(),
           _rgate(RecvGate::create(nextlog2<32 * M3FSSession::MSG_SIZE>::val,
                                   nextlog2<M3FSSession::MSG_SIZE>::val)),
-          //_mem(MemGate::create_global_for(fsoff, fssize, MemGate::RWX)),
-          _handle(extend, clear, revoke_first, max_load) {
+          _handle(dev, extend, clear, revoke_first, max_load) {
         add_operation(M3FS::OPEN_PRIV, &M3FSRequestHandler::open_private_file);
         add_operation(M3FS::CLOSE_PRIV, &M3FSRequestHandler::close_private_file);
         add_operation(M3FS::NEXT_IN, &M3FSRequestHandler::next_in);
@@ -193,13 +192,12 @@ private:
 
 static void usage(const char *name) {
     cerr << "Usage: " << name
-         << " [-n <name>] [-s <sel>] [-e <blocks>] [-c] [-r] [-o <fsoffset>] [-b <blocks>] <size>\n";
+         << " [-n <name>] [-s <sel>] [-e <blocks>] [-c] [-r] [-b <blocks>] <dev>\n";
     cerr << "  -n: the name of the service (m3fs by default)\n";
     cerr << "  -s: don't create service, use selectors <sel>..<sel+1>\n";
     cerr << "  -e: the number of blocks to extend files when appending\n";
     cerr << "  -c: clear allocated blocks\n";
     cerr << "  -r: revoke first, reply afterwards\n";
-    cerr << "  -o: the file system offset in DRAM\n";
     cerr << "  -b: the maximum number of blocks loaded from the disk\n";
     exit(1);
 }
@@ -212,7 +210,6 @@ int main(int argc, char *argv[]) {
     bool revoke_first = false;
     capsel_t sels     = ObjCap::INVALID;
     epid_t ep         = EP_COUNT;
-    goff_t fs_offset  = FS_IMG_OFFSET;
 
     int opt;
     while((opt = CmdArgs::get(argc, argv, "n:s:e:cro:b:")) != -1) {
@@ -227,7 +224,6 @@ int main(int argc, char *argv[]) {
             case 'e': extend = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             case 'c': clear = true; break;
             case 'r': revoke_first = true; break;
-            case 'o': fs_offset = IStringStream::read_from<goff_t>(CmdArgs::arg); break;
             case 'b': max_load = IStringStream::read_from<size_t>(CmdArgs::arg); break;
             default: usage(argv[0]);
         }
@@ -235,8 +231,8 @@ int main(int argc, char *argv[]) {
     if(CmdArgs::ind >= argc)
         usage(argv[0]);
 
-    size_t size = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
-    auto hdl    = new M3FSRequestHandler(fs_offset, size, extend, clear, revoke_first, max_load);
+    size_t dev = IStringStream::read_from<size_t>(argv[CmdArgs::ind]);
+    auto hdl    = new M3FSRequestHandler(dev, extend, clear, revoke_first, max_load);
     if(sels != ObjCap::INVALID)
         srv = new Server<M3FSRequestHandler>(sels, ep, hdl);
     else

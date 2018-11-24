@@ -195,6 +195,14 @@ static bool device_identify(sATADevice *device, uint cmd) {
     }
 }
 
+const char *device_model_name(sATADevice *device) {
+    static char buffer[41];
+    m3::OStringStream os(buffer, sizeof(buffer));
+    for(size_t i = 0; i < 40; i += 2)
+        os << device->info.modelNo[i + 1] << device->info.modelNo[i];
+    return buffer;
+}
+
 void device_print(sATADevice *device, m3::OStream &os) {
     size_t i;
     os << "device[" << device->id << "]:\n";

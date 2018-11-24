@@ -43,8 +43,8 @@ public:
         COUNT
     };
 
-    explicit Disk(const char *name)
-        : ClientSession(name, 0, VPE::self().alloc_sels(2)),
+    explicit Disk(const char *name, size_t dev)
+        : ClientSession(name, dev, VPE::self().alloc_sels(2)),
           _rgate(RecvGate::create(nextlog2<MSG_SIZE * 8>::val, nextlog2<MSG_SIZE>::val)),
           _sgate(obtain_sgate()) {
         _rgate.activate();
