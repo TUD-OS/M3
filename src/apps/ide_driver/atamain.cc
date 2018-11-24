@@ -19,9 +19,6 @@
 /**
  * Modifications in 2017 by Lukas Landgraf, llandgraf317@gmail.com
  * This file is copied and modified from Escape OS.
- * Currently this program only works as an example and should be further modified to utilize shared
- * memory to copy read data from disk to another userspace program.
- * For now, interrupts and PIO is implemented in M3. DMA remains to be implemented.
  */
 
 #include <base/col/Treap.h>
