@@ -108,13 +108,16 @@ public:
         data.caps    = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, data.caps).value();
 
         CapNode *node = caps.find(data.args.vals[0]);
-        if(node)
+        if(node) {
             caps.remove(node);
+            delete node;
+        }
         caps.insert(new CapNode(data.args.vals[0], sel, data.args.vals[1]));
         return Errors::NONE;
     }
 
     virtual Errors::Code close(DiskSrvSession *sess) override {
+        // TODO remove CapNodes from the tree
         delete sess;
         return Errors::NONE;
     }
