@@ -33,13 +33,15 @@ void atapi_softReset(sATADevice *device);
  *
  * @param device the device
  * @param op the operation: just OP_READ here ;)
- * @param buffer the buffer to write to
+ * @param mem the buffer in memory
+ * @param offset the offset within the buffer
  * @param lba the block-address to start at
  * @param secSize the size of a sector
  * @param secCount number of sectors
  * @return true on success
  */
-bool atapi_read(sATADevice *device, uint op, void *buffer, uint64_t lba, size_t secSize, size_t secCount);
+bool atapi_read(sATADevice *device, uint op, m3::MemGate &mem, size_t offset, uint64_t lba,
+                size_t secSize, size_t secCount);
 
 /**
  * Determines the capacity for the given device

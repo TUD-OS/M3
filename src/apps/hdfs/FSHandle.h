@@ -64,7 +64,7 @@ public:
         // write back super block
         _sb.checksum = _sb.get_checksum();
         size_t len = sizeof(_sb);
-        m3::MemGate tmp = m3::MemGate::create_global(512, m3::MemGate::RW);
+        m3::MemGate tmp = m3::MemGate::create_global(512 + Buffer::PRDT_SIZE, m3::MemGate::RW);
         m3::KIF::CapRngDesc crd(m3::KIF::CapRngDesc::OBJ, tmp.sel(), 1);
         m3::KIF::ExchangeArgs args;
         args.count = 2;

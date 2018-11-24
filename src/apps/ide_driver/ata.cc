@@ -28,8 +28,8 @@
 static bool ata_setupCommand(sATADevice *device, uint64_t lba, size_t secCount, uint cmd);
 static uint ata_getCommand(sATADevice *device, uint op);
 
-bool ata_readWrite(sATADevice *device, uint op, void *buffer, uint64_t lba, size_t secSize,
-                   size_t secCount) {
+bool ata_readWrite(sATADevice *device, uint op, m3::MemGate &mem, size_t offset, uint64_t lba,
+                   size_t secSize, size_t secCount) {
     SLOG(IDE_ALL, "Looking up cmd for operation " << op);
     uint cmd = ata_getCommand(device, op);
     SLOG(IDE_ALL, "Performing ata_readWrite with command " << cmd);
@@ -45,24 +45,24 @@ bool ata_readWrite(sATADevice *device, uint op, void *buffer, uint64_t lba, size
         case COMMAND_WRITE_SEC:
         case COMMAND_WRITE_SEC_EXT:
             SLOG(IDE_ALL, "Executing transfer PIO");
-            return ata_transferPIO(device, op, buffer, secSize, secCount, true);
+            return ata_transferPIO(device, op, mem, offset, secSize, secCount, true);
         case COMMAND_READ_DMA:
         case COMMAND_READ_DMA_EXT:
         case COMMAND_WRITE_DMA:
         case COMMAND_WRITE_DMA_EXT:
             SLOG(IDE_ALL, "Executing transfer DMA");
-            return ata_transferDMA(device, op, buffer, secSize, secCount);
+            return ata_transferDMA(device, op, mem, offset, secSize, secCount);
     }
 
     SLOG(IDE_ALL, "ata_readWrite executed neither PIO nor DMA");
     return false;
 }
 
-bool ata_transferPIO(sATADevice *device, uint op, void *buffer, size_t secSize, size_t secCount,
-                     bool waitFirst) {
+bool ata_transferPIO(sATADevice *device, uint op, m3::MemGate &mem, size_t offset, size_t secSize,
+                     size_t secCount, bool waitFirst) {
+    uint16_t buffer[secSize / sizeof(uint16_t)];
     size_t i;
     int res;
-    uint16_t *buf = (uint16_t *)buffer;
     sATAController *ctrl = device->ctrl;
     for(i = 0; i < secCount; i++) {
         if(i > 0 || waitFirst) {
@@ -85,27 +85,34 @@ bool ata_transferPIO(sATADevice *device, uint op, void *buffer, size_t secSize, 
 
         /* now read / write the data */
         SLOG(IDE_ALL, "Ready, starting read/write");
-        if(op == OP_READ)
-            ctrl_inwords(ctrl, ATA_REG_DATA, buf, secSize / sizeof(uint16_t));
-        else
-            ctrl_outwords(ctrl, ATA_REG_DATA, buf, secSize / sizeof(uint16_t));
-        buf += secSize / sizeof(uint16_t);
+        if(op == OP_READ) {
+            ctrl_inwords(ctrl, ATA_REG_DATA, buffer, secSize / sizeof(uint16_t));
+            mem.write(buffer, sizeof(buffer), offset + i * secSize);
+        }
+        else {
+            mem.read(buffer, sizeof(buffer), offset + i * secSize);
+            ctrl_outwords(ctrl, ATA_REG_DATA, buffer, secSize / sizeof(uint16_t));
+        }
         SLOG(IDE_ALL, "Transfer done");
     }
     SLOG(IDE_ALL, "All sectors done");
     return true;
 }
 
-bool ata_transferDMA(sATADevice *device, uint op, void *buffer, size_t secSize, size_t secCount) {
+bool ata_transferDMA(sATADevice *device, uint op, m3::MemGate &mem, size_t offset, size_t secSize,
+                     size_t secCount) {
     sATAController *ctrl = device->ctrl;
     uint8_t status;
     size_t size = secCount * secSize;
     int res;
 
     /* setup PRDT */
-    ctrl->dma_prdt_virt->buffer    = (uint32_t)(uintptr_t)ctrl->dma_buf_phys;
-    ctrl->dma_prdt_virt->byteCount = size;
-    ctrl->dma_prdt_virt->last      = 1;
+    sPRD prdt;
+    prdt.buffer     = offset;
+    prdt.byteCount  = size;
+    prdt.last       = 1;
+    /* write it behind the buffer */
+    mem.write(&prdt, sizeof(prdt), offset + secSize * secCount);
 
     /* stop running transfers */
     SLOG(IDE_ALL, "Stopping running transfers");
@@ -116,12 +123,7 @@ bool ata_transferDMA(sATADevice *device, uint op, void *buffer, size_t secSize, 
 
     /* set PRDT */
     SLOG(IDE_ALL, "Setting PRDT");
-    ctrl_outbmrl(ctrl, BMR_REG_PRDT, reinterpret_cast<uintptr_t>(ctrl->dma_prdt_phys));
-
-    /* write data to buffer, if we should write */
-    /* TODO we should use the buffer directly when reading from the client */
-    if(op == OP_WRITE || op == OP_PACKET)
-        memcpy(ctrl->dma_buf_virt, buffer, size);
+    ctrl_outbmrl(ctrl, BMR_REG_PRDT, offset + secSize * secCount);
 
     /* it seems to be necessary to read those ports here */
     SLOG(IDE_ALL, "Starting DMA-transfer");
@@ -151,9 +153,6 @@ bool ata_transferDMA(sATADevice *device, uint op, void *buffer, size_t secSize, 
 
     ctrl_inbmrb(ctrl, BMR_REG_STATUS);
     ctrl_outbmrb(ctrl, BMR_REG_COMMAND, 0);
-    /* copy data when reading */
-    if(op == OP_READ)
-        memcpy(buffer, ctrl->dma_buf_virt, size);
     return true;
 }
 

@@ -26,7 +26,9 @@
 #include "controller.h"
 #include "device.h"
 
-static bool atapi_request(sATADevice *device, uint8_t *cmd, void *buffer, size_t bufSize);
+using namespace m3;
+
+static bool atapi_request(sATADevice *device, MemGate &mem, size_t offset, size_t bufSize);
 
 void atapi_softReset(sATADevice *device) {
     int i = 1000000;
@@ -42,8 +44,8 @@ void atapi_softReset(sATADevice *device) {
     ctrl_wait(device->ctrl);
 }
 
-bool atapi_read(sATADevice *device, uint op, void *buffer, uint64_t lba, UNUSED size_t secSize,
-                size_t secCount) {
+bool atapi_read(sATADevice *device, uint op, MemGate &mem, size_t offset, uint64_t lba,
+                UNUSED size_t secSize, size_t secCount) {
     uint8_t cmd[] = {SCSI_CMD_READ_SECTORS_EXT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if(!device->info.feats.flags.lba48)
         cmd[0] = SCSI_CMD_READ_SECTORS;
@@ -66,30 +68,38 @@ bool atapi_read(sATADevice *device, uint op, void *buffer, uint64_t lba, UNUSED 
     cmd[3] = (lba >> 16) & 0xFF;
     cmd[4] = (lba >> 8) & 0xFF;
     cmd[5] = (lba >> 0) & 0xFF;
-    return atapi_request(device, cmd, buffer, secCount * device->secSize);
+    mem.write(cmd, sizeof(cmd), 0);
+
+    return atapi_request(device, mem, offset, secCount * device->secSize);
 }
 
 size_t atapi_getCapacity(sATADevice *device) {
-    uint8_t resp[8];
+    MemGate temp = MemGate::create_global(8 + sizeof(sPRD), MemGate::RW);
+    ctrl_setupDMA(temp);
+
     uint8_t cmd[] = {SCSI_CMD_READ_CAPACITY, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    bool res      = atapi_request(device, cmd, resp, 8);
+    temp.write(cmd, sizeof(cmd), 0);
+    bool res      = atapi_request(device, temp, 0, 8);
     if(!res)
         return 0;
+
+    uint8_t resp[8];
+    temp.read(&resp, sizeof(resp), 0);
     return ((size_t)resp[0] << 24) | ((size_t)resp[1] << 16) | ((size_t)resp[2] << 8) | resp[3];
 }
 
-static bool atapi_request(sATADevice *device, uint8_t *cmd, void *buffer, size_t bufSize) {
+static bool atapi_request(sATADevice *device, MemGate &mem, size_t offset, size_t bufSize) {
     int res;
     size_t size;
     sATAController *ctrl = device->ctrl;
 
     /* send PACKET command to drive */
-    if(!ata_readWrite(device, OP_PACKET, cmd, 0xFFFF00, 12, 1))
+    if(!ata_readWrite(device, OP_PACKET, mem, offset, 0xFFFF00, 12, 1))
         return false;
 
     /* now transfer the data */
     if(ctrl->useDma && device->info.caps.flags.DMA)
-        return ata_transferDMA(device, OP_READ, buffer, device->secSize, bufSize / device->secSize);
+        return ata_transferDMA(device, OP_READ, mem, offset, device->secSize, bufSize / device->secSize);
 
     /* ok, no DMA, so wait first until the drive is ready */
     res = ctrl_waitUntil(ctrl, ATAPI_TRANSFER_TIMEOUT, ATAPI_TRANSFER_SLEEPTIME, CMD_ST_DRQ, CMD_ST_BUSY);
@@ -106,5 +116,5 @@ static bool atapi_request(sATADevice *device, uint8_t *cmd, void *buffer, size_t
     SLOG(IDE_ALL, "Reading response-size");
     size = ((size_t)ctrl_inb(ctrl, ATA_REG_ADDRESS3) << 8) | (size_t)ctrl_inb(ctrl, ATA_REG_ADDRESS2);
     /* do the PIO-transfer (no check at the beginning; seems to cause trouble on some machines) */
-    return ata_transferPIO(device, OP_READ, buffer, size, bufSize / size, false);
+    return ata_transferPIO(device, OP_READ, mem, offset, size, bufSize / size, false);
 }

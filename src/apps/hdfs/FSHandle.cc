@@ -26,7 +26,7 @@ using namespace m3;
 bool FSHandle::load_superblock(SuperBlock *sb, bool clear, Disk *disk) {
     SLOG(FS, "Loading Superblock from disk");
     size_t len  = sizeof(*sb);
-    MemGate tmp = MemGate::create_global(512, MemGate::RW);
+    MemGate tmp = MemGate::create_global(512 + Buffer::PRDT_SIZE, MemGate::RW);
     KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, tmp.sel(), 1);
     KIF::ExchangeArgs args;
     args.count   = 2;

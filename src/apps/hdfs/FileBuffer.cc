@@ -23,7 +23,7 @@ using namespace m3;
 
 FileBufferHead::FileBufferHead(blockno_t bno, size_t size, size_t blocksize)
     : BufferHead(bno, size),
-      _data(MemGate::create_global(size * blocksize, MemGate::RWX)) {
+      _data(MemGate::create_global(size * blocksize + Buffer::PRDT_SIZE, MemGate::RWX)) {
     _extents.append(new InodeExt(bno, size));
 }
 

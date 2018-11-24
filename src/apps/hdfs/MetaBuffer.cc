@@ -31,7 +31,7 @@ MetaBufferHead::MetaBufferHead(blockno_t bno, size_t size, size_t off, char *dat
 MetaBuffer::MetaBuffer(size_t blocksize, Disk *disk)
     : Buffer(blocksize, disk),
       _blocks(new char[_blocksize * META_BUFFER_SIZE]),
-      gate(MemGate::create_global(_blocksize * META_BUFFER_SIZE, MemGate::RW)) {
+      gate(MemGate::create_global(_blocksize + PRDT_SIZE, MemGate::RW)) {
     for(size_t i = 0; i < META_BUFFER_SIZE; i++)
         lru.append(new MetaBufferHead(0, 1, i, _blocks + i * _blocksize));
 
@@ -83,8 +83,8 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
     ht.insert(b);
 
     // disk load into b->_data;
-    _disk->read(0, bno, 1, _blocksize, b->_off);
-    gate.read(b->_data, _blocksize, b->_off * _blocksize);
+    _disk->read(0, bno, 1, _blocksize, 0);
+    gate.read(b->_data, _blocksize, 0);
 
     b->_linkcount = 1;
     SLOG(FS, "MetaBuffer: Load new block <" << b->key() << ">, Links: " << b->_linkcount);
@@ -120,8 +120,8 @@ void MetaBuffer::flush_chunk(BufferHead *b) {
 
     // write_to_disk
     SLOG(FS, "MetaBuffer: Write back block <" << b->key() << ">");
-    gate.write(mb->_data, _blocksize, mb->_off * _blocksize);
-    _disk->write(0, b->key(), 1, _blocksize, mb->_off);
+    gate.write(mb->_data, _blocksize, 0);
+    _disk->write(0, b->key(), 1, _blocksize, 0);
 
     b->dirty   = false;
     mb->locked = false;

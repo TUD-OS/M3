@@ -167,6 +167,10 @@ public:
         device.writeReg(regAddr, content);
     }
 
+    void setDmaEp(m3::MemGate &memgate) {
+        device.setDmaEp(memgate);
+    }
+
     /**
 	 * Function to wait for an interrupt by the physical controller.
 	 */
@@ -202,6 +206,11 @@ void ctrl_init(bool useDma, bool useIRQ);
  * Deinits the controllers
  */
 void ctrl_deinit();
+
+/**
+ * Activates the memory gate for DMA
+ */
+void ctrl_setupDMA(m3::MemGate &mem);
 
 /**
  * @param id the id

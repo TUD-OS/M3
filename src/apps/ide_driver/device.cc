@@ -25,15 +25,17 @@
 
 #include <base/DTU.h>
 
+#include <m3/com/MemGate.h>
+
 #include "ata.h"
 #include "atapi.h"
 #include "controller.h"
 
+using namespace m3;
+
 static bool device_identify(sATADevice *device, uint cmd);
 
 void device_init(sATADevice *device) {
-    uint16_t buffer[256];
-
     SLOG(IDE_ALL, "Sending 'IDENTIFY DEVICE' to device " << device->id);
     /* first, identify the device */
     if(!device_identify(device, COMMAND_IDENTIFY)) {
@@ -55,11 +57,15 @@ void device_init(sATADevice *device) {
 
     device->present = 1;
     if(!device->info.general.isATAPI) {
+        uint16_t buffer[256];
+        MemGate temp = MemGate::create_global(sizeof(buffer) + sizeof(sPRD), MemGate::RW);
+        ctrl_setupDMA(temp);
+
         device->secSize   = ATA_SEC_SIZE;
         device->rwHandler = ata_readWrite;
         SLOG(IDE, "Device " << device->id << " is an ATA-device");
         /* read the partition-table */
-        if(!ata_readWrite(device, OP_READ, buffer, 0, device->secSize, 1)) {
+        if(!ata_readWrite(device, OP_READ, temp, 0, 0, device->secSize, 1)) {
             if(device->ctrl->useDma && device->info.caps.flags.DMA) {
                 SLOG(IDE, "Device " << device->id
                                     << ": Reading the partition table with DMA failed. Disabling DMA.");
@@ -69,7 +75,7 @@ void device_init(sATADevice *device) {
                 SLOG(IDE,
                      "Device " << device->id << ": Reading the partition table with PIO failed. Retrying.");
             }
-            if(!ata_readWrite(device, OP_READ, buffer, 0, device->secSize, 1)) {
+            if(!ata_readWrite(device, OP_READ, temp, 0, 0, device->secSize, 1)) {
                 device->present = 0;
                 SLOG(IDE, "Device " << device->id << ": Unable to read partition-table! Disabling device");
                 return;
@@ -78,6 +84,7 @@ void device_init(sATADevice *device) {
 
         /* copy partitions to mem */
         SLOG(IDE_ALL, "Parsing partition-table");
+        temp.read(buffer, sizeof(buffer), 0);
         part_fillPartitions(device->partTable, buffer);
     }
     else {

@@ -25,6 +25,8 @@
 #include <base/Common.h>
 #include <base/stream/OStream.h>
 
+#include <m3/com/MemGate.h>
+
 #include "partition.h"
 
 enum {
@@ -294,8 +296,8 @@ typedef struct {
 
 typedef struct sATAController sATAController;
 typedef struct sATADevice sATADevice;
-typedef bool (*fReadWrite)(sATADevice *device, uint op, void *buffer, uint64_t lba, size_t secSize,
-                           size_t secCount);
+typedef bool (*fReadWrite)(sATADevice *device, uint op, m3::MemGate &mem, size_t offset,
+                           uint64_t lba, size_t secSize, size_t secCount);
 
 struct sATADevice {
     /* the identifier; 0-3; bit0 set means slave */
@@ -336,10 +338,6 @@ struct sATAController {
     uint16_t bmrBase;
     int irq;
     int irqsem;
-    sPRD *dma_prdt_phys;
-    sPRD *dma_prdt_virt;
-    void *dma_buf_phys;
-    void *dma_buf_virt;
     sATADevice devices[2];
 };
 

@@ -42,8 +42,10 @@
 
 using namespace m3;
 
-static ulong handleRead(sATADevice *device, sPartition *part, uint16_t *buf, uint offset, uint count);
-static ulong handleWrite(sATADevice *device, sPartition *part, uint16_t *buf, uint offset, uint count);
+static ulong handleRead(sATADevice *device, sPartition *part, MemGate &mem, size_t memoff,
+                        uint offset, uint count);
+static ulong handleWrite(sATADevice *device, sPartition *part, MemGate &mem, size_t memoff,
+                         uint offset, uint count);
 
 struct CapNode : public TreapNode<CapNode, blockno_t> {
     friend class TreapNode;
@@ -67,6 +69,10 @@ using base_class = RequestHandler<
     DiskRequestHandler, Disk::Operation, Disk::COUNT, DiskSrvSession
 >;
 static Server<DiskRequestHandler> *srv;
+
+// we can only read 255 sectors (<31 blocks) at once (see ata.cc ata_setupCommand)
+// and the max DMA size is 0x10000 in gem5
+static constexpr size_t MAX_DMA_SIZE = Math::min(255 * 512, 0x10000);
 
 class DiskRequestHandler : public base_class {
 public:
@@ -127,34 +133,37 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(IDE, "DISK: Read blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+        SLOG(IDE, "DISK: Read blocks " << start << ":"
+            << len << " @ " << fmt(off, "x") << " in " << blocksize << "b blocks");
+
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
             return;
         }
 
-        Errors::Code res;
+        Errors::Code res = Errors::NONE;
 
-        uint16_t *buf  = new uint16_t[(30 * blocksize) / 2];
         capsel_t m_cap = caps.find(cap)->_mem;
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
+            ctrl_setupDMA(m);
 
-            //we can only read 255 sectors (<31 blocks) at once (see ata.cc ata_setupCommand)
-            size_t i = 0;
-            for(; i < (len / 30); i++) {
-                handleRead(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, 30 * blocksize);
-                res = m.write(buf, 30 * blocksize, (off + i * 30) * blocksize);
+            off *= blocksize;
+            start *= blocksize;
+            len *= blocksize;
+
+            while(len >= MAX_DMA_SIZE) {
+                handleRead(_dev, _dev->partTable, m, off, start, MAX_DMA_SIZE);
+                start += MAX_DMA_SIZE;
+                off += MAX_DMA_SIZE;
+                len -= MAX_DMA_SIZE;
             }
-            //now read the rest
-            if(len % 30) {
-                handleRead(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, (len % 30) * blocksize);
-                res = m.write(buf, (len % 30) * blocksize, (off + i * 30) * blocksize);
-            }
+            // now read the rest
+            if(len)
+                handleRead(_dev, _dev->partTable, m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
-        delete[] buf;
 
         reply_error(is, res);
     }
@@ -169,37 +178,38 @@ public:
         is >> blocksize;
         is >> off;
 
-        SLOG(IDE, "DISK: Write blocks " << start << ":" << len << " @ " << fmt(off, "x"));
+        SLOG(IDE, "DISK: Write blocks " << start << ":"
+            << len << " @ " << fmt(off, "x") << " in " << blocksize << "b blocks");
 
         if(len * blocksize < 512) {
             reply_error(is, Errors::INV_ARGS);
             return;
         }
 
-        Errors::Code res;
-
-        uint16_t *buf = new uint16_t[(30 * blocksize) / 2];
+        Errors::Code res = Errors::NONE;
 
         capsel_t m_cap = caps.find(cap)->_mem;
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
+            ctrl_setupDMA(m);
 
-            //we can only write 255 sectors (<31 blocks) at once (see ata.cc ata_setupCommand)
-            size_t i = 0;
-            for(; i < (len / 30); i++) {
-                res = m.read(buf, 30 * blocksize, (off + i * 30) * blocksize);
-                handleWrite(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, 30 * blocksize);
+            off *= blocksize;
+            start *= blocksize;
+            len *= blocksize;
+
+            while(len >= MAX_DMA_SIZE) {
+                handleWrite(_dev, _dev->partTable, m, off, start, MAX_DMA_SIZE);
+                start += MAX_DMA_SIZE;
+                off += MAX_DMA_SIZE;
+                len -= MAX_DMA_SIZE;
             }
-            //now read the rest
-            if(len % 30) {
-                res = m.read(buf, (len % 30) * blocksize, (off + i * 30) * blocksize);
-                handleWrite(_dev, _dev->partTable, buf, (start + i * 30) * blocksize, (len % 30) * blocksize);
-            }
+            // now write the rest
+            if(len)
+                handleWrite(_dev, _dev->partTable, m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
 
-        delete[] buf;
         reply_error(is, res);
     }
 
@@ -234,10 +244,6 @@ class ATAPartitionDevice;
 
 static size_t drvCount = 0;
 static ATAPartitionDevice *devs[PARTITION_COUNT * DEVICE_COUNT];
-/* don't use dynamic memory here since this may cause trouble with swapping (which we do) */
-/* because if the heap hasn't enough memory and we request more when we should swap the kernel
- * may not have more memory and can't do anything about it */
-static uint16_t buffer[MAX_RW_SIZE / sizeof(uint16_t)];
 
 class ATAPartitionDevice {
 private:
@@ -257,7 +263,7 @@ public:
 };
 
 int main(int argc, char **argv) {
-    bool useDma = false; // TODO current unsupported
+    bool useDma = true;
     bool useIRQ = true;
 
     for(size_t i = 2; (int)i < argc; i++) {
@@ -294,7 +300,7 @@ int main(int argc, char **argv) {
             src[i].endHead     = i;
             src[i].start       = 0x0;
             // this could be too small for bench.img
-            src[i].size = 173000000;
+            src[i].size = 64 * 1024 * 1024;
         }
 
         /* write the information to the in-memory partition table */
@@ -312,26 +318,26 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-static ulong handleRead(sATADevice *ataDev, sPartition *part, uint16_t *buf, uint offset, uint count) {
+static ulong handleRead(sATADevice *ataDev, sPartition *part, MemGate &mem, size_t memoff,
+                        uint offset, uint count) {
     /* we have to check whether it is at least one sector. otherwise ATA can't
 	 * handle the request */
     SLOG(IDE_ALL, "" << offset << " + " << count << " <= " << part->size << " * " << ataDev->secSize);
     if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
         uint rcount = m3::Math::round_up((size_t)count, ataDev->secSize);
-        if(buf != buffer || rcount <= MAX_RW_SIZE) {
-            int i;
-            SLOG(IDE_ALL, "Reading " << rcount << " bytes @ " << offset << " from device " << ataDev->id);
-            for(i = 0; i < RETRY_COUNT; i++) {
-                if(i > 0)
-                    SLOG(IDE, "Read failed; retry " << i);
-                if(ataDev->rwHandler(ataDev, OP_READ, buf, offset / ataDev->secSize + part->start,
-                                     ataDev->secSize, rcount / ataDev->secSize)) {
-                    return count;
-                }
+        int i;
+        SLOG(IDE_ALL, "Reading " << rcount << " bytes @ " << offset << " from device " << ataDev->id);
+        for(i = 0; i < RETRY_COUNT; i++) {
+            if(i > 0)
+                SLOG(IDE, "Read failed; retry " << i);
+            if(ataDev->rwHandler(ataDev, OP_READ, mem, memoff,
+                                 offset / ataDev->secSize + part->start,
+                                 ataDev->secSize, rcount / ataDev->secSize)) {
+                return count;
             }
-            SLOG(IDE, "Giving up after " << i << " retries");
-            return 0;
         }
+        SLOG(IDE, "Giving up after " << i << " retries");
+        return 0;
     }
     SLOG(IDE, "Invalid read-request: offset=" << offset << ", count=" << count
                                               << ", partSize=" << part->size * ataDev->secSize << " (device "
@@ -339,24 +345,24 @@ static ulong handleRead(sATADevice *ataDev, sPartition *part, uint16_t *buf, uin
     return 0;
 }
 
-static ulong handleWrite(sATADevice *ataDev, sPartition *part, uint16_t *buf, uint offset, uint count) {
+static ulong handleWrite(sATADevice *ataDev, sPartition *part, MemGate &mem, size_t memoff,
+                         uint offset, uint count) {
     SLOG(IDE_ALL, "ataDev->secSize: " << ataDev->secSize << ", count: " << count);
     if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
-        if(buf != buffer || count <= MAX_RW_SIZE) {
-            int i;
-            SLOG(IDE_ALL,
-                 "Writing " << count << " bytes @ 0x" << m3::fmt(offset, "x") << " to device " << ataDev->id);
-            for(i = 0; i < RETRY_COUNT; i++) {
-                if(i > 0)
-                    SLOG(IDE, "Write failed; retry " << i);
-                if(ataDev->rwHandler(ataDev, OP_WRITE, buf, offset / ataDev->secSize + part->start,
-                                     ataDev->secSize, count / ataDev->secSize)) {
-                    return count;
-                }
+        int i;
+        SLOG(IDE_ALL,
+             "Writing " << count << " bytes @ 0x" << m3::fmt(offset, "x") << " to device " << ataDev->id);
+        for(i = 0; i < RETRY_COUNT; i++) {
+            if(i > 0)
+                SLOG(IDE, "Write failed; retry " << i);
+            if(ataDev->rwHandler(ataDev, OP_WRITE, mem, memoff,
+                                 offset / ataDev->secSize + part->start,
+                                 ataDev->secSize, count / ataDev->secSize)) {
+                return count;
             }
-            SLOG(IDE, "Giving up after " << i << " retries");
-            return 0;
         }
+        SLOG(IDE, "Giving up after " << i << " retries");
+        return 0;
     }
     SLOG(IDE, "Invalid write-request: offset=0x" << m3::fmt(offset, "x") << ", count=" << count
                                                  << ", partSize=" << part->size * ataDev->secSize

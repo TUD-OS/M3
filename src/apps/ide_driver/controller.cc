@@ -168,9 +168,9 @@ void ctrl_init(bool useDma, bool useIRQ) {
                                        << "): vendorId 0x" << fmt(ideCtrl.vendorId, "x") << ", deviceId 0x"
                                        << fmt(ideCtrl.deviceId, "x") << ", rev " << ideCtrl.revId);
 
-    /* ensure that the I/O space is enabled */
+    /* ensure that the I/O space is enabled and bus mastering is enabled */
     uint32_t statusCmd = ideController->readStatus();
-    ideController->writeRegs(PCI_COMMAND, (statusCmd & ((uint32_t)~0x400)) | 0x01);
+    ideController->writeRegs(PCI_COMMAND, (statusCmd & ((uint32_t)~0x400)) | 0x01 | 0x04);
 
     ctrls[0].id       = DEVICE_PRIMARY;
     ctrls[0].irq      = CTRL_IRQ_BASE;
@@ -181,14 +181,19 @@ void ctrl_init(bool useDma, bool useIRQ) {
     ctrls[1].portBase = PORTBASE_SECONDARY;
 
     /* request io-ports for bus-mastering */
-    if(useDma && ideCtrl.bars[IDE_CTRL_BAR].addr) {
+    if(useDma) {
+        if(ideCtrl.bars[IDE_CTRL_BAR].addr == 0) {
+            ideController->writeRegs(PCI0_BASE_ADDR4, 0x400);
+            ideCtrl.bars[IDE_CTRL_BAR].addr = 0x400;
+        }
+
         SLOG(IDE_ALL, "DMA is active! BAR4 address: 0x" << m3::fmt(ideCtrl.bars[IDE_CTRL_BAR].addr, "x"));
     }
 
     for(i = 0; i < 2; i++) {
         SLOG(IDE_ALL, "Initializing controller " << ctrls[i].id);
         ctrls[i].useIrq = useIRQ;
-        ctrls[i].useDma = useDma;
+        ctrls[i].useDma = false;
 
         SLOG(IDE_ALL, "Portbase for controller " << i << "is 0x" << m3::fmt(ctrls[i].portBase, "x"));
         SLOG(IDE_ALL, "ATA_REG_CONTROL: " << ATA_REG_CONTROL);
@@ -217,24 +222,6 @@ void ctrl_init(bool useDma, bool useIRQ) {
 
         if(useDma && ctrls[i].bmrBase) {
             ctrls[i].bmrBase += i * static_cast<ssize_t>(BMR_SEC_OFFSET);
-
-            // allocate memory for PRDT and buffer
-            ctrls[i].dma_prdt_virt = (sPRD *)Heap::alloc(sizeof(4096 * PRDT_PAGE_COUNT));
-            /*original statement in Escape OS:
-			    dma_prdt_virt = static_cast<sPRD*>(
-				    mmapphys((uintptr_t*)&ctrls[i].dma_prdt_phys,8,
-				        4096,MAP_PHYS_ALLOC));*/
-
-            if(!ctrls[i].dma_prdt_virt)
-                PANIC("Unable to allocate PRDT for controller " << ctrls[i].id);
-
-            ctrls[i].dma_buf_virt = (void *)Heap::alloc(sizeof(DMA_BUF_SIZE));
-            /*original statement in Escape OS:
-			    dma_buf_virt = mmapphys((uintptr_t*)&ctrls[i].dma_buf_phys,
-					DMA_BUF_SIZE,DMA_BUF_SIZE,MAP_PHYS_ALLOC);*/
-
-            if(!ctrls[i].dma_buf_virt)
-                PANIC("Unable to allocate dma-buffer for controller " << ctrls[i].id);
             ctrls[i].useDma = true;
             SLOG(IDE_ALL, "useDma is true for device " << i);
         }
@@ -262,6 +249,10 @@ sATADevice *ctrl_getDevice(uchar id) {
 
 sATAController *ctrl_getCtrl(uchar id) {
     return ctrls + id;
+}
+
+void ctrl_setupDMA(MemGate &mem) {
+    ideController->setDmaEp(mem);
 }
 
 void ctrl_outbmrb(sATAController *ctrl, uint16_t reg, uint8_t value) {
