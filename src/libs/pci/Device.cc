@@ -46,7 +46,6 @@ void ProxiedPciDevice::listenForIRQs(std::function<void()> callback) {
 }
 
 void ProxiedPciDevice::setDmaEp(m3::MemGate &memgate) {
-    _vpe.delegate(KIF::CapRngDesc(KIF::CapRngDesc::OBJ, memgate.sel(), 1));
     if(memgate.activate_for(_vpe, EP_DMA) != Errors::NONE)
         PANIC("Unable to activate DMA EP for proxied pci device: " << Errors::last);
 }
