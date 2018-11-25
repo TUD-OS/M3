@@ -69,8 +69,8 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
     // size_t max_size = Math::min((size_t)FILE_BUFFER_SIZE, _max_load);
     size_t max_size = Math::min(FILE_BUFFER_SIZE, static_cast<size_t>(1) << accessed);
     // size_t max_size = Math::min((size_t)FILE_BUFFER_SIZE, _max_load * accessed);
-    size_t load_size = 0;
-    load ? load_size = Math::min(size, max_size) : load_size = Math::min((size_t)FILE_BUFFER_SIZE, size);
+    size_t load_size = Math::min(load ? max_size : FILE_BUFFER_SIZE, size);
+
     FileBufferHead *b;
     if((_size + load_size) > FILE_BUFFER_SIZE) {
         do {
