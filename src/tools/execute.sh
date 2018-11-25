@@ -353,38 +353,34 @@ build_params_t2_chip() {
     rm $temp
 }
 
-if [[ "$script" == *.cfg ]]; then
-    if [ "$M3_TARGET" = "host" ]; then
-        params=`build_params_host $script`
+if [ "$M3_TARGET" = "host" ]; then
+    params=`build_params_host $script`
 
-        if [[ $params == *diskdriver* ]]; then
-            ./src/tools/disk.py create $build/$M3_HDD $build/$M3_FS
-        fi
-
-        if [ "$M3_VALGRIND" != "" ]; then
-            valgrind $M3_VALGRIND $params
-        else
-            setarch `uname -m` -R $params
-        fi
-    elif [ "$M3_TARGET" = "t2" ]; then
-        build_params_t2_chip $script
-    elif [ "$M3_TARGET" = "t3" ]; then
-        build=`readlink -f $build`
-        bindir=`readlink -f $bindir`
-        tmp=`mktemp`
-        build_params_t3_sim $script > $tmp
-        cd hw/th/XTSC
-        echo -n "Params: "
-        cat $tmp
-        xargs ./t3-sim < $tmp
-        rm $tmp
-    elif [ "$M3_TARGET" = "gem5" ]; then
-        build_params_gem5 $script
-    else
-        echo "Unknown target '$M3_TARGET'"
+    if [[ $params == *diskdriver* ]]; then
+        ./src/tools/disk.py create $build/$M3_HDD $build/$M3_FS
     fi
+
+    if [ "$M3_VALGRIND" != "" ]; then
+        valgrind $M3_VALGRIND $params
+    else
+        setarch `uname -m` -R $params
+    fi
+elif [ "$M3_TARGET" = "t2" ]; then
+    build_params_t2_chip $script
+elif [ "$M3_TARGET" = "t3" ]; then
+    build=`readlink -f $build`
+    bindir=`readlink -f $bindir`
+    tmp=`mktemp`
+    build_params_t3_sim $script > $tmp
+    cd hw/th/XTSC
+    echo -n "Params: "
+    cat $tmp
+    xargs ./t3-sim < $tmp
+    rm $tmp
+elif [ "$M3_TARGET" = "gem5" ]; then
+    build_params_gem5 $script
 else
-    $script
+    echo "Unknown target '$M3_TARGET'"
 fi
 
 if [ -f $build/$M3_FS.out ]; then

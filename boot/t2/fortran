@@ -1,5 +1,0 @@
-#!/bin/bash
-. hw/th/config.ini
-export PATH=$xtroot/XtDevTools/install/tools/RD-2011.2-linux/XtensaTools/bin:$PATH
-export XTENSA_CORE=$core
-xt-run --turbo build/$M3_BUILD/bin/fortran
