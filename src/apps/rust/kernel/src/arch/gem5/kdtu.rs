@@ -64,8 +64,8 @@ impl State {
         let msg_size = 1 << msg_ord;
         regs[0] = (EpType::RECEIVE.val << 61) |
                   ((msg_size as Reg & 0xFFFF) << 32) |
-                  ((buf_size as Reg & 0xFFFF) << 16) |
-                  ((header as Reg) << 5);
+                  ((buf_size as Reg & 0x3F) << 26) |
+                  ((header as Reg) << 6);
         regs[1] = buf as Reg;
         regs[2] = 0;
     }
