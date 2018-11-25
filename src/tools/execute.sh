@@ -153,6 +153,10 @@ build_params_gem5() {
         done
     )`
 
+    if [[ $cmd == *diskdriver* ]]; then
+        ./src/tools/disk.py create $build/$M3_HDD $build/$M3_FS
+    fi
+
     M3_GEM5_CPUFREQ=${M3_GEM5_CPUFREQ:-1GHz}
     M3_GEM5_MEMFREQ=${M3_GEM5_MEMFREQ:-333MHz}
     M3_GEM5_OUT=${M3_GEM5_OUT:-run}
@@ -351,10 +355,16 @@ build_params_t2_chip() {
 
 if [[ "$script" == *.cfg ]]; then
     if [ "$M3_TARGET" = "host" ]; then
+        params=`build_params_host $script`
+
+        if [[ $params == *diskdriver* ]]; then
+            ./src/tools/disk.py create $build/$M3_HDD $build/$M3_FS
+        fi
+
         if [ "$M3_VALGRIND" != "" ]; then
-            valgrind $M3_VALGRIND `build_params_host $script`
+            valgrind $M3_VALGRIND $params
         else
-            setarch `uname -m` -R `build_params_host $script`
+            setarch `uname -m` -R $params
         fi
     elif [ "$M3_TARGET" = "t2" ]; then
         build_params_t2_chip $script
