@@ -27,7 +27,7 @@
 
 #include <m3/com/MemGate.h>
 
-#include "partition.h"
+#include "../../partition.h"
 
 enum {
     OP_READ   = 0,

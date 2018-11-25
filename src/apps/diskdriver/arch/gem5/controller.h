@@ -32,8 +32,9 @@
 #include <pci/Device.h>
 
 #include "device.h"
+
 /* Defines time_t */
-#include "custom_types.h"
+#include "../../custom_types.h"
 
 enum {
     DEVICE_PRIMARY   = 0,

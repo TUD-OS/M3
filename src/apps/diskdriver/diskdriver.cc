@@ -23,6 +23,7 @@
 
 #include <base/col/Treap.h>
 #include <base/util/Math.h>
+#include <base/CmdArgs.h>
 
 #include <m3/com/MemGate.h>
 #include <m3/server/RequestHandler.h>
@@ -30,19 +31,10 @@
 #include <m3/session/Disk.h>
 #include <m3/stream/Standard.h>
 
-#include "Session.h"
-#include "ata.h"
-#include "controller.h"
-#include "custom_types.h"
-#include "device.h"
-#include "partition.h"
+#include "session.h"
+#include "disk.h"
 
 using namespace m3;
-
-static ulong handleRead(sATADevice *device, sPartition *part, MemGate &mem, size_t memoff,
-                        uint offset, uint count);
-static ulong handleWrite(sATADevice *device, sPartition *part, MemGate &mem, size_t memoff,
-                         uint offset, uint count);
 
 struct CapNode : public TreapNode<CapNode, blockno_t> {
     friend class TreapNode;
@@ -57,20 +49,6 @@ struct CapNode : public TreapNode<CapNode, blockno_t> {
 
     bool matches(blockno_t bno) {
         return (key() <= bno) && (bno < key() + _len);
-    }
-};
-
-struct ATAPartitionDevice;
-
-static size_t drvCount = 0;
-static ATAPartitionDevice *devs[PARTITION_COUNT * DEVICE_COUNT];
-
-struct ATAPartitionDevice {
-    uint32_t id;
-    uint32_t partition;
-
-    explicit ATAPartitionDevice(uint32_t id, uint32_t partition)
-        : id(id), partition(partition) {
     }
 };
 
@@ -105,7 +83,7 @@ public:
     }
 
     virtual Errors::Code open(DiskSrvSession **sess, capsel_t srv_sel, word_t dev) override {
-        if(dev >= ARRAY_SIZE(devs) || devs[dev] == nullptr)
+        if(!disk_exists(dev))
             return Errors::INV_ARGS;
 
         *sess = new DiskSrvSession(dev, srv_sel, &_rgate);
@@ -152,9 +130,6 @@ public:
         is >> off;
 
         DiskSrvSession *sess = is.label<DiskSrvSession*>();
-        ATAPartitionDevice *pdev = devs[sess->device()];
-        sATADevice *dev = ctrl_getDevice(pdev->id);
-        sPartition *part = dev->partTable + pdev->partition;
 
         PRINT(sess, "read blocks " << start << ":" << len
                                    << " @ " << fmt(off, "x")
@@ -170,21 +145,20 @@ public:
         capsel_t m_cap = caps.find(cap)->_mem;
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
-            ctrl_setupDMA(m);
 
             off *= blocksize;
             start *= blocksize;
             len *= blocksize;
 
             while(len >= MAX_DMA_SIZE) {
-                handleRead(dev, part, m, off, start, MAX_DMA_SIZE);
+                disk_read(sess->device(), m, off, start, MAX_DMA_SIZE);
                 start += MAX_DMA_SIZE;
                 off += MAX_DMA_SIZE;
                 len -= MAX_DMA_SIZE;
             }
             // now read the rest
             if(len)
-                handleRead(dev, part, m, off, start, len);
+                disk_read(sess->device(), m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
@@ -203,9 +177,6 @@ public:
         is >> off;
 
         DiskSrvSession *sess = is.label<DiskSrvSession*>();
-        ATAPartitionDevice *pdev = devs[sess->device()];
-        sATADevice *dev = ctrl_getDevice(pdev->id);
-        sPartition *part = dev->partTable + pdev->partition;
 
         PRINT(sess, "write blocks " << start << ":" << len
                                     << " @ " << fmt(off, "x")
@@ -221,21 +192,20 @@ public:
         capsel_t m_cap = caps.find(cap)->_mem;
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
-            ctrl_setupDMA(m);
 
             off *= blocksize;
             start *= blocksize;
             len *= blocksize;
 
             while(len >= MAX_DMA_SIZE) {
-                handleWrite(dev, part, m, off, start, MAX_DMA_SIZE);
+                disk_write(sess->device(), m, off, start, MAX_DMA_SIZE);
                 start += MAX_DMA_SIZE;
                 off += MAX_DMA_SIZE;
                 len -= MAX_DMA_SIZE;
             }
             // now write the rest
             if(len)
-                handleWrite(dev, part, m, off, start, len);
+                disk_write(sess->device(), m, off, start, len);
         }
         else
             res = Errors::NO_PERM;
@@ -248,24 +218,32 @@ private:
     Treap<CapNode> caps;
 };
 
-static const int RETRY_COUNT    = 3;
-
-static void initDrives(void);
+static void usage(const char *name) {
+    cerr << "Usage: " << name << " [-d] [-i] [-f <file>]\n";
+    cerr << "  -d: enable DMA\n";
+    cerr << "  -i: enable IRQs\n";
+    cerr << "  -f: the disk file to use (host only)\n";
+    exit(1);
+}
 
 int main(int argc, char **argv) {
-    bool useDma = true;
-    bool useIRQ = true;
+    bool useDma = false;
+    bool useIRQ = false;
+    const char *disk = nullptr;
 
-    for(size_t i = 2; (int)i < argc; i++) {
-        if(strcmp(argv[i], "nodma") == 0)
-            useDma = false;
-        else if(strcmp(argv[i], "noirq") == 0)
-            useIRQ = false;
+    int opt;
+    while((opt = CmdArgs::get(argc, argv, "dif:")) != -1) {
+        switch(opt) {
+            case 'd': useDma = true; break;
+            case 'i': useIRQ = true; break;
+            case 'f': disk = CmdArgs::arg; break;
+            default:
+                usage(argv[0]);
+        }
     }
 
     /* detect and init all devices */
-    ctrl_init(useDma, useIRQ);
-    initDrives();
+    disk_init(useDma, useIRQ, disk);
 
     srv = new Server<DiskRequestHandler>("disk", new DiskRequestHandler());
 
@@ -274,82 +252,6 @@ int main(int argc, char **argv) {
 
     delete srv;
 
-    ctrl_deinit();
+    disk_deinit();
     return 0;
-}
-
-static ulong handleRead(sATADevice *ataDev, sPartition *part, MemGate &mem, size_t memoff,
-                        uint offset, uint count) {
-    /* we have to check whether it is at least one sector. otherwise ATA can't
-	 * handle the request */
-    SLOG(IDE_ALL, "" << offset << " + " << count << " <= " << part->size << " * " << ataDev->secSize);
-    if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
-        uint rcount = m3::Math::round_up((size_t)count, ataDev->secSize);
-        int i;
-        SLOG(IDE_ALL, "Reading " << rcount << " bytes @ " << offset << " from device " << ataDev->id);
-        for(i = 0; i < RETRY_COUNT; i++) {
-            if(i > 0)
-                SLOG(IDE, "Read failed; retry " << i);
-            if(ataDev->rwHandler(ataDev, OP_READ, mem, memoff,
-                                 offset / ataDev->secSize + part->start,
-                                 ataDev->secSize, rcount / ataDev->secSize)) {
-                return count;
-            }
-        }
-        SLOG(IDE, "Giving up after " << i << " retries");
-        return 0;
-    }
-    SLOG(IDE, "Invalid read-request: offset=" << offset << ", count=" << count
-                                              << ", partSize=" << part->size * ataDev->secSize << " (device "
-                                              << ataDev->id << ")");
-    return 0;
-}
-
-static ulong handleWrite(sATADevice *ataDev, sPartition *part, MemGate &mem, size_t memoff,
-                         uint offset, uint count) {
-    SLOG(IDE_ALL, "ataDev->secSize: " << ataDev->secSize << ", count: " << count);
-    if(offset + count <= part->size * ataDev->secSize && offset + count > offset) {
-        int i;
-        SLOG(IDE_ALL,
-             "Writing " << count << " bytes @ 0x" << m3::fmt(offset, "x") << " to device " << ataDev->id);
-        for(i = 0; i < RETRY_COUNT; i++) {
-            if(i > 0)
-                SLOG(IDE, "Write failed; retry " << i);
-            if(ataDev->rwHandler(ataDev, OP_WRITE, mem, memoff,
-                                 offset / ataDev->secSize + part->start,
-                                 ataDev->secSize, count / ataDev->secSize)) {
-                return count;
-            }
-        }
-        SLOG(IDE, "Giving up after " << i << " retries");
-        return 0;
-    }
-    SLOG(IDE, "Invalid write-request: offset=0x" << m3::fmt(offset, "x") << ", count=" << count
-                                                 << ", partSize=" << part->size * ataDev->secSize
-                                                 << " (device " << ataDev->id << ")");
-    return 0;
-}
-
-static void initDrives(void) {
-    uint deviceIds[] = {DEVICE_PRIM_MASTER, DEVICE_PRIM_SLAVE, DEVICE_SEC_MASTER, DEVICE_SEC_SLAVE};
-    for(size_t i = 0; i < DEVICE_COUNT; i++) {
-        sATADevice *ataDev = ctrl_getDevice(deviceIds[i]);
-        if(ataDev->present == 0)
-            continue;
-
-        size_t size = (ataDev->info.userSectorCount * 512) / (1024 * 1024);
-        SLOG(IDE, "Found disk device '" << device_model_name(ataDev) << "' (" << size << " MiB)");
-
-        /* register device for every partition */
-        for(size_t p = 0; p < PARTITION_COUNT; p++) {
-            if(ataDev->partTable[p].present) {
-                devs[drvCount] = new ATAPartitionDevice(ataDev->id, p);
-                SLOG(IDE, "Registered partition " << drvCount
-                                                  << " (device " << ataDev->id
-                                                  << ", partition " << p + 1 << ")");
-
-                drvCount++;
-            }
-        }
-    }
 }

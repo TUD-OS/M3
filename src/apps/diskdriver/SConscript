@@ -1,0 +1,6 @@
+Import('env')
+env.M3Program(
+    env, 'diskdriver',
+    [env.Glob('*.cc'), env.Glob('arch/$ARCH/*.cc')],
+    libs = ['pci']
+)
