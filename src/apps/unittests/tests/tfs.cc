@@ -46,7 +46,7 @@ static void check_content(const char *filename, size_t size) {
     ssize_t count;
     while((count = file->read(largebuf, sizeof(largebuf))) > 0) {
         for(ssize_t i = 0; i < count; ++i)
-            assert_int(largebuf[i], pos++ % 100);
+            assert_int(largebuf[i], static_cast<uint8_t>(pos++ % 100));
     }
     assert_size(pos, size);
 

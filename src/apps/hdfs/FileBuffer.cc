@@ -49,7 +49,7 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
                 lru.append(b);
                 SLOG(FS, "FileFuffer: Found cached blocks <"
                     << b->key() << "," << b->_size << ">, for block " << bno);
-                size_t len       = Math::min(size, (b->_size - (bno - b->key())));
+                size_t len       = Math::min(size, static_cast<size_t>(b->_size - (bno - b->key())));
                 Errors::Code res = m3::Syscalls::get().derivemem(
                     sel, b->_data.sel(), (bno - b->key()) * _blocksize, len * _blocksize, perms);
 
