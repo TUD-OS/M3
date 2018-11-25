@@ -131,6 +131,7 @@ FileBufferHead *FileBuffer::get(blockno_t bno) {
 void FileBuffer::flush_chunk(BufferHead *b) {
     b->locked = true;
 
+    // TODO track the dirty regions instead of writing back the whole buffer
     SLOG(FS, "FileBuffer: Write back block <" << b->key() << ">");
     _disk->write(b->key(), b->key(), b->_size, _blocksize);
 
