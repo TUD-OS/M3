@@ -132,18 +132,17 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
         Command *cmd = list->cmds[i];
 
         vpes[i] = new VPE(expr_value(cmd->args->args[0]), descs[i], nullptr, muxed ? VPE::MUXABLE : 0);
+        vpe_count++;
         if(Errors::last != Errors::NONE) {
-            delete vpes[i];
-            vpes[i] = nullptr;
             errmsg("Unable to create VPE for " << expr_value(cmd->args->args[0]));
-            break;
+            goto error;
         }
 
         // I/O redirection is only supported at the beginning and end
         if((i + 1 < list->count && cmd->redirs->fds[STDOUT_FD]) ||
             (i > 0 && cmd->redirs->fds[STDIN_FD])) {
             errmsg("Invalid I/O redirection");
-            break;
+            goto error;
         }
 
         if(i == 0) {
@@ -151,7 +150,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
                 infd = VFS::open(cmd->redirs->fds[STDIN_FD], FILE_R);
                 if(infd == FileTable::INVALID) {
                     errmsg("Unable to open " << cmd->redirs->fds[STDIN_FD]);
-                    break;
+                    goto error;
                 }
             }
             vpes[i]->fds()->set(STDIN_FD, VPE::self().fds()->get(infd));
@@ -164,7 +163,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
                 outfd = VFS::open(cmd->redirs->fds[STDOUT_FD], FILE_W | FILE_CREATE | FILE_TRUNC);
                 if(outfd == FileTable::INVALID) {
                     errmsg("Unable to open " << cmd->redirs->fds[STDOUT_FD]);
-                    break;
+                    goto error;
                 }
             }
             vpes[i]->fds()->set(STDOUT_FD, VPE::self().fds()->get(outfd));
@@ -188,7 +187,7 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
 
             if(Errors::last != Errors::NONE) {
                 errmsg("Unable to execute '" << expr_value(cmd->args->args[0]) << "'");
-                break;
+                goto error;
             }
         }
         else
@@ -200,80 +199,84 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
             if(vpes[i - 1]->pe().is_programmable())
                 pipes[i - 1]->close_writer();
         }
-        vpe_count++;
     }
 
     // connect input/output of accelerators
-    File *clones[vpe_count * 2];
-    size_t c = 0;
-    for(size_t i = 0; i < vpe_count; ++i) {
-        if(accels[i]) {
-            File *in = vpes[i]->fds()->get(STDIN_FD);
-            if(in) {
-                File *ain = in == VPE::self().fds()->get(STDIN_FD) ? in->clone() : in;
-                accels[i]->connect_input(static_cast<GenericFile*>(ain));
-                if(ain != in)
-                    clones[c++] = ain;
+    {
+        File *clones[vpe_count * 2];
+        size_t c = 0;
+        for(size_t i = 0; i < vpe_count; ++i) {
+            if(accels[i]) {
+                File *in = vpes[i]->fds()->get(STDIN_FD);
+                if(in) {
+                    File *ain = in == VPE::self().fds()->get(STDIN_FD) ? in->clone() : in;
+                    accels[i]->connect_input(static_cast<GenericFile*>(ain));
+                    if(ain != in)
+                        clones[c++] = ain;
+                }
+                else if(accels[i - 1])
+                    accels[i]->connect_input(accels[i - 1]);
+
+                File *out = vpes[i]->fds()->get(STDOUT_FD);
+                if(out) {
+                    File *aout = out == VPE::self().fds()->get(STDOUT_FD) ? out->clone() : out;
+                    accels[i]->connect_output(static_cast<GenericFile*>(aout));
+                    if(aout != out)
+                        clones[c++] = aout;
+                }
+                else if(accels[i + 1])
+                    accels[i]->connect_output(accels[i + 1]);
             }
-            else if(accels[i - 1])
-                accels[i]->connect_input(accels[i - 1]);
-
-            File *out = vpes[i]->fds()->get(STDOUT_FD);
-            if(out) {
-                File *aout = out == VPE::self().fds()->get(STDOUT_FD) ? out->clone() : out;
-                accels[i]->connect_output(static_cast<GenericFile*>(aout));
-                if(aout != out)
-                    clones[c++] = aout;
-            }
-            else if(accels[i + 1])
-                accels[i]->connect_output(accels[i + 1]);
-        }
-    }
-
-    // start accelerator VPEs
-    for(size_t i = 0; i < vpe_count; ++i) {
-        if(accels[i])
-            vpes[i]->start();
-    }
-
-    capsel_t sels[vpe_count];
-    for(size_t rem = vpe_count; rem > 0; --rem) {
-        for(size_t x = 0, i = 0; i < vpe_count; ++i) {
-            if(vpes[i])
-                sels[x++] = vpes[i]->sel();
         }
 
-        capsel_t vpe;
-        int exitcode;
-        if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
-            errmsg("Unable to wait for VPEs");
-        else {
-            for(size_t i = 0; i < vpe_count; ++i) {
-                if(vpes[i] && vpes[i]->sel() == vpe) {
-                    if(exitcode != 0) {
-                        cerr << expr_value(list->cmds[i]->args->args[0])
-                             << " terminated with exit code " << exitcode << "\n";
+        // start accelerator VPEs
+        for(size_t i = 0; i < vpe_count; ++i) {
+            if(accels[i])
+                vpes[i]->start();
+        }
+
+        for(size_t rem = vpe_count; rem > 0; --rem) {
+            capsel_t sels[vpe_count];
+            for(size_t x = 0, i = 0; i < vpe_count; ++i) {
+                if(vpes[i])
+                    sels[x++] = vpes[i]->sel();
+            }
+
+            capsel_t vpe;
+            int exitcode;
+            if(Syscalls::get().vpewait(sels, rem, &vpe, &exitcode) != Errors::NONE)
+                errmsg("Unable to wait for VPEs");
+            else {
+                for(size_t i = 0; i < vpe_count; ++i) {
+                    if(vpes[i] && vpes[i]->sel() == vpe) {
+                        if(exitcode != 0) {
+                            cerr << expr_value(list->cmds[i]->args->args[0])
+                                 << " terminated with exit code " << exitcode << "\n";
+                        }
+                        if(!vpes[i]->pe().is_programmable()) {
+                            if(pipes[i])
+                                pipes[i]->close_writer();
+                            if(i > 0 && pipes[i - 1])
+                                pipes[i - 1]->close_reader();
+                        }
+                        delete vpes[i];
+                        vpes[i] = nullptr;
+                        break;
                     }
-                    if(!vpes[i]->pe().is_programmable()) {
-                        if(pipes[i])
-                            pipes[i]->close_writer();
-                        if(i > 0 && pipes[i - 1])
-                            pipes[i - 1]->close_reader();
-                    }
-                    delete vpes[i];
-                    vpes[i] = nullptr;
-                    break;
                 }
             }
         }
+
+        for(size_t i = 0; i < c; ++i)
+            delete clones[i];
     }
 
-    for(size_t i = 0; i < c; ++i)
-        delete clones[i];
+error:
     for(size_t i = 0; i < vpe_count; ++i) {
         delete accels[i];
         delete mems[i];
         delete pipes[i];
+        delete vpes[i];
     }
     if(infd != STDIN_FD && infd != FileTable::INVALID)
         VFS::close(infd);
