@@ -51,7 +51,7 @@ static void dmacmd(const void *data, size_t len, epid_t ep, size_t offset, size_
     dtu.set_cmd(m3::DTU::CMD_REPLY_EPID, 0);
     dtu.set_cmd(m3::DTU::CMD_CTRL, (op << 3) | m3::DTU::CTRL_START |
             m3::DTU::CTRL_DEL_REPLY_CAP);
-    dtu.wait_until_ready(ep);
+    dtu.exec_command();
 }
 
 static void cmds_read() {
@@ -97,7 +97,6 @@ static void cmds_read() {
 
         dmacmd(buf, datasize, sndep, 0, datasize, DTU::READ);
         assert_false(dtu.get_cmd(DTU::CMD_CTRL) & DTU::CTRL_ERROR);
-        dtu.wait_until_ready(sndep);
         for(size_t i = 0; i < 4; ++i)
             assert_word(buf[i], data[i]);
     }

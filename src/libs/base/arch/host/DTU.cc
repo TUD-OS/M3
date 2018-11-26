@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstring>
 #include <sstream>
+#include <signal.h>
 #include <unistd.h>
 
 namespace m3 {
@@ -42,17 +43,18 @@ DTU::DTU()
 }
 
 void DTU::start() {
-#if USE_MSGBACKEND
-    _backend = new MsgBackend();
-#else
-    _backend = new SocketBackend();
-#endif
+    _backend = new DTUBackend();
     if(env()->is_kernel())
         _backend->create();
 
     int res = pthread_create(&_tid, nullptr, thread, this);
     if(res != 0)
         PANIC("pthread_create");
+}
+
+void DTU::stop() {
+    _run = false;
+    pthread_kill(_tid, SIGUSR1);
 }
 
 void DTU::reset() {
@@ -375,6 +377,7 @@ void DTU::handle_resp_cmd() {
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length);
     /* provide feedback to SW */
     set_cmd(CMD_CTRL, resp);
+    _backend->notify(DTUBackend::Dest::CU);
 }
 
 void DTU::handle_msg(size_t len, epid_t ep) {
@@ -468,22 +471,37 @@ void DTU::handle_receive(epid_t ep) {
            << "crd=#" << fmt(get_ep(ep, EP_CREDITS), "x") << ")");
 }
 
+Errors::Code DTU::exec_command() {
+    _backend->notify(DTUBackend::Dest::DTU);
+    _backend->wait(DTUBackend::Dest::CU);
+    // TODO report errors here
+    return Errors::NONE;
+}
+
+static void sigstop(int) {
+}
+
 void *DTU::thread(void *arg) {
     DTU *dma = static_cast<DTU*>(arg);
     peid_t pe = env()->pe;
 
-    // don't allow any interrupts here
-    HWInterrupts::Guard noints;
+    signal(SIGUSR1, sigstop);
+
     while(dma->_run) {
         // should we send something?
-        if(dma->get_cmd(CMD_CTRL) & CTRL_START)
+        if(dma->_backend->has_command()) {
             dma->handle_command(pe);
+            if(dma->is_ready())
+                dma->_backend->notify(DTUBackend::Dest::CU);
+        }
 
-        // have we received a message?
-        for(epid_t i = 0; i < EP_COUNT; ++i)
-            dma->handle_receive(i);
-
-        dma->try_sleep();
+        // check _run again. TODO we might still miss the signal
+        if(dma->_run) {
+            // have we received a message?
+            epid_t ep = dma->_backend->has_msg();
+            if(ep != EP_COUNT)
+                dma->handle_receive(ep);
+        }
     }
 
     if(env()->is_kernel())

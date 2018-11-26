@@ -20,41 +20,42 @@
 #include <base/DTU.h>
 
 #include <sys/un.h>
+#include <poll.h>
 
 namespace m3 {
 
-class MsgBackend : public DTU::Backend {
-    static constexpr int BASE_MSGQID        = 0x12340000;
-
+class DTUBackend {
 public:
-    virtual void create() override;
-    virtual void destroy() override;
-    virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
+    enum class Dest {
+        DTU = 0,
+        CU  = 1,
+    };
+
+    explicit DTUBackend();
+    ~DTUBackend();
+
+    void create() {
+    }
+    void destroy() {
+    }
+
+    bool has_command();
+    epid_t has_msg();
+
+    void notify(Dest dst);
+    void wait(Dest dst);
+    void send(peid_t pe, epid_t ep, const DTU::Buffer *buf);
+    ssize_t recv(epid_t ep, DTU::Buffer *buf);
 
 private:
-    static key_t get_msgkey(peid_t pe, epid_t rep) {
-        return BASE_MSGQID + pe * EP_COUNT + rep;
-    }
+    void poll();
 
-    int _ids[EP_COUNT * PE_COUNT];
-};
-
-class SocketBackend : public DTU::Backend {
-public:
-    explicit SocketBackend();
-    ~SocketBackend();
-    virtual void create() override {
-    }
-    virtual void destroy() override {
-    }
-    virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) override;
-    virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) override;
-
-private:
     int _sock;
-    int _localsocks[EP_COUNT];
-    sockaddr_un _endpoints[PE_COUNT * EP_COUNT];
+    int _pending;
+    // the last two are used for DTU-CU notifications
+    int _localsocks[EP_COUNT + 2];
+    struct pollfd _fds[EP_COUNT + 1];
+    sockaddr_un _endpoints[PE_COUNT * (EP_COUNT + 2)];
 };
 
 }

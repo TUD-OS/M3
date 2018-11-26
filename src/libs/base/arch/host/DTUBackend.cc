@@ -25,53 +25,19 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 #include <unistd.h>
 
 namespace m3 {
 
-void MsgBackend::create() {
-    for(peid_t pe = 0; pe < PE_COUNT; ++pe) {
-        for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
-            size_t off = pe * EP_COUNT + ep;
-            _ids[off] = msgget(get_msgkey(pe, ep), IPC_CREAT | IPC_EXCL | 0777);
-            if(_ids[off] == -1)
-                PANIC("Creation of message queue failed: " << strerror(errno));
-        }
-    }
-}
+static const char *dst_names[] = {
+    "DTU", "CU"
+};
 
-void MsgBackend::destroy() {
-    for(size_t i = 0; i < PE_COUNT * EP_COUNT; ++i)
-        msgctl(_ids[i], IPC_RMID, nullptr);
-}
-
-void MsgBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
-    int msgqid = msgget(get_msgkey(pe, ep), 0);
-    // send it
-    int res;
-    do
-        res = msgsnd(msgqid, buf, buf->length + DTU::HEADER_SIZE - sizeof(buf->length), 0);
-    while(res == -1 && errno == EINTR);
-    if(res != 0)
-        PANIC("msgsnd to " << msgqid << " (SEP " << ep << ") failed: " << strerror(errno));
-}
-
-ssize_t MsgBackend::recv(epid_t ep, DTU::Buffer *buf) {
-    int msgqid = DTU::get().get_ep(ep, DTU::EP_BUF_MSGQID);
-    if(msgqid == 0) {
-        msgqid = msgget(get_msgkey(env()->pe, ep), 0);
-        DTU::get().set_ep(ep, DTU::EP_BUF_MSGQID, static_cast<word_t>(msgqid));
-    }
-
-    ssize_t res = msgrcv(msgqid, buf, sizeof(*buf) - sizeof(buf->length), 0, IPC_NOWAIT);
-    if(res == -1)
-        return -1;
-    res += static_cast<ssize_t>(sizeof(buf->length));
-    return res;
-}
-
-SocketBackend::SocketBackend()
+DTUBackend::DTUBackend()
     : _sock(socket(AF_UNIX, SOCK_DGRAM, 0)),
+      _pending(),
       _localsocks(),
       _endpoints() {
     if(_sock == -1)
@@ -79,8 +45,8 @@ SocketBackend::SocketBackend()
 
     // build socket names for all endpoints on all PEs
     for(peid_t pe = 0; pe < PE_COUNT; ++pe) {
-        for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
-            sockaddr_un *addr = _endpoints + pe * EP_COUNT + ep;
+        for(epid_t ep = 0; ep < EP_COUNT + 2; ++ep) {
+            sockaddr_un *addr = _endpoints + pe * (EP_COUNT + 2) + ep;
             addr->sun_family = AF_UNIX;
             // we can't put that in the format string
             addr->sun_path[0] = '\0';
@@ -89,7 +55,7 @@ SocketBackend::SocketBackend()
     }
 
     // create sockets and bind them for our own endpoints
-    for(epid_t ep = 0; ep < EP_COUNT; ++ep) {
+    for(epid_t ep = 0; ep < ARRAY_SIZE(_localsocks); ++ep) {
         _localsocks[ep] = socket(AF_UNIX, SOCK_DGRAM, 0);
         if(_localsocks[ep] == -1)
             PANIC("Unable to create socket for ep " << ep << ": " << strerror(errno));
@@ -97,29 +63,99 @@ SocketBackend::SocketBackend()
         // if we do fork+exec in kernel/lib we want to close all sockets. they are recreated anyway
         if(fcntl(_localsocks[ep], F_SETFD, FD_CLOEXEC) == -1)
             PANIC("Setting FD_CLOEXEC failed: " << strerror(errno));
-        // all calls should be non-blocking
-        if(fcntl(_localsocks[ep], F_SETFL, O_NONBLOCK) == -1)
-            PANIC("Setting O_NONBLOCK failed: " << strerror(errno));
 
-        sockaddr_un *addr = _endpoints + env()->pe * EP_COUNT + ep;
+        sockaddr_un *addr = _endpoints + env()->pe * (EP_COUNT + 2) + ep;
         if(bind(_localsocks[ep], (struct sockaddr*)addr, sizeof(*addr)) == -1)
             PANIC("Binding socket for ep " << ep << " failed: " << strerror(errno));
     }
+
+    for(size_t i = 0; i < ARRAY_SIZE(_fds); ++i) {
+        _fds[i].fd = _localsocks[i];
+        _fds[i].events = POLLIN | POLLERR;
+        _fds[i].revents = 0;
+    }
 }
 
-SocketBackend::~SocketBackend() {
-    for(epid_t ep = 0; ep < EP_COUNT; ++ep)
+DTUBackend::~DTUBackend() {
+    for(epid_t ep = 0; ep < ARRAY_SIZE(_localsocks); ++ep)
         close(_localsocks[ep]);
 }
 
-void SocketBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
+void DTUBackend::poll() {
+    _pending = ::ppoll(_fds, ARRAY_SIZE(_fds), nullptr, nullptr);
+    if(_pending < 0 && errno != EINTR)
+        LLOG(DTUERR, "Polling for notifications failed: " << strerror(errno));
+}
+
+bool DTUBackend::has_command() {
+    if(_pending == 0)
+        poll();
+
+    size_t fdidx = EP_COUNT + static_cast<size_t>(Dest::DTU);
+    if(_fds[fdidx].revents != 0) {
+        uint8_t dummy = 0;
+        if(recvfrom(_fds[fdidx].fd, &dummy, sizeof(dummy), 0, nullptr, nullptr) <= 0) {
+            LLOG(DTUERR, "Receiving notification from " << dst_names[static_cast<size_t>(Dest::DTU)]
+                                                        << " failed: " << strerror(errno));
+        }
+
+        _fds[fdidx].revents = 0;
+        _pending--;
+        return true;
+    }
+    return false;
+}
+
+epid_t DTUBackend::has_msg() {
+    if(_pending == 0)
+        poll();
+
+    for(epid_t i = 0; i < EP_COUNT; ++i) {
+        if(_fds[i].revents != 0) {
+            _fds[i].revents = 0;
+            _pending--;
+            return i;
+        }
+    }
+    return EP_COUNT;
+}
+
+void DTUBackend::notify(Dest dst) {
+    uint8_t dummy = 0;
+    sockaddr_un *dstsock = _endpoints + env()->pe * (EP_COUNT + 2) + EP_COUNT + static_cast<size_t>(dst);
+    int res = sendto(_sock, &dummy, sizeof(dummy), 0, (struct sockaddr*)dstsock, sizeof(sockaddr_un));
+    if(res == -1) {
+        LLOG(DTUERR, "Sending notification to " << dst_names[static_cast<size_t>(dst)]
+                                                << " failed: " << strerror(errno));
+    }
+}
+
+void DTUBackend::wait(Dest dst) {
+    struct pollfd fds;
+    fds.fd = _localsocks[EP_COUNT + static_cast<size_t>(dst)];
+    fds.events = POLLIN;
+    while(::poll(&fds, 1, -1) == -1) {
+        if(errno != EINTR) {
+            LLOG(DTUERR, "Polling for notification from " << dst_names[static_cast<size_t>(dst)]
+                                                          << " failed: " << strerror(errno));
+        }
+    }
+
+    uint8_t dummy = 0;
+    if(recvfrom(fds.fd, &dummy, sizeof(dummy), 0, nullptr, nullptr) <= 0) {
+        LLOG(DTUERR, "Receiving notification from " << dst_names[static_cast<size_t>(dst)]
+                                                    << " failed: " << strerror(errno));
+    }
+}
+
+void DTUBackend::send(peid_t pe, epid_t ep, const DTU::Buffer *buf) {
     int res = sendto(_sock, buf, buf->length + DTU::HEADER_SIZE, 0,
-                     (struct sockaddr*)(_endpoints + pe * EP_COUNT + ep), sizeof(sockaddr_un));
+                     (struct sockaddr*)(_endpoints + pe * (EP_COUNT + 2) + ep), sizeof(sockaddr_un));
     if(res == -1)
         LLOG(DTUERR, "Sending message to EP " << pe << ":" << ep << " failed: " << strerror(errno));
 }
 
-ssize_t SocketBackend::recv(epid_t ep, DTU::Buffer *buf) {
+ssize_t DTUBackend::recv(epid_t ep, DTU::Buffer *buf) {
     ssize_t res = recvfrom(_localsocks[ep], buf, sizeof(*buf), 0, nullptr, nullptr);
     if(res <= 0)
         return -1;

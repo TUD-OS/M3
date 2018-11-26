@@ -33,24 +33,17 @@
 #define DTU_PKG_SIZE        (static_cast<size_t>(8))
 #define EP_COUNT            16
 
-#define USE_MSGBACKEND      0
-
 namespace m3 {
 
 class Gate;
-class MsgBackend;
-class SocketBackend;
+class DTUBackend;
 
 class DTU {
     friend class Gate;
     friend class MsgBackend;
     friend class SocketBackend;
 
-#if USE_MSGBACKEND
-    static constexpr size_t MAX_DATA_SIZE   = 8192 - (sizeof(long int) + sizeof(word_t) * 4);
-#else
     static constexpr size_t MAX_DATA_SIZE   = HEAP_SIZE;
-#endif
 public:
     struct Header {
         size_t length;          // = mtype -> has to be non-zero
@@ -79,16 +72,6 @@ public:
 
         unsigned char data[];
     } PACKED;
-
-    class Backend {
-    public:
-        virtual ~Backend() {
-        }
-        virtual void create() = 0;
-        virtual void destroy() = 0;
-        virtual void send(peid_t pe, epid_t ep, const DTU::Buffer *buf) = 0;
-        virtual ssize_t recv(epid_t ep, DTU::Buffer *buf) = 0;
-    };
 
     static constexpr size_t HEADER_SIZE         = sizeof(Buffer) - MAX_DATA_SIZE;
     static const size_t HEADER_COUNT            = std::numeric_limits<size_t>::max();
@@ -206,18 +189,22 @@ public:
     void configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder);
 
     Errors::Code send(epid_t ep, const void *msg, size_t size, label_t replylbl, epid_t replyep) {
-        return fire(ep, SEND, msg, size, 0, 0, replylbl, replyep);
+        setup_command(ep, SEND, msg, size, 0, 0, replylbl, replyep);
+        return exec_command();
     }
     Errors::Code reply(epid_t ep, const void *msg, size_t size, size_t msgidx) {
-        Errors::Code res = fire(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
+        setup_command(ep, REPLY, msg, size, msgidx, 0, label_t(), 0);
+        Errors::Code res = exec_command();
         mark_read(ep, msgidx);
         return res;
     }
     Errors::Code read(epid_t ep, void *msg, size_t size, size_t off, uint) {
-        return fire(ep, READ, msg, size, off, size, label_t(), 0);
+        setup_command(ep, READ, msg, size, off, size, label_t(), 0);
+        return exec_command();
     }
     Errors::Code write(epid_t ep, const void *msg, size_t size, size_t off, uint) {
-        return fire(ep, WRITE, msg, size, off, size, label_t(), 0);
+        setup_command(ep, WRITE, msg, size, off, size, label_t(), 0);
+        return exec_command();
     }
 
     bool is_valid(epid_t) const {
@@ -235,7 +222,7 @@ public:
 
         set_cmd(CMD_EPID, ep);
         set_cmd(CMD_CTRL, (FETCHMSG << OPCODE_SHIFT) | CTRL_START);
-        wait_until_ready(ep);
+        exec_command();
         return reinterpret_cast<Message*>(get_cmd(CMD_OFFSET));
     }
 
@@ -247,19 +234,15 @@ public:
         set_cmd(CMD_EPID, ep);
         set_cmd(CMD_OFFSET, addr);
         set_cmd(CMD_CTRL, (ACKMSG << OPCODE_SHIFT) | CTRL_START);
-        wait_until_ready(ep);
+        exec_command();
     }
 
     bool is_ready() const {
         return (get_cmd(CMD_CTRL) >> OPCODE_SHIFT) == 0;
     }
-    void wait_until_ready(epid_t) const {
-        while(!is_ready())
-            try_sleep();
-    }
 
-    Errors::Code fire(epid_t ep, int op, const void *msg, size_t size, size_t offset, size_t len,
-                      label_t replylbl, epid_t replyep) {
+    void setup_command(epid_t ep, int op, const void *msg, size_t size, size_t offset,
+                               size_t len, label_t replylbl, epid_t replyep) {
         set_cmd(CMD_ADDR, reinterpret_cast<word_t>(msg));
         set_cmd(CMD_SIZE, size);
         set_cmd(CMD_EPID, ep);
@@ -271,15 +254,12 @@ public:
             set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START);
         else
             set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START | CTRL_DEL_REPLY_CAP);
-        wait_until_ready(ep);
-        // TODO report errors here
-        return Errors::NONE;
     }
 
+    Errors::Code exec_command();
+
     void start();
-    void stop() {
-        _run = false;
-    }
+    void stop();
     pthread_t tid() const {
         return _tid;
     }
@@ -348,7 +328,7 @@ private:
     volatile word_t _cmdregs[CMDS_RCNT];
     // have to be aligned by 8 because it shouldn't collide with MemGate::RWX bits
     alignas(8) volatile word_t _epregs[EPS_RCNT * EP_COUNT];
-    Backend *_backend;
+    DTUBackend *_backend;
     pthread_t _tid;
     static Buffer _buf;
     static DTU inst;
