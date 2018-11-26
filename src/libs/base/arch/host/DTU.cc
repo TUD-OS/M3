@@ -70,7 +70,14 @@ void DTU::reset() {
 }
 
 void DTU::try_sleep(bool, uint64_t) const {
-    usleep(1);
+    // check if there are unread messages. if there are, we don't want to wait but need to
+    // handle the messages first
+    for(epid_t i = 0; i < EP_COUNT; ++i) {
+        if(get_ep(i, EP_BUF_MSGCNT) > 0)
+            return;
+    }
+
+    _backend->wait(DTUBackend::Event::MSG);
 }
 
 void DTU::configure_recv(epid_t ep, uintptr_t buf, uint order, uint msgorder) {
@@ -377,7 +384,7 @@ void DTU::handle_resp_cmd() {
     memcpy(reinterpret_cast<void*>(offset), _buf.data + sizeof(word_t) * 3, length);
     /* provide feedback to SW */
     set_cmd(CMD_CTRL, resp);
-    _backend->notify(DTUBackend::Dest::CU);
+    _backend->notify(DTUBackend::Event::RESP);
 }
 
 void DTU::handle_msg(size_t len, epid_t ep) {
@@ -427,6 +434,8 @@ found:
 
     size_t addr = get_ep(ep, EP_BUF_ADDR);
     memcpy(reinterpret_cast<void*>(addr + i * (1UL << msgord)), &_buf, len);
+
+    _backend->notify(DTUBackend::Event::MSG);
 }
 
 void DTU::handle_receive(epid_t ep) {
@@ -472,8 +481,10 @@ void DTU::handle_receive(epid_t ep) {
 }
 
 Errors::Code DTU::exec_command() {
-    _backend->notify(DTUBackend::Dest::DTU);
-    _backend->wait(DTUBackend::Dest::CU);
+    _backend->notify(DTUBackend::Event::REQ);
+    // ignore signals here
+    while(!_backend->wait(DTUBackend::Event::RESP))
+        ;
     // TODO report errors here
     return Errors::NONE;
 }
@@ -492,7 +503,7 @@ void *DTU::thread(void *arg) {
         if(dma->_backend->has_command()) {
             dma->handle_command(pe);
             if(dma->is_ready())
-                dma->_backend->notify(DTUBackend::Dest::CU);
+                dma->_backend->notify(DTUBackend::Event::RESP);
         }
 
         // check _run again. TODO we might still miss the signal
