@@ -158,6 +158,11 @@ private:
     SendGate _sgate;
 };
 
+template<>
+struct OStreamSize<Keyboard::Event> {
+    static const size_t value = OStreamSize<unsigned char>::value * 2 + OStreamSize<bool>::value;
+};
+
 static inline Unmarshaller &operator>>(Unmarshaller &u, Keyboard::Event &ev) {
     u >> ev.scancode >> ev.keycode >> ev.isbreak;
     return u;
