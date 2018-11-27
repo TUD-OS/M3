@@ -272,11 +272,14 @@ static bool execute_pipeline(CmdList *list, bool muxed) {
     }
 
 error:
+    // destroy the VPEs first to prevent errors due to destroyed communication channels
     for(size_t i = 0; i < vpe_count; ++i) {
+        delete vpes[i];
         delete accels[i];
+    }
+    for(size_t i = 0; i < vpe_count; ++i) {
         delete mems[i];
         delete pipes[i];
-        delete vpes[i];
     }
     if(infd != STDIN_FD && infd != FileTable::INVALID)
         VFS::close(infd);
