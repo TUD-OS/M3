@@ -155,11 +155,15 @@ void VPE::stop_app(int exitcode, bool self) {
 
     if(self)
         exit_app(exitcode);
-    else if(_state == RUNNING)
-        exit_app(1);
     else {
-        PEManager::get().stop_vpe(this);
-        _flags ^= F_HASAPP;
+        if(_state == RUNNING)
+            exit_app(1);
+        else {
+            PEManager::get().stop_vpe(this);
+            _flags ^= F_HASAPP;
+        }
+        // ensure that there are no pending system calls
+        m3::DTU::get().drop_msgs(syscall_ep(), reinterpret_cast<label_t>(this));
     }
 
     if(rem_ref())
