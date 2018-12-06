@@ -70,7 +70,7 @@ goff_t MemoryMap::allocate(size_t size, size_t align) {
     Area *p = nullptr;
     for(a = list; a != nullptr; p = a, a = a->next) {
         size_t diff = m3::Math::round_up(a->addr, static_cast<goff_t>(align)) - a->addr;
-        if(a->size - diff >= size)
+        if(a->size > diff && a->size - diff >= size)
             break;
     }
     if(a == nullptr)
