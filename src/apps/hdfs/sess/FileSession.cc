@@ -101,16 +101,17 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     // determine extent from byte offset
     size_t firstOff = offset;
+    size_t ext_off;
     {
-        size_t tmp_extent, tmp_extoff;
-        INodes::seek(r, inode, firstOff, M3FS_SEEK_SET, tmp_extent, tmp_extoff);
+        size_t tmp_extent;
+        INodes::seek(r, inode, firstOff, M3FS_SEEK_SET, tmp_extent, ext_off);
         offset = tmp_extent;
     }
 
     capsel_t sel = VPE::self().alloc_sel();
     Errors::last = Errors::NONE;
     size_t extlen = 0;
-    size_t len = INodes::get_extent_mem(r, inode, offset, 0, &extlen,
+    size_t len = INodes::get_extent_mem(r, inode, offset, ext_off, &extlen,
                                         _oflags & MemGate::RWX, sel, true, _accessed);
     if(Errors::occurred()) {
         PRINT(this, "getting extent memory failed: " << Errors::to_string(Errors::last));
@@ -120,7 +121,7 @@ Errors::Code M3FSFileSession::get_mem(KIF::Service::ExchangeData &data) {
 
     data.caps = KIF::CapRngDesc(KIF::CapRngDesc::OBJ, sel, 1).value();
     data.args.count = 2;
-    data.args.vals[0] = firstOff;
+    data.args.vals[0] = 0;
     data.args.vals[1] = len;
 
     PRINT(this, "file::get_mem -> " << len);
