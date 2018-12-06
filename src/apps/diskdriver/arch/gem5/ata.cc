@@ -112,6 +112,7 @@ bool ata_transferDMA(sATADevice *device, uint op, m3::MemGate &mem, size_t offse
     prdt.byteCount  = size;
     prdt.last       = 1;
     /* write it behind the buffer */
+    // TODO return error if that failed
     mem.write(&prdt, sizeof(prdt), offset + secSize * secCount);
 
     /* stop running transfers */
