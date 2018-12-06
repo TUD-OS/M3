@@ -132,7 +132,7 @@ public:
         DiskSrvSession *sess = is.label<DiskSrvSession*>();
 
         PRINT(sess, "read blocks " << start << ":" << len
-                                   << " @ " << fmt(off, "x")
+                                   << " @ " << fmt(off, "#x")
                                    << " in " << blocksize << "b blocks");
 
         if(len * blocksize < 512) {
@@ -146,7 +146,6 @@ public:
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
 
-            off *= blocksize;
             start *= blocksize;
             len *= blocksize;
 
@@ -179,7 +178,7 @@ public:
         DiskSrvSession *sess = is.label<DiskSrvSession*>();
 
         PRINT(sess, "write blocks " << start << ":" << len
-                                    << " @ " << fmt(off, "x")
+                                    << " @ " << fmt(off, "#x")
                                     << " in " << blocksize << "b blocks");
 
         if(len * blocksize < 512) {
@@ -193,7 +192,6 @@ public:
         if(m_cap != ObjCap::INVALID) {
             MemGate m = MemGate::bind(m_cap);
 
-            off *= blocksize;
             start *= blocksize;
             len *= blocksize;
 
