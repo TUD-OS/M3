@@ -193,7 +193,7 @@ run_on_host() {
 
 kill_m3_procs() {
     # kill all processes that are using the m3 sockets
-    lsof -a -U -u $USER | grep '@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill 2>/dev/null || true
+    lsof -a -U -u $USER | grep '@m3_ep_' | awk '{ print $2 }' | sort | uniq | xargs kill || true
 }
 
 # run the specified command, if any
@@ -209,7 +209,7 @@ case "$cmd" in
     run)
         if [ "$M3_TARGET" = "host" ]; then
             run_on_host $script
-            kill_m3_procs
+            kill_m3_procs 2>/dev/null
         else
             if [ "$DBG_GEM5" = "1" ]; then
                 ./src/tools/execute.sh $script
@@ -222,7 +222,7 @@ case "$cmd" in
     runq)
         if [ "$M3_TARGET" = "host" ]; then
             ./src/tools/execute.sh $script
-            kill_m3_procs
+            kill_m3_procs 2>/dev/null
         else
             ./src/tools/execute.sh ./$script >/dev/null
         fi
@@ -232,7 +232,7 @@ case "$cmd" in
         if [ "$M3_TARGET" = "host" ]; then
             export M3_VALGRIND=${M3_VALGRIND:-"--leak-check=full"}
             run_on_host $script
-            kill_m3_procs
+            kill_m3_procs 2>/dev/null
         else
             echo "Not supported"
         fi
@@ -288,7 +288,7 @@ case "$cmd" in
                 gdb --tui $build/bin/$prog $pid --command=$tmp
             fi
 
-            kill_m3_procs
+            kill_m3_procs 2>/dev/null
             rm $tmp
         elif [ "$M3_TARGET" = "gem5" ]; then
             truncate --size 0 $M3_GEM5_OUT/log.txt
