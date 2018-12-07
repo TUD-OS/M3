@@ -19,9 +19,7 @@ pub fn sqrt(n: f32) -> f32 {
 
 /// Returns the size of `T`
 pub const fn size_of<T>() -> usize {
-    unsafe {
-        intrinsics::size_of::<T>()
-    }
+    intrinsics::size_of::<T>()
 }
 
 /// Returns the size of `val`

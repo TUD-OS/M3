@@ -109,7 +109,7 @@ pub fn init() {
     init_heap();
 
     unsafe {
-        let num_areas = heap_begin.offset_to(heap_end).unwrap() as isize;
+        let num_areas = heap_end.offset_from(heap_begin) as isize;
         let space = num_areas * util::size_of::<HeapArea>() as isize;
 
         log!(HEAP, "Heap has {} bytes", space);

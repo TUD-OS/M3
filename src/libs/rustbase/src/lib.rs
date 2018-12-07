@@ -1,28 +1,28 @@
-#![feature(alloc, allocator_internals)]
+#![feature(alloc, alloc_error_handler, allocator_internals)]
 #![feature(asm)]
 #![feature(box_into_raw_non_null)]
 #![feature(compiler_builtins_lib)]
-#![feature(const_fn, const_cell_new, const_max_value, const_unsafe_cell_new)]
-#![feature(const_atomic_usize_new)]
+#![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(fnbox)]
 #![feature(lang_items)]
-#![feature(macro_reexport)]
-#![feature(offset_to)]
+#![feature(panic_info_message)]
+#![feature(ptr_offset_from)]
 
 #![default_lib_allocator]
 #![no_std]
 
-#[macro_reexport(vec, format)]
 #[macro_use]
 extern crate alloc;
 #[macro_use]
 extern crate bitflags;
-extern crate compiler_builtins;
 // for int_enum!
 pub extern crate core as _core;
-#[macro_reexport(const_assert)]
 pub extern crate static_assertions;
+
+// Macros
+pub use static_assertions::const_assert;
+pub use alloc::{vec, format};
 
 // lang stuff
 mod lang;
@@ -47,8 +47,8 @@ pub mod rc {
 }
 
 /// Thread-safe reference-counting pointers
-pub mod arc {
-    pub use alloc::arc::{Arc, Weak};
+pub mod sync {
+    pub use alloc::sync::{Arc, Weak};
 }
 
 #[macro_use]

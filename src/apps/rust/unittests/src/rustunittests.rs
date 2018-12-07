@@ -4,6 +4,7 @@
 extern crate m3;
 
 use m3::test::Tester;
+use m3::vfs::VFS;
 
 mod tboxlist;
 mod tbufio;
@@ -40,6 +41,11 @@ impl Tester for MyTester {
 
 #[no_mangle]
 pub fn main() -> i32 {
+    // do a mount here to ensure that we don't need to realloc the mount-table later, which screws
+    // up our simple memory-leak detection above
+    assert_ok!(VFS::mount("/fs/", "m3fs"));
+    assert_ok!(VFS::unmount("/fs/"));
+
     let mut tester = MyTester {};
     run_suite!(tester, tboxlist::run);
     run_suite!(tester, tbufio::run);

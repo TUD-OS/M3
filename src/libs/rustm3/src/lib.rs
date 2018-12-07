@@ -1,8 +1,7 @@
 #![feature(asm)]
-#![feature(const_fn, const_cell_new)]
+#![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(fnbox)]
-#![feature(offset_to)]
 #![feature(rustc_private)]
 #![feature(trace_macros)]
 

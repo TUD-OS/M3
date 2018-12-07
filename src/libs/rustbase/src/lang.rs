@@ -1,18 +1,25 @@
 use backtrace;
 use core::intrinsics;
-use core::fmt;
+use core::panic::PanicInfo;
 use io::{log, Write};
 
 extern "C" {
     fn exit(code: i32);
 }
 
-#[lang = "panic_fmt"]
-#[no_mangle]
-pub extern fn rust_begin_panic(msg: fmt::Arguments, file: &'static str, line: u32, column: u32) -> ! {
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
     if let Some(l) = log::Log::get() {
-        l.write_fmt(format_args!("PANIC at {}, line {}, column {}: ", file, line, column)).unwrap();
-        l.write_fmt(msg).unwrap();
+        if let Some(loc) = info.location() {
+            l.write_fmt(format_args!("PANIC at {}, line {}, column {}: ",
+                                     loc.file(), loc.line(), loc.column())).unwrap();
+        }
+        else {
+            l.write("PANIC at unknown location: ".as_bytes()).unwrap();
+        }
+        if let Some(msg) = info.message() {
+            l.write_fmt(*msg).unwrap();
+        }
         l.write("\n\n".as_bytes()).unwrap();
 
         let mut bt = [0usize; 16];
@@ -27,6 +34,11 @@ pub extern fn rust_begin_panic(msg: fmt::Arguments, file: &'static str, line: u3
         exit(1);
         intrinsics::abort();
     }
+}
+
+#[alloc_error_handler]
+fn alloc_error(_: core::alloc::Layout) -> ! {
+    panic!("Alloc error");
 }
 
 #[lang = "eh_personality"]
