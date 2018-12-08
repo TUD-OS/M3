@@ -27,7 +27,10 @@ elif [ "$M3_TARGET" = "gem5" ]; then
         M3_ISA='x86_64'
     fi
 else
-    M3_ISA='x86_64'
+    M3_ISA=`uname -m`
+    if [ "$M3_ISA" = "armv7l" ]; then
+        M3_ISA="arm"
+    fi
 fi
 
 export M3_BUILD M3_TARGET M3_ISA

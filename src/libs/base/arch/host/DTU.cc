@@ -204,7 +204,7 @@ word_t DTU::prepare_ackmsg(epid_t ep) {
     size_t msgord = get_ep(ep, EP_BUF_MSGORDER);
     size_t ord = get_ep(ep, EP_BUF_ORDER);
 
-    size_t idx = (addr - bufaddr) >> msgord;
+    size_t idx = static_cast<size_t>(addr - bufaddr) >> msgord;
     if(idx >= (1UL << (ord - msgord))) {
         LLOG(DTUERR, "DMA-error: EP" << ep << ": invalid message addr " << (void*)addr);
         return CTRL_ERROR;
@@ -334,7 +334,7 @@ void DTU::send_msg(epid_t ep, peid_t dstpe, epid_t dstep, bool isreply) {
     LLOG(DTU, (isreply ? ">> " : "-> ") << fmt(_buf.length, 3) << "b"
             << " lbl=" << fmt(_buf.label, "#0x", sizeof(label_t) * 2)
             << " over " << ep << " to pe:ep=" << dstpe << ":" << dstep
-            << " (crd=#" << fmt(reinterpret_cast<uintptr_t>(get_ep(dstep, EP_CREDITS)), "x")
+            << " (crd=#" << fmt(get_ep(dstep, EP_CREDITS), "x")
             << " rep=" << _buf.rpl_ep << ")");
 
     _backend->send(dstpe, dstep, &_buf);

@@ -40,6 +40,8 @@ elif target == 'gem5':
 else:
     # build for host by default
     isa = os.popen("uname -m").read().strip()
+    if isa == 'armv7l':
+        isa = 'arm'
     target = 'host'
     cross = ''
     rustabi = 'gnu'

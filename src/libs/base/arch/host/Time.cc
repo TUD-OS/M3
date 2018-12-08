@@ -32,7 +32,7 @@ cycles_t Time::stop(unsigned) {
 #elif defined(__arm__)
     struct timeval tv;
     gettimeofday(&tv,nullptr);
-    return static_cast<cycles_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
+    return static_cast<cycles_t>(tv.tv_sec) * 1000000 + static_cast<cycles_t>(tv.tv_usec);
 #else
 #   warning "Cycle counter not supported"
     return 0;

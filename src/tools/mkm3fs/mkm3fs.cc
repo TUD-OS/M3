@@ -199,8 +199,8 @@ static m3::inodeno_t copy(const char *path, m3::inodeno_t parent, int level) {
     // TODO don't copy the number of links
     ino.links = st.st_nlink;
     ino.mode = st.st_mode;
-    ino.lastaccess = st.st_atim.tv_sec;
-    ino.lastmod = st.st_mtim.tv_sec;
+    ino.lastaccess = static_cast<m3::time_t>(st.st_atim.tv_sec);
+    ino.lastmod = static_cast<m3::time_t>(st.st_mtim.tv_sec);
     ino.size = 0;
     for(int i = 0; i < m3::INODE_DIR_COUNT; ++i)
         ino.direct[i].start = ino.direct[i].length = 0;
@@ -287,7 +287,7 @@ int main(int argc,char **argv) {
         return EXIT_FAILURE;
     }
 
-    srand(time(nullptr));
+    srand(static_cast<uint>(time(nullptr)));
 
 #if defined(__t2__) || defined(__t3__)
     sb.blocksize = 1024;
@@ -317,7 +317,7 @@ int main(int argc,char **argv) {
         err(1, "Unable to open '%s' for writing", argv[1]);
 
     // first, init the fs-image with zeros
-    ftruncate(fileno(file), sb.blocksize * sb.total_blocks);
+    ftruncate(fileno(file), static_cast<off_t>(sb.blocksize * sb.total_blocks));
 
     // mark superblock, inode and block bitmap and inode blocks as occupied
     for(m3::blockno_t i = 0; i < sb.first_data_block(); ++i)

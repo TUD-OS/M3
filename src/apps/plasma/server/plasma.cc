@@ -313,7 +313,7 @@ public:
 
             for(unsigned rc = 0; rc < ROW; rc++) {
                 for(unsigned cc = 0; cc < COL; cc++) {
-                    uint32_t r = random() % (127 - 32) + 32;
+                    uint32_t r = static_cast<uint32_t>(random() % (127 - 32) + 32);
                     this->character(rc, cc) = r | 0x0800;
                 }
             }

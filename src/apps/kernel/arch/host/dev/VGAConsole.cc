@@ -393,7 +393,7 @@ static void initMonitor(int argc, char *argv[]) {
     vga.shutdown.window = vga.win;
     vga.shutdown.message_type = XA_WM_COMMAND;
     vga.shutdown.format = 32;
-    vga.shutdown.data.l[0] = 0xDEADBEEF;
+    vga.shutdown.data.l[0] = (long)0xDEADBEEF;
     /* move the window to the desired position (many window-manager ignore the position given by
      * XCreateWindow) */
     XMoveWindow(vga.display, vga.win, WINDOW_POS_X, WINDOW_POS_Y);

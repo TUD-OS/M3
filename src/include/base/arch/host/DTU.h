@@ -149,7 +149,7 @@ public:
     static uintptr_t gaddr_to_virt(gaddr_t) {
         return 0;
     }
-    static gaddr_t build_gaddr(int, uintptr_t) {
+    static gaddr_t build_gaddr(peid_t, uintptr_t) {
         return 0;
     }
 
@@ -251,9 +251,9 @@ public:
         set_cmd(CMD_REPLYLBL, replylbl);
         set_cmd(CMD_REPLY_EPID, replyep);
         if(op == REPLY)
-            set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START);
+            set_cmd(CMD_CTRL, static_cast<word_t>(op << OPCODE_SHIFT) | CTRL_START);
         else
-            set_cmd(CMD_CTRL, (op << OPCODE_SHIFT) | CTRL_START | CTRL_DEL_REPLY_CAP);
+            set_cmd(CMD_CTRL, static_cast<word_t>(op << OPCODE_SHIFT) | CTRL_START | CTRL_DEL_REPLY_CAP);
     }
 
     Errors::Code exec_command();
@@ -272,34 +272,34 @@ public:
             return;
 
         goff_t base = get_ep(ep, m3::DTU::EP_BUF_ADDR);
-        int order = get_ep(ep, m3::DTU::EP_BUF_ORDER);
-        int msgorder = get_ep(ep, m3::DTU::EP_BUF_MSGORDER);
+        int order = static_cast<int>(get_ep(ep, m3::DTU::EP_BUF_ORDER));
+        int msgorder = static_cast<int>(get_ep(ep, m3::DTU::EP_BUF_MSGORDER));
         word_t unread = get_ep(ep, m3::DTU::EP_BUF_UNREAD);
-        int max = 1UL << (order - msgorder);
+        int max = 1 << (order - msgorder);
         for(int i = 0; i < max; ++i) {
             if(unread & (1UL << i)) {
-                Message *msg = reinterpret_cast<Message*>(base + (static_cast<goff_t>(i) << msgorder));
+                Message *msg = reinterpret_cast<Message*>(base + (static_cast<size_t>(i) << msgorder));
                 if(msg->label == label)
-                    mark_read(ep, reinterpret_cast<goff_t>(msg));
+                    mark_read(ep, reinterpret_cast<size_t>(msg));
             }
         }
     }
 
 private:
-    bool is_unread(word_t unread, int idx) const {
+    bool is_unread(word_t unread, size_t idx) const {
         return unread & (static_cast<word_t>(1) << idx);
     }
-    void set_unread(word_t &unread, int idx, bool unr) {
+    void set_unread(word_t &unread, size_t idx, bool unr) {
         if(unr)
             unread |= static_cast<word_t>(1) << idx;
         else
             unread &= ~(static_cast<word_t>(1) << idx);
     }
 
-    bool is_occupied(word_t occupied, int idx) const {
+    bool is_occupied(word_t occupied, size_t idx) const {
         return occupied & (static_cast<word_t>(1) << idx);
     }
-    void set_occupied(word_t &occupied, int idx, bool occ) {
+    void set_occupied(word_t &occupied, size_t idx, bool occ) {
         if(occ)
             occupied |= static_cast<word_t>(1) << idx;
         else

@@ -70,7 +70,7 @@ static void print_blockbm() {
 
 static void print_time(m3::time_t time, const char *name) {
     char timebuf[64];
-    time_t unixtime = time;
+    time_t unixtime = static_cast<time_t>(time);
     struct tm *tm = gmtime(&unixtime);
     strftime(timebuf, sizeof(timebuf), "%F %T", tm);
     printf("  %s: %u (%s)\n", name, time, timebuf);
@@ -98,7 +98,7 @@ static void print_inode(m3::inodeno_t ino, bool all) {
     printf("  inode: %u\n", inode.inode);
     printf("  mode: %#04o\n", inode.mode);
     printf("  links: %u\n", inode.links);
-    printf("  size: %lu\n", inode.size);
+    printf("  size: %llu\n", inode.size);
     print_time(inode.lastaccess, "lastaccess");
     print_time(inode.lastmod, "lastmod");
     printf("  extents: %u\n", inode.extents);

@@ -76,14 +76,14 @@ static void timer_event(GateIStream &) {
         }
 
         size_t len = strlen(moviefile);
-        copy_to_vga(0, VGA::COLS / 2 - len / 2, moviefile, len, len);
+        copy_to_vga(0, VGA::COLS / 2 - static_cast<int>(len) / 2, moviefile, len, len);
 
         len = strlen(statustext[status]);
         copy_to_vga(VGA::ROWS - 1, 0, statustext[status], len, len);
 
         snprintf(linebuf, sizeof(linebuf), "Frame %d", frame);
         len = strlen(linebuf);
-        copy_to_vga(VGA::ROWS - 1, VGA::COLS - len, linebuf, len, len);
+        copy_to_vga(VGA::ROWS - 1, VGA::COLS - static_cast<int>(len), linebuf, len, len);
 
         vga.gate().write(vgabuf, sizeof(vgabuf), 0);
         laststatus = status;

@@ -43,7 +43,7 @@ static const char *gen_prefix() {
     static char prefix[32];
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    srand(tv.tv_usec);
+    srand(static_cast<uint>(tv.tv_usec));
     snprintf(prefix, sizeof(prefix), "/m3-%d-", rand());
     return prefix;
 }

@@ -54,6 +54,8 @@ void tstream();
     check_equal<ssize_t>((expected), (actual), __FILE__, __LINE__)
 #define assert_word(actual, expected) \
     check_equal<word_t>((expected), (actual), __FILE__, __LINE__)
+#define assert_xfer(actual, expected) \
+    check_equal<xfer_t>((expected), (actual), __FILE__, __LINE__)
 #define assert_str(actual, expected) \
     check_equal<m3::String>((expected), (actual), __FILE__, __LINE__)
 #define assert_true(expected) \
