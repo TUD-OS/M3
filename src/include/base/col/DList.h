@@ -172,6 +172,26 @@ public:
         _len--;
     }
 
+    /**
+     * Assumes that <e> is in the list and moves it to the end.
+     *
+     * @param e the list item
+     */
+    void moveToEnd(T *e) {
+        if(_tail == e)
+            return;
+        if(e->prev())
+            e->prev()->next(e->next());
+        if(e->next())
+            e->next()->prev(e->prev());
+        if(e == _head)
+            _head = static_cast<T*>(e->next());
+        _tail->next(e);
+        e->prev(_tail);
+        e->next(nullptr);
+        _tail = e;
+    }
+
 private:
     T *_head;
     T *_tail;

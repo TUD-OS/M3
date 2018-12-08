@@ -53,8 +53,7 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
             if(b->locked)
                 ThreadManager::get().wait_for(b->unlock);
             else {
-                if(b->_linkcount == 0)
-                    lru.remove(b);
+                lru.moveToEnd(b);
                 b->_linkcount++;
                 SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
                                                             << b->_linkcount);
@@ -66,18 +65,22 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
             break;
     }
 
-    if(lru.length() == 0) {
-        // this should not happen
-        PANIC("MetaBufferCache to small");
-        return nullptr;
+    // find first non-used block
+    for(auto it = lru.begin(); it != lru.end(); ++it) {
+        auto mb = static_cast<MetaBufferHead*>(&*it);
+        if(mb->_linkcount == 0) {
+            b = mb;
+            break;
+        }
     }
 
-    b = static_cast<MetaBufferHead*>(lru.removeFirst());
+    // write-back, if necessary
     if(b->key()) {
         ht.remove(b);
         if(b->dirty)
             flush_chunk(b);
     }
+
     b->key(bno);
     ht.insert(b);
 
@@ -87,6 +90,7 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
     gate.read(b->_data, _blocksize, off);
 
     b->_linkcount = 1;
+    lru.moveToEnd(b);
     SLOG(FS, "MetaBuffer: Load new block <" << b->key() << ">, Links: " << b->_linkcount);
     b->locked = false;
     ThreadManager::get().notify(b->unlock);
@@ -99,11 +103,6 @@ void MetaBuffer::quit(MetaBufferHead *b) {
     assert(b->_linkcount > 0);
     SLOG(FS, "MetaBuffer: Dereferencing block <" << b->key() << ">, Links: " << b->_linkcount);
     b->_linkcount--;
-    if(b->_linkcount == 0) {
-        // append block to the free list(lru)
-        // the block remains inside the ht until a new block needs to be loaded
-        lru.append(b);
-    }
 }
 
 MetaBufferHead *MetaBuffer::get(blockno_t bno) {
