@@ -67,5 +67,5 @@ public:
     static void truncate(Request &r, m3::INode *inode, size_t extent, size_t extoff);
 
     static void mark_dirty(Request &r, m3::inodeno_t ino);
-    static void write_back(Request &r, m3::INode *inode);
+    static void sync_metadata(Request &r, m3::INode *inode);
 };

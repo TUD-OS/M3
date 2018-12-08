@@ -74,18 +74,22 @@ void INodes::mark_dirty(Request &r, inodeno_t ino) {
     r.hdl().metabuffer().mark_dirty(r.hdl().sb().first_inode_block() + ino / inos_per_blk);
 }
 
-void INodes::write_back(Request &r, INode *inode) {
+void INodes::sync_metadata(Request &r, INode *inode) {
     size_t org_used = r.used_meta();
     foreach_extent(r, inode, ext) {
         foreach_block(ext, bno) {
+            // if we have changed the meta data...
             if(r.hdl().metabuffer().dirty(bno)) {
+                // check if there is a filebuffer entry for it or create one
                 capsel_t msel = VPE::self().alloc_sel();
                 size_t ret = r.hdl().filebuffer().get_extent(bno, 1, msel, MemGate::RWX, 1, false, false);
                 if(ret) {
+                    // okay, so write it from metabuffer to filebuffer
                     MemGate m = MemGate::bind(msel);
                     m.write(r.hdl().metabuffer().get_block(r, bno), r.hdl().sb().blocksize, 0);
                     r.pop_meta();
                 }
+                // if the filebuffer entry didn't exist and couldn't be created, update block on disk
                 else
                     r.hdl().metabuffer().write_back(bno);
             }

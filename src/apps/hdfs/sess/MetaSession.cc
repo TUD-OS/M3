@@ -125,7 +125,7 @@ Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags,
 
     // for directories: ensure that we don't have a changed version in the cache
     if(M3FS_ISDIR(inode->mode))
-        INodes::write_back(r, inode);
+        INodes::sync_metadata(r, inode);
     ssize_t res = alloc_file(srv, path, flags, inode->inode);
     if(res < 0)
         return static_cast<Errors::Code>(-res);
