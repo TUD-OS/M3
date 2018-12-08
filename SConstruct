@@ -1,5 +1,8 @@
 import os, sys
-import configparser
+try:
+    import ConfigParser
+except:
+    import configparser
 from io import StringIO
 sys.path.insert(0, 'src/tools')
 import install
