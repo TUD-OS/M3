@@ -20,6 +20,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -98,7 +99,7 @@ static void print_inode(m3::inodeno_t ino, bool all) {
     printf("  inode: %u\n", inode.inode);
     printf("  mode: %#04o\n", inode.mode);
     printf("  links: %u\n", inode.links);
-    printf("  size: %llu\n", inode.size);
+    printf("  size: %" PRIu64 "\n", inode.size);
     print_time(inode.lastaccess, "lastaccess");
     print_time(inode.lastmod, "lastmod");
     printf("  extents: %u\n", inode.extents);
