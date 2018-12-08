@@ -49,12 +49,12 @@ public:
     virtual void flush() = 0;
 
 protected:
+    virtual BufferHead *get(m3::blockno_t bno)  = 0;
+    virtual void flush_chunk(BufferHead *b) = 0;
+
     m3::Treap<BufferHead> ht;
     m3::DList<BufferHead> lru;
 
     size_t _blocksize;
-
-    virtual BufferHead *get(m3::blockno_t bno)  = 0;
-    virtual void flush_chunk(BufferHead *b) = 0;
     m3::Disk *_disk;
 };

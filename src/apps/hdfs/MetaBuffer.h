@@ -59,6 +59,7 @@ public:
 private:
     MetaBufferHead *get(m3::blockno_t bno) override;
     void flush_chunk(BufferHead *b) override;
+
     char *_blocks;
     m3::MemGate gate;
 };
