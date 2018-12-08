@@ -53,7 +53,6 @@ protected:
     m3::DList<BufferHead> lru;
 
     size_t _blocksize;
-    size_t _size;
 
     virtual BufferHead *get(m3::blockno_t bno)  = 0;
     virtual void flush_chunk(BufferHead *b) = 0;

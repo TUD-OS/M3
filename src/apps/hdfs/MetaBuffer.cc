@@ -53,10 +53,8 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
             if(b->locked)
                 ThreadManager::get().wait_for(b->unlock);
             else {
-                if(b->_linkcount == 0) {
+                if(b->_linkcount == 0)
                     lru.remove(b);
-                    _size++;
-                }
                 b->_linkcount++;
                 SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
                                                             << b->_linkcount);
@@ -68,12 +66,12 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
             break;
     }
 
-    if(_size >= META_BUFFER_SIZE) {
+    if(lru.length() == 0) {
         // this should not happen
         PANIC("MetaBufferCache to small");
         return nullptr;
     }
-    _size++;
+
     b = static_cast<MetaBufferHead*>(lru.removeFirst());
     if(b->key()) {
         ht.remove(b);
@@ -105,7 +103,6 @@ void MetaBuffer::quit(MetaBufferHead *b) {
         // append block to the free list(lru)
         // the block remains inside the ht until a new block needs to be loaded
         lru.append(b);
-        _size--;
     }
 }
 

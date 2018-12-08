@@ -58,5 +58,6 @@ private:
     FileBufferHead *get(m3::blockno_t bno) override;
     void flush_chunk(BufferHead *b) override;
 
+    size_t _size;
     size_t _max_load;
 };

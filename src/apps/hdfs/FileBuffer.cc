@@ -29,6 +29,7 @@ FileBufferHead::FileBufferHead(blockno_t bno, size_t size, size_t blocksize)
 
 FileBuffer::FileBuffer(size_t blocksize, Disk *disk, size_t max_load)
     : Buffer(blocksize, disk),
+      _size(),
       _max_load(max_load) {
 }
 
