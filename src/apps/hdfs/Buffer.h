@@ -35,8 +35,6 @@ protected:
 };
 
 class Buffer {
-    uint64_t event_count = 0;
-
 public:
     // the PRDT is currently placed behind the data buffer when using DMA
     static constexpr size_t PRDT_SIZE   = 8;
