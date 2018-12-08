@@ -96,6 +96,10 @@ int main(int argc, char **argv) {
         err(1, "Unable to open %s for reading", argv[1]);
 
     fread(&sb, sizeof(sb), 1, file);
+    if(sb.checksum != sb.get_checksum()) {
+        errx(1, "Superblock checksum is invalid (is %#010x, should be %#010x)",
+                sb.checksum, sb.get_checksum());
+    }
 
     export_rec(argv[2], 0, "/");
 
