@@ -263,10 +263,11 @@ int main(int argc, char **argv) {
     if(argc < 3)
         usage(argv[0]);
     if(argc < 4 && (strcmp(argv[2], "ino") == 0 || strcmp(argv[2], "dir") == 0 ||
-            strcmp(argv[2], "extents") == 0 || strcmp(argv[2], "inoextents") == 0 ||
-            strcmp(argv[2], "inobytes") == 0 || strcmp(argv[2], "inotext") == 0 ||
-            strcmp(argv[2], "bytes") == 0 || strcmp(argv[2], "text") == 0))
+                    strcmp(argv[2], "extents") == 0 || strcmp(argv[2], "inoextents") == 0 ||
+                    strcmp(argv[2], "inobytes") == 0 || strcmp(argv[2], "inotext") == 0 ||
+                    strcmp(argv[2], "bytes") == 0 || strcmp(argv[2], "text") == 0)) {
         usage(argv[0]);
+    }
 
     file = fopen(argv[1], "r");
     if(!file)
