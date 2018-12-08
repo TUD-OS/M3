@@ -101,7 +101,8 @@ static bool append_to_extent(m3::INode *ino, m3::Extent *extent, m3::blockno_t b
     return false;
 }
 
-static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3::blockno_t bno, int level, uint div, bool new_ext) {
+static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3::blockno_t bno,
+                               int level, uint div, bool new_ext) {
     m3::Extent *extents = new m3::Extent[sb.extents_per_block()];
     if(*indir == 0) {
         *indir = alloc_block(false);
@@ -116,7 +117,8 @@ static bool create_indir_block(m3::INode *ino, m3::blockno_t *indir, uint i, m3:
         res = append_to_extent(ino, extents + i, bno, new_ext);
     }
     else {
-        res = create_indir_block(ino, &(extents[i / div].start), i % div, bno, level - 1, div / sb.extents_per_block(), new_ext);
+        res = create_indir_block(ino, &(extents[i / div].start), i % div, bno, level - 1,
+                                 div / sb.extents_per_block(), new_ext);
         extents[i / div].length = 1;
     }
 
@@ -151,8 +153,9 @@ static m3::blockno_t store_blockno(const char *path, m3::INode *ino, m3::blockno
     return bno;
 }
 
-static m3::DirEntry *write_dirent(m3::INode *dir, m3::DirEntry *prev, const char *path, const char *name,
-                                  m3::inodeno_t inode, size_t &off, m3::blockno_t &block) {
+static m3::DirEntry *write_dirent(m3::INode *dir, m3::DirEntry *prev, const char *path,
+                                  const char *name, m3::inodeno_t inode, size_t &off,
+                                  m3::blockno_t &block) {
     size_t len = strlen(name);
     size_t total = sizeof(m3::DirEntry) + len;
     if(off + total > sb.blocksize) {
