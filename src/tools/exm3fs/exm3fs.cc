@@ -43,14 +43,17 @@ static void export_rec(const char *dest, m3::inodeno_t dirno, const char *src) {
         for(uint32_t i = 0; i < blockcount; ++i) {
             read_from_block(buffer, sb.blocksize, get_block_no(inode, i));
 
-            m3::DirEntry *e = reinterpret_cast<m3::DirEntry*>(buffer);
+            m3::DirEntry *begin = reinterpret_cast<m3::DirEntry*>(buffer);
             m3::DirEntry *end = reinterpret_cast<m3::DirEntry*>(buffer + sb.blocksize);
-            while(e->next > 0 && e < end) {
-                if((e->namelen != 1 || strncmp(e->name, ".", 1) != 0) &&
-                    (e->namelen != 2 || strncmp(e->name, "..", 2) != 0)) {
-                    char epath[128];
-                    snprintf(epath, sizeof(epath), "%s/%.*s", src, e->namelen, e->name);
-                    export_rec(dest, e->nodeno, epath);
+            m3::DirEntry *e = begin;
+            while(e >= begin && e < end && e->next > 0) {
+                if(e->name + e->namelen <= reinterpret_cast<char*>(end)) {
+                    if((e->namelen != 1 || strncmp(e->name, ".", 1) != 0) &&
+                        (e->namelen != 2 || strncmp(e->name, "..", 2) != 0)) {
+                        char epath[128];
+                        snprintf(epath, sizeof(epath), "%s/%.*s", src, e->namelen, e->name);
+                        export_rec(dest, e->nodeno, epath);
+                    }
                 }
 
                 e = reinterpret_cast<m3::DirEntry*>(reinterpret_cast<char*>(e) + e->next);

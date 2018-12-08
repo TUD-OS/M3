@@ -130,13 +130,20 @@ static void print_as_dir(m3::blockno_t block) {
     char *buffer = new char[sb.blocksize];
     read_from_block(buffer, sb.blocksize, block);
 
-    m3::DirEntry *e = reinterpret_cast<m3::DirEntry*>(buffer);
+    m3::DirEntry *begin = reinterpret_cast<m3::DirEntry*>(buffer);
     m3::DirEntry *end = reinterpret_cast<m3::DirEntry*>(buffer + sb.blocksize);
     printf("Showing block %u as directory:\n", block);
     // actually next is not allowed to be 0. but to prevent endless looping here...
-    while(e->next > 0 && e < end) {
-        printf("  ino=%u len=%u next=%u name=%.*s\n",
-               e->nodeno, e->namelen, e->next, e->namelen, e->name);
+    m3::DirEntry *e = begin;
+    while(e >= begin && e < end && e->next > 0) {
+        if(e->name + e->namelen > reinterpret_cast<char*>(end)) {
+            printf("  ino=%u len=%u next=%u name=<invalid>\n",
+                   e->nodeno, e->namelen, e->next);
+        }
+        else {
+            printf("  ino=%u len=%u next=%u name=%.*s\n",
+                   e->nodeno, e->namelen, e->next, e->namelen, e->name);
+        }
         e = reinterpret_cast<m3::DirEntry*>(reinterpret_cast<char*>(e) + e->next);
     }
     delete[] buffer;
@@ -210,17 +217,20 @@ static void print_tree(m3::inodeno_t dirno, const char *path, int level) {
         for(uint32_t i = 0; i < blockcount; ++i) {
             read_from_block(buffer, sb.blocksize, get_block_no(inode, i));
 
-            m3::DirEntry *e = reinterpret_cast<m3::DirEntry*>(buffer);
+            m3::DirEntry *begin = reinterpret_cast<m3::DirEntry*>(buffer);
             m3::DirEntry *end = reinterpret_cast<m3::DirEntry*>(buffer + sb.blocksize);
-            while(e->next > 0 && e < end) {
-                printf("%*sino=%u len=%u next=%u name=%.*s\n",
-                    (level + 1) * 2, "", e->nodeno, e->namelen, e->next, e->namelen, e->name);
+            m3::DirEntry *e = begin;
+            while(e >= begin && e < end && e->next > 0) {
+                if(e->name + e->namelen <= reinterpret_cast<char*>(end)) {
+                    printf("%*sino=%u len=%u next=%u name=%.*s\n",
+                           (level + 1) * 2, "", e->nodeno, e->namelen, e->next, e->namelen, e->name);
 
-                if((e->namelen != 1 || strncmp(e->name, ".", 1) != 0) &&
-                    (e->namelen != 2 || strncmp(e->name, "..", 2) != 0)) {
-                    char epath[128];
-                    snprintf(epath, sizeof(epath), "%s/%.*s", path, e->namelen, e->name);
-                    print_tree(e->nodeno, epath, level + 1);
+                    if((e->namelen != 1 || strncmp(e->name, ".", 1) != 0) &&
+                        (e->namelen != 2 || strncmp(e->name, "..", 2) != 0)) {
+                        char epath[128];
+                        snprintf(epath, sizeof(epath), "%s/%.*s", path, e->namelen, e->name);
+                        print_tree(e->nodeno, epath, level + 1);
+                    }
                 }
 
                 e = reinterpret_cast<m3::DirEntry*>(reinterpret_cast<char*>(e) + e->next);
