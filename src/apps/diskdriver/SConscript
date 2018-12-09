@@ -2,5 +2,5 @@ Import('env')
 env.M3Program(
     env, 'diskdriver',
     [env.Glob('*.cc'), env.Glob('arch/$ARCH/*.cc')],
-    libs = ['pci']
+    libs = ['pci'] if env['ARCH'] == 'gem5' else []
 )
