@@ -41,9 +41,7 @@ uint32_t Allocator::alloc(Request &r, size_t *count) {
     uint32_t i = *_first_free % perblock;
 
     while(total == 0 && no <= lastno) {
-        // TODO do mark_dirty in get_block? (avoids one tree search)
-        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
-        r.hdl().metabuffer().mark_dirty(no);
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no, true));
         // take care that total_blocks might not be a multiple of perblock
         size_t max = perblock;
         if(no == lastno) {
@@ -130,8 +128,7 @@ void Allocator::free(Request &r, uint32_t start, size_t count) {
     *_free += count;
     SLOG(FS, _name << ": free'd " << start << ".." << (start + count - 1));
     while(count > 0) {
-        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
-        r.hdl().metabuffer().mark_dirty(no);
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no, true));
         Bitmap bm(bytes);
 
         // first, align it to word-size

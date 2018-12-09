@@ -51,7 +51,7 @@ public:
     explicit FileBuffer(size_t blocksize, Backend *backend, size_t max_load);
 
     size_t get_extent(m3::blockno_t bno, size_t size, capsel_t sel, int perms, size_t accessed,
-                      bool load = true, bool check = false);
+                      bool load = true, bool dirty = false);
     void flush() override;
 
 private:

@@ -35,7 +35,7 @@ MetaBuffer::MetaBuffer(size_t blocksize, Backend *backend)
         lru.append(new MetaBufferHead(0, 1, i, _blocks + i * _blocksize));
 }
 
-void *MetaBuffer::get_block(Request &r, blockno_t bno) {
+void *MetaBuffer::get_block(Request &r, blockno_t bno, bool dirty) {
     MetaBufferHead *b;
     while(true) {
         b = get(bno);
@@ -45,6 +45,7 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
             else {
                 lru.moveToEnd(b);
                 b->_linkcount++;
+                b->dirty |= dirty;
                 SLOG(FS, "MetaBuffer: Found cached block <" << b->key() << ">, Links: "
                                                             << b->_linkcount);
                 r.push_meta(b);
@@ -77,6 +78,7 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
     _backend->load_meta(b->_data, b->_off, bno, b->unlock);
 
     b->_linkcount = 1;
+    b->dirty = dirty;
     lru.moveToEnd(b);
     SLOG(FS, "MetaBuffer: Load new block <" << b->key() << ">, Links: " << b->_linkcount);
     b->locked = false;

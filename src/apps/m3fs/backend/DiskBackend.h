@@ -60,7 +60,7 @@ public:
     void sync_meta(Request &r, m3::blockno_t bno) override {
         // check if there is a filebuffer entry for it or create one
         capsel_t msel = m3::VPE::self().alloc_sel();
-        size_t ret = r.hdl().filebuffer().get_extent(bno, 1, msel, m3::MemGate::RWX, 1, false, false);
+        size_t ret = r.hdl().filebuffer().get_extent(bno, 1, msel, m3::MemGate::RWX, 1, false);
         if(ret) {
             // okay, so write it from metabuffer to filebuffer
             m3::MemGate m = m3::MemGate::bind(msel);
@@ -75,12 +75,9 @@ public:
     size_t get_filedata(Request &r, m3::Extent *ext, size_t extoff, int perms, capsel_t sel,
                         bool dirty, bool load, size_t accessed) override {
         size_t first_block = extoff / _blocksize;
-        size_t bytes = r.hdl().filebuffer().get_extent(ext->start + first_block,
-                                                       ext->length - first_block,
-                                                       sel, perms, accessed, load);
-        if(dirty)
-            r.hdl().filebuffer().mark_dirty(ext->start + first_block);
-        return bytes;
+        return r.hdl().filebuffer().get_extent(ext->start + first_block,
+                                               ext->length - first_block,
+                                               sel, perms, accessed, load, dirty);
     }
 
     void clear_extent(Request &r, m3::Extent *ext, size_t accessed) override {
@@ -90,8 +87,8 @@ public:
         while(i < ext->length) {
             // since we override everything with zeros we don't have to load from the disk
             size_t bytes = r.hdl().filebuffer().get_extent(ext->start + i, ext->length - i,
-                                                           sel, m3::MemGate::RW, accessed, false);
-            r.hdl().filebuffer().mark_dirty(ext->start + i);
+                                                           sel, m3::MemGate::RW, accessed,
+                                                           false, true);
             m3::MemGate mem = m3::MemGate::bind(sel);
             mem.write(zeros, bytes, 0);
             i += bytes / _blocksize;

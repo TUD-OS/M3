@@ -34,7 +34,7 @@ FileBuffer::FileBuffer(size_t blocksize, Backend *backend, size_t max_load)
 }
 
 size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perms, size_t accessed,
-                              bool load, bool check) {
+                              bool load, bool dirty) {
     while(true) {
         FileBufferHead *b = FileBuffer::get(bno);
         if(b) {
@@ -56,15 +56,13 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
 
                 if(res != Errors::NONE)
                     return 0;
+                b->dirty |= dirty;
                 return len * _blocksize;
             }
         }
         else
             break;
     }
-
-    if(check)
-        return 0;
 
     // load chunk into memory
     // size_t max_size = Math::min((size_t)FILE_BUFFER_SIZE, _max_load);
@@ -112,6 +110,7 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
     Errors::Code res = Syscalls::get().derivemem(sel, b->_data.sel(), 0, load_size * _blocksize, perms);
     if(res != Errors::NONE)
         return 0;
+    b->dirty = dirty;
     return load_size * _blocksize;
 }
 

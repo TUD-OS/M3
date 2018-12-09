@@ -50,7 +50,7 @@ public:
 
     explicit MetaBuffer(size_t blocksize, Backend *backend);
 
-    void *get_block(Request &r, m3::blockno_t bno);
+    void *get_block(Request &r, m3::blockno_t bno, bool dirty = false);
     void quit(MetaBufferHead *b);
     void write_back(m3::blockno_t bno);
     void flush() override;

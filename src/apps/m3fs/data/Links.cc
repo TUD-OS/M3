@@ -57,8 +57,7 @@ Errors::Code Links::create(Request &r, INode *dir, const char *name, size_t name
             return Errors::NO_SPACE;
 
         // put entry at the beginning of the block
-        e = reinterpret_cast<DirEntry*>(r.hdl().metabuffer().get_block(r, ext->start));
-        r.hdl().metabuffer().mark_dirty(ext->start);
+        e = reinterpret_cast<DirEntry*>(r.hdl().metabuffer().get_block(r, ext->start, true));
         rem = r.hdl().sb().blocksize;
     }
 
