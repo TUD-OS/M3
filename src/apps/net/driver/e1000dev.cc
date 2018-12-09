@@ -21,6 +21,7 @@
 #include <base/log/Services.h>
 
 #include <cstddef>
+#include <cstdlib>
 
 /* parts of the code are inspired by the Escape e1000 driver */
 
