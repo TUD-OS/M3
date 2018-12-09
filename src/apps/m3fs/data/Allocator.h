@@ -18,23 +18,24 @@
 
 #include <fs/internal.h>
 
-#include "../Cache.h"
+#include "../sess/Request.h"
 
 class FSHandle;
 
 class Allocator {
 public:
-    explicit Allocator(uint32_t first, uint32_t *first_free, uint32_t *free,
+    explicit Allocator(const char *name, uint32_t first, uint32_t *first_free, uint32_t *free,
                        uint32_t total, uint32_t blocks);
 
-    uint32_t alloc(FSHandle &h) {
+    uint32_t alloc(Request &r) {
         size_t count = 1;
-        return alloc(h, &count);
+        return alloc(r, &count);
     }
-    uint32_t alloc(FSHandle &h, size_t *count);
-    void free(FSHandle &h, uint32_t start, size_t count);
+    uint32_t alloc(Request &r, size_t *count);
+    void free(Request &r, uint32_t start, size_t count);
 
 private:
+    const char *_name;
     uint32_t _first;
     uint32_t *_first_free;
     uint32_t *_free;

@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018, Sebastian Reimers <sebastian.reimers@mailbox.tu-dresden.de>
+ * Copyright (C) 2018, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Economic rights: Technische Universitaet Dresden (Germany)
+ *
+ * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).
+ *
+ * M3 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * M3 is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License version 2 for more details.
+ */
 
 #pragma once
 
@@ -13,6 +29,8 @@
 
 #include <fs/internal.h>
 #include <thread/ThreadManager.h>
+
+#include "backend/Backend.h"
 
 class BufferHead : public m3::TreapNode<BufferHead, m3::blockno_t>, public m3::DListItem {
     friend class Buffer;
@@ -39,10 +57,8 @@ public:
     // the PRDT is currently placed behind the data buffer when using DMA
     static constexpr size_t PRDT_SIZE   = 8;
 
-    Buffer(size_t blocksize, m3::Disk *disk);
+    Buffer(size_t blocksize, Backend *backend);
     virtual ~Buffer(){};
-    void lock(m3::blockno_t bno);
-    void unlock(m3::blockno_t bno);
     void mark_dirty(m3::blockno_t bno);
     virtual void flush() = 0;
 
@@ -54,5 +70,5 @@ protected:
     m3::DList<BufferHead> lru;
 
     size_t _blocksize;
-    m3::Disk *_disk;
+    Backend *_backend;
 };

@@ -14,11 +14,12 @@
  * General Public License version 2 for more details.
  */
 
+#include "MetaSession.h"
+
 #include <m3/session/M3FS.h>
 
 #include "../data/Dirs.h"
 #include "../data/INodes.h"
-#include "MetaSession.h"
 
 using namespace m3;
 
@@ -80,7 +81,7 @@ Errors::Code M3FSMetaSession::open_file(capsel_t srv, KIF::Service::ExchangeData
         return res;
 
     data.args.count = 0;
-    data.caps = _files[id]->caps().value();
+    data.caps       = _files[id]->caps().value();
     return Errors::NONE;
 }
 
@@ -101,29 +102,30 @@ static const char *decode_flags(int flags) {
 Errors::Code M3FSMetaSession::do_open(capsel_t srv, const char *path, int flags, size_t *id) {
     PRINT(this, "fs::open(path=" << path << ", flags=" << decode_flags(flags) << ")");
 
-    inodeno_t ino = Dirs::search(handle(), path, flags & FILE_CREATE);
+    Request r(hdl());
+
+    inodeno_t ino = Dirs::search(r, path, flags & FILE_CREATE);
     if(ino == INVALID_INO) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::last));
         return Errors::last;
     }
 
-    INode *inode = INodes::get(handle(), ino);
+    INode *inode = INodes::get(r, ino);
     if(((flags & FILE_W) && (~inode->mode & M3FS_IWUSR)) ||
-        ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
+       ((flags & FILE_R) && (~inode->mode & M3FS_IRUSR))) {
         PRINT(this, "open failed: " << Errors::to_string(Errors::NO_PERM));
         return Errors::NO_PERM;
     }
 
     // only determine the current size, if we're writing and the file isn't empty
     if(flags & FILE_TRUNC) {
-        INodes::truncate(_handle, inode, 0, 0);
+        INodes::truncate(r, inode, 0, 0);
         // TODO revoke access, if necessary
     }
 
     // for directories: ensure that we don't have a changed version in the cache
     if(M3FS_ISDIR(inode->mode))
-        INodes::write_back(_handle, inode);
-
+        INodes::sync_metadata(r, inode);
     ssize_t res = alloc_file(srv, path, flags, inode->inode);
     if(res < 0)
         return static_cast<Errors::Code>(-res);
@@ -183,20 +185,23 @@ void M3FSMetaSession::stat(GateIStream &is) {
     EVENT_TRACER_FS_stat();
     String path;
     is >> path;
+
+    Request r(hdl());
+
     PRINT(this, "fs::stat(path=" << path << ")");
 
-    m3::inodeno_t ino = Dirs::search(_handle, path.c_str(), false);
+    m3::inodeno_t ino = Dirs::search(r, path.c_str(), false);
     if(ino == INVALID_INO) {
         PRINT(this, "stat failed: " << Errors::to_string(Errors::last));
         reply_error(is, Errors::last);
         return;
     }
 
-    m3::INode *inode = INodes::get(_handle, ino);
+    m3::INode *inode = INodes::get(r, ino);
     assert(inode != nullptr);
 
     m3::FileInfo info;
-    INodes::stat(_handle, inode, info);
+    INodes::stat(r, inode, info);
     reply_vmsg(is, Errors::NONE, info);
 }
 
@@ -205,9 +210,12 @@ void M3FSMetaSession::mkdir(GateIStream &is) {
     String path;
     mode_t mode;
     is >> path >> mode;
+
+    Request r(hdl());
+
     PRINT(this, "fs::mkdir(path=" << path << ", mode=" << fmt(mode, "o") << ")");
 
-    Errors::Code res = Dirs::create(_handle, path.c_str(), mode);
+    Errors::Code res = Dirs::create(r, path.c_str(), mode);
     if(res != Errors::NONE)
         PRINT(this, "mkdir failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -217,9 +225,12 @@ void M3FSMetaSession::rmdir(GateIStream &is) {
     EVENT_TRACER_FS_rmdir();
     String path;
     is >> path;
+
+    Request r(hdl());
+
     PRINT(this, "fs::rmdir(path=" << path << ")");
 
-    Errors::Code res = Dirs::remove(_handle, path.c_str());
+    Errors::Code res = Dirs::remove(r, path.c_str());
     if(res != Errors::NONE)
         PRINT(this, "rmdir failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -229,9 +240,12 @@ void M3FSMetaSession::link(GateIStream &is) {
     EVENT_TRACER_FS_link();
     String oldpath, newpath;
     is >> oldpath >> newpath;
+
+    Request r(hdl());
+
     PRINT(this, "fs::link(oldpath=" << oldpath << ", newpath=" << newpath << ")");
 
-    Errors::Code res = Dirs::link(_handle, oldpath.c_str(), newpath.c_str());
+    Errors::Code res = Dirs::link(r, oldpath.c_str(), newpath.c_str());
     if(res != Errors::NONE)
         PRINT(this, "link failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -241,9 +255,12 @@ void M3FSMetaSession::unlink(GateIStream &is) {
     EVENT_TRACER_FS_unlink();
     String path;
     is >> path;
+
+    Request r(hdl());
+
     PRINT(this, "fs::unlink(path=" << path << ")");
 
-    Errors::Code res = Dirs::unlink(_handle, path.c_str(), false);
+    Errors::Code res = Dirs::unlink(r, path.c_str(), false);
     if(res != Errors::NONE)
         PRINT(this, "unlink failed: " << Errors::to_string(res));
     reply_error(is, res);
@@ -262,7 +279,7 @@ ssize_t M3FSMetaSession::alloc_file(capsel_t srv, const char *path, int flags, i
     assert(flags != 0);
     for(size_t i = 0; i < MAX_FILES; ++i) {
         if(_files[i] == NULL) {
-            _files[i] = new M3FSFileSession(srv, this, path, flags, ino);
+            _files[i] = new M3FSFileSession(hdl(), srv, this, path, flags, ino);
             return static_cast<ssize_t>(i);
         }
     }

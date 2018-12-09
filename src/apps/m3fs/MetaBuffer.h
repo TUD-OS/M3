@@ -45,10 +45,10 @@ private:
  * blocks will be freed if no session uses them
  */
 class MetaBuffer : public Buffer {
+public:
     static constexpr size_t META_BUFFER_SIZE    = 512;
 
-public:
-    explicit MetaBuffer(size_t blocksize, m3::Disk *disk);
+    explicit MetaBuffer(size_t blocksize, Backend *backend);
 
     void *get_block(Request &r, m3::blockno_t bno);
     void quit(MetaBufferHead *b);
@@ -61,5 +61,4 @@ private:
     void flush_chunk(BufferHead *b) override;
 
     char *_blocks;
-    m3::MemGate gate;
 };

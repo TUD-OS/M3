@@ -18,22 +18,29 @@
 
 #include <fs/internal.h>
 
+#include <m3/session/Disk.h>
+
+#include "FileBuffer.h"
+#include "MetaBuffer.h"
+#include "backend/Backend.h"
 #include "data/Allocator.h"
 #include "sess/OpenFiles.h"
-#include "Cache.h"
 
 class FSHandle {
 public:
-    explicit FSHandle(capsel_t mem, size_t extend, bool clear, bool revoke_first);
+    explicit FSHandle(Backend *backend, size_t extend, bool clear, bool revoke_first, size_t max_load);
 
-    m3::MemGate &mem() {
-        return _mem;
-    }
     m3::SuperBlock &sb() {
         return _sb;
     }
-    Cache &cache() {
-        return _cache;
+    Backend *backend() {
+        return _backend;
+    }
+    FileBuffer &filebuffer() {
+        return _filebuffer;
+    }
+    MetaBuffer &metabuffer() {
+        return _metabuffer;
     }
     Allocator &inodes() {
         return _inodes;
@@ -54,29 +61,28 @@ public:
         return _extend;
     }
 
-    void read_from_block(void *buffer, size_t len, m3::blockno_t bno, size_t off) {
-        _mem.read(buffer, len, bno * _sb.blocksize + off);
-    }
-    void write_to_block(const void *buffer, size_t len, m3::blockno_t bno, size_t off) {
-        _mem.write(buffer, len, bno * _sb.blocksize + off);
+    void flush_buffer() {
+        _metabuffer.flush();
+        _filebuffer.flush();
+        _backend->store_sb(_sb);
     }
 
-    void flush_cache() {
-        _cache.flush();
-        _sb.checksum = _sb.get_checksum();
-        _mem.write(&_sb, sizeof(_sb), 0);
+    void shutdown() {
+        _backend->shutdown();
     }
 
 private:
-    static bool load_superblock(m3::MemGate &mem, m3::SuperBlock *sb, bool clear);
+    static bool load_superblock(Backend *backend, m3::SuperBlock *sb, bool clear);
 
-    m3::MemGate _mem;
+    Backend *_backend;
     bool _clear;
     bool _revoke_first;
     size_t _extend;
     m3::SuperBlock _sb;
-    Cache _cache;
+    FileBuffer _filebuffer;
+    MetaBuffer _metabuffer;
     Allocator _blocks;
     Allocator _inodes;
     OpenFiles _files;
+    void *_parent_sess;
 };

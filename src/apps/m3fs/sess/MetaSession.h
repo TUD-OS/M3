@@ -16,9 +16,9 @@
 
 #pragma once
 
+#include "../FSHandle.h"
 #include "FileSession.h"
 #include "Session.h"
-#include "../FSHandle.h"
 
 class M3FSMetaSession : public M3FSSession {
     struct MetaSGate : public m3::SListItem {
@@ -30,11 +30,10 @@ class M3FSMetaSession : public M3FSSession {
 public:
     static constexpr size_t MAX_FILES   = 64;
 
-    explicit M3FSMetaSession(capsel_t srv_sel, m3::RecvGate &rgate, FSHandle &handle)
-        : M3FSSession(srv_sel),
+    explicit M3FSMetaSession(FSHandle &handle, capsel_t srv_sel, m3::RecvGate &rgate)
+        : M3FSSession(handle, srv_sel),
           _sgates(),
           _rgate(rgate),
-          _handle(handle),
           _ep_start(),
           _ep_count(),
           _files() {
@@ -42,7 +41,7 @@ public:
     virtual ~M3FSMetaSession() {
         for(size_t i = 0; i < MAX_FILES; ++i)
             delete _files[i];
-        for(auto it = _sgates.begin(); it != _sgates.end(); ) {
+        for(auto it = _sgates.begin(); it != _sgates.end();) {
             auto old = it++;
             delete &*old;
         }
@@ -75,9 +74,6 @@ public:
     m3::RecvGate &rgate() {
         return _rgate;
     }
-    FSHandle &handle() {
-        return _handle;
-    }
 
     m3::Errors::Code get_sgate(m3::KIF::Service::ExchangeData &data);
     m3::Errors::Code open_file(capsel_t srv, m3::KIF::Service::ExchangeData &data);
@@ -89,7 +85,6 @@ private:
 
     m3::SList<MetaSGate> _sgates;
     m3::RecvGate &_rgate;
-    FSHandle &_handle;
     capsel_t _ep_start;
     capsel_t _ep_count;
     // TODO change that to a list?

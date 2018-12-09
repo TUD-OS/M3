@@ -18,24 +18,26 @@
 
 #include <fs/internal.h>
 
+#include "../sess/Request.h"
 #include "../FSHandle.h"
 
 /**
  * Walks over all dir-entries in block <bno>, assigning it to <e>.
  */
-#define foreach_direntry(h, bno, e)                                                     \
-    DirEntry *e = reinterpret_cast<DirEntry*>((h).cache().get_block((bno), false));     \
-    DirEntry *__eend = e + (h).sb().blocksize / sizeof(DirEntry);                       \
+#define foreach_direntry(r, bno, e)                                                             \
+    DirEntry *e = reinterpret_cast<DirEntry*>((r).hdl().metabuffer().get_block((r), (bno)));    \
+    DirEntry *__eend = e + (r).hdl().sb().blocksize / sizeof(DirEntry);                         \
     for(; e < __eend; e = reinterpret_cast<DirEntry*>(reinterpret_cast<char*>(e) + e->next))
 
 class Dirs {
     Dirs() = delete;
 
+    static m3::DirEntry *find_entry(Request &r, m3::INode *inode, const char *name, size_t namelen);
+
 public:
-    static m3::DirEntry *find_entry(FSHandle &h, m3::INode *inode, const char *name, size_t namelen);
-    static m3::inodeno_t search(FSHandle &h, const char *path, bool create = false);
-    static m3::Errors::Code create(FSHandle &h, const char *path, m3::mode_t mode);
-    static m3::Errors::Code remove(FSHandle &h, const char *path);
-    static m3::Errors::Code link(FSHandle &h, const char *oldpath, const char *newpath);
-    static m3::Errors::Code unlink(FSHandle &h, const char *path, bool isdir);
+    static m3::inodeno_t search(Request &r, const char *path, bool create = false);
+    static m3::Errors::Code create(Request &r, const char *path, m3::mode_t mode);
+    static m3::Errors::Code remove(Request &r, const char *path);
+    static m3::Errors::Code link(Request &r, const char *oldpath, const char *newpath);
+    static m3::Errors::Code unlink(Request &r, const char *path, bool isdir);
 };

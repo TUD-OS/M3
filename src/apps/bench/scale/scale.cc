@@ -118,6 +118,7 @@ int main(int argc, char **argv) {
             "-s", m3fsarg.c_str(),
             "-o", fs_off_str.str(),
             "-e", "512",
+            "mem",
             fs_size_str.str()
         };
         if(VERBOSE) {

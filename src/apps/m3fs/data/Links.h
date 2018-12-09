@@ -16,14 +16,14 @@
 
 #pragma once
 
-#include "../FSHandle.h"
+#include "../sess/Request.h"
 
 class Links {
     Links() = delete;
 
 public:
-    static m3::Errors::Code create(FSHandle &h, m3::INode *dir,
-                                   const char *name, size_t namelen, m3::INode *inode);
-    static m3::Errors::Code remove(FSHandle &h, m3::INode *dir,
-                                   const char *name, size_t namelen, bool isdir);
+    static m3::Errors::Code create(Request &r, m3::INode *dir, const char *name, size_t namelen,
+                                   m3::INode *inode);
+    static m3::Errors::Code remove(Request &r, m3::INode *dir, const char *name, size_t namelen,
+                                   bool isdir);
 };

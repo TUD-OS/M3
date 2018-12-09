@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
             srvs[0] = new RemoteServer(*srv_vpes[0], "mym3fs");
 
             String srv_arg = srvs[0]->sel_arg();
-            const char *args[] = {"/bin/m3fs", "-s", srv_arg.c_str(), "268435456"};
+            const char *args[] = {"/bin/m3fs", "-s", srv_arg.c_str(), "mem", "268435456"};
             Errors::Code res = srv_vpes[0]->exec(ARRAY_SIZE(args), args);
             if(res != Errors::NONE)
                 PANIC("Cannot execute " << args[0] << ": " << Errors::to_string(res));

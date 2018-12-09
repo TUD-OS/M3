@@ -15,12 +15,15 @@
  */
 
 #include "Allocator.h"
+
 #include "../FSHandle.h"
 
 using namespace m3;
 
-Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free, uint32_t total, uint32_t blocks)
-    : _first(first),
+Allocator::Allocator(const char *name, uint32_t first, uint32_t *first_free, uint32_t *free,
+                     uint32_t total, uint32_t blocks)
+    : _name(name),
+      _first(first),
       _first_free(first_free),
       _free(free),
       _total(total),
@@ -29,8 +32,8 @@ Allocator::Allocator(uint32_t first, uint32_t *first_free, uint32_t *free, uint3
     static_assert(sizeof(inodeno_t) == sizeof(uint32_t), "Wrong type");
 }
 
-uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
-    const size_t perblock = h.sb().blocksize * 8;
+uint32_t Allocator::alloc(Request &r, size_t *count) {
+    const size_t perblock = r.hdl().sb().blocksize * 8;
     const uint32_t lastno = _first + _blocks - 1;
     const size_t icount = *count;
     uint32_t no = _first + *_first_free / perblock;
@@ -38,7 +41,9 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
     uint32_t i = *_first_free % perblock;
 
     while(total == 0 && no <= lastno) {
-        Bitmap::word_t *bytes = reinterpret_cast<Bitmap::word_t*>(h.cache().get_block(no, true));
+        // TODO do mark_dirty in get_block? (avoids one tree search)
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
+        r.hdl().metabuffer().mark_dirty(no);
         // take care that total_blocks might not be a multiple of perblock
         size_t max = perblock;
         if(no == lastno) {
@@ -98,6 +103,7 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
             }
         }
 
+        r.pop_meta();
         if(total == 0) {
             no++;
             i = 0;
@@ -112,17 +118,20 @@ uint32_t Allocator::alloc(FSHandle &h, size_t *count) {
     uint32_t off = (no - _first) * perblock + i;
     *_first_free = off;
     uint32_t start = off - total;
+    SLOG(FS, _name << ": allocated " << start << ".." << (start + total - 1));
     return start;
 }
 
-void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
-    size_t perblock = h.sb().blocksize * 8;
+void Allocator::free(Request &r, uint32_t start, size_t count) {
+    size_t perblock = r.hdl().sb().blocksize * 8;
     uint32_t no = _first + start / perblock;
     if(start < *_first_free)
         *_first_free = start;
     *_free += count;
+    SLOG(FS, _name << ": free'd " << start << ".." << (start + count - 1));
     while(count > 0) {
-        Bitmap::word_t *bytes = reinterpret_cast<Bitmap::word_t*>(h.cache().get_block(no, true));
+        auto *bytes = reinterpret_cast<Bitmap::word_t*>(r.hdl().metabuffer().get_block(r, no));
+        r.hdl().metabuffer().mark_dirty(no);
         Bitmap bm(bytes);
 
         // first, align it to word-size
@@ -148,6 +157,7 @@ void Allocator::free(FSHandle &h, uint32_t start, size_t count) {
         }
 
         // to next bitmap block
+        r.pop_meta();
         count -= i - begin;
         start = (start + perblock - 1) & ~(perblock - 1);
         no++;

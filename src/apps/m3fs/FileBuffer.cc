@@ -27,8 +27,8 @@ FileBufferHead::FileBufferHead(blockno_t bno, size_t size, size_t blocksize)
     _extents.append(new InodeExt(bno, size));
 }
 
-FileBuffer::FileBuffer(size_t blocksize, Disk *disk, size_t max_load)
-    : Buffer(blocksize, disk),
+FileBuffer::FileBuffer(size_t blocksize, Backend *backend, size_t max_load)
+    : Buffer(blocksize, backend),
       _size(),
       _max_load(max_load) {
 }
@@ -101,20 +101,13 @@ size_t FileBuffer::get_extent(blockno_t bno, size_t size, capsel_t sel, int perm
     _size += b->_size;
     ht.insert(b);
     lru.append(b);
-    // load from disk
-    SLOG(FS, "FileBuffer: Allocating block <" << b->key() << ">" << (load ? " : loading" : ""));
-    KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, b->_data.sel(), 1);
-    KIF::ExchangeArgs args;
-    args.count = 2;
-    args.vals[0] = static_cast<xfer_t>(b->key());
-    args.vals[1] = static_cast<xfer_t>(b->_size);
-    _disk->delegate(crd, &args);
 
-    if(load)
-        _disk->read(b->key(), b->key(), b->_size, _blocksize);
+    // load from disk
+    SLOG(FS, "FileBuffer: Allocating blocks <" << b->key() << "," << b->_size << ">"
+                                               << (load ? " : loading" : ""));
+    _backend->load_data(b->_data, b->key(), b->_size, load, b->unlock);
 
     b->locked = false;
-    ThreadManager::get().notify(b->unlock);
 
     Errors::Code res = Syscalls::get().derivemem(sel, b->_data.sel(), 0, load_size * _blocksize, perms);
     if(res != Errors::NONE)
@@ -133,12 +126,11 @@ void FileBuffer::flush_chunk(BufferHead *b) {
     b->locked = true;
 
     // TODO track the dirty regions instead of writing back the whole buffer
-    SLOG(FS, "FileBuffer: Write back block <" << b->key() << ">");
-    _disk->write(b->key(), b->key(), b->_size, _blocksize);
+    SLOG(FS, "FileBuffer: Write back blocks <" << b->key() << "," << b->_size << ">");
+    _backend->store_data(b->key(), b->_size, b->unlock);
 
     b->dirty  = false;
     b->locked = false;
-    ThreadManager::get().notify(b->unlock);
 }
 
 void FileBuffer::flush() {

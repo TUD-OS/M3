@@ -28,21 +28,11 @@ MetaBufferHead::MetaBufferHead(blockno_t bno, size_t size, size_t off, char *dat
       _linkcount(0) {
 }
 
-MetaBuffer::MetaBuffer(size_t blocksize, Disk *disk)
-    : Buffer(blocksize, disk),
-      _blocks(new char[_blocksize * META_BUFFER_SIZE]),
-      // use separate transfer buffer for each entry to allow parallel disk requests
-      gate(MemGate::create_global((_blocksize + PRDT_SIZE) * META_BUFFER_SIZE, MemGate::RW)) {
+MetaBuffer::MetaBuffer(size_t blocksize, Backend *backend)
+    : Buffer(blocksize, backend),
+      _blocks(new char[_blocksize * META_BUFFER_SIZE]) {
     for(size_t i = 0; i < META_BUFFER_SIZE; i++)
         lru.append(new MetaBufferHead(0, 1, i, _blocks + i * _blocksize));
-
-    // store the MemCap as blockno 0, bc we won't load the superblock again
-    KIF::CapRngDesc crd(KIF::CapRngDesc::OBJ, gate.sel(), 1);
-    KIF::ExchangeArgs args;
-    args.count   = 2;
-    args.vals[0] = static_cast<xfer_t>(0);
-    args.vals[1] = static_cast<xfer_t>(1);
-    _disk->delegate(crd, &args);
 }
 
 void *MetaBuffer::get_block(Request &r, blockno_t bno) {
@@ -84,16 +74,12 @@ void *MetaBuffer::get_block(Request &r, blockno_t bno) {
     b->key(bno);
     ht.insert(b);
 
-    // disk load into b->_data;
-    size_t off = b->_off * (_blocksize + PRDT_SIZE);
-    _disk->read(0, bno, 1, _blocksize, off);
-    gate.read(b->_data, _blocksize, off);
+    _backend->load_meta(b->_data, b->_off, bno, b->unlock);
 
     b->_linkcount = 1;
     lru.moveToEnd(b);
     SLOG(FS, "MetaBuffer: Load new block <" << b->key() << ">, Links: " << b->_linkcount);
     b->locked = false;
-    ThreadManager::get().notify(b->unlock);
 
     r.push_meta(b);
     return b->_data;
@@ -118,13 +104,10 @@ void MetaBuffer::flush_chunk(BufferHead *b) {
 
     // write_to_disk
     SLOG(FS, "MetaBuffer: Write back block <" << b->key() << ">");
-    size_t off = mb->_off * (_blocksize + PRDT_SIZE);
-    gate.write(mb->_data, _blocksize, off);
-    _disk->write(0, b->key(), 1, _blocksize, off);
+    _backend->store_meta(mb->_data, mb->_off, b->key(), mb->unlock);
 
     b->dirty   = false;
     mb->locked = false;
-    ThreadManager::get().notify(mb->unlock);
 }
 
 void MetaBuffer::write_back(blockno_t bno) {

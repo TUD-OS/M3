@@ -16,14 +16,15 @@
 
 #pragma once
 
-#include <base/col/SList.h>
 #include <base/KIF.h>
+#include <base/col/SList.h>
 
-#include <m3/com/SendGate.h>
 #include <m3/VPE.h>
+#include <m3/com/SendGate.h>
 
 #include <fs/internal.h>
 
+#include "Request.h"
 #include "Session.h"
 
 class M3FSMetaSession;
@@ -42,7 +43,7 @@ struct CapContainer {
     explicit CapContainer() : caps() {
     }
     ~CapContainer() {
-        for(auto it = caps.begin(); it != caps.end(); ) {
+        for(auto it = caps.begin(); it != caps.end();) {
             auto old = it++;
             delete &*old;
         }
@@ -57,8 +58,8 @@ struct CapContainer {
 
 class M3FSFileSession : public M3FSSession, public m3::SListItem {
 public:
-    explicit M3FSFileSession(capsel_t srv_sel, M3FSMetaSession *meta, const m3::String &filename,
-                             int flags, m3::inodeno_t ino);
+    explicit M3FSFileSession(FSHandle &handle, capsel_t srv_sel, M3FSMetaSession *meta,
+                             const m3::String &filename, int flags, m3::inodeno_t ino);
     virtual ~M3FSFileSession();
 
     virtual Type type() const override {
@@ -90,13 +91,16 @@ public:
 
 private:
     void next_in_out(m3::GateIStream &is, bool out);
-    m3::Errors::Code commit(m3::INode *inode, size_t submit);
+    m3::Errors::Code commit(Request &r, m3::INode *inode, size_t submit);
 
     size_t _extent;
     size_t _extoff;
     size_t _lastoff;
     size_t _extlen;
     size_t _fileoff;
+    size_t _lastbytes;
+    size_t _accessed;
+    bool _moved_forward;
 
     bool _appending;
     m3::Extent *_append_ext;

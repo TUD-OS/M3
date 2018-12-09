@@ -48,7 +48,7 @@ class FileBuffer : public Buffer {
     static constexpr size_t LOAD_LIMIT          = 128;
 
 public:
-    explicit FileBuffer(size_t blocksize, m3::Disk *disk, size_t max_load);
+    explicit FileBuffer(size_t blocksize, Backend *backend, size_t max_load);
 
     size_t get_extent(m3::blockno_t bno, size_t size, capsel_t sel, int perms, size_t accessed,
                       bool load = true, bool check = false);
