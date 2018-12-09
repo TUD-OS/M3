@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016-2017, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * This file is part of M3 (Microkernel-based SysteM for Heterogeneous Manycores).

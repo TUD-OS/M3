@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2015-2018, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Copyright (C) 2002 - 2009 Hellwig Geisse
  * Economic rights: Technische Universitaet Dresden (Germany)
  *

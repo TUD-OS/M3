@@ -1,5 +1,6 @@
 // vim:ft=cpp
 /*
+ * (c) 2015-2018 Nils Asmussen <nils@os.inf.tu-dresden.de>
  * (c) 2007-2013 Carsten Weinhold <weinhold@os.inf.tu-dresden.de>
  *     economic rights: Technische Universität Dresden (Germany)
  *

@@ -1,6 +1,6 @@
 /**
  * Copyright (C) 2015, René Küttner <rene.kuettner@.tu-dresden.de>
- * Copyright (C) 2015, Nils Asmussen <nils@os.inf.tu-dresden.de>
+ * Copyright (C) 2016-2018, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universität Dresden (Germany)
  *
  * This file is part of M3 (Microkernel for Minimalist Manycores).

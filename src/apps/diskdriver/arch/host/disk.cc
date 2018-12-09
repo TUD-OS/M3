@@ -1,5 +1,4 @@
 /*
- * Copyright (C) 2017, Lukas Landgraf <llandgraf317@gmail.com>
  * Copyright (C) 2018, Nils Asmussen <nils@os.inf.tu-dresden.de>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
