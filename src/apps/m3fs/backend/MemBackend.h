@@ -44,6 +44,10 @@ public:
         // unused
     }
 
+    void sync_meta(Request &r, m3::blockno_t bno) override {
+        r.hdl().metabuffer().write_back(bno);
+    }
+
     size_t get_filedata(Request &, m3::Extent *ext, size_t extoff, int perms, capsel_t sel,
                         bool, bool, size_t) override {
         size_t first_block = extoff / _blocksize;

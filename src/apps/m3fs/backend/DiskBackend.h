@@ -57,6 +57,21 @@ public:
         m3::ThreadManager::get().notify(unlock);
     }
 
+    void sync_meta(Request &r, m3::blockno_t bno) override {
+        // check if there is a filebuffer entry for it or create one
+        capsel_t msel = m3::VPE::self().alloc_sel();
+        size_t ret = r.hdl().filebuffer().get_extent(bno, 1, msel, m3::MemGate::RWX, 1, false, false);
+        if(ret) {
+            // okay, so write it from metabuffer to filebuffer
+            m3::MemGate m = m3::MemGate::bind(msel);
+            m.write(r.hdl().metabuffer().get_block(r, bno), r.hdl().sb().blocksize, 0);
+            r.pop_meta();
+        }
+        // if the filebuffer entry didn't exist and couldn't be created, update block on disk
+        else
+            r.hdl().metabuffer().write_back(bno);
+    }
+
     size_t get_filedata(Request &r, m3::Extent *ext, size_t extoff, int perms, capsel_t sel,
                         bool dirty, bool load, size_t accessed) override {
         size_t first_block = extoff / _blocksize;

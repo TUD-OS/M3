@@ -31,6 +31,8 @@ public:
     virtual void store_meta(const void *src, size_t src_off, m3::blockno_t bno, event_t unlock) = 0;
     virtual void store_data(m3::blockno_t bno, size_t blocks, event_t unlock) = 0;
 
+    virtual void sync_meta(Request &r, m3::blockno_t bno) = 0;
+
     virtual size_t get_filedata(Request &r, m3::Extent *ext, size_t extoff, int perms, capsel_t sel,
                                 bool dirty, bool load, size_t accessed) = 0;
 
