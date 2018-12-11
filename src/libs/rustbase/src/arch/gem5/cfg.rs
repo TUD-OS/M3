@@ -32,7 +32,7 @@ pub const STACK_BOTTOM: usize       = RT_START + RT_SIZE + PAGE_SIZE;
 pub const STACK_TOP: usize          = STACK_BOTTOM + STACK_SIZE;
 
 pub const APP_HEAP_SIZE: usize      = 64 * 1024 * 1024;
-pub const MOD_HEAP_SIZE: usize      = 512 * 1024;
+pub const MOD_HEAP_SIZE: usize      = 4 * 1024 * 1024;
 
 pub const SYSC_RBUF_ORD: i32        = 9;
 pub const UPCALL_RBUF_ORD: i32      = 9;

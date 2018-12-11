@@ -92,7 +92,7 @@ fn init_heap() {
             PEDesc::new_from(env.pe_desc).mem_size() - cfg::RECVBUF_SIZE_SPM
         }
         else if PEDesc::new_from(env.pe_desc).has_mmu() && env.pe_id == 0 {
-            util::round_up(begin as usize, cfg::PAGE_SIZE) + 1024 * 1024
+            util::round_up(begin as usize, cfg::PAGE_SIZE) + (4096 + 2048) * 1024
         }
         else {
             util::round_up(begin as usize, cfg::PAGE_SIZE) + env.heap_size as usize
