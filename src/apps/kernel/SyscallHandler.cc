@@ -200,6 +200,9 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     LOG_SYS(vpe, ": syscall::createsrv", "(dst=" << dst << ", vpe=" << tvpe
         << ", rgate=" << rgate << ", name=" << name << ")");
 
+    if(!vpe->objcaps().unused(dst))
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid server selector");
+
     auto rgatecap = static_cast<RGateCapability*>(vpe->objcaps().get(rgate, Capability::RGATE));
     if(rgatecap == nullptr || !rgatecap->obj->activated())
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "RGate capability invalid");
@@ -208,6 +211,8 @@ void SyscallHandler::createsrv(VPE *vpe, const m3::DTU::Message *msg) {
     if(vpecap == nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "VPE capability invalid");
 
+    if(name.length() == 0)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid server name");
     if(ServiceList::get().find(name) != nullptr)
         SYS_ERROR(vpe, msg, m3::Errors::EXISTS, "Service does already exist");
 
@@ -266,7 +271,7 @@ void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
     if(!vpe->objcaps().unused(dst))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate selector");
 
-    if(msgorder > order)
+    if(msgorder + order < msgorder || msgorder > order)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid arguments");
     if((1UL << (order - msgorder)) > MAX_RB_SIZE)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Too many receive buffer slots");
@@ -375,6 +380,8 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
     capsel_t capnum = 2 + EP_COUNT - m3::DTU::FIRST_FREE_EP;
     if(dst.count() != capnum || !vpe->objcaps().range_unused(dst))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid destination CRD");
+    if(name.length() == 0)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid name");
 
     // if it has a pager, we need an sgate cap
     SGateCapability *sgatecap = nullptr;
@@ -382,9 +389,15 @@ void SyscallHandler::createvpe(VPE *vpe, const m3::DTU::Message *msg) {
         sgatecap = static_cast<SGateCapability*>(vpe->objcaps().get(sgate, Capability::SGATE));
         if(sgatecap == nullptr)
             SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid SendGate cap(s)");
+        if(sep >= EP_COUNT || sep < m3::DTU::FIRST_FREE_EP)
+            SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid SEP");
     }
     else
         sep = VPE::INVALID_EP;
+
+    // check REP
+    if(rep != 0 && rep >= EP_COUNT)
+        SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid REP");
 
     VPEGroup *vpegrp = nullptr;
     if(group != m3::KIF::INV_SEL) {
