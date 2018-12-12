@@ -61,7 +61,7 @@ impl MemMap {
                 None    => break None,
                 Some(a) => {
                     let diff = util::round_up64(a.addr, align as goff) - a.addr;
-                    if a.size - diff as usize >= size {
+                    if a.size > diff as usize && a.size - diff as usize >= size {
                         break Some(a)
                     }
                 },
