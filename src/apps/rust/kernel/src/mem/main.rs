@@ -83,7 +83,7 @@ impl MainMemory {
                 return Ok(Allocation::new(gaddr, size))
             }
         }
-        Err(Error::new(Code::NoSpace))
+        Err(Error::new(Code::OutOfMem))
     }
     pub fn allocate_at(&mut self, offset: goff, size: usize) -> Result<Allocation, Error> {
         // TODO check if that's actually ok

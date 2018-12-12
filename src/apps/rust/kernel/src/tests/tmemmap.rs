@@ -38,7 +38,7 @@ fn basics() {
     m.free(0x100, 0x100);
     m.free(0x0, 0x100);
 
-    assert_err!(m.allocate(0x1000, 0x10), Code::NoSpace);
+    assert_err!(m.allocate(0x1000, 0x10), Code::OutOfMem);
     assert_eq!(m.allocate(0x200, 0x10), Ok(0x0));
 
     m.free(0x200, 0x100);

@@ -69,7 +69,7 @@ impl MemMap {
         };
 
         match a {
-            None    => Err(Error::new(Code::NoSpace)),
+            None    => Err(Error::new(Code::OutOfMem)),
             Some(a) => {
                 // if we need to do some alignment, create a new area in front of a
                 let diff = util::round_up64(a.addr, align as goff) - a.addr;

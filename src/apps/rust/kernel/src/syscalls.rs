@@ -225,7 +225,12 @@ fn create_rgate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<()
     if !vpe.borrow().obj_caps().unused(dst_sel) {
         sysc_err!(Code::InvArgs, "Selector {} already in use", dst_sel);
     }
-    if msg_order > order || (1 << (order - msg_order)) > cfg::MAX_RB_SIZE {
+    if order <= 0 ||
+       msg_order <= 0 ||
+       msg_order + order < msg_order ||
+       msg_order > order ||
+       order - msg_order >= 32 ||
+       (1 << (order - msg_order)) > cfg::MAX_RB_SIZE {
         sysc_err!(Code::InvArgs, "Invalid size");
     }
 
@@ -287,9 +292,15 @@ fn create_srv(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
     if ServiceList::get().find(&name).is_some() {
         sysc_err!(Code::Exists, "Service {} does already exist", name);
     }
+    if name.len() == 0 {
+        sysc_err!(Code::InvArgs, "Invalid server name");
+    }
 
     let dst_vpe: Rc<RefCell<VPE>> = get_kobj!(vpe, vpe_sel, VPE);
     let rgate: Rc<RefCell<RGateObject>> = get_kobj!(vpe, rgate_sel, RGate);
+    if !rgate.borrow().activated() {
+        sysc_err!(Code::InvArgs, "RGate is not activated");
+    }
 
     vpe.borrow_mut().obj_caps_mut().insert(
         Capability::new(dst_sel, KObject::Serv(ServObject::new(&dst_vpe, name.to_string(), rgate)))
@@ -380,8 +391,18 @@ fn create_vpe(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
 
         // pagefault send gate capability
         if sgate_sel != kif::INVALID_SEL {
-            let sgate_cap: Option<&mut Capability> = vpe_ref.obj_caps_mut().get_mut(sgate_sel);
-            sgate_cap.map(|c| nvpe_ref.obj_caps_mut().obtain(sgate_sel, c, true));
+            let sgate_opt: Option<&mut Capability> = vpe_ref.obj_caps_mut().get_mut(sgate_sel);
+            if let Some(sgate_cap) = sgate_opt {
+                if let &KObject::SGate(_) = sgate_cap.get() {
+                    nvpe_ref.obj_caps_mut().obtain(sgate_sel, sgate_cap, true);
+                }
+                else {
+                    sysc_err!(Code::InvArgs, "Expected sgate capability");
+                }
+            }
+            else {
+                sysc_err!(Code::InvArgs, "Expected sgate capability");
+            }
         }
     }
 
@@ -426,9 +447,12 @@ fn create_map(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), 
             "Memory capability refers to virtual memory"
         );
     }
+    if (perms.bits() & !mgate.borrow().perms.bits()) != 0 {
+        sysc_err!(Code::InvArgs, "Invalid permissions");
+    }
 
     let total_pages = (mgate.borrow().size() >> cfg::PAGE_BITS) as CapSel;
-    if first >= total_pages || first + pages > total_pages {
+    if first + pages <= first || first >= total_pages || first + pages > total_pages {
         sysc_err!(Code::InvArgs, "Region of memory cap is invalid");
     }
 
@@ -818,6 +842,10 @@ fn vpe_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Sy
         },
 
         kif::syscalls::VPEOp::START => {
+            if Rc::ptr_eq(&vpe, &vpe_ref) {
+                sysc_err!(Code::InvArgs, "VPE can't start itself");
+            }
+
             vpe_ref.borrow_mut().start(arg as i32)?;
         },
 
