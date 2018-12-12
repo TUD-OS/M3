@@ -128,6 +128,7 @@ pub fn handle(msg: &'static dtu::Message) {
         kif::syscalls::Operation::EXCHANGE          => exchange(&vpe, msg),
         kif::syscalls::Operation::DELEGATE          => exchange_over_sess(&vpe, msg, false),
         kif::syscalls::Operation::OBTAIN            => exchange_over_sess(&vpe, msg, true),
+        kif::syscalls::Operation::SRV_CTRL          => srv_ctrl(&vpe, msg),
         kif::syscalls::Operation::VPE_CTRL          => vpe_ctrl(&vpe, msg),
         kif::syscalls::Operation::VPE_WAIT          => vpe_wait(&vpe, msg),
         kif::syscalls::Operation::REVOKE            => revoke(&vpe, msg),
@@ -816,6 +817,36 @@ fn activate(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Sy
     else {
         vpe_ref.borrow_mut().invalidate_ep(epid, false)?;
         vpe_ref.borrow_mut().set_ep_sel(epid, None);
+    }
+
+    reply_success(msg);
+    Ok(())
+}
+
+#[inline(never)]
+fn srv_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), SyscError> {
+    let req: &kif::syscalls::SrvCtrl = get_message(msg);
+    let srv_sel = req.srv_sel as CapSel;
+    let op = kif::syscalls::SrvOp::from(req.op);
+
+    sysc_log!(
+        vpe, "srv_ctrl(srv={:?}, op={:?})",
+        srv_sel, op
+    );
+
+    let srv: Rc<RefCell<ServObject>> = get_kobj!(vpe, srv_sel, Serv);
+
+    match op {
+        kif::syscalls::SrvOp::SHUTDOWN => {
+            klog!(SERV, "Sending SHUTDOWN message to {}", srv.borrow().name);
+
+            let smsg = kif::service::Shutdown {
+                opcode: kif::service::Operation::SHUTDOWN.val as u64,
+            };
+            srv.borrow_mut().send(util::object_to_bytes(&smsg)).ok();
+        },
+
+        _                           => panic!("SrvOp unsupported: {:?}", op),
     }
 
     reply_success(msg);
