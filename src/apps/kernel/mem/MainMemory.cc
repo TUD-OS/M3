@@ -54,7 +54,7 @@ MainMemory::Allocation MainMemory::allocate(size_t size, size_t align) {
         if(!_mods[i]->available())
             continue;
         goff_t res = _mods[i]->map().allocate(size, align);
-        if(res)
+        if(res != static_cast<goff_t>(-1))
             return Allocation(i, res, size);
     }
     return Allocation();
