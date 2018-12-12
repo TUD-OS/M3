@@ -849,6 +849,14 @@ fn vpe_ctrl(vpe: &Rc<RefCell<VPE>>, msg: &'static dtu::Message) -> Result<(), Sy
             vpe_ref.borrow_mut().start(arg as i32)?;
         },
 
+        kif::syscalls::VPEOp::YIELD => {
+            if !Rc::ptr_eq(&vpe, &vpe_ref) {
+                sysc_err!(Code::InvArgs, "Yield for other VPEs is prohibited");
+            }
+
+            sysc_err!(Code::NotSup, "Yield is not supported");
+        },
+
         kif::syscalls::VPEOp::STOP  => {
             VPE::stop(vpe_ref, arg as i32);
             if vpe_sel == 0 {
