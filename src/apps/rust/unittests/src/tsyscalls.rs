@@ -108,7 +108,7 @@ fn create_mgate() {
     // invalid size
     assert_err!(syscalls::create_mgate(sel, !0, 0, Perm::RW), Code::InvArgs);
     assert_err!(syscalls::create_mgate(sel, !0, Perm::R.bits() as usize, Perm::RW), Code::InvArgs);
-    assert_err!(syscalls::create_mgate(sel, !0, 0x100000000000, Perm::RW), Code::OutOfMem);
+    assert_err!(syscalls::create_mgate(sel, !0, 0x40000000, Perm::RW), Code::OutOfMem);
 }
 
 fn create_sess() {
