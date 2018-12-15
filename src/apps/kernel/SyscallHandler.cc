@@ -271,7 +271,7 @@ void SyscallHandler::creatergate(VPE *vpe, const m3::DTU::Message *msg) {
     if(!vpe->objcaps().unused(dst))
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid rgate selector");
 
-    if(msgorder + order < msgorder || msgorder > order)
+    if(msgorder + order < msgorder || msgorder > order || order - msgorder >= 32)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Invalid arguments");
     if((1UL << (order - msgorder)) > MAX_RB_SIZE)
         SYS_ERROR(vpe, msg, m3::Errors::INV_ARGS, "Too many receive buffer slots");
