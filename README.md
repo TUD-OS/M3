@@ -1,3 +1,6 @@
+__This repository has been archived. The official M³ repository moved [here](https://github.com/Barkhausen-Institut/M3).__
+
+---
 
 M³
 ==
